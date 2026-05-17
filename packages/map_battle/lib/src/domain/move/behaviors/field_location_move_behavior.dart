@@ -158,7 +158,7 @@ final class FieldLocationMoveBehavior implements BattleMoveBehavior {
     final pledgeCombo = _kind == _FieldLocationMoveKind.pledge
         ? _pledgeCombo(context: context, state: prepared.state)
         : null;
-    final damageMove = pledgeCombo == null ? move : _copyMove(move, power: 150);
+    final damageMove = pledgeCombo == null ? move : _copyMove(move, power: 160);
     final resolved = _resolvePreparedDamage(
       context: context,
       prepared: prepared,

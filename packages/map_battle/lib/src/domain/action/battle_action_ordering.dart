@@ -40,7 +40,44 @@ final class PsdkBattleActionOrdering {
       return left.index.compareTo(right.index);
     });
 
-    return indexed.map((entry) => entry.action).toList(growable: false);
+    return _withAlliedRoundChains(
+      indexed.map((entry) => entry.action).toList(growable: false),
+    );
+  }
+
+  List<PsdkBattleAction> _withAlliedRoundChains(
+    List<PsdkBattleAction> ordered,
+  ) {
+    final remaining = List<PsdkBattleAction>.of(ordered);
+    final result = <PsdkBattleAction>[];
+    while (remaining.isNotEmpty) {
+      final action = remaining.removeAt(0);
+      result.add(action);
+      if (!_isRoundAction(action)) {
+        continue;
+      }
+
+      final chained = <PsdkBattleAction>[];
+      remaining.removeWhere((candidate) {
+        if (_isRoundAction(candidate) &&
+            candidate.user.bank == action.user.bank) {
+          chained.add(candidate);
+          return true;
+        }
+        return false;
+      });
+      chained.sort((left, right) => _speed(right).compareTo(_speed(left)));
+      result.addAll(chained);
+    }
+    return List<PsdkBattleAction>.unmodifiable(result);
+  }
+
+  bool _isRoundAction(PsdkBattleAction action) {
+    return switch (action) {
+      PsdkBattleFightAction(:final move) =>
+        move.battleEngineMethod == 's_round' || move.dbSymbol == 'round',
+      _ => false,
+    };
   }
 
   int _bucket(PsdkBattleAction action) {

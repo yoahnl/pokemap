@@ -69,6 +69,23 @@ void main() {
       expect(ordered.last.user, psdkOpponentSlot);
     });
 
+    test('inserts slower allied Round immediately after the first allied Round',
+        () {
+      const playerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+      final ordered = PsdkBattleActionQueue(
+        actions: <PsdkBattleAction>[
+          _fight(user: psdkPlayerSlot, moveId: 'round_fast', speed: 100),
+          _fight(user: playerAllySlot, moveId: 'round_slow', speed: 20),
+          _fight(user: psdkOpponentSlot, moveId: 'opponent_fast', speed: 90),
+        ],
+      ).ordered(rng: _rng());
+
+      expect(
+        ordered.map((action) => (action as PsdkBattleFightAction).move.id),
+        <String>['round_fast', 'round_slow', 'opponent_fast'],
+      );
+    });
+
     test('decision mapper builds a fight action from PSDK state', () {
       final state = PsdkBattleState.fromSetup(_setup());
 
@@ -98,7 +115,11 @@ PsdkBattleFightAction _fight({
     user: user,
     target: user == psdkPlayerSlot ? psdkOpponentSlot : psdkPlayerSlot,
     moveSlot: 0,
-    move: _move(id: moveId, priority: priority),
+    move: _move(
+      id: moveId,
+      priority: priority,
+      battleEngineMethod: moveId.startsWith('round') ? 's_round' : 's_basic',
+    ),
     speed: speed,
   );
 }
@@ -151,6 +172,7 @@ PsdkBattleCombatantSetup _combatant({
 PsdkBattleMoveData _move({
   required String id,
   int priority = 0,
+  String battleEngineMethod = 's_basic',
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -162,7 +184,7 @@ PsdkBattleMoveData _move({
     accuracy: 100,
     pp: 35,
     priority: priority,
-    battleEngineMethod: 's_basic',
+    battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
   );
 }

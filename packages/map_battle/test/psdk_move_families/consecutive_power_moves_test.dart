@@ -231,6 +231,44 @@ void main() {
       );
     });
 
+    test('s_pledge combo uses the PSDK 160 base power', () {
+      final firePledge = _move(
+        id: 'fire_pledge',
+        type: 'fire',
+        category: PsdkBattleMoveCategory.special,
+        power: 80,
+        battleEngineMethod: 's_pledge',
+      );
+      final waterPledge = _move(
+        id: 'water_pledge',
+        type: 'water',
+        category: PsdkBattleMoveCategory.special,
+        power: 80,
+        battleEngineMethod: 's_pledge',
+      );
+      final combined = _resolvePledge(
+        playerMove: firePledge,
+        allyMove: waterPledge,
+        allyMoveHistory: _historyAt(
+          successes: const <String>['water_pledge'],
+          turn: 7,
+        ),
+      );
+      final power160 = _runMove(
+        playerMove: _move(
+          id: 'fire_pledge',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 160,
+        ),
+      );
+
+      expect(
+        _resolutionDamage(combined, moveId: 'fire_pledge'),
+        _damage(power160, moveId: 'fire_pledge'),
+      );
+    });
+
     test('s_trump_card grows stronger as remaining PP gets lower', () {
       final highPp = _runMove(
         playerMove: _move(

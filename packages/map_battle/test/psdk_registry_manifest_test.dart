@@ -312,7 +312,7 @@ void main() {
         byMethod['s_nature_power']!.dartBehavior,
         'FieldLocationMoveBehavior.naturePower',
       );
-      expect(byMethod['s_pledge']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_pledge']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_pledge']!.dartBehavior,
         'FieldLocationMoveBehavior.pledge',
@@ -424,7 +424,7 @@ void main() {
         byMethod['s_fusion_flare']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fusion_flare',
       );
-      expect(byMethod['s_round']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_round']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_round']!.dartBehavior,
         'ConsecutivePowerMoveBehavior.round',
@@ -685,7 +685,7 @@ void main() {
         byMethod['s_thunder']!.dartBehavior,
         'WeatherPowerMoveBehavior.thunder',
       );
-      expect(byMethod['s_echo']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_echo']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_echo']!.dartBehavior,
         'ConsecutivePowerMoveBehavior.echoedVoice',

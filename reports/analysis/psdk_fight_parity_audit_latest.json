@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 300,
-    "partiel": 428,
+    "fait": 305,
+    "partiel": 423,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1355,9 +1355,9 @@
       {
         "moveId": "echoed_voice",
         "battleEngineMethod": "s_echo",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/echoed_voice.json"
       },
       {
@@ -1627,9 +1627,9 @@
       {
         "moveId": "fire_pledge",
         "battleEngineMethod": "s_pledge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fire_pledge.json"
       },
       {
@@ -2035,9 +2035,9 @@
       {
         "moveId": "grass_pledge",
         "battleEngineMethod": "s_pledge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/grass_pledge.json"
       },
       {
@@ -4171,9 +4171,9 @@
       {
         "moveId": "round",
         "battleEngineMethod": "s_round",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/round.json"
       },
       {
@@ -5627,9 +5627,9 @@
       {
         "moveId": "water_pledge",
         "battleEngineMethod": "s_pledge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/water_pledge.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 102,
-      "partial": 228,
+      "ported": 105,
+      "partial": 225,
       "missing": 0
     },
     "entries": [
@@ -6413,7 +6413,7 @@
         "rubyClass": "EchoedVoice",
         "rubyPath": "10 Move/2 Definitions/300 EchoedVoice.rb",
         "dartBehavior": "ConsecutivePowerMoveBehavior.echoedVoice",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7599,7 +7599,7 @@
         "rubyClass": "Pledge",
         "rubyPath": "10 Move/1 Mechanics/130 Pledge.rb",
         "dartBehavior": "FieldLocationMoveBehavior.pledge",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects",
           "field",
@@ -8012,7 +8012,7 @@
         "rubyClass": "Round",
         "rubyPath": "10 Move/2 Definitions/300 Round.rb",
         "dartBehavior": "ConsecutivePowerMoveBehavior.round",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "actionOrder",
           "history",

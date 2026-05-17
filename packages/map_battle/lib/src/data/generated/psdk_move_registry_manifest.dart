@@ -578,7 +578,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'EchoedVoice',
     rubyPath: '10 Move/2 Definitions/300 EchoedVoice.rb',
     dartBehavior: 'ConsecutivePowerMoveBehavior.echoedVoice',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1764,7 +1764,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Pledge',
     rubyPath: '10 Move/1 Mechanics/130 Pledge.rb',
     dartBehavior: 'FieldLocationMoveBehavior.pledge',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.field,
@@ -2176,7 +2176,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Round',
     rubyPath: '10 Move/2 Definitions/300 Round.rb',
     dartBehavior: 'ConsecutivePowerMoveBehavior.round',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.actionOrder,
       PsdkMoveDependency.history,
