@@ -68,6 +68,7 @@ String renderPsdkFightConvergenceDashboard(
       '| $family | $ported | $partial | $missing | $remaining |',
     );
   }
+  _writeAbilityEffectBacklog(buffer, effects);
 
   buffer
     ..writeln()
@@ -99,11 +100,88 @@ String renderPsdkFightConvergenceDashboard(
   return buffer.toString();
 }
 
+void _writeAbilityEffectBacklog(
+  StringBuffer buffer,
+  Map<String, Object?> effects,
+) {
+  final entries = _list(effects['entries']);
+  final counts = <String, _BacklogCounts>{};
+  for (final rawEntry in entries) {
+    final entry = _map(rawEntry);
+    if (_string(entry['family']) != 'ability') {
+      continue;
+    }
+    final status = _string(entry['status']);
+    if (status == 'ported') {
+      continue;
+    }
+    final hookFamilies = _stringList(entry['hookFamilies']);
+    final families = hookFamilies.isEmpty
+        ? const <String>['unclassified']
+        : _sortedUniqueStrings(hookFamilies);
+    for (final family in families) {
+      final countsForFamily = counts.putIfAbsent(family, _BacklogCounts.new);
+      if (status == 'partial') {
+        countsForFamily.partial += 1;
+      } else {
+        countsForFamily.missing += 1;
+      }
+    }
+  }
+  if (counts.isEmpty) {
+    return;
+  }
+
+  final families = counts.keys.toList()
+    ..sort((left, right) {
+      final byRemaining =
+          counts[right]!.remaining.compareTo(counts[left]!.remaining);
+      if (byRemaining != 0) {
+        return byRemaining;
+      }
+      return left.compareTo(right);
+    });
+  buffer
+    ..writeln()
+    ..writeln('## Ability Effect Backlog')
+    ..writeln()
+    ..writeln(
+      'Effects with multiple PSDK hooks can appear in multiple hook families.',
+    )
+    ..writeln()
+    ..writeln('| Hook family | Partial | Missing | Remaining |')
+    ..writeln('| --- | ---: | ---: | ---: |');
+  for (final family in families) {
+    final count = counts[family]!;
+    buffer.writeln(
+      '| $family | ${count.partial} | ${count.missing} | ${count.remaining} |',
+    );
+  }
+}
+
 Map<String, Object?> _map(Object? value) {
   if (value is Map) {
     return value.cast<String, Object?>();
   }
   return const <String, Object?>{};
+}
+
+List<Object?> _list(Object? value) {
+  if (value is List) {
+    return value;
+  }
+  return const <Object?>[];
+}
+
+List<String> _stringList(Object? value) {
+  if (value is! List) {
+    return const <String>[];
+  }
+  return value.map((entry) => entry.toString()).toList(growable: false);
+}
+
+List<String> _sortedUniqueStrings(List<String> values) {
+  return values.toSet().toList()..sort();
 }
 
 int _int(Object? value) {
@@ -118,4 +196,11 @@ String _string(Object? value) => value?.toString() ?? '';
 String _percent(int value, int total) {
   if (total == 0) return '0.0%';
   return '${(value * 100 / total).toStringAsFixed(1)}%';
+}
+
+final class _BacklogCounts {
+  int partial = 0;
+  int missing = 0;
+
+  int get remaining => partial + missing;
 }

@@ -9,6 +9,7 @@ import 'psdk_attack_coverage_report.dart';
 final _classLinePattern = RegExp(
   r'^\s*class\s+([A-Za-z_][A-Za-z0-9_:]*)(?:\s*<\s*([A-Za-z0-9_:]+))?',
 );
+final _hookLinePattern = RegExp(r'^\s*def\s+(on_[A-Za-z0-9_!?=]+)');
 final _blockStartPattern = RegExp(
   r'^\s*(module|def|if|unless|case|begin|for|while|until)\b|'
   r'\bdo\s*(?:\|[^|]*\|)?\s*$',
@@ -366,12 +367,14 @@ final class PsdkEffectParityEntry {
     required this.family,
     required this.status,
     this.rubyPath = '',
+    this.hookFamilies = const <String>[],
   });
 
   final String effectName;
   final String family;
   final PsdkPortStatus status;
   final String rubyPath;
+  final List<String> hookFamilies;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -379,6 +382,7 @@ final class PsdkEffectParityEntry {
       'family': family,
       'status': status.name,
       'rubyPath': rubyPath,
+      'hookFamilies': hookFamilies,
     };
   }
 }
@@ -572,6 +576,7 @@ Future<List<PsdkEffectParityEntry>> loadPsdkEffectParityEntries(
             rubyPath: relativePath,
           ),
           rubyPath: relativePath,
+          hookFamilies: _hookFamiliesFor(parsedClass.sortedHooks),
         ),
       );
     }
@@ -617,6 +622,14 @@ List<_ParsedRubyClass> _parseRubyClasses(String content) {
       continue;
     }
 
+    final hookMatch = _hookLinePattern.firstMatch(line);
+    if (hookMatch != null) {
+      final classIndex = _currentClassIndex(blockStack);
+      if (classIndex != null) {
+        classes[classIndex].hooks.add(hookMatch.group(1)!);
+      }
+    }
+
     if (_startsRubyBlock(line)) {
       blockStack.add(const _RubyBlock.other());
       continue;
@@ -627,6 +640,16 @@ List<_ParsedRubyClass> _parseRubyClasses(String content) {
     }
   }
   return classes;
+}
+
+int? _currentClassIndex(List<_RubyBlock> blockStack) {
+  for (var index = blockStack.length - 1; index >= 0; index -= 1) {
+    final block = blockStack[index];
+    if (block.classIndex != null) {
+      return block.classIndex;
+    }
+  }
+  return null;
 }
 
 bool _startsRubyBlock(String line) {
@@ -810,6 +833,89 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     return PsdkPortStatus.partial;
   }
   return PsdkPortStatus.missing;
+}
+
+List<String> _hookFamiliesFor(List<String> hooks) {
+  final families = <String>{};
+  for (final hook in hooks) {
+    final family = _hookFamilyFor(hook);
+    if (family != null) {
+      families.add(family);
+    }
+  }
+  return families.toList()..sort();
+}
+
+String? _hookFamilyFor(String hook) {
+  if (hook == 'on_move_ability_immunity') {
+    return 'ability_immunity';
+  }
+  if (hook == 'on_move_priority_change') {
+    return 'action_order';
+  }
+  if (hook == 'on_move_type_change') {
+    return 'move_type_change';
+  }
+  if (hook == 'on_pre_accuracy_check' || hook == 'on_post_accuracy_check') {
+    return 'accuracy';
+  }
+  if (hook == 'on_two_turn_shortcut') {
+    return 'two_turn_shortcut';
+  }
+  if (hook == 'on_move_disabled_check' ||
+      hook == 'on_move_failure' ||
+      hook.startsWith('on_move_prevention')) {
+    return 'move_prevention';
+  }
+  if (hook == 'on_damage_prevention') {
+    return 'damage_prevention';
+  }
+  if (hook == 'on_post_damage' || hook == 'on_post_damage_death') {
+    return 'post_damage';
+  }
+  if (hook == 'on_drain_prevention' || hook == 'on_pre_drain') {
+    return 'drain';
+  }
+  if (hook.contains('status')) {
+    return 'status_prevention';
+  }
+  if (hook.contains('stat')) {
+    return 'stat_change';
+  }
+  if (hook.contains('weather')) {
+    return 'weather_change';
+  }
+  if (hook.contains('fterrain')) {
+    return 'terrain_change';
+  }
+  if (hook.contains('item')) {
+    return 'item_change';
+  }
+  if (hook.contains('ability_change')) {
+    return 'ability_change';
+  }
+  if (hook.contains('switch') || hook.contains('flee')) {
+    return 'switch';
+  }
+  if (hook == 'on_end_turn_event') {
+    return 'end_turn';
+  }
+  if (hook == 'on_post_action_event') {
+    return 'action_order';
+  }
+  if (hook == 'on_transform_event') {
+    return 'transform';
+  }
+  if (hook == 'on_single_type_multiplier_overwrite') {
+    return 'damage_change';
+  }
+  if (hook.startsWith('on_delete') ||
+      hook == 'on_reset_states' ||
+      hook == 'on_clear_message' ||
+      hook == 'on_increase_message') {
+    return 'lifecycle';
+  }
+  return null;
 }
 
 final Map<String, PsdkPortStatus> _abilityEffectStatusByName =
@@ -1098,9 +1204,12 @@ bool _requiredBoolValue(Object? value, String field) {
 }
 
 final class _ParsedRubyClass {
-  const _ParsedRubyClass({required this.name});
+  _ParsedRubyClass({required this.name});
 
   final String name;
+  final List<String> hooks = <String>[];
+
+  List<String> get sortedHooks => hooks.toSet().toList()..sort();
 }
 
 final class _RubyBlock {

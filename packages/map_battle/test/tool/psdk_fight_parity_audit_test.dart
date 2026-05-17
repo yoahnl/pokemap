@@ -65,6 +65,7 @@ void main() {
             family: 'move',
             rubyPath: '06 Effects/02 Move Effects/001 Protect.rb',
             status: PsdkPortStatus.partial,
+            hookFamilies: <String>['move_prevention'],
           ),
           PsdkEffectParityEntry(
             effectName: 'FlashFire',
@@ -113,6 +114,10 @@ void main() {
       expect(
         effects.cast<Map<String, Object?>>().first,
         containsPair('rubyPath', '06 Effects/02 Move Effects/001 Protect.rb'),
+      );
+      expect(
+        effects.cast<Map<String, Object?>>().first,
+        containsPair('hookFamilies', <String>['move_prevention']),
       );
       final runtimeBridge = json['runtimeBridge']! as Map<String, Object?>;
       expect(runtimeBridge['status'], 'not_measured');
