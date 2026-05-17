@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_battle/map_battle.dart';
@@ -50,5 +51,72 @@ void main() {
         ),
       );
     });
+
+    test('rejects empty gate evidence lists', () {
+      for (final entry in <String, Map<String, Object?>>{
+        'tags': <String, Object?>{
+          'tags': <Object?>[],
+        },
+        'psdkSourcePaths': <String, Object?>{
+          'psdkSourcePaths': <Object?>[],
+        },
+        'actions': <String, Object?>{
+          'actions': <Object?>[],
+        },
+        'eventKinds': <String, Object?>{
+          'expectedTimeline': <String, Object?>{
+            'eventKinds': <Object?>[],
+          },
+        },
+      }.entries) {
+        expect(
+          () => PsdkGoldenFixture.fromJson(
+            _fixtureJson(overrides: entry.value),
+          ),
+          throwsA(
+            isA<FormatException>().having(
+              (error) => error.message,
+              'message',
+              contains(entry.key),
+            ),
+          ),
+          reason: entry.key,
+        );
+      }
+    });
+
+    test('defaults omitted audit deltas to zero', () {
+      final json = _fixtureJson()..remove('expectedAuditDeltas');
+
+      final fixture = PsdkGoldenFixture.fromJson(json);
+
+      expect(fixture.expectedAuditDeltas.strictAttacks, 0);
+      expect(fixture.expectedAuditDeltas.portedMethods, 0);
+      expect(fixture.expectedAuditDeltas.portedEffects, 0);
+    });
   });
+}
+
+Map<String, Object?> _fixtureJson({
+  Map<String, Object?> overrides = const <String, Object?>{},
+}) {
+  final json = jsonDecode(
+    File('test/fixtures/psdk_golden/basic_damage_neutral.json')
+        .readAsStringSync(),
+  ) as Map<String, Object?>;
+  _deepMerge(json, overrides);
+  return json;
+}
+
+void _deepMerge(Map<String, Object?> target, Map<String, Object?> source) {
+  for (final entry in source.entries) {
+    final targetValue = target[entry.key];
+    final sourceValue = entry.value;
+    if (targetValue is Map<String, Object?> &&
+        sourceValue is Map<String, Object?>) {
+      _deepMerge(targetValue, sourceValue);
+    } else {
+      target[entry.key] = sourceValue;
+    }
+  }
 }

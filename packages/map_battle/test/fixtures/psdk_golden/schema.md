@@ -15,8 +15,8 @@ Required top-level fields:
   action.
 - `expectedTimeline`: expected event kinds and optional event payload checks for
   the last submitted action.
-- `expectedAuditDeltas`: expected contribution to audit axes when the fixture's
-  represented behavior is fully strict.
+- `expectedAuditDeltas`: optional expected contribution to audit axes when the
+  fixture's represented behavior is fully strict. Omitted deltas default to `0`.
 - `notes`: short audit notes explaining why the scenario exists.
 
 `initialBattle` contains:
@@ -59,7 +59,20 @@ Actions currently support:
 - `damageEvents`: optional list of `{ "moveId", "damage", "remainingHp" }`
   checks, in emitted order.
 
-`expectedAuditDeltas` contains:
+At least one tag must be a parity-gate tag:
+
+- `move_method`
+- `effect_family`
+- `ability`
+- `item`
+- `status`
+- `field`
+- `doubles`
+- `runtime_bridge`
+
+Focused behavior tags such as `damage` may be added alongside gate tags.
+
+`expectedAuditDeltas`, when present, contains:
 
 - `strictAttacks`: number of strict attack entries represented by the fixture.
 - `portedMethods`: number of PSDK move methods represented by the fixture.

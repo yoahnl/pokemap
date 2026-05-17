@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:map_battle/src/data/generated/psdk_ability_effect_manifest.dart';
 import 'package:map_battle/src/data/generated/psdk_item_effect_manifest.dart';
 import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
+import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -106,12 +107,53 @@ void main() {
       for (final entry in psdkAbilityEffectManifest.where(
         (entry) => entry.status == PsdkAbilityPortStatus.ported,
       )) {
+        expect(entry.rubyPath, isNotEmpty, reason: entry.abilityId);
+        expect(_psdkSourceExists(entry.rubyPath), isTrue,
+            reason: entry.abilityId);
         expect(entry.dartEffect, isNotNull, reason: entry.abilityId);
       }
       for (final entry in psdkItemEffectManifest.where(
         (entry) => entry.status == PsdkItemPortStatus.ported,
       )) {
+        expect(entry.rubyPath, isNotEmpty, reason: entry.itemId);
+        expect(_psdkSourceExists(entry.rubyPath), isTrue, reason: entry.itemId);
         expect(entry.dartEffect, isNotNull, reason: entry.itemId);
+      }
+    });
+
+    test('ported PSDK effects require source, Dart effect, and evidence',
+        () async {
+      final testCorpus = _readTestCorpus(Directory('test'));
+      final fixtureCorpus = _readFixtureCorpus(
+        Directory('test/fixtures/psdk_golden'),
+      );
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final families = effectEntries.map((entry) => entry.family).toSet();
+
+      expect(
+        families,
+        containsAll(<String>[
+          'ability',
+          'item',
+          'move',
+          'status',
+          'field',
+          'mechanics',
+        ]),
+      );
+
+      for (final entry in effectEntries
+          .where((entry) => entry.status == PsdkPortStatus.ported)) {
+        expect(entry.rubyPath, isNotEmpty, reason: entry.effectName);
+        expect(_psdkSourceExists(entry.rubyPath), isTrue,
+            reason: entry.effectName);
+        expect(
+          _hasEffectEvidence(entry, testCorpus, fixtureCorpus),
+          isTrue,
+          reason: entry.effectName,
+        );
       }
     });
 
@@ -2338,6 +2380,17 @@ String _readTestCorpus(Directory directory) {
   return buffer.toString();
 }
 
+String _readFixtureCorpus(Directory directory) {
+  final buffer = StringBuffer();
+  for (final entity in directory.listSync(recursive: true)) {
+    if (entity is File &&
+        (entity.path.endsWith('.json') || entity.path.endsWith('.md'))) {
+      buffer.writeln(entity.readAsStringSync());
+    }
+  }
+  return buffer.toString();
+}
+
 bool _hasMoveEvidence(
   PsdkMoveRegistryManifestEntry entry,
   String testCorpus,
@@ -2350,4 +2403,42 @@ bool _hasMoveEvidence(
     return true;
   }
   return testCorpus.contains(entry.rubyClass);
+}
+
+bool _hasEffectEvidence(
+  PsdkEffectParityEntry entry,
+  String testCorpus,
+  String fixtureCorpus,
+) {
+  if (testCorpus.contains(entry.effectName)) {
+    return true;
+  }
+  final snakeName = _snakeCase(entry.effectName);
+  if (snakeName.isNotEmpty &&
+      (testCorpus.contains(snakeName) || fixtureCorpus.contains(snakeName))) {
+    return true;
+  }
+  final familyTag = entry.family == 'move' ? 'effect_family' : entry.family;
+  return fixtureCorpus.contains(familyTag);
+}
+
+bool _psdkSourceExists(String rubyPath) {
+  final repoRoot = Directory('../..');
+  if (File('${repoRoot.path}/$rubyPath').existsSync()) {
+    return true;
+  }
+  final psdkBattleRoot =
+      Directory('../../pokemonsdk-development/scripts/5 Battle');
+  return File('${psdkBattleRoot.path}/$rubyPath').existsSync();
+}
+
+String _snakeCase(String value) {
+  return value
+      .replaceAllMapped(
+        RegExp(r'([a-z0-9])([A-Z])'),
+        (match) => '${match.group(1)}_${match.group(2)}',
+      )
+      .replaceAll('-', '_')
+      .replaceAll(' ', '_')
+      .toLowerCase();
 }

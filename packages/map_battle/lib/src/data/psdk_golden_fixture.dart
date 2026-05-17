@@ -12,6 +12,17 @@ enum PsdkGoldenActionKind {
   fight,
 }
 
+const psdkGoldenGateTags = <String>{
+  'move_method',
+  'effect_family',
+  'ability',
+  'item',
+  'status',
+  'field',
+  'doubles',
+  'runtime_bridge',
+};
+
 class PsdkGoldenFixture {
   PsdkGoldenFixture({
     required this.scenarioId,
@@ -30,32 +41,36 @@ class PsdkGoldenFixture {
         notes = List<String>.unmodifiable(notes);
 
   factory PsdkGoldenFixture.fromJson(Map<String, Object?> json) {
+    final tags = _requiredNonEmptyStringList(json, 'tags');
+    final psdkSourcePaths =
+        _requiredNonEmptyStringList(json, 'psdkSourcePaths');
+    final actions = _requiredNonEmptyList(json, 'actions')
+        .map((value) => PsdkGoldenAction.fromJson(
+              _asMap(value, 'actions[]'),
+            ))
+        .toList(growable: false);
+    final expectedTimeline = PsdkGoldenExpectedTimeline.fromJson(
+      _requiredMap(json, 'expectedTimeline'),
+    );
+    _validateGateTags(tags);
     return PsdkGoldenFixture(
       scenarioId: _requiredString(json, 'scenarioId'),
-      tags: _requiredList(json, 'tags')
-          .map((value) => _asString(value, 'tags[]'))
-          .toList(growable: false),
-      psdkSourcePaths: _requiredList(json, 'psdkSourcePaths')
-          .map((value) => _asString(value, 'psdkSourcePaths[]'))
-          .toList(growable: false),
+      tags: tags,
+      psdkSourcePaths: psdkSourcePaths,
       sourcePsdkVersion: _requiredString(json, 'sourcePsdkVersion'),
       initialBattle: PsdkGoldenInitialBattle.fromJson(
         _requiredMap(json, 'initialBattle'),
       ),
-      actions: _requiredList(json, 'actions')
-          .map((value) => PsdkGoldenAction.fromJson(
-                _asMap(value, 'actions[]'),
-              ))
-          .toList(growable: false),
+      actions: actions,
       expectedFinalState: PsdkGoldenExpectedFinalState.fromJson(
         _requiredMap(json, 'expectedFinalState'),
       ),
-      expectedTimeline: PsdkGoldenExpectedTimeline.fromJson(
-        _requiredMap(json, 'expectedTimeline'),
-      ),
-      expectedAuditDeltas: PsdkGoldenExpectedAuditDeltas.fromJson(
-        _requiredMap(json, 'expectedAuditDeltas'),
-      ),
+      expectedTimeline: expectedTimeline,
+      expectedAuditDeltas: json['expectedAuditDeltas'] == null
+          ? PsdkGoldenExpectedAuditDeltas.zero
+          : PsdkGoldenExpectedAuditDeltas.fromJson(
+              _requiredMap(json, 'expectedAuditDeltas'),
+            ),
       notes: _requiredList(json, 'notes')
           .map((value) => _asString(value, 'notes[]'))
           .toList(growable: false),
@@ -100,6 +115,12 @@ class PsdkGoldenExpectedAuditDeltas {
     required this.portedMethods,
     required this.portedEffects,
   });
+
+  static const zero = PsdkGoldenExpectedAuditDeltas(
+    strictAttacks: 0,
+    portedMethods: 0,
+    portedEffects: 0,
+  );
 
   factory PsdkGoldenExpectedAuditDeltas.fromJson(Map<String, Object?> json) {
     return PsdkGoldenExpectedAuditDeltas(
@@ -299,7 +320,7 @@ class PsdkGoldenExpectedTimeline {
                 ))
             .toList(growable: false);
     return PsdkGoldenExpectedTimeline(
-      eventKinds: _requiredList(json, 'eventKinds')
+      eventKinds: _requiredNonEmptyList(json, 'eventKinds')
           .map((value) => _asString(value, 'eventKinds[]'))
           .toList(growable: false),
       damageEvents: damageEvents,
@@ -443,6 +464,26 @@ List<Object?> _requiredList(Map<String, Object?> json, String field) {
   return _asList(json[field], field);
 }
 
+List<Object?> _requiredNonEmptyList(
+  Map<String, Object?> json,
+  String field,
+) {
+  final list = _requiredList(json, field);
+  if (list.isEmpty) {
+    throw FormatException('Expected "$field" to be a non-empty list.');
+  }
+  return list;
+}
+
+List<String> _requiredNonEmptyStringList(
+  Map<String, Object?> json,
+  String field,
+) {
+  return _requiredNonEmptyList(json, field)
+      .map((value) => _asString(value, '$field[]'))
+      .toList(growable: false);
+}
+
 String _requiredString(Map<String, Object?> json, String field) {
   if (!json.containsKey(field)) {
     throw FormatException('Missing required field "$field".');
@@ -534,4 +575,13 @@ bool _sameStrings(List<String> left, List<String> right) {
     }
   }
   return true;
+}
+
+void _validateGateTags(List<String> tags) {
+  if (!tags.any(psdkGoldenGateTags.contains)) {
+    throw FormatException(
+      'Expected "tags" to contain at least one PSDK gate tag: '
+      '${psdkGoldenGateTags.join(', ')}.',
+    );
+  }
 }
