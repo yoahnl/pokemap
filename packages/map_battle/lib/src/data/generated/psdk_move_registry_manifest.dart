@@ -1788,7 +1788,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PollenPuff',
     rubyPath: '10 Move/2 Definitions/300 PollenPuff.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_pollen_puff',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(

@@ -1160,6 +1160,16 @@ BattleMoveBehaviorResolution _resolvePollenPuff(
 
   final targetSlot = context.target;
   final target = prepared.state.battlerAt(targetSlot);
+  final user = prepared.state.battlerAt(context.user);
+  if (user.effects.contains('heal_block') ||
+      target.effects.contains('heal_block')) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: prepared.events,
+    );
+  }
+
   final healed = applyDirectHeal(
     state: prepared.state,
     user: context.user,

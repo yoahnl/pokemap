@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 299,
-    "partiel": 429,
+    "fait": 300,
+    "partiel": 428,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -3627,9 +3627,9 @@
       {
         "moveId": "pollen_puff",
         "battleEngineMethod": "s_pollen_puff",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/pollen_puff.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 101,
-      "partial": 229,
+      "ported": 102,
+      "partial": 228,
       "missing": 0
     },
     "entries": [
@@ -7623,7 +7623,7 @@
         "rubyClass": "PollenPuff",
         "rubyPath": "10 Move/2 Definitions/300 PollenPuff.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_pollen_puff",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {

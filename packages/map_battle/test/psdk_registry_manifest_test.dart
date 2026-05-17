@@ -397,7 +397,7 @@ void main() {
         byMethod['s_photon_geyser']!.dartBehavior,
         'StaticBasicMoveRegistry.s_photon_geyser',
       );
-      expect(byMethod['s_pollen_puff']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_pollen_puff']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_pollen_puff']!.dartBehavior,
         'StaticBasicMoveRegistry.s_pollen_puff',

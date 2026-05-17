@@ -84,6 +84,95 @@ void main() {
       expect(_healEvents(result), isEmpty);
       expect(result.state.battlerAt(psdkOpponentSlot).currentHp, lessThan(100));
     });
+
+    test('s_pollen_puff does not heal allies while the user is Heal Blocked',
+        () {
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final move = _move(
+        id: 'pollen_puff',
+        type: 'bug',
+        category: PsdkBattleMoveCategory.special,
+        power: 90,
+        battleEngineMethod: 's_pollen_puff',
+        target: PsdkBattleMoveTarget.adjacentAlly,
+      );
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: _combatant(
+            id: 'player',
+            move: move,
+            effects: PsdkBattleEffectStack(
+              values: const <String>['heal_block'],
+            ),
+          ),
+          allySlot: _combatant(
+            id: 'ally',
+            currentHp: 25,
+            move: _move(id: 'ally_wait', power: 0),
+          ),
+        },
+      );
+
+      final result =
+          createStaticBasicMoveRegistry().resolve('s_pollen_puff').resolve(
+                BattleMoveBehaviorContext(
+                  state: state,
+                  rng: _rng(),
+                  turn: 1,
+                  user: psdkPlayerSlot,
+                  target: allySlot,
+                  move: BattleMoveDefinition.fromPsdk(move),
+                ),
+              );
+
+      expect(result.state.battlerAt(allySlot).currentHp, 25);
+      expect(_damageEvents(result), isEmpty);
+      expect(_healEvents(result), isEmpty);
+    });
+
+    test('s_pollen_puff does not heal Heal Blocked allies', () {
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final move = _move(
+        id: 'pollen_puff',
+        type: 'bug',
+        category: PsdkBattleMoveCategory.special,
+        power: 90,
+        battleEngineMethod: 's_pollen_puff',
+        target: PsdkBattleMoveTarget.adjacentAlly,
+      );
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: _combatant(
+            id: 'player',
+            move: move,
+          ),
+          allySlot: _combatant(
+            id: 'ally',
+            currentHp: 25,
+            move: _move(id: 'ally_wait', power: 0),
+            effects: PsdkBattleEffectStack(
+              values: const <String>['heal_block'],
+            ),
+          ),
+        },
+      );
+
+      final result =
+          createStaticBasicMoveRegistry().resolve('s_pollen_puff').resolve(
+                BattleMoveBehaviorContext(
+                  state: state,
+                  rng: _rng(),
+                  turn: 1,
+                  user: psdkPlayerSlot,
+                  target: allySlot,
+                  move: BattleMoveDefinition.fromPsdk(move),
+                ),
+              );
+
+      expect(result.state.battlerAt(allySlot).currentHp, 25);
+      expect(_damageEvents(result), isEmpty);
+      expect(_healEvents(result), isEmpty);
+    });
   });
 }
 
@@ -91,6 +180,7 @@ PsdkBattleCombatant _combatant({
   required String id,
   required PsdkBattleMoveData move,
   int currentHp = 100,
+  PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
   return PsdkBattleCombatant.fromSetup(
     PsdkBattleCombatantSetup(
@@ -109,6 +199,7 @@ PsdkBattleCombatant _combatant({
         speed: 50,
       ),
       moves: <PsdkBattleMoveData>[move],
+      effects: effects,
     ),
   );
 }

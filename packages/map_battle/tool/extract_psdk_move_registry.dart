@@ -742,7 +742,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_pollen_puff': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_pollen_puff',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_psychic_noise': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.psychicNoise',
