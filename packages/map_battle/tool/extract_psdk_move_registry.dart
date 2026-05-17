@@ -133,7 +133,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_natural_gift': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.naturalGift',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_nature_power': _KnownDartBehavior(
     dartBehavior: 'FieldLocationMoveBehavior.naturePower',
@@ -145,7 +145,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_recycle': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.recycle',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_return': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_return)',
@@ -328,7 +328,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_poltergeist': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_poltergeist',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_pre_attack_base': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_pre_attack_base)',
@@ -457,7 +457,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_belch': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.belch',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_bind': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_bind',
@@ -892,7 +892,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_techno_blast': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.technoBlast',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_tailwind': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_tailwind)',
@@ -1600,10 +1600,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_taunt': {
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.actionOrder,
-  },
-  's_techno_blast': {
-    _PsdkMoveDependency.item,
-    _PsdkMoveDependency.ability,
   },
   's_thief': {
     _PsdkMoveDependency.item,

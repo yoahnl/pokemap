@@ -228,7 +228,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Belch',
     rubyPath: '10 Move/2 Definitions/300 Belch.rb',
     dartBehavior: 'ItemDependentMoveBehavior.belch',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1633,7 +1633,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'NaturalGift',
     rubyPath: '10 Move/2 Definitions/300 NaturalGift.rb',
     dartBehavior: 'ItemDependentMoveBehavior.naturalGift',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1796,7 +1796,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Poltergeist',
     rubyPath: '10 Move/2 Definitions/300 Poltergeist.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_poltergeist',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2005,7 +2005,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Recycle',
     rubyPath: '10 Move/2 Definitions/300 Recycle.rb',
     dartBehavior: 'ItemDependentMoveBehavior.recycle',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2709,11 +2709,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TechnoBlast',
     rubyPath: '10 Move/2 Definitions/300 TechnoBlast.rb',
     dartBehavior: 'ItemDependentMoveBehavior.technoBlast',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.item,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_telekinesis',

@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 290,
-    "partiel": 438,
+    "fait": 294,
+    "partiel": 434,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -363,9 +363,9 @@
       {
         "moveId": "belch",
         "battleEngineMethod": "s_belch",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/belch.json"
       },
       {
@@ -3291,9 +3291,9 @@
       {
         "moveId": "natural_gift",
         "battleEngineMethod": "s_natural_gift",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/natural_gift.json"
       },
       {
@@ -3963,9 +3963,9 @@
       {
         "moveId": "recycle",
         "battleEngineMethod": "s_recycle",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/recycle.json"
       },
       {
@@ -5243,9 +5243,9 @@
       {
         "moveId": "techno_blast",
         "battleEngineMethod": "s_techno_blast",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/techno_blast.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 89,
-      "partial": 241,
+      "ported": 94,
+      "partial": 236,
       "missing": 0
     },
     "entries": [
@@ -6063,7 +6063,7 @@
         "rubyClass": "Belch",
         "rubyPath": "10 Move/2 Definitions/300 Belch.rb",
         "dartBehavior": "ItemDependentMoveBehavior.belch",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7468,7 +7468,7 @@
         "rubyClass": "NaturalGift",
         "rubyPath": "10 Move/2 Definitions/300 NaturalGift.rb",
         "dartBehavior": "ItemDependentMoveBehavior.naturalGift",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7631,7 +7631,7 @@
         "rubyClass": "Poltergeist",
         "rubyPath": "10 Move/2 Definitions/300 Poltergeist.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_poltergeist",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7840,7 +7840,7 @@
         "rubyClass": "Recycle",
         "rubyPath": "10 Move/2 Definitions/300 Recycle.rb",
         "dartBehavior": "ItemDependentMoveBehavior.recycle",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -8550,11 +8550,8 @@
         "rubyClass": "TechnoBlast",
         "rubyPath": "10 Move/2 Definitions/300 TechnoBlast.rb",
         "dartBehavior": "ItemDependentMoveBehavior.technoBlast",
-        "status": "partial",
-        "dependencies": [
-          "item",
-          "ability"
-        ]
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_telekinesis",

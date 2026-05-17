@@ -226,6 +226,25 @@ void main() {
           'liechi_berry');
     });
 
+    test('s_natural_gift accepts every PSDK Studio berry table entry', () {
+      final gifted = _runMove(
+        playerHeldItemId: 'magost_berry',
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        playerMove: _move(
+          id: 'natural_gift',
+          type: 'normal',
+          power: 1,
+          battleEngineMethod: 's_natural_gift',
+        ),
+      );
+
+      expect(_failed(gifted, moveId: 'natural_gift'), isFalse);
+      expect(_damage(gifted, moveId: 'natural_gift'), greaterThan(0));
+      expect(gifted.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(gifted.state.battlerAt(psdkPlayerSlot).consumedItemId,
+          'magost_berry');
+    });
+
     test('s_fling consumes the held item and uses item fling power', () {
       final light = _runMove(
         playerHeldItemId: 'choice_scarf',

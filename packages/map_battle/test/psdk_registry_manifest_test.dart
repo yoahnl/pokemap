@@ -527,7 +527,7 @@ void main() {
         byMethod['s_fell_stinger']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fell_stinger',
       );
-      expect(byMethod['s_poltergeist']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_poltergeist']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_poltergeist']!.dartBehavior,
         'StaticBasicMoveRegistry.s_poltergeist',
@@ -799,19 +799,24 @@ void main() {
       );
       for (final entry in <({String method, String behavior})>[
         (method: 's_belch', behavior: 'ItemDependentMoveBehavior.belch'),
-        (method: 's_bestow', behavior: 'ItemDependentMoveBehavior.bestow'),
-        (method: 's_fling', behavior: 'ItemDependentMoveBehavior.fling'),
-        (method: 's_knock_off', behavior: 'ItemDependentMoveBehavior.knockOff'),
         (
           method: 's_natural_gift',
           behavior: 'ItemDependentMoveBehavior.naturalGift',
         ),
-        (method: 's_pluck', behavior: 'ItemDependentMoveBehavior.pluck'),
         (method: 's_recycle', behavior: 'ItemDependentMoveBehavior.recycle'),
         (
           method: 's_techno_blast',
           behavior: 'ItemDependentMoveBehavior.technoBlast',
         ),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+      }
+      for (final entry in <({String method, String behavior})>[
+        (method: 's_bestow', behavior: 'ItemDependentMoveBehavior.bestow'),
+        (method: 's_fling', behavior: 'ItemDependentMoveBehavior.fling'),
+        (method: 's_knock_off', behavior: 'ItemDependentMoveBehavior.knockOff'),
+        (method: 's_pluck', behavior: 'ItemDependentMoveBehavior.pluck'),
         (method: 's_thief', behavior: 'ItemDependentMoveBehavior.thief'),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
