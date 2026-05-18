@@ -9,7 +9,7 @@ void main() {
       expect(buildingStaticShadowContactLedgeNearHeightOffsetMultiplier, 0.18);
       expect(buildingStaticShadowContactLedgeDepthRatio, 0.055);
       expect(buildingStaticShadowContactLedgeMinDepth, 6);
-      expect(buildingStaticShadowContactLedgeMaxDepth, 20);
+      expect(buildingStaticShadowContactLedgeMaxDepth, 14);
       expect(buildingStaticShadowContactLedgeSkewRatio, 0.020);
       expect(buildingStaticShadowContactLedgeMinSkew, 0);
       expect(buildingStaticShadowContactLedgeMaxSkew, 7);
@@ -74,7 +74,7 @@ void main() {
         metrics: metrics,
       );
 
-      final depth = _clamp(metrics.visualHeight * 0.055, 6, 20);
+      final depth = _clamp(metrics.visualHeight * 0.055, 6, 14);
       final skew = _clamp(metrics.visualWidth * 0.020, 0, 7);
       expect(geometry.nearLeft.x,
           closeTo(base.centerX - base.width * 0.72, 0.000001));
@@ -153,7 +153,7 @@ void main() {
       );
       expect(
         largeGeometry.farLeft.y - _base(large).centerY,
-        closeTo(20, 0.000001),
+        closeTo(14, 0.000001),
       );
     });
 
