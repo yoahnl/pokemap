@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'ability_effect.dart';
@@ -57,6 +58,8 @@ enum AbilityBasePowerCondition {
   fluffyIncoming,
   contactIncoming,
   fireIncoming,
+  fireOrIceIncoming,
+  sandForceOutgoing,
   specialIncoming,
 }
 
@@ -89,6 +92,15 @@ final class AbilityBasePowerModifierEffect extends BattleAbilityEffect {
                 context.user.currentHp < context.user.maxHp / 2
             ? multiplier
             : 1,
+      AbilityBasePowerCondition.sandForceOutgoing =>
+        context.user.abilityId == abilityId &&
+                !context.weatherEffectsSuppressed &&
+                context.field.isWeatherActive(PsdkBattleWeatherId.sandstorm) &&
+                (context.moveType == 'steel' ||
+                    context.moveType == 'rock' ||
+                    context.moveType == 'ground')
+            ? multiplier
+            : 1,
       _ => 1,
     };
   }
@@ -110,11 +122,17 @@ final class AbilityBasePowerModifierEffect extends BattleAbilityEffect {
               : 1,
       AbilityBasePowerCondition.fireIncoming =>
         context.moveType == 'fire' ? multiplier : 1,
+      AbilityBasePowerCondition.fireOrIceIncoming =>
+        context.moveType == 'fire' || context.moveType == 'ice'
+            ? multiplier
+            : 1,
       AbilityBasePowerCondition.specialIncoming =>
         context.move.category == PsdkBattleMoveCategory.special
             ? multiplier
             : 1,
-      AbilityBasePowerCondition.lowHpUser => 1,
+      AbilityBasePowerCondition.lowHpUser ||
+      AbilityBasePowerCondition.sandForceOutgoing =>
+        1,
     };
   }
 }

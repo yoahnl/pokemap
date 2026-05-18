@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 223,
+      "ported": 226,
       "partial": 19,
-      "missing": 240
+      "missing": 237
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 72,
+        "ported": 75,
         "partial": 1,
-        "missing": 181
+        "missing": 178
       },
       "move": {
         "ported": 80,
@@ -12392,7 +12392,7 @@
       {
         "effectName": "SandForce",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sand Force.rb",
         "hookFamilies": []
       },
@@ -13190,7 +13190,7 @@
       {
         "effectName": "ThickFat",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Thick Fat.rb",
         "hookFamilies": []
       },
@@ -13249,7 +13249,7 @@
       {
         "effectName": "ToxicBoost",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Toxic Boost.rb",
         "hookFamilies": []
       },

@@ -46,6 +46,11 @@ bool hasBurnStatus(BattleAbilityStatContext context) {
   return context.battler.majorStatus == PsdkBattleMajorStatus.burn;
 }
 
+bool hasPoisonStatus(BattleAbilityStatContext context) {
+  return context.battler.majorStatus == PsdkBattleMajorStatus.poison ||
+      context.battler.majorStatus == PsdkBattleMajorStatus.toxic;
+}
+
 bool hasGrassyTerrain(BattleAbilityStatContext context) {
   return context.field.isTerrainActive(PsdkBattleTerrainId.grassyTerrain);
 }

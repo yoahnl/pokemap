@@ -324,6 +324,12 @@ final class AbilityEffectRegistry {
           statMultipliers: const <String, double>{'specialAttack': 1.5},
           condition: hasBurnStatus,
         ),
+    'toxic_boost': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'toxic_boost',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 1.5},
+          condition: hasPoisonStatus,
+        ),
     'defeatist': ({required scope}) => AbilityBasePowerModifierEffect(
           abilityId: 'defeatist',
           scope: scope,
@@ -341,6 +347,18 @@ final class AbilityEffectRegistry {
           scope: scope,
           condition: AbilityBasePowerCondition.fireIncoming,
           multiplier: 0.5,
+        ),
+    'thick_fat': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'thick_fat',
+          scope: scope,
+          condition: AbilityBasePowerCondition.fireOrIceIncoming,
+          multiplier: 0.5,
+        ),
+    'sand_force': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'sand_force',
+          scope: scope,
+          condition: AbilityBasePowerCondition.sandForceOutgoing,
+          multiplier: 1.3,
         ),
     'ice_scales': ({required scope}) => AbilityBasePowerModifierEffect(
           abilityId: 'ice_scales',

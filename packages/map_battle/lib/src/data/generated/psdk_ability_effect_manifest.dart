@@ -1155,7 +1155,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sand_force',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sand Force.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.sandForce',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sand_rush',
@@ -1540,7 +1541,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'thick_fat',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Thick Fat.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.thickFat',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'tinted_lens',
@@ -1567,7 +1569,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'toxic_boost',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Toxic Boost.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.toxicBoost',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'toxic_chain',
