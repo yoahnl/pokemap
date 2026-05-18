@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 373,
-    "partiel": 355,
+    "fait": 375,
+    "partiel": 353,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1547,9 +1547,9 @@
       {
         "moveId": "false_swipe",
         "battleEngineMethod": "s_false_swipe",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/false_swipe.json"
       },
       {
@@ -2331,9 +2331,9 @@
       {
         "moveId": "hold_back",
         "battleEngineMethod": "s_false_swipe",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hold_back.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 184,
-      "partial": 146,
+      "ported": 185,
+      "partial": 145,
       "missing": 0
     },
     "entries": [
@@ -6648,11 +6648,8 @@
         "rubyClass": "FalseSwipe",
         "rubyPath": "10 Move/2 Definitions/300 FalseSwipe.rb",
         "dartBehavior": "BasicDamageSpecializationMoveBehavior.falseSwipe",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_feint",
@@ -9380,7 +9377,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 110,
+        "count": 109,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9408,7 +9405,6 @@
           "s_entrainment",
           "s_expanding_force",
           "s_fairy_lock",
-          "s_false_swipe",
           "s_fell_stinger",
           "s_final_gambit",
           "s_fling",

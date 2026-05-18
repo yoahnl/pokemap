@@ -1026,15 +1026,15 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'MultiHitMoveBehavior.waterShuriken',
     status: _PsdkPortStatus.partial,
   ),
-  // False Swipe is executable but remains partial until Substitute is available
-  // in combatant effects. Full Crit only overrides Ruby critical_rate to 100.
+  // False Swipe mirrors Ruby's anti-KO clamp and Substitute exception. Full
+  // Crit only overrides Ruby critical_rate to 100.
   's_a_fang': _KnownDartBehavior(
     dartBehavior: 'BasicDamageSpecializationMoveBehavior.fangs',
     status: _PsdkPortStatus.partial,
   ),
   's_false_swipe': _KnownDartBehavior(
     dartBehavior: 'BasicDamageSpecializationMoveBehavior.falseSwipe',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_full_crit': _KnownDartBehavior(
     dartBehavior: 'BasicDamageSpecializationMoveBehavior.fullCrit',
@@ -1750,9 +1750,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.faintProcess,
     _PsdkMoveDependency.terrain,
     _PsdkMoveDependency.grounded,
-  },
-  's_false_swipe': {
-    _PsdkMoveDependency.effects,
   },
   's_a_fang': {
     _PsdkMoveDependency.handlerStatus,

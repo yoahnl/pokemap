@@ -754,8 +754,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FalseSwipe',
     rubyPath: '10 Move/2 Definitions/300 FalseSwipe.rb',
     dartBehavior: 'BasicDamageSpecializationMoveBehavior.falseSwipe',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_feint',
