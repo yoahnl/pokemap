@@ -722,11 +722,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SelfDestruct',
     rubyPath: '10 Move/2 Definitions/300 SelfDestruct.rb',
     dartBehavior: 'SelfDestructMoveBehavior.explosion',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_facade',
