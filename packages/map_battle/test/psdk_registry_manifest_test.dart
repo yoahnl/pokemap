@@ -823,6 +823,7 @@ void main() {
         byMethod['s_jump_kick']!.dartBehavior,
         'StaticBasicMoveRegistry.s_jump_kick',
       );
+      expect(byMethod['s_jump_kick']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_sky_drop']!.dartBehavior,
         'StaticBasicMoveRegistry.s_sky_drop',
@@ -935,7 +936,7 @@ void main() {
         byMethod['s_jaw_lock']!.dartBehavior,
         'StaticBasicMoveRegistry.s_jaw_lock',
       );
-      expect(byMethod['s_sappy_seed']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_sappy_seed']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_sappy_seed']!.dartBehavior,
         'StaticBasicMoveRegistry.s_sappy_seed',

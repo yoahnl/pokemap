@@ -1409,8 +1409,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HighJumpKick',
     rubyPath: '10 Move/2 Definitions/300 HighJumpKick.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_jump_kick',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_jungle_healing',
@@ -2329,8 +2329,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SappySeed',
     rubyPath: '10 Move/2 Definitions/300 SappySeed.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_sappy_seed',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_scale_shot',
