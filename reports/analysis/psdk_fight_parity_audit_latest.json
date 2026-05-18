@@ -5883,7 +5883,7 @@
           "effects",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_absorb",
@@ -6059,7 +6059,7 @@
           "handlerSwitch",
           "effects"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_beak_blast",
@@ -6227,7 +6227,7 @@
           "handlerStat",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_ceaseless_edge",
@@ -6281,7 +6281,7 @@
           "ability",
           "faintProcess"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_clangorous_soul",
@@ -6492,7 +6492,7 @@
           "effects",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_dream_eater",
@@ -6627,7 +6627,7 @@
           "ability",
           "faintProcess"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_facade",
@@ -6721,7 +6721,7 @@
           "faintProcess",
           "history"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_fishious_rend",
@@ -7147,7 +7147,7 @@
           "ability",
           "targetingMulti"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_heal_block",
@@ -7400,7 +7400,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_knock_off",
@@ -7649,7 +7649,7 @@
           "ability",
           "faintProcess"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_mind_reader",
@@ -7719,7 +7719,7 @@
           "terrain",
           "grounded"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_multi_attack",
@@ -7828,7 +7828,7 @@
           "handlerStatus",
           "history"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_pain_split",
@@ -7854,7 +7854,7 @@
           "handlerStat",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_payback",
@@ -8064,7 +8064,7 @@
           "ability",
           "targetingMulti"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_psyshock",
@@ -8094,7 +8094,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_pursuit",
@@ -8305,7 +8305,7 @@
           "effects",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_role_play",
@@ -8428,7 +8428,7 @@
           "handlerStatus",
           "handlerStat"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_self_stat",
@@ -8566,7 +8566,7 @@
           "handlerStatus",
           "effects"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_snatch",
@@ -8612,7 +8612,7 @@
           "handlerStatus",
           "effects"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_sparkly_swirl",
@@ -8626,7 +8626,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_spectral_thief",
@@ -8729,7 +8729,7 @@
           "ability",
           "faintProcess"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_steel_roller",
@@ -8927,7 +8927,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_tar_shot",
@@ -9058,7 +9058,7 @@
           "handlerStatus",
           "history"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_throat_chop",
@@ -9137,7 +9137,7 @@
           "handlerStat",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_transform",
@@ -9168,7 +9168,7 @@
           "item",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_trick_room",
@@ -9225,7 +9225,7 @@
           "item",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_upper_hand",
@@ -9253,7 +9253,7 @@
           "history",
           "targetingMulti"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_venom_drench",
@@ -9267,7 +9267,7 @@
           "handlerStat",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_venoshock",
@@ -9289,7 +9289,7 @@
           "effects",
           "ability"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_water_shuriken",
@@ -9351,7 +9351,7 @@
           "handlerStat",
           "field"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_worry_seed",
@@ -9385,48 +9385,10 @@
           "ability",
           "terrain"
         ],
-        "methodBatch": "failure_prevention_immunity"
+        "methodBatch": "effect_hook_manifest_sweep"
       }
     ],
     "backlogBatches": [
-      {
-        "id": "failure_prevention_immunity",
-        "label": "Failure / prevention / immunity",
-        "count": 31,
-        "methods": [
-          "s_a_fang",
-          "s_baton_pass",
-          "s_captivate",
-          "s_chloroblast",
-          "s_dragon_tail",
-          "s_explosion",
-          "s_final_gambit",
-          "s_heal_bell",
-          "s_jungle_healing",
-          "s_mind_blown",
-          "s_misty_explosion",
-          "s_outrage",
-          "s_parting_shot",
-          "s_psycho_shift",
-          "s_purify",
-          "s_roar",
-          "s_secret_power",
-          "s_smelling_salt",
-          "s_sparkling_aria",
-          "s_sparkly_swirl",
-          "s_steel_beam",
-          "s_take_heart",
-          "s_thrash",
-          "s_toxic_thread",
-          "s_trick",
-          "s_u_turn",
-          "s_uproar",
-          "s_venom_drench",
-          "s_wakeup_slap",
-          "s_wonder_room",
-          "s_yawn"
-        ]
-      },
       {
         "id": "multiturn_delayed_state",
         "label": "Multi-turn / delayed state",
@@ -9442,7 +9404,7 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 26,
+        "count": 32,
         "methods": [
           "s_aura_wheel",
           "s_beak_blast",
@@ -9456,36 +9418,46 @@
           "s_frustration",
           "s_hidden_power",
           "s_ice_ball",
+          "s_jungle_healing",
           "s_life_dew",
           "s_ohko",
           "s_order_up",
           "s_pain_split",
           "s_payday",
           "s_pre_attack_base",
+          "s_purify",
           "s_return",
           "s_rollout",
           "s_roost",
           "s_scale_shot",
           "s_shell_trap",
+          "s_smelling_salt",
+          "s_sparkling_aria",
+          "s_sparkly_swirl",
           "s_split_up",
           "s_trump_card",
-          "s_upper_hand"
+          "s_upper_hand",
+          "s_wakeup_slap"
         ]
       },
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 101,
+        "count": 126,
         "methods": [
+          "s_a_fang",
           "s_add_type",
           "s_attract",
           "s_autotomize",
           "s_baddy_bad",
+          "s_baton_pass",
           "s_bestow",
           "s_brick_break",
           "s_camouflage",
+          "s_captivate",
           "s_change_type",
           "s_chilly_reception",
+          "s_chloroblast",
           "s_conversion",
           "s_conversion2",
           "s_corrosive_gas",
@@ -9494,16 +9466,19 @@
           "s_disable",
           "s_doodle",
           "s_dragon_cheer",
+          "s_dragon_tail",
           "s_eerie_spell",
           "s_electrify",
           "s_embargo",
           "s_encore",
           "s_entrainment",
           "s_expanding_force",
+          "s_explosion",
           "s_fairy_lock",
           "s_false_swipe",
           "s_fell_stinger",
           "s_fickle_beam",
+          "s_final_gambit",
           "s_flame_burst",
           "s_fling",
           "s_flower_shield",
@@ -9518,6 +9493,7 @@
           "s_gravity",
           "s_grudge",
           "s_happy_hour",
+          "s_heal_bell",
           "s_heal_block",
           "s_healing_wish",
           "s_helping_hand",
@@ -9536,24 +9512,31 @@
           "s_magnetic_flux",
           "s_magnitude",
           "s_make_it_rain",
+          "s_mind_blown",
           "s_mind_reader",
+          "s_misty_explosion",
           "s_nature_power",
           "s_nightmare",
           "s_no_retreat",
           "s_octolock",
+          "s_outrage",
+          "s_parting_shot",
           "s_perish_song",
           "s_photon_geyser",
           "s_plasma_fists",
           "s_pluck",
           "s_powder",
+          "s_psycho_shift",
           "s_pursuit",
           "s_rage",
           "s_raging_bull",
           "s_reflect_type",
           "s_revival_blessing",
+          "s_roar",
           "s_role_play",
           "s_rototiller",
           "s_sappy_seed",
+          "s_secret_power",
           "s_shed_tail",
           "s_shell_side_arm",
           "s_simple_beam",
@@ -9562,6 +9545,7 @@
           "s_snatch",
           "s_spectral_thief",
           "s_spite",
+          "s_steel_beam",
           "s_steel_roller",
           "s_stockpile",
           "s_stomp",
@@ -9570,14 +9554,23 @@
           "s_substitute",
           "s_super_duper_effective",
           "s_swallow",
+          "s_take_heart",
           "s_teatime",
           "s_teleport",
           "s_thief",
           "s_thing_sport",
+          "s_thrash",
           "s_torment",
+          "s_toxic_thread",
+          "s_trick",
           "s_triple_arrows",
+          "s_u_turn",
+          "s_uproar",
+          "s_venom_drench",
           "s_water_shuriken",
-          "s_worry_seed"
+          "s_wonder_room",
+          "s_worry_seed",
+          "s_yawn"
         ]
       }
     ]

@@ -1152,11 +1152,12 @@ _MethodBacklogBatchDefinition _methodBacklogBatchFor(
   if (dependencySet.contains('endTurn')) {
     return _multiturnMethodBatch;
   }
-  if (dependencySet.intersection(_failurePreventionDependencies).isNotEmpty) {
-    return _failurePreventionMethodBatch;
-  }
   if (dependencySet.intersection(_damageFormulaDependencies).isNotEmpty) {
     return _damageFormulaMethodBatch;
+  }
+  if (dependencySet.intersection(_failurePreventionDependencies).isNotEmpty &&
+      dependencySet.difference(_failurePreventionDependencies).isEmpty) {
+    return _failurePreventionMethodBatch;
   }
   if (dependencySet.contains('targetingMulti') && dependencySet.length == 1) {
     return _targetingMethodBatch;
