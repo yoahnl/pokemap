@@ -852,7 +852,7 @@ void main() {
         byMethod['s_electro_shot']!.dartBehavior,
         'StaticBasicMoveRegistry.s_electro_shot',
       );
-      expect(byMethod['s_fickle_beam']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_fickle_beam']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_fickle_beam']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fickle_beam',
@@ -877,7 +877,7 @@ void main() {
         byMethod['s_glaive_rush']!.dartBehavior,
         'StaticBasicMoveRegistry.s_glaive_rush',
       );
-      expect(byMethod['s_last_respects']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_last_respects']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_last_respects']!.dartBehavior,
         'StaticBasicMoveRegistry.s_last_respects',
