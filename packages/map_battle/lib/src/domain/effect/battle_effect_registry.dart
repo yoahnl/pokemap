@@ -1,5 +1,6 @@
 import 'battle_effect.dart';
 import 'battle_effect_scope.dart';
+import 'field/pledge_field_effects.dart';
 import 'field/wish_effect.dart';
 import 'mechanics/mechanics_effects.dart';
 import 'move/aqua_ring_effect.dart';
@@ -85,6 +86,12 @@ final class BattleEffectRegistry {
       'magic_coat' => const MagicCoatEffect(scope: LocalBattleEffectScope()),
       'powder' => const PowderEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
+      'pledge_rainbow' =>
+        const RainbowPledgeEffect(scope: LocalBattleEffectScope()),
+      'pledge_sea_of_fire' =>
+        const SeaOfFirePledgeEffect(scope: LocalBattleEffectScope()),
+      'pledge_swamp' =>
+        const SwampPledgeEffect(scope: LocalBattleEffectScope()),
       'baneful_bunker' =>
         const BanefulBunkerEffect(scope: LocalBattleEffectScope()),
       'burning_bulwark' =>

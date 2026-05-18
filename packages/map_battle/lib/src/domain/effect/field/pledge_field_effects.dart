@@ -1,4 +1,6 @@
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_damage_handler.dart';
+import '../../handler/battle_handler_context.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
@@ -87,6 +89,68 @@ final class SeaOfFirePledgeEffect extends PledgeFieldEffect {
       remainingTurns: remainingTurns,
     );
   }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var applied = false;
+
+    final bank = _bankFor(scope);
+    if (bank != null) {
+      for (final slot in context.state.aliveSlots()) {
+        if (slot.bank != bank) {
+          continue;
+        }
+        final battler = nextState.battlerAt(slot);
+        if (battler.isFainted ||
+            battler.hasType('fire') ||
+            battler.abilityId == 'magic_guard') {
+          continue;
+        }
+
+        final damage = (battler.maxHp ~/ 8).clamp(1, battler.currentHp).toInt();
+        final result = const BattleDamageHandler().applyDamage(
+          context: BattleHandlerContext(
+            state: nextState,
+            rng: nextRng,
+            turn: context.turn,
+            user: slot,
+          ),
+          target: slot,
+          moveId: 'effect:sea_of_fire',
+          rawDamage: damage,
+        );
+        nextState = result.state;
+        nextRng = result.rng;
+        events.addAll(result.events);
+        applied = applied || result.applied || result.events.isNotEmpty;
+      }
+    }
+
+    final tick = super.onEndTurn(
+      BattleEffectEndTurnContext(
+        state: nextState,
+        rng: nextRng,
+        turn: context.turn,
+        owner: context.owner,
+      ),
+    );
+    if (tick != null) {
+      nextState = tick.state;
+      nextRng = tick.rng;
+      events.addAll(tick.events);
+      applied = applied || tick.applied || tick.events.isNotEmpty;
+    }
+
+    return BattleEffectEndTurnResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: applied,
+    );
+  }
 }
 
 final class SwampPledgeEffect extends PledgeFieldEffect {
@@ -106,4 +170,12 @@ final class SwampPledgeEffect extends PledgeFieldEffect {
       remainingTurns: remainingTurns,
     );
   }
+}
+
+int? _bankFor(BattleEffectScope scope) {
+  return switch (scope) {
+    BankBattleEffectScope(:final bank) => bank,
+    BattlerBattleEffectScope(:final slot) => slot.bank,
+    _ => null,
+  };
 }

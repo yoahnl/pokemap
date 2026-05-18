@@ -788,6 +788,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Safeguard',
     'SaltCure',
     'Sandstorm',
+    'SeaOfFire',
     'ShadowTag',
     'SilkTrap',
     'Snatch',
@@ -801,6 +802,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Stockpile',
     'StrongWinds',
     'Substitute',
+    'Swamp',
     'Sunny',
     'SyrupBomb',
     'Tailwind',
@@ -825,6 +827,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'CantSwitch',
     'Confusion',
     'Flinch',
+    'Rainbow',
     'SmackDown',
     'WonderRoom',
   };

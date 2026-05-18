@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 196,
-      "partial": 19,
-      "missing": 267
+      "ported": 198,
+      "partial": 20,
+      "missing": 264
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9306,9 +9306,9 @@
         "missing": 197
       },
       "move": {
-        "ported": 70,
-        "partial": 7,
-        "missing": 38
+        "ported": 72,
+        "partial": 8,
+        "missing": 35
       },
       "item": {
         "ported": 45,
@@ -12050,7 +12050,7 @@
       {
         "effectName": "Rainbow",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 Rainbow.rb",
         "hookFamilies": [
           "lifecycle"
@@ -12287,7 +12287,7 @@
       {
         "effectName": "SeaOfFire",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 SeaOfFire.rb",
         "hookFamilies": [
           "end_turn",
@@ -12808,7 +12808,7 @@
       {
         "effectName": "Swamp",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 Swamp.rb",
         "hookFamilies": [
           "lifecycle"
