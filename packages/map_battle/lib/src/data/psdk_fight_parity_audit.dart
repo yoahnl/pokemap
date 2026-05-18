@@ -75,6 +75,7 @@ final class PsdkFightParityAudit {
       'methods': <String, Object?>{
         ...methodMetrics.toJson(),
         'entries': methodEntries.map(_methodEntryJson).toList(),
+        'backlogBatches': _methodBacklogBatchJson(methodEntries),
       },
       'effects': <String, Object?>{
         ...effectMetrics.toJson(),
@@ -122,6 +123,7 @@ final class PsdkFightParityAudit {
     buffer
       ..writeln('| Total manifest methods | ${methodMetrics.totalMethods} |');
     _writePartialMethodsByDependency(buffer, methodEntries);
+    _writePartialMethodBatches(buffer, methodEntries);
     buffer
       ..writeln()
       ..writeln('## Effect Coverage')
@@ -1095,7 +1097,146 @@ Map<String, Object?> _methodEntryJson(PsdkMoveRegistryManifestEntry entry) {
     'status': entry.status.name,
     'dependencies':
         entry.dependencies.map((dependency) => dependency.name).toList(),
+    if (entry.status != PsdkPortStatus.ported)
+      'methodBatch': _methodBacklogBatchFor(entry).id,
   };
+}
+
+List<Map<String, Object?>> _methodBacklogBatchJson(
+  List<PsdkMoveRegistryManifestEntry> entries,
+) {
+  return _methodBacklogBatches(entries)
+      .map(
+        (batch) => <String, Object?>{
+          'id': batch.id,
+          'label': batch.label,
+          'count': batch.methods.length,
+          'methods': batch.methods,
+        },
+      )
+      .toList(growable: false);
+}
+
+List<_MethodBacklogBatch> _methodBacklogBatches(
+  List<PsdkMoveRegistryManifestEntry> entries,
+) {
+  final byId = <String, _MethodBacklogBatch>{
+    for (final definition in _methodBacklogBatchDefinitions)
+      definition.id: _MethodBacklogBatch(
+        id: definition.id,
+        label: definition.label,
+        methods: <String>[],
+      ),
+  };
+  for (final entry
+      in entries.where((entry) => entry.status != PsdkPortStatus.ported)) {
+    byId[_methodBacklogBatchFor(entry).id]!.methods.add(
+          entry.battleEngineMethod,
+        );
+  }
+  return <_MethodBacklogBatch>[
+    for (final definition in _methodBacklogBatchDefinitions)
+      if (byId[definition.id]!.methods.isNotEmpty)
+        byId[definition.id]!..methods.sort(),
+  ];
+}
+
+_MethodBacklogBatchDefinition _methodBacklogBatchFor(
+  PsdkMoveRegistryManifestEntry entry,
+) {
+  final dependencies = entry.dependencies.map((dependency) => dependency.name);
+  final dependencySet = dependencies.toSet();
+  if (dependencySet.contains('actionOrder') ||
+      dependencySet.contains('history')) {
+    return _actionQueueMethodBatch;
+  }
+  if (dependencySet.contains('targetingMulti')) {
+    return _targetingMethodBatch;
+  }
+  if (dependencySet.contains('endTurn')) {
+    return _multiturnMethodBatch;
+  }
+  if (dependencySet.intersection(_failurePreventionDependencies).isNotEmpty) {
+    return _failurePreventionMethodBatch;
+  }
+  if (dependencySet.intersection(_damageFormulaDependencies).isNotEmpty) {
+    return _damageFormulaMethodBatch;
+  }
+  if (dependencySet.contains('effects')) {
+    return _effectManifestSweepMethodBatch;
+  }
+  return _effectManifestSweepMethodBatch;
+}
+
+const _actionQueueMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'action_queue_copy_call',
+  label: 'Action queue / copy-call residuals',
+);
+const _targetingMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'target_resolution_doubles',
+  label: 'Target resolution / doubles topology',
+);
+const _damageFormulaMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'damage_formula_variable_power',
+  label: 'Damage formula / variable power',
+);
+const _failurePreventionMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'failure_prevention_immunity',
+  label: 'Failure / prevention / immunity',
+);
+const _multiturnMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'multiturn_delayed_state',
+  label: 'Multi-turn / delayed state',
+);
+const _effectManifestSweepMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'effect_hook_manifest_sweep',
+  label: 'Effect hook / manifest final sweep',
+);
+const _methodBacklogBatchDefinitions = <_MethodBacklogBatchDefinition>[
+  _actionQueueMethodBatch,
+  _targetingMethodBatch,
+  _failurePreventionMethodBatch,
+  _multiturnMethodBatch,
+  _damageFormulaMethodBatch,
+  _effectManifestSweepMethodBatch,
+];
+const _damageFormulaDependencies = <String>{
+  'ability',
+  'accuracy',
+  'field',
+  'grounded',
+  'handlerDamage',
+  'item',
+  'terrain',
+};
+const _failurePreventionDependencies = <String>{
+  'faintProcess',
+  'handlerItem',
+  'handlerStat',
+  'handlerStatus',
+  'handlerSwitch',
+};
+
+final class _MethodBacklogBatchDefinition {
+  const _MethodBacklogBatchDefinition({
+    required this.id,
+    required this.label,
+  });
+
+  final String id;
+  final String label;
+}
+
+final class _MethodBacklogBatch {
+  _MethodBacklogBatch({
+    required this.id,
+    required this.label,
+    required this.methods,
+  });
+
+  final String id;
+  final String label;
+  final List<String> methods;
 }
 
 String _coverageReasonForMove({
@@ -1166,6 +1307,32 @@ void _writePartialMethodsByDependency(
     });
   for (final dependency in sorted) {
     buffer.writeln('| ${_md(dependency)} | ${counts[dependency]} |');
+  }
+}
+
+void _writePartialMethodBatches(
+  StringBuffer buffer,
+  List<PsdkMoveRegistryManifestEntry> entries,
+) {
+  final batches = _methodBacklogBatches(entries);
+  if (batches.isEmpty) {
+    return;
+  }
+  buffer
+    ..writeln()
+    ..writeln('### Partial Method Batches')
+    ..writeln()
+    ..writeln(
+      'Each partial method is assigned to its first actionable Phase 2 batch.',
+    )
+    ..writeln()
+    ..writeln('| Batch | Partial methods | Methods |')
+    ..writeln('| --- | ---: | --- |');
+  for (final batch in batches) {
+    buffer.writeln(
+      '| ${_md(batch.label)} | ${batch.methods.length} | '
+      '${batch.methods.map((method) => '`$method`').join(', ')} |',
+    );
   }
 }
 
