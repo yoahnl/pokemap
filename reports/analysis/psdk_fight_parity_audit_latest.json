@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 230,
+      "ported": 240,
       "partial": 19,
-      "missing": 233
+      "missing": 223
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 79,
+        "ported": 89,
         "partial": 1,
-        "missing": 174
+        "missing": 164
       },
       "move": {
         "ported": 80,
@@ -10429,7 +10429,7 @@
       {
         "effectName": "EffectSpore",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Effect Spore.rb",
         "hookFamilies": [
           "post_damage"
@@ -10577,7 +10577,7 @@
       {
         "effectName": "FlameBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Flame Body.rb",
         "hookFamilies": [
           "post_damage"
@@ -10830,7 +10830,7 @@
       {
         "effectName": "Gooey",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Gooey.rb",
         "hookFamilies": [
           "post_damage"
@@ -11246,7 +11246,7 @@
       {
         "effectName": "Justified",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Justified.rb",
         "hookFamilies": [
           "post_damage"
@@ -11977,7 +11977,7 @@
       {
         "effectName": "PoisonPoint",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Poison Point.rb",
         "hookFamilies": [
           "post_damage"
@@ -12762,7 +12762,7 @@
       {
         "effectName": "Stamina",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Stamina.rb",
         "hookFamilies": [
           "post_damage"
@@ -12787,7 +12787,7 @@
       {
         "effectName": "Static",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Static.rb",
         "hookFamilies": [
           "post_damage"
@@ -12831,7 +12831,7 @@
       {
         "effectName": "SteamEngine",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Steam Engine.rb",
         "hookFamilies": [
           "post_damage"
@@ -13448,7 +13448,7 @@
       {
         "effectName": "WaterCompaction",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Water Compaction.rb",
         "hookFamilies": [
           "post_damage"
@@ -13473,7 +13473,7 @@
       {
         "effectName": "WeakArmor",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Weak Armor.rb",
         "hookFamilies": [
           "post_damage"

@@ -1544,6 +1544,202 @@ void main() {
       }
     });
 
+    test('post-damage stat abilities follow their PSDK gates', () {
+      final stamina = _applyDirectAbilityDamage(opponentAbilityId: 'stamina');
+      final weakArmor = _applyDirectAbilityDamage(
+        opponentAbilityId: 'weak_armor',
+        category: PsdkBattleMoveCategory.physical,
+      );
+      final weakArmorSpecial = _applyDirectAbilityDamage(
+        opponentAbilityId: 'weak_armor',
+      );
+      final waterCompaction = _applyDirectAbilityDamage(
+        opponentAbilityId: 'water_compaction',
+        moveType: 'water',
+      );
+      final steamEngineFire = _applyDirectAbilityDamage(
+        opponentAbilityId: 'steam_engine',
+        moveType: 'fire',
+      );
+      final justified = _applyDirectAbilityDamage(
+        opponentAbilityId: 'justified',
+        moveType: 'dark',
+      );
+      final gooey = _applyDirectAbilityDamage(
+        opponentAbilityId: 'gooey',
+        category: PsdkBattleMoveCategory.physical,
+        flags: const BattleMoveFlags(contact: true),
+      );
+      final tanglingHair = _applyDirectAbilityDamage(
+        opponentAbilityId: 'tangling_hair',
+        category: PsdkBattleMoveCategory.physical,
+        flags: const BattleMoveFlags(contact: true),
+      );
+      final nonContactGooey = _applyDirectAbilityDamage(
+        opponentAbilityId: 'gooey',
+        category: PsdkBattleMoveCategory.physical,
+      );
+      final lethalStamina = _applyDirectAbilityDamage(
+        opponentAbilityId: 'stamina',
+        opponentCurrentHp: 10,
+        rawDamage: 30,
+      );
+
+      expect(_statEventsForHandler(stamina).single.stat, 'defense');
+      expect(_statEventsForHandler(stamina).single.amount, 1);
+      expect(_statEventsForHandler(stamina).single.target, psdkOpponentSlot);
+      expect(
+        stamina.state.battlerAt(psdkOpponentSlot).statStages.valueOf('defense'),
+        1,
+      );
+
+      expect(
+        _statEventsForHandler(weakArmor).map((event) => event.stat),
+        <String>['defense', 'speed'],
+      );
+      expect(
+        _statEventsForHandler(weakArmor).map((event) => event.amount),
+        <int>[-1, 1],
+      );
+      expect(_statEventsForHandler(weakArmorSpecial), isEmpty);
+
+      expect(_statEventsForHandler(waterCompaction).single.stat, 'defense');
+      expect(_statEventsForHandler(waterCompaction).single.amount, 2);
+
+      expect(_statEventsForHandler(steamEngineFire).single.stat, 'speed');
+      expect(_statEventsForHandler(steamEngineFire).single.amount, 3);
+
+      expect(_statEventsForHandler(justified).single.stat, 'attack');
+      expect(_statEventsForHandler(justified).single.amount, 1);
+
+      expect(_statEventsForHandler(gooey).single.target, psdkPlayerSlot);
+      expect(_statEventsForHandler(gooey).single.stat, 'speed');
+      expect(_statEventsForHandler(gooey).single.amount, -1);
+      expect(_statEventsForHandler(tanglingHair).single.target, psdkPlayerSlot);
+      expect(_statEventsForHandler(nonContactGooey), isEmpty);
+      expect(_statEventsForHandler(lethalStamina), isEmpty);
+    });
+
+    test('contact status abilities follow their PSDK contact rolls', () {
+      const hitSeeds = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 0,
+      );
+      const missSeeds = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 9,
+      );
+      const contactFlags = BattleMoveFlags(contact: true);
+
+      for (final entry in <({String abilityId, PsdkBattleMajorStatus status})>[
+        (abilityId: 'flame_body', status: PsdkBattleMajorStatus.burn),
+        (abilityId: 'static', status: PsdkBattleMajorStatus.paralysis),
+        (abilityId: 'poison_point', status: PsdkBattleMajorStatus.poison),
+      ]) {
+        final result = _applyDirectAbilityDamage(
+          opponentAbilityId: entry.abilityId,
+          category: PsdkBattleMoveCategory.physical,
+          flags: contactFlags,
+          rngSeeds: hitSeeds,
+        );
+        final statusEvents = result.events.whereType<PsdkBattleStatusEvent>();
+
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).majorStatus,
+          entry.status,
+          reason: entry.abilityId,
+        );
+        expect(statusEvents.single.target, psdkPlayerSlot);
+        expect(statusEvents.single.status, entry.status);
+        expect(statusEvents.single.moveId, 'effect:${entry.abilityId}');
+      }
+
+      final missed = _applyDirectAbilityDamage(
+        opponentAbilityId: 'flame_body',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: missSeeds,
+      );
+      final nonContact = _applyDirectAbilityDamage(
+        opponentAbilityId: 'static',
+        category: PsdkBattleMoveCategory.physical,
+        rngSeeds: hitSeeds,
+      );
+      final effectSporePoison = _applyDirectAbilityDamage(
+        opponentAbilityId: 'effect_spore',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final effectSporeSleep = _applyDirectAbilityDamage(
+        opponentAbilityId: 'effect_spore',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 1,
+        ),
+      );
+      final effectSporeParalysis = _applyDirectAbilityDamage(
+        opponentAbilityId: 'effect_spore',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 2,
+        ),
+      );
+      final overcoatBlocked = _applyDirectAbilityDamage(
+        opponentAbilityId: 'effect_spore',
+        playerAbilityId: 'overcoat',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final grassBlocked = _applyDirectAbilityDamage(
+        opponentAbilityId: 'effect_spore',
+        playerTypes: const PsdkBattleTypes(primary: 'grass'),
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final gogglesBlocked = _applyDirectAbilityDamage(
+        opponentAbilityId: 'effect_spore',
+        playerHeldItemId: 'safety_goggles',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+
+      expect(missed.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(nonContact.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(
+        effectSporePoison.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.poison,
+      );
+      expect(
+        effectSporeSleep.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.sleep,
+      );
+      expect(
+        effectSporeParalysis.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.paralysis,
+      );
+      expect(
+          overcoatBlocked.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(grassBlocked.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(
+          gogglesBlocked.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+    });
+
     test('Flash Fire prevents burn status in addition to Fire damage', () {
       final result = const BattleStatusChangeHandler().applyMajorStatus(
         context: BattleHandlerContext(
@@ -2371,15 +2567,31 @@ int _calculatedDamage({
 
 BattleHandlerResult _applyDirectAbilityDamage({
   required String opponentAbilityId,
+  String? playerAbilityId,
   String moveType = 'normal',
+  PsdkBattleMoveCategory category = PsdkBattleMoveCategory.special,
+  BattleMoveFlags flags = const BattleMoveFlags(),
   int opponentCurrentHp = 100,
   int rawDamage = 30,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  String? playerHeldItemId,
+  PsdkBattleMajorStatus? playerMajorStatus,
+  BattleRngSeeds rngSeeds = const BattleRngSeeds(
+    moveDamage: 1,
+    moveCritical: 99999,
+    moveAccuracy: 3,
+    generic: 4,
+  ),
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        abilityId: playerAbilityId,
+        types: playerTypes,
+        heldItemId: playerHeldItemId,
+        majorStatus: playerMajorStatus,
         move: _move(id: 'typed_hit', type: moveType, power: 60),
       ),
       opponent: _combatant(
@@ -2389,19 +2601,14 @@ BattleHandlerResult _applyDirectAbilityDamage({
         abilityId: opponentAbilityId,
         move: _move(id: 'opponent_wait', power: 0),
       ),
-      rngSeeds: const BattleRngSeeds(
-        moveDamage: 1,
-        moveCritical: 99999,
-        moveAccuracy: 3,
-        generic: 4,
-      ).psdkSeeds,
+      rngSeeds: rngSeeds.psdkSeeds,
     ).psdkSetup,
   );
 
   return const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
       state: state,
-      rng: _rng(),
+      rng: BattleRngStreams.fromSeedSnapshot(rngSeeds),
       turn: 1,
       user: psdkPlayerSlot,
     ),
@@ -2413,15 +2620,22 @@ BattleHandlerResult _applyDirectAbilityDamage({
       dbSymbol: 'typed_hit',
       name: 'typed_hit',
       type: moveType,
-      category: PsdkBattleMoveCategory.special,
+      category: category,
       power: 60,
       accuracy: 100,
       pp: 35,
       priority: 0,
       battleEngineMethod: 's_basic',
       target: PsdkBattleMoveTarget.adjacentFoe,
+      flags: flags,
     ),
   );
+}
+
+List<PsdkBattleStatStageEvent> _statEventsForHandler(
+  BattleHandlerResult result,
+) {
+  return result.events.whereType<PsdkBattleStatStageEvent>().toList();
 }
 
 BattleEffect _abilityEffectForOpponent(String abilityId) {
