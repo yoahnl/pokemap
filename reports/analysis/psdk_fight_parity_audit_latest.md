@@ -1,6 +1,6 @@
 # PSDK Fight Parity Audit
 
-Source: `moves=/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves; effects=/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
+Source: `moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle`
 
 Important: `partiel` is executable coverage, not strict PSDK parity.
 
@@ -189,16 +189,16 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 276 |
-| `partial` | 19 |
-| `missing` | 187 |
+| `ported` | 281 |
+| `partial` | 21 |
+| `missing` | 180 |
 | Total effect classes | 482 |
 
 ### Effects by Family
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 125 | 1 | 128 |
+| ability | 130 | 3 | 121 |
 | field | 15 | 0 | 0 |
 | item | 45 | 10 | 32 |
 | mechanics | 4 | 0 | 0 |
@@ -209,7 +209,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Family | Missing effects |
 | --- | ---: |
-| ability | 128 |
+| ability | 121 |
 | item | 32 |
 | move | 27 |
 

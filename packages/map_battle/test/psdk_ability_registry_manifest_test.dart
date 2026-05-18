@@ -33,8 +33,12 @@ void main() {
         'analytic',
         'aura_break',
         'blaze',
+        'aftermath',
         'air_lock',
+        'armor_tail',
         'battery',
+        'beast_boost',
+        'chilling_neigh',
         'chlorophyll',
         'cloud_nine',
         'comatose',
@@ -64,6 +68,7 @@ void main() {
         'gooey',
         'grass_pelt',
         'grassy_surge',
+        'grim_neigh',
         'guts',
         'heatproof',
         'huge_power',
@@ -85,6 +90,7 @@ void main() {
         'mega_launcher',
         'misty_surge',
         'motor_drive',
+        'moxie',
         'neuroforce',
         'no_guard',
         'overgrow',
@@ -157,6 +163,8 @@ void main() {
       }
 
       for (final abilityId in <String>[
+        'anger_shell',
+        'berserk',
         'speed_boost',
       ]) {
         final entry = byId[abilityId];

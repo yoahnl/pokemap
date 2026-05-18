@@ -1,3 +1,4 @@
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
@@ -160,6 +161,149 @@ final class RattledEffect extends PostDamageStatChangeAbilityEffect {
       events: result.events,
     );
   }
+}
+
+final class PostDamageKoStatBoostAbilityEffect extends BattleAbilityEffect {
+  const PostDamageKoStatBoostAbilityEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+    String? boostedStat,
+    this.skipFellStinger = false,
+  })  : _boostedStat = boostedStat,
+        super(abilityId: abilityId, scope: scope);
+
+  final String? _boostedStat;
+  final bool skipFellStinger;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return PostDamageKoStatBoostAbilityEffect(
+      abilityId: abilityId,
+      scope: scope,
+      boostedStat: _boostedStat,
+      skipFellStinger: skipFellStinger,
+    );
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.user ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        !context.targetFainted ||
+        context.state.battlerAt(context.owner).isFainted ||
+        (skipFellStinger &&
+            context.move.battleEngineMethod == 's_fell_stinger')) {
+      return null;
+    }
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      stat: _boostedStat ??
+          _highestBattleStat(context.state.battlerAt(context.owner)),
+      stages: 1,
+      move: context.move,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectPostDamageResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
+final class HalfHpThresholdStatChangeAbilityEffect extends BattleAbilityEffect {
+  const HalfHpThresholdStatChangeAbilityEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+    required this.changes,
+  }) : super(abilityId: abilityId, scope: scope);
+
+  final Map<String, int> changes;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return HalfHpThresholdStatChangeAbilityEffect(
+      abilityId: abilityId,
+      scope: scope,
+      changes: changes,
+    );
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        context.targetFainted) {
+      return null;
+    }
+
+    final target = context.state.battlerAt(context.target);
+    final previousHp = target.currentHp + context.damage;
+    final halfHp = target.maxHp / 2;
+    if (target.currentHp > halfHp || previousHp <= halfHp) {
+      return null;
+    }
+
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var applied = false;
+    for (final entry in changes.entries) {
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: context.owner,
+        ),
+        target: context.owner,
+        stat: entry.key,
+        stages: entry.value,
+        move: context.move,
+      );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      applied = applied || result.applied || result.events.isNotEmpty;
+    }
+
+    if (!applied) {
+      return null;
+    }
+    return BattleEffectPostDamageResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
+  }
+}
+
+String _highestBattleStat(PsdkBattleCombatant battler) {
+  final stats = <String, int>{
+    'speed': battler.stats.speed,
+    'defense': battler.stats.defense,
+    'specialAttack': battler.stats.specialAttack,
+    'specialDefense': battler.stats.specialDefense,
+    'attack': battler.stats.attack,
+  };
+  return stats.entries.reduce((left, right) {
+    return right.value > left.value ? right : left;
+  }).key;
 }
 
 enum AbilityPostDamageStatChangeTarget {

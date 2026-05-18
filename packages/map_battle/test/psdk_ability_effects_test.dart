@@ -1993,6 +1993,7 @@ void main() {
       for (final abilityId in <String>[
         'queenly_majesty',
         'dazzling',
+        'armor_tail',
       ]) {
         final blocked = _runMove(
           opponentAbilityId: abilityId,
@@ -2189,6 +2190,120 @@ void main() {
       expect(_statEventsForHandler(tanglingHair).single.target, psdkPlayerSlot);
       expect(_statEventsForHandler(nonContactGooey), isEmpty);
       expect(_statEventsForHandler(lethalStamina), isEmpty);
+    });
+
+    test('KO stat boost abilities trigger after the owner knocks out a target',
+        () {
+      const cases = <({String abilityId, String stat})>[
+        (abilityId: 'moxie', stat: 'attack'),
+        (abilityId: 'chilling_neigh', stat: 'attack'),
+        (abilityId: 'grim_neigh', stat: 'specialAttack'),
+        (abilityId: 'beast_boost', stat: 'speed'),
+      ];
+
+      for (final entry in cases) {
+        final result = _applyDirectAbilityDamage(
+          playerAbilityId: entry.abilityId,
+          opponentCurrentHp: 10,
+          rawDamage: 30,
+        );
+        final event = _statEventsForHandler(result).single;
+
+        expect(event.target, psdkPlayerSlot, reason: entry.abilityId);
+        expect(event.stat, entry.stat, reason: entry.abilityId);
+        expect(event.amount, 1, reason: entry.abilityId);
+      }
+
+      final nonLethal = _applyDirectAbilityDamage(
+        playerAbilityId: 'moxie',
+        opponentCurrentHp: 100,
+        rawDamage: 30,
+      );
+
+      expect(_statEventsForHandler(nonLethal), isEmpty);
+    });
+
+    test('Aftermath damages contact attackers after a KO unless Damp is alive',
+        () {
+      const contactFlags = BattleMoveFlags(contact: true);
+      final aftermath = _applyDirectAbilityDamage(
+        opponentAbilityId: 'aftermath',
+        opponentCurrentHp: 10,
+        rawDamage: 30,
+        flags: contactFlags,
+      );
+      final nonContact = _applyDirectAbilityDamage(
+        opponentAbilityId: 'aftermath',
+        opponentCurrentHp: 10,
+        rawDamage: 30,
+      );
+      final dampBlocked = _applyDirectAbilityDamage(
+        playerAbilityId: 'damp',
+        opponentAbilityId: 'aftermath',
+        opponentCurrentHp: 10,
+        rawDamage: 30,
+        flags: contactFlags,
+      );
+
+      final aftermathDamage = _damageEventsForHandler(aftermath)
+          .where((event) => event.moveId == 'effect:aftermath')
+          .single;
+      expect(aftermathDamage.target, psdkPlayerSlot);
+      expect(aftermathDamage.damage, 25);
+      expect(aftermath.state.battlerAt(psdkPlayerSlot).currentHp, 75);
+
+      expect(
+        _damageEventsForHandler(nonContact)
+            .where((event) => event.moveId == 'effect:aftermath'),
+        isEmpty,
+      );
+      expect(
+        _damageEventsForHandler(dampBlocked)
+            .where((event) => event.moveId == 'effect:aftermath'),
+        isEmpty,
+      );
+    });
+
+    test('half HP threshold stat abilities apply their core PSDK boosts', () {
+      final berserk = _applyDirectAbilityDamage(
+        opponentAbilityId: 'berserk',
+        opponentCurrentHp: 60,
+        rawDamage: 20,
+      );
+      final angerShell = _applyDirectAbilityDamage(
+        opponentAbilityId: 'anger_shell',
+        opponentCurrentHp: 60,
+        rawDamage: 20,
+      );
+      final alreadyBelowHalf = _applyDirectAbilityDamage(
+        opponentAbilityId: 'berserk',
+        opponentCurrentHp: 45,
+        rawDamage: 10,
+      );
+
+      expect(
+        _statEventsForHandler(berserk).map((event) => event.stat),
+        <String>['specialAttack'],
+      );
+      expect(
+        _statEventsForHandler(berserk).map((event) => event.amount),
+        <int>[1],
+      );
+      expect(
+        _statEventsForHandler(angerShell).map((event) => event.stat),
+        <String>[
+          'attack',
+          'specialAttack',
+          'speed',
+          'defense',
+          'specialDefense',
+        ],
+      );
+      expect(
+        _statEventsForHandler(angerShell).map((event) => event.amount),
+        <int>[1, 1, 1, -1, -1],
+      );
+      expect(_statEventsForHandler(alreadyBelowHalf), isEmpty);
     });
 
     test('contact status abilities follow their PSDK contact rolls', () {
@@ -3487,7 +3602,7 @@ int _calculatedDoublesDamage({
 }
 
 BattleHandlerResult _applyDirectAbilityDamage({
-  required String opponentAbilityId,
+  String? opponentAbilityId,
   String? playerAbilityId,
   String moveType = 'normal',
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.special,
