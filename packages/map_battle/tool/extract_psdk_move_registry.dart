@@ -1260,19 +1260,18 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   // PSDK registers all three methods on `Move::MindBlown`. The Dart behavior
   // ports the half-max-HP crash on hit, miss, type immunity and Protect-style
-  // target blocking, but remains partial until Damp/Wonder Guard ability gates
-  // exist in the PSDK combatant snapshot.
+  // target blocking, including Damp prevention and Wonder Guard crash immunity.
   's_chloroblast': _KnownDartBehavior(
     dartBehavior: 'MindBlownMoveBehavior.chloroblast',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_mind_blown': _KnownDartBehavior(
     dartBehavior: 'MindBlownMoveBehavior.mindBlown',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_steel_beam': _KnownDartBehavior(
     dartBehavior: 'MindBlownMoveBehavior.steelBeam',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // PSDK registers SelfDestruct/Explosion with unprefixed `register(...)`.
   // Self-Destruct/Explosion now match PSDK's local self-KO branches, including
@@ -1751,18 +1750,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.faintProcess,
     _PsdkMoveDependency.terrain,
     _PsdkMoveDependency.grounded,
-  },
-  's_mind_blown': {
-    _PsdkMoveDependency.ability,
-    _PsdkMoveDependency.faintProcess,
-  },
-  's_chloroblast': {
-    _PsdkMoveDependency.ability,
-    _PsdkMoveDependency.faintProcess,
-  },
-  's_steel_beam': {
-    _PsdkMoveDependency.ability,
-    _PsdkMoveDependency.faintProcess,
   },
   's_false_swipe': {
     _PsdkMoveDependency.effects,

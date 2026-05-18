@@ -415,11 +415,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MindBlown',
     rubyPath: '10 Move/2 Definitions/300 MindBlown.rb',
     dartBehavior: 'MindBlownMoveBehavior.chloroblast',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_clangorous_soul',
@@ -1635,11 +1632,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MindBlown',
     rubyPath: '10 Move/2 Definitions/300 MindBlown.rb',
     dartBehavior: 'MindBlownMoveBehavior.mindBlown',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_mind_reader',
@@ -2628,11 +2622,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MindBlown',
     rubyPath: '10 Move/2 Definitions/300 MindBlown.rb',
     dartBehavior: 'MindBlownMoveBehavior.steelBeam',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_steel_roller',
