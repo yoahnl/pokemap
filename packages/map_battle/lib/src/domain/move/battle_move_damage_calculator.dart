@@ -198,6 +198,7 @@ int _abilityAdjustedPower(
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: 1,
+    activeAbilityIds: _activeAbilityIds(context),
     weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
     isLastActionOfTurn: context.isLastActionOfTurn,
   );
@@ -432,6 +433,7 @@ int _applyAbilityFinalDamageModifiers(
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+    activeAbilityIds: _activeAbilityIds(context),
     weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
     isLastActionOfTurn: context.isLastActionOfTurn,
   );
@@ -447,6 +449,13 @@ int _applyAbilityFinalDamageModifiers(
   }
   final adjusted = (damage * multiplier).floor();
   return adjusted < 1 ? 1 : adjusted;
+}
+
+Set<String> _activeAbilityIds(BattleMoveDamageContext context) {
+  return <String>{
+    for (final effect in context.user.abilityEffects) effect.abilityId,
+    for (final effect in context.target.abilityEffects) effect.abilityId,
+  };
 }
 
 final class BattleMoveDamageContext {

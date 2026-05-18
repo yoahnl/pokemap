@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 248,
+      "ported": 255,
       "partial": 19,
-      "missing": 215
+      "missing": 208
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 97,
+        "ported": 104,
         "partial": 1,
-        "missing": 156
+        "missing": 149
       },
       "move": {
         "ported": 80,
@@ -9602,7 +9602,7 @@
       {
         "effectName": "ApplyStatusToMoveTarget",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb",
         "hookFamilies": [
           "post_damage"
@@ -9686,7 +9686,7 @@
       {
         "effectName": "Auras",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Auras.rb",
         "hookFamilies": [
           "switch"
@@ -10229,7 +10229,7 @@
       {
         "effectName": "DauntlessShield",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Dauntless Shield.rb",
         "hookFamilies": [
           "switch"
@@ -10324,7 +10324,7 @@
       {
         "effectName": "Download",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Download.rb",
         "hookFamilies": [
           "switch"
@@ -11189,7 +11189,7 @@
       {
         "effectName": "IntrepidSword",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Intrepid Sword.rb",
         "hookFamilies": [
           "switch"
@@ -11995,7 +11995,7 @@
       {
         "effectName": "PoisonTouch",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb",
         "hookFamilies": []
       },
@@ -13256,7 +13256,7 @@
       {
         "effectName": "ToxicChain",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb",
         "hookFamilies": []
       },

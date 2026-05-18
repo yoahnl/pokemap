@@ -247,6 +247,85 @@ void main() {
       expect(result.events.whereType<PsdkBattleStatStageEvent>(), isEmpty);
     });
 
+    test('switch-in stat boost abilities raise the owner stat', () {
+      final dauntless =
+          _dispatchAbilitySwitchIn(playerAbilityId: 'dauntless_shield');
+      final intrepid =
+          _dispatchAbilitySwitchIn(playerAbilityId: 'intrepid_sword');
+
+      expect(dauntless.applied, isTrue);
+      expect(
+        dauntless.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+        1,
+      );
+      expect(
+        dauntless.events.whereType<PsdkBattleStatStageEvent>().single.stat,
+        'defense',
+      );
+
+      expect(intrepid.applied, isTrue);
+      expect(
+        intrepid.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        1,
+      );
+      expect(
+        intrepid.events.whereType<PsdkBattleStatStageEvent>().single.stat,
+        'attack',
+      );
+    });
+
+    test('Download chooses Attack or Special Attack from foe defenses', () {
+      final attackBoost = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'download',
+        opponentStats: const PsdkBattleStats(
+          attack: 70,
+          defense: 40,
+          specialAttack: 70,
+          specialDefense: 80,
+          speed: 70,
+        ),
+      );
+      final specialAttackBoost = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'download',
+        opponentStats: const PsdkBattleStats(
+          attack: 70,
+          defense: 90,
+          specialAttack: 70,
+          specialDefense: 80,
+          speed: 70,
+        ),
+      );
+
+      expect(attackBoost.applied, isTrue);
+      expect(
+        attackBoost.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('attack'),
+        1,
+      );
+      expect(
+        attackBoost.events.whereType<PsdkBattleStatStageEvent>().single.stat,
+        'attack',
+      );
+
+      expect(specialAttackBoost.applied, isTrue);
+      expect(
+        specialAttackBoost.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('specialAttack'),
+        1,
+      );
+      expect(
+        specialAttackBoost.events
+            .whereType<PsdkBattleStatStageEvent>()
+            .single
+            .stat,
+        'specialAttack',
+      );
+    });
+
     test('Imposter copies opposing active battler on switch-in', () {
       final result = _dispatchAbilitySwitchIn(
         playerAbilityId: 'imposter',
@@ -489,6 +568,29 @@ void main() {
         abilityId: 'analytic',
         isLastActionOfTurn: true,
       );
+      final darkBaseline = _calculatedDamage(moveType: 'dark');
+      final darkAura = _calculatedDamage(
+        abilityId: 'dark_aura',
+        moveType: 'dark',
+      );
+      final fairyBaseline = _calculatedDamage(moveType: 'fairy');
+      final fairyAura = _calculatedDamage(
+        abilityId: 'fairy_aura',
+        moveType: 'fairy',
+      );
+      final mismatchedAura = _calculatedDamage(
+        abilityId: 'dark_aura',
+        moveType: 'normal',
+      );
+      final auraBreakOnly = _calculatedDamage(
+        abilityId: 'aura_break',
+        moveType: 'dark',
+      );
+      final darkAuraBroken = _calculatedDamage(
+        abilityId: 'dark_aura',
+        opponentAbilityId: 'aura_break',
+        moveType: 'dark',
+      );
 
       expect(defeatistHighHp, baseline);
       expect(defeatistLowHp, lessThan(baseline));
@@ -505,6 +607,11 @@ void main() {
       expect(stakeoutActive, greaterThan(baseline));
       expect(analyticInactive, baseline);
       expect(analyticActive, greaterThan(baseline));
+      expect(darkAura, greaterThan(darkBaseline));
+      expect(fairyAura, greaterThan(fairyBaseline));
+      expect(mismatchedAura, baseline);
+      expect(auraBreakOnly, darkBaseline);
+      expect(darkAuraBroken, lessThan(darkBaseline));
     });
 
     test('special/final damage modifier abilities follow PSDK gates', () {
@@ -1870,6 +1977,95 @@ void main() {
       expect(grassBlocked.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
       expect(
           gogglesBlocked.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+    });
+
+    test('offensive status abilities apply status to damaged move targets', () {
+      const hitSeeds = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 0,
+      );
+      const missSeeds = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 9,
+      );
+      const contactFlags = BattleMoveFlags(contact: true);
+
+      final poisonTouch = _applyDirectAbilityDamage(
+        opponentAbilityId: 'none',
+        playerAbilityId: 'poison_touch',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final poisonTouchNonContact = _applyDirectAbilityDamage(
+        opponentAbilityId: 'none',
+        playerAbilityId: 'poison_touch',
+        category: PsdkBattleMoveCategory.physical,
+        rngSeeds: hitSeeds,
+      );
+      final poisonTouchMiss = _applyDirectAbilityDamage(
+        opponentAbilityId: 'none',
+        playerAbilityId: 'poison_touch',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: missSeeds,
+      );
+      final poisonTouchImmune = _applyDirectAbilityDamage(
+        opponentAbilityId: 'none',
+        playerAbilityId: 'poison_touch',
+        opponentTypes: const PsdkBattleTypes(primary: 'poison'),
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final toxicChain = _applyDirectAbilityDamage(
+        opponentAbilityId: 'none',
+        playerAbilityId: 'toxic_chain',
+        category: PsdkBattleMoveCategory.special,
+        rngSeeds: hitSeeds,
+      );
+      final toxicChainMiss = _applyDirectAbilityDamage(
+        opponentAbilityId: 'none',
+        playerAbilityId: 'toxic_chain',
+        category: PsdkBattleMoveCategory.special,
+        rngSeeds: missSeeds,
+      );
+
+      expect(
+        poisonTouch.state.battlerAt(psdkOpponentSlot).majorStatus,
+        PsdkBattleMajorStatus.poison,
+      );
+      expect(
+        poisonTouch.events.whereType<PsdkBattleStatusEvent>().single.target,
+        psdkOpponentSlot,
+      );
+      expect(
+        poisonTouch.events.whereType<PsdkBattleStatusEvent>().single.moveId,
+        'effect:poison_touch',
+      );
+
+      expect(
+          poisonTouchNonContact.state.battlerAt(psdkOpponentSlot).majorStatus,
+          isNull);
+      expect(poisonTouchMiss.state.battlerAt(psdkOpponentSlot).majorStatus,
+          isNull);
+      expect(poisonTouchImmune.state.battlerAt(psdkOpponentSlot).majorStatus,
+          isNull);
+
+      expect(
+        toxicChain.state.battlerAt(psdkOpponentSlot).majorStatus,
+        PsdkBattleMajorStatus.toxic,
+      );
+      expect(
+        toxicChain.events.whereType<PsdkBattleStatusEvent>().single.moveId,
+        'effect:toxic_chain',
+      );
+      expect(
+          toxicChainMiss.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
     });
 
     test('Flash Fire prevents burn status in addition to Fire damage', () {

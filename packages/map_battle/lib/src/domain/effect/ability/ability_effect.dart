@@ -117,6 +117,7 @@ final class BattleAbilityDamageContext {
     required this.move,
     required this.moveType,
     required this.typeEffectivenessMultiplier,
+    this.activeAbilityIds = const <String>{},
     this.weatherEffectsSuppressed = false,
     this.isLastActionOfTurn = false,
   });
@@ -127,6 +128,7 @@ final class BattleAbilityDamageContext {
   final BattleMoveDefinition move;
   final String moveType;
   final double typeEffectivenessMultiplier;
+  final Set<String> activeAbilityIds;
   final bool weatherEffectsSuppressed;
   final bool isLastActionOfTurn;
 }
