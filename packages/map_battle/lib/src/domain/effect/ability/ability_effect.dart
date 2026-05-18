@@ -34,6 +34,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   bool bypassesAccuracy(BattleAbilityMoveContext context) => false;
 
+  double chanceOfHitMultiplier(BattleAbilityMoveContext context) => 1;
+
   int? forcedHitCount(BattleAbilityMoveContext context) => null;
 
   bool bypassesMultiHitAccuracyRecheck(BattleAbilityMoveContext context) {
@@ -116,6 +118,7 @@ final class BattleAbilityDamageContext {
     required this.moveType,
     required this.typeEffectivenessMultiplier,
     this.weatherEffectsSuppressed = false,
+    this.isLastActionOfTurn = false,
   });
 
   final PsdkBattleFieldState field;
@@ -125,6 +128,7 @@ final class BattleAbilityDamageContext {
   final String moveType;
   final double typeEffectivenessMultiplier;
   final bool weatherEffectsSuppressed;
+  final bool isLastActionOfTurn;
 }
 
 final class BattleAbilityStatContext {

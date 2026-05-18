@@ -29,7 +29,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'analytic',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Analytic.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.analytic',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'anger_point',
@@ -197,7 +198,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'compound_eyes',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Compound Eyes.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AccuracyModifierAbilityEffect.compoundEyes',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'contrary',
@@ -586,7 +588,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'hustle',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Hustle.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HustleAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'hydration',
@@ -1191,7 +1194,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sand_veil',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 SandVeil.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AccuracyModifierAbilityEffect.sandVeil',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sap_sipper',
@@ -1300,7 +1304,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'snow_cloak',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Snow Cloak.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AccuracyModifierAbilityEffect.snowCloak',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'snow_warning',
@@ -1346,7 +1351,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'stakeout',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Stakeout.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.stakeout',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'stalwart',
@@ -1657,7 +1663,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'victory_star',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Victory Star.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AccuracyModifierAbilityEffect.victoryStar',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'vital_spirit',
@@ -1754,7 +1761,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'wonder_skin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Wonder Skin.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AccuracyModifierAbilityEffect.wonderSkin',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'zen_mode',

@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 240,
+      "ported": 248,
       "partial": 19,
-      "missing": 223
+      "missing": 215
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 89,
+        "ported": 97,
         "partial": 1,
-        "missing": 164
+        "missing": 156
       },
       "move": {
         "ported": 80,
@@ -9561,7 +9561,7 @@
       {
         "effectName": "Analytic",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Analytic.rb",
         "hookFamilies": []
       },
@@ -10109,7 +10109,7 @@
       {
         "effectName": "CompoundEyes",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Compound Eyes.rb",
         "hookFamilies": []
       },
@@ -11058,7 +11058,7 @@
       {
         "effectName": "Hustle",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Hustle.rb",
         "hookFamilies": []
       },
@@ -12422,7 +12422,7 @@
       {
         "effectName": "SandVeil",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 SandVeil.rb",
         "hookFamilies": []
       },
@@ -12673,7 +12673,7 @@
       {
         "effectName": "SnowCloak",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Snow Cloak.rb",
         "hookFamilies": []
       },
@@ -12748,7 +12748,7 @@
       {
         "effectName": "Stakeout",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Stakeout.rb",
         "hookFamilies": []
       },
@@ -13407,7 +13407,7 @@
       {
         "effectName": "VictoryStar",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Victory Star.rb",
         "hookFamilies": []
       },
@@ -13589,7 +13589,7 @@
       {
         "effectName": "WonderSkin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Wonder Skin.rb",
         "hookFamilies": []
       },
