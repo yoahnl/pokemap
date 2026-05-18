@@ -15,6 +15,7 @@ import 'package:map_runtime/src/shadow/shadow_runtime_render_instruction.dart';
 import 'package:path/path.dart' as p;
 
 const _defaultProjectPath = '/Users/karim/Desktop/selbrume/project.json';
+const _defaultRepoRoot = '/Users/karim/Project/pokemonProject';
 const _defaultOutputDir =
     '/Users/karim/Project/pokemonProject/reports/shadows/screenshots';
 const _defaultPrefix = 'shadow65';
@@ -71,11 +72,12 @@ void main() {
     );
 
     final captures = <_CaptureArtifact>[];
-    for (final row in shadowRows.where((row) => row.geometryType == 'contactLedge')) {
+    for (final row
+        in shadowRows.where((row) => row.geometryType == 'contactLedge')) {
       final cropLeft =
           (row.instructionLeft - 260).clamp(0, worldWidth - _contactCropWidth);
-      final cropTop = (row.instructionTop - 430)
-          .clamp(0, worldHeight - _contactCropHeight);
+      final cropTop =
+          (row.instructionTop - 430).clamp(0, worldHeight - _contactCropHeight);
       final screenshotPath = p.join(
         config.outputDir,
         '${config.prefix}_contact_ledge_${row.rank}_${_safeFilePart(row.elementId)}.png',
@@ -107,28 +109,56 @@ void main() {
       );
     }
 
-    final overviewArtifact = {
-      'path': overviewPath,
-      'width': (worldWidth * _overviewScale).round(),
-      'height': (worldHeight * _overviewScale).round(),
-      'fileSizeBytes': await File(overviewPath).length(),
-      'sha256': await _sha256ForFile(overviewPath),
-    };
+    final overviewArtifact = _CurrentImageArtifact(
+      kind: 'overview',
+      rank: null,
+      elementId: null,
+      path: overviewPath,
+      sha256: await _sha256ForFile(overviewPath),
+      fileSizeBytes: await File(overviewPath).length(),
+      width: (worldWidth * _overviewScale).round(),
+      height: (worldHeight * _overviewScale).round(),
+    );
+    final currentArtifacts = <_CurrentImageArtifact>[
+      overviewArtifact,
+      for (final capture in captures)
+        _CurrentImageArtifact(
+          kind: 'contactLedge',
+          rank: capture.row.rank,
+          elementId: capture.row.elementId,
+          path: capture.screenshotPath,
+          sha256: capture.sha256,
+          fileSizeBytes: capture.fileSizeBytes,
+          width: capture.cropWidth,
+          height: capture.cropHeight,
+        ),
+    ];
+    final baselineComparison = config.compareBaseline
+        ? await _compareAgainstBaseline(
+            config: config,
+            currentArtifacts: currentArtifacts,
+            counts: counts,
+          )
+        : null;
     final indexPath =
-        p.join(config.artifactDir, 'shadow_lot_65_capture_index.tsv');
-    final manifestPath =
-        p.join(config.artifactDir, 'shadow_lot_65_capture_manifest.json');
+        p.join(config.artifactDir, '${config.artifactStem}_capture_index.tsv');
+    final manifestPath = p.join(
+      config.artifactDir,
+      '${config.artifactStem}_capture_manifest.json',
+    );
     await File(indexPath).writeAsString(_captureIndexTsv(captures));
     await File(manifestPath).writeAsString(
       const JsonEncoder.withIndent('  ').convert({
-        'lot': 'Shadow-65',
+        'lot': config.lotLabel,
         'projectPath': config.projectPath,
         'mapId': _mapId,
         'prefix': config.prefix,
         'outputDir': config.outputDir,
-        'overview': overviewArtifact,
+        'overview': overviewArtifact.toJson(),
         'indexTsv': indexPath,
         'counts': counts.toJson(),
+        if (baselineComparison != null)
+          'baselineComparison': baselineComparison.summaryJson(),
         'captures': [
           for (final capture in captures) capture.toJson(),
         ],
@@ -139,10 +169,12 @@ void main() {
       'projectPath': config.projectPath,
       'outputDir': config.outputDir,
       'prefix': config.prefix,
-      'overview': overviewArtifact,
+      'overview': overviewArtifact.toJson(),
       'indexTsv': indexPath,
       'manifest': manifestPath,
       'counts': counts.toJson(),
+      if (baselineComparison != null)
+        'baselineComparison': baselineComparison.summaryJson(),
     };
     debugPrint(const JsonEncoder.withIndent('  ').convert(summary));
 
@@ -150,9 +182,15 @@ void main() {
     expect(counts.contactLedge, 10);
     expect(counts.genericProjection, 0);
     expect(captures, hasLength(10));
+    expect(currentArtifacts, hasLength(11));
     expect(File(overviewPath).existsSync(), isTrue);
     expect(File(indexPath).existsSync(), isTrue);
     expect(File(manifestPath).existsSync(), isTrue);
+    if (config.compareBaseline) {
+      expect(File(config.compareOutputJson).existsSync(), isTrue);
+      expect(File(config.compareOutputTsv).existsSync(), isTrue);
+      expect(baselineComparison?.hasBlockingFailure, isFalse);
+    }
   });
 }
 
@@ -251,7 +289,8 @@ Future<void> _renderCapture(
   canvas.translate(-cropLeft, -cropTop);
   layer.render(canvas);
   canvas.restore();
-  final image = await recorder.endRecording().toImage(outputWidth, outputHeight);
+  final image =
+      await recorder.endRecording().toImage(outputWidth, outputHeight);
   final data = await image.toByteData(format: ui.ImageByteFormat.png);
   if (data == null) {
     throw StateError('Could not encode PNG for $filePath');
@@ -318,6 +357,163 @@ Future<String> _sha256ForFile(String filePath) async {
   return output.split(RegExp(r'\s+')).first;
 }
 
+Future<_BaselineComparisonResult> _compareAgainstBaseline({
+  required _HarnessConfig config,
+  required List<_CurrentImageArtifact> currentArtifacts,
+  required _RuntimeCounts counts,
+}) async {
+  final baselineDir = config.baselineDir;
+  if (baselineDir == null) {
+    throw StateError(
+      'SHADOW_BASELINE_DIR is required when SHADOW_COMPARE_BASELINE=true',
+    );
+  }
+  final manifestFile = File(p.join(baselineDir, 'baseline_manifest.json'));
+  if (!manifestFile.existsSync()) {
+    throw StateError('Baseline manifest is missing: ${manifestFile.path}');
+  }
+
+  final manifest =
+      jsonDecode(await manifestFile.readAsString()) as Map<String, Object?>;
+  final expectedCounts = manifest['counts'] as Map<String, Object?>;
+  final baselineCaptures =
+      (manifest['captures'] as List<Object?>).cast<Map<String, Object?>>();
+  final expected = manifest['expected'] as Map<String, Object?>?;
+  final expectedElementIds =
+      (expected?['contactElementIds'] as List<Object?>?)?.cast<String>();
+  final currentElementIds = [
+    for (final artifact in currentArtifacts)
+      if (artifact.kind == 'contactLedge') artifact.elementId,
+  ];
+
+  final structureFailures = <String>[];
+  void expectStructure(bool condition, String message) {
+    if (!condition) {
+      structureFailures.add(message);
+    }
+  }
+
+  expectStructure(
+      counts.staticInstructions == expectedCounts['staticInstructions'],
+      'staticInstructions mismatch');
+  expectStructure(counts.contactLedge == expectedCounts['contactLedge'],
+      'contactLedge mismatch');
+  expectStructure(
+      counts.genericProjection == expectedCounts['genericProjection'],
+      'genericProjection mismatch');
+  expectStructure(currentArtifacts.length == expectedCounts['captures'],
+      'capture count mismatch');
+  if (expectedElementIds != null) {
+    expectStructure(
+      _listEquals(currentElementIds, expectedElementIds),
+      'contact element ids mismatch',
+    );
+  }
+
+  final currentByKey = {
+    for (final artifact in currentArtifacts) artifact.key: artifact,
+  };
+  final rows = <_BaselineComparisonRow>[];
+  if (structureFailures.isNotEmpty) {
+    rows.add(
+      _BaselineComparisonRow.structureFailure(
+        structureFailures.join('; '),
+      ),
+    );
+  }
+
+  for (final baseline in baselineCaptures) {
+    final kind = baseline['kind'] as String;
+    final rank = baseline['rank'] as int?;
+    final elementId = baseline['elementId'] as String?;
+    final baselinePath = _resolveRepoPath(baseline['baselinePath'] as String);
+    final current = currentByKey[_artifactKey(kind, rank)];
+    final baselineFile = File(baselinePath);
+    final baselineExists = baselineFile.existsSync();
+    final currentExists = current != null && File(current.path).existsSync();
+    final baselineWidth = baseline['width'] as int;
+    final baselineHeight = baseline['height'] as int;
+    final currentWidth = current?.width;
+    final currentHeight = current?.height;
+    final baselineSha256 = baseline['sha256'] as String;
+    final baselineFileSizeBytes = baseline['fileSizeBytes'] as int;
+
+    var status = 'match';
+    if (!baselineExists) {
+      status = 'missing-baseline-fail';
+    } else if (!currentExists) {
+      status = 'missing-current-fail';
+    } else if (baselineWidth != currentWidth ||
+        baselineHeight != currentHeight) {
+      status = 'dimension-mismatch-fail';
+    } else if (baselineSha256 != current.sha256) {
+      status = 'pixel-diff-informative';
+    }
+
+    rows.add(
+      _BaselineComparisonRow(
+        rank: rank,
+        kind: kind,
+        elementId: elementId,
+        baselinePath: baselinePath,
+        currentPath: current?.path,
+        baselineSha256: baselineSha256,
+        currentSha256: current?.sha256,
+        exactHashMatch: baselineSha256 == current?.sha256,
+        baselineFileSizeBytes: baselineFileSizeBytes,
+        currentFileSizeBytes: current?.fileSizeBytes,
+        baselineWidth: baselineWidth,
+        baselineHeight: baselineHeight,
+        currentWidth: currentWidth,
+        currentHeight: currentHeight,
+        status: status,
+      ),
+    );
+  }
+
+  final result = _BaselineComparisonResult(
+    baselineId: manifest['baselineId'] as String? ?? 'unknown',
+    baselineDir: baselineDir,
+    counts: counts,
+    rows: rows,
+  );
+  await Directory(p.dirname(config.compareOutputJson)).create(recursive: true);
+  await Directory(p.dirname(config.compareOutputTsv)).create(recursive: true);
+  await File(config.compareOutputJson).writeAsString(
+    const JsonEncoder.withIndent('  ').convert(result.toJson()),
+  );
+  await File(config.compareOutputTsv).writeAsString(result.toTsv());
+  debugPrint(
+    'baseline comparison wrote ${config.compareOutputJson} and '
+    '${config.compareOutputTsv}',
+  );
+  if (result.hasBlockingFailure) {
+    throw StateError('Blocking baseline comparison failure');
+  }
+  return result;
+}
+
+String _artifactKey(String kind, int? rank) => '$kind:${rank ?? 0}';
+
+bool _listEquals(List<Object?> left, List<Object?> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var i = 0; i < left.length; i += 1) {
+    if (left[i] != right[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+String _resolveRepoPath(String value) {
+  if (p.isAbsolute(value)) {
+    return value;
+  }
+  return p.normalize(p.join(_defaultRepoRoot, value));
+}
+
 String _safeFilePart(String value) {
   return value.replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_');
 }
@@ -328,6 +524,12 @@ final class _HarnessConfig {
     required this.outputDir,
     required this.prefix,
     required this.artifactDir,
+    required this.artifactStem,
+    required this.lotLabel,
+    required this.compareBaseline,
+    required this.baselineDir,
+    required this.compareOutputJson,
+    required this.compareOutputTsv,
   });
 
   factory _HarnessConfig.fromEnvironment() {
@@ -336,17 +538,37 @@ final class _HarnessConfig {
     final outputDir = Directory(
       Platform.environment['SHADOW_SCREENSHOT_OUTPUT_DIR'] ?? _defaultOutputDir,
     ).absolute.path;
-    final prefix =
-        _safeFilePart(Platform.environment['SHADOW_SCREENSHOT_PREFIX'] ??
-            _defaultPrefix);
+    final prefix = _safeFilePart(
+        Platform.environment['SHADOW_SCREENSHOT_PREFIX'] ?? _defaultPrefix);
     final artifactDir = p.basename(outputDir) == 'screenshots'
         ? Directory(outputDir).parent.path
         : outputDir;
+    final artifactStem = _artifactStemForPrefix(prefix);
+    final lotLabel = _lotLabelForArtifactStem(artifactStem);
+    final compareBaseline = _envFlag('SHADOW_COMPARE_BASELINE');
+    final baselineDirValue = Platform.environment['SHADOW_BASELINE_DIR'];
+    final baselineDir = baselineDirValue == null || baselineDirValue.isEmpty
+        ? null
+        : _resolveRepoPath(baselineDirValue);
+    final compareOutputJson = _resolveRepoPath(
+      Platform.environment['SHADOW_BASELINE_COMPARE_OUTPUT_JSON'] ??
+          p.join(artifactDir, '${artifactStem}_baseline_compare.json'),
+    );
+    final compareOutputTsv = _resolveRepoPath(
+      Platform.environment['SHADOW_BASELINE_COMPARE_OUTPUT_TSV'] ??
+          p.join(artifactDir, '${artifactStem}_baseline_compare.tsv'),
+    );
     return _HarnessConfig(
       projectPath: projectPath,
       outputDir: outputDir,
       prefix: prefix,
       artifactDir: artifactDir,
+      artifactStem: artifactStem,
+      lotLabel: lotLabel,
+      compareBaseline: compareBaseline,
+      baselineDir: baselineDir,
+      compareOutputJson: compareOutputJson,
+      compareOutputTsv: compareOutputTsv,
     );
   }
 
@@ -354,6 +576,33 @@ final class _HarnessConfig {
   final String outputDir;
   final String prefix;
   final String artifactDir;
+  final String artifactStem;
+  final String lotLabel;
+  final bool compareBaseline;
+  final String? baselineDir;
+  final String compareOutputJson;
+  final String compareOutputTsv;
+}
+
+String _artifactStemForPrefix(String prefix) {
+  final match = RegExp(r'^shadow(\d+)$').firstMatch(prefix);
+  if (match != null) {
+    return 'shadow_lot_${match.group(1)}';
+  }
+  return prefix;
+}
+
+String _lotLabelForArtifactStem(String artifactStem) {
+  final match = RegExp(r'^shadow_lot_(\d+)$').firstMatch(artifactStem);
+  if (match != null) {
+    return 'Shadow-${match.group(1)}';
+  }
+  return artifactStem;
+}
+
+bool _envFlag(String name) {
+  final value = Platform.environment[name]?.toLowerCase();
+  return value == '1' || value == 'true' || value == 'yes';
 }
 
 final class _ShadowCaptureRow {
@@ -442,6 +691,212 @@ final class _CaptureArtifact {
       'instructionHeight': row.instructionHeight,
       'instructionArea': row.instructionArea,
     };
+  }
+}
+
+final class _CurrentImageArtifact {
+  const _CurrentImageArtifact({
+    required this.kind,
+    required this.rank,
+    required this.elementId,
+    required this.path,
+    required this.sha256,
+    required this.fileSizeBytes,
+    required this.width,
+    required this.height,
+  });
+
+  final String kind;
+  final int? rank;
+  final String? elementId;
+  final String path;
+  final String sha256;
+  final int fileSizeBytes;
+  final int width;
+  final int height;
+
+  String get key => _artifactKey(kind, rank);
+
+  Map<String, Object?> toJson() {
+    return {
+      'kind': kind,
+      'rank': rank,
+      'elementId': elementId,
+      'path': path,
+      'sha256': sha256,
+      'fileSizeBytes': fileSizeBytes,
+      'width': width,
+      'height': height,
+    };
+  }
+}
+
+final class _BaselineComparisonRow {
+  const _BaselineComparisonRow({
+    required this.rank,
+    required this.kind,
+    required this.elementId,
+    required this.baselinePath,
+    required this.currentPath,
+    required this.baselineSha256,
+    required this.currentSha256,
+    required this.exactHashMatch,
+    required this.baselineFileSizeBytes,
+    required this.currentFileSizeBytes,
+    required this.baselineWidth,
+    required this.baselineHeight,
+    required this.currentWidth,
+    required this.currentHeight,
+    required this.status,
+  });
+
+  factory _BaselineComparisonRow.structureFailure(String message) {
+    return _BaselineComparisonRow(
+      rank: null,
+      kind: 'structure',
+      elementId: null,
+      baselinePath: null,
+      currentPath: null,
+      baselineSha256: null,
+      currentSha256: null,
+      exactHashMatch: false,
+      baselineFileSizeBytes: null,
+      currentFileSizeBytes: null,
+      baselineWidth: null,
+      baselineHeight: null,
+      currentWidth: null,
+      currentHeight: null,
+      status: 'structure-fail:$message',
+    );
+  }
+
+  final int? rank;
+  final String kind;
+  final String? elementId;
+  final String? baselinePath;
+  final String? currentPath;
+  final String? baselineSha256;
+  final String? currentSha256;
+  final bool exactHashMatch;
+  final int? baselineFileSizeBytes;
+  final int? currentFileSizeBytes;
+  final int? baselineWidth;
+  final int? baselineHeight;
+  final int? currentWidth;
+  final int? currentHeight;
+  final String status;
+
+  bool get isBlockingFailure =>
+      status.endsWith('-fail') || status.startsWith('structure-fail');
+
+  Map<String, Object?> toJson() {
+    return {
+      'rank': rank,
+      'kind': kind,
+      'elementId': elementId,
+      'baselinePath': baselinePath,
+      'currentPath': currentPath,
+      'baselineSha256': baselineSha256,
+      'currentSha256': currentSha256,
+      'exactHashMatch': exactHashMatch,
+      'baselineFileSizeBytes': baselineFileSizeBytes,
+      'currentFileSizeBytes': currentFileSizeBytes,
+      'baselineWidth': baselineWidth,
+      'baselineHeight': baselineHeight,
+      'currentWidth': currentWidth,
+      'currentHeight': currentHeight,
+      'status': status,
+    };
+  }
+
+  String toTsvLine() {
+    return [
+      rank ?? '',
+      kind,
+      elementId ?? '',
+      baselinePath ?? '',
+      currentPath ?? '',
+      baselineSha256 ?? '',
+      currentSha256 ?? '',
+      exactHashMatch,
+      baselineFileSizeBytes ?? '',
+      currentFileSizeBytes ?? '',
+      baselineWidth ?? '',
+      baselineHeight ?? '',
+      currentWidth ?? '',
+      currentHeight ?? '',
+      status,
+    ].map((value) => '$value').join('\t');
+  }
+}
+
+final class _BaselineComparisonResult {
+  const _BaselineComparisonResult({
+    required this.baselineId,
+    required this.baselineDir,
+    required this.counts,
+    required this.rows,
+  });
+
+  final String baselineId;
+  final String baselineDir;
+  final _RuntimeCounts counts;
+  final List<_BaselineComparisonRow> rows;
+
+  bool get hasBlockingFailure => rows.any((row) => row.isBlockingFailure);
+
+  int get exactMatches => rows.where((row) => row.status == 'match').length;
+
+  int get informativeDiffs =>
+      rows.where((row) => row.status == 'pixel-diff-informative').length;
+
+  int get blockingFailures => rows.where((row) => row.isBlockingFailure).length;
+
+  Map<String, Object?> summaryJson() {
+    return {
+      'baselineId': baselineId,
+      'baselineDir': baselineDir,
+      'mode': 'informative-hash-v0',
+      'total': rows.length,
+      'exactMatches': exactMatches,
+      'informativeDiffs': informativeDiffs,
+      'blockingFailures': blockingFailures,
+      'hasBlockingFailure': hasBlockingFailure,
+    };
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      ...summaryJson(),
+      'counts': counts.toJson(),
+      'rows': [
+        for (final row in rows) row.toJson(),
+      ],
+    };
+  }
+
+  String toTsv() {
+    const headers = [
+      'rank',
+      'kind',
+      'elementId',
+      'baselinePath',
+      'currentPath',
+      'baselineSha256',
+      'currentSha256',
+      'exactHashMatch',
+      'baselineFileSizeBytes',
+      'currentFileSizeBytes',
+      'baselineWidth',
+      'baselineHeight',
+      'currentWidth',
+      'currentHeight',
+      'status',
+    ];
+    return '${[
+      headers.join('\t'),
+      for (final row in rows) row.toTsvLine(),
+    ].join('\n')}\n';
   }
 }
 
