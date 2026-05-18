@@ -34,6 +34,35 @@ void main() {
       ]);
     });
 
+    test('Stalwart and Propeller Tail bypass Follow Me redirection', () {
+      for (final abilityId in <String>['stalwart', 'propeller_tail']) {
+        final state = _state(
+          playerLeftAbilityId: abilityId,
+          opponentRightEffects: PsdkBattleEffectStack(
+            effects: const <BattleEffect>[
+              GenericBattleEffect(
+                id: PsdkBattleEffectIds.centerOfAttention,
+                scope: BattlerBattleEffectScope(_opponentRight),
+                remainingTurns: 0,
+              ),
+            ],
+          ),
+        );
+        final execution = _execution(
+          state: state,
+          user: _playerLeft,
+          target: _opponentLeft,
+          move: _move(target: PsdkBattleMoveTarget.adjacentFoe),
+        );
+
+        expect(
+          const BattleTargetResolver().resolve(execution),
+          <BattlePositionRef>[const BattlePositionRef(bank: 1, position: 0)],
+          reason: abilityId,
+        );
+      }
+    });
+
     test('Wide Guard blocks spread moves against the protected bank', () {
       final state = _state(
         opponentLeftEffects: PsdkBattleEffectStack(
@@ -214,6 +243,10 @@ BattleMoveProcedureExecution _execution({
 }
 
 PsdkBattleState _state({
+  String? playerLeftAbilityId,
+  String? playerRightAbilityId,
+  String? opponentLeftAbilityId,
+  String? opponentRightAbilityId,
   PsdkBattleEffectStack? playerLeftEffects,
   PsdkBattleEffectStack? playerRightEffects,
   PsdkBattleEffectStack? opponentLeftEffects,
@@ -222,16 +255,32 @@ PsdkBattleState _state({
   return PsdkBattleState(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       _playerLeft: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'player-left', effects: playerLeftEffects),
+        _combatant(
+          id: 'player-left',
+          abilityId: playerLeftAbilityId,
+          effects: playerLeftEffects,
+        ),
       ),
       _playerRight: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'player-right', effects: playerRightEffects),
+        _combatant(
+          id: 'player-right',
+          abilityId: playerRightAbilityId,
+          effects: playerRightEffects,
+        ),
       ),
       _opponentLeft: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'opponent-left', effects: opponentLeftEffects),
+        _combatant(
+          id: 'opponent-left',
+          abilityId: opponentLeftAbilityId,
+          effects: opponentLeftEffects,
+        ),
       ),
       _opponentRight: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'opponent-right', effects: opponentRightEffects),
+        _combatant(
+          id: 'opponent-right',
+          abilityId: opponentRightAbilityId,
+          effects: opponentRightEffects,
+        ),
       ),
     },
   );
@@ -239,6 +288,7 @@ PsdkBattleState _state({
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? abilityId,
   PsdkBattleEffectStack? effects,
 }) {
   return PsdkBattleCombatantSetup(
@@ -256,6 +306,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: 50,
     ),
+    abilityId: abilityId,
     moves: <PsdkBattleMoveData>[_move().psdkMove],
     effects: effects,
   );

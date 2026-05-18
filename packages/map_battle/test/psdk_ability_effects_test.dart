@@ -1705,6 +1705,45 @@ void main() {
       }
     });
 
+    test('ally damage abilities affect same-bank doubles partners', () {
+      final normalSpecial = _calculatedDoublesDamage(
+        category: PsdkBattleMoveCategory.special,
+      );
+      final normalPhysical = _calculatedDoublesDamage();
+      final normalSteel = _calculatedDoublesDamage(moveType: 'steel');
+
+      expect(
+        _calculatedDoublesDamage(
+          userAllyAbilityId: 'battery',
+          category: PsdkBattleMoveCategory.special,
+        ),
+        greaterThan(normalSpecial),
+      );
+      expect(
+        _calculatedDoublesDamage(userAllyAbilityId: 'battery'),
+        normalPhysical,
+      );
+      expect(
+        _calculatedDoublesDamage(userAllyAbilityId: 'power_spot'),
+        greaterThan(normalPhysical),
+      );
+      expect(
+        _calculatedDoublesDamage(
+          userAllyAbilityId: 'steely_spirit',
+          moveType: 'steel',
+        ),
+        greaterThan(normalSteel),
+      );
+      expect(
+        _calculatedDoublesDamage(userAllyAbilityId: 'steely_spirit'),
+        normalPhysical,
+      );
+      expect(
+        _calculatedDoublesDamage(targetAllyAbilityId: 'friend_guard'),
+        lessThan(normalPhysical),
+      );
+    });
+
     test('super-effective reduction abilities reduce only strong hits', () {
       for (final abilityId in <String>[
         'solid_rock',
@@ -3378,6 +3417,70 @@ int _calculatedDamage({
           rng: _rng(),
           field: field,
           isLastActionOfTurn: isLastActionOfTurn,
+        ),
+      )
+      .damage;
+}
+
+int _calculatedDoublesDamage({
+  String? userAllyAbilityId,
+  String? targetAllyAbilityId,
+  String moveType = 'normal',
+  PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
+}) {
+  const userSlot = PsdkBattleSlotRef(bank: 0, position: 0);
+  const userAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+  const targetSlot = PsdkBattleSlotRef(bank: 1, position: 0);
+  const targetAllySlot = PsdkBattleSlotRef(bank: 1, position: 1);
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      userSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'user', move: _move(id: 'doubles_move', power: 60)),
+      ),
+      userAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'user_ally',
+          abilityId: userAllyAbilityId,
+          move: _move(id: 'user_ally_wait', power: 0),
+        ),
+      ),
+      targetSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'target', move: _move(id: 'target_wait', power: 0)),
+      ),
+      targetAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'target_ally',
+          abilityId: targetAllyAbilityId,
+          move: _move(id: 'target_ally_wait', power: 0),
+        ),
+      ),
+    },
+  );
+
+  return const BattleMoveDamageCalculator()
+      .calculate(
+        BattleMoveDamageContext(
+          state: state,
+          userSlot: userSlot,
+          targetSlot: targetSlot,
+          user: state.battlerAt(userSlot),
+          target: state.battlerAt(targetSlot),
+          move: BattleMoveDefinition(
+            id: 'doubles_move',
+            dbSymbol: 'doubles_move',
+            name: 'doubles_move',
+            type: moveType,
+            category: category,
+            power: 60,
+            accuracy: 100,
+            pp: 35,
+            priority: 0,
+            criticalRate: 1,
+            battleEngineMethod: 's_basic',
+            target: PsdkBattleMoveTarget.adjacentFoe,
+          ),
+          rng: _rng(),
+          field: state.field,
         ),
       )
       .damage;

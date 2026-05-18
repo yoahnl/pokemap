@@ -2,7 +2,6 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../battle/battle_slot.dart';
-import 'battle_move_data.dart';
 import 'battle_move_execution.dart';
 
 final class BattleTargetResolver {
@@ -95,7 +94,7 @@ List<PsdkBattleSlotRef> _redirectedOrOriginal({
   required List<PsdkBattleSlotRef> candidates,
   required List<PsdkBattleSlotRef> targets,
 }) {
-  if (targets.isEmpty || !_canRedirect(execution.move)) {
+  if (targets.isEmpty || !_canRedirect(execution)) {
     return targets;
   }
   for (final candidate in candidates) {
@@ -113,8 +112,18 @@ List<PsdkBattleSlotRef> _redirectedOrOriginal({
   return targets;
 }
 
-bool _canRedirect(BattleMoveDefinition move) {
-  return move.id != 'snipe_shot' && move.dbSymbol != 'snipe_shot';
+bool _canRedirect(BattleMoveProcedureExecution execution) {
+  final move = execution.move;
+  if (move.id == 'snipe_shot' || move.dbSymbol == 'snipe_shot') {
+    return false;
+  }
+  final user = execution.context.state.battlerAt(
+    PsdkBattleSlotRef(
+      bank: execution.user.bank,
+      position: execution.user.position,
+    ),
+  );
+  return user.abilityId != 'stalwart' && user.abilityId != 'propeller_tail';
 }
 
 List<PsdkBattleSlotRef> _randomOne({

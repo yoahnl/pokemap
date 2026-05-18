@@ -830,6 +830,9 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       move: context.move,
       rng: common.rng,
       field: common.state.field,
+      state: common.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       isLastActionOfTurn: context.isLastActionOfTurn,
     ),
   );

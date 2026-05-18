@@ -268,6 +268,38 @@ final class AbilityEffectRegistry {
           shape: AbilityMovePowerShape.pulse,
           multiplier: 1.5,
         ),
+    'battery': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'battery',
+          scope: scope,
+          kind: AllyDamageModifierKind.batterySpecialAttack,
+          multiplier: 1.3,
+        ),
+    'friend_guard': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'friend_guard',
+          scope: scope,
+          kind: AllyDamageModifierKind.friendGuard,
+          multiplier: 0.75,
+        ),
+    'power_spot': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'power_spot',
+          scope: scope,
+          kind: AllyDamageModifierKind.powerSpot,
+          multiplier: 1.2,
+        ),
+    'steely_spirit': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'steely_spirit',
+          scope: scope,
+          kind: AllyDamageModifierKind.steelySpirit,
+          multiplier: 1.5,
+        ),
+    'stalwart': ({required scope}) => GenericBattleEffect(
+          id: 'ability:stalwart',
+          scope: scope,
+        ),
+    'propeller_tail': ({required scope}) => GenericBattleEffect(
+          id: 'ability:propeller_tail',
+          scope: scope,
+        ),
     'solid_rock': ({required scope}) => AbilityFinalDamageModifierEffect(
           abilityId: 'solid_rock',
           scope: scope,

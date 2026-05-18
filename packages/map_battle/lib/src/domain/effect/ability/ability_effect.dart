@@ -48,6 +48,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   double damageBasePowerMultiplier(BattleAbilityDamageContext context) => 1;
 
+  double offensiveStatMultiplier(BattleAbilityDamageContext context) => 1;
+
   double incomingDamageBasePowerMultiplier(
     BattleAbilityDamageContext context,
   ) {
@@ -119,6 +121,8 @@ final class BattleAbilityDamageContext {
     required this.move,
     required this.moveType,
     required this.typeEffectivenessMultiplier,
+    this.userSlot,
+    this.targetSlot,
     this.activeAbilityIds = const <String>{},
     this.weatherEffectsSuppressed = false,
     this.isLastActionOfTurn = false,
@@ -130,6 +134,8 @@ final class BattleAbilityDamageContext {
   final BattleMoveDefinition move;
   final String moveType;
   final double typeEffectivenessMultiplier;
+  final PsdkBattleSlotRef? userSlot;
+  final PsdkBattleSlotRef? targetSlot;
   final Set<String> activeAbilityIds;
   final bool weatherEffectsSuppressed;
   final bool isLastActionOfTurn;
