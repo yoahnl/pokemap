@@ -27,6 +27,7 @@ import 'rock_head_effect.dart';
 import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
+import 'stat_change_ability_effect.dart';
 import 'stat_modifier_ability_effect.dart';
 import 'stat_drop_prevention_ability_effect.dart';
 import 'status_immunity_effect.dart';
@@ -434,6 +435,31 @@ final class AbilityEffectRegistry {
           scope: scope,
           statMultipliers: const <String, double>{'defense': 1.5},
           condition: hasGrassyTerrain,
+        ),
+    'contrary': ({required scope}) => StatChangeTransformAbilityEffect(
+          abilityId: 'contrary',
+          scope: scope,
+          transform: AbilityStatChangeTransform.contrary,
+        ),
+    'simple': ({required scope}) => StatChangeTransformAbilityEffect(
+          abilityId: 'simple',
+          scope: scope,
+          transform: AbilityStatChangeTransform.simple,
+        ),
+    'guard_dog': ({required scope}) => StatChangeTransformAbilityEffect(
+          abilityId: 'guard_dog',
+          scope: scope,
+          transform: AbilityStatChangeTransform.guardDog,
+        ),
+    'defiant': ({required scope}) => StatDropPunishAbilityEffect(
+          abilityId: 'defiant',
+          scope: scope,
+          boostedStat: 'attack',
+        ),
+    'competitive': ({required scope}) => StatDropPunishAbilityEffect(
+          abilityId: 'competitive',
+          scope: scope,
+          boostedStat: 'specialAttack',
         ),
     'chlorophyll': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'chlorophyll',

@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 266,
+      "ported": 271,
       "partial": 19,
-      "missing": 197
+      "missing": 192
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 115,
+        "ported": 120,
         "partial": 1,
-        "missing": 138
+        "missing": 133
       },
       "move": {
         "ported": 80,
@@ -10102,7 +10102,7 @@
       {
         "effectName": "Competitive",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Defiant.rb",
         "hookFamilies": []
       },
@@ -10132,7 +10132,7 @@
       {
         "effectName": "Contrary",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Contrary.rb",
         "hookFamilies": [
           "stat_change"
@@ -10266,7 +10266,7 @@
       {
         "effectName": "Defiant",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Defiant.rb",
         "hookFamilies": [
           "stat_change"
@@ -10899,7 +10899,7 @@
       {
         "effectName": "GuardDog",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 GuardDog.rb",
         "hookFamilies": [
           "stat_change"
@@ -12593,7 +12593,7 @@
       {
         "effectName": "Simple",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Simple.rb",
         "hookFamilies": [
           "stat_change"

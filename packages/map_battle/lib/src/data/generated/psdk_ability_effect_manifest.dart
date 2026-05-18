@@ -193,7 +193,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'competitive',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Defiant.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatDropPunishAbilityEffect.competitive',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'compound_eyes',
@@ -206,7 +207,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'contrary',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Contrary.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatChangeTransformAbilityEffect.contrary',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'costar',
@@ -290,7 +292,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'defiant',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Defiant.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatDropPunishAbilityEffect.defiant',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'delta_stream',
@@ -534,7 +537,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'guard_dog',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 GuardDog.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatChangeTransformAbilityEffect.guardDog',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'gulp_missile',
@@ -1300,7 +1304,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'simple',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Simple.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatChangeTransformAbilityEffect.simple',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'slow_start',

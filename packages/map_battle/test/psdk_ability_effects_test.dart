@@ -321,6 +321,123 @@ void main() {
       );
     });
 
+    test('Contrary and Simple transform incoming stat stage changes', () {
+      final contraryDrop = _applyPlayerStatDrop(
+        playerAbilityId: 'contrary',
+        stat: 'attack',
+      );
+      final contraryBoost = _applyPlayerStatDrop(
+        playerAbilityId: 'contrary',
+        stat: 'attack',
+        stages: 1,
+      );
+      final simpleDrop = _applyPlayerStatDrop(
+        playerAbilityId: 'simple',
+        stat: 'defense',
+      );
+      final simpleBoost = _applyPlayerStatDrop(
+        playerAbilityId: 'simple',
+        stat: 'speed',
+        stages: 1,
+      );
+
+      expect(
+        contraryDrop.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+              'attack',
+            ),
+        1,
+      );
+      expect(_statEventsForHandler(contraryDrop).single.amount, 1);
+
+      expect(
+        contraryBoost.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+              'attack',
+            ),
+        -1,
+      );
+      expect(_statEventsForHandler(contraryBoost).single.amount, -1);
+
+      expect(
+        simpleDrop.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+              'defense',
+            ),
+        -2,
+      );
+      expect(_statEventsForHandler(simpleDrop).single.amount, -2);
+
+      expect(
+        simpleBoost.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+              'speed',
+            ),
+        2,
+      );
+      expect(_statEventsForHandler(simpleBoost).single.amount, 2);
+    });
+
+    test('Defiant and Competitive punish opposing stat drops', () {
+      final defiant = _applyPlayerStatDrop(
+        playerAbilityId: 'defiant',
+        stat: 'defense',
+      );
+      final competitive = _applyPlayerStatDrop(
+        playerAbilityId: 'competitive',
+        stat: 'defense',
+      );
+      final selfDrop = _applyPlayerStatDrop(
+        playerAbilityId: 'defiant',
+        stat: 'defense',
+        user: psdkPlayerSlot,
+      );
+
+      expect(
+        defiant.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+        -1,
+      );
+      expect(
+        defiant.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        2,
+      );
+      expect(
+        _statEventsForHandler(defiant).map((event) => event.stat),
+        <String>['defense', 'attack'],
+      );
+
+      expect(
+        competitive.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('specialAttack'),
+        2,
+      );
+      expect(
+        _statEventsForHandler(competitive).map((event) => event.stat),
+        <String>['defense', 'specialAttack'],
+      );
+
+      expect(
+        selfDrop.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        0,
+      );
+      expect(_statEventsForHandler(selfDrop), hasLength(1));
+    });
+
+    test('Guard Dog turns activated Intimidate into an Attack boost', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'intimidate',
+        opponentAbilityId: 'guard_dog',
+      );
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        1,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().single.amount,
+        1,
+      );
+    });
+
     test('switch-in stat boost abilities raise the owner stat', () {
       final dauntless =
           _dispatchAbilitySwitchIn(playerAbilityId: 'dauntless_shield');
@@ -3367,6 +3484,7 @@ BattleEffect _abilityEffectForOpponent(String abilityId) {
 BattleHandlerResult _applyPlayerStatDrop({
   required String playerAbilityId,
   required String stat,
+  int stages = -1,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleSlotRef user = psdkOpponentSlot,
 }) {
@@ -3400,7 +3518,7 @@ BattleHandlerResult _applyPlayerStatDrop({
     ),
     target: psdkPlayerSlot,
     stat: stat,
-    stages: -1,
+    stages: stages,
   );
 }
 
