@@ -1853,8 +1853,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PhotonGeyser',
     rubyPath: '10 Move/2 Definitions/300 PhotonGeyser.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_photon_geyser',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_plasma_fists',

@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 375,
-    "partiel": 353,
+    "fait": 376,
+    "partiel": 352,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -3531,9 +3531,9 @@
       {
         "moveId": "photon_geyser",
         "battleEngineMethod": "s_photon_geyser",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/photon_geyser.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 185,
-      "partial": 145,
+      "ported": 186,
+      "partial": 144,
       "missing": 0
     },
     "entries": [
@@ -7852,11 +7852,8 @@
         "rubyClass": "PhotonGeyser",
         "rubyPath": "10 Move/2 Definitions/300 PhotonGeyser.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_photon_geyser",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_plasma_fists",
@@ -9377,7 +9374,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 109,
+        "count": 108,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9443,7 +9440,6 @@
           "s_outrage",
           "s_parting_shot",
           "s_perish_song",
-          "s_photon_geyser",
           "s_plasma_fists",
           "s_pluck",
           "s_powder",

@@ -192,6 +192,49 @@ void main() {
       expect(_damage(result, moveId: 'photon_geyser'), 53);
     });
 
+    test('s_photon_geyser chooses its category after stat stage modifiers', () {
+      final neutral = _runMove(
+        playerMove: _move(
+          id: 'photon_geyser',
+          battleEngineMethod: 's_photon_geyser',
+          power: 100,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(
+          attack: 60,
+          specialAttack: 80,
+        ),
+        opponentStats: _stats(
+          defense: 40,
+          specialDefense: 200,
+        ),
+      );
+      final attackBoost = _runMove(
+        playerMove: _move(
+          id: 'photon_geyser',
+          battleEngineMethod: 's_photon_geyser',
+          power: 100,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(
+          attack: 60,
+          specialAttack: 80,
+        ),
+        playerStages: PsdkBattleStatStages(values: const <String, int>{
+          'attack': 2,
+        }),
+        opponentStats: _stats(
+          defense: 40,
+          specialDefense: 200,
+        ),
+      );
+
+      expect(
+        _damage(attackBoost, moveId: 'photon_geyser'),
+        greaterThan(_damage(neutral, moveId: 'photon_geyser')),
+      );
+    });
+
     test('custom stat-source moves keep PSDK critical stage rules', () {
       final bodyPressCrit = _runMove(
         playerMove: _move(

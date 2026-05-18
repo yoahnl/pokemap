@@ -2116,7 +2116,6 @@ void main() {
       's_multi_attack',
       's_payback',
       's_payday',
-      's_photon_geyser',
       's_pollen_puff',
       's_pursuit',
       's_rapid_spin',
