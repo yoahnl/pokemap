@@ -32,6 +32,51 @@ void main() {
       });
     }
 
+    for (final entry in _mindBlownMethods.entries) {
+      test('${entry.key} skips the crash when the user has Wonder Guard', () {
+        final result = _runMove(
+          playerAbilityId: 'wonder_guard',
+          playerMove: _move(
+            id: entry.value,
+            power: 40,
+            battleEngineMethod: entry.key,
+          ),
+        );
+
+        final damage = _damageEvents(result, moveId: entry.value);
+        expect(damage, hasLength(1));
+        expect(damage.single.target, psdkOpponentSlot);
+        expect(damage.single.damage, 8);
+        expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 92);
+        expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      });
+    }
+
+    test('s_mind_blown also skips the miss crash with Wonder Guard', () {
+      final result = _runMove(
+        playerAbilityId: 'wonder_guard',
+        playerMove: _move(
+          id: 'mind_blown',
+          power: 40,
+          accuracy: 90,
+          battleEngineMethod: 's_mind_blown',
+        ),
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 99,
+          generic: 4,
+        ),
+      );
+
+      expect(
+          _eventsFor(result, moveId: 'mind_blown').map((event) => event.kind),
+          contains('miss'));
+      expect(_damageEvents(result, moveId: 'mind_blown'), isEmpty);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+    });
+
     test('s_chloroblast uses half max HP instead of recoil from damage dealt',
         () {
       final result = _runMove(
@@ -196,6 +241,7 @@ void main() {
 
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
+  String? playerAbilityId,
   int playerMaxHp = 100,
   int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
@@ -216,6 +262,7 @@ PsdkBattleTurnResult _runMove({
         currentHp: playerCurrentHp,
         speed: 100,
         types: const PsdkBattleTypes(primary: 'fire'),
+        abilityId: playerAbilityId,
         move: playerMove,
       ),
       opponent: _combatant(
@@ -244,6 +291,7 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   required PsdkBattleTypes types,
   required PsdkBattleMoveData move,
+  String? abilityId,
   PsdkBattleEffectStack? effects,
 }) {
   return PsdkBattleCombatantSetup(
@@ -261,6 +309,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: speed,
     ),
+    abilityId: abilityId,
     effects: effects,
     moves: <PsdkBattleMoveData>[move],
   );

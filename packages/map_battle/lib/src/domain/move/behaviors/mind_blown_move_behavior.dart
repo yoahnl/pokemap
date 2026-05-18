@@ -13,8 +13,8 @@ import 'battle_move_behavior_support.dart';
 /// class. They are not regular recoil moves: after a successful Basic hit they
 /// run `deal_effect`, which removes half of the user's max HP. The same crash
 /// also happens when accuracy or target immunity prevents the hit. `Damp` is
-/// handled by the ability move-prevention hook; the user's `Wonder Guard`
-/// crash immunity remains separate parity work.
+/// handled by the ability move-prevention hook, while the user's `Wonder Guard`
+/// skips the crash damage like PSDK's `crash_procedure`.
 final class MindBlownMoveBehavior implements BattleMoveBehavior {
   const MindBlownMoveBehavior.mindBlown() : battleEngineMethod = 's_mind_blown';
 
@@ -121,6 +121,15 @@ final class MindBlownMoveBehavior implements BattleMoveBehavior {
     bool successful = true,
   }) {
     final user = state.battlerAt(context.user);
+    if (user.abilityId == 'wonder_guard') {
+      return BattleMoveBehaviorResolution(
+        state: state,
+        rng: rng,
+        events: events,
+        successful: successful,
+      );
+    }
+
     final crash = applyDirectDamage(
       state: state,
       user: context.user,

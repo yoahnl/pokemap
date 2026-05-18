@@ -1759,17 +1759,17 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_chloroblast']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_chloroblast']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_chloroblast']!.dartBehavior,
         'MindBlownMoveBehavior.chloroblast',
       );
-      expect(byMethod['s_mind_blown']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_mind_blown']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_mind_blown']!.dartBehavior,
         'MindBlownMoveBehavior.mindBlown',
       );
-      expect(byMethod['s_steel_beam']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_steel_beam']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_steel_beam']!.dartBehavior,
         'MindBlownMoveBehavior.steelBeam',

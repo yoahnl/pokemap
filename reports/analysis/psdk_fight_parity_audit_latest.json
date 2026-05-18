@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 181,
-      "partial": 149,
+      "ported": 184,
+      "partial": 146,
       "missing": 0
     },
     "entries": [
@@ -6270,12 +6270,8 @@
         "rubyClass": "MindBlown",
         "rubyPath": "10 Move/2 Definitions/300 MindBlown.rb",
         "dartBehavior": "MindBlownMoveBehavior.chloroblast",
-        "status": "partial",
-        "dependencies": [
-          "ability",
-          "faintProcess"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_clangorous_soul",
@@ -7613,12 +7609,8 @@
         "rubyClass": "MindBlown",
         "rubyPath": "10 Move/2 Definitions/300 MindBlown.rb",
         "dartBehavior": "MindBlownMoveBehavior.mindBlown",
-        "status": "partial",
-        "dependencies": [
-          "ability",
-          "faintProcess"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_mind_reader",
@@ -8690,12 +8682,8 @@
         "rubyClass": "MindBlown",
         "rubyPath": "10 Move/2 Definitions/300 MindBlown.rb",
         "dartBehavior": "MindBlownMoveBehavior.steelBeam",
-        "status": "partial",
-        "dependencies": [
-          "ability",
-          "faintProcess"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_steel_roller",
@@ -9392,7 +9380,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 113,
+        "count": 110,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9404,7 +9392,6 @@
           "s_captivate",
           "s_change_type",
           "s_chilly_reception",
-          "s_chloroblast",
           "s_conversion",
           "s_conversion2",
           "s_corrosive_gas",
@@ -9451,7 +9438,6 @@
           "s_magnetic_flux",
           "s_magnitude",
           "s_make_it_rain",
-          "s_mind_blown",
           "s_mind_reader",
           "s_misty_explosion",
           "s_nature_power",
@@ -9483,7 +9469,6 @@
           "s_snatch",
           "s_spectral_thief",
           "s_spite",
-          "s_steel_beam",
           "s_stockpile",
           "s_struggle",
           "s_stuff_cheeks",
