@@ -81,6 +81,70 @@ final class RainDishEffect extends BattleAbilityEffect {
   }
 }
 
+final class HydrationEffect extends BattleAbilityEffect {
+  const HydrationEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'hydration', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return HydrationEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    if (!isOwnedBy(context.owner) || !_rainIsActive(context.state)) {
+      return null;
+    }
+    final battler = context.state.battlerAt(context.owner);
+    if (battler.isFainted || battler.majorStatus == null) {
+      return null;
+    }
+
+    final result = const BattleStatusChangeHandler().cureMajorStatus(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      moveId: 'ability:hydration',
+    );
+    if (!result.applied) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
+final class IceBodyEffect extends BattleAbilityEffect {
+  const IceBodyEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'ice_body', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return IceBodyEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    if (!isOwnedBy(context.owner) || !_snowIsActive(context.state)) {
+      return null;
+    }
+    return _healOwnerFraction(
+      context: context,
+      denominator: 16,
+      moveId: 'ability:ice_body',
+    );
+  }
+}
+
 final class DrySkinEffect extends BattleAbilityEffect {
   const DrySkinEffect({
     required BattleEffectScope scope,
@@ -145,6 +209,40 @@ final class DrySkinEffect extends BattleAbilityEffect {
       );
     }
     return null;
+  }
+}
+
+final class SolarPowerEffect extends BattleAbilityEffect {
+  const SolarPowerEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'solar_power', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SolarPowerEffect(scope: scope);
+  }
+
+  @override
+  double offensiveStatMultiplier(BattleAbilityDamageContext context) {
+    if (context.user.abilityId != abilityId ||
+        context.move.category != PsdkBattleMoveCategory.special ||
+        context.weatherEffectsSuppressed ||
+        !_sunIsActiveInField(context.field)) {
+      return 1;
+    }
+    return 1.5;
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    if (!isOwnedBy(context.owner) || !_sunIsActive(context.state)) {
+      return null;
+    }
+    return _damageOwnerFraction(
+      context: context,
+      denominator: 8,
+      moveId: 'ability:solar_power',
+    );
   }
 }
 
@@ -367,6 +465,16 @@ bool _rainIsActive(PsdkBattleState state) {
 bool _sunIsActive(PsdkBattleState state) {
   return state.isWeatherEffectActive(PsdkBattleWeatherId.sunny) ||
       state.isWeatherEffectActive(PsdkBattleWeatherId.hardsun);
+}
+
+bool _sunIsActiveInField(PsdkBattleFieldState field) {
+  return field.isWeatherActive(PsdkBattleWeatherId.sunny) ||
+      field.isWeatherActive(PsdkBattleWeatherId.hardsun);
+}
+
+bool _snowIsActive(PsdkBattleState state) {
+  return state.isWeatherEffectActive(PsdkBattleWeatherId.hail) ||
+      state.isWeatherEffectActive(PsdkBattleWeatherId.snow);
 }
 
 int _fraction(int maxHp, int denominator) {

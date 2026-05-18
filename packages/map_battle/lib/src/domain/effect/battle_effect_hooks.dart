@@ -4,6 +4,7 @@ import '../move/battle_move_prevention.dart';
 import '../rng/battle_rng_streams.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
+import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
@@ -262,6 +263,36 @@ final class BattleEffectSwitchEventContext {
 
 final class BattleEffectSwitchEventResult {
   const BattleEffectSwitchEventResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectSwitchOutContext {
+  const BattleEffectSwitchOutContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.replacement,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleCombatant replacement;
+}
+
+final class BattleEffectSwitchOutResult {
+  const BattleEffectSwitchOutResult({
     required this.state,
     required this.rng,
     this.events = const <PsdkBattleEvent>[],

@@ -1045,6 +1045,62 @@ void main() {
       expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 6);
     });
 
+    test('Hydration cures its owner status at end turn in rain only', () {
+      final rain = _resolveAbilityEndTurn(
+        playerAbilityId: 'hydration',
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+      final clear = _resolveAbilityEndTurn(
+        playerAbilityId: 'hydration',
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+      );
+
+      expect(rain.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(
+        rain.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
+        'ability:hydration',
+      );
+      expect(
+        clear.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.burn,
+      );
+    });
+
+    test('Ice Body heals one sixteenth in snow and hail', () {
+      for (final weather in <PsdkBattleWeatherId>[
+        PsdkBattleWeatherId.snow,
+        PsdkBattleWeatherId.hail,
+      ]) {
+        final result = _resolveAbilityEndTurn(
+          playerAbilityId: 'ice_body',
+          playerCurrentHp: 80,
+          field: PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: weather,
+              remainingTurns: 5,
+            ),
+          ),
+        );
+
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).currentHp,
+          86,
+          reason: weather.jsonName,
+        );
+        expect(
+          result.events.whereType<PsdkBattleHealEvent>().single.amount,
+          6,
+          reason: weather.jsonName,
+        );
+      }
+    });
+
     test('Dry Skin heals in rain and is hurt in sun at end turn', () {
       final rain = _resolveAbilityEndTurn(
         playerAbilityId: 'dry_skin',
@@ -1071,6 +1127,36 @@ void main() {
       expect(rain.events.whereType<PsdkBattleHealEvent>().single.amount, 12);
       expect(sun.state.battlerAt(psdkPlayerSlot).currentHp, 68);
       expect(sun.events.whereType<PsdkBattleDamageEvent>().single.damage, 12);
+    });
+
+    test('Solar Power boosts special damage in sun and hurts at end turn', () {
+      const sun = PsdkBattleFieldState(
+        weather: PsdkBattleWeatherState(
+          id: PsdkBattleWeatherId.sunny,
+          remainingTurns: 5,
+        ),
+      );
+      final baseline = _calculatedDamage(
+        category: PsdkBattleMoveCategory.special,
+        field: sun,
+      );
+      final boosted = _calculatedDamage(
+        abilityId: 'solar_power',
+        category: PsdkBattleMoveCategory.special,
+        field: sun,
+      );
+      final endTurn = _resolveAbilityEndTurn(
+        playerAbilityId: 'solar_power',
+        playerCurrentHp: 80,
+        field: sun,
+      );
+
+      expect(boosted, greaterThan(baseline));
+      expect(endTurn.state.battlerAt(psdkPlayerSlot).currentHp, 68);
+      expect(
+        endTurn.events.whereType<PsdkBattleDamageEvent>().single.moveId,
+        'ability:solar_power',
+      );
     });
 
     test('Shed Skin can cure its own major status at end turn', () {
@@ -1130,6 +1216,103 @@ void main() {
       expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
       expect(_damageEventsForHandler(result), isEmpty);
       expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 20);
+    });
+
+    test('Well-Baked Body absorbs Fire damage and sharply raises Defense', () {
+      final result = _applyDirectAbilityDamage(
+        opponentAbilityId: 'well_baked_body',
+        moveType: 'fire',
+      );
+      final turn = _runMove(
+        opponentAbilityId: 'well_baked_body',
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+      );
+
+      expect(result.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('defense'),
+        2,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().single.amount,
+        2,
+      );
+      expect(_damageEventsForHandler(result), isEmpty);
+      expect(_damageEvents(turn, moveId: 'ember'), isEmpty);
+      expect(
+        turn.state.battlerAt(psdkOpponentSlot).statStages.valueOf('defense'),
+        2,
+      );
+    });
+
+    test('Thermal Exchange raises Attack after Fire damage and prevents burn',
+        () {
+      final hit = _applyDirectAbilityDamage(
+        opponentAbilityId: 'thermal_exchange',
+        moveType: 'fire',
+      );
+      final burn = _applyStatusToPlayer(
+        playerAbilityId: 'thermal_exchange',
+        status: PsdkBattleMajorStatus.burn,
+      );
+
+      expect(hit.state.battlerAt(psdkOpponentSlot).currentHp, 70);
+      expect(
+        hit.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        1,
+      );
+      expect(
+        hit.events.whereType<PsdkBattleStatStageEvent>().single.stat,
+        'attack',
+      );
+      expect(burn.applied, isFalse);
+      expect(burn.reason, 'ability:thermal_exchange');
+      expect(burn.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+    });
+
+    test('Telepathy prevents damaging moves from same-bank allies', () {
+      const userSlot = PsdkBattleSlotRef(bank: 0, position: 0);
+      const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+      const foeSlot = PsdkBattleSlotRef(bank: 1, position: 0);
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          userSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'user', move: _move(id: 'surf', power: 60)),
+          ),
+          allySlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'ally',
+              abilityId: 'telepathy',
+              move: _move(id: 'ally_wait', power: 0),
+            ),
+          ),
+          foeSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'foe', move: _move(id: 'foe_wait', power: 0)),
+          ),
+        },
+      );
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: userSlot,
+        ),
+        target: allySlot,
+        moveId: 'surf',
+        rawDamage: 30,
+        move: _definition(
+          id: 'surf',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+
+      expect(result.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(result.state.battlerAt(allySlot).currentHp, 100);
+      expect(_damageEventsForHandler(result), isEmpty);
     });
 
     test('Dry Skin increases incoming Fire base power', () {

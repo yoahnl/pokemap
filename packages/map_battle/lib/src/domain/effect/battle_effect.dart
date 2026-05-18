@@ -90,6 +90,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectSwitchOutResult? onSwitchOut(
+    BattleEffectSwitchOutContext context,
+  ) {
+    return null;
+  }
+
   String? onStatIncreasePrevention(
     BattleEffectStatChangePreventionContext context,
   ) {

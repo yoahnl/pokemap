@@ -620,7 +620,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'hydration',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Hydration.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HydrationEffect',
   ),
   PsdkAbilityEffectManifestEntry(
       abilityId: 'hyper_cutter',
@@ -632,7 +633,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'ice_body',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Ice Body.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'IceBodyEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'ice_face',
@@ -882,7 +884,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'natural_cure',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Natural Cure.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'NaturalCureEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'neuroforce',
@@ -1157,7 +1160,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'regenerator',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Regenerator.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RegeneratorEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'ripen',
@@ -1354,7 +1358,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'solar_power',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Solar Power.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SolarPowerEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'solid_rock',
@@ -1564,7 +1569,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'telepathy',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Telepathy.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'TelepathyEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'tera_shell',
@@ -1594,7 +1600,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'thermal_exchange',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 ThermalExchange.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ThermalExchangeEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'thick_fat',
@@ -1766,7 +1773,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'well_baked_body',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 WellBaked Body.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'TypeImmunityAbilityEffect.wellBakedBody',
   ),
   PsdkAbilityEffectManifestEntry(
       abilityId: 'white_smoke',

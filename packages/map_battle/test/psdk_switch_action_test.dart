@@ -164,6 +164,90 @@ void main() {
       expect(outgoing.statStages.valueOf('attack'), 0);
       expect(outgoing.effects.contains('substitute'), isFalse);
     });
+
+    test('Natural Cure clears the switched-out battler major status', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'player-staryu',
+            speciesId: 'staryu',
+            hp: 90,
+            abilityId: 'natural_cure',
+            majorStatus: PsdkBattleMajorStatus.burn,
+          ),
+          playerReserve: _combatant(
+            id: 'player-starmie',
+            speciesId: 'starmie',
+            hp: 90,
+          ),
+        ),
+      );
+
+      final result = const BattleSwitchHandler().switchCombatant(
+        context: BattleHandlerContext(
+          state: engine.snapshot().psdkState,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+        partyIndex: 1,
+      );
+      final outgoing = result.state.partyForBank(0).first;
+
+      expect(outgoing.majorStatus, isNull);
+      expect(
+        result.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
+        'ability:natural_cure',
+      );
+    });
+
+    test('Regenerator heals the switched-out battler by one third max HP', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'player-mienshao',
+            speciesId: 'mienshao',
+            hp: 90,
+            currentHp: 30,
+            abilityId: 'regenerator',
+          ),
+          playerReserve: _combatant(
+            id: 'player-mienfoo',
+            speciesId: 'mienfoo',
+            hp: 90,
+          ),
+        ),
+      );
+
+      final result = const BattleSwitchHandler().switchCombatant(
+        context: BattleHandlerContext(
+          state: engine.snapshot().psdkState,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+        partyIndex: 1,
+      );
+      final outgoing = result.state.partyForBank(0).first;
+
+      expect(outgoing.currentHp, 60);
+      expect(
+        result.events.whereType<PsdkBattleHealEvent>().single.moveId,
+        'ability:regenerator',
+      );
+    });
   });
 }
 
@@ -209,7 +293,9 @@ PsdkBattleCombatantSetup _combatant({
   required String speciesId,
   required int hp,
   int attack = 50,
+  int? currentHp,
   String? abilityId,
+  PsdkBattleMajorStatus? majorStatus,
   List<PsdkBattleMoveData>? moves,
   PsdkBattleEffectStack? effects,
   PsdkBattleStatStages? statStages,
@@ -220,7 +306,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: speciesId,
     level: 20,
     maxHp: hp,
-    currentHp: hp,
+    currentHp: currentHp ?? hp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: PsdkBattleStats(
       attack: attack,
@@ -231,6 +317,7 @@ PsdkBattleCombatantSetup _combatant({
     ),
     statStages: statStages,
     abilityId: abilityId,
+    majorStatus: majorStatus,
     moves: moves ?? <PsdkBattleMoveData>[_move(id: 'tackle', power: 40)],
     effects: effects,
   );
