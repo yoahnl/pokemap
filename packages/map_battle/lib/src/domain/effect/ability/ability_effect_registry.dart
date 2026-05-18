@@ -647,6 +647,7 @@ final class AbilityEffectRegistry {
           condition: AbilityPostDamageStatCondition.darkIncoming,
           changes: const <String, int>{'attack': 1},
         ),
+    'rattled': ({required scope}) => RattledEffect(scope: scope),
     'gooey': ({required scope}) => PostDamageStatChangeAbilityEffect(
           abilityId: 'gooey',
           scope: scope,
@@ -727,8 +728,11 @@ final class AbilityEffectRegistry {
           stages: 1,
         ),
     'download': ({required scope}) => DownloadEffect(scope: scope),
+    'forewarn': ({required scope}) => ForewarnEffect(scope: scope),
+    'frisk': ({required scope}) => FriskEffect(scope: scope),
     'intimidate': ({required scope}) => IntimidateEffect(scope: scope),
     'imposter': ({required scope}) => ImposterEffect(scope: scope),
+    'trace': ({required scope}) => TraceEffect(scope: scope),
   };
 
   final Map<String, AbilityEffectFactory> _factories;

@@ -403,6 +403,7 @@ final class BattleEffectObjectStack {
           stat: context.stat,
           stages: stages,
           move: context.move,
+          sourceAbilityId: context.sourceAbilityId,
         ),
       );
       if (changed != null) {
@@ -439,6 +440,7 @@ final class BattleEffectObjectStack {
           stat: context.stat,
           stages: context.stages,
           move: context.move,
+          sourceAbilityId: context.sourceAbilityId,
         ),
       );
       if (result == null) {

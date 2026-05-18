@@ -1,8 +1,10 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battler/battle_transform_service.dart';
+import '../../handler/battle_ability_change_handler.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_stat_change_handler.dart';
 import '../../handler/battle_terrain_change_handler.dart';
@@ -289,6 +291,7 @@ final class IntimidateEffect extends BattleAbilityEffect {
         target: target,
         stat: 'attack',
         stages: -1,
+        sourceAbilityId: 'intimidate',
       );
       nextState = result.state;
       nextRng = result.rng;
@@ -304,6 +307,270 @@ final class IntimidateEffect extends BattleAbilityEffect {
       rng: nextRng,
       events: events,
     );
+  }
+}
+
+final class FriskEffect extends BattleAbilityEffect {
+  const FriskEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'frisk', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return FriskEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    for (final foe in context.state.foesOf(context.replacement)) {
+      final battler = context.state.battlerAt(foe);
+      final itemId = battler.heldItemId;
+      if (battler.isFainted || itemId == null || battler.itemConsumed) {
+        continue;
+      }
+      return BattleEffectSwitchEventResult(
+        state: context.state,
+        rng: context.rng,
+        events: <PsdkBattleEvent>[
+          PsdkBattleEffectEvent.added(
+            turn: context.turn,
+            target: foe,
+            effectId: 'frisk:item:$itemId',
+            reason: 'ability:frisk',
+          ),
+        ],
+      );
+    }
+
+    return null;
+  }
+}
+
+final class ForewarnEffect extends BattleAbilityEffect {
+  const ForewarnEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'forewarn', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ForewarnEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    final candidates = <({PsdkBattleSlotRef foe, PsdkBattleMoveData move})>[];
+    var strongestPower = 0;
+    for (final foe in context.state.foesOf(context.replacement)) {
+      final battler = context.state.battlerAt(foe);
+      if (battler.isFainted) {
+        continue;
+      }
+      for (final move in battler.moves) {
+        if (move.power <= 0 || move.power < strongestPower) {
+          continue;
+        }
+        if (move.power > strongestPower) {
+          candidates.clear();
+          strongestPower = move.power;
+        }
+        candidates.add((foe: foe, move: move));
+      }
+    }
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    var nextRng = context.rng;
+    var chosen = candidates.single;
+    if (candidates.length > 1) {
+      final roll = context.rng.generic.nextIntInclusive(
+        min: 0,
+        max: candidates.length - 1,
+      );
+      nextRng = context.rng.copyWith(generic: roll.next);
+      chosen = candidates[roll.value];
+    }
+
+    return BattleEffectSwitchEventResult(
+      state: context.state,
+      rng: nextRng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: chosen.foe,
+          effectId: 'forewarn:move:${chosen.move.id}',
+          reason: 'ability:forewarn',
+        ),
+      ],
+    );
+  }
+}
+
+final class TraceEffect extends BattleAbilityEffect {
+  const TraceEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'trace', scope: scope);
+
+  static const Set<String> _cantOverwriteAbilities = <String>{
+    'as_one',
+    'battle_bond',
+    'comatose',
+    'commander',
+    'disguise',
+    'gulp_missile',
+    'hadron_engine',
+    'hunger_switch',
+    'ice_face',
+    'imposter',
+    'multitype',
+    'orichalcum_pulse',
+    'power_construct',
+    'protosynthesis',
+    'quark_drive',
+    'rks_system',
+    'schooling',
+    'shields_down',
+    'stance_change',
+    'wonder_guard',
+    'zen_mode',
+    'zero_to_hero',
+  };
+
+  static const Set<String> _cantCopyAbilities = <String>{
+    'as_one',
+    'battle_bond',
+    'comatose',
+    'commander',
+    'disguise',
+    'flower_gift',
+    'forecast',
+    'gulp_missile',
+    'hadron_engine',
+    'hunger_switch',
+    'ice_face',
+    'illusion',
+    'imposter',
+    'multitype',
+    'neutralizing_gas',
+    'orichalcum_pulse',
+    'poison_puppeteer',
+    'power_construct',
+    'power_of_alchemy',
+    'prokosynthesis',
+    'protosynthesis',
+    'quark_drive',
+    'receiver',
+    'rks_system',
+    'schooling',
+    'shields_down',
+    'stance_change',
+    'trace',
+    'wonder_guard',
+    'zen_mode',
+    'zero_to_hero',
+  };
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return TraceEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context) || !_canLoseAbility(context)) {
+      return null;
+    }
+
+    final givers = <PsdkBattleSlotRef>[];
+    for (final foe in context.state.foesOf(context.replacement)) {
+      final battler = context.state.battlerAt(foe);
+      final abilityId = battler.abilityId;
+      if (battler.isFainted ||
+          abilityId == null ||
+          _cantCopyAbilities.contains(abilityId)) {
+        continue;
+      }
+      givers.add(foe);
+    }
+    if (givers.isEmpty) {
+      return null;
+    }
+
+    var nextRng = context.rng;
+    var giver = givers.single;
+    if (givers.length > 1) {
+      final roll = context.rng.generic.nextIntInclusive(
+        min: 0,
+        max: givers.length - 1,
+      );
+      nextRng = context.rng.copyWith(generic: roll.next);
+      giver = givers[roll.value];
+    }
+    final copiedAbilityId = context.state.battlerAt(giver).abilityId;
+    if (copiedAbilityId == null) {
+      return null;
+    }
+
+    final changed = const BattleAbilityChangeHandler().changeAbility(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: nextRng,
+        turn: context.turn,
+        user: giver,
+      ),
+      target: context.replacement,
+      abilityId: copiedAbilityId,
+    );
+    var nextState = changed.state;
+    nextRng = changed.rng;
+    final events = <PsdkBattleEvent>[
+      PsdkBattleEffectEvent.added(
+        turn: context.turn,
+        target: context.replacement,
+        effectId: 'trace:ability:$copiedAbilityId',
+        reason: 'ability:trace',
+      ),
+    ];
+
+    final copiedSwitch =
+        nextState.battlerAt(context.replacement).effects.dispatchSwitchEvent(
+              BattleEffectSwitchEventContext(
+                state: nextState,
+                rng: nextRng,
+                turn: context.turn,
+                owner: context.replacement,
+                who: context.replacement,
+                replacement: context.replacement,
+              ),
+            );
+    nextState = copiedSwitch.state;
+    nextRng = copiedSwitch.rng;
+    events.addAll(copiedSwitch.events);
+
+    return BattleEffectSwitchEventResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
+  }
+
+  bool _canLoseAbility(BattleEffectSwitchEventContext context) {
+    final abilityId = context.state.battlerAt(context.replacement).abilityId;
+    return abilityId == null || !_cantOverwriteAbilities.contains(abilityId);
   }
 }
 

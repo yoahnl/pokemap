@@ -285,6 +285,7 @@ final class BattleEffectStatChangePreventionContext {
     required this.stat,
     required this.stages,
     this.move,
+    this.sourceAbilityId,
   });
 
   final PsdkBattleState state;
@@ -296,6 +297,7 @@ final class BattleEffectStatChangePreventionContext {
   final String stat;
   final int stages;
   final BattleMoveDefinition? move;
+  final String? sourceAbilityId;
 }
 
 final class BattleEffectStatChangeContext {
@@ -309,6 +311,7 @@ final class BattleEffectStatChangeContext {
     required this.stat,
     required this.stages,
     this.move,
+    this.sourceAbilityId,
   });
 
   final PsdkBattleState state;
@@ -320,6 +323,7 @@ final class BattleEffectStatChangeContext {
   final String stat;
   final int stages;
   final BattleMoveDefinition? move;
+  final String? sourceAbilityId;
 }
 
 final class BattleEffectStatChangePostResult {

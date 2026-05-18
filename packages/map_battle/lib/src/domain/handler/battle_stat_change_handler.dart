@@ -16,6 +16,7 @@ final class BattleStatChangeHandler {
     required String stat,
     required int stages,
     BattleMoveDefinition? move,
+    String? sourceAbilityId,
   }) {
     if (stages == 0) {
       return BattleHandlerResult(
@@ -33,6 +34,7 @@ final class BattleStatChangeHandler {
       stat: stat,
       stages: effectiveStages,
       move: move,
+      sourceAbilityId: sourceAbilityId,
     );
     if (hookPrevention != null) {
       return BattleHandlerResult(
@@ -49,6 +51,7 @@ final class BattleStatChangeHandler {
       stat: stat,
       stages: effectiveStages,
       move: move,
+      sourceAbilityId: sourceAbilityId,
     );
     if (effectiveStages == 0) {
       return BattleHandlerResult(
@@ -103,6 +106,7 @@ final class BattleStatChangeHandler {
       target: target,
       stat: stat,
       stages: effectiveStages,
+      sourceAbilityId: sourceAbilityId,
     );
 
     return BattleHandlerResult(
@@ -128,6 +132,7 @@ String? _statPreventionReason({
   required String stat,
   required int stages,
   required BattleMoveDefinition? move,
+  required String? sourceAbilityId,
 }) {
   for (final owner in _orderedSlots(context.state)) {
     final reason =
@@ -142,6 +147,7 @@ String? _statPreventionReason({
                 stat: stat,
                 stages: stages,
                 move: move,
+                sourceAbilityId: sourceAbilityId,
               ),
             );
     if (reason != null) {
@@ -157,6 +163,7 @@ int _resolveStatChangeHooks({
   required String stat,
   required int stages,
   required BattleMoveDefinition? move,
+  required String? sourceAbilityId,
 }) {
   var effectiveStages = stages;
   for (final owner in _orderedSlots(context.state)) {
@@ -171,6 +178,7 @@ int _resolveStatChangeHooks({
             stat: stat,
             stages: effectiveStages,
             move: move,
+            sourceAbilityId: sourceAbilityId,
           ),
         );
   }
@@ -182,6 +190,7 @@ BattleEffectStatChangePostResult _dispatchStatChangePost({
   required PsdkBattleSlotRef target,
   required String stat,
   required int stages,
+  required String? sourceAbilityId,
 }) {
   var nextState = context.state;
   var nextRng = context.rng;
@@ -198,6 +207,7 @@ BattleEffectStatChangePostResult _dispatchStatChangePost({
             target: target,
             stat: stat,
             stages: stages,
+            sourceAbilityId: sourceAbilityId,
           ),
         );
     nextState = result.state;

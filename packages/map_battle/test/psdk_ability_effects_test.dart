@@ -247,6 +247,80 @@ void main() {
       expect(result.events.whereType<PsdkBattleStatStageEvent>(), isEmpty);
     });
 
+    test('Rattled gains Speed after an activated Intimidate stat drop', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'intimidate',
+        opponentAbilityId: 'rattled',
+      );
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        -1,
+      );
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        1,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().map(
+              (event) => event.stat,
+            ),
+        <String>['attack', 'speed'],
+      );
+    });
+
+    test('Rattled does not react to non-Intimidate stat changes', () {
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'intimidate',
+            move: _move(id: 'fake_drop', power: 0),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'rattled',
+            move: _move(id: 'opponent_wait', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        stat: 'attack',
+        stages: -1,
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).abilityId, 'rattled');
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        -1,
+      );
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        0,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().map(
+              (event) => event.stat,
+            ),
+        <String>['attack'],
+      );
+    });
+
     test('switch-in stat boost abilities raise the owner stat', () {
       final dauntless =
           _dispatchAbilitySwitchIn(playerAbilityId: 'dauntless_shield');
@@ -323,6 +397,93 @@ void main() {
             .single
             .stat,
         'specialAttack',
+      );
+    });
+
+    test('Frisk reveals the first living opposing held item on switch-in', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'frisk',
+        opponentHeldItemId: 'leftovers',
+      );
+      final noItem = _dispatchAbilitySwitchIn(playerAbilityId: 'frisk');
+
+      expect(result.applied, isTrue);
+      expect(
+        result.events.whereType<PsdkBattleEffectEvent>().single.toJson(),
+        containsPair('effectId', 'frisk:item:leftovers'),
+      );
+      expect(noItem.applied, isFalse);
+      expect(noItem.reason, 'no_switch_events');
+    });
+
+    test('Forewarn reveals the strongest opposing damaging move', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'forewarn',
+        opponentMoves: <PsdkBattleMoveData>[
+          _move(id: 'growl', power: 0),
+          _move(id: 'ember', type: 'fire', power: 40),
+          _move(id: 'hyper_beam', power: 150),
+        ],
+      );
+      final statusOnly = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'forewarn',
+        opponentMoves: <PsdkBattleMoveData>[
+          _move(id: 'splash', power: 0),
+          _move(id: 'protect', power: 0),
+        ],
+      );
+
+      expect(result.applied, isTrue);
+      expect(
+        result.events.whereType<PsdkBattleEffectEvent>().single.toJson(),
+        containsPair('effectId', 'forewarn:move:hyper_beam'),
+      );
+      expect(statusOnly.applied, isFalse);
+      expect(statusOnly.reason, 'no_switch_events');
+    });
+
+    test('Trace copies a valid opposing ability and hydrates its effect', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'trace',
+        opponentAbilityId: 'water_absorb',
+      );
+      final forbidden = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'trace',
+        opponentAbilityId: 'wonder_guard',
+      );
+
+      expect(result.applied, isTrue);
+      expect(result.state.battlerAt(psdkPlayerSlot).abilityId, 'water_absorb');
+      expect(
+        result.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('ability:water_absorb'),
+        isTrue,
+      );
+      expect(
+        result.events.whereType<PsdkBattleEffectEvent>().first.toJson(),
+        containsPair('effectId', 'trace:ability:water_absorb'),
+      );
+      expect(forbidden.applied, isFalse);
+      expect(forbidden.reason, 'no_switch_events');
+      expect(forbidden.state.battlerAt(psdkPlayerSlot).abilityId, 'trace');
+    });
+
+    test('Trace triggers the copied switch-in ability like PSDK', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'trace',
+        opponentAbilityId: 'intimidate',
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).abilityId, 'intimidate');
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        -1,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().single.stat,
+        'attack',
       );
     });
 
@@ -1804,6 +1965,17 @@ void main() {
         opponentAbilityId: 'justified',
         moveType: 'dark',
       );
+      final rattledDark = _applyDirectAbilityDamage(
+        opponentAbilityId: 'rattled',
+        moveType: 'dark',
+      );
+      final rattledBug = _applyDirectAbilityDamage(
+        opponentAbilityId: 'rattled',
+        moveType: 'bug',
+      );
+      final rattledNormal = _applyDirectAbilityDamage(
+        opponentAbilityId: 'rattled',
+      );
       final gooey = _applyDirectAbilityDamage(
         opponentAbilityId: 'gooey',
         category: PsdkBattleMoveCategory.physical,
@@ -1850,6 +2022,10 @@ void main() {
 
       expect(_statEventsForHandler(justified).single.stat, 'attack');
       expect(_statEventsForHandler(justified).single.amount, 1);
+      expect(_statEventsForHandler(rattledDark).single.stat, 'speed');
+      expect(_statEventsForHandler(rattledDark).single.amount, 1);
+      expect(_statEventsForHandler(rattledBug).single.stat, 'speed');
+      expect(_statEventsForHandler(rattledNormal), isEmpty);
 
       expect(_statEventsForHandler(gooey).single.target, psdkPlayerSlot);
       expect(_statEventsForHandler(gooey).single.stat, 'speed');
@@ -2801,6 +2977,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   String? playerHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
   String? opponentAbilityId,
+  String? opponentHeldItemId,
   String opponentSpeciesId = 'opponent',
   String opponentDisplayName = 'opponent',
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
@@ -2827,6 +3004,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         speciesId: opponentSpeciesId,
         displayName: opponentDisplayName,
         abilityId: opponentAbilityId,
+        heldItemId: opponentHeldItemId,
         types: opponentTypes,
         stats: opponentStats,
         statStages: opponentStatStages,
