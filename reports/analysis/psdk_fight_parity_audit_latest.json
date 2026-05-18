@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 361,
-    "partiel": 367,
+    "fait": 362,
+    "partiel": 366,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5163,9 +5163,9 @@
       {
         "moveId": "synchronoise",
         "battleEngineMethod": "s_synchronoise",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/synchronoise.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 166,
-      "partial": 164,
+      "ported": 167,
+      "partial": 163,
       "missing": 0
     },
     "entries": [
@@ -6454,7 +6454,7 @@
           "ability",
           "item"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_dragon_cheer",
@@ -6615,7 +6615,7 @@
           "grounded",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_explosion",
@@ -6838,7 +6838,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_foresight",
@@ -7147,7 +7147,7 @@
           "ability",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_heal_block",
@@ -7217,7 +7217,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_hex",
@@ -7400,7 +7400,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_knock_off",
@@ -7477,7 +7477,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_lock_on",
@@ -8064,7 +8064,7 @@
           "ability",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_psyshock",
@@ -8094,7 +8094,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_pursuit",
@@ -8415,7 +8415,7 @@
           "ability",
           "item"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_secret_power",
@@ -8553,7 +8553,7 @@
           "grounded",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_smelling_salt",
@@ -8626,7 +8626,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_spectral_thief",
@@ -8894,11 +8894,8 @@
         "rubyClass": "Synchronoise",
         "rubyPath": "10 Move/2 Definitions/300 Synchronoise.rb",
         "dartBehavior": "FieldLocationMoveBehavior.synchronoise",
-        "status": "partial",
-        "dependencies": [
-          "targetingMulti"
-        ],
-        "methodBatch": "target_resolution_doubles"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_syrup_bomb",
@@ -8930,7 +8927,7 @@
           "effects",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_tar_shot",
@@ -9256,7 +9253,7 @@
           "history",
           "targetingMulti"
         ],
-        "methodBatch": "target_resolution_doubles"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_venom_drench",
@@ -9393,31 +9390,9 @@
     ],
     "backlogBatches": [
       {
-        "id": "target_resolution_doubles",
-        "label": "Target resolution / doubles topology",
-        "count": 15,
-        "methods": [
-          "s_double_iron_bash",
-          "s_expanding_force",
-          "s_follow_me",
-          "s_heal_bell",
-          "s_helping_hand",
-          "s_jungle_healing",
-          "s_life_dew",
-          "s_psycho_shift",
-          "s_purify",
-          "s_scale_shot",
-          "s_smack_down",
-          "s_sparkly_swirl",
-          "s_synchronoise",
-          "s_take_heart",
-          "s_uproar"
-        ]
-      },
-      {
         "id": "failure_prevention_immunity",
         "label": "Failure / prevention / immunity",
-        "count": 24,
+        "count": 31,
         "methods": [
           "s_a_fang",
           "s_baton_pass",
@@ -9426,19 +9401,26 @@
           "s_dragon_tail",
           "s_explosion",
           "s_final_gambit",
+          "s_heal_bell",
+          "s_jungle_healing",
           "s_mind_blown",
           "s_misty_explosion",
           "s_outrage",
           "s_parting_shot",
+          "s_psycho_shift",
+          "s_purify",
           "s_roar",
           "s_secret_power",
           "s_smelling_salt",
           "s_sparkling_aria",
+          "s_sparkly_swirl",
           "s_steel_beam",
+          "s_take_heart",
           "s_thrash",
           "s_toxic_thread",
           "s_trick",
           "s_u_turn",
+          "s_uproar",
           "s_venom_drench",
           "s_wakeup_slap",
           "s_wonder_room",
@@ -9460,19 +9442,21 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 23,
+        "count": 26,
         "methods": [
           "s_aura_wheel",
           "s_beak_blast",
           "s_beat_up",
           "s_bide",
           "s_core_enforcer",
+          "s_double_iron_bash",
           "s_dragon_darts",
           "s_floral_healing",
           "s_flying_press",
           "s_frustration",
           "s_hidden_power",
           "s_ice_ball",
+          "s_life_dew",
           "s_ohko",
           "s_order_up",
           "s_pain_split",
@@ -9481,6 +9465,7 @@
           "s_return",
           "s_rollout",
           "s_roost",
+          "s_scale_shot",
           "s_shell_trap",
           "s_split_up",
           "s_trump_card",
@@ -9490,7 +9475,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 97,
+        "count": 101,
         "methods": [
           "s_add_type",
           "s_attract",
@@ -9514,6 +9499,7 @@
           "s_embargo",
           "s_encore",
           "s_entrainment",
+          "s_expanding_force",
           "s_fairy_lock",
           "s_false_swipe",
           "s_fell_stinger",
@@ -9521,6 +9507,7 @@
           "s_flame_burst",
           "s_fling",
           "s_flower_shield",
+          "s_follow_me",
           "s_fusion_bolt",
           "s_fusion_flare",
           "s_gear_up",
@@ -9533,6 +9520,7 @@
           "s_happy_hour",
           "s_heal_block",
           "s_healing_wish",
+          "s_helping_hand",
           "s_ice_spinner",
           "s_imprison",
           "s_ion_deluge",
@@ -9570,6 +9558,7 @@
           "s_shell_side_arm",
           "s_simple_beam",
           "s_skill_swap",
+          "s_smack_down",
           "s_snatch",
           "s_spectral_thief",
           "s_spite",

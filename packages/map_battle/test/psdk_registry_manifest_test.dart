@@ -670,11 +670,12 @@ void main() {
         byMethod['s_secret_power']!.dartBehavior,
         'FieldLocationMoveBehavior.secretPower',
       );
-      expect(byMethod['s_synchronoise']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_synchronoise']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_synchronoise']!.dartBehavior,
         'FieldLocationMoveBehavior.synchronoise',
       );
+      expect(byMethod['s_synchronoise']!.dependencies, isEmpty);
       expect(byMethod['s_smack_down']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_smack_down']!.dartBehavior,
