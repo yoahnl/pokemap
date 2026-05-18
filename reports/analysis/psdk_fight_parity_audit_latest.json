@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 366,
-    "partiel": 362,
+    "fait": 369,
+    "partiel": 359,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -563,9 +563,9 @@
       {
         "moveId": "brick_break",
         "battleEngineMethod": "s_brick_break",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/brick_break.json"
       },
       {
@@ -1675,9 +1675,9 @@
       {
         "moveId": "flame_burst",
         "battleEngineMethod": "s_flame_burst",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flame_burst.json"
       },
       {
@@ -3771,9 +3771,9 @@
       {
         "moveId": "psychic_fangs",
         "battleEngineMethod": "s_brick_break",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psychic_fangs.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 174,
-      "partial": 156,
+      "ported": 178,
+      "partial": 152,
       "missing": 0
     },
     "entries": [
@@ -6035,11 +6035,8 @@
         "rubyClass": "BaddyBad",
         "rubyPath": "10 Move/2 Definitions/300 GlitzyGlow.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_baddy_bad",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_basic",
@@ -6165,11 +6162,8 @@
         "rubyClass": "BrickBreak",
         "rubyPath": "10 Move/2 Definitions/300 BrickBreak.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_brick_break",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_brine",
@@ -6749,11 +6743,8 @@
         "rubyClass": "FlameBurst",
         "rubyPath": "10 Move/2 Definitions/300 FlameBurst.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_flame_burst",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_fling",
@@ -6994,11 +6985,8 @@
         "rubyClass": "GlitzyGlow",
         "rubyPath": "10 Move/2 Definitions/300 GlitzyGlow.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_glitzy_glow",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_grassy_glide",
@@ -9414,16 +9402,14 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 120,
+        "count": 116,
         "methods": [
           "s_a_fang",
           "s_add_type",
           "s_attract",
           "s_autotomize",
-          "s_baddy_bad",
           "s_baton_pass",
           "s_bestow",
-          "s_brick_break",
           "s_camouflage",
           "s_captivate",
           "s_change_type",
@@ -9449,7 +9435,6 @@
           "s_false_swipe",
           "s_fell_stinger",
           "s_final_gambit",
-          "s_flame_burst",
           "s_fling",
           "s_flower_shield",
           "s_follow_me",
@@ -9458,7 +9443,6 @@
           "s_gear_up",
           "s_geomancy",
           "s_glaive_rush",
-          "s_glitzy_glow",
           "s_gravity",
           "s_grudge",
           "s_happy_hour",
