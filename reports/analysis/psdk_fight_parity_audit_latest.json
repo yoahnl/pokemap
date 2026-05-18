@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 369,
-    "partiel": 359,
+    "fait": 371,
+    "partiel": 357,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -2323,9 +2323,9 @@
       {
         "moveId": "high_jump_kick",
         "battleEngineMethod": "s_jump_kick",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/high_jump_kick.json"
       },
       {
@@ -2659,9 +2659,9 @@
       {
         "moveId": "jump_kick",
         "battleEngineMethod": "s_jump_kick",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/jump_kick.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 178,
-      "partial": 152,
+      "ported": 180,
+      "partial": 150,
       "missing": 0
     },
     "entries": [
@@ -7361,11 +7361,8 @@
         "rubyClass": "HighJumpKick",
         "rubyPath": "10 Move/2 Definitions/300 HighJumpKick.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_jump_kick",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_jungle_healing",
@@ -8372,11 +8369,8 @@
         "rubyClass": "SappySeed",
         "rubyPath": "10 Move/2 Definitions/300 SappySeed.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_sappy_seed",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_scale_shot",
@@ -9402,7 +9396,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 116,
+        "count": 114,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9453,7 +9447,6 @@
           "s_imprison",
           "s_ion_deluge",
           "s_jaw_lock",
-          "s_jump_kick",
           "s_knock_off",
           "s_lock_on",
           "s_lunar_dance",
@@ -9486,7 +9479,6 @@
           "s_roar",
           "s_role_play",
           "s_rototiller",
-          "s_sappy_seed",
           "s_secret_power",
           "s_shed_tail",
           "s_shell_side_arm",
