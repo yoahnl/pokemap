@@ -29,28 +29,36 @@ void main() {
       expect(battler.effects.contains('ability:skill_link'), isTrue);
     });
 
-    test('Damp prevents self-destruct moves before PP and damage apply', () {
-      final result = _runMove(
-        opponentAbilityId: 'damp',
-        playerMove: _move(
-          id: 'explosion',
-          power: 250,
-          battleEngineMethod: 's_explosion',
-        ),
-      );
+    for (final move in <({String id, String method})>[
+      (id: 'explosion', method: 's_explosion'),
+      (id: 'misty_explosion', method: 's_misty_explosion'),
+      (id: 'mind_blown', method: 's_mind_blown'),
+      (id: 'steel_beam', method: 's_steel_beam'),
+      (id: 'chloroblast', method: 's_chloroblast'),
+    ]) {
+      test('Damp prevents ${move.method} before PP and damage apply', () {
+        final result = _runMove(
+          opponentAbilityId: 'damp',
+          playerMove: _move(
+            id: move.id,
+            power: 250,
+            battleEngineMethod: move.method,
+          ),
+        );
 
-      final events = _eventsFor(result, moveId: 'explosion');
-      expect(events.map((event) => event.kind), <String>['move_failed']);
-      expect((events.single as PsdkBattleMoveFailedEvent).reason,
-          BattleMoveFailureReason.unusableByUser.jsonName);
-      expect(_damageEvents(result, moveId: 'explosion'), isEmpty);
-      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
-      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
-      expect(
-        result.state.battlerAt(psdkPlayerSlot).moves.single.currentPp,
-        35,
-      );
-    });
+        final events = _eventsFor(result, moveId: move.id);
+        expect(events.map((event) => event.kind), <String>['move_failed']);
+        expect((events.single as PsdkBattleMoveFailedEvent).reason,
+            BattleMoveFailureReason.unusableByUser.jsonName);
+        expect(_damageEvents(result, moveId: move.id), isEmpty);
+        expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+        expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).moves.single.currentPp,
+          35,
+        );
+      });
+    }
 
     test('Shadow Tag prevents opposing non-Ghost switch attempts', () {
       final state = PsdkBattleState.fromSetup(
