@@ -13,12 +13,15 @@ final class StatusImmunityEffect extends BattleAbilityEffect {
     required String abilityId,
     required BattleEffectScope scope,
     required Set<PsdkBattleMajorStatus> preventedStatuses,
+    bool curesExistingStatus = true,
   })  : _preventedStatuses = Set<PsdkBattleMajorStatus>.unmodifiable(
           preventedStatuses,
         ),
+        _curesExistingStatus = curesExistingStatus,
         super(abilityId: abilityId, scope: scope);
 
   final Set<PsdkBattleMajorStatus> _preventedStatuses;
+  final bool _curesExistingStatus;
 
   @override
   BattleEffect copyWithRemainingTurns(int remainingTurns) {
@@ -26,6 +29,7 @@ final class StatusImmunityEffect extends BattleAbilityEffect {
       abilityId: abilityId,
       scope: scope,
       preventedStatuses: _preventedStatuses,
+      curesExistingStatus: _curesExistingStatus,
     );
   }
 
@@ -39,6 +43,9 @@ final class StatusImmunityEffect extends BattleAbilityEffect {
     BattleEffectSwitchEventContext context,
   ) {
     if (!isOwnedBy(context.replacement)) {
+      return null;
+    }
+    if (!_curesExistingStatus) {
       return null;
     }
     final result = _cureIfNeeded(
@@ -66,6 +73,9 @@ final class StatusImmunityEffect extends BattleAbilityEffect {
     BattleEffectStatusChangeContext context,
   ) {
     if (context.cured || !isOwnedBy(context.target)) {
+      return null;
+    }
+    if (!_curesExistingStatus) {
       return null;
     }
     final result = _cureIfNeeded(

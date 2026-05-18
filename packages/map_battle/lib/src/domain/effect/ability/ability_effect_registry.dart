@@ -15,6 +15,7 @@ import 'levitate_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
 import 'no_guard_effect.dart';
+import 'priority_move_prevention_ability_effect.dart';
 import 'reckless_effect.dart';
 import 'residual_ability_effect.dart';
 import 'rock_head_effect.dart';
@@ -249,6 +250,18 @@ final class AbilityEffectRegistry {
           shape: AbilityMovePowerShape.sound,
           multiplier: 1.3,
         ),
+    'strong_jaw': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'strong_jaw',
+          scope: scope,
+          shape: AbilityMovePowerShape.bite,
+          multiplier: 1.5,
+        ),
+    'mega_launcher': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'mega_launcher',
+          scope: scope,
+          shape: AbilityMovePowerShape.pulse,
+          multiplier: 1.5,
+        ),
     'solid_rock': ({required scope}) => AbilityFinalDamageModifierEffect(
           abilityId: 'solid_rock',
           scope: scope,
@@ -302,6 +315,15 @@ final class AbilityEffectRegistry {
         ),
     'skill_link': ({required scope}) => SkillLinkEffect(scope: scope),
     'soundproof': ({required scope}) => SoundproofEffect(scope: scope),
+    'queenly_majesty': ({required scope}) =>
+        PriorityMovePreventionAbilityEffect(
+          abilityId: 'queenly_majesty',
+          scope: _bankScopeFor(scope),
+        ),
+    'dazzling': ({required scope}) => PriorityMovePreventionAbilityEffect(
+          abilityId: 'dazzling',
+          scope: _bankScopeFor(scope),
+        ),
     'pure_power': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'pure_power',
           scope: scope,
@@ -456,6 +478,19 @@ final class AbilityEffectRegistry {
             PsdkBattleMajorStatus.burn,
           },
         ),
+    'comatose': ({required scope}) => StatusImmunityEffect(
+          abilityId: 'comatose',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.poison,
+            PsdkBattleMajorStatus.toxic,
+            PsdkBattleMajorStatus.burn,
+            PsdkBattleMajorStatus.paralysis,
+            PsdkBattleMajorStatus.freeze,
+            PsdkBattleMajorStatus.sleep,
+          },
+          curesExistingStatus: false,
+        ),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
     'rain_dish': ({required scope}) => RainDishEffect(scope: scope),
     'dry_skin': ({required scope}) => DrySkinEffect(scope: scope),
@@ -603,4 +638,11 @@ String? _normalizeAbilityId(String? abilityId) {
   }
   final normalized = abilityId.trim().toLowerCase();
   return normalized.isEmpty || normalized == 'unknown' ? null : normalized;
+}
+
+BattleEffectScope _bankScopeFor(BattleEffectScope scope) {
+  return switch (scope) {
+    BattlerBattleEffectScope(:final slot) => BankBattleEffectScope(slot.bank),
+    _ => scope,
+  };
 }
