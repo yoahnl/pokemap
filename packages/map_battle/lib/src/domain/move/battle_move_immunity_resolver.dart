@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_slots.dart';
 import '../battle/battle_slot.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/battle_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
@@ -150,10 +151,16 @@ final class BattleMoveImmunityResolver {
     final target = execution.context.state.battlerAt(
       _psdkSlotFromBattlePosition(targetRef),
     );
+    final abilityBypassed = _userBypassesAbilityPrevention(execution);
     final localReason = target.effects.targetMovePreventionReason(
       user: execution.actualUser,
       target: targetRef,
       move: execution.move,
+      where: (effect) => _abilityPreventionHookIsActive(
+        owner: target,
+        effect: effect,
+        abilityBypassed: abilityBypassed,
+      ),
     );
     if (localReason != null) {
       return localReason;
@@ -170,6 +177,13 @@ final class BattleMoveImmunityResolver {
         if (scope is! BankBattleEffectScope || scope.bank != targetRef.bank) {
           continue;
         }
+        if (!_abilityPreventionHookIsActive(
+          owner: owner,
+          effect: effect,
+          abilityBypassed: abilityBypassed,
+        )) {
+          continue;
+        }
         final reason = effect.onMovePreventionTarget(context);
         if (reason != null) {
           return reason;
@@ -178,6 +192,43 @@ final class BattleMoveImmunityResolver {
     }
     return null;
   }
+
+  bool _userBypassesAbilityPrevention(
+    BattleMoveProcedureExecution execution,
+  ) {
+    final user = execution.context.state.battlerAt(execution.psdkActualUser);
+    if (user.effects.contains('ability_suppressed')) {
+      return false;
+    }
+    return _abilityPreventionBypassAbilityIds.contains(
+      _normalizedAbilityId(user.abilityId),
+    );
+  }
+
+  bool _abilityPreventionHookIsActive({
+    required PsdkBattleCombatant owner,
+    required BattleEffect effect,
+    required bool abilityBypassed,
+  }) {
+    if (effect is! BattleAbilityEffect) {
+      return true;
+    }
+    return !owner.effects.contains('ability_suppressed') && !abilityBypassed;
+  }
+}
+
+const _abilityPreventionBypassAbilityIds = <String>{
+  'mold_breaker',
+  'teravolt',
+  'turboblaze',
+};
+
+String? _normalizedAbilityId(String? abilityId) {
+  final value = abilityId?.trim().toLowerCase();
+  if (value == null || value.isEmpty) {
+    return null;
+  }
+  return value;
 }
 
 String _effectiveMoveType(

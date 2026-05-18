@@ -3064,8 +3064,9 @@ BattleMoveBehaviorResolution _resolveAttract(
   var state = prepared.state;
   final events = <PsdkBattleEvent>[...prepared.events];
   for (final targetSlot in prepared.psdkTargets) {
-    if (_aromaVeilBlocksMentalEffect(
+    if (_mentalAbilityBlocksEffect(
       state: state,
+      user: context.user,
       target: targetSlot,
       effectId: 'attract',
     )) {
@@ -3309,8 +3310,9 @@ BattleMoveBehaviorResolution _resolveDisable(
   for (final targetSlot in prepared.psdkTargets) {
     final target = state.battlerAt(targetSlot);
     final disabledMoveId = target.moveHistory.lastSuccessfulMoveId;
-    if (_aromaVeilBlocksMentalEffect(
+    if (_mentalAbilityBlocksEffect(
       state: state,
+      user: context.user,
       target: targetSlot,
       effectId: 'disable',
     )) {
@@ -3373,8 +3375,9 @@ BattleMoveBehaviorResolution _resolveEncore(
   for (final targetSlot in prepared.psdkTargets) {
     final target = state.battlerAt(targetSlot);
     final encoredMoveId = target.moveHistory.lastSuccessfulMoveId;
-    if (_aromaVeilBlocksMentalEffect(
+    if (_mentalAbilityBlocksEffect(
       state: state,
+      user: context.user,
       target: targetSlot,
       effectId: 'encore',
     )) {
@@ -3434,8 +3437,9 @@ BattleMoveBehaviorResolution _resolveHealBlock(
   var state = prepared.state;
   final events = <PsdkBattleEvent>[...prepared.events];
   for (final targetSlot in prepared.psdkTargets) {
-    if (_aromaVeilBlocksMentalEffect(
+    if (_mentalAbilityBlocksEffect(
       state: state,
+      user: context.user,
       target: targetSlot,
       effectId: 'heal_block',
     )) {
@@ -3568,8 +3572,9 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
   final events = <PsdkBattleEvent>[...prepared.events];
   for (final targetSlot in prepared.psdkTargets) {
     final targetBefore = state.battlerAt(targetSlot);
-    if (_aromaVeilBlocksMentalEffect(
+    if (_mentalAbilityBlocksEffect(
       state: state,
+      user: context.user,
       target: targetSlot,
       effectId: effectId,
     )) {
@@ -4208,7 +4213,7 @@ BattleEffect _targetMarkerEffect({
   };
 }
 
-const _aromaVeilBlockedMentalEffectIds = <String>{
+const _mentalAbilityBlockedEffectIds = <String>{
   'attract',
   'disable',
   'encore',
@@ -4217,18 +4222,59 @@ const _aromaVeilBlockedMentalEffectIds = <String>{
   'torment',
 };
 
-bool _aromaVeilBlocksMentalEffect({
+const _mentalAbilityBypassIds = <String>{
+  'mold_breaker',
+  'teravolt',
+  'turboblaze',
+};
+
+bool _mentalAbilityBlocksEffect({
   required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
   required PsdkBattleSlotRef target,
   required String effectId,
 }) {
-  if (!_aromaVeilBlockedMentalEffectIds.contains(effectId)) {
+  if (!_mentalAbilityBlockedEffectIds.contains(effectId) ||
+      _userBypassesMentalAbility(state: state, user: user)) {
     return false;
   }
 
   final battler = state.battlerAt(target);
-  return _normalizedId(battler.abilityId) == 'aroma_veil' &&
+  if (_mentalAbilityActive(battler, const <String>{
+    'aroma_veil',
+    'oblivious',
+  })) {
+    return true;
+  }
+
+  return state.aliveSlots().any((slot) {
+    if (slot.bank != target.bank) {
+      return false;
+    }
+    return _mentalAbilityActive(
+      state.battlerAt(slot),
+      const <String>{'aroma_veil'},
+    );
+  });
+}
+
+bool _mentalAbilityActive(
+  PsdkBattleCombatant battler,
+  Set<String> abilityIds,
+) {
+  return abilityIds.contains(_normalizedId(battler.abilityId)) &&
       !battler.effects.contains('ability_suppressed');
+}
+
+bool _userBypassesMentalAbility({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+}) {
+  final battler = state.battlerAt(user);
+  if (battler.effects.contains('ability_suppressed')) {
+    return false;
+  }
+  return _mentalAbilityBypassIds.contains(_normalizedId(battler.abilityId));
 }
 
 bool _gastroAcidBlockedTarget({

@@ -70,7 +70,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'aroma_veil',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mental Immunity.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'StaticBasicMoveRegistry.mentalImmunityPartial',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'as_one',
@@ -148,7 +149,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'bulletproof',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Bulletproof.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'BulletproofEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'chilling_neigh',
@@ -506,7 +508,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'good_as_gold',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 GoodAsGold.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'GoodAsGoldEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'gooey',
@@ -912,7 +915,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'oblivious',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mental Immunity.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'StaticBasicMoveRegistry.mentalImmunityPartial',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'opportunist',

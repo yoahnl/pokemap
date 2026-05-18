@@ -70,6 +70,7 @@ final class BattleMoveDefinition {
         sound: move.sound,
         bite: move.bite,
         pulse: move.pulse,
+        ballistics: move.ballistics,
       ),
       stageMods: move.stageMods
           .map(
@@ -168,6 +169,7 @@ final class BattleMoveDefinition {
       sound: flags.sound,
       bite: flags.bite,
       pulse: flags.pulse,
+      ballistics: flags.ballistics,
       stageMods: stageMods
           .map(
             (mod) => PsdkBattleMoveStageMod(
@@ -192,6 +194,7 @@ final class BattleMoveFlags {
     this.slicing = false,
     this.bite = false,
     this.pulse = false,
+    this.ballistics = false,
   });
 
   final bool contact;
@@ -202,6 +205,7 @@ final class BattleMoveFlags {
   final bool slicing;
   final bool bite;
   final bool pulse;
+  final bool ballistics;
 }
 
 final class BattleStageMod {

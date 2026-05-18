@@ -120,8 +120,9 @@ final class BattleEffectObjectStack {
   }
 
   BattleEffectDamagePreventionResult? dispatchDamagePrevention(
-    BattleEffectDamagePreventionContext context,
-  ) {
+    BattleEffectDamagePreventionContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     var nextState = context.state;
     var nextRng = context.rng;
     for (final effect in _effects) {
@@ -130,6 +131,9 @@ final class BattleEffectObjectStack {
         state: nextState,
         owner: context.owner,
       )) {
+        continue;
+      }
+      if (where != null && !where(effect)) {
         continue;
       }
       final result = effect.onDamagePrevention(
@@ -241,9 +245,13 @@ final class BattleEffectObjectStack {
   }
 
   BattleMoveFailureReason? targetMovePreventionReason(
-    BattleEffectMoveContext context,
-  ) {
+    BattleEffectMoveContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
       final reason = effect.onMovePreventionTarget(context);
       if (reason != null) {
         return reason;

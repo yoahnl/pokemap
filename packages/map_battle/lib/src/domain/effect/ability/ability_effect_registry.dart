@@ -111,6 +111,16 @@ final class AbilityEffectRegistry {
           abilityId: 'overcoat',
           scope: scope,
         ),
+    'aroma_veil': ({required scope}) => GenericBattleEffect(
+          id: 'ability:aroma_veil',
+          scope: scope,
+        ),
+    'oblivious': ({required scope}) => GenericBattleEffect(
+          id: 'ability:oblivious',
+          scope: scope,
+        ),
+    'bulletproof': ({required scope}) => BulletproofEffect(scope: scope),
+    'good_as_gold': ({required scope}) => GoodAsGoldEffect(scope: scope),
     'sturdy': ({required scope}) => SturdyEffect(scope: scope),
     'wonder_guard': ({required scope}) => WonderGuardEffect(scope: scope),
     'big_pecks': ({required scope}) => StatDropPreventionAbilityEffect(
@@ -378,6 +388,8 @@ final class AbilityEffectRegistry {
     'armor_tail': ({required scope}) => PriorityMovePreventionAbilityEffect(
           abilityId: 'armor_tail',
           scope: _bankScopeFor(scope),
+          requiresProtectable: false,
+          restrictToSingleTargetOrPerishSong: true,
         ),
     'pure_power': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'pure_power',

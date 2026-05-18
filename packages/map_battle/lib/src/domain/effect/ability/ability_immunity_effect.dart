@@ -57,6 +57,84 @@ final class PowderMoveImmunityAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class BulletproofEffect extends BattleAbilityEffect {
+  const BulletproofEffect({required BattleEffectScope scope})
+      : super(abilityId: 'bulletproof', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return BulletproofEffect(scope: scope);
+  }
+
+  @override
+  BattleMoveFailureReason? onMovePreventionTarget(
+    BattleEffectMoveContext context,
+  ) {
+    if (!_isOwner(context.target) || !context.move.flags.ballistics) {
+      return null;
+    }
+    return BattleMoveFailureReason.immunity;
+  }
+
+  @override
+  BattleEffectDamagePreventionResult? onDamagePrevention(
+    BattleEffectDamagePreventionContext context,
+  ) {
+    if (!isOwnedBy(context.target) || !context.move.flags.ballistics) {
+      return null;
+    }
+    return BattleEffectDamagePreventionResult(
+      state: context.state,
+      rng: context.rng,
+      prevented: true,
+      reason: BattleMoveFailureReason.immunity,
+      applied: false,
+    );
+  }
+
+  bool _isOwner(BattlePositionRef target) {
+    final scope = this.scope;
+    return scope is! BattlerBattleEffectScope ||
+        (scope.slot.bank == target.bank &&
+            scope.slot.position == target.position);
+  }
+}
+
+final class GoodAsGoldEffect extends BattleAbilityEffect {
+  const GoodAsGoldEffect({required BattleEffectScope scope})
+      : super(abilityId: 'good_as_gold', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return GoodAsGoldEffect(scope: scope);
+  }
+
+  @override
+  BattleMoveFailureReason? onMovePreventionTarget(
+    BattleEffectMoveContext context,
+  ) {
+    if (!_isOwner(context.target) || context.user == context.target) {
+      return null;
+    }
+    if (_goodAsGoldAffectedMoveIds.contains(context.move.id) ||
+        _goodAsGoldAffectedMoveIds.contains(context.move.dbSymbol)) {
+      return BattleMoveFailureReason.immunity;
+    }
+    if (context.move.category != PsdkBattleMoveCategory.status ||
+        !_isOneTargetMove(context.move.target)) {
+      return null;
+    }
+    return BattleMoveFailureReason.immunity;
+  }
+
+  bool _isOwner(BattlePositionRef target) {
+    final scope = this.scope;
+    return scope is! BattlerBattleEffectScope ||
+        (scope.slot.bank == target.bank &&
+            scope.slot.position == target.position);
+  }
+}
+
 final class SturdyEffect extends BattleAbilityEffect {
   const SturdyEffect({required BattleEffectScope scope})
       : super(abilityId: 'sturdy', scope: scope);
@@ -167,6 +245,24 @@ final class WonderGuardEffect extends BattleAbilityEffect {
       applied: true,
     );
   }
+}
+
+const _goodAsGoldAffectedMoveIds = <String>{
+  'memento',
+  'curse',
+  'strength_sap',
+};
+
+bool _isOneTargetMove(PsdkBattleMoveTarget target) {
+  return switch (target) {
+    PsdkBattleMoveTarget.adjacentAlly ||
+    PsdkBattleMoveTarget.adjacentAllyOrSelf ||
+    PsdkBattleMoveTarget.adjacentFoe ||
+    PsdkBattleMoveTarget.anyFoe ||
+    PsdkBattleMoveTarget.randomFoe =>
+      true,
+    _ => false,
+  };
 }
 
 Iterable<String> _extraTypes(PsdkBattleCombatant battler) {

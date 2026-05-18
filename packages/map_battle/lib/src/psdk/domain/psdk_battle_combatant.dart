@@ -402,9 +402,10 @@ class PsdkBattleEffectStack {
   }
 
   BattleEffectDamagePreventionResult? dispatchDamagePrevention(
-    BattleEffectDamagePreventionContext context,
-  ) {
-    return _stack.dispatchDamagePrevention(context);
+    BattleEffectDamagePreventionContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.dispatchDamagePrevention(context, where: where);
   }
 
   BattleEffectPostDamageResult dispatchPostDamage(
@@ -423,13 +424,14 @@ class PsdkBattleEffectStack {
     required BattlePositionRef user,
     required BattlePositionRef target,
     required BattleMoveDefinition move,
+    bool Function(BattleEffect effect)? where,
   }) {
     final context = BattleEffectMoveContext(
       user: user,
       target: target,
       move: move,
     );
-    return _stack.targetMovePreventionReason(context);
+    return _stack.targetMovePreventionReason(context, where: where);
   }
 
   BattleEffectUserMovePreventionResult? userMovePrevention(
