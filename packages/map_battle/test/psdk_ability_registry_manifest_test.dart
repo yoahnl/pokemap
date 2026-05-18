@@ -31,7 +31,9 @@ void main() {
 
       for (final abilityId in <String>[
         'blaze',
+        'air_lock',
         'damp',
+        'cloud_nine',
         'drizzle',
         'dragon_s_maw',
         'drought',
@@ -90,8 +92,6 @@ void main() {
       }
 
       for (final abilityId in <String>[
-        'air_lock',
-        'cloud_nine',
         'speed_boost',
       ]) {
         final entry = byId[abilityId];

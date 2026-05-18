@@ -22,7 +22,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'air_lock',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'AirLockEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -164,7 +164,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'cloud_nine',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'CloudNineEffect',
   ),
   PsdkAbilityEffectManifestEntry(

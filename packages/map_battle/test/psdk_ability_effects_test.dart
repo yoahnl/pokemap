@@ -1349,6 +1349,31 @@ void main() {
       );
     });
 
+    test('Air Lock and Cloud Nine clear active weather on switch-in', () {
+      for (final abilityId in <String>['air_lock', 'cloud_nine']) {
+        final result = _dispatchAbilitySwitchIn(
+          playerAbilityId: abilityId,
+          field: const PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.rain,
+              remainingTurns: 5,
+            ),
+          ),
+        );
+
+        expect(result.applied, isTrue, reason: abilityId);
+        expect(result.state.field.weather, isNull, reason: abilityId);
+        expect(
+          result.events
+              .whereType<PsdkBattleWeatherChangedEvent>()
+              .single
+              .reason,
+          'ability:$abilityId',
+          reason: abilityId,
+        );
+      }
+    });
+
     test('non-volatile status immunity abilities prevent matching status', () {
       const cases = <({String abilityId, PsdkBattleMajorStatus status})>[
         (abilityId: 'immunity', status: PsdkBattleMajorStatus.poison),
@@ -1569,6 +1594,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
       const PsdkBattleTransformState(),
   double opponentCurrentWeightKg = 1,
   List<PsdkBattleMoveData>? opponentMoves,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
   final state = PsdkBattleState.fromSetup(
@@ -1599,6 +1625,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         moveAccuracy: 3,
         generic: 4,
       ).psdkSeeds,
+      field: field,
     ).psdkSetup,
   );
 
