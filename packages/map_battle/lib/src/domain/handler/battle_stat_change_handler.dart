@@ -26,19 +26,6 @@ final class BattleStatChangeHandler {
       );
     }
 
-    if (_substitutePreventsStatChange(
-      context: context,
-      target: target,
-      move: move,
-    )) {
-      return BattleHandlerResult(
-        state: context.state,
-        rng: context.rng,
-        applied: false,
-        reason: 'substitute',
-      );
-    }
-
     var effectiveStages = stages;
     final hookPrevention = _statPreventionReason(
       context: context,
@@ -253,18 +240,4 @@ bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
       return false;
     }),
   );
-}
-
-bool _substitutePreventsStatChange({
-  required BattleHandlerContext context,
-  required PsdkBattleSlotRef target,
-  required BattleMoveDefinition? move,
-}) {
-  if (move == null ||
-      context.user == target ||
-      !context.state.battlerAt(target).effects.contains('substitute')) {
-    return false;
-  }
-  final user = context.state.battlerAt(context.user);
-  return !move.flags.sound && user.abilityId != 'infiltrator';
 }

@@ -800,6 +800,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'StickyWeb',
     'Stockpile',
     'StrongWinds',
+    'Substitute',
     'Sunny',
     'SyrupBomb',
     'Tailwind',
