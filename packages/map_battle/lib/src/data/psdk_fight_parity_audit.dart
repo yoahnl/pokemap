@@ -1146,8 +1146,7 @@ _MethodBacklogBatchDefinition _methodBacklogBatchFor(
 ) {
   final dependencies = entry.dependencies.map((dependency) => dependency.name);
   final dependencySet = dependencies.toSet();
-  if (dependencySet.contains('actionOrder') ||
-      dependencySet.contains('history')) {
+  if (dependencySet.contains('actionOrder')) {
     return _actionQueueMethodBatch;
   }
   if (dependencySet.contains('targetingMulti')) {

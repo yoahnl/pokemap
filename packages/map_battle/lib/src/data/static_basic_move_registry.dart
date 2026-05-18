@@ -430,6 +430,14 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveWish,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_after_you',
+      resolve: _resolveActionQueueMove,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_quash',
+      resolve: _resolveActionQueueMove,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_healing_wish',
       resolve: _resolveHealingSacrifice,
     ),
@@ -682,7 +690,6 @@ const _partialBasicDescendantMethods = <String>[
 ];
 
 const _partialTargetMarkerMethods = <String, String>{
-  's_after_you': 'after_you',
   's_autotomize': 'autotomize',
   's_charge': 'charge',
   's_conversion': 'conversion',
@@ -704,7 +711,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_octolock': 'octolock',
   's_perish_song': 'perish_song',
   's_powder': 'powder',
-  's_quash': 'quash',
   's_revival_blessing': 'revival_blessing',
   's_snatch': 'snatch',
   's_spite': 'spite',
@@ -3491,6 +3497,55 @@ BattleMoveBehaviorResolution _resolveImprison(
     rng: prepared.rng,
     events: prepared.events,
   );
+}
+
+BattleMoveBehaviorResolution _resolveActionQueueMove(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final announcedTargetMove = context.announcedMoveFor?.call(context.target);
+  if (announcedTargetMove == null) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      successful: false,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: prepared.state,
+    rng: prepared.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      PsdkBattleEffectEvent.added(
+        turn: context.turn,
+        target: context.target,
+        effectId: _actionQueueEffectId(context.move.battleEngineMethod),
+        reason: 'action_queue',
+      ),
+    ],
+  );
+}
+
+String _actionQueueEffectId(String battleEngineMethod) {
+  return switch (battleEngineMethod) {
+    's_after_you' => 'after_you_action_order',
+    's_quash' => 'quash_action_order',
+    _ => battleEngineMethod,
+  };
 }
 
 BattleMoveBehaviorResolution _resolveTargetMarker(

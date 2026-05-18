@@ -1211,21 +1211,25 @@ void main() {
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
       for (final entry in <({String method, String behavior})>[
+        (method: 's_after_you', behavior: 'StaticBasicMoveRegistry.afterYou'),
+        (method: 's_assist', behavior: 'CopyCallMoveBehavior.assist'),
+        (method: 's_instruct', behavior: 'CopyCallMoveBehavior.instruct'),
+        (method: 's_metronome', behavior: 'CopyCallMoveBehavior.metronome'),
+        (method: 's_mimic', behavior: 'CopyCallMoveBehavior.mimic'),
+        (method: 's_mirror_move', behavior: 'CopyCallMoveBehavior.mirrorMove'),
+        (method: 's_me_first', behavior: 'CopyCallMoveBehavior.meFirst'),
+        (method: 's_quash', behavior: 'StaticBasicMoveRegistry.quash'),
+        (method: 's_sketch', behavior: 'CopyCallMoveBehavior.sketch'),
+        (method: 's_sleep_talk', behavior: 'CopyCallMoveBehavior.sleepTalk'),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+        expect(byMethod[entry.method]!.dependencies, isEmpty);
+      }
+      for (final entry in <({String method, String behavior})>[
         (
           method: 's_attract',
           behavior: 'StaticBasicMoveRegistry.attract',
-        ),
-        (
-          method: 's_after_you',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_after_you)',
-        ),
-        (
-          method: 's_assist',
-          behavior: 'CopyCallMoveBehavior.assist',
-        ),
-        (
-          method: 's_instruct',
-          behavior: 'CopyCallMoveBehavior.instruct',
         ),
         (
           method: 's_autotomize',
@@ -1310,22 +1314,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)',
         ),
         (
-          method: 's_metronome',
-          behavior: 'CopyCallMoveBehavior.metronome',
-        ),
-        (
-          method: 's_mimic',
-          behavior: 'CopyCallMoveBehavior.mimic',
-        ),
-        (
-          method: 's_mirror_move',
-          behavior: 'CopyCallMoveBehavior.mirrorMove',
-        ),
-        (
-          method: 's_me_first',
-          behavior: 'CopyCallMoveBehavior.meFirst',
-        ),
-        (
           method: 's_mind_reader',
           behavior: 'StaticBasicMoveRegistry.s_mind_reader',
         ),
@@ -1351,21 +1339,9 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.s_plasma_fists',
         ),
         (
-          method: 's_quash',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_quash)',
-        ),
-        (
           method: 's_simple_beam',
           behavior:
               'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
-        ),
-        (
-          method: 's_sketch',
-          behavior: 'CopyCallMoveBehavior.sketch',
-        ),
-        (
-          method: 's_sleep_talk',
-          behavior: 'CopyCallMoveBehavior.sleepTalk',
         ),
         (
           method: 's_snatch',
@@ -1512,7 +1488,6 @@ void main() {
         byMethod['s_follow_me']!.dependencies,
         containsAll(<PsdkMoveDependency>[
           PsdkMoveDependency.effects,
-          PsdkMoveDependency.actionOrder,
           PsdkMoveDependency.targetingMulti,
         ]),
       );
@@ -1578,18 +1553,6 @@ void main() {
         ]),
       );
       expect(
-        byMethod['s_after_you']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.actionOrder,
-        ]),
-      );
-      expect(
-        byMethod['s_quash']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.actionOrder,
-        ]),
-      );
-      expect(
         byMethod['s_helping_hand']!.dependencies,
         containsAll(<PsdkMoveDependency>[
           PsdkMoveDependency.effects,
@@ -1600,7 +1563,6 @@ void main() {
         byMethod['s_electrify']!.dependencies,
         containsAll(<PsdkMoveDependency>[
           PsdkMoveDependency.effects,
-          PsdkMoveDependency.actionOrder,
         ]),
       );
       expect(
