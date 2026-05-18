@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 376,
-    "partiel": 352,
+    "fait": 377,
+    "partiel": 351,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5011,9 +5011,9 @@
       {
         "moveId": "substitute",
         "battleEngineMethod": "s_substitute",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/substitute.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 186,
-      "partial": 144,
+      "ported": 191,
+      "partial": 139,
       "missing": 0
     },
     "entries": [
@@ -6511,11 +6511,8 @@
         "rubyClass": "EerieSpell",
         "rubyPath": "10 Move/2 Definitions/300 EerieSpell.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_eerie_spell",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_electrify",
@@ -6963,11 +6960,8 @@
         "rubyClass": "GlaiveRush",
         "rubyPath": "10 Move/2 Definitions/300 GlaiveRush.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_glaive_rush",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_glitzy_glow",
@@ -7331,11 +7325,8 @@
         "rubyClass": "JawLock",
         "rubyPath": "10 Move/2 Definitions/300 JawLock.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_jaw_lock",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_judgment",
@@ -8785,11 +8776,8 @@
         "rubyClass": "Substitute",
         "rubyPath": "10 Move/2 Definitions/300 Substitute.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_substitute",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_sucker_punch",
@@ -9126,11 +9114,8 @@
         "rubyClass": "TripleArrows",
         "rubyPath": "10 Move/2 Definitions/300 TripleArrows.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_triple_arrows",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_triple_kick",
@@ -9374,7 +9359,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 108,
+        "count": 103,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9395,7 +9380,6 @@
           "s_doodle",
           "s_dragon_cheer",
           "s_dragon_tail",
-          "s_eerie_spell",
           "s_electrify",
           "s_embargo",
           "s_encore",
@@ -9411,7 +9395,6 @@
           "s_fusion_flare",
           "s_gear_up",
           "s_geomancy",
-          "s_glaive_rush",
           "s_gravity",
           "s_grudge",
           "s_happy_hour",
@@ -9421,7 +9404,6 @@
           "s_helping_hand",
           "s_imprison",
           "s_ion_deluge",
-          "s_jaw_lock",
           "s_knock_off",
           "s_lock_on",
           "s_lunar_dance",
@@ -9464,7 +9446,6 @@
           "s_stockpile",
           "s_struggle",
           "s_stuff_cheeks",
-          "s_substitute",
           "s_swallow",
           "s_take_heart",
           "s_teatime",
@@ -9475,7 +9456,6 @@
           "s_torment",
           "s_toxic_thread",
           "s_trick",
-          "s_triple_arrows",
           "s_u_turn",
           "s_uproar",
           "s_venom_drench",

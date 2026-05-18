@@ -2403,12 +2403,6 @@ void main() {
           power: 50,
         ),
         (
-          method: 's_eerie_spell',
-          moveId: 'eerie_spell',
-          category: PsdkBattleMoveCategory.special,
-          power: 80,
-        ),
-        (
           method: 's_electro_shot',
           moveId: 'electro_shot',
           category: PsdkBattleMoveCategory.special,
@@ -2449,12 +2443,6 @@ void main() {
           moveId: 'geomancy',
           category: PsdkBattleMoveCategory.status,
           power: 0,
-        ),
-        (
-          method: 's_glaive_rush',
-          moveId: 'glaive_rush',
-          category: PsdkBattleMoveCategory.physical,
-          power: 120,
         ),
         (
           method: 's_grassy_glide',
@@ -2569,12 +2557,6 @@ void main() {
           moveId: 'tidy_up',
           category: PsdkBattleMoveCategory.status,
           power: 0,
-        ),
-        (
-          method: 's_triple_arrows',
-          moveId: 'triple_arrows',
-          category: PsdkBattleMoveCategory.physical,
-          power: 90,
         ),
         (
           method: 's_upper_hand',

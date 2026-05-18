@@ -843,7 +843,7 @@ void main() {
         byMethod['s_make_it_rain']!.dartBehavior,
         'StaticBasicMoveRegistry.s_make_it_rain',
       );
-      expect(byMethod['s_eerie_spell']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_eerie_spell']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_eerie_spell']!.dartBehavior,
         'StaticBasicMoveRegistry.s_eerie_spell',
@@ -873,7 +873,7 @@ void main() {
         byMethod['s_memento']!.dartBehavior,
         'StaticBasicMoveRegistry.s_memento',
       );
-      expect(byMethod['s_glaive_rush']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_glaive_rush']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_glaive_rush']!.dartBehavior,
         'StaticBasicMoveRegistry.s_glaive_rush',
@@ -888,7 +888,7 @@ void main() {
         byMethod['s_shell_side_arm']!.dartBehavior,
         'StaticBasicMoveRegistry.s_shell_side_arm',
       );
-      expect(byMethod['s_triple_arrows']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_triple_arrows']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_triple_arrows']!.dartBehavior,
         'StaticBasicMoveRegistry.s_triple_arrows',
@@ -931,7 +931,7 @@ void main() {
         byMethod['s_stomp']!.dartBehavior,
         'StaticBasicMoveRegistry.s_stomp',
       );
-      expect(byMethod['s_jaw_lock']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_jaw_lock']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_jaw_lock']!.dartBehavior,
         'StaticBasicMoveRegistry.s_jaw_lock',
@@ -1161,7 +1161,7 @@ void main() {
         byMethod['s_roar']!.dartBehavior,
         'StaticBasicMoveRegistry.forceSwitch(s_roar)',
       );
-      expect(byMethod['s_substitute']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_substitute']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_substitute']!.dartBehavior,
         'StaticBasicMoveRegistry.s_substitute',
