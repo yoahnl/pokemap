@@ -304,12 +304,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BodyPress',
     rubyPath: '10 Move/2 Definitions/300 BodyPress.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.bodyPress',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_brick_break',
@@ -520,12 +516,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'CustomStatsBased',
     rubyPath: '10 Move/2 Definitions/300 CustomStatsBased.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.customStatsBased',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_defog',
@@ -938,12 +930,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FoulPlay',
     rubyPath: '10 Move/2 Definitions/300 FoulPlay.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.foulPlay',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_freezy_frost',
@@ -1930,11 +1918,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PopulationBomb',
     rubyPath: '10 Move/1 Mechanics/103 TwoHit MultiHit.rb',
     dartBehavior: 'MultiHitMoveBehavior.populationBomb',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_powder',
@@ -2042,12 +2027,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'CustomStatsBased',
     rubyPath: '10 Move/2 Definitions/300 CustomStatsBased.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.psyshock',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_psywave',
@@ -2324,11 +2305,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SacredSword',
     rubyPath: '10 Move/2 Definitions/300 SacredSword.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.sacredSword',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_safe_guard',
@@ -3081,12 +3059,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TripleKick',
     rubyPath: '10 Move/1 Mechanics/103 TwoHit MultiHit.rb',
     dartBehavior: 'MultiHitMoveBehavior.tripleKick',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item,
-      PsdkMoveDependency.history
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_trump_card',

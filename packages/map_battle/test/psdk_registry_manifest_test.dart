@@ -521,16 +521,18 @@ void main() {
         byMethod['s_double_iron_bash']!.dartBehavior,
         'MultiHitMoveBehavior.doubleIronBash',
       );
-      expect(byMethod['s_triple_kick']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_triple_kick']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_triple_kick']!.dartBehavior,
         'MultiHitMoveBehavior.tripleKick',
       );
-      expect(byMethod['s_population_bomb']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_triple_kick']!.dependencies, isEmpty);
+      expect(byMethod['s_population_bomb']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_population_bomb']!.dartBehavior,
         'MultiHitMoveBehavior.populationBomb',
       );
+      expect(byMethod['s_population_bomb']!.dependencies, isEmpty);
       expect(byMethod['s_water_shuriken']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_water_shuriken']!.dartBehavior,
@@ -579,31 +581,32 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_body_press']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_body_press']!.dartBehavior,
-        'CustomStatSourceMoveBehavior.bodyPress',
-      );
-      expect(byMethod['s_foul_play']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_foul_play']!.dartBehavior,
-        'CustomStatSourceMoveBehavior.foulPlay',
-      );
-      expect(byMethod['s_psyshock']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_psyshock']!.dartBehavior,
-        'CustomStatSourceMoveBehavior.psyshock',
-      );
-      expect(byMethod['s_custom_stats_based']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_custom_stats_based']!.dartBehavior,
-        'CustomStatSourceMoveBehavior.customStatsBased',
-      );
-      expect(byMethod['s_sacred_sword']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_sacred_sword']!.dartBehavior,
-        'CustomStatSourceMoveBehavior.sacredSword',
-      );
+      for (final entry in <({String method, String behavior})>[
+        (
+          method: 's_body_press',
+          behavior: 'CustomStatSourceMoveBehavior.bodyPress',
+        ),
+        (
+          method: 's_foul_play',
+          behavior: 'CustomStatSourceMoveBehavior.foulPlay',
+        ),
+        (
+          method: 's_psyshock',
+          behavior: 'CustomStatSourceMoveBehavior.psyshock',
+        ),
+        (
+          method: 's_custom_stats_based',
+          behavior: 'CustomStatSourceMoveBehavior.customStatsBased',
+        ),
+        (
+          method: 's_sacred_sword',
+          behavior: 'CustomStatSourceMoveBehavior.sacredSword',
+        ),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+        expect(byMethod[entry.method]!.dependencies, isEmpty);
+      }
     });
 
     test('tracks the Lot 18 basic damage specialization slice', () {
