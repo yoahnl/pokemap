@@ -9471,14 +9471,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 206,
-      "partial": 20,
+      "ported": 207,
+      "partial": 19,
       "missing": 256
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 55,
-        "partial": 2,
+        "ported": 56,
+        "partial": 1,
         "missing": 197
       },
       "move": {
@@ -9551,7 +9551,7 @@
       {
         "effectName": "AirLock",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb",
         "hookFamilies": [
           "switch",
