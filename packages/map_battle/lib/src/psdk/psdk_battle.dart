@@ -60,6 +60,8 @@ export '../domain/effect/move/confusion_effect.dart';
 export '../domain/effect/move/curse_effect.dart';
 export '../domain/effect/move/endure_effect.dart';
 export '../domain/effect/move/flinch_effect.dart';
+export '../domain/effect/move/focus_punch_effect.dart';
+export '../domain/effect/move/happy_hour_effect.dart';
 export '../domain/effect/move/ingrain_effect.dart';
 export '../domain/effect/move/leech_seed_effect.dart';
 export '../domain/effect/move/nightmare_effect.dart';

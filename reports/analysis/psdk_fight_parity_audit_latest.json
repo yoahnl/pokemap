@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 198,
+      "ported": 200,
       "partial": 20,
-      "missing": 264
+      "missing": 262
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9306,9 +9306,9 @@
         "missing": 197
       },
       "move": {
-        "ported": 72,
+        "ported": 74,
         "partial": 8,
-        "missing": 35
+        "missing": 33
       },
       "item": {
         "ported": 45,
@@ -10491,7 +10491,7 @@
       {
         "effectName": "FocusPunch",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 FocusPunch.rb",
         "hookFamilies": []
       },
@@ -10773,7 +10773,7 @@
       {
         "effectName": "HappyHour",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 HappyHour.rb",
         "hookFamilies": []
       },
