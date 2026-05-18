@@ -99,7 +99,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'battery',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Battery.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AllyDamageModifierAbilityEffect.batterySpecialAttack',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'battle_bond',
@@ -459,7 +460,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'friend_guard',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Friend Guard.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AllyDamageModifierAbilityEffect.friendGuard',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'frisk',
@@ -1010,7 +1012,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'power_spot',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 PowerSpot.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AllyDamageModifierAbilityEffect.powerSpot',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'prankster',
@@ -1041,7 +1044,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'propeller_tail',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Stalwart.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'BattleTargetResolver.redirectionBypass',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'protean',
@@ -1378,7 +1382,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'stalwart',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Stalwart.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'BattleTargetResolver.redirectionBypass',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'stamina',
@@ -1424,7 +1429,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'steely_spirit',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Steely Spirit.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AllyDamageModifierAbilityEffect.steelySpirit',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'stench',

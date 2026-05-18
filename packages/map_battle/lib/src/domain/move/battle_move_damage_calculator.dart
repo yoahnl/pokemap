@@ -1,6 +1,8 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
+import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
 import '../effect/item/item_effect.dart';
@@ -70,8 +72,12 @@ final class BattleMoveDamageCalculator {
     // are deliberately scoped to one calculation so catalog definitions remain
     // immutable import data instead of becoming per-hit scratch objects.
     final offensiveStat = _positiveStat(
-      context.overrides?.offensiveStatFor(critical.isCritical) ??
-          _offensiveStat(context),
+      _abilityAdjustedOffensiveStat(
+        context.overrides?.offensiveStatFor(critical.isCritical) ??
+            _offensiveStat(context),
+        context,
+        moveType,
+      ),
     );
     final defensiveStat = _positiveStat(
       context.overrides?.defensiveStatFor(critical.isCritical) ??
@@ -175,6 +181,10 @@ double _weatherMod1Multiplier(
 }
 
 bool _weatherEffectsSuppressed(BattleMoveDamageContext context) {
+  final state = context.state;
+  if (state != null) {
+    return state.weatherEffectsSuppressed;
+  }
   return context.user.abilityEffects.any(
         (effect) => effect.suppressesWeatherEffects,
       ) ||
@@ -198,6 +208,8 @@ int _abilityAdjustedPower(
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: 1,
+    userSlot: context.userSlot,
+    targetSlot: context.targetSlot,
     activeAbilityIds: _activeAbilityIds(context),
     weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
     isLastActionOfTurn: context.isLastActionOfTurn,
@@ -208,6 +220,9 @@ int _abilityAdjustedPower(
   }
   for (final effect in context.target.abilityEffects) {
     multiplier *= effect.incomingDamageBasePowerMultiplier(abilityContext);
+  }
+  for (final effect in _supportingAbilityEffects(context)) {
+    multiplier *= effect.damageBasePowerMultiplier(abilityContext);
   }
   if (multiplier == 1.0) {
     return power;
@@ -433,6 +448,8 @@ int _applyAbilityFinalDamageModifiers(
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+    userSlot: context.userSlot,
+    targetSlot: context.targetSlot,
     activeAbilityIds: _activeAbilityIds(context),
     weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
     isLastActionOfTurn: context.isLastActionOfTurn,
@@ -442,6 +459,9 @@ int _applyAbilityFinalDamageModifiers(
     multiplier *= effect.finalDamageMultiplier(abilityContext);
   }
   for (final effect in context.target.abilityEffects) {
+    multiplier *= effect.finalDamageMultiplier(abilityContext);
+  }
+  for (final effect in _supportingAbilityEffects(context)) {
     multiplier *= effect.finalDamageMultiplier(abilityContext);
   }
   if (multiplier == 1.0) {
@@ -455,7 +475,62 @@ Set<String> _activeAbilityIds(BattleMoveDamageContext context) {
   return <String>{
     for (final effect in context.user.abilityEffects) effect.abilityId,
     for (final effect in context.target.abilityEffects) effect.abilityId,
+    for (final effect in _supportingAbilityEffects(context)) effect.abilityId,
   };
+}
+
+int _abilityAdjustedOffensiveStat(
+  int stat,
+  BattleMoveDamageContext context,
+  String moveType,
+) {
+  if (stat <= 0) {
+    return stat;
+  }
+  final abilityContext = BattleAbilityDamageContext(
+    field: context.field,
+    user: context.user,
+    target: context.target,
+    move: context.move,
+    moveType: moveType,
+    typeEffectivenessMultiplier: 1,
+    userSlot: context.userSlot,
+    targetSlot: context.targetSlot,
+    activeAbilityIds: _activeAbilityIds(context),
+    weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
+    isLastActionOfTurn: context.isLastActionOfTurn,
+  );
+  var multiplier = 1.0;
+  for (final effect in context.user.abilityEffects) {
+    multiplier *= effect.offensiveStatMultiplier(abilityContext);
+  }
+  for (final effect in _supportingAbilityEffects(context)) {
+    multiplier *= effect.offensiveStatMultiplier(abilityContext);
+  }
+  if (multiplier == 1.0) {
+    return stat;
+  }
+  final adjusted = (stat * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
+}
+
+Iterable<BattleAbilityEffect> _supportingAbilityEffects(
+  BattleMoveDamageContext context,
+) sync* {
+  yield* context.supportingAbilityEffects;
+
+  final state = context.state;
+  final userSlot = context.userSlot;
+  final targetSlot = context.targetSlot;
+  if (state == null || userSlot == null || targetSlot == null) {
+    return;
+  }
+  for (final slot in state.aliveSlots()) {
+    if (slot == userSlot || slot == targetSlot) {
+      continue;
+    }
+    yield* state.battlerAt(slot).abilityEffects;
+  }
 }
 
 final class BattleMoveDamageContext {
@@ -465,6 +540,10 @@ final class BattleMoveDamageContext {
     required this.move,
     required this.rng,
     this.field = const PsdkBattleFieldState(),
+    this.state,
+    this.userSlot,
+    this.targetSlot,
+    this.supportingAbilityEffects = const <BattleAbilityEffect>[],
     this.overrides,
     this.isLastActionOfTurn = false,
   });
@@ -474,6 +553,10 @@ final class BattleMoveDamageContext {
   final BattleMoveDefinition move;
   final BattleRngStreams rng;
   final PsdkBattleFieldState field;
+  final PsdkBattleState? state;
+  final PsdkBattleSlotRef? userSlot;
+  final PsdkBattleSlotRef? targetSlot;
+  final Iterable<BattleAbilityEffect> supportingAbilityEffects;
   final BattleMoveDamageOverrides? overrides;
   final bool isLastActionOfTurn;
 }

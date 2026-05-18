@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'ability_effect.dart';
@@ -224,4 +225,67 @@ final class FullHpIncomingPowerReductionEffect extends BattleAbilityEffect {
     }
     return multiplier;
   }
+}
+
+enum AllyDamageModifierKind {
+  batterySpecialAttack,
+  friendGuard,
+  powerSpot,
+  steelySpirit,
+}
+
+final class AllyDamageModifierAbilityEffect extends BattleAbilityEffect {
+  const AllyDamageModifierAbilityEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+    required this.kind,
+    required this.multiplier,
+  }) : super(abilityId: abilityId, scope: scope);
+
+  final AllyDamageModifierKind kind;
+  final double multiplier;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return AllyDamageModifierAbilityEffect(
+      abilityId: abilityId,
+      scope: scope,
+      kind: kind,
+      multiplier: multiplier,
+    );
+  }
+
+  @override
+  double offensiveStatMultiplier(BattleAbilityDamageContext context) {
+    if (kind != AllyDamageModifierKind.batterySpecialAttack ||
+        context.move.category != PsdkBattleMoveCategory.special ||
+        !_sameBankDifferentSlot(owner, context.userSlot)) {
+      return 1;
+    }
+    return multiplier;
+  }
+
+  @override
+  double damageBasePowerMultiplier(BattleAbilityDamageContext context) {
+    return switch (kind) {
+      AllyDamageModifierKind.friendGuard =>
+        _sameBankDifferentSlot(owner, context.targetSlot) ? multiplier : 1,
+      AllyDamageModifierKind.powerSpot =>
+        _sameBankDifferentSlot(owner, context.userSlot) ? multiplier : 1,
+      AllyDamageModifierKind.steelySpirit =>
+        _sameBankDifferentSlot(owner, context.userSlot) &&
+                context.moveType == 'steel'
+            ? multiplier
+            : 1,
+      AllyDamageModifierKind.batterySpecialAttack => 1,
+    };
+  }
+}
+
+bool _sameBank(PsdkBattleSlotRef? left, PsdkBattleSlotRef? right) {
+  return left != null && right != null && left.bank == right.bank;
+}
+
+bool _sameBankDifferentSlot(PsdkBattleSlotRef? left, PsdkBattleSlotRef? right) {
+  return _sameBank(left, right) && left != right;
 }
