@@ -135,6 +135,116 @@ final class SwitchTerrainAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class SwitchStatBoostAbilityEffect extends BattleAbilityEffect {
+  const SwitchStatBoostAbilityEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+    required this.stat,
+    required this.stages,
+  }) : super(abilityId: abilityId, scope: scope);
+
+  final String stat;
+  final int stages;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SwitchStatBoostAbilityEffect(
+      abilityId: abilityId,
+      scope: scope,
+      stat: stat,
+      stages: stages,
+    );
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.replacement,
+      ),
+      target: context.replacement,
+      stat: stat,
+      stages: stages,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
+final class DownloadEffect extends BattleAbilityEffect {
+  const DownloadEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'download', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return DownloadEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    final target = _firstAliveFoe(context);
+    if (target == null) {
+      return null;
+    }
+    final targetBattler = context.state.battlerAt(target);
+    final stat =
+        targetBattler.stats.defense < targetBattler.stats.specialDefense
+            ? 'attack'
+            : 'specialAttack';
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.replacement,
+      ),
+      target: context.replacement,
+      stat: stat,
+      stages: 1,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+
+  PsdkBattleSlotRef? _firstAliveFoe(BattleEffectSwitchEventContext context) {
+    for (final foe in context.state.foesOf(context.replacement)) {
+      if (!context.state.battlerAt(foe).isFainted) {
+        return foe;
+      }
+    }
+    return null;
+  }
+}
+
 final class IntimidateEffect extends BattleAbilityEffect {
   const IntimidateEffect({
     required BattleEffectScope scope,

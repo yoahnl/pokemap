@@ -79,7 +79,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'aura_break',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Auras.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AuraPowerAbilityEffect.auraBreak',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'bad_dreams',
@@ -260,13 +261,15 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'dark_aura',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Auras.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AuraPowerAbilityEffect.darkAura',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'dauntless_shield',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Dauntless Shield.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SwitchStatBoostAbilityEffect.dauntlessShield',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'dazzling',
@@ -310,7 +313,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'download',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Download.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'DownloadEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'dragon_s_maw',
@@ -383,7 +387,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'fairy_aura',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Auras.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AuraPowerAbilityEffect.fairyAura',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'filter',
@@ -666,7 +671,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'intrepid_sword',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Intrepid Sword.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SwitchStatBoostAbilityEffect.intrepidSword',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'iron_barbs',
@@ -975,7 +981,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'poison_touch',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ApplyStatusToMoveTargetAbilityEffect.poisonTouch',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'power_construct',
@@ -1596,7 +1603,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'toxic_chain',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ApplyStatusToMoveTargetAbilityEffect.toxicChain',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'toxic_debris',

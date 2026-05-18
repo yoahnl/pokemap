@@ -151,6 +151,51 @@ final class AbilityBasePowerModifierEffect extends BattleAbilityEffect {
   }
 }
 
+final class AuraPowerAbilityEffect extends BattleAbilityEffect {
+  const AuraPowerAbilityEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+  }) : super(abilityId: abilityId, scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return AuraPowerAbilityEffect(abilityId: abilityId, scope: scope);
+  }
+
+  @override
+  double damageBasePowerMultiplier(BattleAbilityDamageContext context) {
+    if (context.user.abilityId != abilityId) {
+      return 1;
+    }
+    return _auraMultiplier(context);
+  }
+
+  @override
+  double incomingDamageBasePowerMultiplier(
+    BattleAbilityDamageContext context,
+  ) {
+    if (context.user.abilityId == abilityId ||
+        context.target.abilityId != abilityId) {
+      return 1;
+    }
+    return _auraMultiplier(context);
+  }
+
+  double _auraMultiplier(BattleAbilityDamageContext context) {
+    final auraAbility = switch (context.moveType) {
+      'dark' => 'dark_aura',
+      'fairy' => 'fairy_aura',
+      _ => null,
+    };
+    if (auraAbility == null ||
+        abilityId != auraAbility ||
+        !context.activeAbilityIds.contains(auraAbility)) {
+      return 1;
+    }
+    return context.activeAbilityIds.contains('aura_break') ? 0.75 : 1.33;
+  }
+}
+
 final class FullHpIncomingPowerReductionEffect extends BattleAbilityEffect {
   const FullHpIncomingPowerReductionEffect({
     required String abilityId,

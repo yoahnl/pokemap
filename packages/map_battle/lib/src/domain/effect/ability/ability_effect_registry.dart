@@ -8,6 +8,7 @@ import '../battle_effect_scope.dart';
 import 'accuracy_modifier_ability_effect.dart';
 import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
+import 'apply_status_to_move_target_ability_effect.dart';
 import 'cloud_nine_effect.dart';
 import 'contact_punish_ability_effect.dart';
 import 'contact_status_ability_effect.dart';
@@ -295,6 +296,18 @@ final class AbilityEffectRegistry {
           condition: AbilityFinalDamageCondition.superEffectiveOutgoing,
           multiplier: 1.25,
         ),
+    'dark_aura': ({required scope}) => AuraPowerAbilityEffect(
+          abilityId: 'dark_aura',
+          scope: scope,
+        ),
+    'fairy_aura': ({required scope}) => AuraPowerAbilityEffect(
+          abilityId: 'fairy_aura',
+          scope: scope,
+        ),
+    'aura_break': ({required scope}) => AuraPowerAbilityEffect(
+          abilityId: 'aura_break',
+          scope: scope,
+        ),
     'multiscale': ({required scope}) => FullHpIncomingPowerReductionEffect(
           abilityId: 'multiscale',
           scope: scope,
@@ -554,6 +567,17 @@ final class AbilityEffectRegistry {
         ),
     'effect_spore': ({required scope}) =>
         ContactStatusAbilityEffect.effectSpore(scope: scope),
+    'poison_touch': ({required scope}) => ApplyStatusToMoveTargetAbilityEffect(
+          abilityId: 'poison_touch',
+          scope: scope,
+          status: PsdkBattleMajorStatus.poison,
+          requiresContact: true,
+        ),
+    'toxic_chain': ({required scope}) => ApplyStatusToMoveTargetAbilityEffect(
+          abilityId: 'toxic_chain',
+          scope: scope,
+          status: PsdkBattleMajorStatus.toxic,
+        ),
     'stamina': ({required scope}) => PostDamageStatChangeAbilityEffect(
           abilityId: 'stamina',
           scope: scope,
@@ -651,6 +675,19 @@ final class AbilityEffectRegistry {
           terrain: PsdkBattleTerrainId.psychicTerrain,
           terrainMoveDbSymbol: 'psychic_terrain',
         ),
+    'dauntless_shield': ({required scope}) => SwitchStatBoostAbilityEffect(
+          abilityId: 'dauntless_shield',
+          scope: scope,
+          stat: 'defense',
+          stages: 1,
+        ),
+    'intrepid_sword': ({required scope}) => SwitchStatBoostAbilityEffect(
+          abilityId: 'intrepid_sword',
+          scope: scope,
+          stat: 'attack',
+          stages: 1,
+        ),
+    'download': ({required scope}) => DownloadEffect(scope: scope),
     'intimidate': ({required scope}) => IntimidateEffect(scope: scope),
     'imposter': ({required scope}) => ImposterEffect(scope: scope),
   };
