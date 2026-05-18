@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 217,
+      "ported": 223,
       "partial": 19,
-      "missing": 246
+      "missing": 240
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 66,
+        "ported": 72,
         "partial": 1,
-        "missing": 187
+        "missing": 181
       },
       "move": {
         "ported": 80,
@@ -10252,7 +10252,7 @@
       {
         "effectName": "Defeatist",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Defeatist.rb",
         "hookFamilies": []
       },
@@ -10595,7 +10595,7 @@
       {
         "effectName": "FlareBoost",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Flare Boost.rb",
         "hookFamilies": []
       },
@@ -10644,7 +10644,7 @@
       {
         "effectName": "Fluffy",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Fluffy.rb",
         "hookFamilies": []
       },
@@ -11014,7 +11014,7 @@
       {
         "effectName": "Heatproof",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Heatproof.rb",
         "hookFamilies": []
       },
@@ -11104,7 +11104,7 @@
       {
         "effectName": "IceScales",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Ice Scales.rb",
         "hookFamilies": []
       },
@@ -11743,7 +11743,7 @@
       {
         "effectName": "Neuroforce",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Neuroforce.rb",
         "hookFamilies": []
       },

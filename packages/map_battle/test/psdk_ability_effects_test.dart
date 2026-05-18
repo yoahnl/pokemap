@@ -432,6 +432,108 @@ void main() {
       );
     });
 
+    test('base-power damage modifier abilities follow PSDK gates', () {
+      final baseline = _calculatedDamage();
+      final defeatistHighHp = _calculatedDamage(
+        abilityId: 'defeatist',
+        playerCurrentHp: 50,
+      );
+      final defeatistLowHp = _calculatedDamage(
+        abilityId: 'defeatist',
+        playerCurrentHp: 49,
+      );
+      final fluffyContact = _calculatedDamage(
+        opponentAbilityId: 'fluffy',
+        flags: const BattleMoveFlags(contact: true),
+      );
+      final fluffyFire = _calculatedDamage(
+        opponentAbilityId: 'fluffy',
+        moveType: 'fire',
+      );
+      final heatproofFire = _calculatedDamage(
+        opponentAbilityId: 'heatproof',
+        moveType: 'fire',
+      );
+      final iceScalesSpecial = _calculatedDamage(
+        opponentAbilityId: 'ice_scales',
+        category: PsdkBattleMoveCategory.special,
+      );
+
+      expect(defeatistHighHp, baseline);
+      expect(defeatistLowHp, lessThan(baseline));
+      expect(fluffyContact, lessThan(baseline));
+      expect(fluffyFire, greaterThan(baseline));
+      expect(heatproofFire, lessThan(fluffyFire));
+      expect(
+          iceScalesSpecial,
+          lessThan(_calculatedDamage(
+            category: PsdkBattleMoveCategory.special,
+          )));
+    });
+
+    test('special/final damage modifier abilities follow PSDK gates', () {
+      final specialBaseline = _runMove(
+        playerMove: _move(
+          id: 'swift',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final flareInactive = _runMove(
+        playerAbilityId: 'flare_boost',
+        playerMove: _move(
+          id: 'swift',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final flareActive = _runMove(
+        playerAbilityId: 'flare_boost',
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+        playerMove: _move(
+          id: 'swift',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final neuroforceNeutral = _runMove(
+        playerAbilityId: 'neuroforce',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final neuroforceStrong = _runMove(
+        playerAbilityId: 'neuroforce',
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final strongBaseline = _runMove(
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+
+      final specialDamage =
+          _damageEvents(specialBaseline, moveId: 'swift').single.damage;
+      expect(
+        _damageEvents(flareInactive, moveId: 'swift').single.damage,
+        specialDamage,
+      );
+      expect(
+        _damageEvents(flareActive, moveId: 'swift').single.damage,
+        greaterThan(specialDamage),
+      );
+      expect(
+        _damageEvents(neuroforceNeutral, moveId: 'tackle').single.damage,
+        _damageEvents(_runMove(playerMove: _move(id: 'tackle', power: 60)),
+                moveId: 'tackle')
+            .single
+            .damage,
+      );
+      expect(
+        _damageEvents(neuroforceStrong, moveId: 'ember').single.damage,
+        greaterThan(
+            _damageEvents(strongBaseline, moveId: 'ember').single.damage),
+      );
+    });
+
     test('speed modifier abilities affect action speed in matching fields', () {
       const cases = <({
         String abilityId,
@@ -1675,6 +1777,7 @@ PsdkBattleTurnResult _runMove({
   String? opponentAbilityId,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleMajorStatus? opponentMajorStatus,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
@@ -1700,6 +1803,7 @@ PsdkBattleTurnResult _runMove({
         currentHp: opponentCurrentHp,
         abilityId: opponentAbilityId,
         majorStatus: opponentMajorStatus,
+        types: opponentTypes,
         speed: 1,
         move: _move(
           id: 'opponent_wait',
@@ -2006,7 +2110,9 @@ int _calculatedDamage({
   String? opponentAbilityId,
   String moveType = 'normal',
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
+  PsdkBattleMajorStatus? playerMajorStatus,
   BattleMoveFlags flags = const BattleMoveFlags(),
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   String battleEngineMethod = 's_basic',
@@ -2016,6 +2122,8 @@ int _calculatedDamage({
       player: _combatant(
         id: 'player',
         abilityId: abilityId,
+        currentHp: playerCurrentHp,
+        majorStatus: playerMajorStatus,
         move: _move(id: 'shape_test', power: 60, category: category),
       ),
       opponent: _combatant(
