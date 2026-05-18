@@ -13,7 +13,7 @@ enum _SelfDestructKind {
   mistyExplosion,
 }
 
-/// Partially ports PSDK `SelfDestruct`, registered as `s_explosion`.
+/// Ports PSDK `SelfDestruct`, registered as `s_explosion`.
 ///
 /// PSDK keeps Self-Destruct and Explosion on the same Ruby class. Its local
 /// effect removes the user's *current* HP after a successful Basic damage

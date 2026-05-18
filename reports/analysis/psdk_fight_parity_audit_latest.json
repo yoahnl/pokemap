@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 371,
-    "partiel": 357,
+    "fait": 373,
+    "partiel": 355,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1475,9 +1475,9 @@
       {
         "moveId": "explosion",
         "battleEngineMethod": "s_explosion",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/explosion.json"
       },
       {
@@ -4339,9 +4339,9 @@
       {
         "moveId": "self_destruct",
         "battleEngineMethod": "s_explosion",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/self_destruct.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 180,
-      "partial": 150,
+      "ported": 181,
+      "partial": 149,
       "missing": 0
     },
     "entries": [
@@ -6616,12 +6616,8 @@
         "rubyClass": "SelfDestruct",
         "rubyPath": "10 Move/2 Definitions/300 SelfDestruct.rb",
         "dartBehavior": "SelfDestructMoveBehavior.explosion",
-        "status": "partial",
-        "dependencies": [
-          "ability",
-          "faintProcess"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_facade",
@@ -9396,7 +9392,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 114,
+        "count": 113,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9424,7 +9420,6 @@
           "s_encore",
           "s_entrainment",
           "s_expanding_force",
-          "s_explosion",
           "s_fairy_lock",
           "s_false_swipe",
           "s_fell_stinger",

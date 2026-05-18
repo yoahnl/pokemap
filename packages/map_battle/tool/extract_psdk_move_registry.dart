@@ -1275,10 +1275,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   // PSDK registers SelfDestruct/Explosion with unprefixed `register(...)`.
-  // The self-KO behavior is executable, but Damp remains future ability work.
+  // Self-Destruct/Explosion now match PSDK's local self-KO branches, including
+  // Damp prevention through the ability move-prevention hook.
   's_explosion': _KnownDartBehavior(
     dartBehavior: 'SelfDestructMoveBehavior.explosion',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // Misty Explosion's terrain power boost is executable once Lot 24 exposes
   // field terrain. It remains partial until Damp and grounded/airborne state
@@ -1744,10 +1745,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.ability,
     _PsdkMoveDependency.item,
     _PsdkMoveDependency.history,
-  },
-  's_explosion': {
-    _PsdkMoveDependency.ability,
-    _PsdkMoveDependency.faintProcess,
   },
   's_misty_explosion': {
     _PsdkMoveDependency.ability,

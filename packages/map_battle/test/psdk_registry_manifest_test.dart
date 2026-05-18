@@ -1782,7 +1782,7 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_explosion']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_explosion']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_explosion']!.dartBehavior,
         'SelfDestructMoveBehavior.explosion',
