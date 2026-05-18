@@ -5968,7 +5968,7 @@
           "endTurn",
           "item"
         ],
-        "methodBatch": "multiturn_delayed_state"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_assist",
@@ -6930,7 +6930,7 @@
           "handlerDamage",
           "handlerSwitch"
         ],
-        "methodBatch": "multiturn_delayed_state"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_gastro_acid",
@@ -7328,7 +7328,7 @@
           "endTurn",
           "item"
         ],
-        "methodBatch": "multiturn_delayed_state"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_instruct",
@@ -7464,7 +7464,7 @@
           "endTurn",
           "ability"
         ],
-        "methodBatch": "multiturn_delayed_state"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_life_dew",
@@ -9338,7 +9338,7 @@
           "endTurn",
           "handlerSwitch"
         ],
-        "methodBatch": "multiturn_delayed_state"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_wonder_room",
@@ -9390,22 +9390,11 @@
     ],
     "backlogBatches": [
       {
-        "id": "multiturn_delayed_state",
-        "label": "Multi-turn / delayed state",
-        "count": 5,
-        "methods": [
-          "s_aqua_ring",
-          "s_future_sight",
-          "s_ingrain",
-          "s_leech_seed",
-          "s_wish"
-        ]
-      },
-      {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 32,
+        "count": 36,
         "methods": [
+          "s_aqua_ring",
           "s_aura_wheel",
           "s_beak_blast",
           "s_beat_up",
@@ -9416,9 +9405,12 @@
           "s_floral_healing",
           "s_flying_press",
           "s_frustration",
+          "s_future_sight",
           "s_hidden_power",
           "s_ice_ball",
+          "s_ingrain",
           "s_jungle_healing",
+          "s_leech_seed",
           "s_life_dew",
           "s_ohko",
           "s_order_up",
@@ -9443,7 +9435,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 126,
+        "count": 127,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9568,6 +9560,7 @@
           "s_uproar",
           "s_venom_drench",
           "s_water_shuriken",
+          "s_wish",
           "s_wonder_room",
           "s_worry_seed",
           "s_yawn"
