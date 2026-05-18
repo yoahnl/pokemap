@@ -21,8 +21,8 @@ enum _SelfDestructKind {
 /// distinct `protected` reason, so Protect is mapped to the same self-KO branch
 /// because PSDK reaches it through the `:immunity` failure path.
 ///
-/// `Damp` intentionally stays out of this lot: the current PSDK combatant
-/// snapshot has no ability field, so claiming full parity would be dishonest.
+/// `Damp` is handled by the ability move-prevention hook before this behavior
+/// executes.
 final class SelfDestructMoveBehavior implements BattleMoveBehavior {
   const SelfDestructMoveBehavior.explosion()
       : battleEngineMethod = 's_explosion',

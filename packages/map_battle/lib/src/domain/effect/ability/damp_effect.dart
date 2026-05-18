@@ -8,6 +8,7 @@ const Set<String> _dampBlockedMethods = <String>{
   's_misty_explosion',
   's_mind_blown',
   's_chloroblast',
+  's_steel_beam',
 };
 
 final class DampEffect extends BattleAbilityEffect {
