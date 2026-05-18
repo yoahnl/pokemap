@@ -30,11 +30,13 @@ void main() {
       final registry = AbilityEffectRegistry();
 
       for (final abilityId in <String>[
+        'analytic',
         'blaze',
         'air_lock',
         'chlorophyll',
         'cloud_nine',
         'comatose',
+        'compound_eyes',
         'damp',
         'dazzling',
         'drizzle',
@@ -56,6 +58,7 @@ void main() {
         'guts',
         'heatproof',
         'huge_power',
+        'hustle',
         'ice_scales',
         'immunity',
         'iron_barbs',
@@ -88,6 +91,7 @@ void main() {
         'sap_sipper',
         'sand_force',
         'sand_rush',
+        'sand_veil',
         'sharpness',
         'shadow_tag',
         'arena_trap',
@@ -95,9 +99,11 @@ void main() {
         'magnet_pull',
         'sand_stream',
         'snow_warning',
+        'snow_cloak',
         'slush_rush',
         'soundproof',
         'stamina',
+        'stakeout',
         'static',
         'steelworker',
         'steam_engine',
@@ -114,10 +120,12 @@ void main() {
         'toxic_boost',
         'vital_spirit',
         'volt_absorb',
+        'victory_star',
         'water_veil',
         'water_compaction',
         'water_absorb',
         'weak_armor',
+        'wonder_skin',
       ]) {
         final entry = byId[abilityId];
 

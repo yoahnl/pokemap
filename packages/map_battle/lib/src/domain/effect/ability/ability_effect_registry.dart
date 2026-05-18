@@ -5,6 +5,7 @@ import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../data/generated/psdk_ability_effect_manifest.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
+import 'accuracy_modifier_ability_effect.dart';
 import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
 import 'cloud_nine_effect.dart';
@@ -384,6 +385,18 @@ final class AbilityEffectRegistry {
           condition: AbilityBasePowerCondition.sandForceOutgoing,
           multiplier: 1.3,
         ),
+    'stakeout': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'stakeout',
+          scope: scope,
+          condition: AbilityBasePowerCondition.stakeoutOutgoing,
+          multiplier: 2,
+        ),
+    'analytic': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'analytic',
+          scope: scope,
+          condition: AbilityBasePowerCondition.analyticOutgoing,
+          multiplier: 1.3,
+        ),
     'ice_scales': ({required scope}) => AbilityBasePowerModifierEffect(
           abilityId: 'ice_scales',
           scope: scope,
@@ -395,6 +408,7 @@ final class AbilityEffectRegistry {
           scope: scope,
           statMultipliers: const <String, double>{'defense': 2},
         ),
+    'hustle': ({required scope}) => HustleAbilityEffect(scope: scope),
     'marvel_scale': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'marvel_scale',
           scope: scope,
@@ -492,6 +506,36 @@ final class AbilityEffectRegistry {
             PsdkBattleMajorStatus.sleep,
           },
           curesExistingStatus: false,
+        ),
+    'compound_eyes': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'compound_eyes',
+          scope: scope,
+          condition: AbilityAccuracyCondition.user,
+          multiplier: 1.3,
+        ),
+    'victory_star': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'victory_star',
+          scope: scope,
+          condition: AbilityAccuracyCondition.allyBank,
+          multiplier: 1.1,
+        ),
+    'sand_veil': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'sand_veil',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetSandstorm,
+          multiplier: 0.8,
+        ),
+    'snow_cloak': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'snow_cloak',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetSnowing,
+          multiplier: 0.8,
+        ),
+    'wonder_skin': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'wonder_skin',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetStatusMove,
+          multiplier: 0.5,
         ),
     'flame_body': ({required scope}) => ContactStatusAbilityEffect(
           abilityId: 'flame_body',

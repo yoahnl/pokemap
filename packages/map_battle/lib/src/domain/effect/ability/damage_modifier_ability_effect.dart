@@ -61,6 +61,8 @@ enum AbilityBasePowerCondition {
   fireOrIceIncoming,
   sandForceOutgoing,
   specialIncoming,
+  stakeoutOutgoing,
+  analyticOutgoing,
 }
 
 final class AbilityBasePowerModifierEffect extends BattleAbilityEffect {
@@ -101,6 +103,16 @@ final class AbilityBasePowerModifierEffect extends BattleAbilityEffect {
                     context.moveType == 'ground')
             ? multiplier
             : 1,
+      AbilityBasePowerCondition.stakeoutOutgoing =>
+        context.user.abilityId == abilityId &&
+                context.user.battleTurnCount >= 1 &&
+                context.target.switching
+            ? multiplier
+            : 1,
+      AbilityBasePowerCondition.analyticOutgoing =>
+        context.user.abilityId == abilityId && context.isLastActionOfTurn
+            ? multiplier
+            : 1,
       _ => 1,
     };
   }
@@ -131,7 +143,9 @@ final class AbilityBasePowerModifierEffect extends BattleAbilityEffect {
             ? multiplier
             : 1,
       AbilityBasePowerCondition.lowHpUser ||
-      AbilityBasePowerCondition.sandForceOutgoing =>
+      AbilityBasePowerCondition.sandForceOutgoing ||
+      AbilityBasePowerCondition.stakeoutOutgoing ||
+      AbilityBasePowerCondition.analyticOutgoing =>
         1,
     };
   }

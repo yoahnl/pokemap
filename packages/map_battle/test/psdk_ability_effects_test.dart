@@ -358,6 +358,10 @@ void main() {
         playerMajorStatus: PsdkBattleMajorStatus.poison,
         playerMove: _move(id: 'tackle', power: 60),
       );
+      final hustle = _runMove(
+        playerAbilityId: 'hustle',
+        playerMove: _move(id: 'hustle_tackle', power: 60),
+      );
 
       expect(
         _damageEvents(purePower, moveId: 'tackle').single.damage,
@@ -373,6 +377,10 @@ void main() {
       );
       expect(
         _damageEvents(gutsActive, moveId: 'tackle').single.damage,
+        greaterThan(_damageEvents(baseline, moveId: 'tackle').single.damage),
+      );
+      expect(
+        _damageEvents(hustle, moveId: 'hustle_tackle').single.damage,
         greaterThan(_damageEvents(baseline, moveId: 'tackle').single.damage),
       );
     });
@@ -458,6 +466,29 @@ void main() {
         opponentAbilityId: 'ice_scales',
         category: PsdkBattleMoveCategory.special,
       );
+      final stakeoutInactiveTurn = _calculatedDamage(
+        abilityId: 'stakeout',
+        playerBattleTurnCount: 0,
+        opponentSwitching: true,
+      );
+      final stakeoutInactiveSwitch = _calculatedDamage(
+        abilityId: 'stakeout',
+        playerBattleTurnCount: 1,
+        opponentSwitching: false,
+      );
+      final stakeoutActive = _calculatedDamage(
+        abilityId: 'stakeout',
+        playerBattleTurnCount: 1,
+        opponentSwitching: true,
+      );
+      final analyticInactive = _calculatedDamage(
+        abilityId: 'analytic',
+        isLastActionOfTurn: false,
+      );
+      final analyticActive = _calculatedDamage(
+        abilityId: 'analytic',
+        isLastActionOfTurn: true,
+      );
 
       expect(defeatistHighHp, baseline);
       expect(defeatistLowHp, lessThan(baseline));
@@ -469,6 +500,11 @@ void main() {
           lessThan(_calculatedDamage(
             category: PsdkBattleMoveCategory.special,
           )));
+      expect(stakeoutInactiveTurn, baseline);
+      expect(stakeoutInactiveSwitch, baseline);
+      expect(stakeoutActive, greaterThan(baseline));
+      expect(analyticInactive, baseline);
+      expect(analyticActive, greaterThan(baseline));
     });
 
     test('special/final damage modifier abilities follow PSDK gates', () {
@@ -770,6 +806,102 @@ void main() {
         _eventsFor(result, moveId: 'dynamic_punch').map((event) => event.kind),
         isNot(contains('miss')),
       );
+    });
+
+    test('accuracy modifier abilities follow PSDK chance gates', () {
+      const highAccuracyRoll = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 90,
+        generic: 4,
+      );
+      final baseline = _runMove(
+        playerMove: _move(
+          id: 'baseline_hit',
+          power: 40,
+          accuracy: 80,
+        ),
+        rngSeeds: highAccuracyRoll,
+      );
+      final compoundEyes = _runMove(
+        playerAbilityId: 'compound_eyes',
+        playerMove: _move(
+          id: 'compound_hit',
+          power: 40,
+          accuracy: 80,
+        ),
+        rngSeeds: highAccuracyRoll,
+      );
+      final victoryStar = _runMove(
+        playerAbilityId: 'victory_star',
+        playerMove: _move(
+          id: 'victory_hit',
+          power: 40,
+          accuracy: 83,
+        ),
+        rngSeeds: highAccuracyRoll,
+      );
+      final sandVeil = _runMove(
+        opponentAbilityId: 'sand_veil',
+        playerMove: _move(
+          id: 'sand_miss',
+          power: 40,
+          accuracy: 100,
+        ),
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sandstorm,
+            remainingTurns: 5,
+          ),
+        ),
+        rngSeeds: highAccuracyRoll,
+      );
+      final snowCloak = _runMove(
+        opponentAbilityId: 'snow_cloak',
+        playerMove: _move(
+          id: 'snow_miss',
+          power: 40,
+          accuracy: 100,
+        ),
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.snow,
+            remainingTurns: 5,
+          ),
+        ),
+        rngSeeds: highAccuracyRoll,
+      );
+      final wonderSkin = _runMove(
+        opponentAbilityId: 'wonder_skin',
+        playerMove: _move(
+          id: 'status_probe',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          accuracy: 100,
+        ),
+        rngSeeds: highAccuracyRoll,
+      );
+      final hustleMiss = _runMove(
+        playerAbilityId: 'hustle',
+        playerMove: _move(
+          id: 'hustle_miss',
+          power: 40,
+          accuracy: 100,
+        ),
+        rngSeeds: highAccuracyRoll,
+      );
+
+      expect(_damageEvents(baseline, moveId: 'baseline_hit'), isEmpty);
+      expect(_damageEvents(compoundEyes, moveId: 'compound_hit'), hasLength(1));
+      expect(_damageEvents(victoryStar, moveId: 'victory_hit'), hasLength(1));
+      expect(_damageEvents(sandVeil, moveId: 'sand_miss'), isEmpty);
+      expect(_damageEvents(snowCloak, moveId: 'snow_miss'), isEmpty);
+      expect(
+        _eventsFor(wonderSkin, moveId: 'status_probe')
+            .map((event) => event.kind),
+        contains('miss'),
+      );
+      expect(_damageEvents(hustleMiss, moveId: 'hustle_miss'), isEmpty);
     });
 
     test('Skill Link forces random two-to-five multi-hit moves to five hits',
@@ -2395,6 +2527,8 @@ PsdkBattleCombatantSetup _combatant({
   String? abilityId,
   String? heldItemId,
   int currentHp = 100,
+  int battleTurnCount = 0,
+  bool switching = false,
   int speed = 50,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleStats? stats,
@@ -2412,6 +2546,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
+    battleTurnCount: battleTurnCount,
     types: types,
     stats: stats ??
         PsdkBattleStats(
@@ -2428,6 +2563,7 @@ PsdkBattleCombatantSetup _combatant({
     majorStatus: majorStatus,
     baseWeightKg: currentWeightKg,
     currentWeightKg: currentWeightKg,
+    switching: switching,
     moves: moves ?? <PsdkBattleMoveData>[move],
   );
 }
@@ -2506,11 +2642,14 @@ int _calculatedDamage({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
+  int playerBattleTurnCount = 0,
+  bool opponentSwitching = false,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   BattleMoveFlags flags = const BattleMoveFlags(),
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   String battleEngineMethod = 's_basic',
+  bool isLastActionOfTurn = false,
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -2518,6 +2657,7 @@ int _calculatedDamage({
         id: 'player',
         abilityId: abilityId,
         currentHp: playerCurrentHp,
+        battleTurnCount: playerBattleTurnCount,
         majorStatus: playerMajorStatus,
         move: _move(id: 'shape_test', power: 60, category: category),
       ),
@@ -2525,6 +2665,7 @@ int _calculatedDamage({
         id: 'opponent',
         abilityId: opponentAbilityId,
         currentHp: opponentCurrentHp,
+        switching: opponentSwitching,
         types: opponentTypes,
         move: _move(id: 'opponent_wait', power: 0),
       ),
@@ -2560,6 +2701,7 @@ int _calculatedDamage({
           ),
           rng: _rng(),
           field: field,
+          isLastActionOfTurn: isLastActionOfTurn,
         ),
       )
       .damage;

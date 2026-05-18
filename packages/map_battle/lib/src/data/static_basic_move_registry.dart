@@ -830,6 +830,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       move: context.move,
       rng: common.rng,
       field: common.state.field,
+      isLastActionOfTurn: context.isLastActionOfTurn,
     ),
   );
   if (damageResult.damage <= 0) {
@@ -1281,6 +1282,7 @@ BattleMoveBehaviorResolution _resolvePursuit(
       overrides: boosted
           ? BattleMoveDamageOverrides(power: context.move.power * 2)
           : null,
+      isLastActionOfTurn: context.isLastActionOfTurn,
     ),
   );
   if (damageResult.damage <= 0) {

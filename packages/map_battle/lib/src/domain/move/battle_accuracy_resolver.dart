@@ -98,6 +98,18 @@ final class BattleAccuracyResolver {
     for (final effect in target.activeItemEffects) {
       multiplier *= effect.accuracyMultiplier(context);
     }
+    final abilityContext = BattleAbilityMoveContext(
+      state: execution.context.state,
+      user: execution.psdkUser,
+      target: PsdkBattleSlotRef(
+        bank: targetRef.bank,
+        position: targetRef.position,
+      ),
+      move: execution.move,
+    );
+    for (final effect in execution.context.state.activeAbilityEffects()) {
+      multiplier *= effect.chanceOfHitMultiplier(abilityContext);
+    }
     final adjusted = (execution.move.accuracy * multiplier).floor();
     return adjusted.clamp(1, 100).toInt();
   }

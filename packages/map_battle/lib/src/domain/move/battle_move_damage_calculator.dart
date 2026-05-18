@@ -199,6 +199,7 @@ int _abilityAdjustedPower(
     moveType: moveType,
     typeEffectivenessMultiplier: 1,
     weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
+    isLastActionOfTurn: context.isLastActionOfTurn,
   );
   var multiplier = 1.0;
   for (final effect in context.user.abilityEffects) {
@@ -432,6 +433,7 @@ int _applyAbilityFinalDamageModifiers(
     moveType: moveType,
     typeEffectivenessMultiplier: typeEffectivenessMultiplier,
     weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
+    isLastActionOfTurn: context.isLastActionOfTurn,
   );
   var multiplier = 1.0;
   for (final effect in context.user.abilityEffects) {
@@ -455,6 +457,7 @@ final class BattleMoveDamageContext {
     required this.rng,
     this.field = const PsdkBattleFieldState(),
     this.overrides,
+    this.isLastActionOfTurn = false,
   });
 
   final PsdkBattleCombatant user;
@@ -463,6 +466,7 @@ final class BattleMoveDamageContext {
   final BattleRngStreams rng;
   final PsdkBattleFieldState field;
   final BattleMoveDamageOverrides? overrides;
+  final bool isLastActionOfTurn;
 }
 
 typedef BattleMoveStatResolver = int Function(bool isCritical);
