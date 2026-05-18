@@ -109,18 +109,22 @@ final class BattleAbilityMoveTypeContext {
 
 final class BattleAbilityDamageContext {
   const BattleAbilityDamageContext({
+    required this.field,
     required this.user,
     required this.target,
     required this.move,
     required this.moveType,
     required this.typeEffectivenessMultiplier,
+    this.weatherEffectsSuppressed = false,
   });
 
+  final PsdkBattleFieldState field;
   final PsdkBattleCombatant user;
   final PsdkBattleCombatant target;
   final BattleMoveDefinition move;
   final String moveType;
   final double typeEffectivenessMultiplier;
+  final bool weatherEffectsSuppressed;
 }
 
 final class BattleAbilityStatContext {

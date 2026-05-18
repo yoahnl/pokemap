@@ -192,11 +192,13 @@ int _abilityAdjustedPower(
     return power;
   }
   final abilityContext = BattleAbilityDamageContext(
+    field: context.field,
     user: context.user,
     target: context.target,
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: 1,
+    weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
   );
   var multiplier = 1.0;
   for (final effect in context.user.abilityEffects) {
@@ -423,11 +425,13 @@ int _applyAbilityFinalDamageModifiers(
     return damage;
   }
   final abilityContext = BattleAbilityDamageContext(
+    field: context.field,
     user: context.user,
     target: context.target,
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+    weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
   );
   var multiplier = 1.0;
   for (final effect in context.user.abilityEffects) {

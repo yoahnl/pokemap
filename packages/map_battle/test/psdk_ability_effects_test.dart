@@ -1238,6 +1238,75 @@ void main() {
       }
     });
 
+    test('PSDK weather and status damage ability modifiers match their gates',
+        () {
+      final fireBaseline = _calculatedDamage(moveType: 'fire');
+      final iceBaseline = _calculatedDamage(moveType: 'ice');
+      final normalBaseline = _calculatedDamage(moveType: 'normal');
+
+      expect(
+        _calculatedDamage(
+          opponentAbilityId: 'thick_fat',
+          moveType: 'fire',
+        ),
+        lessThan(fireBaseline),
+      );
+      expect(
+        _calculatedDamage(
+          opponentAbilityId: 'thick_fat',
+          moveType: 'ice',
+        ),
+        lessThan(iceBaseline),
+      );
+      expect(
+        _calculatedDamage(
+          opponentAbilityId: 'thick_fat',
+          moveType: 'normal',
+        ),
+        normalBaseline,
+      );
+
+      final poisonedToxicBoost = _calculatedDamage(
+        abilityId: 'toxic_boost',
+        playerMajorStatus: PsdkBattleMajorStatus.toxic,
+      );
+      final inactiveToxicBoost = _calculatedDamage(abilityId: 'toxic_boost');
+      final poisonBaseline = _calculatedDamage(
+        playerMajorStatus: PsdkBattleMajorStatus.toxic,
+      );
+      expect(poisonedToxicBoost, greaterThan(poisonBaseline));
+      expect(inactiveToxicBoost, normalBaseline);
+
+      const sandstorm = PsdkBattleFieldState(
+        weather: PsdkBattleWeatherState(
+          id: PsdkBattleWeatherId.sandstorm,
+          remainingTurns: 5,
+        ),
+      );
+      final sandForce = _calculatedDamage(
+        abilityId: 'sand_force',
+        moveType: 'rock',
+        field: sandstorm,
+      );
+      final sandBaseline = _calculatedDamage(
+        moveType: 'rock',
+        field: sandstorm,
+      );
+      final noWeather = _calculatedDamage(
+        abilityId: 'sand_force',
+        moveType: 'rock',
+      );
+      final wrongType = _calculatedDamage(
+        abilityId: 'sand_force',
+        moveType: 'water',
+        field: sandstorm,
+      );
+
+      expect(sandForce, greaterThan(sandBaseline));
+      expect(noWeather, _calculatedDamage(moveType: 'rock'));
+      expect(wrongType, _calculatedDamage(moveType: 'water', field: sandstorm));
+    });
+
     test('Rough Skin and Iron Barbs punish opposing contact damage', () {
       for (final abilityId in <String>['rough_skin', 'iron_barbs']) {
         final state = PsdkBattleState.fromSetup(
@@ -2113,6 +2182,7 @@ int _calculatedDamage({
   int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
   PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
   BattleMoveFlags flags = const BattleMoveFlags(),
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   String battleEngineMethod = 's_basic',
@@ -2139,6 +2209,7 @@ int _calculatedDamage({
         moveAccuracy: 3,
         generic: 4,
       ).psdkSeeds,
+      field: field,
     ).psdkSetup,
   );
 
@@ -2163,6 +2234,7 @@ int _calculatedDamage({
             flags: flags,
           ),
           rng: _rng(),
+          field: field,
         ),
       )
       .damage;
