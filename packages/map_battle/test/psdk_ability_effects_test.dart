@@ -1990,11 +1990,7 @@ void main() {
 
     test('priority blocker abilities stop opposing protectable priority moves',
         () {
-      for (final abilityId in <String>[
-        'queenly_majesty',
-        'dazzling',
-        'armor_tail',
-      ]) {
+      for (final abilityId in <String>['queenly_majesty', 'dazzling']) {
         final blocked = _runMove(
           opponentAbilityId: abilityId,
           playerMove: _move(
@@ -2047,6 +2043,150 @@ void main() {
           reason: abilityId,
         );
       }
+    });
+
+    test('Armor Tail blocks opposing single-target priority moves', () {
+      final blocked = _runMove(
+        opponentAbilityId: 'armor_tail',
+        playerMove: _move(
+          id: 'armor_tail_unprotectable',
+          power: 40,
+          priority: 1,
+          protectable: false,
+        ),
+      );
+      final spreadPriority = _runMove(
+        opponentAbilityId: 'armor_tail',
+        playerMove: _move(
+          id: 'armor_tail_spread',
+          power: 40,
+          priority: 1,
+          target: PsdkBattleMoveTarget.allAdjacentFoes,
+        ),
+      );
+      final moldBreaker = _runMove(
+        playerAbilityId: 'mold_breaker',
+        opponentAbilityId: 'armor_tail',
+        playerMove: _move(
+          id: 'armor_tail_mold_breaker',
+          power: 40,
+          priority: 1,
+          protectable: false,
+        ),
+      );
+
+      expect(
+          _damageEvents(blocked, moveId: 'armor_tail_unprotectable'), isEmpty);
+      expect(
+        _eventsFor(blocked, moveId: 'armor_tail_unprotectable')
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single
+            .reason,
+        BattleMoveFailureReason.immunity.jsonName,
+      );
+      expect(_damageEvents(spreadPriority, moveId: 'armor_tail_spread'),
+          hasLength(1));
+      expect(_damageEvents(moldBreaker, moveId: 'armor_tail_mold_breaker'),
+          hasLength(1));
+    });
+
+    test('Bulletproof blocks ballistic moves', () {
+      final blocked = _runMove(
+        opponentAbilityId: 'bulletproof',
+        playerMove: _move(
+          id: 'aura_sphere',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+          ballistics: true,
+        ),
+      );
+      final neutral = _runMove(
+        opponentAbilityId: 'bulletproof',
+        playerMove: _move(
+          id: 'swift',
+          category: PsdkBattleMoveCategory.special,
+          power: 60,
+        ),
+      );
+      final moldBreaker = _runMove(
+        playerAbilityId: 'mold_breaker',
+        opponentAbilityId: 'bulletproof',
+        playerMove: _move(
+          id: 'bulletproof_mold_breaker',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+          ballistics: true,
+        ),
+      );
+
+      expect(_damageEvents(blocked, moveId: 'aura_sphere'), isEmpty);
+      expect(
+        _eventsFor(blocked, moveId: 'aura_sphere')
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single
+            .reason,
+        BattleMoveFailureReason.immunity.jsonName,
+      );
+      expect(_damageEvents(neutral, moveId: 'swift'), hasLength(1));
+      expect(_damageEvents(moldBreaker, moveId: 'bulletproof_mold_breaker'),
+          hasLength(1));
+    });
+
+    test('Good as Gold blocks opposing single-target status moves', () {
+      final blocked = _runMove(
+        opponentAbilityId: 'good_as_gold',
+        playerMove: _move(
+          id: 'taunt',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_taunt',
+        ),
+      );
+      final damaging = _runMove(
+        opponentAbilityId: 'good_as_gold',
+        playerMove: _move(id: 'tackle', power: 40),
+      );
+      final spreadStatus = _runMove(
+        opponentAbilityId: 'good_as_gold',
+        playerMove: _move(
+          id: 'spread_taunt',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_taunt',
+          target: PsdkBattleMoveTarget.allAdjacentFoes,
+        ),
+      );
+      final moldBreaker = _runMove(
+        playerAbilityId: 'mold_breaker',
+        opponentAbilityId: 'good_as_gold',
+        playerMove: _move(
+          id: 'mold_breaker_taunt',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_taunt',
+        ),
+      );
+
+      expect(
+        _eventsFor(blocked, moveId: 'taunt')
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single
+            .reason,
+        BattleMoveFailureReason.immunity.jsonName,
+      );
+      expect(_damageEvents(damaging, moveId: 'tackle'), hasLength(1));
+      expect(
+        spreadStatus.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'taunt',
+            ),
+        isTrue,
+      );
+      expect(
+        moldBreaker.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'taunt',
+            ),
+        isTrue,
+      );
     });
 
     test('type absorb damage prevention heals instead of taking damage', () {
@@ -3410,6 +3550,7 @@ PsdkBattleMoveData _move({
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
   bool protectable = true,
   bool sound = false,
+  bool ballistics = false,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -3426,6 +3567,7 @@ PsdkBattleMoveData _move({
     target: target,
     protectable: protectable,
     sound: sound,
+    ballistics: ballistics,
   );
 }
 

@@ -532,6 +532,49 @@ void main() {
       );
     });
 
+    test('Oblivious blocks local mental prevention effects', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'taunt',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_taunt',
+        ),
+        opponentAbilityId: 'oblivious',
+      );
+
+      final failures = result.timeline.events
+          .whereType<PsdkBattleMoveFailedEvent>()
+          .where((event) =>
+              event.user == psdkPlayerSlot && event.moveId == 'taunt')
+          .toList(growable: false);
+      expect(failures, hasLength(1));
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains('taunt'),
+        isFalse,
+      );
+    });
+
+    test('Mold Breaker bypasses local mental prevention abilities', () {
+      final result = _runMove(
+        playerAbilityId: 'mold_breaker',
+        playerMove: _move(
+          id: 'taunt',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_taunt',
+        ),
+        opponentAbilityId: 'aroma_veil',
+      );
+
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains('taunt'),
+        isTrue,
+      );
+    });
+
     test('Imprison prevents foes from using a shared move', () {
       final result = _runMove(
         playerMove: _move(

@@ -594,6 +594,7 @@ BattleMoveDefinition _meFirstBoostedMove(PsdkBattleMoveData move) {
       sound: move.sound,
       bite: move.bite,
       pulse: move.pulse,
+      ballistics: move.ballistics,
     ),
     stageMods: move.stageMods
         .map(

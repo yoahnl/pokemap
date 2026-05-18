@@ -38,6 +38,7 @@ void main() {
         'armor_tail',
         'battery',
         'beast_boost',
+        'bulletproof',
         'chilling_neigh',
         'chlorophyll',
         'cloud_nine',
@@ -68,6 +69,7 @@ void main() {
         'gooey',
         'grass_pelt',
         'grassy_surge',
+        'good_as_gold',
         'grim_neigh',
         'guts',
         'heatproof',
@@ -164,7 +166,9 @@ void main() {
 
       for (final abilityId in <String>[
         'anger_shell',
+        'aroma_veil',
         'berserk',
+        'oblivious',
         'speed_boost',
       ]) {
         final entry = byId[abilityId];

@@ -234,7 +234,11 @@ final class SpecialSecondaryMoveBehavior
           state: state,
           rng: rng,
           targetSlot: targetSlot,
-          effect: state.battlerAt(targetSlot).abilityId == 'aroma_veil'
+          effect: _mentalAbilityBlocksHealBlock(
+            state: state,
+            userSlot: userSlot,
+            targetSlot: targetSlot,
+          )
               ? null
               : HealBlockEffect(
                   scope: BattlerBattleEffectScope(targetSlot),
@@ -439,6 +443,58 @@ final class SpecialSecondaryMoveBehavior
       rng: rng,
     );
   }
+}
+
+const _mentalAbilityBypassIds = <String>{
+  'mold_breaker',
+  'teravolt',
+  'turboblaze',
+};
+
+bool _mentalAbilityBlocksHealBlock({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef userSlot,
+  required PsdkBattleSlotRef targetSlot,
+}) {
+  final user = state.battlerAt(userSlot);
+  if (!user.effects.contains('ability_suppressed') &&
+      _mentalAbilityBypassIds.contains(_normalizedId(user.abilityId))) {
+    return false;
+  }
+
+  final target = state.battlerAt(targetSlot);
+  if (_mentalAbilityActive(target, const <String>{
+    'aroma_veil',
+    'oblivious',
+  })) {
+    return true;
+  }
+
+  return state.aliveSlots().any((slot) {
+    if (slot.bank != targetSlot.bank) {
+      return false;
+    }
+    return _mentalAbilityActive(
+      state.battlerAt(slot),
+      const <String>{'aroma_veil'},
+    );
+  });
+}
+
+bool _mentalAbilityActive(
+  PsdkBattleCombatant battler,
+  Set<String> abilityIds,
+) {
+  return abilityIds.contains(_normalizedId(battler.abilityId)) &&
+      !battler.effects.contains('ability_suppressed');
+}
+
+String? _normalizedId(String? value) {
+  final normalized = value?.trim().toLowerCase();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  return normalized;
 }
 
 PsdkBattleCombatant _removeType(PsdkBattleCombatant battler, String type) {

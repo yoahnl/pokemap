@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 281,
-      "partial": 21,
-      "missing": 180
+      "ported": 283,
+      "partial": 24,
+      "missing": 175
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 130,
-        "partial": 3,
-        "missing": 121
+        "ported": 132,
+        "partial": 6,
+        "missing": 116
       },
       "move": {
         "ported": 80,
@@ -9636,7 +9636,7 @@
       {
         "effectName": "AromaVeil",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb",
         "hookFamilies": []
       },
@@ -9900,7 +9900,7 @@
       {
         "effectName": "Bulletproof",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Bulletproof.rb",
         "hookFamilies": [
           "ability_immunity"
@@ -10821,7 +10821,7 @@
       {
         "effectName": "GoodAsGold",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 GoodAsGold.rb",
         "hookFamilies": [
           "move_prevention"
@@ -11569,7 +11569,7 @@
       {
         "effectName": "MentalImmunityBase",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb",
         "hookFamilies": [
           "ability_immunity"
@@ -11797,7 +11797,7 @@
       {
         "effectName": "Oblivious",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb",
         "hookFamilies": [
           "action_order"
