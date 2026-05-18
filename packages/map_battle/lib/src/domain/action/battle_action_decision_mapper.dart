@@ -164,6 +164,9 @@ int _actionSpeed({
   if (_bankHasEffect(state, user.bank, 'tailwind')) {
     speed *= 2;
   }
+  if (_bankHasEffect(state, user.bank, 'pledge_swamp')) {
+    speed = (speed * 0.25).floor().clamp(1, speed).toInt();
+  }
   if (battler.majorStatus != PsdkBattleMajorStatus.paralysis ||
       battler.abilityId == 'quick_feet') {
     return speed;
