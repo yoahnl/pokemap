@@ -121,6 +121,28 @@ void main() {
               PsdkMoveDependency.handlerDamage,
             ],
           ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_multiturn_only',
+            rubyClass: 'MultiturnOnly',
+            rubyPath: 'multiturn_only.rb',
+            dartBehavior: 'MultiturnOnlyBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.endTurn,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_multiturn_with_damage',
+            rubyClass: 'MultiturnWithDamage',
+            rubyPath: 'multiturn_with_damage.rb',
+            dartBehavior: 'MultiturnWithDamageBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.endTurn,
+              PsdkMoveDependency.effects,
+              PsdkMoveDependency.handlerDamage,
+            ],
+          ),
         ],
         effects: const <PsdkEffectParityEntry>[
           PsdkEffectParityEntry(
@@ -145,7 +167,7 @@ void main() {
       expect(audit.attackMetrics.pasFait, 1);
       expect(audit.attackMetrics.unknownMethods, 1);
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 1);
-      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 7);
+      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 9);
       expect(audit.effectMetrics.totalEffects, 2);
       expect(
         audit.effectMetrics.byFamilyAndStatus['move']![PsdkPortStatus.partial],
@@ -164,7 +186,7 @@ void main() {
       );
       final methods = (json['methods']! as Map<String, Object?>)['entries']!
           as List<Object?>;
-      expect(methods, hasLength(8));
+      expect(methods, hasLength(10));
       expect(
         methods.cast<Map<String, Object?>>().singleWhere(
               (entry) => entry['battleEngineMethod'] == 's_done',
@@ -208,6 +230,19 @@ void main() {
             ),
         containsPair('methodBatch', 'damage_formula_variable_power'),
       );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_multiturn_only',
+            ),
+        containsPair('methodBatch', 'multiturn_delayed_state'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) =>
+                  entry['battleEngineMethod'] == 's_multiturn_with_damage',
+            ),
+        containsPair('methodBatch', 'damage_formula_variable_power'),
+      );
       final methodBatches = (json['methods']!
           as Map<String, Object?>)['backlogBatches']! as List<Object?>;
       expect(
@@ -234,6 +269,15 @@ void main() {
           allOf(
             containsPair('id', 'failure_prevention_immunity'),
             containsPair('methods', <String>['s_failure_only']),
+          ),
+        ),
+      );
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'multiturn_delayed_state'),
+            containsPair('methods', <String>['s_multiturn_only']),
           ),
         ),
       );

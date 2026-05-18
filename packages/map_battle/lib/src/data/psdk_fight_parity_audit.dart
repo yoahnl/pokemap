@@ -1149,7 +1149,7 @@ _MethodBacklogBatchDefinition _methodBacklogBatchFor(
   if (dependencySet.contains('actionOrder')) {
     return _actionQueueMethodBatch;
   }
-  if (dependencySet.contains('endTurn')) {
+  if (dependencySet.contains('endTurn') && dependencySet.length == 1) {
     return _multiturnMethodBatch;
   }
   if (dependencySet.intersection(_damageFormulaDependencies).isNotEmpty) {
