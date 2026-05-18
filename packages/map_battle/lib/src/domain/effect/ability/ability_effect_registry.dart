@@ -49,6 +49,7 @@ final class AbilityEffectRegistry {
     'air_lock': ({required scope}) => AirLockEffect(scope: scope),
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
     'damp': ({required scope}) => DampEffect(scope: scope),
+    'aftermath': ({required scope}) => AftermathEffect(scope: scope),
     'rough_skin': ({required scope}) => ContactPunishAbilityEffect(
           abilityId: 'rough_skin',
           scope: scope,
@@ -372,6 +373,10 @@ final class AbilityEffectRegistry {
         ),
     'dazzling': ({required scope}) => PriorityMovePreventionAbilityEffect(
           abilityId: 'dazzling',
+          scope: _bankScopeFor(scope),
+        ),
+    'armor_tail': ({required scope}) => PriorityMovePreventionAbilityEffect(
+          abilityId: 'armor_tail',
           scope: _bankScopeFor(scope),
         ),
     'pure_power': ({required scope}) => StatModifierAbilityEffect(
@@ -706,6 +711,44 @@ final class AbilityEffectRegistry {
           changes: const <String, int>{'attack': 1},
         ),
     'rattled': ({required scope}) => RattledEffect(scope: scope),
+    'berserk': ({required scope}) => HalfHpThresholdStatChangeAbilityEffect(
+          abilityId: 'berserk',
+          scope: scope,
+          changes: const <String, int>{'specialAttack': 1},
+        ),
+    'anger_shell': ({required scope}) => HalfHpThresholdStatChangeAbilityEffect(
+          abilityId: 'anger_shell',
+          scope: scope,
+          changes: const <String, int>{
+            'attack': 1,
+            'specialAttack': 1,
+            'speed': 1,
+            'defense': -1,
+            'specialDefense': -1,
+          },
+        ),
+    'moxie': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'moxie',
+          scope: scope,
+          boostedStat: 'attack',
+          skipFellStinger: true,
+        ),
+    'chilling_neigh': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'chilling_neigh',
+          scope: scope,
+          boostedStat: 'attack',
+          skipFellStinger: true,
+        ),
+    'grim_neigh': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'grim_neigh',
+          scope: scope,
+          boostedStat: 'specialAttack',
+          skipFellStinger: true,
+        ),
+    'beast_boost': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'beast_boost',
+          scope: scope,
+        ),
     'gooey': ({required scope}) => PostDamageStatChangeAbilityEffect(
           abilityId: 'gooey',
           scope: scope,

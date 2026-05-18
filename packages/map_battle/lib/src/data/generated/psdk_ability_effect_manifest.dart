@@ -16,7 +16,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'aftermath',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Aftermath.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AftermathEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'air_lock',
@@ -42,7 +43,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'anger_shell',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Anger Shell.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'HalfHpThresholdStatChangeAbilityEffect.angerShell',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'anticipation',
@@ -61,7 +63,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'armor_tail',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Armor Tail.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PriorityMovePreventionAbilityEffect.armorTail',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'aroma_veil',
@@ -118,13 +121,15 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'beast_boost',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Beast Boost.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageKoStatBoostAbilityEffect.highestStat',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'berserk',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Berserk.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'HalfHpThresholdStatChangeAbilityEffect.berserk',
   ),
   PsdkAbilityEffectManifestEntry(
       abilityId: 'big_pecks',
@@ -149,7 +154,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'chilling_neigh',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Moxie.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageKoStatBoostAbilityEffect.attack',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'chlorophyll',
@@ -533,7 +539,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'grim_neigh',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Moxie.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageKoStatBoostAbilityEffect.specialAttack',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'guard_dog',
@@ -852,7 +859,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'moxie',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Moxie.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageKoStatBoostAbilityEffect.attack',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'multiscale',
