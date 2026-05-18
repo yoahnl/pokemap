@@ -1200,13 +1200,8 @@ const _methodBacklogBatchDefinitions = <_MethodBacklogBatchDefinition>[
   _effectManifestSweepMethodBatch,
 ];
 const _damageFormulaDependencies = <String>{
-  'ability',
   'accuracy',
-  'field',
-  'grounded',
   'handlerDamage',
-  'item',
-  'terrain',
 };
 const _failurePreventionDependencies = <String>{
   'faintProcess',

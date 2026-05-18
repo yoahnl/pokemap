@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 354,
-    "partiel": 374,
+    "fait": 361,
+    "partiel": 367,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -731,9 +731,9 @@
       {
         "moveId": "chip_away",
         "battleEngineMethod": "s_sacred_sword",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/chip_away.json"
       },
       {
@@ -1027,9 +1027,9 @@
       {
         "moveId": "darkest_lariat",
         "battleEngineMethod": "s_sacred_sword",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/darkest_lariat.json"
       },
       {
@@ -1843,9 +1843,9 @@
       {
         "moveId": "foul_play",
         "battleEngineMethod": "s_foul_play",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/foul_play.json"
       },
       {
@@ -3811,17 +3811,17 @@
       {
         "moveId": "psyshock",
         "battleEngineMethod": "s_psyshock",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psyshock.json"
       },
       {
         "moveId": "psystrike",
         "battleEngineMethod": "s_psyshock",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psystrike.json"
       },
       {
@@ -4195,9 +4195,9 @@
       {
         "moveId": "sacred_sword",
         "battleEngineMethod": "s_sacred_sword",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sacred_sword.json"
       },
       {
@@ -5467,9 +5467,9 @@
       {
         "moveId": "triple_kick",
         "battleEngineMethod": "s_triple_kick",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/triple_kick.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 159,
-      "partial": 171,
+      "ported": 166,
+      "partial": 164,
       "missing": 0
     },
     "entries": [
@@ -5930,7 +5930,7 @@
           "effects",
           "ability"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_after_you",
@@ -6121,7 +6121,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_bide",
@@ -6157,13 +6157,8 @@
         "rubyClass": "BodyPress",
         "rubyPath": "10 Move/2 Definitions/300 BodyPress.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.bodyPress",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_brick_break",
@@ -6210,7 +6205,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_cantflee",
@@ -6274,7 +6269,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_chloroblast",
@@ -6366,7 +6361,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_crafty_shield",
@@ -6394,13 +6389,8 @@
         "rubyClass": "CustomStatsBased",
         "rubyPath": "10 Move/2 Definitions/300 CustomStatsBased.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.customStatsBased",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_defog",
@@ -6604,7 +6594,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_eruption",
@@ -6657,7 +6647,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_fake_out",
@@ -6779,7 +6769,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_floral_healing",
@@ -6865,13 +6855,8 @@
         "rubyClass": "FoulPlay",
         "rubyPath": "10 Move/2 Definitions/300 FoulPlay.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.foulPlay",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_freezy_frost",
@@ -7051,7 +7036,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_growth",
@@ -7115,7 +7100,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_hard_press",
@@ -7363,7 +7348,7 @@
           "effects",
           "field"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_ivy_cudgel",
@@ -7428,7 +7413,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_laser_focus",
@@ -7568,7 +7553,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_magnet_rise",
@@ -7770,7 +7755,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_nightmare",
@@ -7949,7 +7934,7 @@
           "item",
           "ability"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_pollen_puff",
@@ -7972,12 +7957,8 @@
         "rubyClass": "PopulationBomb",
         "rubyPath": "10 Move/1 Mechanics/103 TwoHit MultiHit.rb",
         "dartBehavior": "MultiHitMoveBehavior.populationBomb",
-        "status": "partial",
-        "dependencies": [
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_powder",
@@ -8090,13 +8071,8 @@
         "rubyClass": "CustomStatsBased",
         "rubyPath": "10 Move/2 Definitions/300 CustomStatsBased.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.psyshock",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_psywave",
@@ -8216,7 +8192,7 @@
           "effects",
           "ability"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_relic_song",
@@ -8341,7 +8317,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_rollout",
@@ -8396,12 +8372,8 @@
         "rubyClass": "SacredSword",
         "rubyPath": "10 Move/2 Definitions/300 SacredSword.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.sacredSword",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_safe_guard",
@@ -8532,7 +8504,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_sketch",
@@ -8552,7 +8524,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_sky_drop",
@@ -8989,7 +8961,7 @@
           "field",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_techno_blast",
@@ -9064,7 +9036,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_thing_sport",
@@ -9076,7 +9048,7 @@
           "effects",
           "field"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_thrash",
@@ -9229,13 +9201,8 @@
         "rubyClass": "TripleKick",
         "rubyPath": "10 Move/1 Mechanics/103 TwoHit MultiHit.rb",
         "dartBehavior": "MultiHitMoveBehavior.tripleKick",
-        "status": "partial",
-        "dependencies": [
-          "ability",
-          "item",
-          "history"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_trump_card",
@@ -9337,7 +9304,7 @@
           "ability",
           "item"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_weather",
@@ -9399,7 +9366,7 @@
           "ability",
           "effects"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_wring_out",
@@ -9493,77 +9460,51 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 54,
+        "count": 23,
         "methods": [
-          "s_add_type",
           "s_aura_wheel",
           "s_beak_blast",
           "s_beat_up",
-          "s_bestow",
           "s_bide",
-          "s_body_press",
-          "s_camouflage",
-          "s_chilly_reception",
           "s_core_enforcer",
-          "s_court_change",
-          "s_custom_stats_based",
           "s_dragon_darts",
-          "s_entrainment",
-          "s_fairy_lock",
-          "s_fling",
           "s_floral_healing",
           "s_flying_press",
-          "s_foul_play",
           "s_frustration",
-          "s_gravity",
-          "s_happy_hour",
           "s_hidden_power",
           "s_ice_ball",
-          "s_ion_deluge",
-          "s_knock_off",
-          "s_magic_room",
-          "s_nature_power",
           "s_ohko",
           "s_order_up",
           "s_pain_split",
           "s_payday",
-          "s_pluck",
-          "s_population_bomb",
           "s_pre_attack_base",
-          "s_psyshock",
-          "s_reflect_type",
           "s_return",
-          "s_role_play",
           "s_rollout",
           "s_roost",
-          "s_sacred_sword",
           "s_shell_trap",
-          "s_simple_beam",
-          "s_skill_swap",
           "s_split_up",
-          "s_teatime",
-          "s_thief",
-          "s_thing_sport",
-          "s_triple_kick",
           "s_trump_card",
-          "s_upper_hand",
-          "s_water_shuriken",
-          "s_worry_seed"
+          "s_upper_hand"
         ]
       },
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 73,
+        "count": 97,
         "methods": [
+          "s_add_type",
           "s_attract",
           "s_autotomize",
           "s_baddy_bad",
+          "s_bestow",
           "s_brick_break",
+          "s_camouflage",
           "s_change_type",
+          "s_chilly_reception",
           "s_conversion",
           "s_conversion2",
           "s_corrosive_gas",
+          "s_court_change",
           "s_destiny_bond",
           "s_disable",
           "s_doodle",
@@ -9572,10 +9513,13 @@
           "s_electrify",
           "s_embargo",
           "s_encore",
+          "s_entrainment",
+          "s_fairy_lock",
           "s_false_swipe",
           "s_fell_stinger",
           "s_fickle_beam",
           "s_flame_burst",
+          "s_fling",
           "s_flower_shield",
           "s_fusion_bolt",
           "s_fusion_flare",
@@ -9584,37 +9528,48 @@
           "s_glaive_rush",
           "s_glitzy_glow",
           "s_grav_apple",
+          "s_gravity",
           "s_grudge",
+          "s_happy_hour",
           "s_heal_block",
           "s_healing_wish",
           "s_ice_spinner",
           "s_imprison",
+          "s_ion_deluge",
           "s_jaw_lock",
           "s_jump_kick",
+          "s_knock_off",
           "s_last_respects",
           "s_lock_on",
           "s_lunar_dance",
           "s_magic_coat",
           "s_magic_powder",
+          "s_magic_room",
           "s_magnetic_flux",
           "s_magnitude",
           "s_make_it_rain",
           "s_mind_reader",
+          "s_nature_power",
           "s_nightmare",
           "s_no_retreat",
           "s_octolock",
           "s_perish_song",
           "s_photon_geyser",
           "s_plasma_fists",
+          "s_pluck",
           "s_powder",
           "s_pursuit",
           "s_rage",
           "s_raging_bull",
+          "s_reflect_type",
           "s_revival_blessing",
+          "s_role_play",
           "s_rototiller",
           "s_sappy_seed",
           "s_shed_tail",
           "s_shell_side_arm",
+          "s_simple_beam",
+          "s_skill_swap",
           "s_snatch",
           "s_spectral_thief",
           "s_spite",
@@ -9626,9 +9581,14 @@
           "s_substitute",
           "s_super_duper_effective",
           "s_swallow",
+          "s_teatime",
           "s_teleport",
+          "s_thief",
+          "s_thing_sport",
           "s_torment",
-          "s_triple_arrows"
+          "s_triple_arrows",
+          "s_water_shuriken",
+          "s_worry_seed"
         ]
       }
     ]
