@@ -1,0 +1,11 @@
+rank	elementId	elementName	screenshotPath	decisionShadow62	backgroundType	ledgeVisibility	ledgeWidthCategory	ledgeHeightCategory	ledgePositionQuality	visualProblem	recommendedAction
+1	selbrum_maison_3	selbrum maison 3	reports/shadows/screenshots/shadow62_contact_ledge_1_selbrum_maison_3.png	keep	mixed	subtle	acceptable	acceptable	aligned	none; contact mostly hidden by fence/facade	keep
+2	selbrum_maison_4	selbrum maison 4	reports/shadows/screenshots/shadow62_contact_ledge_2_selbrum_maison_4.png	retune-next	path	visible	acceptable	too-thick	aligned	trapezoid band remains readable on light path	reduce-height
+3	selbrum_maison_1	selbrum maison 1	reports/shadows/screenshots/shadow62_contact_ledge_3_selbrum_maison_1.png	keep	mixed	subtle	acceptable	acceptable	aligned	none; short contact under facade	keep
+4	selbrume_centre_pok_mon	selbrume centre pokemon	reports/shadows/screenshots/shadow62_contact_ledge_4_selbrume_centre_pok_mon.png	keep	mixed	subtle	acceptable	acceptable	aligned	none; visible only as soft footing	keep
+5	selbrum_maison_7	selbrum maison 7	reports/shadows/screenshots/shadow62_contact_ledge_5_selbrum_maison_7.png	retune-next	mixed	visible	acceptable	too-thick	aligned	right-side contact reads as a band on light/grass edge	reduce-height
+6	le_puits	le puits	reports/shadows/screenshots/shadow62_contact_ledge_6_le_puits.png	keep	mixed	subtle	acceptable	acceptable	aligned	none; local under well body	keep
+7	selbrum_maison_4	selbrum maison 4	reports/shadows/screenshots/shadow62_contact_ledge_7_selbrum_maison_4.png	retune-next	path	too-visible	acceptable	too-thick	aligned	horizontal/trapezoid strip is obvious on path	reduce-height
+8	selbrum_maison_2	selbrum maison 2	reports/shadows/screenshots/shadow62_contact_ledge_8_selbrum_maison_2.png	keep	mixed	subtle	acceptable	acceptable	aligned	none; mostly hidden by building base and vegetation	keep
+9	selbrum_maison_8	selbrum maison 8	reports/shadows/screenshots/shadow62_contact_ledge_9_selbrum_maison_8.png	keep	mixed	subtle	acceptable	acceptable	aligned	none; reads as footing under wide facade	keep
+10	kiosque_l_gumes	kiosque a legumes	reports/shadows/screenshots/shadow62_contact_ledge_10_kiosque_l_gumes.png	retune-next	path	visible	acceptable	too-thick	aligned	contact band remains visible across pale path	reduce-height
