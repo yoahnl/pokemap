@@ -68,6 +68,27 @@ void main() {
               PsdkMoveDependency.actionOrder,
             ],
           ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_target_only',
+            rubyClass: 'TargetOnly',
+            rubyPath: 'target_only.rb',
+            dartBehavior: 'TargetOnlyBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.targetingMulti,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_target_with_effects',
+            rubyClass: 'TargetWithEffects',
+            rubyPath: 'target_with_effects.rb',
+            dartBehavior: 'TargetWithEffectsBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.effects,
+              PsdkMoveDependency.targetingMulti,
+            ],
+          ),
         ],
         effects: const <PsdkEffectParityEntry>[
           PsdkEffectParityEntry(
@@ -92,7 +113,7 @@ void main() {
       expect(audit.attackMetrics.pasFait, 1);
       expect(audit.attackMetrics.unknownMethods, 1);
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 1);
-      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 2);
+      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 4);
       expect(audit.effectMetrics.totalEffects, 2);
       expect(
         audit.effectMetrics.byFamilyAndStatus['move']![PsdkPortStatus.partial],
@@ -111,7 +132,7 @@ void main() {
       );
       final methods = (json['methods']! as Map<String, Object?>)['entries']!
           as List<Object?>;
-      expect(methods, hasLength(3));
+      expect(methods, hasLength(5));
       expect(
         methods.cast<Map<String, Object?>>().singleWhere(
               (entry) => entry['battleEngineMethod'] == 's_done',
@@ -124,6 +145,18 @@ void main() {
             ),
         containsPair('methodBatch', 'action_queue_copy_call'),
       );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_target_only',
+            ),
+        containsPair('methodBatch', 'target_resolution_doubles'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_target_with_effects',
+            ),
+        containsPair('methodBatch', 'effect_hook_manifest_sweep'),
+      );
       final methodBatches = (json['methods']!
           as Map<String, Object?>)['backlogBatches']! as List<Object?>;
       expect(
@@ -132,6 +165,15 @@ void main() {
           allOf(
             containsPair('id', 'action_queue_copy_call'),
             containsPair('methods', <String>['s_after_you']),
+          ),
+        ),
+      );
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'target_resolution_doubles'),
+            containsPair('methods', <String>['s_target_only']),
           ),
         ),
       );
@@ -158,6 +200,10 @@ void main() {
       expect(markdown, contains('| no_dependency_declared | 1 |'));
       expect(markdown, contains('### Partial Method Batches'));
       expect(markdown, contains('| Action queue / copy-call residuals | 1 |'));
+      expect(
+        markdown,
+        contains('| Target resolution / doubles topology | 1 |'),
+      );
       expect(markdown, contains('`s_after_you`'));
       expect(markdown, contains('### Missing Effects by Family'));
       expect(markdown, contains('| ability | 1 |'));

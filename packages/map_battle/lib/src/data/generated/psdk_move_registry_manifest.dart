@@ -2773,8 +2773,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Synchronoise',
     rubyPath: '10 Move/2 Definitions/300 Synchronoise.rb',
     dartBehavior: 'FieldLocationMoveBehavior.synchronoise',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.targetingMulti],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_syrup_bomb',

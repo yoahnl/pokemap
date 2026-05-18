@@ -1149,9 +1149,6 @@ _MethodBacklogBatchDefinition _methodBacklogBatchFor(
   if (dependencySet.contains('actionOrder')) {
     return _actionQueueMethodBatch;
   }
-  if (dependencySet.contains('targetingMulti')) {
-    return _targetingMethodBatch;
-  }
   if (dependencySet.contains('endTurn')) {
     return _multiturnMethodBatch;
   }
@@ -1160,6 +1157,9 @@ _MethodBacklogBatchDefinition _methodBacklogBatchFor(
   }
   if (dependencySet.intersection(_damageFormulaDependencies).isNotEmpty) {
     return _damageFormulaMethodBatch;
+  }
+  if (dependencySet.contains('targetingMulti') && dependencySet.length == 1) {
+    return _targetingMethodBatch;
   }
   if (dependencySet.contains('effects')) {
     return _effectManifestSweepMethodBatch;
