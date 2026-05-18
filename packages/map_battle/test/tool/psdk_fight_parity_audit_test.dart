@@ -89,6 +89,38 @@ void main() {
               PsdkMoveDependency.targetingMulti,
             ],
           ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_failure_only',
+            rubyClass: 'FailureOnly',
+            rubyPath: 'failure_only.rb',
+            dartBehavior: 'FailureOnlyBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.handlerStatus,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_failure_with_effects',
+            rubyClass: 'FailureWithEffects',
+            rubyPath: 'failure_with_effects.rb',
+            dartBehavior: 'FailureWithEffectsBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.handlerStatus,
+              PsdkMoveDependency.effects,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_failure_with_damage',
+            rubyClass: 'FailureWithDamage',
+            rubyPath: 'failure_with_damage.rb',
+            dartBehavior: 'FailureWithDamageBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.handlerStatus,
+              PsdkMoveDependency.handlerDamage,
+            ],
+          ),
         ],
         effects: const <PsdkEffectParityEntry>[
           PsdkEffectParityEntry(
@@ -113,7 +145,7 @@ void main() {
       expect(audit.attackMetrics.pasFait, 1);
       expect(audit.attackMetrics.unknownMethods, 1);
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 1);
-      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 4);
+      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 7);
       expect(audit.effectMetrics.totalEffects, 2);
       expect(
         audit.effectMetrics.byFamilyAndStatus['move']![PsdkPortStatus.partial],
@@ -132,7 +164,7 @@ void main() {
       );
       final methods = (json['methods']! as Map<String, Object?>)['entries']!
           as List<Object?>;
-      expect(methods, hasLength(5));
+      expect(methods, hasLength(8));
       expect(
         methods.cast<Map<String, Object?>>().singleWhere(
               (entry) => entry['battleEngineMethod'] == 's_done',
@@ -157,6 +189,25 @@ void main() {
             ),
         containsPair('methodBatch', 'effect_hook_manifest_sweep'),
       );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_failure_only',
+            ),
+        containsPair('methodBatch', 'failure_prevention_immunity'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) =>
+                  entry['battleEngineMethod'] == 's_failure_with_effects',
+            ),
+        containsPair('methodBatch', 'effect_hook_manifest_sweep'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_failure_with_damage',
+            ),
+        containsPair('methodBatch', 'damage_formula_variable_power'),
+      );
       final methodBatches = (json['methods']!
           as Map<String, Object?>)['backlogBatches']! as List<Object?>;
       expect(
@@ -174,6 +225,15 @@ void main() {
           allOf(
             containsPair('id', 'target_resolution_doubles'),
             containsPair('methods', <String>['s_target_only']),
+          ),
+        ),
+      );
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'failure_prevention_immunity'),
+            containsPair('methods', <String>['s_failure_only']),
           ),
         ),
       );
