@@ -273,6 +273,12 @@ final class AbilityEffectRegistry {
           condition: AbilityFinalDamageCondition.notVeryEffectiveOutgoing,
           multiplier: 2,
         ),
+    'neuroforce': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'neuroforce',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveOutgoing,
+          multiplier: 1.25,
+        ),
     'multiscale': ({required scope}) => FullHpIncomingPowerReductionEffect(
           abilityId: 'multiscale',
           scope: scope,
@@ -311,6 +317,36 @@ final class AbilityEffectRegistry {
           scope: scope,
           statMultipliers: const <String, double>{'attack': 1.5},
           condition: hasMajorStatus,
+        ),
+    'flare_boost': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'flare_boost',
+          scope: scope,
+          statMultipliers: const <String, double>{'specialAttack': 1.5},
+          condition: hasBurnStatus,
+        ),
+    'defeatist': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'defeatist',
+          scope: scope,
+          condition: AbilityBasePowerCondition.lowHpUser,
+          multiplier: 0.5,
+        ),
+    'fluffy': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'fluffy',
+          scope: scope,
+          condition: AbilityBasePowerCondition.fluffyIncoming,
+          multiplier: 1,
+        ),
+    'heatproof': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'heatproof',
+          scope: scope,
+          condition: AbilityBasePowerCondition.fireIncoming,
+          multiplier: 0.5,
+        ),
+    'ice_scales': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'ice_scales',
+          scope: scope,
+          condition: AbilityBasePowerCondition.specialIncoming,
+          multiplier: 0.5,
         ),
     'fur_coat': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'fur_coat',

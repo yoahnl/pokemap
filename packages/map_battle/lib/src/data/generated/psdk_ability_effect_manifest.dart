@@ -275,7 +275,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'defeatist',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Defeatist.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.defeatist',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'defiant',
@@ -396,7 +397,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'flare_boost',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Flare Boost.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.flareBoost',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'flash_fire',
@@ -421,7 +423,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'fluffy',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Fluffy.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.fluffy',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'forecast',
@@ -552,7 +555,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'heatproof',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Heatproof.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.heatproof',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'hospitality',
@@ -607,7 +611,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'ice_scales',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Ice Scales.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityBasePowerModifierEffect.iceScales',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'immunity',
@@ -845,7 +850,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'neuroforce',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Neuroforce.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityFinalDamageModifierEffect.neuroforce',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'neutralizing_gas',

@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'ability_effect.dart';
@@ -39,6 +40,10 @@ final class StatModifierAbilityEffect extends BattleAbilityEffect {
 
 bool hasMajorStatus(BattleAbilityStatContext context) {
   return context.battler.majorStatus != null;
+}
+
+bool hasBurnStatus(BattleAbilityStatContext context) {
+  return context.battler.majorStatus == PsdkBattleMajorStatus.burn;
 }
 
 bool hasGrassyTerrain(BattleAbilityStatContext context) {
