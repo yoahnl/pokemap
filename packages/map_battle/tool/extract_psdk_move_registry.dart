@@ -730,7 +730,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_photon_geyser': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_photon_geyser',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_pledge': _KnownDartBehavior(
     dartBehavior: 'FieldLocationMoveBehavior.pledge',

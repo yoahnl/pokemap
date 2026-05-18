@@ -783,7 +783,7 @@ void main() {
         byMethod['s_last_resort']!.dartBehavior,
         'StaticBasicMoveRegistry.s_last_resort',
       );
-      expect(byMethod['s_photon_geyser']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_photon_geyser']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_photon_geyser']!.dartBehavior,
         'StaticBasicMoveRegistry.s_photon_geyser',
