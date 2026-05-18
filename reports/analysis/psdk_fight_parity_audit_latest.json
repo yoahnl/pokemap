@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 172,
-      "partial": 158,
+      "ported": 174,
+      "partial": 156,
       "missing": 0
     },
     "entries": [
@@ -6692,11 +6692,8 @@
         "rubyClass": "FickleBeam",
         "rubyPath": "10 Move/2 Definitions/300 FickleBeam.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_fickle_beam",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_fillet_away",
@@ -7440,11 +7437,8 @@
         "rubyClass": "LastRespects",
         "rubyPath": "10 Move/2 Definitions/300 LastRespects.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_last_respects",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_leech_seed",
@@ -9420,7 +9414,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 122,
+        "count": 120,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9454,7 +9448,6 @@
           "s_fairy_lock",
           "s_false_swipe",
           "s_fell_stinger",
-          "s_fickle_beam",
           "s_final_gambit",
           "s_flame_burst",
           "s_fling",
@@ -9478,7 +9471,6 @@
           "s_jaw_lock",
           "s_jump_kick",
           "s_knock_off",
-          "s_last_respects",
           "s_lock_on",
           "s_lunar_dance",
           "s_magic_coat",

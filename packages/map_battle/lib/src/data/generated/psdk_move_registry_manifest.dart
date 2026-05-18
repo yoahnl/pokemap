@@ -784,8 +784,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FickleBeam',
     rubyPath: '10 Move/2 Definitions/300 FickleBeam.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_fickle_beam',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_fillet_away',
@@ -1466,8 +1466,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LastRespects',
     rubyPath: '10 Move/2 Definitions/300 LastRespects.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_last_respects',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_leech_seed',
