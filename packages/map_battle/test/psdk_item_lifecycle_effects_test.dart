@@ -96,6 +96,84 @@ void main() {
       expect(_statusEvents(flame), isEmpty);
       expect(_statusEvents(toxic), isEmpty);
     });
+
+    test('terrain seeds consume after matching terrain is set', () {
+      final electric = _changeTerrain(
+        opponentHeldItemId: 'electric_seed',
+        terrain: PsdkBattleTerrainId.electricTerrain,
+      );
+      final misty = _changeTerrain(
+        opponentHeldItemId: 'misty_seed',
+        terrain: PsdkBattleTerrainId.mistyTerrain,
+      );
+
+      expect(
+        electric.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('defense'),
+        1,
+      );
+      expect(
+        electric.state.battlerAt(psdkOpponentSlot).heldItemId,
+        isNull,
+      );
+      expect(_itemEvents(electric).single.itemId, 'electric_seed');
+      expect(_statEvents(electric).single.stat, 'defense');
+      expect(
+        misty.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialDefense'),
+        1,
+      );
+      expect(misty.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(_itemEvents(misty).single.itemId, 'misty_seed');
+      expect(_statEvents(misty).single.stat, 'specialDefense');
+    });
+
+    test('terrain seeds trigger when switching into matching terrain', () {
+      final grassy = _dispatchSwitchIntoTerrain(
+        opponentHeldItemId: 'grassy_seed',
+        terrain: PsdkBattleTerrainId.grassyTerrain,
+      );
+      final psychic = _dispatchSwitchIntoTerrain(
+        opponentHeldItemId: 'psychic_seed',
+        terrain: PsdkBattleTerrainId.psychicTerrain,
+      );
+
+      expect(
+        grassy.state.battlerAt(psdkOpponentSlot).statStages.valueOf('defense'),
+        1,
+      );
+      expect(grassy.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(_itemEvents(grassy).single.itemId, 'grassy_seed');
+      expect(_statEvents(grassy).single.stat, 'defense');
+      expect(
+        psychic.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialDefense'),
+        1,
+      );
+      expect(psychic.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(_itemEvents(psychic).single.itemId, 'psychic_seed');
+      expect(_statEvents(psychic).single.stat, 'specialDefense');
+    });
+
+    test('terrain seeds ignore non-matching terrain', () {
+      final result = _changeTerrain(
+        opponentHeldItemId: 'electric_seed',
+        terrain: PsdkBattleTerrainId.mistyTerrain,
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.statStages.valueOf('defense'), 0);
+      expect(opponent.heldItemId, 'electric_seed');
+      expect(opponent.consumedItemId, isNull);
+      expect(_itemEvents(result), isEmpty);
+      expect(_statEvents(result), isEmpty);
+    });
   });
 }
 
@@ -151,6 +229,60 @@ BattleHandlerResult _tickOpponentEndTurn({
       turn: 2,
       user: psdkOpponentSlot,
     ),
+  );
+}
+
+BattleHandlerResult _changeTerrain({
+  required String opponentHeldItemId,
+  required PsdkBattleTerrainId terrain,
+}) {
+  return const BattleTerrainChangeHandler().changeTerrain(
+    context: BattleHandlerContext(
+      state: _state(
+        opponentHeldItemId: opponentHeldItemId,
+        opponentCurrentHp: 100,
+      ),
+      rng: BattleRngStreams.fromSeedSnapshot(
+        const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 4,
+        ),
+      ),
+      turn: 3,
+      user: psdkPlayerSlot,
+    ),
+    terrain: terrain,
+  );
+}
+
+BattleHandlerResult _dispatchSwitchIntoTerrain({
+  required String opponentHeldItemId,
+  required PsdkBattleTerrainId terrain,
+}) {
+  final state = _state(
+    opponentHeldItemId: opponentHeldItemId,
+    opponentCurrentHp: 100,
+  ).copyWith(
+    field: const PsdkBattleFieldState().withTerrain(terrain),
+  );
+  return const BattleSwitchHandler().dispatchSwitchEvents(
+    context: BattleHandlerContext(
+      state: state,
+      rng: BattleRngStreams.fromSeedSnapshot(
+        const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 4,
+        ),
+      ),
+      turn: 4,
+      user: psdkOpponentSlot,
+    ),
+    who: psdkOpponentSlot,
+    replacement: psdkOpponentSlot,
   );
 }
 
@@ -239,5 +371,11 @@ List<PsdkBattleItemEvent> _itemEvents(BattleHandlerResult result) {
 List<PsdkBattleStatusEvent> _statusEvents(BattleHandlerResult result) {
   return result.events
       .whereType<PsdkBattleStatusEvent>()
+      .toList(growable: false);
+}
+
+List<PsdkBattleStatStageEvent> _statEvents(BattleHandlerResult result) {
+  return result.events
+      .whereType<PsdkBattleStatStageEvent>()
       .toList(growable: false);
 }

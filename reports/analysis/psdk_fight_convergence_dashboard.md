@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-17T23:57:15.164751Z
+Generated: 2026-05-18T00:07:58.922539Z
 
 ## Final Gate Axes
 
@@ -8,7 +8,7 @@ Generated: 2026-05-17T23:57:15.164751Z
 | --- | ---: | ---: | ---: |
 | Attacks | 343 / 728 | 47.1% | 385 |
 | Methods | 149 / 330 | 45.2% | 181 |
-| Effects | 193 / 482 | 40.0% | 289 |
+| Effects | 194 / 482 | 40.2% | 288 |
 
 ## Effects By Family
 
@@ -16,7 +16,7 @@ Generated: 2026-05-17T23:57:15.164751Z
 | --- | ---: | ---: | ---: | ---: |
 | ability | 55 | 2 | 197 | 199 |
 | field | 15 | 0 | 0 | 0 |
-| item | 44 | 10 | 33 | 43 |
+| item | 45 | 10 | 32 | 42 |
 | mechanics | 4 | 0 | 0 | 0 |
 | move | 69 | 7 | 39 | 46 |
 | status | 6 | 0 | 1 | 1 |
@@ -52,7 +52,7 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 | damage/type/stat modifiers | 3 | 2 | 5 |
 | berries | 1 | 5 | 6 |
 | focus/eject/choice/orb | 1 | 4 | 5 |
-| weather/terrain/field | 0 | 2 | 2 |
+| weather/terrain/field | 0 | 1 | 1 |
 | held-item lifecycle and consumption | 5 | 20 | 25 |
 
 ## Runtime Bridge
