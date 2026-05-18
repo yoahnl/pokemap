@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_status_change_handler.dart';
@@ -56,7 +57,7 @@ final class ContactStatusAbilityEffect extends BattleAbilityEffect {
     if (effectSpore) {
       return _rollEffectSporeStatus(context, context.rng);
     }
-    if (!_canReceiveFixedStatus(user, status!)) {
+    if (!_canReceiveFixedStatus(user, status!, context.state.field)) {
       return null;
     }
     final roll = context.rng.generic.nextChance(numerator: 3, denominator: 10);
@@ -103,6 +104,7 @@ final class ContactStatusAbilityEffect extends BattleAbilityEffect {
   bool _canReceiveFixedStatus(
     PsdkBattleCombatant user,
     PsdkBattleMajorStatus status,
+    PsdkBattleFieldState field,
   ) {
     if (user.majorStatus != null) {
       return false;
@@ -110,6 +112,7 @@ final class ContactStatusAbilityEffect extends BattleAbilityEffect {
     final abilityContext = BattleAbilityStatusContext(
       status: status,
       target: user,
+      field: field,
     );
     if (user.abilityEffects.any(
       (effect) => effect.preventsStatus(abilityContext),

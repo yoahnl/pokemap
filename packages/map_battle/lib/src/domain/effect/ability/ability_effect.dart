@@ -87,12 +87,14 @@ final class BattleAbilityStatusContext {
     required this.target,
     this.launcher,
     this.move,
+    this.field = const PsdkBattleFieldState(),
   });
 
   final PsdkBattleMajorStatus status;
   final PsdkBattleCombatant target;
   final PsdkBattleCombatant? launcher;
   final BattleMoveDefinition? move;
+  final PsdkBattleFieldState field;
 }
 
 final class BattleAbilityMoveTypeContext {

@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 255,
+      "ported": 262,
       "partial": 19,
-      "missing": 208
+      "missing": 201
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 104,
+        "ported": 111,
         "partial": 1,
-        "missing": 149
+        "missing": 142
       },
       "move": {
         "ported": 80,
@@ -10204,7 +10204,7 @@
       {
         "effectName": "CursedBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Cursed Body.rb",
         "hookFamilies": [
           "post_damage"
@@ -10634,7 +10634,7 @@
       {
         "effectName": "FlowerVeil",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Flower Veil.rb",
         "hookFamilies": [
           "stat_change",
@@ -11313,7 +11313,7 @@
       {
         "effectName": "LeafGuard",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Leaf Guard.rb",
         "hookFamilies": [
           "status_prevention"
@@ -11893,7 +11893,7 @@
       {
         "effectName": "PastelVeil",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Pastel Veil.rb",
         "hookFamilies": [
           "status_prevention",
@@ -12147,7 +12147,7 @@
       {
         "effectName": "PurifyingSalt",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 PurifyingSalt.rb",
         "hookFamilies": [
           "ability_immunity",
@@ -12993,7 +12993,7 @@
       {
         "effectName": "SweetVeil",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sweet Veil.rb",
         "hookFamilies": [
           "status_prevention"
@@ -13439,7 +13439,7 @@
       {
         "effectName": "WaterBubble",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Water Bubble.rb",
         "hookFamilies": [
           "status_prevention"

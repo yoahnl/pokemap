@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_status_change_handler.dart';
@@ -49,7 +50,8 @@ final class ApplyStatusToMoveTargetAbilityEffect extends BattleAbilityEffect {
 
     final user = context.state.battlerAt(context.user);
     final target = context.state.battlerAt(context.target);
-    if (user.isFainted || !_canReceiveStatus(target, context.move)) {
+    if (user.isFainted ||
+        !_canReceiveStatus(target, context.move, context.state.field)) {
       return null;
     }
 
@@ -89,6 +91,7 @@ final class ApplyStatusToMoveTargetAbilityEffect extends BattleAbilityEffect {
   bool _canReceiveStatus(
     PsdkBattleCombatant target,
     BattleMoveDefinition move,
+    PsdkBattleFieldState field,
   ) {
     if (target.majorStatus != null) {
       return false;
@@ -97,6 +100,7 @@ final class ApplyStatusToMoveTargetAbilityEffect extends BattleAbilityEffect {
       status: status,
       target: target,
       move: move,
+      field: field,
     );
     if (target.abilityEffects.any(
       (effect) => effect.preventsStatus(abilityContext),

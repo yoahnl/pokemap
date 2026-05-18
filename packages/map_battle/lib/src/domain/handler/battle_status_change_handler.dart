@@ -468,6 +468,7 @@ bool _isStatusImmune(
   final abilityContext = BattleAbilityStatusContext(
     status: status,
     target: battler,
+    field: context.state.field,
   );
   if (battler.abilityEffects.any(
     (effect) => effect.preventsStatus(abilityContext),
