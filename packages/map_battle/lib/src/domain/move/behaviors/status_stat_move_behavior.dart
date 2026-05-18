@@ -405,6 +405,7 @@ bool _hasApplicableMajorStatus({
       context: context,
       target: target,
       status: status,
+      move: move,
     ),
   );
 }
@@ -431,6 +432,7 @@ bool _hasApplicableMoveStatus({
         context: context,
         target: target,
         status: majorStatus,
+        move: move,
       );
     }
     return status.volatileStatus == PsdkBattleVolatileStatus.confusion &&

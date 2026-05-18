@@ -75,6 +75,40 @@ void main() {
       expect(damage.single.damage, 10);
       expect(damage.single.remainingHp, 100);
     });
+
+    test('Infiltrator cannot ignore Substitute for transform or sky drop', () {
+      final state = PsdkBattleState.fromSetup(
+        _setup(
+          playerAbilityId: 'infiltrator',
+          opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+            SubstituteEffect(
+              scope: BattlerBattleEffectScope(psdkOpponentSlot),
+              remainingHp: 25,
+            ),
+          ),
+        ),
+      );
+
+      final result = const SubstituteEffect(
+        scope: BattlerBattleEffectScope(psdkOpponentSlot),
+        remainingHp: 25,
+      ).onDamagePrevention(
+        BattleEffectDamagePreventionContext(
+          state: state,
+          rng: _rng(),
+          turn: 3,
+          owner: psdkOpponentSlot,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          move: _moveDefinition(id: 'transform', protectable: true),
+          damage: 10,
+        ),
+      );
+
+      expect(result, isNotNull);
+      expect(result!.prevented, isTrue);
+      expect(result.reason, BattleMoveFailureReason.protected);
+    });
   });
 }
 
@@ -91,10 +125,11 @@ BattleHandlerContext _context({
 }
 
 PsdkBattleSetup _setup({
+  String? playerAbilityId,
   PsdkBattleEffectStack? opponentEffects,
 }) {
   return PsdkBattleSetup.singles(
-    player: _combatant(id: 'player'),
+    player: _combatant(id: 'player', abilityId: playerAbilityId),
     opponent: _combatant(id: 'opponent', effects: opponentEffects),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
@@ -107,6 +142,7 @@ PsdkBattleSetup _setup({
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? abilityId,
   PsdkBattleEffectStack? effects,
 }) {
   return PsdkBattleCombatantSetup(
@@ -124,6 +160,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: 50,
     ),
+    abilityId: abilityId,
     effects: effects,
     moves: <PsdkBattleMoveData>[
       _move(id: 'tackle'),

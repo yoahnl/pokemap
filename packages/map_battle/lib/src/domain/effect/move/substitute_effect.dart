@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../move/battle_move_data.dart';
 import '../../move/battle_move_prevention.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
@@ -34,6 +35,43 @@ final class SubstituteEffect extends BattleEffect {
       scope: BattlerBattleEffectScope(context.target),
       remainingHp: remainingHp,
     );
+  }
+
+  @override
+  String? onStatIncreasePrevention(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    return _preventsTargetedMove(
+      target: context.target,
+      user: context.user,
+      move: context.move,
+    )
+        ? 'substitute'
+        : null;
+  }
+
+  @override
+  String? onStatDecreasePrevention(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    return _preventsTargetedMove(
+      target: context.target,
+      user: context.user,
+      move: context.move,
+    )
+        ? 'substitute'
+        : null;
+  }
+
+  @override
+  String? onStatusPrevention(BattleEffectStatusPreventionContext context) {
+    return _preventsTargetedMove(
+      target: context.target,
+      user: context.user,
+      move: context.move,
+    )
+        ? 'substitute'
+        : null;
   }
 
   @override
@@ -89,8 +127,34 @@ final class SubstituteEffect extends BattleEffect {
     return scope is! BattlerBattleEffectScope || scope.slot == target;
   }
 
+  bool _preventsTargetedMove({
+    required PsdkBattleSlotRef target,
+    required PsdkBattleSlotRef user,
+    required BattleMoveDefinition? move,
+  }) {
+    if (!_appliesTo(target) || user == target || move == null) {
+      return false;
+    }
+    return !_isAuthentic(move);
+  }
+
   bool _bypassesSubstitute(BattleEffectDamagePreventionContext context) {
+    if (_isAuthentic(context.move)) {
+      return true;
+    }
     final user = context.state.battlerAt(context.user);
-    return context.move.flags.sound || user.abilityId == 'infiltrator';
+    return user.abilityId == 'infiltrator' &&
+        !_cannotIgnoreSubstitute(context.move);
+  }
+
+  bool _isAuthentic(BattleMoveDefinition move) {
+    return move.flags.sound;
+  }
+
+  bool _cannotIgnoreSubstitute(BattleMoveDefinition move) {
+    return move.dbSymbol == 'transform' ||
+        move.dbSymbol == 'sky_drop' ||
+        move.id == 'transform' ||
+        move.id == 'sky_drop';
   }
 }

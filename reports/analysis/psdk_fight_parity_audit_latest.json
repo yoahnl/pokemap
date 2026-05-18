@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 195,
+      "ported": 196,
       "partial": 19,
-      "missing": 268
+      "missing": 267
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9306,9 +9306,9 @@
         "missing": 197
       },
       "move": {
-        "ported": 69,
+        "ported": 70,
         "partial": 7,
-        "missing": 39
+        "missing": 38
       },
       "item": {
         "ported": 45,
@@ -12746,7 +12746,7 @@
       {
         "effectName": "Substitute",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Substitute.rb",
         "hookFamilies": [
           "action_order",
