@@ -337,6 +337,174 @@ void main() {
       );
     });
 
+    test('stat modifier abilities affect damage formula like PSDK', () {
+      final baseline = _runMove(
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final purePower = _runMove(
+        playerAbilityId: 'pure_power',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final hugePower = _runMove(
+        playerAbilityId: 'huge_power',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final gutsInactive = _runMove(
+        playerAbilityId: 'guts',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final gutsActive = _runMove(
+        playerAbilityId: 'guts',
+        playerMajorStatus: PsdkBattleMajorStatus.poison,
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+
+      expect(
+        _damageEvents(purePower, moveId: 'tackle').single.damage,
+        greaterThan(_damageEvents(baseline, moveId: 'tackle').single.damage),
+      );
+      expect(
+        _damageEvents(hugePower, moveId: 'tackle').single.damage,
+        _damageEvents(purePower, moveId: 'tackle').single.damage,
+      );
+      expect(
+        _damageEvents(gutsInactive, moveId: 'tackle').single.damage,
+        _damageEvents(baseline, moveId: 'tackle').single.damage,
+      );
+      expect(
+        _damageEvents(gutsActive, moveId: 'tackle').single.damage,
+        greaterThan(_damageEvents(baseline, moveId: 'tackle').single.damage),
+      );
+    });
+
+    test('defensive stat modifier abilities reduce matching physical damage',
+        () {
+      final baseline = _runMove(
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final furCoat = _runMove(
+        opponentAbilityId: 'fur_coat',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final marvelScaleInactive = _runMove(
+        opponentAbilityId: 'marvel_scale',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final marvelScaleActive = _runMove(
+        opponentAbilityId: 'marvel_scale',
+        opponentMajorStatus: PsdkBattleMajorStatus.burn,
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final grassPeltInactive = _runMove(
+        opponentAbilityId: 'grass_pelt',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final grassPeltActive = _runMove(
+        opponentAbilityId: 'grass_pelt',
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.grassyTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+
+      final baselineDamage =
+          _damageEvents(baseline, moveId: 'tackle').single.damage;
+      expect(_damageEvents(furCoat, moveId: 'tackle').single.damage,
+          lessThan(baselineDamage));
+      expect(
+        _damageEvents(marvelScaleInactive, moveId: 'tackle').single.damage,
+        baselineDamage,
+      );
+      expect(
+        _damageEvents(marvelScaleActive, moveId: 'tackle').single.damage,
+        lessThan(baselineDamage),
+      );
+      expect(
+        _damageEvents(grassPeltInactive, moveId: 'tackle').single.damage,
+        baselineDamage,
+      );
+      expect(
+        _damageEvents(grassPeltActive, moveId: 'tackle').single.damage,
+        lessThan(baselineDamage),
+      );
+    });
+
+    test('speed modifier abilities affect action speed in matching fields', () {
+      const cases = <({
+        String abilityId,
+        PsdkBattleFieldState field,
+        PsdkBattleMajorStatus? status,
+        int expectedSpeed,
+      })>[
+        (
+          abilityId: 'chlorophyll',
+          field: PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.sunny,
+              remainingTurns: 5,
+            ),
+          ),
+          status: null,
+          expectedSpeed: 100,
+        ),
+        (
+          abilityId: 'swift_swim',
+          field: PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.rain,
+              remainingTurns: 5,
+            ),
+          ),
+          status: null,
+          expectedSpeed: 100,
+        ),
+        (
+          abilityId: 'sand_rush',
+          field: PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.sandstorm,
+              remainingTurns: 5,
+            ),
+          ),
+          status: null,
+          expectedSpeed: 100,
+        ),
+        (
+          abilityId: 'slush_rush',
+          field: PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.snow,
+              remainingTurns: 5,
+            ),
+          ),
+          status: null,
+          expectedSpeed: 100,
+        ),
+        (
+          abilityId: 'quick_feet',
+          field: PsdkBattleFieldState(),
+          status: PsdkBattleMajorStatus.paralysis,
+          expectedSpeed: 75,
+        ),
+      ];
+
+      for (final entry in cases) {
+        final action = _fightActionForAbility(
+          abilityId: entry.abilityId,
+          field: entry.field,
+          majorStatus: entry.status,
+        );
+
+        expect(action.speed, entry.expectedSpeed, reason: entry.abilityId);
+      }
+
+      final inactive = _fightActionForAbility(abilityId: 'chlorophyll');
+      expect(inactive.speed, 50);
+    });
+
     test('Rain Dish heals one sixteenth in rain', () {
       final result = _resolveAbilityEndTurn(
         playerAbilityId: 'rain_dish',
@@ -1505,8 +1673,11 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   String? playerAbilityId,
   String? opponentAbilityId,
+  PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleMajorStatus? opponentMajorStatus,
   int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
   BattleRngSeeds rngSeeds = const BattleRngSeeds(
     moveDamage: 1,
     moveCritical: 99999,
@@ -1520,6 +1691,7 @@ PsdkBattleTurnResult _runMove({
         id: 'player',
         currentHp: playerCurrentHp,
         abilityId: playerAbilityId,
+        majorStatus: playerMajorStatus,
         speed: 100,
         move: playerMove,
       ),
@@ -1527,6 +1699,7 @@ PsdkBattleTurnResult _runMove({
         id: 'opponent',
         currentHp: opponentCurrentHp,
         abilityId: opponentAbilityId,
+        majorStatus: opponentMajorStatus,
         speed: 1,
         move: _move(
           id: 'opponent_wait',
@@ -1537,9 +1710,46 @@ PsdkBattleTurnResult _runMove({
         ),
       ),
       rngSeeds: rngSeeds.psdkSeeds,
+      field: field,
     ).psdkSetup,
   );
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+}
+
+PsdkBattleFightAction _fightActionForAbility({
+  required String abilityId,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+  PsdkBattleMajorStatus? majorStatus,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: abilityId,
+        majorStatus: majorStatus,
+        speed: 50,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        speed: 80,
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+      field: field,
+    ).psdkSetup,
+  );
+
+  return const PsdkBattleActionDecisionMapper().map(
+    state: state,
+    user: psdkPlayerSlot,
+    decision: const BattleFightDecision(moveSlot: 0),
+  ) as PsdkBattleFightAction;
 }
 
 BattleHandlerResult _switchPreventionFor({

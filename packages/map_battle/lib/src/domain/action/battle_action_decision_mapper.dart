@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../decision/battle_decision.dart';
+import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
 import '../effect/move/two_turn_charge_effect.dart';
@@ -160,7 +161,12 @@ int _actionSpeed({
   required PsdkBattleSlotRef user,
   required PsdkBattleCombatant battler,
 }) {
-  var speed = _itemAdjustedSpeed(battler);
+  var speed = _adjustedStat(
+    state: state,
+    battler: battler,
+    stat: 'speed',
+    value: battler.stats.speed,
+  );
   if (_bankHasEffect(state, user.bank, 'tailwind')) {
     speed *= 2;
   }
@@ -175,12 +181,26 @@ int _actionSpeed({
   return paralyzedSpeed < 1 ? 1 : paralyzedSpeed;
 }
 
-int _itemAdjustedSpeed(PsdkBattleCombatant battler) {
+int _adjustedStat({
+  required PsdkBattleState state,
+  required PsdkBattleCombatant battler,
+  required String stat,
+  required int value,
+}) {
   var multiplier = 1.0;
   for (final effect in battler.activeItemEffects) {
-    multiplier *= effect.statMultiplier(battler, 'speed');
+    multiplier *= effect.statMultiplier(battler, stat);
   }
-  final adjusted = (battler.stats.speed * multiplier).floor();
+  final abilityContext = BattleAbilityStatContext(
+    field: state.field,
+    battler: battler,
+    stat: stat,
+    weatherEffectsSuppressed: state.weatherEffectsSuppressed,
+  );
+  for (final effect in battler.abilityEffects) {
+    multiplier *= effect.statMultiplier(abilityContext);
+  }
+  final adjusted = (value * multiplier).floor();
   return adjusted < 1 ? 1 : adjusted;
 }
 

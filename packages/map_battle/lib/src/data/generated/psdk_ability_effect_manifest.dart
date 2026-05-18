@@ -152,7 +152,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'chlorophyll',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Chlorophyll.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.chlorophyll',
   ),
   PsdkAbilityEffectManifestEntry(
       abilityId: 'clear_body',
@@ -456,7 +457,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'fur_coat',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Fur Coat.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.furCoat',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'gale_wings',
@@ -493,7 +495,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'grass_pelt',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Grass Pelt.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.grassPelt',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'grassy_surge',
@@ -524,7 +527,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'guts',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Guts.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.guts',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'hadron_engine',
@@ -560,7 +564,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'huge_power',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Pure Power - Huge Power.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.hugePower',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'hunger_switch',
@@ -752,7 +757,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'marvel_scale',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Marvel Scale.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.marvelScale',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'mega_launcher',
@@ -1033,7 +1039,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'pure_power',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Pure Power - Huge Power.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.purePower',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'purifying_salt',
@@ -1057,7 +1064,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'quick_feet',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Quick Feet.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.quickFeet',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'rain_dish',
@@ -1147,7 +1155,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sand_rush',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sand Rush.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.sandRush',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sand_spit',
@@ -1268,7 +1277,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'slush_rush',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Slush Rush.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.slushRush',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'snow_cloak',
@@ -1438,7 +1448,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'swift_swim',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Swift Swim.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.swiftSwim',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sword_of_ruin',

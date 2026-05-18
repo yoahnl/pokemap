@@ -21,6 +21,7 @@ import 'rock_head_effect.dart';
 import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
+import 'stat_modifier_ability_effect.dart';
 import 'stat_drop_prevention_ability_effect.dart';
 import 'status_immunity_effect.dart';
 import 'switch_trigger_ability_effect.dart';
@@ -295,6 +296,69 @@ final class AbilityEffectRegistry {
         ),
     'skill_link': ({required scope}) => SkillLinkEffect(scope: scope),
     'soundproof': ({required scope}) => SoundproofEffect(scope: scope),
+    'pure_power': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'pure_power',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 2},
+        ),
+    'huge_power': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'huge_power',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 2},
+        ),
+    'guts': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'guts',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 1.5},
+          condition: hasMajorStatus,
+        ),
+    'fur_coat': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'fur_coat',
+          scope: scope,
+          statMultipliers: const <String, double>{'defense': 2},
+        ),
+    'marvel_scale': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'marvel_scale',
+          scope: scope,
+          statMultipliers: const <String, double>{'defense': 1.5},
+          condition: hasMajorStatus,
+        ),
+    'grass_pelt': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'grass_pelt',
+          scope: scope,
+          statMultipliers: const <String, double>{'defense': 1.5},
+          condition: hasGrassyTerrain,
+        ),
+    'chlorophyll': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'chlorophyll',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasSunnyWeather,
+        ),
+    'swift_swim': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'swift_swim',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasRainWeather,
+        ),
+    'sand_rush': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'sand_rush',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasSandstormWeather,
+        ),
+    'slush_rush': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'slush_rush',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasSnowingWeather,
+        ),
+    'quick_feet': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'quick_feet',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 1.5},
+          condition: hasMajorStatus,
+        ),
     'immunity': ({required scope}) => StatusImmunityEffect(
           abilityId: 'immunity',
           scope: scope,

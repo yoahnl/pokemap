@@ -534,48 +534,61 @@ final class BattleMoveDamageResult {
 int _offensiveStat(BattleMoveDamageContext context) {
   return switch (context.move.category) {
     PsdkBattleMoveCategory.physical => _physicalAttack(context),
-    PsdkBattleMoveCategory.special => _itemAdjustedStat(
-        context.user.stats.specialAttack,
-        context.user,
-        'specialAttack',
+    PsdkBattleMoveCategory.special => _adjustedStat(
+        value: context.user.stats.specialAttack,
+        battler: context.user,
+        field: context.field,
+        stat: 'specialAttack',
       ),
     PsdkBattleMoveCategory.status => context.user.stats.attack,
   };
 }
 
 int _physicalAttack(BattleMoveDamageContext context) {
-  return _itemAdjustedStat(
-    context.user.stats.attack,
-    context.user,
-    'attack',
+  return _adjustedStat(
+    value: context.user.stats.attack,
+    battler: context.user,
+    field: context.field,
+    stat: 'attack',
   );
 }
 
 int _defensiveStat(BattleMoveDamageContext context) {
   final value = switch (context.move.category) {
-    PsdkBattleMoveCategory.physical => _itemAdjustedStat(
-        context.target.stats.defense,
-        context.target,
-        'defense',
+    PsdkBattleMoveCategory.physical => _adjustedStat(
+        value: context.target.stats.defense,
+        battler: context.target,
+        field: context.field,
+        stat: 'defense',
       ),
-    PsdkBattleMoveCategory.special => _itemAdjustedStat(
-        context.target.stats.specialDefense,
-        context.target,
-        'specialDefense',
+    PsdkBattleMoveCategory.special => _adjustedStat(
+        value: context.target.stats.specialDefense,
+        battler: context.target,
+        field: context.field,
+        stat: 'specialDefense',
       ),
     PsdkBattleMoveCategory.status => context.target.stats.defense,
   };
   return value < 1 ? 1 : value;
 }
 
-int _itemAdjustedStat(
-  int value,
-  PsdkBattleCombatant battler,
-  String stat,
-) {
+int _adjustedStat({
+  required int value,
+  required PsdkBattleCombatant battler,
+  required PsdkBattleFieldState field,
+  required String stat,
+}) {
   var multiplier = 1.0;
   for (final effect in battler.activeItemEffects) {
     multiplier *= effect.statMultiplier(battler, stat);
+  }
+  final abilityContext = BattleAbilityStatContext(
+    field: field,
+    battler: battler,
+    stat: stat,
+  );
+  for (final effect in battler.abilityEffects) {
+    multiplier *= effect.statMultiplier(abilityContext);
   }
   if (multiplier == 1.0) {
     return value;
