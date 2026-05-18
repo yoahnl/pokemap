@@ -342,6 +342,12 @@ class PsdkBattleEffectStack {
     return _stack.dispatchSwitchEvent(context);
   }
 
+  BattleEffectSwitchOutResult dispatchSwitchOut(
+    BattleEffectSwitchOutContext context,
+  ) {
+    return _stack.dispatchSwitchOut(context);
+  }
+
   String? statChangePreventionReason(
     BattleEffectStatChangePreventionContext context,
   ) {

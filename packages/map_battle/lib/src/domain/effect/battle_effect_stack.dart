@@ -369,6 +369,48 @@ final class BattleEffectObjectStack {
     );
   }
 
+  BattleEffectSwitchOutResult dispatchSwitchOut(
+    BattleEffectSwitchOutContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onSwitchOut(
+        BattleEffectSwitchOutContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          replacement: context.replacement,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectSwitchOutResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   String? statChangePreventionReason(
     BattleEffectStatChangePreventionContext context,
   ) {

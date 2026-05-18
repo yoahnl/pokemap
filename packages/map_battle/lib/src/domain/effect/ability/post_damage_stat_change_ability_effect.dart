@@ -3,6 +3,7 @@ import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_stat_change_handler.dart';
+import '../../handler/battle_status_change_handler.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
@@ -156,6 +157,91 @@ final class RattledEffect extends PostDamageStatChangeAbilityEffect {
       return null;
     }
     return BattleEffectStatChangePostResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
+final class ThermalExchangeEffect extends BattleAbilityEffect {
+  const ThermalExchangeEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'thermal_exchange', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ThermalExchangeEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        context.targetFainted ||
+        context.move.type.toLowerCase() != 'fire') {
+      return null;
+    }
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      stat: 'attack',
+      stages: 1,
+      move: context.move,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectPostDamageResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+
+  @override
+  String? onStatusPrevention(BattleEffectStatusPreventionContext context) {
+    if (!isOwnedBy(context.target) ||
+        context.status != PsdkBattleMajorStatus.burn ||
+        context.user == context.target) {
+      return null;
+    }
+    return 'ability:$abilityId';
+  }
+
+  @override
+  BattleEffectStatusChangeResult? onPostStatusChange(
+    BattleEffectStatusChangeContext context,
+  ) {
+    if (context.cured ||
+        !isOwnedBy(context.target) ||
+        context.status != PsdkBattleMajorStatus.burn) {
+      return null;
+    }
+
+    final result = const BattleStatusChangeHandler().cureMajorStatus(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.target,
+      moveId: 'effect:thermal_exchange',
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectStatusChangeResult(
       state: result.state,
       rng: result.rng,
       events: result.events,

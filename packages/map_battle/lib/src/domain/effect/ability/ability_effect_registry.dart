@@ -32,6 +32,7 @@ import 'stat_modifier_ability_effect.dart';
 import 'stat_drop_prevention_ability_effect.dart';
 import 'status_immunity_effect.dart';
 import 'switch_trigger_ability_effect.dart';
+import 'switch_out_cleanup_ability_effect.dart';
 import 'type_boosting_ability_effect.dart';
 import 'type_immunity_ability_effect.dart';
 
@@ -81,6 +82,13 @@ final class AbilityEffectRegistry {
           scope: scope,
           blockedType: 'fire',
           reward: TypeImmunityReward.flashFire,
+        ),
+    'well_baked_body': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'well_baked_body',
+          scope: scope,
+          blockedType: 'fire',
+          reward: TypeImmunityReward.defenseSharp,
+          preventsBeforeDamage: false,
         ),
     'motor_drive': ({required scope}) => TypeImmunityAbilityEffect(
           abilityId: 'motor_drive',
@@ -716,6 +724,8 @@ final class AbilityEffectRegistry {
           condition: AbilityPostDamageStatCondition.fireOrWaterIncoming,
           changes: const <String, int>{'speed': 3},
         ),
+    'thermal_exchange': ({required scope}) =>
+        ThermalExchangeEffect(scope: scope),
     'justified': ({required scope}) => PostDamageStatChangeAbilityEffect(
           abilityId: 'justified',
           scope: scope,
@@ -777,9 +787,14 @@ final class AbilityEffectRegistry {
         ),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
     'rain_dish': ({required scope}) => RainDishEffect(scope: scope),
+    'hydration': ({required scope}) => HydrationEffect(scope: scope),
+    'ice_body': ({required scope}) => IceBodyEffect(scope: scope),
     'dry_skin': ({required scope}) => DrySkinEffect(scope: scope),
+    'solar_power': ({required scope}) => SolarPowerEffect(scope: scope),
     'shed_skin': ({required scope}) => ShedSkinEffect(scope: scope),
     'bad_dreams': ({required scope}) => BadDreamsEffect(scope: scope),
+    'natural_cure': ({required scope}) => NaturalCureEffect(scope: scope),
+    'regenerator': ({required scope}) => RegeneratorEffect(scope: scope),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',
           scope: scope,
@@ -846,6 +861,7 @@ final class AbilityEffectRegistry {
     'intimidate': ({required scope}) => IntimidateEffect(scope: scope),
     'imposter': ({required scope}) => ImposterEffect(scope: scope),
     'trace': ({required scope}) => TraceEffect(scope: scope),
+    'telepathy': ({required scope}) => TelepathyEffect(scope: scope),
   };
 
   final Map<String, AbilityEffectFactory> _factories;

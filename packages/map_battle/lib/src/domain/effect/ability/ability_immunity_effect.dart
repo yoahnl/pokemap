@@ -204,6 +204,34 @@ final class SturdyEffect extends BattleAbilityEffect {
   }
 }
 
+final class TelepathyEffect extends BattleAbilityEffect {
+  const TelepathyEffect({required BattleEffectScope scope})
+      : super(abilityId: 'telepathy', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return TelepathyEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectDamagePreventionResult? onDamagePrevention(
+    BattleEffectDamagePreventionContext context,
+  ) {
+    if (!isOwnedBy(context.target) ||
+        context.user == context.target ||
+        context.user.bank != context.target.bank ||
+        context.damage <= 0) {
+      return null;
+    }
+    return BattleEffectDamagePreventionResult(
+      state: context.state,
+      rng: context.rng,
+      prevented: true,
+      reason: BattleMoveFailureReason.immunity,
+    );
+  }
+}
+
 final class WonderGuardEffect extends BattleAbilityEffect {
   const WonderGuardEffect({
     required BattleEffectScope scope,

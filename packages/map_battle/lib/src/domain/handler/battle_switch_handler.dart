@@ -130,20 +130,37 @@ final class BattleSwitchHandler {
       return prevention;
     }
 
+    var state = context.state;
+    var rng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    final switchOut = active.effects.dispatchSwitchOut(
+      BattleEffectSwitchOutContext(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        owner: target,
+        replacement: replacement,
+      ),
+    );
+    state = switchOut.state;
+    rng = switchOut.rng;
+    events.addAll(switchOut.events);
+
+    final activeAfterSwitchOut = state.battlerAt(target);
     final activePartyIndex = _activePartyIndex(
       party: party,
-      active: active,
+      active: activeAfterSwitchOut,
       fallback: target.position,
     );
-    final slotPersistentEffects = _slotPersistentEffects(active);
-    final healingSacrifice = _healingSacrificeEffect(active);
-    final batonPassEffects = active.effects.contains('baton_pass')
-        ? active.effects.batonPassTransferEffects(
+    final slotPersistentEffects = _slotPersistentEffects(activeAfterSwitchOut);
+    final healingSacrifice = _healingSacrificeEffect(activeAfterSwitchOut);
+    final batonPassEffects = activeAfterSwitchOut.effects.contains('baton_pass')
+        ? activeAfterSwitchOut.effects.batonPassTransferEffects(
             source: target,
             target: target,
           )
         : const PsdkBattleEffectStack.empty();
-    final outgoing = _switchOutSnapshot(active);
+    final outgoing = _switchOutSnapshot(activeAfterSwitchOut);
     var incoming = replacement
         .copyWith(
           switching: false,
@@ -172,18 +189,16 @@ final class BattleSwitchHandler {
     nextParty[activePartyIndex] = outgoing;
     nextParty[partyIndex] = incoming;
 
-    var state = context.state.copyWith(
+    state = state.copyWith(
       combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
-        ...context.state.combatants,
+        ...state.combatants,
         target: incoming,
       },
       parties: <int, List<PsdkBattleCombatant>>{
-        ...context.state.parties,
+        ...state.parties,
         target.bank: nextParty,
       },
     );
-    var rng = context.rng;
-    final events = <PsdkBattleEvent>[];
 
     final hazards = applyEntryHazards(
       context: BattleHandlerContext(

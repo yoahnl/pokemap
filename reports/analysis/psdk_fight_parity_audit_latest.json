@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 283,
+      "ported": 291,
       "partial": 24,
-      "missing": 175
+      "missing": 167
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 132,
+        "ported": 140,
         "partial": 6,
-        "missing": 116
+        "missing": 108
       },
       "move": {
         "ported": 80,
@@ -11065,7 +11065,7 @@
       {
         "effectName": "Hydration",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Hydration.rb",
         "hookFamilies": [
           "end_turn"
@@ -11083,7 +11083,7 @@
       {
         "effectName": "IceBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Ice Body.rb",
         "hookFamilies": [
           "end_turn"
@@ -11734,7 +11734,7 @@
       {
         "effectName": "NaturalCure",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Natural Cure.rb",
         "hookFamilies": [
           "switch"
@@ -12284,7 +12284,7 @@
       {
         "effectName": "Regenerator",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Regenerator.rb",
         "hookFamilies": [
           "switch"
@@ -12694,7 +12694,7 @@
       {
         "effectName": "SolarPower",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Solar Power.rb",
         "hookFamilies": [
           "end_turn"
@@ -13119,7 +13119,7 @@
       {
         "effectName": "Telepathy",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Telepathy.rb",
         "hookFamilies": [
           "damage_prevention"
@@ -13172,7 +13172,7 @@
       {
         "effectName": "ThermalExchange",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ThermalExchange.rb",
         "hookFamilies": [
           "action_order",
@@ -13498,7 +13498,7 @@
       {
         "effectName": "WellBakedBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 WellBaked Body.rb",
         "hookFamilies": [
           "damage_prevention"
