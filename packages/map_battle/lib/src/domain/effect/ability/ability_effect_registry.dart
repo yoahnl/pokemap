@@ -9,12 +9,14 @@ import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
 import 'cloud_nine_effect.dart';
 import 'contact_punish_ability_effect.dart';
+import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
 import 'levitate_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
 import 'no_guard_effect.dart';
+import 'post_damage_stat_change_ability_effect.dart';
 import 'priority_move_prevention_ability_effect.dart';
 import 'reckless_effect.dart';
 import 'residual_ability_effect.dart';
@@ -490,6 +492,67 @@ final class AbilityEffectRegistry {
             PsdkBattleMajorStatus.sleep,
           },
           curesExistingStatus: false,
+        ),
+    'flame_body': ({required scope}) => ContactStatusAbilityEffect(
+          abilityId: 'flame_body',
+          scope: scope,
+          status: PsdkBattleMajorStatus.burn,
+        ),
+    'static': ({required scope}) => ContactStatusAbilityEffect(
+          abilityId: 'static',
+          scope: scope,
+          status: PsdkBattleMajorStatus.paralysis,
+        ),
+    'poison_point': ({required scope}) => ContactStatusAbilityEffect(
+          abilityId: 'poison_point',
+          scope: scope,
+          status: PsdkBattleMajorStatus.poison,
+        ),
+    'effect_spore': ({required scope}) =>
+        ContactStatusAbilityEffect.effectSpore(scope: scope),
+    'stamina': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'stamina',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.anyIncoming,
+          changes: const <String, int>{'defense': 1},
+        ),
+    'weak_armor': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'weak_armor',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.physicalIncoming,
+          changes: const <String, int>{'defense': -1, 'speed': 1},
+        ),
+    'water_compaction': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'water_compaction',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.waterIncoming,
+          changes: const <String, int>{'defense': 2},
+        ),
+    'steam_engine': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'steam_engine',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.fireOrWaterIncoming,
+          changes: const <String, int>{'speed': 3},
+        ),
+    'justified': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'justified',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.darkIncoming,
+          changes: const <String, int>{'attack': 1},
+        ),
+    'gooey': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'gooey',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.contactIncoming,
+          changes: const <String, int>{'speed': -1},
+          changeTarget: AbilityPostDamageStatChangeTarget.user,
+        ),
+    'tangling_hair': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'tangling_hair',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.contactIncoming,
+          changes: const <String, int>{'speed': -1},
+          changeTarget: AbilityPostDamageStatChangeTarget.user,
         ),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
     'rain_dish': ({required scope}) => RainDishEffect(scope: scope),

@@ -349,7 +349,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'effect_spore',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Effect Spore.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ContactStatusAbilityEffect.effectSpore',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'electric_surge',
@@ -393,7 +394,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'flame_body',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Flame Body.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ContactStatusAbilityEffect.flameBody',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'flare_boost',
@@ -488,7 +490,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'gooey',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Gooey.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageStatChangeAbilityEffect.gooey',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'gorilla_tactics',
@@ -680,7 +683,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'justified',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Justified.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageStatChangeAbilityEffect.justified',
   ),
   PsdkAbilityEffectManifestEntry(
       abilityId: 'keen_eye',
@@ -955,7 +959,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'poison_point',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Poison Point.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ContactStatusAbilityEffect.poisonPoint',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'poison_puppeteer',
@@ -1353,7 +1358,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'stamina',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Stamina.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageStatChangeAbilityEffect.stamina',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'stance_change',
@@ -1365,7 +1371,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'static',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Static.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ContactStatusAbilityEffect.static',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'steadfast',
@@ -1377,7 +1384,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'steam_engine',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Steam Engine.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageStatChangeAbilityEffect.steamEngine',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'steelworker',
@@ -1497,7 +1505,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'tangling_hair',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Gooey.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageStatChangeAbilityEffect.tanglingHair',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'technician',
@@ -1687,7 +1696,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'water_compaction',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Water Compaction.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageStatChangeAbilityEffect.waterCompaction',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'water_veil',
@@ -1700,7 +1710,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'weak_armor',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Weak Armor.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PostDamageStatChangeAbilityEffect.weakArmor',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'well_baked_body',
