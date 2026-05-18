@@ -3,6 +3,7 @@ import 'battle_effect_scope.dart';
 import 'field/pledge_field_effects.dart';
 import 'field/wish_effect.dart';
 import 'mechanics/mechanics_effects.dart';
+import 'move/ability_suppressed_effect.dart';
 import 'move/aqua_ring_effect.dart';
 import 'move/attract_effect.dart';
 import 'move/baton_pass_effect.dart';
@@ -21,8 +22,11 @@ import 'move/happy_hour_effect.dart';
 import 'move/heal_block_effect.dart';
 import 'move/imprison_effect.dart';
 import 'move/ingrain_effect.dart';
+import 'move/item_burnt_effect.dart';
 import 'move/leech_seed_effect.dart';
+import 'move/lock_on_effect.dart';
 import 'move/nightmare_effect.dart';
+import 'move/no_retreat_effect.dart';
 import 'move/perish_song_effect.dart';
 import 'move/magic_coat_effect.dart';
 import 'move/powder_effect.dart';
@@ -36,6 +40,7 @@ import 'move/taunt_effect.dart';
 import 'move/tar_shot_effect.dart';
 import 'move/throat_chop_effect.dart';
 import 'move/torment_effect.dart';
+import 'move/triple_arrows_effect.dart';
 import 'move/two_turn_charge_effect.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
@@ -50,6 +55,10 @@ final class BattleEffectRegistry {
 
   BattleEffect fromId(String id) {
     return switch (id) {
+      'ability_suppressed' => const AbilitySuppressedEffect(
+          scope: LocalBattleEffectScope(),
+          origin: 'unknown',
+        ),
       'aqua_ring' => const AquaRingEffect(scope: LocalBattleEffectScope()),
       'attract' => const AttractEffect(scope: LocalBattleEffectScope()),
       'baton_pass' => const BatonPassEffect(scope: LocalBattleEffectScope()),
@@ -81,11 +90,17 @@ final class BattleEffectRegistry {
       'heal_block' => const HealBlockEffect(scope: LocalBattleEffectScope()),
       'imprison' => ImprisonEffect(scope: const LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
+      'item_burnt' => const ItemBurntEffect(scope: LocalBattleEffectScope()),
       'leech_seed' => const LeechSeedEffect(
           scope: LocalBattleEffectScope(),
           source: psdkOpponentSlot,
         ),
+      'lock_on' => const LockOnEffect(
+          scope: LocalBattleEffectScope(),
+          target: psdkOpponentSlot,
+        ),
       'nightmare' => const NightmareEffect(scope: LocalBattleEffectScope()),
+      'no_retreat' => const NoRetreatEffect(scope: LocalBattleEffectScope()),
       'perish_song' => const PerishSongEffect(scope: LocalBattleEffectScope()),
       'magic_coat' => const MagicCoatEffect(scope: LocalBattleEffectScope()),
       'powder' => const PowderEffect(scope: LocalBattleEffectScope()),
@@ -119,6 +134,8 @@ final class BattleEffectRegistry {
       'tar_shot' => const TarShotEffect(scope: LocalBattleEffectScope()),
       'throat_chop' => const ThroatChopEffect(scope: LocalBattleEffectScope()),
       'torment' => const TormentEffect(scope: LocalBattleEffectScope()),
+      'triple_arrows' =>
+        const TripleArrowsEffect(scope: LocalBattleEffectScope()),
       'two_turn_charge' => const TwoTurnChargeEffect(
           scope: LocalBattleEffectScope(),
           chargedMoveId: '',

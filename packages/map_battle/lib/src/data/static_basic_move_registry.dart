@@ -63,6 +63,7 @@ import '../domain/effect/field/healing_wish_effect.dart';
 import '../domain/effect/field/trick_room_effect.dart';
 import '../domain/effect/field/wish_effect.dart';
 import '../domain/effect/item/item_effect.dart';
+import '../domain/effect/move/ability_suppressed_effect.dart';
 import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
 import '../domain/effect/move/cant_switch_effect.dart';
@@ -74,12 +75,15 @@ import '../domain/effect/move/force_next_move_base_effect.dart';
 import '../domain/effect/move/heal_block_effect.dart';
 import '../domain/effect/move/imprison_effect.dart';
 import '../domain/effect/move/leech_seed_effect.dart';
+import '../domain/effect/move/lock_on_effect.dart';
 import '../domain/effect/move/magic_coat_effect.dart';
+import '../domain/effect/move/no_retreat_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
 import '../domain/effect/move/snatch_effect.dart';
 import '../domain/effect/move/substitute_effect.dart';
 import '../domain/effect/move/taunt_effect.dart';
 import '../domain/effect/move/torment_effect.dart';
+import '../domain/effect/move/triple_arrows_effect.dart';
 import '../domain/effect/move/two_turn_charge_effect.dart';
 import '../domain/effect/side/doubles_guard_effects.dart';
 import '../domain/effect/side/hazard_effects.dart';
@@ -2149,8 +2153,7 @@ BattleMoveBehaviorResolution _resolveTripleArrows(
     state: basic.state,
     rng: basic.rng,
     events: basic.events,
-    effect: GenericBattleEffect(
-      id: 'triple_arrows',
+    effect: TripleArrowsEffect(
       scope: BattlerBattleEffectScope(context.user),
       remainingTurns: 4,
     ),
@@ -2960,9 +2963,11 @@ BattleMoveBehaviorResolution _resolveLockOn(
     state: prepared.state,
     rng: prepared.rng,
     events: prepared.events,
-    effect: GenericBattleEffect(
-      id: 'lock_on',
+    effect: LockOnEffect(
       scope: BattlerBattleEffectScope(context.user),
+      target: prepared.psdkTargets.isEmpty
+          ? context.target
+          : prepared.psdkTargets.first,
       remainingTurns: 2,
     ),
   );
@@ -3553,6 +3558,7 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
         effects: battler.effects.addEffect(
           _targetMarkerEffect(
             method: context.move.battleEngineMethod,
+            origin: context.move.id,
             effectId: effectId,
             target: targetSlot,
           ),
@@ -3851,11 +3857,16 @@ BattleMoveBehaviorResolution _resolveUserBankMarker(
     state: prepared.state,
     rng: prepared.rng,
     events: prepared.events,
-    effect: GenericBattleEffect(
-      id: effectId,
-      scope: BankBattleEffectScope(context.user.bank),
-      remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
-    ),
+    effect: effectId == 'no_retreat'
+        ? NoRetreatEffect(
+            scope: BattlerBattleEffectScope(context.user),
+            remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
+          )
+        : GenericBattleEffect(
+            id: effectId,
+            scope: BankBattleEffectScope(context.user.bank),
+            remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
+          ),
   );
 }
 
@@ -4109,12 +4120,18 @@ int? _markerTurnCount(String battleEngineMethod) {
 
 BattleEffect _targetMarkerEffect({
   required String method,
+  required String origin,
   required String effectId,
   required PsdkBattleSlotRef target,
 }) {
   final scope = BattlerBattleEffectScope(target);
   final remainingTurns = _markerTurnCount(method);
   return switch (effectId) {
+    'ability_suppressed' => AbilitySuppressedEffect(
+        scope: scope,
+        origin: origin,
+        remainingTurns: remainingTurns,
+      ),
     'embargo' =>
       EmbargoEffect(scope: scope, remainingTurns: remainingTurns ?? 5),
     'taunt' => TauntEffect(scope: scope, remainingTurns: remainingTurns ?? 3),

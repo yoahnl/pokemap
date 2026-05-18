@@ -1,7 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_battle/src/domain/effect/move/disable_effect.dart';
 import 'package:map_battle/src/domain/effect/move/encore_effect.dart';
-import 'package:map_battle/src/domain/effect/move/force_next_move_base_effect.dart';
 import 'package:map_battle/src/domain/effect/move/taunt_effect.dart';
 import 'package:test/test.dart';
 
