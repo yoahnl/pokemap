@@ -232,7 +232,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_eerie_spell': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_eerie_spell',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_electro_shot': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_electro_shot',
@@ -272,7 +272,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_glaive_rush': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_glaive_rush',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_glitzy_glow': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_glitzy_glow',
@@ -296,7 +296,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_jaw_lock': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_jaw_lock',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_lash_out': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.lashOut',
@@ -406,7 +406,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_triple_arrows': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_triple_arrows',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_upper_hand': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_upper_hand)',
@@ -880,7 +880,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_substitute': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_substitute',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_sucker_punch': _KnownDartBehavior(
     dartBehavior: 'ActionGatedMoveBehavior.suckerPunch',
