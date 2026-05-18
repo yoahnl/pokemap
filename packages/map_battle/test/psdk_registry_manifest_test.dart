@@ -382,7 +382,7 @@ void main() {
           reason: effectName,
         );
       }
-      expect(byFamilyAndName['status:Status']?.status, PsdkPortStatus.missing);
+      expect(byFamilyAndName['status:Status']?.status, PsdkPortStatus.ported);
     });
 
     test('effect parity promotes selection lock move effects', () async {

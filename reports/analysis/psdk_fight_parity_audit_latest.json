@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 194,
+      "ported": 195,
       "partial": 19,
-      "missing": 269
+      "missing": 268
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9316,9 +9316,9 @@
         "missing": 32
       },
       "status": {
-        "ported": 6,
+        "ported": 7,
         "partial": 0,
-        "missing": 1
+        "missing": 0
       },
       "mechanics": {
         "ported": 4,
@@ -12620,7 +12620,7 @@
       {
         "effectName": "Status",
         "family": "status",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/03 Status Effects/001 StatusBase.rb",
         "hookFamilies": []
       },

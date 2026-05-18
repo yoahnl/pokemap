@@ -795,6 +795,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Snow',
     'Spikes',
     'SpikyShield',
+    'Status',
     'StealthRock',
     'StickyWeb',
     'Stockpile',
