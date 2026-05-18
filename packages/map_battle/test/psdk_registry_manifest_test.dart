@@ -812,10 +812,12 @@ void main() {
         byMethod['s_ice_spinner']!.dartBehavior,
         'StaticBasicMoveRegistry.s_ice_spinner',
       );
+      expect(byMethod['s_ice_spinner']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_steel_roller']!.dartBehavior,
         'StaticBasicMoveRegistry.s_steel_roller',
       );
+      expect(byMethod['s_steel_roller']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_sky_drop']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_jump_kick']!.dartBehavior,
@@ -892,7 +894,7 @@ void main() {
       );
       expect(
         byMethod['s_super_duper_effective']!.status,
-        PsdkPortStatus.partial,
+        PsdkPortStatus.ported,
       );
       expect(
         byMethod['s_super_duper_effective']!.dartBehavior,
@@ -923,7 +925,7 @@ void main() {
         byMethod['s_poltergeist']!.dartBehavior,
         'StaticBasicMoveRegistry.s_poltergeist',
       );
-      expect(byMethod['s_stomp']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_stomp']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_stomp']!.dartBehavior,
         'StaticBasicMoveRegistry.s_stomp',
@@ -948,7 +950,7 @@ void main() {
         byMethod['s_glitzy_glow']!.dartBehavior,
         'StaticBasicMoveRegistry.s_glitzy_glow',
       );
-      expect(byMethod['s_grav_apple']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_grav_apple']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_grav_apple']!.dartBehavior,
         'StaticBasicMoveRegistry.s_grav_apple',
