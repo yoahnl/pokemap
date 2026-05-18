@@ -58,6 +58,16 @@ void main() {
             dartBehavior: 'PartialBehavior',
             status: PsdkPortStatus.partial,
           ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_after_you',
+            rubyClass: 'AfterYou',
+            rubyPath: 'after_you.rb',
+            dartBehavior: 'ActionQueueBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.actionOrder,
+            ],
+          ),
         ],
         effects: const <PsdkEffectParityEntry>[
           PsdkEffectParityEntry(
@@ -82,7 +92,7 @@ void main() {
       expect(audit.attackMetrics.pasFait, 1);
       expect(audit.attackMetrics.unknownMethods, 1);
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 1);
-      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 1);
+      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 2);
       expect(audit.effectMetrics.totalEffects, 2);
       expect(
         audit.effectMetrics.byFamilyAndStatus['move']![PsdkPortStatus.partial],
@@ -101,12 +111,29 @@ void main() {
       );
       final methods = (json['methods']! as Map<String, Object?>)['entries']!
           as List<Object?>;
-      expect(methods, hasLength(2));
+      expect(methods, hasLength(3));
       expect(
         methods.cast<Map<String, Object?>>().singleWhere(
               (entry) => entry['battleEngineMethod'] == 's_done',
             ),
         containsPair('rubyPath', 'done.rb'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_after_you',
+            ),
+        containsPair('methodBatch', 'action_queue_copy_call'),
+      );
+      final methodBatches = (json['methods']!
+          as Map<String, Object?>)['backlogBatches']! as List<Object?>;
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'action_queue_copy_call'),
+            containsPair('methods', <String>['s_after_you']),
+          ),
+        ),
       );
       final effects = (json['effects']! as Map<String, Object?>)['entries']!
           as List<Object?>;
@@ -129,6 +156,9 @@ void main() {
       expect(markdown, contains('| s_partial | 1 |'));
       expect(markdown, contains('### Partial Methods by Dependency'));
       expect(markdown, contains('| no_dependency_declared | 1 |'));
+      expect(markdown, contains('### Partial Method Batches'));
+      expect(markdown, contains('| Action queue / copy-call residuals | 1 |'));
+      expect(markdown, contains('`s_after_you`'));
       expect(markdown, contains('### Missing Effects by Family'));
       expect(markdown, contains('| ability | 1 |'));
       expect(

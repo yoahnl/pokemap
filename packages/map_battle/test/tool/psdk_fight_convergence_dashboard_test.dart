@@ -27,6 +27,20 @@ void main() {
               'partial': 265,
               'missing': 0,
             },
+            'backlogBatches': <Object?>[
+              <String, Object?>{
+                'id': 'action_queue_copy_call',
+                'label': 'Action queue / copy-call residuals',
+                'count': 2,
+                'methods': <Object?>['s_after_you', 's_assist'],
+              },
+              <String, Object?>{
+                'id': 'audit_manifest_evidence',
+                'label': 'Audit manifest evidence only',
+                'count': 1,
+                'methods': <Object?>['s_basic'],
+              },
+            ],
           },
           'effects': <String, Object?>{
             'totalEffects': 482,
@@ -121,6 +135,15 @@ void main() {
       expect(markdown, contains('| Methods | 65 / 330 | 19.7% | 265 |'));
       expect(markdown, contains('| Effects | 0 / 482 | 0.0% | 482 |'));
       expect(markdown, contains('| ability | 0 | 3 | 251 | 254 |'));
+      expect(markdown, contains('## Method Backlog'));
+      expect(
+        markdown,
+        contains(
+          '| Action queue / copy-call residuals | 2 | '
+          '`s_after_you`, `s_assist` |',
+        ),
+      );
+      expect(markdown, contains('| Audit manifest evidence only | 1 |'));
       expect(markdown, contains('## Ability Effect Backlog'));
       expect(markdown, contains('| damage_change | 0 | 1 | 1 |'));
       expect(markdown, contains('| switch | 1 | 0 | 1 |'));

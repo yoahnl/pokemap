@@ -70,6 +70,7 @@ String renderPsdkFightConvergenceDashboard(
       '| $family | $ported | $partial | $missing | $remaining |',
     );
   }
+  _writeMethodBacklog(buffer, methods);
   _writeAbilityEffectBacklog(buffer, effects);
   _writeItemEffectBacklog(buffer, effects);
 
@@ -101,6 +102,33 @@ String renderPsdkFightConvergenceDashboard(
   }
 
   return buffer.toString();
+}
+
+void _writeMethodBacklog(
+  StringBuffer buffer,
+  Map<String, Object?> methods,
+) {
+  final batches = _list(methods['backlogBatches'])
+      .map(_map)
+      .where((batch) => _int(batch['count']) > 0)
+      .toList(growable: false);
+  if (batches.isEmpty) {
+    return;
+  }
+
+  buffer
+    ..writeln()
+    ..writeln('## Method Backlog')
+    ..writeln()
+    ..writeln('| Batch | Partial methods | Methods |')
+    ..writeln('| --- | ---: | --- |');
+  for (final batch in batches) {
+    final methods = _stringList(batch['methods']);
+    buffer.writeln(
+      '| ${_string(batch['label'])} | ${_int(batch['count'])} | '
+      '${methods.map((method) => '`$method`').join(', ')} |',
+    );
+  }
 }
 
 void _writeItemEffectBacklog(
