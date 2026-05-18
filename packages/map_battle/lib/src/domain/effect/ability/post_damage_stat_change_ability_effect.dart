@@ -13,6 +13,7 @@ enum AbilityPostDamageStatCondition {
   waterIncoming,
   fireOrWaterIncoming,
   darkIncoming,
+  bugDarkOrGhostIncoming,
   contactIncoming,
 }
 
@@ -103,9 +104,61 @@ final class PostDamageStatChangeAbilityEffect extends BattleAbilityEffect {
         context.move.type == 'fire' || context.move.type == 'water',
       AbilityPostDamageStatCondition.darkIncoming =>
         context.move.type == 'dark',
+      AbilityPostDamageStatCondition.bugDarkOrGhostIncoming =>
+        context.move.type == 'bug' ||
+            context.move.type == 'dark' ||
+            context.move.type == 'ghost',
       AbilityPostDamageStatCondition.contactIncoming =>
         context.move.flags.contact,
     };
+  }
+}
+
+final class RattledEffect extends PostDamageStatChangeAbilityEffect {
+  const RattledEffect({
+    required super.scope,
+  }) : super(
+          abilityId: 'rattled',
+          condition: AbilityPostDamageStatCondition.bugDarkOrGhostIncoming,
+          changes: const <String, int>{'speed': 1},
+        );
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return RattledEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectStatChangePostResult? onStatChangePost(
+    BattleEffectStatChangeContext context,
+  ) {
+    if (context.owner != context.target) {
+      return null;
+    }
+    if (context.sourceAbilityId != 'intimidate') {
+      return null;
+    }
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      stat: 'speed',
+      stages: 1,
+      move: context.move,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectStatChangePostResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
   }
 }
 
