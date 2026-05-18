@@ -758,7 +758,7 @@ void main() {
           'StaticBasicMoveRegistry.partialBasic($method)',
         );
       }
-      expect(byMethod['s_flame_burst']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_flame_burst']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_flame_burst']!.dartBehavior,
         'StaticBasicMoveRegistry.s_flame_burst',
@@ -900,7 +900,7 @@ void main() {
         byMethod['s_super_duper_effective']!.dartBehavior,
         'StaticBasicMoveRegistry.s_super_duper_effective',
       );
-      expect(byMethod['s_brick_break']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_brick_break']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_brick_break']!.dartBehavior,
         'StaticBasicMoveRegistry.s_brick_break',
@@ -940,12 +940,12 @@ void main() {
         byMethod['s_sappy_seed']!.dartBehavior,
         'StaticBasicMoveRegistry.s_sappy_seed',
       );
-      expect(byMethod['s_baddy_bad']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_baddy_bad']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_baddy_bad']!.dartBehavior,
         'StaticBasicMoveRegistry.s_baddy_bad',
       );
-      expect(byMethod['s_glitzy_glow']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_glitzy_glow']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_glitzy_glow']!.dartBehavior,
         'StaticBasicMoveRegistry.s_glitzy_glow',

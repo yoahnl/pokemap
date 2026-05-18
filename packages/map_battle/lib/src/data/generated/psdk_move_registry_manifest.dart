@@ -190,8 +190,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BaddyBad',
     rubyPath: '10 Move/2 Definitions/300 GlitzyGlow.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_baddy_bad',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_basic',
@@ -312,8 +312,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BrickBreak',
     rubyPath: '10 Move/2 Definitions/300 BrickBreak.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_brick_break',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_brine',
@@ -840,8 +840,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FlameBurst',
     rubyPath: '10 Move/2 Definitions/300 FlameBurst.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_flame_burst',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_fling',
@@ -1055,8 +1055,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'GlitzyGlow',
     rubyPath: '10 Move/2 Definitions/300 GlitzyGlow.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_glitzy_glow',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_grassy_glide',
