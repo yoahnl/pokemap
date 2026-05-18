@@ -2068,6 +2068,61 @@ void main() {
           toxicChainMiss.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
     });
 
+    test('Cursed Body disables contact moves on its PSDK roll', () {
+      const contactFlags = BattleMoveFlags(contact: true);
+      const hitSeeds = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 0,
+      );
+      const missSeeds = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 9,
+      );
+
+      final disabled = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cursed_body',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final missed = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cursed_body',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contactFlags,
+        rngSeeds: missSeeds,
+      );
+      final nonContact = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cursed_body',
+        category: PsdkBattleMoveCategory.physical,
+        rngSeeds: hitSeeds,
+      );
+
+      expect(
+        disabled.state.battlerAt(psdkPlayerSlot).effects.contains('disable'),
+        isTrue,
+      );
+      expect(
+        disabled.events.whereType<PsdkBattleEffectEvent>().single.effectId,
+        'disable',
+      );
+      expect(
+        disabled.events.whereType<PsdkBattleEffectEvent>().single.reason,
+        'ability:cursed_body',
+      );
+      expect(
+        missed.state.battlerAt(psdkPlayerSlot).effects.contains('disable'),
+        isFalse,
+      );
+      expect(
+        nonContact.state.battlerAt(psdkPlayerSlot).effects.contains('disable'),
+        isFalse,
+      );
+    });
+
     test('Flash Fire prevents burn status in addition to Fire damage', () {
       final result = const BattleStatusChangeHandler().applyMajorStatus(
         context: BattleHandlerContext(
@@ -2236,6 +2291,20 @@ void main() {
           reason: entry.abilityId,
         );
       }
+
+      final flowerVeilGrass = _applyPlayerStatDrop(
+        playerAbilityId: 'flower_veil',
+        playerTypes: const PsdkBattleTypes(primary: 'grass'),
+        stat: 'defense',
+      );
+      final flowerVeilNonGrass = _applyPlayerStatDrop(
+        playerAbilityId: 'flower_veil',
+        stat: 'defense',
+      );
+
+      expect(flowerVeilGrass.applied, isFalse);
+      expect(flowerVeilGrass.reason, 'ability:flower_veil');
+      expect(flowerVeilNonGrass.applied, isTrue);
     });
 
     test('stat drop prevention abilities allow unmatched and self drops', () {
@@ -2388,6 +2457,122 @@ void main() {
         result.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
         'effect:water_veil',
       );
+    });
+
+    test('advanced status prevention abilities follow PSDK gates', () {
+      final sunLeafGuard = _applyStatusToPlayer(
+        playerAbilityId: 'leaf_guard',
+        status: PsdkBattleMajorStatus.burn,
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sunny,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+      final inactiveLeafGuard = _applyStatusToPlayer(
+        playerAbilityId: 'leaf_guard',
+        status: PsdkBattleMajorStatus.burn,
+      );
+      final sweetVeil = _applyStatusToPlayer(
+        playerAbilityId: 'sweet_veil',
+        status: PsdkBattleMajorStatus.sleep,
+      );
+      final pastelVeil = _applyStatusToPlayer(
+        playerAbilityId: 'pastel_veil',
+        status: PsdkBattleMajorStatus.toxic,
+      );
+      final flowerVeilGrass = _applyStatusToPlayer(
+        playerAbilityId: 'flower_veil',
+        playerTypes: const PsdkBattleTypes(primary: 'grass'),
+        status: PsdkBattleMajorStatus.paralysis,
+      );
+      final flowerVeilNonGrass = _applyStatusToPlayer(
+        playerAbilityId: 'flower_veil',
+        status: PsdkBattleMajorStatus.paralysis,
+      );
+
+      expect(sunLeafGuard.applied, isFalse);
+      expect(sunLeafGuard.reason, 'ability:leaf_guard');
+      expect(inactiveLeafGuard.applied, isTrue);
+      expect(sweetVeil.applied, isFalse);
+      expect(sweetVeil.reason, 'ability:sweet_veil');
+      expect(pastelVeil.applied, isFalse);
+      expect(pastelVeil.reason, 'ability:pastel_veil');
+      expect(flowerVeilGrass.applied, isFalse);
+      expect(flowerVeilGrass.reason, 'ability:flower_veil');
+      expect(flowerVeilNonGrass.applied, isTrue);
+    });
+
+    test('Water Bubble and Purifying Salt combine status and damage gates', () {
+      final waterBaseline = _calculatedDamage(moveType: 'water');
+      final waterBubbleWater = _calculatedDamage(
+        abilityId: 'water_bubble',
+        moveType: 'water',
+      );
+      final fireBaseline = _calculatedDamage(moveType: 'fire');
+      final waterBubbleFire = _calculatedDamage(
+        opponentAbilityId: 'water_bubble',
+        moveType: 'fire',
+      );
+      final ghostBaseline = _calculatedDamage(moveType: 'ghost');
+      final ghostTargetBaseline = _calculatedDamage(
+        moveType: 'ghost',
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+      );
+      final purifyingGhost = _calculatedDamage(
+        opponentAbilityId: 'purifying_salt',
+        moveType: 'ghost',
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+      );
+      final waterBubbleBurn = _applyStatusToPlayer(
+        playerAbilityId: 'water_bubble',
+        status: PsdkBattleMajorStatus.burn,
+      );
+      final purifyingSleep = _applyStatusToPlayer(
+        playerAbilityId: 'purifying_salt',
+        status: PsdkBattleMajorStatus.sleep,
+      );
+      final purifyingSalt = _abilityEffectForOpponent('purifying_salt');
+      final statusMove = purifyingSalt.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _definition(
+            id: 'sleep_powder',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            statuses: <PsdkBattleMoveStatus>[
+              PsdkBattleMoveStatus(
+                status: PsdkBattleMajorStatus.sleep,
+                chance: 100,
+              ),
+            ],
+          ),
+        ),
+      );
+      final neutralMove = purifyingSalt.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _definition(
+            id: 'growl',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+          ),
+        ),
+      );
+
+      expect(waterBubbleWater, greaterThan(waterBaseline));
+      expect(waterBubbleFire, lessThan(fireBaseline));
+      expect(ghostBaseline, 0);
+      expect(purifyingGhost, lessThan(ghostTargetBaseline));
+      expect(waterBubbleBurn.applied, isFalse);
+      expect(waterBubbleBurn.reason, 'ability:water_bubble');
+      expect(purifyingSleep.applied, isFalse);
+      expect(purifyingSleep.reason, 'ability:purifying_salt');
+      expect(statusMove, BattleMoveFailureReason.immunity);
+      expect(neutralMove, isNull);
     });
 
     test('Comatose prevents new statuses without curing bypassed statuses', () {
@@ -3004,6 +3189,7 @@ BattleEffect _abilityEffectForOpponent(String abilityId) {
 BattleHandlerResult _applyPlayerStatDrop({
   required String playerAbilityId,
   required String stat,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleSlotRef user = psdkOpponentSlot,
 }) {
   final state = PsdkBattleState.fromSetup(
@@ -3011,6 +3197,7 @@ BattleHandlerResult _applyPlayerStatDrop({
       player: _combatant(
         id: 'player',
         abilityId: playerAbilityId,
+        types: playerTypes,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
@@ -3039,6 +3226,47 @@ BattleHandlerResult _applyPlayerStatDrop({
   );
 }
 
+BattleHandlerResult _applyStatusToPlayer({
+  required String playerAbilityId,
+  required PsdkBattleMajorStatus status,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: playerAbilityId,
+        types: playerTypes,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'status_probe', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+      field: field,
+    ).psdkSetup,
+  );
+
+  return const BattleStatusChangeHandler().applyMajorStatus(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkOpponentSlot,
+    ),
+    target: psdkPlayerSlot,
+    moveId: 'status_probe',
+    status: status,
+  );
+}
+
 BattleMoveDefinition _definition({
   required String id,
   String type = 'normal',
@@ -3046,6 +3274,7 @@ BattleMoveDefinition _definition({
   required int power,
   String battleEngineMethod = 's_basic',
   BattleMoveFlags flags = const BattleMoveFlags(),
+  List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
 }) {
   return BattleMoveDefinition(
     id: id,
@@ -3060,5 +3289,6 @@ BattleMoveDefinition _definition({
     battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
     flags: flags,
+    statuses: statuses,
   );
 }

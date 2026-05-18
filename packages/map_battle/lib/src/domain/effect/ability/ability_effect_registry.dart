@@ -10,6 +10,7 @@ import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
 import 'apply_status_to_move_target_ability_effect.dart';
 import 'cloud_nine_effect.dart';
+import 'contact_disable_ability_effect.dart';
 import 'contact_punish_ability_effect.dart';
 import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
@@ -507,6 +508,40 @@ final class AbilityEffectRegistry {
             PsdkBattleMajorStatus.burn,
           },
         ),
+    'water_bubble': ({required scope}) => WaterBubbleEffect(scope: scope),
+    'purifying_salt': ({required scope}) => PurifyingSaltEffect(scope: scope),
+    'leaf_guard': ({required scope}) => StatusPreventionAbilityEffect(
+          abilityId: 'leaf_guard',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.poison,
+            PsdkBattleMajorStatus.toxic,
+            PsdkBattleMajorStatus.sleep,
+            PsdkBattleMajorStatus.freeze,
+            PsdkBattleMajorStatus.paralysis,
+            PsdkBattleMajorStatus.burn,
+          },
+          requiresSunnyWeather: true,
+        ),
+    'sweet_veil': ({required scope}) => StatusPreventionAbilityEffect(
+          abilityId: 'sweet_veil',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.sleep,
+          },
+          preventionScope: StatusPreventionScope.bank,
+        ),
+    'pastel_veil': ({required scope}) => StatusPreventionAbilityEffect(
+          abilityId: 'pastel_veil',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.poison,
+            PsdkBattleMajorStatus.toxic,
+          },
+          preventionScope: StatusPreventionScope.bank,
+          curesBankPoisonOnSwitch: true,
+        ),
+    'flower_veil': ({required scope}) => FlowerVeilEffect(scope: scope),
     'comatose': ({required scope}) => StatusImmunityEffect(
           abilityId: 'comatose',
           scope: scope,
@@ -567,6 +602,10 @@ final class AbilityEffectRegistry {
         ),
     'effect_spore': ({required scope}) =>
         ContactStatusAbilityEffect.effectSpore(scope: scope),
+    'cursed_body': ({required scope}) => ContactDisableAbilityEffect(
+          abilityId: 'cursed_body',
+          scope: scope,
+        ),
     'poison_touch': ({required scope}) => ApplyStatusToMoveTargetAbilityEffect(
           abilityId: 'poison_touch',
           scope: scope,

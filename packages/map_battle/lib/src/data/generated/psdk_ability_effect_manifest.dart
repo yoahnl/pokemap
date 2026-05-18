@@ -236,7 +236,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'cursed_body',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Cursed Body.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ContactDisableAbilityEffect.cursedBody',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'cute_charm',
@@ -428,7 +429,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'flower_veil',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Flower Veil.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'FlowerVeilEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'fluffy',
@@ -705,7 +707,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'leaf_guard',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Leaf Guard.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatusPreventionAbilityEffect.leafGuard',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'levitate',
@@ -937,7 +940,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'pastel_veil',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Pastel Veil.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatusPreventionAbilityEffect.pastelVeil',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'perish_body',
@@ -1070,7 +1074,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'purifying_salt',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 PurifyingSalt.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PurifyingSaltEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'quark_drive',
@@ -1475,7 +1480,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sweet_veil',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sweet Veil.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatusPreventionAbilityEffect.sweetVeil',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'swift_swim',
@@ -1705,7 +1711,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'water_bubble',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Water Bubble.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'WaterBubbleEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'water_compaction',
