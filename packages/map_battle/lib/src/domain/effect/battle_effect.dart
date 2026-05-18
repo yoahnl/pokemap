@@ -27,6 +27,9 @@ abstract class BattleEffect {
 
   bool get isTurnScoped => remainingTurns == 0;
 
+  /// PSDK marker used by effects such as Focus Punch while a move is charging.
+  bool get preparingAttack => false;
+
   BattleEffect copyWithRemainingTurns(int remainingTurns);
 
   BattleMoveFailureReason? onMovePreventionTarget(

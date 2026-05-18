@@ -16,6 +16,8 @@ import 'move/encore_effect.dart';
 import 'move/endure_effect.dart';
 import 'move/flinch_effect.dart';
 import 'move/force_next_move_base_effect.dart';
+import 'move/focus_punch_effect.dart';
+import 'move/happy_hour_effect.dart';
 import 'move/heal_block_effect.dart';
 import 'move/imprison_effect.dart';
 import 'move/ingrain_effect.dart';
@@ -74,6 +76,8 @@ final class BattleEffectRegistry {
       'flinch' => const FlinchEffect(scope: LocalBattleEffectScope()),
       'force_next_move_base' =>
         const ForceNextMoveBaseEffect(scope: LocalBattleEffectScope()),
+      'focus_punch' => const FocusPunchEffect(scope: LocalBattleEffectScope()),
+      'happy_hour' => const HappyHourEffect(scope: LocalBattleEffectScope()),
       'heal_block' => const HealBlockEffect(scope: LocalBattleEffectScope()),
       'imprison' => ImprisonEffect(scope: const LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
