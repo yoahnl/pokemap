@@ -620,7 +620,7 @@ void main() {
         byMethod['s_a_fang']!.dartBehavior,
         'BasicDamageSpecializationMoveBehavior.fangs',
       );
-      expect(byMethod['s_false_swipe']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_false_swipe']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_false_swipe']!.dartBehavior,
         'BasicDamageSpecializationMoveBehavior.falseSwipe',
