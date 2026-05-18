@@ -486,6 +486,8 @@ PsdkBattleMoveData _moveFromJson(Map<String, Object?> json) {
     ),
     protectable: _optionalBool(json, 'protectable') ?? true,
     sound: _optionalBool(json, 'sound') ?? false,
+    bite: _optionalBool(json, 'bite') ?? false,
+    pulse: _optionalBool(json, 'pulse') ?? false,
   );
 }
 

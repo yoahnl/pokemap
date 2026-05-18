@@ -178,7 +178,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'comatose',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Comatose.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatusImmunityEffect.comatose',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'commander',
@@ -269,7 +270,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'dazzling',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Queenly Majesty - Dazzling.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PriorityMovePreventionAbilityEffect.dazzling',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'defeatist',
@@ -769,7 +771,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'mega_launcher',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mega Launcher.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveShapePowerAbilityEffect.megaLauncher',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'mimicry',
@@ -1064,7 +1067,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'queenly_majesty',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Queenly Majesty - Dazzling.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PriorityMovePreventionAbilityEffect.queenlyMajesty',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'quick_feet',
@@ -1405,7 +1409,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'strong_jaw',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Strong Jaw.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveShapePowerAbilityEffect.strongJaw',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sturdy',

@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 226,
+      "ported": 230,
       "partial": 19,
-      "missing": 237
+      "missing": 233
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 75,
+        "ported": 79,
         "partial": 1,
-        "missing": 178
+        "missing": 174
       },
       "move": {
         "ported": 80,
@@ -10064,7 +10064,7 @@
       {
         "effectName": "Comatose",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Comatose.rb",
         "hookFamilies": [
           "status_prevention"
@@ -11553,7 +11553,7 @@
       {
         "effectName": "MegaLauncher",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mega Launcher.rb",
         "hookFamilies": []
       },
@@ -12167,7 +12167,7 @@
       {
         "effectName": "QueenlyMajesty",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Queenly Majesty - Dazzling.rb",
         "hookFamilies": [
           "move_prevention"
@@ -12892,7 +12892,7 @@
       {
         "effectName": "StrongJaw",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Strong Jaw.rb",
         "hookFamilies": []
       },

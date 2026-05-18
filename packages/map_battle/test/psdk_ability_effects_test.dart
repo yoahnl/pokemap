@@ -1155,6 +1155,16 @@ void main() {
           matchingFlags: BattleMoveFlags(sound: true),
           category: PsdkBattleMoveCategory.special,
         ),
+        (
+          abilityId: 'strong_jaw',
+          matchingFlags: BattleMoveFlags(bite: true),
+          category: PsdkBattleMoveCategory.physical,
+        ),
+        (
+          abilityId: 'mega_launcher',
+          matchingFlags: BattleMoveFlags(pulse: true),
+          category: PsdkBattleMoveCategory.special,
+        ),
       ];
 
       for (final entry in cases) {
@@ -1418,6 +1428,66 @@ void main() {
           _damageEvents(neutral, moveId: '${entry.abilityId}_neutral'),
           hasLength(1),
           reason: entry.abilityId,
+        );
+      }
+    });
+
+    test('priority blocker abilities stop opposing protectable priority moves',
+        () {
+      for (final abilityId in <String>[
+        'queenly_majesty',
+        'dazzling',
+      ]) {
+        final blocked = _runMove(
+          opponentAbilityId: abilityId,
+          playerMove: _move(
+            id: '${abilityId}_quick_attack',
+            power: 40,
+            priority: 1,
+          ),
+        );
+        final neutralPriority = _runMove(
+          opponentAbilityId: abilityId,
+          playerMove: _move(
+            id: '${abilityId}_tackle',
+            power: 40,
+          ),
+        );
+        final unprotectablePriority = _runMove(
+          opponentAbilityId: abilityId,
+          playerMove: _move(
+            id: '${abilityId}_unprotectable',
+            power: 40,
+            priority: 1,
+            protectable: false,
+          ),
+        );
+
+        expect(
+          _damageEvents(blocked, moveId: '${abilityId}_quick_attack'),
+          isEmpty,
+          reason: abilityId,
+        );
+        expect(
+          _eventsFor(blocked, moveId: '${abilityId}_quick_attack')
+              .whereType<PsdkBattleMoveFailedEvent>()
+              .single
+              .reason,
+          BattleMoveFailureReason.immunity.jsonName,
+          reason: abilityId,
+        );
+        expect(
+          _damageEvents(neutralPriority, moveId: '${abilityId}_tackle'),
+          hasLength(1),
+          reason: abilityId,
+        );
+        expect(
+          _damageEvents(
+            unprotectablePriority,
+            moveId: '${abilityId}_unprotectable',
+          ),
+          hasLength(1),
+          reason: abilityId,
         );
       }
     });
@@ -1722,6 +1792,12 @@ void main() {
         (abilityId: 'limber', status: PsdkBattleMajorStatus.paralysis),
         (abilityId: 'magma_armor', status: PsdkBattleMajorStatus.freeze),
         (abilityId: 'water_veil', status: PsdkBattleMajorStatus.burn),
+        (abilityId: 'comatose', status: PsdkBattleMajorStatus.poison),
+        (abilityId: 'comatose', status: PsdkBattleMajorStatus.toxic),
+        (abilityId: 'comatose', status: PsdkBattleMajorStatus.burn),
+        (abilityId: 'comatose', status: PsdkBattleMajorStatus.paralysis),
+        (abilityId: 'comatose', status: PsdkBattleMajorStatus.freeze),
+        (abilityId: 'comatose', status: PsdkBattleMajorStatus.sleep),
       ];
 
       for (final entry in cases) {
@@ -1788,6 +1864,54 @@ void main() {
         result.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
         'effect:water_veil',
       );
+    });
+
+    test('Comatose prevents new statuses without curing bypassed statuses', () {
+      final switchIn = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'comatose',
+        playerMajorStatus: PsdkBattleMajorStatus.sleep,
+      );
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'comatose',
+            majorStatus: PsdkBattleMajorStatus.sleep,
+            move: _move(id: 'tackle', power: 40),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'tackle', power: 40),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+      final effect = state.battlerAt(psdkPlayerSlot).abilityEffects.single;
+      final postStatus = effect.onPostStatusChange(
+        BattleEffectStatusChangeContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          owner: psdkPlayerSlot,
+          user: psdkOpponentSlot,
+          target: psdkPlayerSlot,
+          status: PsdkBattleMajorStatus.sleep,
+          cured: false,
+          moveId: 'bypass_probe',
+        ),
+      );
+
+      expect(switchIn.applied, isFalse);
+      expect(
+        switchIn.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.sleep,
+      );
+      expect(postStatus, isNull);
     });
 
     test('non-volatile status immunity abilities cure bypassed status hooks',
@@ -2119,8 +2243,11 @@ PsdkBattleMoveData _move({
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   required int power,
   int accuracy = 100,
+  int priority = 0,
   String battleEngineMethod = 's_basic',
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
+  bool protectable = true,
+  bool sound = false,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -2131,10 +2258,12 @@ PsdkBattleMoveData _move({
     power: power,
     accuracy: accuracy,
     pp: 35,
-    priority: 0,
+    priority: priority,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
     target: target,
+    protectable: protectable,
+    sound: sound,
   );
 }
 

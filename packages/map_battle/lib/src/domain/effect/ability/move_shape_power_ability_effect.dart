@@ -8,6 +8,8 @@ enum AbilityMovePowerShape {
   slicing,
   sound,
   technician,
+  bite,
+  pulse,
 }
 
 final class MoveShapePowerAbilityEffect extends BattleAbilityEffect {
@@ -44,6 +46,8 @@ final class MoveShapePowerAbilityEffect extends BattleAbilityEffect {
       AbilityMovePowerShape.slicing => flags.slicing,
       AbilityMovePowerShape.sound => flags.sound,
       AbilityMovePowerShape.technician => context.move.power <= 60,
+      AbilityMovePowerShape.bite => flags.bite,
+      AbilityMovePowerShape.pulse => flags.pulse,
     };
   }
 }
