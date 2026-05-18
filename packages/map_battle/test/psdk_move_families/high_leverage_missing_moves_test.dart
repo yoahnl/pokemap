@@ -1483,7 +1483,6 @@ void main() {
       (method: 's_attract', moveId: 'attract', effectId: 'attract'),
       (method: 's_imprison', moveId: 'imprison', effectId: 'imprison'),
       (method: 's_nightmare', moveId: 'nightmare', effectId: 'nightmare'),
-      (method: 's_quash', moveId: 'quash', effectId: 'quash'),
     ]) {
       test('${entry.method} installs a local target marker', () {
         final result = _runMove(

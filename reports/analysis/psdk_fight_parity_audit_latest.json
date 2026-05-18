@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 343,
-    "partiel": 385,
+    "fait": 354,
+    "partiel": 374,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -99,9 +99,9 @@
       {
         "moveId": "after_you",
         "battleEngineMethod": "s_after_you",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/after_you.json"
       },
       {
@@ -227,9 +227,9 @@
       {
         "moveId": "assist",
         "battleEngineMethod": "s_assist",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/assist.json"
       },
       {
@@ -867,9 +867,9 @@
       {
         "moveId": "copycat",
         "battleEngineMethod": "s_mirror_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/copycat.json"
       },
       {
@@ -2611,9 +2611,9 @@
       {
         "moveId": "instruct",
         "battleEngineMethod": "s_instruct",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/instruct.json"
       },
       {
@@ -2987,9 +2987,9 @@
       {
         "moveId": "me_first",
         "battleEngineMethod": "s_me_first",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/me_first.json"
       },
       {
@@ -3091,9 +3091,9 @@
       {
         "moveId": "metronome",
         "battleEngineMethod": "s_metronome",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/metronome.json"
       },
       {
@@ -3107,9 +3107,9 @@
       {
         "moveId": "mimic",
         "battleEngineMethod": "s_mimic",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mimic.json"
       },
       {
@@ -3155,9 +3155,9 @@
       {
         "moveId": "mirror_move",
         "battleEngineMethod": "s_mirror_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mirror_move.json"
       },
       {
@@ -3867,9 +3867,9 @@
       {
         "moveId": "quash",
         "battleEngineMethod": "s_quash",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/quash.json"
       },
       {
@@ -4507,9 +4507,9 @@
       {
         "moveId": "sketch",
         "battleEngineMethod": "s_sketch",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sketch.json"
       },
       {
@@ -4587,9 +4587,9 @@
       {
         "moveId": "sleep_talk",
         "battleEngineMethod": "s_sleep_talk",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sleep_talk.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 149,
-      "partial": 181,
+      "ported": 159,
+      "partial": 171,
       "missing": 0
     },
     "entries": [
@@ -5936,12 +5936,9 @@
         "battleEngineMethod": "s_after_you",
         "rubyClass": "AfterYou",
         "rubyPath": "10 Move/2 Definitions/300 After you.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_after_you)",
-        "status": "partial",
-        "dependencies": [
-          "actionOrder"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "dartBehavior": "StaticBasicMoveRegistry.afterYou",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_alluring_voice",
@@ -5978,13 +5975,8 @@
         "rubyClass": "Assist",
         "rubyPath": "10 Move/2 Definitions/300 Assist.rb",
         "dartBehavior": "CopyCallMoveBehavior.assist",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_assurance",
@@ -6142,7 +6134,7 @@
           "history",
           "effects"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_bind",
@@ -6472,7 +6464,7 @@
           "ability",
           "item"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "target_resolution_doubles"
       },
       {
         "battleEngineMethod": "s_dragon_cheer",
@@ -6552,10 +6544,9 @@
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_electrify)",
         "status": "partial",
         "dependencies": [
-          "effects",
-          "actionOrder"
+          "effects"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_electro_ball",
@@ -6740,7 +6731,7 @@
           "faintProcess",
           "history"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_fishious_rend",
@@ -6855,10 +6846,9 @@
         "status": "partial",
         "dependencies": [
           "effects",
-          "actionOrder",
           "targetingMulti"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "target_resolution_doubles"
       },
       {
         "battleEngineMethod": "s_foresight",
@@ -7300,7 +7290,7 @@
           "history",
           "accuracy"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_ice_spinner",
@@ -7360,13 +7350,8 @@
         "rubyClass": "Instruct",
         "rubyPath": "10 Move/2 Definitions/300 Instruct.rb",
         "dartBehavior": "CopyCallMoveBehavior.instruct",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_ion_deluge",
@@ -7634,13 +7619,8 @@
         "rubyClass": "MeFirst",
         "rubyPath": "10 Move/2 Definitions/300 Me First.rb",
         "dartBehavior": "CopyCallMoveBehavior.meFirst",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_memento",
@@ -7663,26 +7643,16 @@
         "rubyClass": "Metronome",
         "rubyPath": "10 Move/2 Definitions/300 Metronome.rb",
         "dartBehavior": "CopyCallMoveBehavior.metronome",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_mimic",
         "rubyClass": "Mimic",
         "rubyPath": "10 Move/2 Definitions/300 Mimic.rb",
         "dartBehavior": "CopyCallMoveBehavior.mimic",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_mind_blown",
@@ -7741,13 +7711,8 @@
         "rubyClass": "MirrorMove",
         "rubyPath": "10 Move/2 Definitions/300 MirrorMove.rb",
         "dartBehavior": "CopyCallMoveBehavior.mirrorMove",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_mist",
@@ -7878,7 +7843,7 @@
           "handlerStatus",
           "history"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_pain_split",
@@ -8170,12 +8135,9 @@
         "battleEngineMethod": "s_quash",
         "rubyClass": "Quash",
         "rubyPath": "10 Move/2 Definitions/300 Quash.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_quash)",
-        "status": "partial",
-        "dependencies": [
-          "actionOrder"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "dartBehavior": "StaticBasicMoveRegistry.quash",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_rage",
@@ -8392,7 +8354,7 @@
           "history",
           "accuracy"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_roost",
@@ -8481,7 +8443,7 @@
           "ability",
           "item"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "target_resolution_doubles"
       },
       {
         "battleEngineMethod": "s_secret_power",
@@ -8577,13 +8539,8 @@
         "rubyClass": "Sketch",
         "rubyPath": "10 Move/2 Definitions/300 Sketch.rb",
         "dartBehavior": "CopyCallMoveBehavior.sketch",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_skill_swap",
@@ -8610,13 +8567,8 @@
         "rubyClass": "SleepTalk",
         "rubyPath": "10 Move/2 Definitions/300 SleepTalk.rb",
         "dartBehavior": "CopyCallMoveBehavior.sleepTalk",
-        "status": "partial",
-        "dependencies": [
-          "history",
-          "actionOrder",
-          "effects"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_smack_down",
@@ -9137,7 +9089,7 @@
           "handlerStatus",
           "history"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "failure_prevention_immunity"
       },
       {
         "battleEngineMethod": "s_throat_chop",
@@ -9190,7 +9142,7 @@
           "effects",
           "history"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "effect_hook_manifest_sweep"
       },
       {
         "battleEngineMethod": "s_toxic_spike",
@@ -9283,7 +9235,7 @@
           "item",
           "history"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_trump_card",
@@ -9296,7 +9248,7 @@
           "accuracy",
           "effects"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "damage_formula_variable_power"
       },
       {
         "battleEngineMethod": "s_u_turn",
@@ -9337,7 +9289,7 @@
           "history",
           "targetingMulti"
         ],
-        "methodBatch": "action_queue_copy_call"
+        "methodBatch": "target_resolution_doubles"
       },
       {
         "battleEngineMethod": "s_venom_drench",
@@ -9474,58 +9426,31 @@
     ],
     "backlogBatches": [
       {
-        "id": "action_queue_copy_call",
-        "label": "Action queue / copy-call residuals",
-        "count": 24,
-        "methods": [
-          "s_after_you",
-          "s_assist",
-          "s_bide",
-          "s_double_iron_bash",
-          "s_electrify",
-          "s_final_gambit",
-          "s_follow_me",
-          "s_ice_ball",
-          "s_instruct",
-          "s_me_first",
-          "s_metronome",
-          "s_mimic",
-          "s_mirror_move",
-          "s_outrage",
-          "s_quash",
-          "s_rollout",
-          "s_scale_shot",
-          "s_sketch",
-          "s_sleep_talk",
-          "s_thrash",
-          "s_torment",
-          "s_triple_kick",
-          "s_trump_card",
-          "s_uproar"
-        ]
-      },
-      {
         "id": "target_resolution_doubles",
         "label": "Target resolution / doubles topology",
-        "count": 11,
+        "count": 15,
         "methods": [
+          "s_double_iron_bash",
           "s_expanding_force",
+          "s_follow_me",
           "s_heal_bell",
           "s_helping_hand",
           "s_jungle_healing",
           "s_life_dew",
           "s_psycho_shift",
           "s_purify",
+          "s_scale_shot",
           "s_smack_down",
           "s_sparkly_swirl",
           "s_synchronoise",
-          "s_take_heart"
+          "s_take_heart",
+          "s_uproar"
         ]
       },
       {
         "id": "failure_prevention_immunity",
         "label": "Failure / prevention / immunity",
-        "count": 21,
+        "count": 24,
         "methods": [
           "s_a_fang",
           "s_baton_pass",
@@ -9533,14 +9458,17 @@
           "s_chloroblast",
           "s_dragon_tail",
           "s_explosion",
+          "s_final_gambit",
           "s_mind_blown",
           "s_misty_explosion",
+          "s_outrage",
           "s_parting_shot",
           "s_roar",
           "s_secret_power",
           "s_smelling_salt",
           "s_sparkling_aria",
           "s_steel_beam",
+          "s_thrash",
           "s_toxic_thread",
           "s_trick",
           "s_u_turn",
@@ -9565,13 +9493,14 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 49,
+        "count": 54,
         "methods": [
           "s_add_type",
           "s_aura_wheel",
           "s_beak_blast",
           "s_beat_up",
           "s_bestow",
+          "s_bide",
           "s_body_press",
           "s_camouflage",
           "s_chilly_reception",
@@ -9589,6 +9518,7 @@
           "s_gravity",
           "s_happy_hour",
           "s_hidden_power",
+          "s_ice_ball",
           "s_ion_deluge",
           "s_knock_off",
           "s_magic_room",
@@ -9604,6 +9534,7 @@
           "s_reflect_type",
           "s_return",
           "s_role_play",
+          "s_rollout",
           "s_roost",
           "s_sacred_sword",
           "s_shell_trap",
@@ -9613,6 +9544,8 @@
           "s_teatime",
           "s_thief",
           "s_thing_sport",
+          "s_triple_kick",
+          "s_trump_card",
           "s_upper_hand",
           "s_water_shuriken",
           "s_worry_seed"
@@ -9621,7 +9554,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 71,
+        "count": 73,
         "methods": [
           "s_attract",
           "s_autotomize",
@@ -9636,6 +9569,7 @@
           "s_doodle",
           "s_dragon_cheer",
           "s_eerie_spell",
+          "s_electrify",
           "s_embargo",
           "s_encore",
           "s_false_swipe",
@@ -9693,6 +9627,7 @@
           "s_super_duper_effective",
           "s_swallow",
           "s_teleport",
+          "s_torment",
           "s_triple_arrows"
         ]
       }
