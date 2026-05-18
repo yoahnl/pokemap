@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../data/generated/psdk_item_effect_manifest.dart';
@@ -16,6 +17,7 @@ import 'move_modifier_item_effect.dart';
 import 'shed_shell_effect.dart';
 import 'status_orb_item_effect.dart';
 import 'terrain_extender_effect.dart';
+import 'terrain_seed_item_effect.dart';
 import 'weather_rock_effect.dart';
 
 typedef ItemEffectFactory = BattleEffect Function({
@@ -40,6 +42,26 @@ final class ItemEffectRegistry {
     'shed_shell': ({required scope}) => ShedShellEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
           scope: scope,
+        ),
+    'electric_seed': ({required scope}) => TerrainSeedItemEffect.defense(
+          itemId: 'electric_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.electricTerrain,
+        ),
+    'grassy_seed': ({required scope}) => TerrainSeedItemEffect.defense(
+          itemId: 'grassy_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.grassyTerrain,
+        ),
+    'misty_seed': ({required scope}) => TerrainSeedItemEffect.specialDefense(
+          itemId: 'misty_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.mistyTerrain,
+        ),
+    'psychic_seed': ({required scope}) => TerrainSeedItemEffect.specialDefense(
+          itemId: 'psychic_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.psychicTerrain,
         ),
     'damp_rock': ({required scope}) => WeatherRockEffect(
           itemId: 'damp_rock',

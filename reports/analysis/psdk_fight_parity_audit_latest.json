@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 193,
+      "ported": 194,
       "partial": 19,
-      "missing": 270
+      "missing": 269
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9311,9 +9311,9 @@
         "missing": 39
       },
       "item": {
-        "ported": 44,
+        "ported": 45,
         "partial": 10,
-        "missing": 33
+        "missing": 32
       },
       "status": {
         "ported": 6,
@@ -12986,7 +12986,7 @@
       {
         "effectName": "TerrainSeeds",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 TerrainSeeds.rb",
         "hookFamilies": [
           "switch",
