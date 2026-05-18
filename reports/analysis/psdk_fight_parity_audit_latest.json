@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 362,
-    "partiel": 366,
+    "fait": 366,
+    "partiel": 362,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -483,9 +483,9 @@
       {
         "moveId": "body_slam",
         "battleEngineMethod": "s_stomp",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/body_slam.json"
       },
       {
@@ -1267,9 +1267,9 @@
       {
         "moveId": "dragon_rush",
         "battleEngineMethod": "s_stomp",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/dragon_rush.json"
       },
       {
@@ -4875,9 +4875,9 @@
       {
         "moveId": "steamroller",
         "battleEngineMethod": "s_stomp",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/steamroller.json"
       },
       {
@@ -4915,9 +4915,9 @@
       {
         "moveId": "stomp",
         "battleEngineMethod": "s_stomp",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/stomp.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 167,
-      "partial": 163,
+      "ported": 172,
+      "partial": 158,
       "missing": 0
     },
     "entries": [
@@ -7020,11 +7020,8 @@
         "rubyClass": "GravApple",
         "rubyPath": "10 Move/2 Definitions/300 GravApple.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_grav_apple",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_gravity",
@@ -7282,11 +7279,8 @@
         "rubyClass": "IceSpinner",
         "rubyPath": "10 Move/2 Definitions/300 IceSpinner SteelRoller.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_ice_spinner",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_imprison",
@@ -8736,11 +8730,8 @@
         "rubyClass": "SteelRoller",
         "rubyPath": "10 Move/2 Definitions/300 IceSpinner SteelRoller.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_steel_roller",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_sticky_web",
@@ -8770,11 +8761,8 @@
         "rubyClass": "Stomp",
         "rubyPath": "10 Move/2 Definitions/300 Stomp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_stomp",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_stomping_tantrum",
@@ -8864,11 +8852,8 @@
         "rubyClass": "SuperDuperEffective",
         "rubyPath": "10 Move/2 Definitions/300 SuperDuperEffective.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_super_duper_effective",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_super_fang",
@@ -9435,7 +9420,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 127,
+        "count": 122,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9481,7 +9466,6 @@
           "s_geomancy",
           "s_glaive_rush",
           "s_glitzy_glow",
-          "s_grav_apple",
           "s_gravity",
           "s_grudge",
           "s_happy_hour",
@@ -9489,7 +9473,6 @@
           "s_heal_block",
           "s_healing_wish",
           "s_helping_hand",
-          "s_ice_spinner",
           "s_imprison",
           "s_ion_deluge",
           "s_jaw_lock",
@@ -9538,13 +9521,10 @@
           "s_spectral_thief",
           "s_spite",
           "s_steel_beam",
-          "s_steel_roller",
           "s_stockpile",
-          "s_stomp",
           "s_struggle",
           "s_stuff_cheeks",
           "s_substitute",
-          "s_super_duper_effective",
           "s_swallow",
           "s_take_heart",
           "s_teatime",
