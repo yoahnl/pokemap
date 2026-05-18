@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
@@ -52,6 +53,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
   }
 
   double finalDamageMultiplier(BattleAbilityDamageContext context) => 1;
+
+  double statMultiplier(BattleAbilityStatContext context) => 1;
 
   bool preventsRecoil(BattleAbilityMoveContext context) => false;
 
@@ -118,6 +121,20 @@ final class BattleAbilityDamageContext {
   final BattleMoveDefinition move;
   final String moveType;
   final double typeEffectivenessMultiplier;
+}
+
+final class BattleAbilityStatContext {
+  const BattleAbilityStatContext({
+    required this.field,
+    required this.battler,
+    required this.stat,
+    this.weatherEffectsSuppressed = false,
+  });
+
+  final PsdkBattleFieldState field;
+  final PsdkBattleCombatant battler;
+  final String stat;
+  final bool weatherEffectsSuppressed;
 }
 
 extension BattleAbilityEffectList on PsdkBattleCombatant {

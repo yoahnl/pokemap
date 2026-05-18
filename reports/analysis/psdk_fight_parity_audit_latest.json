@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 207,
+      "ported": 217,
       "partial": 19,
-      "missing": 256
+      "missing": 246
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 56,
+        "ported": 66,
         "partial": 1,
-        "missing": 197
+        "missing": 187
       },
       "move": {
         "ported": 80,
@@ -10009,7 +10009,7 @@
       {
         "effectName": "Chlorophyll",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Chlorophyll.rb",
         "hookFamilies": []
       },
@@ -10764,7 +10764,7 @@
       {
         "effectName": "FurCoat",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Fur Coat.rb",
         "hookFamilies": []
       },
@@ -10848,7 +10848,7 @@
       {
         "effectName": "GrassPelt",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Grass Pelt.rb",
         "hookFamilies": []
       },
@@ -10917,7 +10917,7 @@
       {
         "effectName": "Guts",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Guts.rb",
         "hookFamilies": []
       },
@@ -11539,7 +11539,7 @@
       {
         "effectName": "MarvelScale",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Marvel Scale.rb",
         "hookFamilies": []
       },
@@ -12140,7 +12140,7 @@
       {
         "effectName": "PurePower",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Pure Power - Huge Power.rb",
         "hookFamilies": []
       },
@@ -12176,7 +12176,7 @@
       {
         "effectName": "QuickFeet",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Quick Feet.rb",
         "hookFamilies": []
       },
@@ -12399,7 +12399,7 @@
       {
         "effectName": "SandRush",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sand Rush.rb",
         "hookFamilies": []
       },
@@ -12625,7 +12625,7 @@
       {
         "effectName": "SlushRush",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Slush Rush.rb",
         "hookFamilies": []
       },
@@ -13002,7 +13002,7 @@
       {
         "effectName": "SwiftSwim",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Swift Swim.rb",
         "hookFamilies": []
       },
