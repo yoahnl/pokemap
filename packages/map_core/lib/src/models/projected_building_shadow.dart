@@ -364,6 +364,60 @@ bool _projectBuildingShadowPresetsEqualInOrder(
   return true;
 }
 
+/// Element-level opt-in config for a future projected building shadow.
+///
+/// ShadowV2-7 keeps this as a pure domain value. It is not attached to
+/// ProjectElementEntry, JSON, manifests, runtime resolution, or editor UI.
+@immutable
+final class ProjectElementProjectedBuildingShadowConfig {
+  factory ProjectElementProjectedBuildingShadowConfig({
+    required bool enabled,
+    required String presetId,
+    required ProjectedShadowAnchor anchor,
+    required ProjectedShadowOffset localOffset,
+  }) {
+    _validateNonBlank(
+      presetId,
+      'ProjectElementProjectedBuildingShadowConfig.presetId',
+    );
+    return ProjectElementProjectedBuildingShadowConfig._(
+      enabled: enabled,
+      presetId: presetId,
+      anchor: anchor,
+      localOffset: localOffset,
+    );
+  }
+
+  const ProjectElementProjectedBuildingShadowConfig._({
+    required this.enabled,
+    required this.presetId,
+    required this.anchor,
+    required this.localOffset,
+  });
+
+  final bool enabled;
+  final String presetId;
+  final ProjectedShadowAnchor anchor;
+  final ProjectedShadowOffset localOffset;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectElementProjectedBuildingShadowConfig &&
+          other.enabled == enabled &&
+          other.presetId == presetId &&
+          other.anchor == anchor &&
+          other.localOffset == localOffset;
+
+  @override
+  int get hashCode => Object.hash(
+        enabled,
+        presetId,
+        anchor,
+        localOffset,
+      );
+}
+
 void _validateNonBlank(String value, String name) {
   if (value.trim().isEmpty) {
     throw ArgumentError.value(value, name, '$name must be non-empty');
