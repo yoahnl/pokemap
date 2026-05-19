@@ -28,6 +28,7 @@ export 'src/models/scenario_asset.dart';
 export 'src/models/visual_frame_json.dart';
 export 'src/models/shadow.dart';
 export 'src/models/shadow_catalog.dart';
+export 'src/models/projected_building_shadow.dart';
 export 'src/models/surface.dart';
 export 'src/models/surface_catalog.dart';
 export 'src/operations/map_resize.dart';
