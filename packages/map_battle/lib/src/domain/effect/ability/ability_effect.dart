@@ -42,6 +42,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
     return false;
   }
 
+  int movePriorityModifier(BattleAbilityMovePriorityContext context) => 0;
+
   String? moveTypeOverride(BattleAbilityMoveTypeContext context) => null;
 
   double basePowerMultiplier(BattleAbilityMoveContext context) => 1;
@@ -69,6 +71,22 @@ abstract class BattleAbilityEffect extends BattleEffect {
   bool preventsStatus(BattleAbilityStatusContext context) => false;
 
   bool get suppressesWeatherEffects => false;
+}
+
+final class BattleAbilityMovePriorityContext {
+  const BattleAbilityMovePriorityContext({
+    required this.state,
+    required this.user,
+    required this.battler,
+    required this.move,
+    required this.currentPriority,
+  });
+
+  final PsdkBattleState state;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleCombatant battler;
+  final PsdkBattleMoveData move;
+  final int currentPriority;
 }
 
 final class BattleAbilityMoveContext {

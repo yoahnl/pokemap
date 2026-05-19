@@ -183,6 +183,7 @@ final class BattleEffectObjectStack {
           move: context.move,
           damage: context.damage,
           targetFainted: context.targetFainted,
+          criticalHit: context.criticalHit,
         ),
       );
       if (result == null) {

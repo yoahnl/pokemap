@@ -62,6 +62,7 @@ final class AbilityEffectRegistry {
     'ripen': ({required scope}) => RipenEffect(scope: scope),
     'unburden': ({required scope}) => UnburdenEffect(scope: scope),
     'aftermath': ({required scope}) => AftermathEffect(scope: scope),
+    'anger_point': ({required scope}) => AngerPointEffect(scope: scope),
     'rough_skin': ({required scope}) => ContactPunishAbilityEffect(
           abilityId: 'rough_skin',
           scope: scope,
@@ -565,6 +566,8 @@ final class AbilityEffectRegistry {
           statMultipliers: const <String, double>{'speed': 2},
           condition: hasSunnyWeather,
         ),
+    'slow_start': ({required scope}) => SlowStartAbilityEffect(scope: scope),
+    'gale_wings': ({required scope}) => GaleWingsAbilityEffect(scope: scope),
     'swift_swim': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'swift_swim',
           scope: scope,
@@ -863,7 +866,14 @@ final class AbilityEffectRegistry {
     'regenerator': ({required scope}) => RegeneratorEffect(scope: scope),
     'synchronize': ({required scope}) => SynchronizeEffect(scope: scope),
     'costar': ({required scope}) => CostarEffect(scope: scope),
+    'curious_medicine': ({required scope}) =>
+        CuriousMedicineEffect(scope: scope),
+    'supersweet_syrup': ({required scope}) =>
+        SupersweetSyrupEffect(scope: scope),
     'hospitality': ({required scope}) => HospitalityEffect(scope: scope),
+    'orichalcum_pulse': ({required scope}) =>
+        OrichalcumPulseEffect(scope: scope),
+    'hadron_engine': ({required scope}) => HadronEngineEffect(scope: scope),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',
           scope: scope,

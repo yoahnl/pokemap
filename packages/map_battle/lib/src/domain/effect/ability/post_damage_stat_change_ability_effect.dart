@@ -116,6 +116,51 @@ final class PostDamageStatChangeAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class AngerPointEffect extends BattleAbilityEffect {
+  const AngerPointEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'anger_point', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return AngerPointEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        context.targetFainted ||
+        !context.criticalHit) {
+      return null;
+    }
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      stat: 'attack',
+      stages: 12,
+      move: context.move,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectPostDamageResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
 final class RattledEffect extends PostDamageStatChangeAbilityEffect {
   const RattledEffect({
     required super.scope,

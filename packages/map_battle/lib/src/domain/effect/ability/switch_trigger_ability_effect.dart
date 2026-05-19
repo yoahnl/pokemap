@@ -139,6 +139,104 @@ final class SwitchTerrainAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class OrichalcumPulseEffect extends BattleAbilityEffect {
+  const OrichalcumPulseEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'orichalcum_pulse', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return OrichalcumPulseEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    final result = const BattleWeatherChangeHandler().changeWeather(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.replacement,
+      ),
+      weather: PsdkBattleWeatherId.sunny,
+      remainingTurns: _weatherDuration(context, 'sunny_day'),
+    );
+    if (!result.applied) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+
+  @override
+  double statMultiplier(BattleAbilityStatContext context) {
+    if (context.battler.abilityId != abilityId ||
+        context.stat != 'attack' ||
+        context.weatherEffectsSuppressed ||
+        !(context.field.isWeatherActive(PsdkBattleWeatherId.sunny) ||
+            context.field.isWeatherActive(PsdkBattleWeatherId.hardsun))) {
+      return 1;
+    }
+    return 1.33;
+  }
+}
+
+final class HadronEngineEffect extends BattleAbilityEffect {
+  const HadronEngineEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'hadron_engine', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return HadronEngineEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    final result = const BattleTerrainChangeHandler().changeTerrain(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.replacement,
+      ),
+      terrain: PsdkBattleTerrainId.electricTerrain,
+      remainingTurns: _terrainDuration(context, 'electric_terrain'),
+    );
+    if (!result.applied) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+
+  @override
+  double statMultiplier(BattleAbilityStatContext context) {
+    if (context.battler.abilityId != abilityId ||
+        context.stat != 'specialAttack' ||
+        !context.field.isTerrainActive(PsdkBattleTerrainId.electricTerrain)) {
+      return 1;
+    }
+    return 1.33;
+  }
+}
+
 final class HospitalityEffect extends BattleAbilityEffect {
   const HospitalityEffect({
     required BattleEffectScope scope,
@@ -192,6 +290,114 @@ final class HospitalityEffect extends BattleAbilityEffect {
           remainingHp: healed.currentHp,
         ),
       ],
+    );
+  }
+}
+
+final class CuriousMedicineEffect extends BattleAbilityEffect {
+  const CuriousMedicineEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'curious_medicine', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return CuriousMedicineEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context) || context.who == context.replacement) {
+      return null;
+    }
+
+    var nextState = context.state;
+    var changed = false;
+    for (final ally in context.state.adjacentAlliesOf(context.replacement)) {
+      final battler = nextState.battlerAt(ally);
+      if (!battler.statStages.values.values.any((stage) => stage != 0)) {
+        continue;
+      }
+      nextState = nextState.updateBattler(
+        ally,
+        (current) => current.copyWith(
+          statStages: PsdkBattleStatStages.neutral(),
+        ),
+      );
+      changed = true;
+    }
+    if (!changed) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: nextState,
+      rng: context.rng,
+    );
+  }
+}
+
+final class SupersweetSyrupEffect extends BattleAbilityEffect {
+  const SupersweetSyrupEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'supersweet_syrup', scope: scope);
+
+  static const String _usedMarkerId = 'supersweet_syrup_used';
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SupersweetSyrupEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context) ||
+        context.state.battlerAt(context.replacement).effects.contains(
+              _usedMarkerId,
+            )) {
+      return null;
+    }
+
+    var nextState = context.state.updateBattler(
+      context.replacement,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          GenericBattleEffect(
+            id: _usedMarkerId,
+            scope: BattlerBattleEffectScope(context.replacement),
+          ),
+        ),
+      ),
+    );
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+    for (final foe in context.state.foesOf(context.replacement)) {
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: context.replacement,
+        ),
+        target: foe,
+        stat: 'evasion',
+        stages: -1,
+      );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+    if (!changed) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
     );
   }
 }
@@ -748,6 +954,34 @@ final class ImposterEffect extends BattleAbilityEffect {
 
 bool _isEnteringOwner(BattleEffectSwitchEventContext context) {
   return context.owner == context.replacement;
+}
+
+int _weatherDuration(
+  BattleEffectSwitchEventContext context,
+  String weatherMoveDbSymbol,
+) {
+  final battler = context.state.battlerAt(context.replacement);
+  for (final itemEffect in battler.activeItemEffects) {
+    final duration = itemEffect.weatherDuration(weatherMoveDbSymbol);
+    if (duration != null) {
+      return duration;
+    }
+  }
+  return 5;
+}
+
+int _terrainDuration(
+  BattleEffectSwitchEventContext context,
+  String terrainMoveDbSymbol,
+) {
+  final battler = context.state.battlerAt(context.replacement);
+  for (final itemEffect in battler.activeItemEffects) {
+    final duration = itemEffect.terrainDuration(terrainMoveDbSymbol);
+    if (duration != null) {
+      return duration;
+    }
+  }
+  return 5;
 }
 
 bool _immuneToIntimidate(
