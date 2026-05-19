@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 307,
-      "partial": 27,
-      "missing": 148
+      "ported": 313,
+      "partial": 32,
+      "missing": 137
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 156,
-        "partial": 9,
-        "missing": 89
+        "ported": 162,
+        "partial": 14,
+        "missing": 78
       },
       "move": {
         "ported": 80,
@@ -9768,14 +9768,14 @@
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },
@@ -10141,7 +10141,7 @@
       {
         "effectName": "Costar",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Costar.rb",
         "hookFamilies": [
           "switch"
@@ -10623,7 +10623,7 @@
       {
         "effectName": "FlowerGift",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Flower Gift.rb",
         "hookFamilies": [
           "ability_change",
@@ -11953,7 +11953,7 @@
       {
         "effectName": "Plus",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Plus - Minus.rb",
         "hookFamilies": []
       },
@@ -13009,14 +13009,14 @@
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },
@@ -13051,14 +13051,14 @@
       {
         "effectName": "TabletsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "TabletsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": [
           "switch"
@@ -13393,14 +13393,14 @@
       {
         "effectName": "VesselOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "VesselOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },

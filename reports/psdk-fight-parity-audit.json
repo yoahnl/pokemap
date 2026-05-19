@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 299,
-      "partial": 25,
-      "missing": 158
+      "ported": 313,
+      "partial": 32,
+      "missing": 137
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 148,
-        "partial": 7,
-        "missing": 99
+        "ported": 162,
+        "partial": 14,
+        "missing": 78
       },
       "move": {
         "ported": 80,
@@ -9768,14 +9768,14 @@
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },
@@ -10055,7 +10055,7 @@
       {
         "effectName": "ColorChange",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Color Change.rb",
         "hookFamilies": [
           "post_damage"
@@ -10141,7 +10141,7 @@
       {
         "effectName": "Costar",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Costar.rb",
         "hookFamilies": [
           "switch"
@@ -10623,7 +10623,7 @@
       {
         "effectName": "FlowerGift",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Flower Gift.rb",
         "hookFamilies": [
           "ability_change",
@@ -10978,7 +10978,7 @@
       {
         "effectName": "Harvest",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Harvest.rb",
         "hookFamilies": [
           "end_turn"
@@ -11399,7 +11399,7 @@
       {
         "effectName": "LingeringAroma",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb",
         "hookFamilies": []
       },
@@ -11725,7 +11725,7 @@
       {
         "effectName": "Mummy",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb",
         "hookFamilies": [
           "post_damage"
@@ -11822,7 +11822,7 @@
       {
         "effectName": "Opportunist",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Opportunist.rb",
         "hookFamilies": [
           "action_order",
@@ -11910,7 +11910,7 @@
       {
         "effectName": "PerishBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Perish Body.rb",
         "hookFamilies": [
           "post_damage"
@@ -11953,7 +11953,7 @@
       {
         "effectName": "Plus",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Plus - Minus.rb",
         "hookFamilies": []
       },
@@ -12293,7 +12293,7 @@
       {
         "effectName": "Ripen",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Ripen.rb",
         "hookFamilies": [
           "item_change"
@@ -13009,14 +13009,14 @@
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },
@@ -13051,14 +13051,14 @@
       {
         "effectName": "TabletsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "TabletsOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": [
           "switch"
@@ -13263,7 +13263,7 @@
       {
         "effectName": "ToxicDebris",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ToxicDebris.rb",
         "hookFamilies": [
           "post_damage"
@@ -13365,7 +13365,7 @@
       {
         "effectName": "Unburden",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Unburden.rb",
         "hookFamilies": [
           "item_change",
@@ -13393,14 +13393,14 @@
       {
         "effectName": "VesselOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "VesselOfRuin",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
@@ -13423,7 +13423,7 @@
       {
         "effectName": "WanderingSpirit",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Wandering Spirit.rb",
         "hookFamilies": [
           "post_damage"

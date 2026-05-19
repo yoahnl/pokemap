@@ -637,7 +637,9 @@ int _offensiveStat(BattleMoveDamageContext context) {
     PsdkBattleMoveCategory.special => _adjustedStat(
         value: context.user.stats.specialAttack,
         battler: context.user,
+        battlerSlot: context.userSlot,
         field: context.field,
+        state: context.state,
         stat: 'specialAttack',
       ),
     PsdkBattleMoveCategory.status => context.user.stats.attack,
@@ -648,7 +650,9 @@ int _physicalAttack(BattleMoveDamageContext context) {
   return _adjustedStat(
     value: context.user.stats.attack,
     battler: context.user,
+    battlerSlot: context.userSlot,
     field: context.field,
+    state: context.state,
     stat: 'attack',
   );
 }
@@ -658,13 +662,17 @@ int _defensiveStat(BattleMoveDamageContext context) {
     PsdkBattleMoveCategory.physical => _adjustedStat(
         value: context.target.stats.defense,
         battler: context.target,
+        battlerSlot: context.targetSlot,
         field: context.field,
+        state: context.state,
         stat: 'defense',
       ),
     PsdkBattleMoveCategory.special => _adjustedStat(
         value: context.target.stats.specialDefense,
         battler: context.target,
+        battlerSlot: context.targetSlot,
         field: context.field,
+        state: context.state,
         stat: 'specialDefense',
       ),
     PsdkBattleMoveCategory.status => context.target.stats.defense,
@@ -675,7 +683,9 @@ int _defensiveStat(BattleMoveDamageContext context) {
 int _adjustedStat({
   required int value,
   required PsdkBattleCombatant battler,
+  required PsdkBattleSlotRef? battlerSlot,
   required PsdkBattleFieldState field,
+  required PsdkBattleState? state,
   required String stat,
 }) {
   var multiplier = 1.0;
@@ -686,9 +696,19 @@ int _adjustedStat({
     field: field,
     battler: battler,
     stat: stat,
+    state: state,
+    battlerSlot: battlerSlot,
+    weatherEffectsSuppressed: state?.weatherEffectsSuppressed ?? false,
   );
   for (final effect in battler.abilityEffects) {
     multiplier *= effect.statMultiplier(abilityContext);
+  }
+  if (state != null && battlerSlot != null) {
+    for (final effect in state.activeAbilityEffects()) {
+      if (effect.affectsGlobalStats && !effect.isOwnedBy(battlerSlot)) {
+        multiplier *= effect.statMultiplier(abilityContext);
+      }
+    }
   }
   if (multiplier == 1.0) {
     return value;

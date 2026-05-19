@@ -116,7 +116,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'beads_of_ruin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TabletsOfRuin.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'RuinStatAbilityEffect.beadsOfRuin.partialNoWonderRoomSwap',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'beast_boost',
@@ -231,7 +232,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'costar',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Costar.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CostarEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'cotton_down',
@@ -444,7 +446,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'flower_gift',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Flower Gift.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'FlowerGiftStatAbilityEffect.partialNoCherrimForm',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'flower_veil',
@@ -840,7 +843,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'minus',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Plus - Minus.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PlusMinusAbilityEffect.minus',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'mirror_armor',
@@ -1007,7 +1011,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'plus',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Plus - Minus.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PlusMinusAbilityEffect.plus',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'poison_point',
@@ -1547,7 +1552,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sword_of_ruin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TabletsOfRuin.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'RuinStatAbilityEffect.swordOfRuin.partialNoWonderRoomSwap',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'symbiosis',
@@ -1566,7 +1572,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'tablets_of_ruin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TabletsOfRuin.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RuinStatAbilityEffect.tabletsOfRuin',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'tangled_feet',
@@ -1730,7 +1737,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'vessel_of_ruin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TabletsOfRuin.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RuinStatAbilityEffect.vesselOfRuin',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'victory_star',
