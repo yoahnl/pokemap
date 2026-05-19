@@ -694,6 +694,62 @@ void main() {
       );
     });
 
+    test('Moody raises one available stat and lowers another at end turn', () {
+      final result = _resolveAbilityEndTurn(playerAbilityId: 'moody');
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+              'specialAttack',
+            ),
+        2,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+              'specialDefense',
+            ),
+        -1,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().map(
+              (event) => event.stat,
+            ),
+        <String>['specialAttack', 'specialDefense'],
+      );
+    });
+
+    test('Healer can cure an adjacent ally status at end turn', () {
+      final cured = _resolveHealerEndTurn(genericSeed: 0);
+      final missed = _resolveHealerEndTurn(genericSeed: 99);
+
+      expect(cured.applied, isTrue);
+      expect(cured.state.battlerAt(_psdkPlayerAllySlot).majorStatus, isNull);
+      expect(
+        cured.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
+        'ability:healer',
+      );
+      expect(
+        missed.state.battlerAt(_psdkPlayerAllySlot).majorStatus,
+        PsdkBattleMajorStatus.paralysis,
+      );
+    });
+
+    test('Surge Surfer doubles Speed while Electric Terrain is active', () {
+      final inactive = _fightActionForAbility(abilityId: 'surge_surfer');
+      final active = _fightActionForAbility(
+        abilityId: 'surge_surfer',
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      expect(inactive.speed, 50);
+      expect(active.speed, 100);
+    });
+
     test('stat modifier abilities affect damage formula like PSDK', () {
       final baseline = _runMove(
         playerMove: _move(id: 'tackle', power: 60),
@@ -1269,6 +1325,83 @@ void main() {
       expect(burn.applied, isFalse);
       expect(burn.reason, 'ability:thermal_exchange');
       expect(burn.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+    });
+
+    test('Sand Spit and Seed Sower set field effects after taking damage', () {
+      final sand = _runMove(
+        opponentAbilityId: 'sand_spit',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+      final grass = _runMove(
+        opponentAbilityId: 'seed_sower',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+
+      expect(sand.state.field.weather?.id, PsdkBattleWeatherId.sandstorm);
+      expect(sand.state.field.weather?.remainingTurns, 4);
+      expect(grass.state.field.terrain?.id, PsdkBattleTerrainId.grassyTerrain);
+      expect(grass.state.field.terrain?.remainingTurns, 4);
+    });
+
+    test('Innards Out damages the attacker by the fainted HP amount', () {
+      final result = _runMove(
+        opponentAbilityId: 'innards_out',
+        opponentCurrentHp: 30,
+        playerMove: _move(id: 'heavy_hit', power: 250),
+      );
+
+      final retaliation = _damageEvents(result, moveId: 'effect:innards_out');
+      expect(retaliation.single.damage, 30);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 70);
+    });
+
+    test('Synchronize mirrors burn, paralysis, poison and toxic only', () {
+      final burn = _applyStatusToOpponent(
+        opponentAbilityId: 'synchronize',
+        status: PsdkBattleMajorStatus.burn,
+      );
+      final sleep = _applyStatusToOpponent(
+        opponentAbilityId: 'synchronize',
+        status: PsdkBattleMajorStatus.sleep,
+      );
+
+      expect(burn.state.battlerAt(psdkPlayerSlot).majorStatus,
+          PsdkBattleMajorStatus.burn);
+      expect(
+        burn.events.whereType<PsdkBattleStatusEvent>().map(
+              (event) => event.moveId,
+            ),
+        <String>['test:status', 'ability:synchronize'],
+      );
+      expect(sleep.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+    });
+
+    test('Hospitality heals an ally on switch-in', () {
+      final result = _dispatchHospitalitySwitchIn();
+
+      expect(result.applied, isTrue);
+      expect(result.state.battlerAt(_psdkPlayerAllySlot).currentHp, 75);
+      expect(
+        result.events.whereType<PsdkBattleHealEvent>().single.moveId,
+        'ability:hospitality',
+      );
+    });
+
+    test('Cotton Down partially lowers every other battler Speed', () {
+      final result = _runMove(
+        opponentAbilityId: 'cotton_down',
+        playerMove: _move(id: 'tackle', power: 60),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+          -1);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleStatStageEvent>()
+            .single
+            .stat,
+        'speed',
+      );
     });
 
     test('Telepathy prevents damaging moves from same-bank allies', () {
@@ -3670,6 +3803,115 @@ BattleHandlerResult _resolveAbilityEndTurn({
       turn: 1,
       user: psdkPlayerSlot,
     ),
+  );
+}
+
+const _psdkPlayerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+
+BattleHandlerResult _resolveHealerEndTurn({required int genericSeed}) {
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          abilityId: 'healer',
+          move: _move(id: 'tackle', power: 40),
+        ),
+      ),
+      _psdkPlayerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          majorStatus: PsdkBattleMajorStatus.paralysis,
+          move: _move(id: 'ally_wait', power: 0),
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
+      ),
+    },
+  );
+
+  return const BattleEndTurnHandler().resolveEndTurn(
+    BattleHandlerContext(
+      state: state,
+      rng: BattleRngStreams.fromSeeds(
+        moveDamageSeed: 1,
+        moveCriticalSeed: 99999,
+        moveAccuracySeed: 3,
+        genericSeed: genericSeed,
+      ),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+  );
+}
+
+BattleHandlerResult _dispatchHospitalitySwitchIn() {
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          abilityId: 'hospitality',
+          move: _move(id: 'tackle', power: 40),
+        ),
+      ),
+      _psdkPlayerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          currentHp: 50,
+          move: _move(id: 'ally_wait', power: 0),
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
+      ),
+    },
+  );
+
+  return const BattleSwitchHandler().dispatchSwitchEvents(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    who: const PsdkBattleSlotRef(bank: 0, position: -1),
+    replacement: psdkPlayerSlot,
+  );
+}
+
+BattleHandlerResult _applyStatusToOpponent({
+  required String opponentAbilityId,
+  required PsdkBattleMajorStatus status,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(id: 'player', move: _move(id: 'tackle', power: 40)),
+      opponent: _combatant(
+        id: 'opponent',
+        abilityId: opponentAbilityId,
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleStatusChangeHandler().applyMajorStatus(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkOpponentSlot,
+    moveId: 'test:status',
+    status: status,
   );
 }
 

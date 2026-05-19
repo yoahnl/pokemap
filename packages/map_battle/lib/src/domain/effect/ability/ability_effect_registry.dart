@@ -19,6 +19,8 @@ import 'levitate_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
 import 'no_guard_effect.dart';
+import 'post_damage_field_ability_effect.dart';
+import 'post_damage_reactive_ability_effect.dart';
 import 'post_damage_stat_change_ability_effect.dart';
 import 'priority_move_prevention_ability_effect.dart';
 import 'reckless_effect.dart';
@@ -30,6 +32,7 @@ import 'soundproof_effect.dart';
 import 'stat_change_ability_effect.dart';
 import 'stat_modifier_ability_effect.dart';
 import 'stat_drop_prevention_ability_effect.dart';
+import 'status_share_ability_effect.dart';
 import 'status_immunity_effect.dart';
 import 'switch_trigger_ability_effect.dart';
 import 'switch_out_cleanup_ability_effect.dart';
@@ -542,6 +545,12 @@ final class AbilityEffectRegistry {
           statMultipliers: const <String, double>{'speed': 2},
           condition: hasSnowingWeather,
         ),
+    'surge_surfer': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'surge_surfer',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasElectricTerrain,
+        ),
     'quick_feet': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'quick_feet',
           scope: scope,
@@ -726,6 +735,10 @@ final class AbilityEffectRegistry {
         ),
     'thermal_exchange': ({required scope}) =>
         ThermalExchangeEffect(scope: scope),
+    'sand_spit': ({required scope}) => SandSpitEffect(scope: scope),
+    'seed_sower': ({required scope}) => SeedSowerEffect(scope: scope),
+    'innards_out': ({required scope}) => InnardsOutEffect(scope: scope),
+    'cotton_down': ({required scope}) => CottonDownEffect(scope: scope),
     'justified': ({required scope}) => PostDamageStatChangeAbilityEffect(
           abilityId: 'justified',
           scope: scope,
@@ -786,6 +799,8 @@ final class AbilityEffectRegistry {
           changeTarget: AbilityPostDamageStatChangeTarget.user,
         ),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
+    'moody': ({required scope}) => MoodyEffect(scope: scope),
+    'healer': ({required scope}) => HealerEffect(scope: scope),
     'rain_dish': ({required scope}) => RainDishEffect(scope: scope),
     'hydration': ({required scope}) => HydrationEffect(scope: scope),
     'ice_body': ({required scope}) => IceBodyEffect(scope: scope),
@@ -795,6 +810,8 @@ final class AbilityEffectRegistry {
     'bad_dreams': ({required scope}) => BadDreamsEffect(scope: scope),
     'natural_cure': ({required scope}) => NaturalCureEffect(scope: scope),
     'regenerator': ({required scope}) => RegeneratorEffect(scope: scope),
+    'synchronize': ({required scope}) => SynchronizeEffect(scope: scope),
+    'hospitality': ({required scope}) => HospitalityEffect(scope: scope),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',
           scope: scope,

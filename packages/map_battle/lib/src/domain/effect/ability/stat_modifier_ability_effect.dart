@@ -55,6 +55,10 @@ bool hasGrassyTerrain(BattleAbilityStatContext context) {
   return context.field.isTerrainActive(PsdkBattleTerrainId.grassyTerrain);
 }
 
+bool hasElectricTerrain(BattleAbilityStatContext context) {
+  return context.field.isTerrainActive(PsdkBattleTerrainId.electricTerrain);
+}
+
 bool hasSunnyWeather(BattleAbilityStatContext context) {
   return !context.weatherEffectsSuppressed &&
       context.field.isWeatherActive(PsdkBattleWeatherId.sunny);
