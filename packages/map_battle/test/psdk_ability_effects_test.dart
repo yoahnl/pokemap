@@ -2648,6 +2648,226 @@ void main() {
       expect(_statEventsForHandler(lethalStamina), isEmpty);
     });
 
+    test('Color Change rewrites the defender type after damaging moves', () {
+      final changed = _applyDirectAbilityDamage(
+        opponentAbilityId: 'color_change',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(
+          primary: 'normal',
+          secondary: 'flying',
+        ),
+      );
+      final statusMove = _applyDirectAbilityDamage(
+        opponentAbilityId: 'color_change',
+        moveType: 'grass',
+        category: PsdkBattleMoveCategory.status,
+      );
+      final sameType = _applyDirectAbilityDamage(
+        opponentAbilityId: 'color_change',
+        moveType: 'water',
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+      );
+
+      final changedOpponent = changed.state.battlerAt(psdkOpponentSlot);
+      expect(changedOpponent.types.primary, 'fire');
+      expect(changedOpponent.types.secondary, isNull);
+      expect(changedOpponent.type3, isNull);
+      expect(changedOpponent.temporaryTypes, isEmpty);
+      expect(
+        changed.events.whereType<PsdkBattleEffectEvent>().single.effectId,
+        'color_change:fire',
+      );
+
+      expect(
+          statusMove.state.battlerAt(psdkOpponentSlot).types.primary, 'normal');
+      expect(
+        statusMove.events.whereType<PsdkBattleEffectEvent>(),
+        isEmpty,
+      );
+      expect(sameType.state.battlerAt(psdkOpponentSlot).types.primary, 'water');
+      expect(sameType.events.whereType<PsdkBattleEffectEvent>(), isEmpty);
+    });
+
+    test('Toxic Debris lays and empowers Toxic Spikes on the attacker bank',
+        () {
+      final firstLayer = _applyDirectAbilityDamage(
+        opponentAbilityId: 'toxic_debris',
+        category: PsdkBattleMoveCategory.physical,
+      );
+      final secondLayer = _applyDirectAbilityDamage(
+        opponentAbilityId: 'toxic_debris',
+        category: PsdkBattleMoveCategory.physical,
+        playerEffects: PsdkBattleEffectStack().addEffect(
+          ToxicSpikesEffect(bank: psdkPlayerSlot.bank),
+        ),
+      );
+      final maxed = _applyDirectAbilityDamage(
+        opponentAbilityId: 'toxic_debris',
+        category: PsdkBattleMoveCategory.physical,
+        playerEffects: PsdkBattleEffectStack().addEffect(
+          ToxicSpikesEffect(bank: psdkPlayerSlot.bank, layers: 2),
+        ),
+      );
+      final special = _applyDirectAbilityDamage(
+        opponentAbilityId: 'toxic_debris',
+      );
+
+      final first = _bankEffectsFor(
+        firstLayer.state,
+        'toxic_spikes',
+        bank: psdkPlayerSlot.bank,
+      ).single as ToxicSpikesEffect;
+      final second = _bankEffectsFor(
+        secondLayer.state,
+        'toxic_spikes',
+        bank: psdkPlayerSlot.bank,
+      ).single as ToxicSpikesEffect;
+      final maxedHazard = _bankEffectsFor(
+        maxed.state,
+        'toxic_spikes',
+        bank: psdkPlayerSlot.bank,
+      ).single as ToxicSpikesEffect;
+
+      expect(first.layers, 1);
+      expect(second.layers, 2);
+      expect(maxedHazard.layers, 2);
+      expect(
+        firstLayer.events.whereType<PsdkBattleEffectEvent>().single.reason,
+        'ability:toxic_debris',
+      );
+      expect(special.events.whereType<PsdkBattleEffectEvent>(), isEmpty);
+    });
+
+    test('Perish Body applies Perish Song to both contact participants', () {
+      const contact = BattleMoveFlags(contact: true);
+      final result = _applyDirectAbilityDamage(
+        opponentAbilityId: 'perish_body',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contact,
+      );
+      final existingPerish = _applyDirectAbilityDamage(
+        opponentAbilityId: 'perish_body',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contact,
+        playerEffects: PsdkBattleEffectStack().addEffect(
+          const PerishSongEffect(
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            remainingTurns: 2,
+          ),
+        ),
+      );
+      final punchingGlove = _applyDirectAbilityDamage(
+        opponentAbilityId: 'perish_body',
+        playerHeldItemId: 'punching_glove',
+        category: PsdkBattleMoveCategory.physical,
+        flags: const BattleMoveFlags(contact: true, punch: true),
+      );
+
+      for (final slot in <PsdkBattleSlotRef>[
+        psdkPlayerSlot,
+        psdkOpponentSlot
+      ]) {
+        final effect = _effectFor(result.state, slot, 'perish_song');
+        expect(effect, isA<PerishSongEffect>());
+        expect(effect.remainingTurns, 4);
+      }
+      expect(
+        result.events.whereType<PsdkBattleEffectEvent>().map(
+              (event) => event.target,
+            ),
+        <PsdkBattleSlotRef>[psdkOpponentSlot, psdkPlayerSlot],
+      );
+      expect(
+        existingPerish.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('perish_song'),
+        isFalse,
+      );
+      expect(
+        punchingGlove.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('perish_song'),
+        isFalse,
+      );
+    });
+
+    test('Mummy-family contact abilities overwrite the attacker ability', () {
+      const contact = BattleMoveFlags(contact: true);
+      final mummy = _applyDirectAbilityDamage(
+        opponentAbilityId: 'mummy',
+        playerAbilityId: 'overgrow',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contact,
+      );
+      final lingering = _applyDirectAbilityDamage(
+        opponentAbilityId: 'lingering_aroma',
+        playerAbilityId: 'overgrow',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contact,
+      );
+      final longReach = _applyDirectAbilityDamage(
+        opponentAbilityId: 'mummy',
+        playerAbilityId: 'long_reach',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contact,
+      );
+      final nonContact = _applyDirectAbilityDamage(
+        opponentAbilityId: 'mummy',
+        playerAbilityId: 'overgrow',
+        category: PsdkBattleMoveCategory.physical,
+      );
+      final punchingGlove = _applyDirectAbilityDamage(
+        opponentAbilityId: 'mummy',
+        playerAbilityId: 'overgrow',
+        playerHeldItemId: 'punching_glove',
+        category: PsdkBattleMoveCategory.physical,
+        flags: const BattleMoveFlags(contact: true, punch: true),
+      );
+
+      expect(mummy.state.battlerAt(psdkPlayerSlot).abilityId, 'mummy');
+      expect(
+        mummy.state.battlerAt(psdkPlayerSlot).effects.contains('ability:mummy'),
+        isTrue,
+      );
+      expect(
+        lingering.state.battlerAt(psdkPlayerSlot).abilityId,
+        'lingering_aroma',
+      );
+      expect(longReach.state.battlerAt(psdkPlayerSlot).abilityId, 'long_reach');
+      expect(nonContact.state.battlerAt(psdkPlayerSlot).abilityId, 'overgrow');
+      expect(
+          punchingGlove.state.battlerAt(psdkPlayerSlot).abilityId, 'overgrow');
+    });
+
+    test('Wandering Spirit swaps changeable contact abilities', () {
+      const contact = BattleMoveFlags(contact: true);
+      final swapped = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wandering_spirit',
+        playerAbilityId: 'overgrow',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contact,
+      );
+      final blocked = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wandering_spirit',
+        playerAbilityId: 'wonder_guard',
+        category: PsdkBattleMoveCategory.physical,
+        flags: contact,
+      );
+
+      expect(
+        swapped.state.battlerAt(psdkPlayerSlot).abilityId,
+        'wandering_spirit',
+      );
+      expect(swapped.state.battlerAt(psdkOpponentSlot).abilityId, 'overgrow');
+      expect(blocked.state.battlerAt(psdkPlayerSlot).abilityId, 'wonder_guard');
+      expect(
+        blocked.state.battlerAt(psdkOpponentSlot).abilityId,
+        'wandering_spirit',
+      );
+    });
+
     test('KO stat boost abilities trigger after the owner knocks out a target',
         () {
       const cases = <({String abilityId, String stat})>[
@@ -3931,6 +4151,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleTransformState transformState = const PsdkBattleTransformState(),
   PsdkBattleMajorStatus? majorStatus,
   double currentWeightKg = 1,
+  PsdkBattleEffectStack? effects,
   List<PsdkBattleMoveData>? moves,
   required PsdkBattleMoveData move,
 }) {
@@ -3959,6 +4180,7 @@ PsdkBattleCombatantSetup _combatant({
     baseWeightKg: currentWeightKg,
     currentWeightKg: currentWeightKg,
     switching: switching,
+    effects: effects,
     moves: moves ?? <PsdkBattleMoveData>[move],
   );
 }
@@ -4180,6 +4402,8 @@ BattleHandlerResult _applyDirectAbilityDamage({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   String? playerHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleEffectStack? playerEffects,
+  PsdkBattleEffectStack? opponentEffects,
   BattleRngSeeds rngSeeds = const BattleRngSeeds(
     moveDamage: 1,
     moveCritical: 99999,
@@ -4195,6 +4419,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
         types: playerTypes,
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,
+        effects: playerEffects,
         move: _move(id: 'typed_hit', type: moveType, power: 60),
       ),
       opponent: _combatant(
@@ -4202,6 +4427,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
         currentHp: opponentCurrentHp,
         types: opponentTypes,
         abilityId: opponentAbilityId,
+        effects: opponentEffects,
         move: _move(id: 'opponent_wait', power: 0),
       ),
       rngSeeds: rngSeeds.psdkSeeds,
@@ -4239,6 +4465,33 @@ List<PsdkBattleStatStageEvent> _statEventsForHandler(
   BattleHandlerResult result,
 ) {
   return result.events.whereType<PsdkBattleStatStageEvent>().toList();
+}
+
+BattleEffect _effectFor(
+  PsdkBattleState state,
+  PsdkBattleSlotRef slot,
+  String effectId,
+) {
+  return state
+      .battlerAt(slot)
+      .effects
+      .effects
+      .singleWhere((effect) => effect.id == effectId);
+}
+
+List<BattleEffect> _bankEffectsFor(
+  PsdkBattleState state,
+  String effectId, {
+  required int bank,
+}) {
+  return <BattleEffect>[
+    for (final battler in state.combatants.values)
+      for (final effect in battler.effects.effects)
+        if (effect.id == effectId &&
+            effect.scope is BankBattleEffectScope &&
+            (effect.scope as BankBattleEffectScope).bank == bank)
+          effect,
+  ];
 }
 
 BattleEffect _abilityEffectForOpponent(String abilityId) {
