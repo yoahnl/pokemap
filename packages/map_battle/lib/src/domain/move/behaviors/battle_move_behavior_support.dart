@@ -65,6 +65,7 @@ BattleDirectDamageResult applyDirectDamage({
   required int amount,
   PsdkBattleMoveCategory? moveCategory,
   BattleMoveDefinition? move,
+  bool criticalHit = false,
 }) {
   final result = const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
@@ -78,6 +79,7 @@ BattleDirectDamageResult applyDirectDamage({
     rawDamage: amount,
     moveCategory: moveCategory,
     move: move,
+    criticalHit: criticalHit,
   );
   final damageEvents = result.events
       .whereType<PsdkBattleDamageEvent>()

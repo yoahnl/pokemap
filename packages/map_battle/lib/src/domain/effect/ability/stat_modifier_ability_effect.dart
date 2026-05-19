@@ -142,6 +142,50 @@ final class RuinStatAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class SlowStartAbilityEffect extends BattleAbilityEffect {
+  const SlowStartAbilityEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'slow_start', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SlowStartAbilityEffect(scope: scope);
+  }
+
+  @override
+  double statMultiplier(BattleAbilityStatContext context) {
+    if (context.battler.abilityId != abilityId ||
+        context.battler.battleTurnCount >= 5) {
+      return 1;
+    }
+    return switch (context.stat) {
+      'attack' || 'speed' => 0.5,
+      _ => 1,
+    };
+  }
+}
+
+final class GaleWingsAbilityEffect extends BattleAbilityEffect {
+  const GaleWingsAbilityEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'gale_wings', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return GaleWingsAbilityEffect(scope: scope);
+  }
+
+  @override
+  int movePriorityModifier(BattleAbilityMovePriorityContext context) {
+    if (context.battler.abilityId != abilityId ||
+        context.move.type != 'flying' ||
+        context.battler.currentHp != context.battler.maxHp) {
+      return 0;
+    }
+    return 1;
+  }
+}
+
 bool hasMajorStatus(BattleAbilityStatContext context) {
   return context.battler.majorStatus != null;
 }
@@ -165,7 +209,8 @@ bool hasElectricTerrain(BattleAbilityStatContext context) {
 
 bool hasSunnyWeather(BattleAbilityStatContext context) {
   return !context.weatherEffectsSuppressed &&
-      context.field.isWeatherActive(PsdkBattleWeatherId.sunny);
+      (context.field.isWeatherActive(PsdkBattleWeatherId.sunny) ||
+          context.field.isWeatherActive(PsdkBattleWeatherId.hardsun));
 }
 
 bool hasRainWeather(BattleAbilityStatContext context) {

@@ -77,6 +77,7 @@ final class PsdkBattleActionDecisionMapper {
     }
     final move = _effectiveActionMove(
       state: state,
+      user: user,
       battler: battler,
       move: battler.moves[effectiveMoveSlot],
     );
@@ -119,16 +120,46 @@ int? _chargedMoveSlot({
 
 PsdkBattleMoveData _effectiveActionMove({
   required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
   required PsdkBattleCombatant battler,
   required PsdkBattleMoveData move,
 }) {
-  if (move.battleEngineMethod != 's_grassy_glide' ||
-      !state.field.isTerrainActive(PsdkBattleTerrainId.grassyTerrain) ||
-      !const BattleGroundingResolver().isGrounded(battler) ||
-      move.priority >= 14) {
-    return move;
+  var nextMove = move;
+  if (nextMove.battleEngineMethod == 's_grassy_glide' &&
+      state.field.isTerrainActive(PsdkBattleTerrainId.grassyTerrain) &&
+      const BattleGroundingResolver().isGrounded(battler) &&
+      nextMove.priority < 14) {
+    nextMove = _copyMoveWithPriority(nextMove, nextMove.priority + 1);
   }
-  return _copyMoveWithPriority(move, move.priority + 1);
+  return _applyAbilityPriority(
+    state: state,
+    user: user,
+    battler: battler,
+    move: nextMove,
+  );
+}
+
+PsdkBattleMoveData _applyAbilityPriority({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleCombatant battler,
+  required PsdkBattleMoveData move,
+}) {
+  var priority = move.priority;
+  for (final effect in battler.abilityEffects) {
+    priority += effect.movePriorityModifier(
+      BattleAbilityMovePriorityContext(
+        state: state,
+        user: user,
+        battler: battler,
+        move: move,
+        currentPriority: priority,
+      ),
+    );
+  }
+  return priority == move.priority
+      ? move
+      : _copyMoveWithPriority(move, priority);
 }
 
 PsdkBattleMoveData _copyMoveWithPriority(

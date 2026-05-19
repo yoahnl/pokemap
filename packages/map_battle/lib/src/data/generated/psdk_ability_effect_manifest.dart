@@ -37,7 +37,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'anger_point',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Anger Point.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'AngerPointEffect.partialCriticalMetadataPropagation',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'anger_shell',
@@ -252,7 +253,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'curious_medicine',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Curious Medicine.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CuriousMedicineEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'cursed_body',
@@ -507,7 +509,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'gale_wings',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Gale Wings.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'GaleWingsAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'galvanize',
@@ -581,7 +584,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'hadron_engine',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 HadronEngine.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HadronEngineEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'harvest',
@@ -952,7 +956,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'orichalcum_pulse',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 OrichalcumPulse.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'OrichalcumPulseEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'overcoat',
@@ -1357,7 +1362,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'slow_start',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Slow Start.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SlowStartAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'slush_rush',
@@ -1512,7 +1518,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'supersweet_syrup',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Supersweet Syrup.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'SupersweetSyrupEffect.partialNoPersistentAbilityUsed',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'supreme_overlord',

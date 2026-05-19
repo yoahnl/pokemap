@@ -22,6 +22,7 @@ final class BattleDamageHandler {
     required int rawDamage,
     PsdkBattleMoveCategory? moveCategory,
     BattleMoveDefinition? move,
+    bool criticalHit = false,
   }) {
     final targetBattler = context.state.battlerAt(target);
     final moveDefinition = move ??
@@ -110,6 +111,7 @@ final class BattleDamageHandler {
       target: target,
       move: moveDefinition,
       damage: damage,
+      criticalHit: criticalHit,
     );
 
     return BattleHandlerResult(
@@ -131,6 +133,7 @@ final class BattleDamageHandler {
     required PsdkBattleSlotRef target,
     required BattleMoveDefinition move,
     required int damage,
+    required bool criticalHit,
   }) {
     var nextState = state;
     var nextRng = rng;
@@ -153,6 +156,7 @@ final class BattleDamageHandler {
               move: move,
               damage: damage,
               targetFainted: nextState.battlerAt(target).isFainted,
+              criticalHit: criticalHit,
             ),
           );
       nextState = result.state;

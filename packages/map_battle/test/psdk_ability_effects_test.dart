@@ -799,6 +799,93 @@ void main() {
       expect(active.speed, 100);
     });
 
+    test('Slow Start halves Attack and Speed before turn five', () {
+      final slowed = _fightActionForAbility(
+        abilityId: 'slow_start',
+        battleTurnCount: 4,
+      );
+      final expired = _fightActionForAbility(
+        abilityId: 'slow_start',
+        battleTurnCount: 5,
+      );
+      final normalDamage = _calculatedDamage();
+      final slowedDamage = _calculatedDamage(
+        abilityId: 'slow_start',
+        playerBattleTurnCount: 4,
+      );
+      final expiredDamage = _calculatedDamage(
+        abilityId: 'slow_start',
+        playerBattleTurnCount: 5,
+      );
+
+      expect(slowed.speed, 25);
+      expect(expired.speed, 50);
+      expect(slowedDamage, lessThan(normalDamage));
+      expect(expiredDamage, normalDamage);
+    });
+
+    test('Gale Wings boosts Flying move priority only at full HP', () {
+      final fullHp = _fightActionForAbility(
+        abilityId: 'gale_wings',
+        move: _move(id: 'acrobatics', type: 'flying', power: 55),
+      );
+      final damaged = _fightActionForAbility(
+        abilityId: 'gale_wings',
+        currentHp: 99,
+        move: _move(id: 'acrobatics', type: 'flying', power: 55),
+      );
+      final nonFlying = _fightActionForAbility(
+        abilityId: 'gale_wings',
+        move: _move(id: 'tackle', power: 40),
+      );
+
+      expect(fullHp.move.priority, 1);
+      expect(damaged.move.priority, 0);
+      expect(nonFlying.move.priority, 0);
+    });
+
+    test('Hadron Engine sets Electric Terrain and boosts Special Attack', () {
+      final switchIn =
+          _dispatchAbilitySwitchIn(playerAbilityId: 'hadron_engine');
+      final normalDamage = _calculatedDamage(
+        category: PsdkBattleMoveCategory.special,
+      );
+      final terrainDamage = _calculatedDamage(
+        abilityId: 'hadron_engine',
+        category: PsdkBattleMoveCategory.special,
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      expect(
+        switchIn.state.field.terrain?.id,
+        PsdkBattleTerrainId.electricTerrain,
+      );
+      expect(terrainDamage, greaterThan(normalDamage));
+    });
+
+    test('Orichalcum Pulse sets sun and boosts Attack in sunny weather', () {
+      final switchIn =
+          _dispatchAbilitySwitchIn(playerAbilityId: 'orichalcum_pulse');
+      final normalDamage = _calculatedDamage();
+      final sunnyDamage = _calculatedDamage(
+        abilityId: 'orichalcum_pulse',
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sunny,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      expect(switchIn.state.field.weather?.id, PsdkBattleWeatherId.sunny);
+      expect(sunnyDamage, greaterThan(normalDamage));
+    });
+
     test('stat modifier abilities affect damage formula like PSDK', () {
       final baseline = _runMove(
         playerMove: _move(id: 'tackle', power: 60),
@@ -1526,6 +1613,26 @@ void main() {
       expect(stages.valueOf('attack'), 2);
       expect(stages.valueOf('speed'), -1);
       expect(stages.valueOf('defense'), 1);
+    });
+
+    test('Curious Medicine resets adjacent ally stat stages on switch-in', () {
+      final result = _dispatchCuriousMedicineSwitchIn();
+      final allyStages = result.state.battlerAt(_psdkPlayerAllySlot).statStages;
+
+      expect(result.applied, isTrue);
+      expect(allyStages.valueOf('attack'), 0);
+      expect(allyStages.valueOf('speed'), 0);
+    });
+
+    test('Supersweet Syrup lowers foe Evasion on switch-in', () {
+      final result =
+          _dispatchAbilitySwitchIn(playerAbilityId: 'supersweet_syrup');
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('evasion'),
+        -1,
+      );
     });
 
     test('Cotton Down partially lowers every other battler Speed', () {
@@ -2749,6 +2856,13 @@ void main() {
         opponentCurrentHp: 10,
         rawDamage: 30,
       );
+      final angerPoint = _applyDirectAbilityDamage(
+        opponentAbilityId: 'anger_point',
+        criticalHit: true,
+      );
+      final angerPointNonCritical = _applyDirectAbilityDamage(
+        opponentAbilityId: 'anger_point',
+      );
 
       expect(_statEventsForHandler(stamina).single.stat, 'defense');
       expect(_statEventsForHandler(stamina).single.amount, 1);
@@ -2787,6 +2901,15 @@ void main() {
       expect(_statEventsForHandler(tanglingHair).single.target, psdkPlayerSlot);
       expect(_statEventsForHandler(nonContactGooey), isEmpty);
       expect(_statEventsForHandler(lethalStamina), isEmpty);
+      expect(
+        angerPoint.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('attack'),
+        6,
+      );
+      expect(_statEventsForHandler(angerPoint).single.stat, 'attack');
+      expect(_statEventsForHandler(angerPointNonCritical), isEmpty);
     });
 
     test('Color Change rewrites the defender type after damaging moves', () {
@@ -3990,6 +4113,9 @@ PsdkBattleFightAction _fightActionForAbility({
   required String abilityId,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleMajorStatus? majorStatus,
+  int currentHp = 100,
+  int battleTurnCount = 0,
+  PsdkBattleMoveData? move,
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -3997,8 +4123,10 @@ PsdkBattleFightAction _fightActionForAbility({
         id: 'player',
         abilityId: abilityId,
         majorStatus: majorStatus,
+        currentHp: currentHp,
+        battleTurnCount: battleTurnCount,
         speed: 50,
-        move: _move(id: 'tackle', power: 40),
+        move: move ?? _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -4252,6 +4380,44 @@ BattleHandlerResult _dispatchCostarSwitchIn() {
           statStages: PsdkBattleStatStages(values: <String, int>{
             'defense': 1,
           }),
+          move: _move(id: 'tackle', power: 40),
+        ),
+      ),
+      _psdkPlayerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          statStages: PsdkBattleStatStages(values: <String, int>{
+            'attack': 2,
+            'speed': -1,
+          }),
+          move: _move(id: 'ally_wait', power: 0),
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
+      ),
+    },
+  );
+
+  return const BattleSwitchHandler().dispatchSwitchEvents(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    who: const PsdkBattleSlotRef(bank: 0, position: -1),
+    replacement: psdkPlayerSlot,
+  );
+}
+
+BattleHandlerResult _dispatchCuriousMedicineSwitchIn() {
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          abilityId: 'curious_medicine',
           move: _move(id: 'tackle', power: 40),
         ),
       ),
@@ -4592,6 +4758,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
   BattleMoveFlags flags = const BattleMoveFlags(),
   int opponentCurrentHp = 100,
   int rawDamage = 30,
+  bool criticalHit = false,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   String? playerHeldItemId,
@@ -4638,6 +4805,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
     target: psdkOpponentSlot,
     moveId: 'typed_hit',
     rawDamage: rawDamage,
+    criticalHit: criticalHit,
     move: BattleMoveDefinition(
       id: 'typed_hit',
       dbSymbol: 'typed_hit',
