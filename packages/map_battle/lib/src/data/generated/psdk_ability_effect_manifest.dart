@@ -183,7 +183,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'color_change',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Color Change.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'ColorChangeEffect.partialNoSheerForceMultiHitState',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'comatose',
@@ -765,7 +766,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'lingering_aroma',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mummy.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ContactAbilityChangeEffect.lingeringAroma',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'liquid_ooze',
@@ -883,7 +885,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'mummy',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mummy.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ContactAbilityChangeEffect.mummy',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'natural_cure',
@@ -975,7 +978,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'perish_body',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Perish Body.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PerishBodyEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'pickpocket',
@@ -1658,7 +1662,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'toxic_debris',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 ToxicDebris.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ToxicDebrisEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'trace',
@@ -1741,7 +1746,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'wandering_spirit',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Wandering Spirit.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'WanderingSpiritEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'water_absorb',

@@ -22,8 +22,8 @@ void main() {
       expect(audit.attackMetrics.fait, 377);
       expect(audit.attackMetrics.unknownMethods, 0);
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 191);
-      expect(audit.effectMetrics.byStatus[PsdkPortStatus.ported], 299);
-      expect(audit.effectMetrics.byStatus[PsdkPortStatus.partial], 25);
+      expect(audit.effectMetrics.byStatus[PsdkPortStatus.ported], 304);
+      expect(audit.effectMetrics.byStatus[PsdkPortStatus.partial], 26);
     });
 
     test('reports every threshold regression with actionable messages', () {

@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 299,
-      "partial": 25,
-      "missing": 158
+      "ported": 304,
+      "partial": 26,
+      "missing": 152
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 148,
-        "partial": 7,
-        "missing": 99
+        "ported": 153,
+        "partial": 8,
+        "missing": 93
       },
       "move": {
         "ported": 80,
@@ -10055,7 +10055,7 @@
       {
         "effectName": "ColorChange",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Color Change.rb",
         "hookFamilies": [
           "post_damage"
@@ -11399,7 +11399,7 @@
       {
         "effectName": "LingeringAroma",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb",
         "hookFamilies": []
       },
@@ -11725,7 +11725,7 @@
       {
         "effectName": "Mummy",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb",
         "hookFamilies": [
           "post_damage"
@@ -11910,7 +11910,7 @@
       {
         "effectName": "PerishBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Perish Body.rb",
         "hookFamilies": [
           "post_damage"
@@ -13263,7 +13263,7 @@
       {
         "effectName": "ToxicDebris",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ToxicDebris.rb",
         "hookFamilies": [
           "post_damage"
@@ -13423,7 +13423,7 @@
       {
         "effectName": "WanderingSpirit",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Wandering Spirit.rb",
         "hookFamilies": [
           "post_damage"

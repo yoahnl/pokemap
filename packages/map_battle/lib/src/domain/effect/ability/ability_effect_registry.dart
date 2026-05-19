@@ -12,6 +12,7 @@ import 'apply_status_to_move_target_ability_effect.dart';
 import 'cloud_nine_effect.dart';
 import 'contact_disable_ability_effect.dart';
 import 'contact_punish_ability_effect.dart';
+import 'contact_reaction_ability_effect.dart';
 import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
@@ -739,6 +740,19 @@ final class AbilityEffectRegistry {
     'seed_sower': ({required scope}) => SeedSowerEffect(scope: scope),
     'innards_out': ({required scope}) => InnardsOutEffect(scope: scope),
     'cotton_down': ({required scope}) => CottonDownEffect(scope: scope),
+    'color_change': ({required scope}) => ColorChangeEffect(scope: scope),
+    'perish_body': ({required scope}) => PerishBodyEffect(scope: scope),
+    'toxic_debris': ({required scope}) => ToxicDebrisEffect(scope: scope),
+    'mummy': ({required scope}) => ContactAbilityChangeEffect(
+          abilityId: 'mummy',
+          scope: scope,
+        ),
+    'lingering_aroma': ({required scope}) => ContactAbilityChangeEffect(
+          abilityId: 'lingering_aroma',
+          scope: scope,
+        ),
+    'wandering_spirit': ({required scope}) =>
+        WanderingSpiritEffect(scope: scope),
     'justified': ({required scope}) => PostDamageStatChangeAbilityEffect(
           abilityId: 'justified',
           scope: scope,
