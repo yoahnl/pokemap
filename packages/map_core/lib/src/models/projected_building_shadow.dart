@@ -283,6 +283,87 @@ final class ProjectBuildingShadowPreset {
       );
 }
 
+/// Ordered in-memory catalog of future projected building shadow presets.
+///
+/// ShadowV2-6 keeps this as a pure domain collection. It has no JSON shape,
+/// manifest integration, default presets, editor behavior, or runtime behavior.
+@immutable
+final class ProjectBuildingShadowPresetCatalog {
+  ProjectBuildingShadowPresetCatalog({
+    List<ProjectBuildingShadowPreset> presets = const [],
+  }) : _presets = _copyBuildingShadowPresets(presets);
+
+  final List<ProjectBuildingShadowPreset> _presets;
+
+  /// Presets in authored order. The returned list is unmodifiable.
+  List<ProjectBuildingShadowPreset> get presets => _presets;
+
+  int get length => _presets.length;
+
+  bool get isEmpty => _presets.isEmpty;
+
+  bool get isNotEmpty => !isEmpty;
+
+  /// Exact, case-sensitive lookup by [ProjectBuildingShadowPreset.id].
+  ProjectBuildingShadowPreset? presetById(String id) {
+    for (final preset in _presets) {
+      if (preset.id == id) {
+        return preset;
+      }
+    }
+    return null;
+  }
+
+  bool containsPresetId(String id) => presetById(id) != null;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectBuildingShadowPresetCatalog &&
+          _projectBuildingShadowPresetsEqualInOrder(_presets, other._presets);
+
+  @override
+  int get hashCode => Object.hashAll(_presets);
+}
+
+List<ProjectBuildingShadowPreset> _copyBuildingShadowPresets(
+  List<ProjectBuildingShadowPreset> presets,
+) {
+  final copiedPresets = List<ProjectBuildingShadowPreset>.from(presets);
+  _rejectDuplicateBuildingShadowPresetIds(copiedPresets);
+  return List<ProjectBuildingShadowPreset>.unmodifiable(copiedPresets);
+}
+
+void _rejectDuplicateBuildingShadowPresetIds(
+  List<ProjectBuildingShadowPreset> presets,
+) {
+  final seen = <String>{};
+  for (final preset in presets) {
+    if (!seen.add(preset.id)) {
+      throw ArgumentError.value(
+        preset.id,
+        'presets',
+        'ProjectBuildingShadowPresetCatalog.presets must not contain duplicate ProjectBuildingShadowPreset.id',
+      );
+    }
+  }
+}
+
+bool _projectBuildingShadowPresetsEqualInOrder(
+  List<ProjectBuildingShadowPreset> a,
+  List<ProjectBuildingShadowPreset> b,
+) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var index = 0; index < a.length; index += 1) {
+    if (a[index] != b[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void _validateNonBlank(String value, String name) {
   if (value.trim().isEmpty) {
     throw ArgumentError.value(value, name, '$name must be non-empty');
