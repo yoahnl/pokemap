@@ -203,6 +203,92 @@ final class ProjectedShadowAppearance {
   int get hashCode => Object.hash(opacity, colorHexRgb);
 }
 
+/// Reusable parametric preset for a future authored building shadow.
+///
+/// This model is intentionally not connected to JSON, manifests, runtime
+/// resolution, or editor UI in ShadowV2-5.
+@immutable
+final class ProjectBuildingShadowPreset {
+  factory ProjectBuildingShadowPreset({
+    required String id,
+    required String name,
+    required ProjectedShadowDirection direction,
+    required ProjectedShadowShapeTuning shape,
+    required ProjectedShadowAppearance appearance,
+    required ProjectedShadowTimeOfDayMode timeOfDayMode,
+    String? categoryId,
+    int sortOrder = 0,
+  }) {
+    _validateNonBlank(id, 'ProjectBuildingShadowPreset.id');
+    _validateNonBlank(name, 'ProjectBuildingShadowPreset.name');
+    final category = categoryId;
+    if (category != null) {
+      _validateNonBlank(category, 'ProjectBuildingShadowPreset.categoryId');
+    }
+    return ProjectBuildingShadowPreset._(
+      id: id,
+      name: name,
+      direction: direction,
+      shape: shape,
+      appearance: appearance,
+      timeOfDayMode: timeOfDayMode,
+      categoryId: categoryId,
+      sortOrder: sortOrder,
+    );
+  }
+
+  const ProjectBuildingShadowPreset._({
+    required this.id,
+    required this.name,
+    required this.direction,
+    required this.shape,
+    required this.appearance,
+    required this.timeOfDayMode,
+    required this.categoryId,
+    required this.sortOrder,
+  });
+
+  final String id;
+  final String name;
+  final ProjectedShadowDirection direction;
+  final ProjectedShadowShapeTuning shape;
+  final ProjectedShadowAppearance appearance;
+  final ProjectedShadowTimeOfDayMode timeOfDayMode;
+  final String? categoryId;
+  final int sortOrder;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectBuildingShadowPreset &&
+          other.id == id &&
+          other.name == name &&
+          other.direction == direction &&
+          other.shape == shape &&
+          other.appearance == appearance &&
+          other.timeOfDayMode == timeOfDayMode &&
+          other.categoryId == categoryId &&
+          other.sortOrder == sortOrder;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        direction,
+        shape,
+        appearance,
+        timeOfDayMode,
+        categoryId,
+        sortOrder,
+      );
+}
+
+void _validateNonBlank(String value, String name) {
+  if (value.trim().isEmpty) {
+    throw ArgumentError.value(value, name, '$name must be non-empty');
+  }
+}
+
 void _validateFinite(double value, String name) {
   if (!value.isFinite) {
     throw ValidationException('$name must be finite');
