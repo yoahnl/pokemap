@@ -229,7 +229,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'cotton_down',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Cotton Down.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'CottonDownEffect.partialNoMirrorArmor',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'cud_chew',
@@ -581,7 +582,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'healer',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Healer.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HealerEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'heatproof',
@@ -594,7 +596,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'hospitality',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Hospitality.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HospitalityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'huge_power',
@@ -667,7 +670,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'innards_out',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Innards Out.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'InnardsOutEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'inner_focus',
@@ -851,7 +855,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'moody',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Moody.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoodyEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'motor_drive',
@@ -1220,7 +1225,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sand_spit',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sand Spit.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SandSpitEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sand_stream',
@@ -1259,7 +1265,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'seed_sower',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 SeedSower.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SeedSowerEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'serene_grace',
@@ -1498,7 +1505,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'surge_surfer',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Surge Surfer.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StatModifierAbilityEffect.surgeSurfer',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'swarm',
@@ -1537,7 +1545,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'synchronize',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Synchronize.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SynchronizeEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'tablets_of_ruin',

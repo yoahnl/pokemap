@@ -6,6 +6,7 @@ import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battler/battle_transform_service.dart';
 import '../../handler/battle_ability_change_handler.dart';
 import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_stat_change_handler.dart';
 import '../../handler/battle_terrain_change_handler.dart';
 import '../../handler/battle_weather_change_handler.dart';
@@ -134,6 +135,63 @@ final class SwitchTerrainAbilityEffect extends BattleAbilityEffect {
       }
     }
     return 5;
+  }
+}
+
+final class HospitalityEffect extends BattleAbilityEffect {
+  const HospitalityEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'hospitality', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return HospitalityEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    final allies = context.state.alliesOf(context.replacement);
+    if (allies.isEmpty) {
+      return null;
+    }
+
+    final roll =
+        context.rng.generic.nextIntInclusive(min: 0, max: allies.length - 1);
+    final target = allies[roll.value];
+    final rng = context.rng.copyWith(generic: roll.next);
+    final targetBattler = context.state.battlerAt(target);
+    final result = const BattleHealHandler().heal(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: rng,
+        turn: context.turn,
+        user: context.replacement,
+      ),
+      target: target,
+      amount: targetBattler.maxHp ~/ 4,
+    );
+    if (!result.applied) {
+      return null;
+    }
+    final healed = result.state.battlerAt(target);
+    return BattleEffectSwitchEventResult(
+      state: result.state,
+      rng: result.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleHealEvent(
+          user: context.replacement,
+          target: target,
+          moveId: 'ability:hospitality',
+          amount: result.amount,
+          remainingHp: healed.currentHp,
+        ),
+      ],
+    );
   }
 }
 

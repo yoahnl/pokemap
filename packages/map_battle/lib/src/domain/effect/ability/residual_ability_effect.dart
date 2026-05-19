@@ -9,6 +9,7 @@ import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_stat_change_handler.dart';
 import '../../handler/battle_status_change_handler.dart';
 import '../../move/battle_move_prevention.dart';
+import '../../rng/battle_seeded_rng.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
@@ -54,6 +55,148 @@ final class SpeedBoostEffect extends BattleAbilityEffect {
       state: result.state,
       rng: result.rng,
       events: result.events,
+    );
+  }
+}
+
+final class MoodyEffect extends BattleAbilityEffect {
+  const MoodyEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'moody', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return MoodyEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    if (!isOwnedBy(context.owner)) {
+      return null;
+    }
+    final battler = context.state.battlerAt(context.owner);
+    if (battler.isFainted) {
+      return null;
+    }
+
+    var rng = context.rng;
+    final upCandidates = _moodyStats
+        .where((stat) => battler.statStages.valueOf(stat) < 6)
+        .toList(growable: false);
+    final upStat = _sampleStat(upCandidates, rng.generic);
+    if (upStat != null) {
+      rng = rng.copyWith(generic: upStat.next);
+    }
+
+    final downCandidates = _moodyStats
+        .where(
+          (stat) =>
+              stat != upStat?.stat && battler.statStages.valueOf(stat) > -6,
+        )
+        .toList(growable: false);
+    final downStat = _sampleStat(downCandidates, rng.generic);
+    if (downStat != null) {
+      rng = rng.copyWith(generic: downStat.next);
+    }
+
+    if (upStat == null && downStat == null) {
+      return null;
+    }
+
+    var nextState = context.state;
+    var nextRng = rng;
+    final events = <PsdkBattleEvent>[];
+    var applied = false;
+    for (final change in <({String stat, int stages})>[
+      if (upStat != null) (stat: upStat.stat, stages: 2),
+      if (downStat != null) (stat: downStat.stat, stages: -1),
+    ]) {
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: context.owner,
+        ),
+        target: context.owner,
+        stat: change.stat,
+        stages: change.stages,
+        sourceAbilityId: abilityId,
+      );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      applied = applied || result.applied || result.events.isNotEmpty;
+    }
+
+    if (!applied) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
+  }
+}
+
+final class HealerEffect extends BattleAbilityEffect {
+  const HealerEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'healer', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return HealerEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    if (!isOwnedBy(context.owner)) {
+      return null;
+    }
+    final owner = context.state.battlerAt(context.owner);
+    if (owner.isFainted) {
+      return null;
+    }
+
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var applied = false;
+    for (final ally in context.state.adjacentAlliesOf(context.owner)) {
+      if (nextState.battlerAt(ally).majorStatus == null) {
+        continue;
+      }
+      final chance =
+          nextRng.generic.nextChance(numerator: 30, denominator: 100);
+      nextRng = nextRng.copyWith(generic: chance.next);
+      if (!chance.didOccur) {
+        continue;
+      }
+      final result = const BattleStatusChangeHandler().cureMajorStatus(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: context.owner,
+        ),
+        target: ally,
+        moveId: 'ability:healer',
+      );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      applied = applied || result.applied || result.events.isNotEmpty;
+    }
+
+    if (!applied) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
     );
   }
 }
@@ -353,6 +496,27 @@ final class BadDreamsEffect extends BattleAbilityEffect {
       events: events,
     );
   }
+}
+
+const _moodyStats = <String>[
+  'attack',
+  'defense',
+  'speed',
+  'specialDefense',
+  'specialAttack',
+  'evasion',
+  'accuracy',
+];
+
+({String stat, BattleRngStream next})? _sampleStat(
+  List<String> stats,
+  BattleRngStream rng,
+) {
+  if (stats.isEmpty) {
+    return null;
+  }
+  final roll = rng.nextIntInclusive(min: 0, max: stats.length - 1);
+  return (stat: stats[roll.value], next: roll.next);
 }
 
 BattleEffectEndTurnResult? _healOwnerFraction({
