@@ -41,6 +41,84 @@ void main() {
       expect(_itemEvents(second), isEmpty);
     });
 
+    test('Ripen doubles HP-healing berries', () {
+      final result = _tickEndTurn(
+        playerHeldItemId: 'sitrus_berry',
+        playerCurrentHp: 40,
+        playerAbilityId: 'ripen',
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 90);
+      expect(player.consumedItemId, 'sitrus_berry');
+      expect(
+          _healEvents(result, moveId: 'item:sitrus_berry').single.amount, 50);
+    });
+
+    test('Cheek Pouch heals after consuming a berry', () {
+      final result = _damagePlayer(
+        playerHeldItemId: 'oran_berry',
+        playerAbilityId: 'cheek_pouch',
+        rawDamage: 60,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 83);
+      expect(player.consumedItemId, 'oran_berry');
+      expect(_healEvents(result, moveId: 'item:oran_berry').single.amount, 10);
+      expect(
+        _healEvents(result, moveId: 'ability:cheek_pouch').single.amount,
+        33,
+      );
+    });
+
+    test('Unburden doubles speed after the held item is consumed', () {
+      final before = _state(
+        playerHeldItemId: 'oran_berry',
+        playerAbilityId: 'unburden',
+      );
+      final consumed = _damagePlayer(
+        playerHeldItemId: 'oran_berry',
+        playerAbilityId: 'unburden',
+        rawDamage: 60,
+      );
+      final restored = const BattleItemChangeHandler().changeHeldItem(
+        context: BattleHandlerContext(
+          state: consumed.state,
+          rng: consumed.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+        heldItemId: 'sitrus_berry',
+      );
+
+      expect(_fightSpeed(before), 50);
+      expect(_fightSpeed(consumed.state), 100);
+      expect(_fightSpeed(restored.state), 50);
+    });
+
+    test(
+        'Harvest restores and immediately re-executes a threshold berry in sun',
+        () {
+      final result = _tickEndTurn(
+        playerHeldItemId: null,
+        playerCurrentHp: 40,
+        playerAbilityId: 'harvest',
+        playerConsumedItemId: 'sitrus_berry',
+        playerItemConsumed: true,
+        weather: PsdkBattleWeatherId.sunny,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 65);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'sitrus_berry');
+      expect(
+          _healEvents(result, moveId: 'item:sitrus_berry').single.amount, 25);
+      expect(_itemEvents(result).single.itemId, 'sitrus_berry');
+    });
+
     test('Rawst Berry cures burn immediately after the status is applied', () {
       final result = _applyStatus(
         playerHeldItemId: 'rawst_berry',
@@ -298,10 +376,14 @@ const _seeds = BattleRngSeeds(
 );
 
 BattleHandlerResult _damagePlayer({
-  required String playerHeldItemId,
+  required String? playerHeldItemId,
+  String? playerAbilityId,
   required int rawDamage,
 }) {
-  final state = _state(playerHeldItemId: playerHeldItemId);
+  final state = _state(
+    playerHeldItemId: playerHeldItemId,
+    playerAbilityId: playerAbilityId,
+  );
   return const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
       state: state,
@@ -344,12 +426,20 @@ PsdkBattleTurnResult _runPlayerMove({
 }
 
 BattleHandlerResult _tickEndTurn({
-  required String playerHeldItemId,
+  required String? playerHeldItemId,
   required int playerCurrentHp,
+  String? playerAbilityId,
+  String? playerConsumedItemId,
+  bool playerItemConsumed = false,
+  PsdkBattleWeatherId? weather,
 }) {
   final state = _state(
     playerHeldItemId: playerHeldItemId,
     playerCurrentHp: playerCurrentHp,
+    playerAbilityId: playerAbilityId,
+    playerConsumedItemId: playerConsumedItemId,
+    playerItemConsumed: playerItemConsumed,
+    weather: weather,
   );
   return const BattleEndTurnHandler().resolveEndTurn(
     BattleHandlerContext(
@@ -380,14 +470,21 @@ BattleHandlerResult _applyStatus({
 }
 
 PsdkBattleState _state({
-  required String playerHeldItemId,
+  required String? playerHeldItemId,
   int playerCurrentHp = 100,
+  String? playerAbilityId,
+  String? playerConsumedItemId,
+  bool playerItemConsumed = false,
+  PsdkBattleWeatherId? weather,
 }) {
-  return PsdkBattleState.fromSetup(
+  final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,
+        abilityId: playerAbilityId,
+        consumedItemId: playerConsumedItemId,
+        itemConsumed: playerItemConsumed,
         currentHp: playerCurrentHp,
         move: _move(id: 'tackle', power: 40),
       ),
@@ -398,12 +495,18 @@ PsdkBattleState _state({
       rngSeeds: _seeds.psdkSeeds,
     ).psdkSetup,
   );
+  return weather == null
+      ? state
+      : state.copyWith(field: state.field.withWeather(weather));
 }
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
   required PsdkBattleMoveData move,
   String? heldItemId,
+  String? consumedItemId,
+  bool itemConsumed = false,
+  String? abilityId,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   int maxHp = 100,
   int currentHp = 100,
@@ -424,8 +527,20 @@ PsdkBattleCombatantSetup _combatant({
       speed: 50,
     ),
     heldItemId: heldItemId,
+    consumedItemId: consumedItemId,
+    itemConsumed: itemConsumed,
+    abilityId: abilityId,
     moves: <PsdkBattleMoveData>[move],
   );
+}
+
+int _fightSpeed(PsdkBattleState state) {
+  final action = const PsdkBattleActionDecisionMapper().map(
+    state: state,
+    user: psdkPlayerSlot,
+    decision: const BattleFightDecision(moveSlot: 0),
+  );
+  return (action as PsdkBattleFightAction).speed;
 }
 
 PsdkBattleMoveData _move({

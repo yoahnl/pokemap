@@ -681,3 +681,7 @@ bool _isSuperEffective({
   );
   return effectiveness.multiplier > 1;
 }
+
+bool isPsdkBerryItemId(String itemId) {
+  return itemId.endsWith('_berry');
+}

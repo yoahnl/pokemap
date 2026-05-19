@@ -16,6 +16,7 @@ import 'contact_reaction_ability_effect.dart';
 import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
+import 'item_change_ability_effect.dart';
 import 'levitate_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
@@ -31,6 +32,7 @@ import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
 import 'stat_change_ability_effect.dart';
+import 'stat_copy_ability_effect.dart';
 import 'stat_modifier_ability_effect.dart';
 import 'stat_drop_prevention_ability_effect.dart';
 import 'status_share_ability_effect.dart';
@@ -54,6 +56,11 @@ final class AbilityEffectRegistry {
     'air_lock': ({required scope}) => AirLockEffect(scope: scope),
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
     'damp': ({required scope}) => DampEffect(scope: scope),
+    'cheek_pouch': ({required scope}) => CheekPouchEffect(scope: scope),
+    'harvest': ({required scope}) => HarvestEffect(scope: scope),
+    'opportunist': ({required scope}) => OpportunistEffect(scope: scope),
+    'ripen': ({required scope}) => RipenEffect(scope: scope),
+    'unburden': ({required scope}) => UnburdenEffect(scope: scope),
     'aftermath': ({required scope}) => AftermathEffect(scope: scope),
     'rough_skin': ({required scope}) => ContactPunishAbilityEffect(
           abilityId: 'rough_skin',

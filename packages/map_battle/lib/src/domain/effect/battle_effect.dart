@@ -66,6 +66,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectItemChangeResult? onPostItemChange(
+    BattleEffectItemChangeContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectLifecycleResult? onLifecycle(
     BattleEffectLifecycleContext context,
   ) {
