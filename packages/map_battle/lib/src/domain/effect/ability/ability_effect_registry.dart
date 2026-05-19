@@ -492,6 +492,36 @@ final class AbilityEffectRegistry {
           statMultipliers: const <String, double>{'defense': 2},
         ),
     'hustle': ({required scope}) => HustleAbilityEffect(scope: scope),
+    'plus': ({required scope}) => PlusMinusAbilityEffect(
+          abilityId: 'plus',
+          scope: scope,
+        ),
+    'minus': ({required scope}) => PlusMinusAbilityEffect(
+          abilityId: 'minus',
+          scope: scope,
+        ),
+    'flower_gift': ({required scope}) =>
+        FlowerGiftStatAbilityEffect(scope: scope),
+    'tablets_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'tablets_of_ruin',
+          scope: scope,
+          stat: 'attack',
+        ),
+    'vessel_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'vessel_of_ruin',
+          scope: scope,
+          stat: 'specialAttack',
+        ),
+    'sword_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'sword_of_ruin',
+          scope: scope,
+          stat: 'defense',
+        ),
+    'beads_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'beads_of_ruin',
+          scope: scope,
+          stat: 'specialDefense',
+        ),
     'marvel_scale': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'marvel_scale',
           scope: scope,
@@ -832,6 +862,7 @@ final class AbilityEffectRegistry {
     'natural_cure': ({required scope}) => NaturalCureEffect(scope: scope),
     'regenerator': ({required scope}) => RegeneratorEffect(scope: scope),
     'synchronize': ({required scope}) => SynchronizeEffect(scope: scope),
+    'costar': ({required scope}) => CostarEffect(scope: scope),
     'hospitality': ({required scope}) => HospitalityEffect(scope: scope),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',

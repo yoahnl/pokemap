@@ -847,6 +847,88 @@ void main() {
       );
     });
 
+    test('Plus and Minus boost Special Attack with same-family ally', () {
+      final baseline = _calculatedDoublesDamage(
+        userAbilityId: 'plus',
+        category: PsdkBattleMoveCategory.special,
+      );
+      final paired = _calculatedDoublesDamage(
+        userAbilityId: 'plus',
+        userAllyAbilityId: 'minus',
+        category: PsdkBattleMoveCategory.special,
+      );
+      final physical = _calculatedDoublesDamage(
+        userAbilityId: 'plus',
+        userAllyAbilityId: 'minus',
+      );
+
+      expect(paired, greaterThan(baseline));
+      expect(
+        physical,
+        _calculatedDoublesDamage(userAbilityId: 'plus'),
+      );
+    });
+
+    test('Ruin abilities apply their global stat penalties', () {
+      final normalPhysical = _calculatedDoublesDamage();
+      final normalSpecial = _calculatedDoublesDamage(
+        category: PsdkBattleMoveCategory.special,
+      );
+
+      expect(
+        _calculatedDoublesDamage(targetAbilityId: 'tablets_of_ruin'),
+        lessThan(normalPhysical),
+      );
+      expect(
+        _calculatedDoublesDamage(
+          targetAbilityId: 'vessel_of_ruin',
+          category: PsdkBattleMoveCategory.special,
+        ),
+        lessThan(normalSpecial),
+      );
+      expect(
+        _calculatedDoublesDamage(targetAllyAbilityId: 'sword_of_ruin'),
+        greaterThan(normalPhysical),
+      );
+      expect(
+        _calculatedDoublesDamage(
+          targetAllyAbilityId: 'beads_of_ruin',
+          category: PsdkBattleMoveCategory.special,
+        ),
+        greaterThan(normalSpecial),
+      );
+    });
+
+    test('Flower Gift boosts allied Attack and Special Defense under sun', () {
+      const sunnyField = PsdkBattleFieldState(
+        weather: PsdkBattleWeatherState(
+          id: PsdkBattleWeatherId.sunny,
+          remainingTurns: 5,
+        ),
+      );
+      final normalPhysical = _calculatedDoublesDamage(field: sunnyField);
+      final normalSpecial = _calculatedDoublesDamage(
+        field: sunnyField,
+        category: PsdkBattleMoveCategory.special,
+      );
+
+      expect(
+        _calculatedDoublesDamage(
+          field: sunnyField,
+          userAllyAbilityId: 'flower_gift',
+        ),
+        greaterThan(normalPhysical),
+      );
+      expect(
+        _calculatedDoublesDamage(
+          field: sunnyField,
+          targetAllyAbilityId: 'flower_gift',
+          category: PsdkBattleMoveCategory.special,
+        ),
+        lessThan(normalSpecial),
+      );
+    });
+
     test('defensive stat modifier abilities reduce matching physical damage',
         () {
       final baseline = _runMove(
@@ -1434,6 +1516,16 @@ void main() {
         result.events.whereType<PsdkBattleHealEvent>().single.moveId,
         'ability:hospitality',
       );
+    });
+
+    test('Costar copies non-zero ally stat stages on switch-in', () {
+      final result = _dispatchCostarSwitchIn();
+      final stages = result.state.battlerAt(psdkPlayerSlot).statStages;
+
+      expect(result.applied, isTrue);
+      expect(stages.valueOf('attack'), 2);
+      expect(stages.valueOf('speed'), -1);
+      expect(stages.valueOf('defense'), 1);
     });
 
     test('Cotton Down partially lowers every other battler Speed', () {
@@ -4150,6 +4242,47 @@ BattleHandlerResult _dispatchHospitalitySwitchIn() {
   );
 }
 
+BattleHandlerResult _dispatchCostarSwitchIn() {
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          abilityId: 'costar',
+          statStages: PsdkBattleStatStages(values: <String, int>{
+            'defense': 1,
+          }),
+          move: _move(id: 'tackle', power: 40),
+        ),
+      ),
+      _psdkPlayerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          statStages: PsdkBattleStatStages(values: <String, int>{
+            'attack': 2,
+            'speed': -1,
+          }),
+          move: _move(id: 'ally_wait', power: 0),
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
+      ),
+    },
+  );
+
+  return const BattleSwitchHandler().dispatchSwitchEvents(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    who: const PsdkBattleSlotRef(bank: 0, position: -1),
+    replacement: psdkPlayerSlot,
+  );
+}
+
 BattleHandlerResult _applyStatusToOpponent({
   required String opponentAbilityId,
   required PsdkBattleMajorStatus status,
@@ -4376,10 +4509,13 @@ int _calculatedDamage({
 }
 
 int _calculatedDoublesDamage({
+  String? userAbilityId,
   String? userAllyAbilityId,
+  String? targetAbilityId,
   String? targetAllyAbilityId,
   String moveType = 'normal',
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   const userSlot = PsdkBattleSlotRef(bank: 0, position: 0);
   const userAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
@@ -4388,7 +4524,11 @@ int _calculatedDoublesDamage({
   final state = PsdkBattleState(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       userSlot: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'user', move: _move(id: 'doubles_move', power: 60)),
+        _combatant(
+          id: 'user',
+          abilityId: userAbilityId,
+          move: _move(id: 'doubles_move', power: 60),
+        ),
       ),
       userAllySlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -4398,7 +4538,11 @@ int _calculatedDoublesDamage({
         ),
       ),
       targetSlot: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'target', move: _move(id: 'target_wait', power: 0)),
+        _combatant(
+          id: 'target',
+          abilityId: targetAbilityId,
+          move: _move(id: 'target_wait', power: 0),
+        ),
       ),
       targetAllySlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -4408,6 +4552,7 @@ int _calculatedDoublesDamage({
         ),
       ),
     },
+    field: field,
   );
 
   return const BattleMoveDamageCalculator()

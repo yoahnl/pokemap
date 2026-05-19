@@ -167,6 +167,7 @@ int _actionSpeed({
 }) {
   var speed = _adjustedStat(
     state: state,
+    battlerSlot: user,
     battler: battler,
     stat: 'speed',
     value: battler.stats.speed,
@@ -187,6 +188,7 @@ int _actionSpeed({
 
 int _adjustedStat({
   required PsdkBattleState state,
+  required PsdkBattleSlotRef battlerSlot,
   required PsdkBattleCombatant battler,
   required String stat,
   required int value,
@@ -199,10 +201,17 @@ int _adjustedStat({
     field: state.field,
     battler: battler,
     stat: stat,
+    state: state,
+    battlerSlot: battlerSlot,
     weatherEffectsSuppressed: state.weatherEffectsSuppressed,
   );
   for (final effect in battler.abilityEffects) {
     multiplier *= effect.statMultiplier(abilityContext);
+  }
+  for (final effect in state.activeAbilityEffects()) {
+    if (effect.affectsGlobalStats && !effect.isOwnedBy(battlerSlot)) {
+      multiplier *= effect.statMultiplier(abilityContext);
+    }
   }
   final adjusted = (value * multiplier).floor();
   return adjusted < 1 ? 1 : adjusted;

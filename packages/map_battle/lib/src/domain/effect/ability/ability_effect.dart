@@ -60,6 +60,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   double statMultiplier(BattleAbilityStatContext context) => 1;
 
+  bool get affectsGlobalStats => false;
+
   bool preventsRecoil(BattleAbilityMoveContext context) => false;
 
   bool? groundedOverride(PsdkBattleCombatant battler) => null;
@@ -146,12 +148,16 @@ final class BattleAbilityStatContext {
     required this.field,
     required this.battler,
     required this.stat,
+    this.state,
+    this.battlerSlot,
     this.weatherEffectsSuppressed = false,
   });
 
   final PsdkBattleFieldState field;
   final PsdkBattleCombatant battler;
   final String stat;
+  final PsdkBattleState? state;
+  final PsdkBattleSlotRef? battlerSlot;
   final bool weatherEffectsSuppressed;
 }
 

@@ -1,3 +1,4 @@
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
@@ -191,6 +192,71 @@ final class HospitalityEffect extends BattleAbilityEffect {
           remainingHp: healed.currentHp,
         ),
       ],
+    );
+  }
+}
+
+final class CostarEffect extends BattleAbilityEffect {
+  const CostarEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'costar', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return CostarEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    final candidates = <PsdkBattleSlotRef>[
+      for (final allySlot in context.state.alliesOf(context.replacement))
+        if (context.state
+            .battlerAt(allySlot)
+            .statStages
+            .values
+            .values
+            .any((stage) => stage != 0))
+          allySlot,
+    ];
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    var nextRng = context.rng;
+    final chosenAlly = candidates.length == 1
+        ? candidates.single
+        : () {
+            final roll = context.rng.generic.nextIntInclusive(
+              min: 0,
+              max: candidates.length - 1,
+            );
+            nextRng = context.rng.copyWith(generic: roll.next);
+            return candidates[roll.value];
+          }();
+    final allyStages = context.state.battlerAt(chosenAlly).statStages.values;
+    final currentStages =
+        context.state.battlerAt(context.replacement).statStages.values;
+    final nextStages = Map<String, int>.from(currentStages);
+    for (final entry in allyStages.entries) {
+      if (entry.value != 0) {
+        nextStages[entry.key] = entry.value;
+      }
+    }
+
+    return BattleEffectSwitchEventResult(
+      state: context.state.updateBattler(
+        context.replacement,
+        (battler) => battler.copyWith(
+          statStages: PsdkBattleStatStages(values: nextStages),
+        ),
+      ),
+      rng: nextRng,
     );
   }
 }
