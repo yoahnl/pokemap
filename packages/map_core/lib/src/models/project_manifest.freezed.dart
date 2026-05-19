@@ -72,6 +72,13 @@ mixin _$ProjectManifest {
       throw _privateConstructorUsedError;
   @ProjectShadowCatalogJsonConverter()
   ProjectShadowCatalog get shadowCatalog => throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'projectedBuildingShadowCatalog',
+      fromJson: _projectedBuildingShadowCatalogFromJson,
+      toJson: _projectedBuildingShadowCatalogToJson,
+      includeIfNull: false)
+  ProjectBuildingShadowPresetCatalog get projectedBuildingShadowCatalog =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this ProjectManifest to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -127,7 +134,13 @@ abstract class $ProjectManifestCopyWith<$Res> {
           fromJson: _projectSurfaceCatalogFromJson,
           toJson: _projectSurfaceCatalogToJson)
       ProjectSurfaceCatalog surfaceCatalog,
-      @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog});
+      @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,
+      @JsonKey(
+          name: 'projectedBuildingShadowCatalog',
+          fromJson: _projectedBuildingShadowCatalogFromJson,
+          toJson: _projectedBuildingShadowCatalogToJson,
+          includeIfNull: false)
+      ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog});
 
   $ProjectSettingsCopyWith<$Res> get settings;
   $ProjectPokemonConfigCopyWith<$Res> get pokemon;
@@ -174,6 +187,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
     Object? shadowCatalog = null,
+    Object? projectedBuildingShadowCatalog = null,
   }) {
     return _then(_value.copyWith(
       name: null == name
@@ -280,6 +294,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.shadowCatalog
           : shadowCatalog // ignore: cast_nullable_to_non_nullable
               as ProjectShadowCatalog,
+      projectedBuildingShadowCatalog: null == projectedBuildingShadowCatalog
+          ? _value.projectedBuildingShadowCatalog
+          : projectedBuildingShadowCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectBuildingShadowPresetCatalog,
     ) as $Val);
   }
 
@@ -350,7 +368,13 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
           fromJson: _projectSurfaceCatalogFromJson,
           toJson: _projectSurfaceCatalogToJson)
       ProjectSurfaceCatalog surfaceCatalog,
-      @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog});
+      @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,
+      @JsonKey(
+          name: 'projectedBuildingShadowCatalog',
+          fromJson: _projectedBuildingShadowCatalogFromJson,
+          toJson: _projectedBuildingShadowCatalogToJson,
+          includeIfNull: false)
+      ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog});
 
   @override
   $ProjectSettingsCopyWith<$Res> get settings;
@@ -397,6 +421,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
     Object? shadowCatalog = null,
+    Object? projectedBuildingShadowCatalog = null,
   }) {
     return _then(_$ProjectManifestImpl(
       name: null == name
@@ -503,6 +528,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value.shadowCatalog
           : shadowCatalog // ignore: cast_nullable_to_non_nullable
               as ProjectShadowCatalog,
+      projectedBuildingShadowCatalog: null == projectedBuildingShadowCatalog
+          ? _value.projectedBuildingShadowCatalog
+          : projectedBuildingShadowCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectBuildingShadowPresetCatalog,
     ));
   }
 }
@@ -550,7 +579,14 @@ class _$ProjectManifestImpl implements _ProjectManifest {
           toJson: _projectSurfaceCatalogToJson)
       required this.surfaceCatalog,
       @ProjectShadowCatalogJsonConverter()
-      this.shadowCatalog = const ProjectShadowCatalog.empty()})
+      this.shadowCatalog = const ProjectShadowCatalog.empty(),
+      @JsonKey(
+          name: 'projectedBuildingShadowCatalog',
+          fromJson: _projectedBuildingShadowCatalogFromJson,
+          toJson: _projectedBuildingShadowCatalogToJson,
+          includeIfNull: false)
+      this.projectedBuildingShadowCatalog =
+          const ProjectBuildingShadowPresetCatalog.empty()})
       : _maps = maps,
         _groups = groups,
         _tilesetFolders = tilesetFolders,
@@ -784,10 +820,17 @@ class _$ProjectManifestImpl implements _ProjectManifest {
   @JsonKey()
   @ProjectShadowCatalogJsonConverter()
   final ProjectShadowCatalog shadowCatalog;
+  @override
+  @JsonKey(
+      name: 'projectedBuildingShadowCatalog',
+      fromJson: _projectedBuildingShadowCatalogFromJson,
+      toJson: _projectedBuildingShadowCatalogToJson,
+      includeIfNull: false)
+  final ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog;
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -837,7 +880,11 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             (identical(other.surfaceCatalog, surfaceCatalog) ||
                 other.surfaceCatalog == surfaceCatalog) &&
             (identical(other.shadowCatalog, shadowCatalog) ||
-                other.shadowCatalog == shadowCatalog));
+                other.shadowCatalog == shadowCatalog) &&
+            (identical(other.projectedBuildingShadowCatalog,
+                    projectedBuildingShadowCatalog) ||
+                other.projectedBuildingShadowCatalog ==
+                    projectedBuildingShadowCatalog));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -869,7 +916,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         pokemon,
         const DeepCollectionEquality().hash(_globalProperties),
         surfaceCatalog,
-        shadowCatalog
+        shadowCatalog,
+        projectedBuildingShadowCatalog
       ]);
 
   /// Create a copy of ProjectManifest
@@ -929,7 +977,14 @@ abstract class _ProjectManifest implements ProjectManifest {
           toJson: _projectSurfaceCatalogToJson)
       required final ProjectSurfaceCatalog surfaceCatalog,
       @ProjectShadowCatalogJsonConverter()
-      final ProjectShadowCatalog shadowCatalog}) = _$ProjectManifestImpl;
+      final ProjectShadowCatalog shadowCatalog,
+      @JsonKey(
+          name: 'projectedBuildingShadowCatalog',
+          fromJson: _projectedBuildingShadowCatalogFromJson,
+          toJson: _projectedBuildingShadowCatalogToJson,
+          includeIfNull: false)
+      final ProjectBuildingShadowPresetCatalog
+          projectedBuildingShadowCatalog}) = _$ProjectManifestImpl;
 
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
       _$ProjectManifestImpl.fromJson;
@@ -999,6 +1054,13 @@ abstract class _ProjectManifest implements ProjectManifest {
   @override
   @ProjectShadowCatalogJsonConverter()
   ProjectShadowCatalog get shadowCatalog;
+  @override
+  @JsonKey(
+      name: 'projectedBuildingShadowCatalog',
+      fromJson: _projectedBuildingShadowCatalogFromJson,
+      toJson: _projectedBuildingShadowCatalogToJson,
+      includeIfNull: false)
+  ProjectBuildingShadowPresetCatalog get projectedBuildingShadowCatalog;
 
   /// Create a copy of ProjectManifest
   /// with the given fields replaced by the non-null parameter values.
@@ -4520,6 +4582,13 @@ mixin _$ProjectElementEntry {
       throw _privateConstructorUsedError;
   @ProjectElementShadowConfigJsonConverter()
   ProjectElementShadowConfig? get shadow => throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'projectedBuildingShadow',
+      fromJson: _projectedBuildingShadowConfigFromJson,
+      toJson: _projectedBuildingShadowConfigToJson,
+      includeIfNull: false)
+  ProjectElementProjectedBuildingShadowConfig? get projectedBuildingShadow =>
+      throw _privateConstructorUsedError;
   String? get groupId => throw _privateConstructorUsedError;
   String? get recommendedLayerId => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
@@ -4552,6 +4621,12 @@ abstract class $ProjectElementEntryCopyWith<$Res> {
       ElementCollisionProfile? collisionProfile,
       @ProjectElementShadowConfigJsonConverter()
       ProjectElementShadowConfig? shadow,
+      @JsonKey(
+          name: 'projectedBuildingShadow',
+          fromJson: _projectedBuildingShadowConfigFromJson,
+          toJson: _projectedBuildingShadowConfigToJson,
+          includeIfNull: false)
+      ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
       String? groupId,
       String? recommendedLayerId,
       List<String> tags,
@@ -4584,6 +4659,7 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
     Object? presetKind = null,
     Object? collisionProfile = freezed,
     Object? shadow = freezed,
+    Object? projectedBuildingShadow = freezed,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
     Object? tags = null,
@@ -4626,6 +4702,10 @@ class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
           ? _value.shadow
           : shadow // ignore: cast_nullable_to_non_nullable
               as ProjectElementShadowConfig?,
+      projectedBuildingShadow: freezed == projectedBuildingShadow
+          ? _value.projectedBuildingShadow
+          : projectedBuildingShadow // ignore: cast_nullable_to_non_nullable
+              as ProjectElementProjectedBuildingShadowConfig?,
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
@@ -4680,6 +4760,12 @@ abstract class _$$ProjectElementEntryImplCopyWith<$Res>
       ElementCollisionProfile? collisionProfile,
       @ProjectElementShadowConfigJsonConverter()
       ProjectElementShadowConfig? shadow,
+      @JsonKey(
+          name: 'projectedBuildingShadow',
+          fromJson: _projectedBuildingShadowConfigFromJson,
+          toJson: _projectedBuildingShadowConfigToJson,
+          includeIfNull: false)
+      ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
       String? groupId,
       String? recommendedLayerId,
       List<String> tags,
@@ -4711,6 +4797,7 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
     Object? presetKind = null,
     Object? collisionProfile = freezed,
     Object? shadow = freezed,
+    Object? projectedBuildingShadow = freezed,
     Object? groupId = freezed,
     Object? recommendedLayerId = freezed,
     Object? tags = null,
@@ -4753,6 +4840,10 @@ class __$$ProjectElementEntryImplCopyWithImpl<$Res>
           ? _value.shadow
           : shadow // ignore: cast_nullable_to_non_nullable
               as ProjectElementShadowConfig?,
+      projectedBuildingShadow: freezed == projectedBuildingShadow
+          ? _value.projectedBuildingShadow
+          : projectedBuildingShadow // ignore: cast_nullable_to_non_nullable
+              as ProjectElementProjectedBuildingShadowConfig?,
       groupId: freezed == groupId
           ? _value.groupId
           : groupId // ignore: cast_nullable_to_non_nullable
@@ -4787,6 +4878,12 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       this.presetKind = ElementPresetKind.generic,
       this.collisionProfile,
       @ProjectElementShadowConfigJsonConverter() this.shadow,
+      @JsonKey(
+          name: 'projectedBuildingShadow',
+          fromJson: _projectedBuildingShadowConfigFromJson,
+          toJson: _projectedBuildingShadowConfigToJson,
+          includeIfNull: false)
+      this.projectedBuildingShadow,
       this.groupId,
       this.recommendedLayerId,
       final List<String> tags = const [],
@@ -4828,6 +4925,13 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
   @ProjectElementShadowConfigJsonConverter()
   final ProjectElementShadowConfig? shadow;
   @override
+  @JsonKey(
+      name: 'projectedBuildingShadow',
+      fromJson: _projectedBuildingShadowConfigFromJson,
+      toJson: _projectedBuildingShadowConfigToJson,
+      includeIfNull: false)
+  final ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow;
+  @override
   final String? groupId;
   @override
   final String? recommendedLayerId;
@@ -4846,7 +4950,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
 
   @override
   String toString() {
-    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, presetKind: $presetKind, collisionProfile: $collisionProfile, shadow: $shadow, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
+    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, presetKind: $presetKind, collisionProfile: $collisionProfile, shadow: $shadow, projectedBuildingShadow: $projectedBuildingShadow, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
   }
 
   @override
@@ -4868,6 +4972,9 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
             (identical(other.collisionProfile, collisionProfile) ||
                 other.collisionProfile == collisionProfile) &&
             (identical(other.shadow, shadow) || other.shadow == shadow) &&
+            (identical(
+                    other.projectedBuildingShadow, projectedBuildingShadow) ||
+                other.projectedBuildingShadow == projectedBuildingShadow) &&
             (identical(other.groupId, groupId) || other.groupId == groupId) &&
             (identical(other.recommendedLayerId, recommendedLayerId) ||
                 other.recommendedLayerId == recommendedLayerId) &&
@@ -4889,6 +4996,7 @@ class _$ProjectElementEntryImpl implements _ProjectElementEntry {
       presetKind,
       collisionProfile,
       shadow,
+      projectedBuildingShadow,
       groupId,
       recommendedLayerId,
       const DeepCollectionEquality().hash(_tags),
@@ -4923,6 +5031,13 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
       final ElementCollisionProfile? collisionProfile,
       @ProjectElementShadowConfigJsonConverter()
       final ProjectElementShadowConfig? shadow,
+      @JsonKey(
+          name: 'projectedBuildingShadow',
+          fromJson: _projectedBuildingShadowConfigFromJson,
+          toJson: _projectedBuildingShadowConfigToJson,
+          includeIfNull: false)
+      final ProjectElementProjectedBuildingShadowConfig?
+          projectedBuildingShadow,
       final String? groupId,
       final String? recommendedLayerId,
       final List<String> tags,
@@ -4952,6 +5067,13 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
   @override
   @ProjectElementShadowConfigJsonConverter()
   ProjectElementShadowConfig? get shadow;
+  @override
+  @JsonKey(
+      name: 'projectedBuildingShadow',
+      fromJson: _projectedBuildingShadowConfigFromJson,
+      toJson: _projectedBuildingShadowConfigToJson,
+      includeIfNull: false)
+  ProjectElementProjectedBuildingShadowConfig? get projectedBuildingShadow;
   @override
   String? get groupId;
   @override

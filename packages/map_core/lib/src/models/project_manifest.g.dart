@@ -111,6 +111,11 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
           ? const ProjectShadowCatalog.empty()
           : const ProjectShadowCatalogJsonConverter()
               .fromJson(json['shadowCatalog']),
+      projectedBuildingShadowCatalog:
+          json['projectedBuildingShadowCatalog'] == null
+              ? const ProjectBuildingShadowPresetCatalog.empty()
+              : _projectedBuildingShadowCatalogFromJson(
+                  json['projectedBuildingShadowCatalog']),
     );
 
 Map<String, dynamic> _$$ProjectManifestImplToJson(
@@ -149,6 +154,10 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'surfaceCatalog': _projectSurfaceCatalogToJson(instance.surfaceCatalog),
       'shadowCatalog': const ProjectShadowCatalogJsonConverter()
           .toJson(instance.shadowCatalog),
+      if (_projectedBuildingShadowCatalogToJson(
+              instance.projectedBuildingShadowCatalog)
+          case final value?)
+        'projectedBuildingShadowCatalog': value,
     };
 
 const _$ProjectVersionEnumMap = {
@@ -525,6 +534,8 @@ _$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
               json['collisionProfile'] as Map<String, dynamic>),
       shadow: const ProjectElementShadowConfigJsonConverter()
           .fromJson(json['shadow']),
+      projectedBuildingShadow: _projectedBuildingShadowConfigFromJson(
+          json['projectedBuildingShadow']),
       groupId: json['groupId'] as String?,
       recommendedLayerId: json['recommendedLayerId'] as String?,
       tags:
@@ -546,6 +557,9 @@ Map<String, dynamic> _$$ProjectElementEntryImplToJson(
       'collisionProfile': instance.collisionProfile?.toJson(),
       'shadow': const ProjectElementShadowConfigJsonConverter()
           .toJson(instance.shadow),
+      if (_projectedBuildingShadowConfigToJson(instance.projectedBuildingShadow)
+          case final value?)
+        'projectedBuildingShadow': value,
       'groupId': instance.groupId,
       'recommendedLayerId': instance.recommendedLayerId,
       'tags': instance.tags,

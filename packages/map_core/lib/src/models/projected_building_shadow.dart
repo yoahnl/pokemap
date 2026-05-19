@@ -293,6 +293,8 @@ final class ProjectBuildingShadowPresetCatalog {
     List<ProjectBuildingShadowPreset> presets = const [],
   }) : _presets = _copyBuildingShadowPresets(presets);
 
+  const ProjectBuildingShadowPresetCatalog.empty() : _presets = const [];
+
   final List<ProjectBuildingShadowPreset> _presets;
 
   /// Presets in authored order. The returned list is unmodifiable.

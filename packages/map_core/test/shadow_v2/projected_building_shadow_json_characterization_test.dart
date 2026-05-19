@@ -57,8 +57,8 @@ void main() {
           _manifestJson(shadowCatalog: _shadowCatalogJson()),
         );
 
-        final catalogJson =
-            _wireJson(manifest.toJson())['shadowCatalog'] as Map<String, Object?>;
+        final catalogJson = _wireJson(manifest.toJson())['shadowCatalog']
+            as Map<String, Object?>;
 
         expect(catalogJson, _shadowCatalogJson());
         _expectNoV2Keys(catalogJson);
@@ -73,9 +73,7 @@ void main() {
           shadowCatalog: _shadowCatalogJson(),
           extraRoot: <String, Object?>{
             'buildingShadowPresets': <Object?>[],
-            'projectedBuildingShadowCatalog': <String, Object?>{
-              'presets': <Object?>[],
-            },
+            'projectedBuildingShadowPresets': <Object?>[],
           },
         );
 
@@ -83,9 +81,9 @@ void main() {
         final json = _wireJson(manifest.toJson());
 
         expect(raw, contains('buildingShadowPresets'));
-        expect(raw, contains('projectedBuildingShadowCatalog'));
+        expect(raw, contains('projectedBuildingShadowPresets'));
         expect(json, isNot(contains('buildingShadowPresets')));
-        expect(json, isNot(contains('projectedBuildingShadowCatalog')));
+        expect(json, isNot(contains('projectedBuildingShadowPresets')));
         expect(json['shadowCatalog'], _shadowCatalogJson());
       },
     );
@@ -97,7 +95,7 @@ void main() {
         final raw = _elementJson(
           shadow: _buildingShadowJson(),
           extra: <String, Object?>{
-            'projectedBuildingShadow': <String, Object?>{
+            'projectedShadow': <String, Object?>{
               'enabled': true,
               'presetId': 'short-west-building-shadow',
             },
@@ -107,8 +105,8 @@ void main() {
         final element = ProjectElementEntry.fromJson(raw);
         final json = _wireJson(element.toJson());
 
-        expect(raw, contains('projectedBuildingShadow'));
-        expect(json, isNot(contains('projectedBuildingShadow')));
+        expect(raw, contains('projectedShadow'));
+        expect(json, isNot(contains('projectedShadow')));
         expect(json['shadow'], _buildingShadowJson());
       },
     );
@@ -154,7 +152,8 @@ void main() {
           _manifestJson(
             shadowCatalog: _shadowCatalogJson(),
             elements: <Object?>[
-              _elementJson(id: 'selbrum_maison_test', shadow: _buildingShadowJson()),
+              _elementJson(
+                  id: 'selbrum_maison_test', shadow: _buildingShadowJson()),
               _elementJson(id: 'decor_without_shadow'),
               _elementJson(id: 'decor_shadow_null', shadow: null),
             ],

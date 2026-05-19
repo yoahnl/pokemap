@@ -6,6 +6,7 @@ import 'environment.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
 import 'project_path_pattern_preset.dart';
+import 'projected_building_shadow.dart';
 import 'scenario_asset.dart';
 import 'script_asset.dart';
 import 'shadow.dart';
@@ -17,6 +18,8 @@ import 'visual_frame_json.dart';
 import '../exceptions/map_exceptions.dart';
 import '../operations/environment_preset_json_codec.dart';
 import '../operations/project_element_shadow_config_json_codec.dart';
+import '../operations/project_building_shadow_preset_catalog_json_codec.dart';
+import '../operations/project_element_projected_building_shadow_config_json_codec.dart';
 import '../operations/project_path_pattern_preset_json_codec.dart';
 import '../operations/project_shadow_catalog_json_codec.dart';
 import '../operations/project_surface_catalog_json_codec.dart';
@@ -42,6 +45,49 @@ Map<String, Object?> _projectSurfaceCatalogToJson(
   ProjectSurfaceCatalog catalog,
 ) {
   return encodeProjectSurfaceCatalog(catalog);
+}
+
+/// JSON -> ShadowV2 projected building shadow catalog.
+///
+/// Missing or `null` root data remains an empty in-memory catalog. When the
+/// object is present, it must use the explicit catalog codec shape.
+ProjectBuildingShadowPresetCatalog _projectedBuildingShadowCatalogFromJson(
+    Object? json) {
+  if (json == null) {
+    return const ProjectBuildingShadowPresetCatalog.empty();
+  }
+  if (json is! Map) {
+    throw const ValidationException(
+      'projectedBuildingShadowCatalog must be a JSON object',
+    );
+  }
+  return decodeProjectBuildingShadowPresetCatalog(json);
+}
+
+Map<String, Object?>? _projectedBuildingShadowCatalogToJson(
+  ProjectBuildingShadowPresetCatalog catalog,
+) {
+  if (catalog.isEmpty) {
+    return null;
+  }
+  return encodeProjectBuildingShadowPresetCatalog(catalog);
+}
+
+ProjectElementProjectedBuildingShadowConfig?
+    _projectedBuildingShadowConfigFromJson(Object? json) {
+  if (json == null) {
+    return null;
+  }
+  return decodeProjectElementProjectedBuildingShadowConfig(json);
+}
+
+Map<String, Object?>? _projectedBuildingShadowConfigToJson(
+  ProjectElementProjectedBuildingShadowConfig? config,
+) {
+  if (config == null) {
+    return null;
+  }
+  return encodeProjectElementProjectedBuildingShadowConfig(config);
 }
 
 Object? _readDefaultPlayerCharacterId(Map json, String _) {
@@ -133,6 +179,14 @@ class ProjectManifest with _$ProjectManifest {
     @Default(ProjectShadowCatalog.empty())
     @ProjectShadowCatalogJsonConverter()
     ProjectShadowCatalog shadowCatalog,
+    @Default(ProjectBuildingShadowPresetCatalog.empty())
+    @JsonKey(
+      name: 'projectedBuildingShadowCatalog',
+      fromJson: _projectedBuildingShadowCatalogFromJson,
+      toJson: _projectedBuildingShadowCatalogToJson,
+      includeIfNull: false,
+    )
+    ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog,
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) =>
@@ -380,6 +434,13 @@ class ProjectElementEntry with _$ProjectElementEntry {
     ElementCollisionProfile? collisionProfile,
     @ProjectElementShadowConfigJsonConverter()
     ProjectElementShadowConfig? shadow,
+    @JsonKey(
+      name: 'projectedBuildingShadow',
+      fromJson: _projectedBuildingShadowConfigFromJson,
+      toJson: _projectedBuildingShadowConfigToJson,
+      includeIfNull: false,
+    )
+    ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
     String? groupId,
     String? recommendedLayerId,
     @Default([]) List<String> tags,
