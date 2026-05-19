@@ -202,6 +202,52 @@ final class BattleEffectObjectStack {
     );
   }
 
+  BattleEffectItemChangeResult dispatchPostItemChange(
+    BattleEffectItemChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostItemChange(
+        BattleEffectItemChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          target: context.target,
+          previousItemId: context.previousItemId,
+          nextItemId: context.nextItemId,
+          consumedItemId: context.consumedItemId,
+          reason: context.reason,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectItemChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   BattleEffectLifecycleResult dispatchLifecycle(
     BattleEffectLifecycleContext context,
   ) {

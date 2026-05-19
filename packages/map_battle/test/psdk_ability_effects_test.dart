@@ -321,6 +321,55 @@ void main() {
       );
     });
 
+    test('Opportunist copies opposing positive stat changes', () {
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'opportunist',
+            move: _move(id: 'tackle', power: 40),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'swords_dance', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkOpponentSlot,
+        stat: 'attack',
+        stages: 2,
+      );
+
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        2,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        2,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().map(
+              (event) => event.target,
+            ),
+        <PsdkBattleSlotRef>[psdkOpponentSlot, psdkPlayerSlot],
+      );
+    });
+
     test('Contrary and Simple transform incoming stat stage changes', () {
       final contraryDrop = _applyPlayerStatDrop(
         playerAbilityId: 'contrary',

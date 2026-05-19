@@ -153,6 +153,13 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     dartEffect: 'BulletproofEffect',
   ),
   PsdkAbilityEffectManifestEntry(
+    abilityId: 'cheek_pouch',
+    rubyPath:
+        'pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/002 Berry.rb',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CheekPouchEffect',
+  ),
+  PsdkAbilityEffectManifestEntry(
     abilityId: 'chilling_neigh',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Moxie.rb',
@@ -577,7 +584,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'harvest',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Harvest.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HarvestEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'healer',
@@ -933,7 +941,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'opportunist',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Opportunist.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'OpportunistEffect.statBoostCopy',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'orichalcum_pulse',
@@ -1176,7 +1185,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'ripen',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Ripen.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RipenEffect + BerryItemEffect ripen multipliers',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'rivalry',
@@ -1707,7 +1717,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'unburden',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Unburden.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'UnburdenEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'unnerve',

@@ -181,6 +181,44 @@ final class BattleEffectPostDamageResult {
   final bool applied;
 }
 
+final class BattleEffectItemChangeContext {
+  const BattleEffectItemChangeContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.target,
+    required this.previousItemId,
+    required this.nextItemId,
+    required this.consumedItemId,
+    required this.reason,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef target;
+  final String? previousItemId;
+  final String? nextItemId;
+  final String? consumedItemId;
+  final String reason;
+}
+
+final class BattleEffectItemChangeResult {
+  const BattleEffectItemChangeResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
 enum BattleEffectLifecyclePhase {
   added,
   removed,
