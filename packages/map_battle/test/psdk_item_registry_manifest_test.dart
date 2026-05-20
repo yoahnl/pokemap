@@ -416,6 +416,33 @@ void main() {
       }
     });
 
+    test('Lot 250 reactive post-damage held items are tracked honestly', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'absorb_bulb',
+        'cell_battery',
+        'luminous_moss',
+        'rocky_helmet',
+        'snowball',
+        'weakness_policy',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+
+      expect(byId['shell_bell']!.status, PsdkItemPortStatus.partial);
+      expect(byId['shell_bell']!.dartEffect, isNotNull);
+      expect(registry.statusOf('shell_bell'), PsdkItemPortStatus.partial);
+      expect(registry.create('shell_bell', owner: psdkPlayerSlot), isNotNull);
+    });
+
     test('item lifecycle snapshots distinguish held, consumed, and removed',
         () {
       final held = BattleItemLifecycleSnapshot.fromBattler(

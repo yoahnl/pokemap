@@ -14,6 +14,7 @@ import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
 import 'move_modifier_item_effect.dart';
+import 'reactive_held_item_effect.dart';
 import 'shed_shell_effect.dart';
 import 'status_orb_item_effect.dart';
 import 'terrain_extender_effect.dart';
@@ -39,6 +40,8 @@ final class ItemEffectRegistry {
     'iron_ball': ({required scope}) => IronBallEffect(scope: scope),
     'leftovers': ({required scope}) => LeftoversEffect(scope: scope),
     'loaded_dice': ({required scope}) => LoadedDiceEffect(scope: scope),
+    'rocky_helmet': ({required scope}) => RockyHelmetEffect(scope: scope),
+    'shell_bell': ({required scope}) => ShellBellEffect(scope: scope),
     'shed_shell': ({required scope}) => ShedShellEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
           scope: scope,
@@ -62,6 +65,33 @@ final class ItemEffectRegistry {
           itemId: 'psychic_seed',
           scope: scope,
           terrain: PsdkBattleTerrainId.psychicTerrain,
+        ),
+    'absorb_bulb': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'absorb_bulb',
+          scope: scope,
+          triggerType: 'water',
+          stat: 'specialAttack',
+        ),
+    'cell_battery': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'cell_battery',
+          scope: scope,
+          triggerType: 'electric',
+          stat: 'attack',
+        ),
+    'luminous_moss': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'luminous_moss',
+          scope: scope,
+          triggerType: 'water',
+          stat: 'specialDefense',
+        ),
+    'snowball': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'snowball',
+          scope: scope,
+          triggerType: 'ice',
+          stat: 'attack',
+        ),
+    'weakness_policy': ({required scope}) => WeaknessPolicyEffect(
+          scope: scope,
         ),
     'damp_rock': ({required scope}) => WeatherRockEffect(
           itemId: 'damp_rock',
