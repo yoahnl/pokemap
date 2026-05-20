@@ -37,6 +37,7 @@ void main() {
         'berry_juice',
         'big_root',
         'black_sludge',
+        'binding_band',
         'charcoal',
         'cheri_berry',
         'chesto_berry',
@@ -48,11 +49,13 @@ void main() {
         'deep_sea_tooth',
         'expert_belt',
         'ganlon_berry',
+        'grip_claw',
         'heat_rock',
         'icy_rock',
         'iron_ball',
         'leftovers',
         'light_ball',
+        'loaded_dice',
         'liechi_berry',
         'metal_powder',
         'normal_gem',
@@ -477,6 +480,25 @@ void main() {
         'leppa_berry',
         'metronome',
         'micle_berry',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
+    test('Lot 256 duration and multi-hit helper items are strict', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'binding_band',
+        'grip_claw',
+        'loaded_dice',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
         expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,

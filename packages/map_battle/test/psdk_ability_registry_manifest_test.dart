@@ -37,9 +37,11 @@ void main() {
         'aftermath',
         'air_lock',
         'anger_point',
+        'anger_shell',
         'armor_tail',
         'battery',
         'beast_boost',
+        'berserk',
         'bulletproof',
         'chilling_neigh',
         'chlorophyll',
@@ -110,6 +112,7 @@ void main() {
         'neuroforce',
         'no_guard',
         'overgrow',
+        'opportunist',
         'pastel_veil',
         'perish_body',
         'pressure',
@@ -202,9 +205,7 @@ void main() {
       }
 
       for (final abilityId in <String>[
-        'anger_shell',
         'aroma_veil',
-        'berserk',
         'color_change',
         'cotton_down',
         'electromorphosis',
@@ -217,6 +218,27 @@ void main() {
         expect(entry!.status, PsdkAbilityPortStatus.partial);
         expect(entry.dartEffect, isNotNull, reason: abilityId);
         expect(registry.create(abilityId), isNotNull, reason: abilityId);
+      }
+    });
+
+    test('Lot 256 post-damage and stat-copy abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'anger_shell',
+        'berserk',
+        'opportunist',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+        expect(byId[abilityId]?.dartEffect, isNotNull, reason: abilityId);
+        expect(AbilityEffectRegistry().create(abilityId), isNotNull,
+            reason: abilityId);
       }
     });
 
