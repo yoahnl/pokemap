@@ -21,6 +21,7 @@ final class BattleMoveDefinition {
     required String battleEngineMethod,
     required this.target,
     BattleMoveFlags flags = const BattleMoveFlags(),
+    this.heal = false,
     List<BattleStageMod> stageMods = const <BattleStageMod>[],
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -65,6 +66,7 @@ final class BattleMoveDefinition {
       effectChance: move.effectChance,
       battleEngineMethod: move.battleEngineMethod,
       target: move.target,
+      heal: move.heal,
       flags: BattleMoveFlags(
         protectable: move.protectable,
         sound: move.sound,
@@ -100,6 +102,7 @@ final class BattleMoveDefinition {
   final String battleEngineMethod;
   final PsdkBattleMoveTarget target;
   final BattleMoveFlags flags;
+  final bool heal;
   final List<BattleStageMod> _stageMods;
   final List<PsdkBattleMoveStatus> _statuses;
 
@@ -125,6 +128,7 @@ final class BattleMoveDefinition {
     String? battleEngineMethod,
     PsdkBattleMoveTarget? target,
     BattleMoveFlags? flags,
+    bool? heal,
     List<BattleStageMod>? stageMods,
     List<PsdkBattleMoveStatus>? statuses,
   }) {
@@ -144,6 +148,7 @@ final class BattleMoveDefinition {
       battleEngineMethod: battleEngineMethod ?? this.battleEngineMethod,
       target: target ?? this.target,
       flags: flags ?? this.flags,
+      heal: heal ?? this.heal,
       stageMods: stageMods ?? this.stageMods,
       statuses: statuses ?? this.statuses,
     );
@@ -170,6 +175,7 @@ final class BattleMoveDefinition {
       bite: flags.bite,
       pulse: flags.pulse,
       ballistics: flags.ballistics,
+      heal: heal,
       stageMods: stageMods
           .map(
             (mod) => PsdkBattleMoveStageMod(

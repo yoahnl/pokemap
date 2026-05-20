@@ -1,5 +1,6 @@
 import 'battle_effect.dart';
 import 'battle_effect_hooks.dart';
+import 'ability/ability_effect.dart';
 import '../move/battle_move_prevention.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
@@ -469,6 +470,10 @@ final class BattleEffectObjectStack {
       )) {
         continue;
       }
+      if (effect is BattleAbilityEffect &&
+          _userBypassesAbilityStatPrevention(context)) {
+        continue;
+      }
       final reason = context.stages > 0
           ? effect.onStatIncreasePrevention(context)
           : effect.onStatDecreasePrevention(context);
@@ -758,4 +763,29 @@ final class BattleEffectObjectStack {
   }) {
     return state.battlerAt(owner).effects.contains(effect.id);
   }
+
+  bool _userBypassesAbilityStatPrevention(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    if (context.user == context.target) {
+      return false;
+    }
+    final user = context.state.battlerAt(context.user);
+    if (user.effects.contains('ability_suppressed')) {
+      return false;
+    }
+    return _abilityPreventionBypassAbilityIds.contains(
+      _normalizedAbilityId(user.abilityId),
+    );
+  }
+}
+
+const _abilityPreventionBypassAbilityIds = <String>{
+  'mold_breaker',
+  'teravolt',
+  'turboblaze',
+};
+
+String _normalizedAbilityId(String? abilityId) {
+  return abilityId?.trim().toLowerCase() ?? '';
 }
