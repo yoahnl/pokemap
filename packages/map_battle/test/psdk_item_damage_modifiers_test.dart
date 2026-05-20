@@ -29,6 +29,36 @@ void main() {
       expect(boosted.state.battlerAt(psdkPlayerSlot).itemConsumed, isFalse);
     });
 
+    test('Poison Barb boosts Poison moves and persists', () {
+      final baseline = _runMove(
+        playerMove: _move(id: 'poison_sting', type: 'poison', power: 80),
+      );
+      final boosted = _runMove(
+        playerHeldItemId: 'poison_barb',
+        playerMove: _move(id: 'poison_sting', type: 'poison', power: 80),
+      );
+      final mismatched = _runMove(
+        playerHeldItemId: 'poison_barb',
+        playerMove: _move(id: 'scratch', type: 'normal', power: 80),
+      );
+      final normalBaseline = _runMove(
+        playerMove: _move(id: 'scratch', type: 'normal', power: 80),
+      );
+
+      expect(
+        _damage(boosted, moveId: 'poison_sting'),
+        greaterThan(_damage(baseline, moveId: 'poison_sting')),
+      );
+      expect(
+        _damage(mismatched, moveId: 'scratch'),
+        _damage(normalBaseline, moveId: 'scratch'),
+      );
+      expect(
+        boosted.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'poison_barb',
+      );
+    });
+
     test('Choice Band and Choice Specs boost the matching offensive stat', () {
       final physical = _runMove(
         playerHeldItemId: 'choice_band',

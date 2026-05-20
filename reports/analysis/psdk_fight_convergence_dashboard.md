@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-20T16:41:42.109171Z
+Generated: 2026-05-20T17:04:17.466003Z
 
 ## Final Gate Axes
 
@@ -8,7 +8,7 @@ Generated: 2026-05-20T16:41:42.109171Z
 | --- | ---: | ---: | ---: |
 | Attacks | 378 / 728 | 51.9% | 350 |
 | Methods | 194 / 330 | 58.8% | 136 |
-| Effects | 344 / 482 | 71.4% | 138 |
+| Effects | 347 / 482 | 72.0% | 135 |
 
 ## Effects By Family
 
@@ -16,7 +16,7 @@ Generated: 2026-05-20T16:41:42.109171Z
 | --- | ---: | ---: | ---: | ---: |
 | ability | 179 | 17 | 58 | 75 |
 | field | 15 | 0 | 0 | 0 |
-| item | 56 | 6 | 25 | 31 |
+| item | 59 | 6 | 22 | 28 |
 | mechanics | 4 | 0 | 0 | 0 |
 | move | 83 | 8 | 24 | 32 |
 | status | 7 | 0 | 0 | 0 |
@@ -56,11 +56,10 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 
 | Batch | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: |
-| damage/type/stat modifiers | 0 | 2 | 2 |
+| damage/type/stat modifiers | 0 | 1 | 1 |
 | berries | 1 | 5 | 6 |
 | focus/eject/choice/orb | 1 | 4 | 5 |
-| weather/terrain/field | 0 | 1 | 1 |
-| held-item lifecycle and consumption | 4 | 13 | 17 |
+| held-item lifecycle and consumption | 4 | 12 | 16 |
 
 ## Runtime Bridge
 

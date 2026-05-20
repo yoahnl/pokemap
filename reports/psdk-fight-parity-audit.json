@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 377,
-    "partiel": 351,
+    "fait": 378,
+    "partiel": 350,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5803,9 +5803,9 @@
       {
         "moveId": "yawn",
         "battleEngineMethod": "s_yawn",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/yawn.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 191,
-      "partial": 139,
+      "ported": 194,
+      "partial": 136,
       "missing": 0
     },
     "entries": [
@@ -6624,13 +6624,9 @@
         "battleEngineMethod": "s_fairy_lock",
         "rubyClass": "FairyLock",
         "rubyPath": "10 Move/2 Definitions/300 FairyLock.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_fairy_lock)",
-        "status": "partial",
-        "dependencies": [
-          "field",
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.fairyLock",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_fake_out",
@@ -7732,12 +7728,9 @@
         "battleEngineMethod": "s_octolock",
         "rubyClass": "Octolock",
         "rubyPath": "10 Move/2 Definitions/300 Octolock.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_octolock)",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.octolock",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_ohko",
@@ -9301,15 +9294,9 @@
         "battleEngineMethod": "s_yawn",
         "rubyClass": "Yawn",
         "rubyPath": "10 Move/2 Definitions/300 Yawn.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_yawn)",
-        "status": "partial",
-        "dependencies": [
-          "effects",
-          "handlerStatus",
-          "ability",
-          "terrain"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.drowsiness",
+        "status": "ported",
+        "dependencies": []
       }
     ],
     "backlogBatches": [
@@ -9359,7 +9346,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 103,
+        "count": 100,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9385,7 +9372,6 @@
           "s_encore",
           "s_entrainment",
           "s_expanding_force",
-          "s_fairy_lock",
           "s_fell_stinger",
           "s_final_gambit",
           "s_fling",
@@ -9418,7 +9404,6 @@
           "s_nature_power",
           "s_nightmare",
           "s_no_retreat",
-          "s_octolock",
           "s_outrage",
           "s_parting_shot",
           "s_perish_song",
@@ -9462,8 +9447,7 @@
           "s_water_shuriken",
           "s_wish",
           "s_wonder_room",
-          "s_worry_seed",
-          "s_yawn"
+          "s_worry_seed"
         ]
       }
     ]
@@ -9471,25 +9455,25 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 323,
-      "partial": 35,
-      "missing": 124
+      "ported": 347,
+      "partial": 31,
+      "missing": 104
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 172,
+        "ported": 179,
         "partial": 17,
-        "missing": 65
+        "missing": 58
       },
       "move": {
-        "ported": 80,
+        "ported": 83,
         "partial": 8,
-        "missing": 27
+        "missing": 24
       },
       "item": {
-        "ported": 45,
-        "partial": 10,
-        "missing": 32
+        "ported": 59,
+        "partial": 6,
+        "missing": 22
       },
       "status": {
         "ported": 7,
@@ -9525,7 +9509,7 @@
       {
         "effectName": "AbsorbBulb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": []
       },
@@ -9736,7 +9720,7 @@
       {
         "effectName": "BasePowerMultiplier",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb",
         "hookFamilies": []
       },
@@ -9857,7 +9841,7 @@
       {
         "effectName": "BigRoot",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Big Root.rb",
         "hookFamilies": [
           "drain"
@@ -9949,7 +9933,7 @@
       {
         "effectName": "CellBattery",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": []
       },
@@ -10365,7 +10349,7 @@
       {
         "effectName": "Drowsiness",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Drowsiness.rb",
         "hookFamilies": [
           "end_turn",
@@ -10561,7 +10545,7 @@
       {
         "effectName": "FairyLock",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 FairyLock.rb",
         "hookFamilies": [
           "switch"
@@ -10803,7 +10787,7 @@
       {
         "effectName": "Gems",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 Gems.rb",
         "hookFamilies": [
           "accuracy"
@@ -10942,7 +10926,7 @@
       {
         "effectName": "HalfSpeed",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HalfSpeedItems.rb",
         "hookFamilies": []
       },
@@ -11155,7 +11139,7 @@
       {
         "effectName": "InnerFocus",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Inner Focus.rb",
         "hookFamilies": [
           "status_prevention"
@@ -11449,7 +11433,7 @@
       {
         "effectName": "LuminousMoss",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": [
           "post_damage"
@@ -11672,7 +11656,7 @@
       {
         "effectName": "MoldBreaker",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
         "hookFamilies": [
           "move_prevention",
@@ -11813,7 +11797,7 @@
       {
         "effectName": "Octolock",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Octolock.rb",
         "hookFamilies": [
           "end_turn"
@@ -11867,7 +11851,7 @@
       {
         "effectName": "OwnTempo",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Own Tempo.rb",
         "hookFamilies": [
           "status_prevention"
@@ -11970,7 +11954,7 @@
       {
         "effectName": "PoisonBarb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 PoisonBarb.rb",
         "hookFamilies": []
       },
@@ -12062,7 +12046,7 @@
       {
         "effectName": "Prankster",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Prankster.rb",
         "hookFamilies": [
           "action_order"
@@ -12309,7 +12293,7 @@
       {
         "effectName": "RockyHelmet",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Rocky Helmet.rb",
         "hookFamilies": [
           "post_damage"
@@ -12367,7 +12351,7 @@
       {
         "effectName": "SafetyGoggles",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 SafetyGoggles.rb",
         "hookFamilies": [
           "move_prevention"
@@ -12505,7 +12489,7 @@
       {
         "effectName": "ShedShell",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Shed Shell.rb",
         "hookFamilies": [
           "switch"
@@ -12542,7 +12526,7 @@
       {
         "effectName": "ShellBell",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Shell Bell.rb",
         "hookFamilies": [
           "post_damage"
@@ -12687,7 +12671,7 @@
       {
         "effectName": "Snowball",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": []
       },
@@ -12856,7 +12840,7 @@
       {
         "effectName": "StickyBarb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Sticky Barb.rb",
         "hookFamilies": [
           "end_turn",
@@ -13155,7 +13139,7 @@
       {
         "effectName": "Teravolt",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
         "hookFamilies": []
       },
@@ -13309,7 +13293,7 @@
       {
         "effectName": "Triage",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Triage.rb",
         "hookFamilies": [
           "action_order"
@@ -13344,7 +13328,7 @@
       {
         "effectName": "Turboblaze",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
         "hookFamilies": []
       },
@@ -13482,7 +13466,7 @@
       {
         "effectName": "WeaknessPolicy",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Weakness Policy.rb",
         "hookFamilies": [
           "post_damage"

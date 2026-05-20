@@ -15,6 +15,7 @@ import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
 import 'move_modifier_item_effect.dart';
 import 'reactive_held_item_effect.dart';
+import 'safety_goggles_effect.dart';
 import 'shed_shell_effect.dart';
 import 'status_orb_item_effect.dart';
 import 'terrain_extender_effect.dart';
@@ -41,8 +42,10 @@ final class ItemEffectRegistry {
     'leftovers': ({required scope}) => LeftoversEffect(scope: scope),
     'loaded_dice': ({required scope}) => LoadedDiceEffect(scope: scope),
     'rocky_helmet': ({required scope}) => RockyHelmetEffect(scope: scope),
+    'safety_goggles': ({required scope}) => SafetyGogglesEffect(scope: scope),
     'shell_bell': ({required scope}) => ShellBellEffect(scope: scope),
     'shed_shell': ({required scope}) => ShedShellEffect(scope: scope),
+    'sticky_barb': ({required scope}) => StickyBarbEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
           scope: scope,
         ),
@@ -554,6 +557,7 @@ const _typeBoostingItems = <String, String>{
   'sharp_beak': 'flying',
   'soft_sand': 'ground',
   'twisted_spoon': 'psychic',
+  'poison_barb': 'poison',
   'silver_powder': 'bug',
   'hard_stone': 'rock',
   'spell_tag': 'ghost',
