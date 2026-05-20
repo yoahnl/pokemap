@@ -3395,6 +3395,16 @@ void main() {
           generic: 0,
         ),
       );
+      final steadfast = _applyDirectAbilityDamage(
+        playerAbilityId: 'stench',
+        opponentAbilityId: 'steadfast',
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
 
       expect(
         triggered.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
@@ -3412,6 +3422,15 @@ void main() {
       expect(
         innerFocus.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
         isFalse,
+      );
+      expect(
+        steadfast.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isTrue,
+      );
+      expect(_statEventsForHandler(steadfast).single.stat, 'speed');
+      expect(
+        steadfast.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        1,
       );
     });
 
@@ -4062,6 +4081,50 @@ void main() {
       );
       expect(
           toxicChainMiss.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
+    });
+
+    test('Cute Charm can attract an opposite-gender contact attacker', () {
+      const hitSeeds = BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 0,
+      );
+      const contactFlags = BattleMoveFlags(contact: true);
+      final attracted = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cute_charm',
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.female,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final sameGender = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cute_charm',
+        playerGender: PsdkBattleGender.female,
+        opponentGender: PsdkBattleGender.female,
+        flags: contactFlags,
+        rngSeeds: hitSeeds,
+      );
+      final nonContact = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cute_charm',
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.female,
+        rngSeeds: hitSeeds,
+      );
+
+      expect(
+        attracted.state.battlerAt(psdkPlayerSlot).effects.contains('attract'),
+        isTrue,
+      );
+      expect(_effectEventsForHandler(attracted).single.effectId, 'attract');
+      expect(
+        sameGender.state.battlerAt(psdkPlayerSlot).effects.contains('attract'),
+        isFalse,
+      );
+      expect(
+        nonContact.state.battlerAt(psdkPlayerSlot).effects.contains('attract'),
+        isFalse,
+      );
     });
 
     test('Cursed Body disables contact moves on its PSDK roll', () {
@@ -5530,6 +5593,8 @@ BattleHandlerResult _applyDirectAbilityDamage({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   String? playerHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleGender playerGender = PsdkBattleGender.unknown,
+  PsdkBattleGender opponentGender = PsdkBattleGender.unknown,
   PsdkBattleEffectStack? playerEffects,
   PsdkBattleEffectStack? opponentEffects,
   BattleRngSeeds rngSeeds = const BattleRngSeeds(
@@ -5544,6 +5609,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
       player: _combatant(
         id: 'player',
         abilityId: playerAbilityId,
+        gender: playerGender,
         types: playerTypes,
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,
@@ -5555,6 +5621,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
         currentHp: opponentCurrentHp,
         types: opponentTypes,
         abilityId: opponentAbilityId,
+        gender: opponentGender,
         effects: opponentEffects,
         move: _move(id: 'opponent_wait', power: 0),
       ),

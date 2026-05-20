@@ -214,26 +214,18 @@ final class StenchEffect extends BattleAbilityEffect {
       );
     }
 
-    final flinch = FlinchEffect(
-      scope: BattlerBattleEffectScope(context.target),
+    final result = applyFlinchEffect(
+      state: context.state,
+      rng: nextRng,
+      turn: context.turn,
+      target: context.target,
+      reason: 'ability:stench',
+      move: context.move,
     );
     return BattleEffectPostDamageResult(
-      state: context.state.updateBattler(
-        context.target,
-        (battler) => battler.copyWith(
-          effects: battler.effects.addEffect(flinch),
-        ),
-      ),
-      rng: nextRng,
-      events: <PsdkBattleEvent>[
-        PsdkBattleEffectEvent.added(
-          turn: context.turn,
-          target: context.target,
-          effectId: flinch.id,
-          remainingTurns: flinch.remainingTurns,
-          reason: 'ability:stench',
-        ),
-      ],
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
     );
   }
 

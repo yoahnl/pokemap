@@ -1,4 +1,11 @@
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_handler_result.dart';
+import '../../handler/battle_stat_change_handler.dart';
+import '../../rng/battle_rng_streams.dart';
+import '../../move/battle_move_data.dart';
 import '../../move/battle_move_prevention.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
@@ -38,4 +45,58 @@ final class FlinchEffect extends BattleEffect {
     final scope = this.scope;
     return scope is! BattlerBattleEffectScope || scope.slot == user;
   }
+}
+
+BattleHandlerResult applyFlinchEffect({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef target,
+  required String reason,
+  BattleMoveDefinition? move,
+}) {
+  final flinch = FlinchEffect(
+    scope: BattlerBattleEffectScope(target),
+  );
+  var nextState = state.updateBattler(
+    target,
+    (battler) => battler.copyWith(
+      effects: battler.effects.addEffect(flinch),
+    ),
+  );
+  var nextRng = rng;
+  final events = <PsdkBattleEvent>[
+    PsdkBattleEffectEvent.added(
+      turn: turn,
+      target: target,
+      effectId: flinch.id,
+      remainingTurns: flinch.remainingTurns,
+      reason: reason,
+    ),
+  ];
+
+  if (nextState.battlerAt(target).abilityId == 'steadfast') {
+    final boosted = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: nextState,
+        rng: nextRng,
+        turn: turn,
+        user: target,
+      ),
+      target: target,
+      stat: 'speed',
+      stages: 1,
+      move: move,
+      sourceAbilityId: 'steadfast',
+    );
+    nextState = boosted.state;
+    nextRng = boosted.rng;
+    events.addAll(boosted.events);
+  }
+
+  return BattleHandlerResult(
+    state: nextState,
+    rng: nextRng,
+    events: events,
+  );
 }
