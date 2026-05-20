@@ -5,7 +5,9 @@ import '../../handler/battle_stat_change_handler.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import '../move/flinch_effect.dart';
 import 'ability_effect.dart';
+import 'mental_immunity_ability_effect.dart';
 
 final class InnardsOutEffect extends BattleAbilityEffect {
   const InnardsOutEffect({
@@ -111,5 +113,78 @@ final class CottonDownEffect extends BattleAbilityEffect {
       rng: nextRng,
       events: events,
     );
+  }
+}
+
+final class StenchEffect extends BattleAbilityEffect {
+  const StenchEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'stench', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return StenchEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.user ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        context.targetFainted) {
+      return null;
+    }
+
+    final user = context.state.battlerAt(context.user);
+    if (user.isFainted || _heldItemSuppressesStench(user.heldItemId)) {
+      return null;
+    }
+
+    final roll = context.rng.generic.nextChance(
+      numerator: 1,
+      denominator: 10,
+    );
+    final nextRng = context.rng.copyWith(generic: roll.next);
+    if (!roll.didOccur ||
+        battleMentalAbilityBlocksEffect(
+          state: context.state,
+          user: context.user,
+          target: context.target,
+          effectId: 'flinch',
+        )) {
+      return BattleEffectPostDamageResult(
+        state: context.state,
+        rng: nextRng,
+        applied: false,
+      );
+    }
+
+    final flinch = FlinchEffect(
+      scope: BattlerBattleEffectScope(context.target),
+    );
+    return BattleEffectPostDamageResult(
+      state: context.state.updateBattler(
+        context.target,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(flinch),
+        ),
+      ),
+      rng: nextRng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.target,
+          effectId: flinch.id,
+          remainingTurns: flinch.remainingTurns,
+          reason: 'ability:stench',
+        ),
+      ],
+    );
+  }
+
+  bool _heldItemSuppressesStench(String? itemId) {
+    return itemId == 'king_s_rock' || itemId == 'razor_fang';
   }
 }

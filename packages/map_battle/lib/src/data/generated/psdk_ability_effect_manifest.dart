@@ -51,7 +51,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'anticipation',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Anticipation.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AnticipationEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'arena_trap',
@@ -1077,7 +1078,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'pressure',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Pressure.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PressureEffect+BattleTurnRunner.ppCost',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'primordial_sea',
@@ -1295,7 +1297,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'screen_cleaner',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 ScreenCleaner.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ScreenCleanerEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'seed_sower',
@@ -1498,7 +1501,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'stench',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Stench.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StenchEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'storm_drain',

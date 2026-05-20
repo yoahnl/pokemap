@@ -355,7 +355,11 @@ final class BattleTurnRunner {
           continue;
         }
 
-        final moveAfterPp = moveBeforePp.spendPp();
+        final ppCost = _ppCostForMove(
+          state: _context.state,
+          user: action.user,
+        );
+        final moveAfterPp = moveBeforePp.spendPp(ppCost);
         _context.applyStateAndRng(
           nextState: _context.state.updateBattler(
             action.user,
@@ -704,6 +708,33 @@ bool _hasActiveFieldEffect(PsdkBattleState state, String effectId) {
       return effect.id == effectId && effect.scope is FieldBattleEffectScope;
     }),
   );
+}
+
+int _ppCostForMove({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+}) {
+  return _hasAlivePressureFoe(state: state, user: user) ? 2 : 1;
+}
+
+bool _hasAlivePressureFoe({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+}) {
+  for (final foe in state.foesOf(user)) {
+    final battler = state.battlerAt(foe);
+    if (battler.isFainted || battler.effects.contains('ability_suppressed')) {
+      continue;
+    }
+    if (_normalizedAbilityId(battler.abilityId) == 'pressure') {
+      return true;
+    }
+  }
+  return false;
+}
+
+String? _normalizedAbilityId(String? abilityId) {
+  return abilityId?.trim().toLowerCase().replaceAll('-', '_');
 }
 
 BattlePositionRef _fromPsdkSlot(PsdkBattleSlotRef slot) {
