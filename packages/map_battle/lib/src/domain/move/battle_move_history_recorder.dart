@@ -16,6 +16,7 @@ final class BattleMoveHistoryRecorder {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return state.updateBattler(
       user,
@@ -23,6 +24,7 @@ final class BattleMoveHistoryRecorder {
         moveId: moveId,
         turn: turn,
         targets: targets,
+        attackOrder: attackOrder,
       ),
     );
   }
@@ -33,6 +35,7 @@ final class BattleMoveHistoryRecorder {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return state.updateBattler(
       user,
@@ -40,6 +43,7 @@ final class BattleMoveHistoryRecorder {
         moveId: moveId,
         turn: turn,
         targets: targets,
+        attackOrder: attackOrder,
       ),
     );
   }

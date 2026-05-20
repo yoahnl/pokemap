@@ -118,11 +118,13 @@ class PsdkBattleMoveHistoryEntry {
     required String moveId,
     required this.turn,
     required List<PsdkBattleSlotRef> targets,
+    this.attackOrder = 0,
   })  : moveId = _requireNonBlank(moveId, 'moveId'),
         targets = List<PsdkBattleSlotRef>.unmodifiable(targets);
 
   final String moveId;
   final int turn;
+  final int attackOrder;
   final List<PsdkBattleSlotRef> targets;
 }
 
@@ -165,6 +167,7 @@ class PsdkBattleMoveHistory {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return PsdkBattleMoveHistory(
       attempts: <PsdkBattleMoveHistoryEntry>[
@@ -173,6 +176,7 @@ class PsdkBattleMoveHistory {
           moveId: moveId,
           turn: turn,
           targets: targets,
+          attackOrder: attackOrder,
         ),
       ],
       successes: _successes,
@@ -183,6 +187,7 @@ class PsdkBattleMoveHistory {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return PsdkBattleMoveHistory(
       attempts: _attempts,
@@ -192,6 +197,7 @@ class PsdkBattleMoveHistory {
           moveId: moveId,
           turn: turn,
           targets: targets,
+          attackOrder: attackOrder,
         ),
       ],
     );
@@ -871,12 +877,14 @@ class PsdkBattleCombatant {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return copyWith(
       moveHistory: moveHistory.recordAttempt(
         moveId: moveId,
         turn: turn,
         targets: targets,
+        attackOrder: attackOrder,
       ),
     );
   }
@@ -885,12 +893,14 @@ class PsdkBattleCombatant {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return copyWith(
       moveHistory: moveHistory.recordSuccess(
         moveId: moveId,
         turn: turn,
         targets: targets,
+        attackOrder: attackOrder,
       ),
     );
   }
