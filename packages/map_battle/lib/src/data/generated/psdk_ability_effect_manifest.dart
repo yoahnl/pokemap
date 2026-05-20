@@ -398,7 +398,9 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'electromorphosis',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Electromorphosis.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect:
+        'ElectromorphosisEffect.partialNoAttackOrderDurationCalibration',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'embody_aspect',
@@ -1734,7 +1736,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'truant',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Truant.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'TruantEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'turboblaze',
@@ -1760,7 +1763,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'unnerve',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Unnerve.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'UnnerveEffect+BerryConsumptionGate',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'vessel_of_ruin',

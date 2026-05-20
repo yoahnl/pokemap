@@ -848,6 +848,38 @@ final class PressureEffect extends BattleAbilityEffect {
   }
 }
 
+final class UnnerveEffect extends BattleAbilityEffect {
+  const UnnerveEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'unnerve', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return UnnerveEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.replacement,
+          effectId: 'unnerve:active',
+          reason: 'ability:unnerve',
+        ),
+      ],
+    );
+  }
+}
+
 final class ScreenCleanerEffect extends BattleAbilityEffect {
   const ScreenCleanerEffect({
     required BattleEffectScope scope,

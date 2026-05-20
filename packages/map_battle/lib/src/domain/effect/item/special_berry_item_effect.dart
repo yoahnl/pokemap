@@ -8,6 +8,7 @@ import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import 'berry_item_effect.dart';
 import 'item_effect.dart';
 
 final class LansatBerryEffect extends BattleItemEffect {
@@ -68,7 +69,7 @@ final class LansatBerryEffect extends BattleItemEffect {
     required PsdkBattleSlotRef owner,
   }) {
     final battler = state.battlerAt(owner);
-    if (!_canConsume(battler) ||
+    if (!_canConsume(state: state, owner: owner, battler: battler) ||
         !_isAtThreshold(battler) ||
         battler.effects.contains('lansat_berry')) {
       return null;
@@ -107,11 +108,16 @@ final class LansatBerryEffect extends BattleItemEffect {
     );
   }
 
-  bool _canConsume(PsdkBattleCombatant battler) {
+  bool _canConsume({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef owner,
+    required PsdkBattleCombatant battler,
+  }) {
     return !battler.isFainted &&
         battler.heldItemId == itemId &&
         !battler.itemConsumed &&
-        !battler.itemEffectsSuppressed;
+        !battler.itemEffectsSuppressed &&
+        !psdkBerryBlockedByOpposingUnnerve(state: state, owner: owner);
   }
 
   bool _isAtThreshold(PsdkBattleCombatant battler) {
@@ -165,7 +171,7 @@ final class LeppaBerryEffect extends BattleItemEffect {
       return null;
     }
     final battler = context.state.battlerAt(owner);
-    if (!_canConsume(battler)) {
+    if (!psdkCanConsumeBerry(state: context.state, owner: owner)) {
       return null;
     }
 
@@ -200,12 +206,5 @@ final class LeppaBerryEffect extends BattleItemEffect {
       rng: consumed.rng,
       events: consumed.events,
     );
-  }
-
-  bool _canConsume(PsdkBattleCombatant battler) {
-    return !battler.isFainted &&
-        battler.heldItemId == itemId &&
-        !battler.itemConsumed &&
-        !battler.itemEffectsSuppressed;
   }
 }

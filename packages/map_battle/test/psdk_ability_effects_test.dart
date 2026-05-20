@@ -886,6 +886,102 @@ void main() {
       expect(ppEvent.remainingPp, 3);
     });
 
+    test('Unnerve announces itself on switch-in', () {
+      final result = _dispatchAbilitySwitchIn(playerAbilityId: 'unnerve');
+
+      expect(result.applied, isTrue);
+      expect(_effectEventsForHandler(result).single.effectId, 'unnerve:active');
+      expect(_effectEventsForHandler(result).single.reason, 'ability:unnerve');
+    });
+
+    test('Truant alternates allowed and loafing turns like PSDK', () {
+      final engine = PsdkBattleEngine(
+        setup: BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'truant',
+            move: _move(id: 'tackle', power: 40, pp: 5, currentPp: 5),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'opponent_wait', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final first = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final third = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(
+        first.timeline.events.whereType<PsdkBattleMoveFailedEvent>().where(
+              (event) => event.user == psdkPlayerSlot,
+            ),
+        isEmpty,
+      );
+      final loafing = second.timeline.events
+          .whereType<PsdkBattleMoveFailedEvent>()
+          .where((event) => event.user == psdkPlayerSlot)
+          .single;
+      expect(loafing.reason, BattleMoveFailureReason.unusableByUser.jsonName);
+      expect(
+        third.timeline.events.whereType<PsdkBattleMoveFailedEvent>().where(
+              (event) => event.user == psdkPlayerSlot,
+            ),
+        isEmpty,
+      );
+      expect(third.state.battlerAt(psdkPlayerSlot).moves.single.currentPp, 3);
+    });
+
+    test('Truant ignores move attempts prevented before its own hook', () {
+      final engine = PsdkBattleEngine(
+        setup: BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'truant',
+            majorStatus: PsdkBattleMajorStatus.paralysis,
+            move: _move(id: 'tackle', power: 40, pp: 5, currentPp: 5),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'opponent_wait', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final paralysisStop =
+          engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final firstTruantCheck =
+          engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(
+        paralysisStop.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isNotEmpty,
+      );
+      expect(
+        firstTruantCheck.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.user == psdkPlayerSlot),
+        isEmpty,
+      );
+      expect(
+        firstTruantCheck.state.battlerAt(psdkPlayerSlot).moves.single.currentPp,
+        4,
+      );
+    });
+
     test('Trace copies a valid opposing ability and hydrates its effect', () {
       final result = _dispatchAbilitySwitchIn(
         playerAbilityId: 'trace',
@@ -3300,6 +3396,45 @@ void main() {
         innerFocus.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
         isFalse,
       );
+    });
+
+    test('Electromorphosis marks a damaged holder with Charge', () {
+      final charged = _applyDirectAbilityDamage(
+        opponentAbilityId: 'electromorphosis',
+      );
+      final chargedOnLethalHit = _applyDirectAbilityDamage(
+        opponentAbilityId: 'electromorphosis',
+        opponentCurrentHp: 100,
+        rawDamage: 100,
+      );
+      final alreadyCharged = _applyDirectAbilityDamage(
+        opponentAbilityId: 'electromorphosis',
+        opponentEffects: PsdkBattleEffectStack().addEffect(
+          const GenericBattleEffect(
+            id: 'charge',
+            scope: BattlerBattleEffectScope(psdkOpponentSlot),
+            remainingTurns: 1,
+          ),
+        ),
+      );
+
+      final charge = _effectFor(charged.state, psdkOpponentSlot, 'charge');
+      expect(charge.remainingTurns, 2);
+      expect(_effectEventsForHandler(charged).single.effectId, 'charge');
+      expect(
+        _effectFor(chargedOnLethalHit.state, psdkOpponentSlot, 'charge')
+            .remainingTurns,
+        2,
+      );
+      expect(
+        alreadyCharged.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .effects
+            .where((effect) => effect.id == 'charge'),
+        hasLength(1),
+      );
+      expect(_effectEventsForHandler(alreadyCharged), isEmpty);
     });
 
     test('Color Change rewrites the defender type after damaging moves', () {

@@ -9455,15 +9455,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 359,
-      "partial": 30,
-      "missing": 93
+      "ported": 361,
+      "partial": 31,
+      "missing": 90
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 186,
-        "partial": 16,
-        "missing": 52
+        "ported": 188,
+        "partial": 17,
+        "missing": 49
       },
       "move": {
         "ported": 83,
@@ -10467,7 +10467,7 @@
       {
         "effectName": "Electromorphosis",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Electromorphosis.rb",
         "hookFamilies": [
           "post_damage"
@@ -13318,7 +13318,7 @@
       {
         "effectName": "Truant",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Truant.rb",
         "hookFamilies": [
           "move_prevention",
@@ -13359,7 +13359,7 @@
       {
         "effectName": "Unnerve",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Unnerve.rb",
         "hookFamilies": [
           "switch"

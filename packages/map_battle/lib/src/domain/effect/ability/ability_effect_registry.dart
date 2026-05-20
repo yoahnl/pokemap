@@ -47,6 +47,7 @@ import 'switch_trigger_ability_effect.dart';
 import 'switch_out_cleanup_ability_effect.dart';
 import 'type_boosting_ability_effect.dart';
 import 'type_immunity_ability_effect.dart';
+import 'turn_skip_ability_effect.dart';
 
 typedef AbilityEffectFactory = BattleEffect Function({
   required BattleEffectScope scope,
@@ -897,6 +898,8 @@ final class AbilityEffectRegistry {
           changeTarget: AbilityPostDamageStatChangeTarget.user,
         ),
     'stench': ({required scope}) => StenchEffect(scope: scope),
+    'electromorphosis': ({required scope}) =>
+        ElectromorphosisEffect(scope: scope),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
     'moody': ({required scope}) => MoodyEffect(scope: scope),
     'healer': ({required scope}) => HealerEffect(scope: scope),
@@ -1005,6 +1008,8 @@ final class AbilityEffectRegistry {
     'screen_cleaner': ({required scope}) => ScreenCleanerEffect(scope: scope),
     'trace': ({required scope}) => TraceEffect(scope: scope),
     'telepathy': ({required scope}) => TelepathyEffect(scope: scope),
+    'truant': ({required scope}) => TruantEffect(scope: scope),
+    'unnerve': ({required scope}) => UnnerveEffect(scope: scope),
   };
 
   final Map<String, AbilityEffectFactory> _factories;

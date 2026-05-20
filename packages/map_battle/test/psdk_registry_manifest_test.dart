@@ -458,6 +458,32 @@ void main() {
       }
     });
 
+    test('effect parity promotes Lot 255 Truant and Unnerve ability effects',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'Truant',
+        'Unnerve',
+      ]) {
+        expect(
+          byFamilyAndName['ability:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+      expect(
+        byFamilyAndName['ability:Electromorphosis']?.status,
+        PsdkPortStatus.partial,
+      );
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(

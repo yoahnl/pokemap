@@ -273,6 +273,9 @@ int _itemAdjustedPower(
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: 1,
+    state: context.state,
+    userSlot: context.userSlot,
+    targetSlot: context.targetSlot,
   );
   var multiplier = 1.0;
   for (final effect in context.user.activeItemEffects) {
@@ -445,6 +448,9 @@ int _applyHeldItemFinalDamageModifiers(
     move: context.move,
     moveType: moveType,
     typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+    state: context.state,
+    userSlot: context.userSlot,
+    targetSlot: context.targetSlot,
   );
   var multiplier = 1.0;
   for (final effect in context.user.activeItemEffects) {
