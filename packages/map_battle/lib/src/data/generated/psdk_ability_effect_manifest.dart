@@ -321,13 +321,17 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'delta_stream',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Primal Weathers.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect:
+        'PrimalWeatherAbilityEffect.deltaStream.partialNoStrongWindsEffectiveness',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'desolate_land',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Primal Weathers.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect:
+        'PrimalWeatherAbilityEffect.desolateLand.partialNoMoveNullification',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'disguise',
@@ -835,7 +839,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'mimicry',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mimicry.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MimicryEffect',
   ),
   PsdkAbilityEffectManifestEntry(
       abilityId: 'mind_s_eye',
@@ -1074,7 +1079,9 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'primordial_sea',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Primal Weathers.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect:
+        'PrimalWeatherAbilityEffect.primordialSea.partialNoMoveNullification',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'prism_armor',

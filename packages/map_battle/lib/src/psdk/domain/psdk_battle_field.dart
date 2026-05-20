@@ -36,7 +36,7 @@ class PsdkBattleFieldState {
 
   PsdkBattleFieldState withWeather(
     PsdkBattleWeatherId id, {
-    int remainingTurns = 5,
+    int? remainingTurns = 5,
   }) {
     return copyWith(
       weather: PsdkBattleWeatherState(
@@ -96,18 +96,22 @@ class PsdkBattleWeatherState {
   const PsdkBattleWeatherState({
     required this.id,
     required this.remainingTurns,
-  }) : assert(remainingTurns > 0);
+  }) : assert(remainingTurns == null || remainingTurns > 0);
 
   final PsdkBattleWeatherId id;
-  final int remainingTurns;
+  final int? remainingTurns;
 
   PsdkBattleWeatherState? tickEndTurn() {
-    if (remainingTurns <= 1) {
+    final turns = remainingTurns;
+    if (turns == null) {
+      return this;
+    }
+    if (turns <= 1) {
       return null;
     }
     return PsdkBattleWeatherState(
       id: id,
-      remainingTurns: remainingTurns - 1,
+      remainingTurns: turns - 1,
     );
   }
 }
