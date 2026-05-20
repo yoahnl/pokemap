@@ -465,6 +465,27 @@ void main() {
       }
     });
 
+    test('Lot 252 switch, repeat, and special berry items are tracked', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'berserk_gene',
+        'lansat_berry',
+        'leppa_berry',
+        'metronome',
+        'micle_berry',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
     test('item lifecycle snapshots distinguish held, consumed, and removed',
         () {
       final held = BattleItemLifecycleSnapshot.fromBattler(
