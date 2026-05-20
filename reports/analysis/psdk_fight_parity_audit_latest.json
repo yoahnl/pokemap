@@ -9455,15 +9455,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 344,
-      "partial": 31,
-      "missing": 107
+      "ported": 355,
+      "partial": 30,
+      "missing": 97
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 179,
-        "partial": 17,
-        "missing": 58
+        "ported": 182,
+        "partial": 16,
+        "missing": 56
       },
       "move": {
         "ported": 83,
@@ -9471,9 +9471,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 56,
+        "ported": 64,
         "partial": 6,
-        "missing": 25
+        "missing": 17
       },
       "status": {
         "ported": 7,
@@ -9552,7 +9552,7 @@
       {
         "effectName": "AngerPoint",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Anger Point.rb",
         "hookFamilies": [
           "post_damage"
@@ -9807,7 +9807,7 @@
       {
         "effectName": "BerserkGene",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Berserk Gene.rb",
         "hookFamilies": [
           "switch"
@@ -11273,7 +11273,7 @@
       {
         "effectName": "LansatBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Lansat Berry.rb",
         "hookFamilies": [
           "end_turn",
@@ -11322,7 +11322,7 @@
       {
         "effectName": "LeppaBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Leppa Berry.rb",
         "hookFamilies": [
           "end_turn"
@@ -11569,14 +11569,14 @@
       {
         "effectName": "Metronome",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Metronome.rb",
         "hookFamilies": []
       },
       {
         "effectName": "MicleBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Micle Berry.rb",
         "hookFamilies": []
       },
@@ -11954,7 +11954,7 @@
       {
         "effectName": "PoisonBarb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 PoisonBarb.rb",
         "hookFamilies": []
       },
@@ -12351,7 +12351,7 @@
       {
         "effectName": "SafetyGoggles",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 SafetyGoggles.rb",
         "hookFamilies": [
           "move_prevention"
@@ -12840,7 +12840,7 @@
       {
         "effectName": "StickyBarb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Sticky Barb.rb",
         "hookFamilies": [
           "end_turn",
@@ -12920,7 +12920,7 @@
       {
         "effectName": "SuctionCups",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb",
         "hookFamilies": []
       },
@@ -13060,7 +13060,7 @@
       {
         "effectName": "TangledFeet",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Tangled Feet.rb",
         "hookFamilies": []
       },

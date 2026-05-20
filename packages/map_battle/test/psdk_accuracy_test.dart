@@ -111,6 +111,31 @@ void main() {
       expect(laxIncense.missedTargets, <BattlePositionRef>[_opponent]);
       expect(brightPowder.missedTargets, <BattlePositionRef>[_opponent]);
     });
+
+    test('Tangled Feet halves chance of hit while the target is confused', () {
+      final confusedTarget = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 60,
+          opponentAbilityId: 'tangled_feet',
+          opponentEffects: PsdkBattleEffectStack(values: <String>[
+            PsdkBattleEffectIds.confusion,
+          ]),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final clearTarget = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 60,
+          opponentAbilityId: 'tangled_feet',
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+
+      expect(confusedTarget.missedTargets, <BattlePositionRef>[_opponent]);
+      expect(clearTarget.hitTargets, <BattlePositionRef>[_opponent]);
+    });
   });
 }
 
@@ -119,6 +144,8 @@ BattleMoveProcedureExecution _execution({
   required int moveAccuracySeed,
   String? playerHeldItemId,
   String? opponentHeldItemId,
+  String? opponentAbilityId,
+  PsdkBattleEffectStack? opponentEffects,
 }) {
   final move = BattleMoveDefinition(
     id: 'tackle',
@@ -140,6 +167,8 @@ BattleMoveProcedureExecution _execution({
           move.psdkMove,
           playerHeldItemId: playerHeldItemId,
           opponentHeldItemId: opponentHeldItemId,
+          opponentAbilityId: opponentAbilityId,
+          opponentEffects: opponentEffects,
         ),
       ),
       rng: BattleRngStreams.fromSeeds(
@@ -164,6 +193,8 @@ PsdkBattleSetup _setup(
   PsdkBattleMoveData move, {
   String? playerHeldItemId,
   String? opponentHeldItemId,
+  String? opponentAbilityId,
+  PsdkBattleEffectStack? opponentEffects,
 }) {
   return PsdkBattleSetup.singles(
     player: _combatant(
@@ -171,7 +202,12 @@ PsdkBattleSetup _setup(
       heldItemId: playerHeldItemId,
       moves: <PsdkBattleMoveData>[move],
     ),
-    opponent: _combatant(id: 'opponent', heldItemId: opponentHeldItemId),
+    opponent: _combatant(
+      id: 'opponent',
+      abilityId: opponentAbilityId,
+      heldItemId: opponentHeldItemId,
+      effects: opponentEffects,
+    ),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 2,
@@ -183,7 +219,9 @@ PsdkBattleSetup _setup(
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? abilityId,
   String? heldItemId,
+  PsdkBattleEffectStack? effects,
   List<PsdkBattleMoveData>? moves,
 }) {
   return PsdkBattleCombatantSetup(
@@ -201,7 +239,9 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: 50,
     ),
+    abilityId: abilityId,
     heldItemId: heldItemId,
+    effects: effects,
     moves: moves ?? <PsdkBattleMoveData>[moveStub()],
   );
 }

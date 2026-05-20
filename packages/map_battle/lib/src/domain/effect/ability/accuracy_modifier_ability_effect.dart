@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
@@ -10,6 +11,7 @@ enum AbilityAccuracyCondition {
   targetSandstorm,
   targetSnowing,
   targetStatusMove,
+  targetConfused,
   allyBank,
 }
 
@@ -61,6 +63,13 @@ final class AccuracyModifierAbilityEffect extends BattleAbilityEffect {
           : 1,
       AbilityAccuracyCondition.targetStatusMove => owner == context.target &&
               context.move.category == PsdkBattleMoveCategory.status
+          ? multiplier
+          : 1,
+      AbilityAccuracyCondition.targetConfused => owner == context.target &&
+              context.state
+                  .battlerAt(context.target)
+                  .effects
+                  .contains(PsdkBattleEffectIds.confusion)
           ? multiplier
           : 1,
       AbilityAccuracyCondition.allyBank =>

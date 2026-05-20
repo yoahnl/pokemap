@@ -37,8 +37,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'anger_point',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Anger Point.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'AngerPointEffect.partialCriticalMetadataPropagation',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AngerPointEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'anger_shell',
@@ -1525,7 +1525,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'suction_cups',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SuctionCupsEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'supersweet_syrup',
@@ -1599,7 +1600,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'tangled_feet',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Tangled Feet.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AccuracyModifierAbilityEffect.tangledFeet',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'tangling_hair',
