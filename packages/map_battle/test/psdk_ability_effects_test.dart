@@ -1568,6 +1568,20 @@ void main() {
         opponentAbilityId: 'aura_break',
         moveType: 'dark',
       );
+      final rivalrySameGender = _calculatedDamage(
+        abilityId: 'rivalry',
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.male,
+      );
+      final rivalryOppositeGender = _calculatedDamage(
+        abilityId: 'rivalry',
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.female,
+      );
+      final rivalryUnknownGender = _calculatedDamage(
+        abilityId: 'rivalry',
+        playerGender: PsdkBattleGender.male,
+      );
 
       expect(defeatistHighHp, baseline);
       expect(defeatistLowHp, lessThan(baseline));
@@ -1589,6 +1603,9 @@ void main() {
       expect(mismatchedAura, baseline);
       expect(auraBreakOnly, darkBaseline);
       expect(darkAuraBroken, lessThan(darkBaseline));
+      expect(rivalrySameGender, greaterThan(baseline));
+      expect(rivalryOppositeGender, lessThan(baseline));
+      expect(rivalryUnknownGender, baseline);
     });
 
     test('special/final damage modifier abilities follow PSDK gates', () {
@@ -5228,6 +5245,7 @@ PsdkBattleCombatantSetup _combatant({
   String? displayName,
   String? abilityId,
   String? heldItemId,
+  PsdkBattleGender gender = PsdkBattleGender.unknown,
   int currentHp = 100,
   int battleTurnCount = 0,
   bool switching = false,
@@ -5261,6 +5279,7 @@ PsdkBattleCombatantSetup _combatant({
         ),
     abilityId: abilityId,
     heldItemId: heldItemId,
+    gender: gender,
     statStages: statStages,
     transformState: transformState,
     majorStatus: majorStatus,
@@ -5349,6 +5368,8 @@ BattleRngStreams _rng() {
 int _calculatedDamage({
   String? abilityId,
   String? opponentAbilityId,
+  PsdkBattleGender playerGender = PsdkBattleGender.unknown,
+  PsdkBattleGender opponentGender = PsdkBattleGender.unknown,
   String moveType = 'normal',
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int playerCurrentHp = 100,
@@ -5367,6 +5388,7 @@ int _calculatedDamage({
       player: _combatant(
         id: 'player',
         abilityId: abilityId,
+        gender: playerGender,
         currentHp: playerCurrentHp,
         battleTurnCount: playerBattleTurnCount,
         majorStatus: playerMajorStatus,
@@ -5375,6 +5397,7 @@ int _calculatedDamage({
       opponent: _combatant(
         id: 'opponent',
         abilityId: opponentAbilityId,
+        gender: opponentGender,
         currentHp: opponentCurrentHp,
         switching: opponentSwitching,
         types: opponentTypes,

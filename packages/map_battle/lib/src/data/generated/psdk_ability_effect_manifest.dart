@@ -794,7 +794,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'liquid_ooze',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Liquid Ooze.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'DrainMoveBehavior.liquidOoze',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'liquid_voice',
@@ -1218,7 +1219,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'rivalry',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Rivalry.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RivalryEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'rock_head',

@@ -22,7 +22,7 @@ void main() {
       expect(audit.attackMetrics.fait, 378);
       expect(audit.attackMetrics.unknownMethods, 0);
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 194);
-      expect(audit.effectMetrics.byStatus[PsdkPortStatus.ported], 364);
+      expect(audit.effectMetrics.byStatus[PsdkPortStatus.ported], 366);
       expect(audit.effectMetrics.byStatus[PsdkPortStatus.partial], 31);
     });
 

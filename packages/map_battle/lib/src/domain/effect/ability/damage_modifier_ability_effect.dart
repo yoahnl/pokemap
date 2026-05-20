@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../battle_effect.dart';
@@ -149,6 +150,31 @@ final class AbilityBasePowerModifierEffect extends BattleAbilityEffect {
       AbilityBasePowerCondition.analyticOutgoing =>
         1,
     };
+  }
+}
+
+final class RivalryEffect extends BattleAbilityEffect {
+  const RivalryEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'rivalry', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return RivalryEffect(scope: scope);
+  }
+
+  @override
+  double damageBasePowerMultiplier(BattleAbilityDamageContext context) {
+    if (context.user.abilityId != abilityId) {
+      return 1;
+    }
+    final userGender = context.user.gender;
+    final targetGender = context.target.gender;
+    if (userGender == PsdkBattleGender.unknown ||
+        targetGender == PsdkBattleGender.unknown) {
+      return 1;
+    }
+    return userGender == targetGender ? 1.25 : 0.75;
   }
 }
 
