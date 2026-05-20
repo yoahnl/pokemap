@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -455,6 +456,159 @@ void main() {
       expect(pixels!.getUint8(offset + 3), greaterThan(0));
       picture.dispose();
       image.dispose();
+    });
+
+    test('paints projected building shadow preview below placed elements',
+        () async {
+      const map = MapData(
+        id: 'market',
+        name: 'Market',
+        size: GridSize(width: 5, height: 7),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'environment',
+            name: 'Environment',
+            tilesetId: 'element-tileset',
+            tiles: <int>[
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+            ],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'building_1',
+            layerId: 'environment',
+            elementId: 'building',
+            pos: GridPos(x: 1, y: 2),
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'element-tileset',
+            name: 'Element Tileset',
+            relativePath: 'tilesets/elements.png',
+          ),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        projectedBuildingShadowCatalog: ProjectBuildingShadowPresetCatalog(
+          presets: [_projectedBuildingShadowPreset()],
+        ),
+        elements: [
+          ProjectElementEntry(
+            id: 'building',
+            name: 'Building',
+            tilesetId: 'element-tileset',
+            categoryId: 'market',
+            frames: const <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 3),
+              ),
+            ],
+            projectedBuildingShadow: _projectedBuildingShadowConfig(),
+          ),
+        ],
+      );
+      final tilesetImage = await _solidColorImage(
+        width: 64,
+        height: 96,
+        color: const ui.Color(0xFFFF0000),
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: {'element-tileset': tilesetImage},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{'element-tileset': 2},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+      ).paint(canvas, const ui.Size(160, 224));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(160, 224);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final shadowOnlyOffset = _rgbaOffset(image, x: 104, y: 150);
+      expect(pixels!.getUint8(shadowOnlyOffset + 3), greaterThan(0));
+      final spriteOverShadowOffset = _rgbaOffset(image, x: 80, y: 150);
+      expect(pixels.getUint8(spriteOverShadowOffset), greaterThan(220));
+      expect(pixels.getUint8(spriteOverShadowOffset + 1), lessThan(40));
+      expect(pixels.getUint8(spriteOverShadowOffset + 2), lessThan(40));
+      expect(pixels.getUint8(spriteOverShadowOffset + 3), greaterThan(240));
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
+
+    test(
+        'paints projected building shadow preview before static shadow preview',
+        () {
+      final source = File(
+        'lib/src/ui/canvas/map_canvas/map_grid_painter.dart',
+      ).readAsStringSync();
+      final projectedPaintIndex = source.indexOf(
+        'paintEditorStaticShadowPreviewInstructions(\n'
+        '      canvas,\n'
+        '      projectedBuildingShadowPreviewInstructions,\n'
+        '    );',
+      );
+      final staticPaintIndex = source.indexOf(
+        'paintEditorStaticShadowPreviewInstructions(\n'
+        '      canvas,\n'
+        '      staticShadowPreviewInstructions,\n'
+        '    );',
+      );
+
+      expect(projectedPaintIndex, isNonNegative);
+      expect(staticPaintIndex, isNonNegative);
+      expect(projectedPaintIndex, lessThan(staticPaintIndex));
     });
 
     test(
@@ -1019,6 +1173,23 @@ Future<ui.Image> _testTilesetImage() async {
   return image;
 }
 
+Future<ui.Image> _solidColorImage({
+  required int width,
+  required int height,
+  required ui.Color color,
+}) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+    ui.Paint()..color = color,
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(width, height);
+  picture.dispose();
+  return image;
+}
+
 Future<ui.Image> _testPathPatternTilesetImage() async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
@@ -1046,4 +1217,35 @@ Future<ui.Image> _testPathPatternTilesetImage() async {
   final image = await picture.toImage(192, 32);
   picture.dispose();
   return image;
+}
+
+ProjectBuildingShadowPreset _projectedBuildingShadowPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'shadow-a',
+    name: 'Shadow A',
+    direction: ProjectedShadowDirection(x: 1, y: 0),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0.5,
+      nearWidthRatio: 1,
+      farWidthRatio: 0.5,
+    ),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.18,
+      colorHexRgb: '123ABC',
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+  );
+}
+
+ProjectElementProjectedBuildingShadowConfig _projectedBuildingShadowConfig() {
+  return ProjectElementProjectedBuildingShadowConfig(
+    enabled: true,
+    presetId: 'shadow-a',
+    anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+    localOffset: ProjectedShadowOffset(x: 0, y: 0),
+  );
+}
+
+int _rgbaOffset(ui.Image image, {required int x, required int y}) {
+  return ((y * image.width) + x) * 4;
 }

@@ -270,6 +270,14 @@ class MapGridPainter extends CustomPainter {
       project: project,
     );
     final projectContext = project;
+    final projectedBuildingShadowPreviewInstructions = projectContext == null
+        ? const <EditorStaticShadowPreviewInstruction>[]
+        : buildEditorProjectedBuildingShadowPreviewInstructions(
+            manifest: projectContext,
+            map: map,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+          );
     final staticShadowPreviewInstructions = projectContext == null
         ? const <EditorStaticShadowPreviewInstruction>[]
         : buildEditorStaticShadowPreviewInstructions(
@@ -323,6 +331,11 @@ class MapGridPainter extends CustomPainter {
         );
       }
     }
+
+    paintEditorStaticShadowPreviewInstructions(
+      canvas,
+      projectedBuildingShadowPreviewInstructions,
+    );
 
     paintEditorStaticShadowPreviewInstructions(
       canvas,

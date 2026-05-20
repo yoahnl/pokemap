@@ -12,6 +12,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
+import '../../application/shadow/editor_projected_building_shadow_preview.dart';
 import '../../application/shadow/editor_shadow_light_preview.dart';
 import '../../application/shadow/editor_static_shadow_preview.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
