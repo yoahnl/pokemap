@@ -174,20 +174,265 @@ void main() {
       expect(_itemEvents(result), isEmpty);
       expect(_statEvents(result), isEmpty);
     });
+
+    test('type-reactive stat items consume after matching damage', () {
+      final cases = <({
+        String itemId,
+        String moveId,
+        String moveType,
+        String stat,
+      })>[
+        (
+          itemId: 'absorb_bulb',
+          moveId: 'water_gun',
+          moveType: 'water',
+          stat: 'specialAttack',
+        ),
+        (
+          itemId: 'cell_battery',
+          moveId: 'thunder_shock',
+          moveType: 'electric',
+          stat: 'attack',
+        ),
+        (
+          itemId: 'luminous_moss',
+          moveId: 'water_pulse',
+          moveType: 'water',
+          stat: 'specialDefense',
+        ),
+        (
+          itemId: 'snowball',
+          moveId: 'ice_shard',
+          moveType: 'ice',
+          stat: 'attack',
+        ),
+      ];
+
+      for (final current in cases) {
+        final result = _damageOpponent(
+          opponentHeldItemId: current.itemId,
+          rawDamage: 20,
+          move: _move(
+            id: current.moveId,
+            type: current.moveType,
+            power: 40,
+          ),
+        );
+        final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+        expect(opponent.heldItemId, isNull, reason: current.itemId);
+        expect(opponent.consumedItemId, current.itemId, reason: current.itemId);
+        expect(opponent.statStages.valueOf(current.stat), 1,
+            reason: current.itemId);
+        expect(_itemEvents(result).single.itemId, current.itemId,
+            reason: current.itemId);
+        expect(_statEvents(result).single.stat, current.stat,
+            reason: current.itemId);
+      }
+    });
+
+    test('type-reactive stat items ignore wrong type and suppressed item', () {
+      final wrongType = _damageOpponent(
+        opponentHeldItemId: 'absorb_bulb',
+        rawDamage: 20,
+        move: _move(id: 'ember', type: 'fire', power: 40),
+      );
+      final suppressed = _damageOpponent(
+        opponentHeldItemId: 'absorb_bulb',
+        opponentEffects: PsdkBattleEffectStack(
+          values: const <String>['magic_room'],
+        ),
+        rawDamage: 20,
+        move: _move(id: 'water_gun', type: 'water', power: 40),
+      );
+
+      expect(wrongType.state.battlerAt(psdkOpponentSlot).heldItemId,
+          'absorb_bulb');
+      expect(
+        wrongType.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialAttack'),
+        0,
+      );
+      expect(_itemEvents(wrongType), isEmpty);
+      expect(suppressed.state.battlerAt(psdkOpponentSlot).heldItemId,
+          'absorb_bulb');
+      expect(
+        suppressed.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialAttack'),
+        0,
+      );
+      expect(_itemEvents(suppressed), isEmpty);
+    });
+
+    test('type-reactive stat items require the holder to survive', () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'snowball',
+        rawDamage: 120,
+        move: _move(id: 'ice_shard', type: 'ice', power: 40),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.currentHp, 0);
+      expect(opponent.heldItemId, 'snowball');
+      expect(opponent.statStages.valueOf('attack'), 0);
+      expect(_itemEvents(result), isEmpty);
+    });
+
+    test('Weakness Policy consumes after super-effective damage', () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'weakness_policy',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        rawDamage: 20,
+        move: _move(id: 'ember', type: 'fire', power: 40),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final stats = _statEvents(result);
+
+      expect(opponent.heldItemId, isNull);
+      expect(opponent.consumedItemId, 'weakness_policy');
+      expect(opponent.statStages.valueOf('attack'), 2);
+      expect(opponent.statStages.valueOf('specialAttack'), 2);
+      expect(_itemEvents(result).single.itemId, 'weakness_policy');
+      expect(stats.map((event) => event.stat), <String>[
+        'attack',
+        'specialAttack',
+      ]);
+      expect(stats.map((event) => event.amount), <int>[2, 2]);
+    });
+
+    test('Weakness Policy ignores neutral damage', () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'weakness_policy',
+        rawDamage: 20,
+        move: _move(id: 'tackle', type: 'normal', power: 40),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.heldItemId, 'weakness_policy');
+      expect(opponent.statStages.valueOf('attack'), 0);
+      expect(opponent.statStages.valueOf('specialAttack'), 0);
+      expect(_itemEvents(result), isEmpty);
+      expect(_statEvents(result), isEmpty);
+    });
+
+    test('Rocky Helmet damages a contact attacker without consuming itself',
+        () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'rocky_helmet',
+        rawDamage: 20,
+        moveDefinition: _moveDefinition(
+          id: 'scratch',
+          type: 'normal',
+          power: 40,
+          flags: const BattleMoveFlags(contact: true),
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final damages = _damageEvents(result);
+
+      expect(player.currentHp, 84);
+      expect(opponent.heldItemId, 'rocky_helmet');
+      expect(opponent.itemConsumed, isFalse);
+      expect(damages.map((event) => event.moveId), <String>[
+        'scratch',
+        'item:rocky_helmet',
+      ]);
+      expect(damages.last.damage, 16);
+    });
+
+    test('Rocky Helmet can trigger after fatal contact damage', () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'rocky_helmet',
+        rawDamage: 120,
+        moveDefinition: _moveDefinition(
+          id: 'scratch',
+          type: 'normal',
+          power: 40,
+          flags: const BattleMoveFlags(contact: true),
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 0);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 84);
+      expect(_damageEvents(result).last.moveId, 'item:rocky_helmet');
+    });
+
+    test('Rocky Helmet ignores non-contact moves', () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'rocky_helmet',
+        rawDamage: 20,
+        move: _move(id: 'swift', type: 'normal', power: 40),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(_damageEvents(result).map((event) => event.moveId),
+          <String>['swift']);
+    });
+
+    test('Shell Bell heals the damaging holder for one eighth of damage', () {
+      final result = _damageOpponent(
+        playerHeldItemId: 'shell_bell',
+        playerCurrentHp: 50,
+        opponentHeldItemId: 'leftovers',
+        rawDamage: 40,
+        move: _move(id: 'scratch', type: 'normal', power: 40),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final heals = _healEvents(result);
+
+      expect(player.currentHp, 55);
+      expect(player.heldItemId, 'shell_bell');
+      expect(player.itemConsumed, isFalse);
+      expect(heals.single.moveId, 'item:shell_bell');
+      expect(heals.single.amount, 5);
+      expect(heals.single.remainingHp, 55);
+    });
+
+    test('Shell Bell ignores chip damage below eight HP', () {
+      final result = _damageOpponent(
+        playerHeldItemId: 'shell_bell',
+        playerCurrentHp: 50,
+        opponentHeldItemId: 'leftovers',
+        rawDamage: 7,
+        move: _move(id: 'scratch', type: 'normal', power: 40),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 50);
+      expect(_healEvents(result), isEmpty);
+    });
   });
 }
 
 BattleHandlerResult _damageOpponent({
   required String opponentHeldItemId,
   required int rawDamage,
+  String? playerHeldItemId,
+  int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleEffectStack? opponentEffects,
+  PsdkBattleMoveData? move,
+  BattleMoveDefinition? moveDefinition,
   int genericSeed = 4,
 }) {
+  final resolvedMove = moveDefinition ??
+      BattleMoveDefinition.fromPsdk(
+        move ?? _move(id: 'tackle', power: 80),
+      );
   return const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
       state: _state(
+        playerHeldItemId: playerHeldItemId,
+        playerCurrentHp: playerCurrentHp,
         opponentHeldItemId: opponentHeldItemId,
         opponentCurrentHp: opponentCurrentHp,
+        opponentTypes: opponentTypes,
+        opponentEffects: opponentEffects,
       ),
       rng: BattleRngStreams.fromSeedSnapshot(
         BattleRngSeeds(
@@ -201,9 +446,9 @@ BattleHandlerResult _damageOpponent({
       user: psdkPlayerSlot,
     ),
     target: psdkOpponentSlot,
-    moveId: 'tackle',
+    moveId: resolvedMove.id,
     rawDamage: rawDamage,
-    move: BattleMoveDefinition.fromPsdk(_move(id: 'tackle', power: 80)),
+    move: resolvedMove,
   );
 }
 
@@ -288,13 +533,19 @@ BattleHandlerResult _dispatchSwitchIntoTerrain({
 
 PsdkBattleState _state({
   required String opponentHeldItemId,
+  String? playerHeldItemId,
+  int playerCurrentHp = 100,
   required int opponentCurrentHp,
   String? opponentAbilityId,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleEffectStack? opponentEffects,
 }) {
   return PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        heldItemId: playerHeldItemId,
+        currentHp: playerCurrentHp,
         move: _move(id: 'tackle', power: 80),
       ),
       opponent: _combatant(
@@ -302,6 +553,8 @@ PsdkBattleState _state({
         heldItemId: opponentHeldItemId,
         abilityId: opponentAbilityId,
         currentHp: opponentCurrentHp,
+        types: opponentTypes,
+        effects: opponentEffects,
         move: _move(id: 'splash', power: 0),
       ),
       rngSeeds: const BattleRngSeeds(
@@ -320,6 +573,8 @@ PsdkBattleCombatantSetup _combatant({
   String? heldItemId,
   String? abilityId,
   int currentHp = 100,
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleEffectStack? effects,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -328,7 +583,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
-    types: const PsdkBattleTypes(primary: 'normal'),
+    types: types,
     stats: const PsdkBattleStats(
       attack: 50,
       defense: 50,
@@ -338,19 +593,21 @@ PsdkBattleCombatantSetup _combatant({
     ),
     abilityId: abilityId,
     heldItemId: heldItemId,
+    effects: effects,
     moves: <PsdkBattleMoveData>[move],
   );
 }
 
 PsdkBattleMoveData _move({
   required String id,
+  String type = 'normal',
   required int power,
 }) {
   return PsdkBattleMoveData(
     id: id,
     dbSymbol: id,
     name: id,
-    type: 'normal',
+    type: type,
     category: power > 0
         ? PsdkBattleMoveCategory.physical
         : PsdkBattleMoveCategory.status,
@@ -361,6 +618,32 @@ PsdkBattleMoveData _move({
     criticalRate: 1,
     battleEngineMethod: power > 0 ? 's_basic' : 's_splash',
     target: PsdkBattleMoveTarget.adjacentFoe,
+    sound: false,
+  );
+}
+
+BattleMoveDefinition _moveDefinition({
+  required String id,
+  String type = 'normal',
+  required int power,
+  BattleMoveFlags flags = const BattleMoveFlags(),
+}) {
+  return BattleMoveDefinition(
+    id: id,
+    dbSymbol: id,
+    name: id,
+    type: type,
+    category: power > 0
+        ? PsdkBattleMoveCategory.physical
+        : PsdkBattleMoveCategory.status,
+    power: power,
+    accuracy: 100,
+    pp: 35,
+    priority: 0,
+    criticalRate: 1,
+    battleEngineMethod: power > 0 ? 's_basic' : 's_splash',
+    target: PsdkBattleMoveTarget.adjacentFoe,
+    flags: flags,
   );
 }
 
@@ -378,4 +661,14 @@ List<PsdkBattleStatStageEvent> _statEvents(BattleHandlerResult result) {
   return result.events
       .whereType<PsdkBattleStatStageEvent>()
       .toList(growable: false);
+}
+
+List<PsdkBattleDamageEvent> _damageEvents(BattleHandlerResult result) {
+  return result.events
+      .whereType<PsdkBattleDamageEvent>()
+      .toList(growable: false);
+}
+
+List<PsdkBattleHealEvent> _healEvents(BattleHandlerResult result) {
+  return result.events.whereType<PsdkBattleHealEvent>().toList(growable: false);
 }

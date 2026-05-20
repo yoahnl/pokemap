@@ -9455,9 +9455,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 338,
-      "partial": 30,
-      "missing": 114
+      "ported": 344,
+      "partial": 31,
+      "missing": 107
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9471,9 +9471,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 50,
-        "partial": 5,
-        "missing": 32
+        "ported": 56,
+        "partial": 6,
+        "missing": 25
       },
       "status": {
         "ported": 7,
@@ -9509,7 +9509,7 @@
       {
         "effectName": "AbsorbBulb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": []
       },
@@ -9933,7 +9933,7 @@
       {
         "effectName": "CellBattery",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": []
       },
@@ -11433,7 +11433,7 @@
       {
         "effectName": "LuminousMoss",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": [
           "post_damage"
@@ -12293,7 +12293,7 @@
       {
         "effectName": "RockyHelmet",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Rocky Helmet.rb",
         "hookFamilies": [
           "post_damage"
@@ -12526,7 +12526,7 @@
       {
         "effectName": "ShellBell",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Shell Bell.rb",
         "hookFamilies": [
           "post_damage"
@@ -12671,7 +12671,7 @@
       {
         "effectName": "Snowball",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
         "hookFamilies": []
       },
@@ -13466,7 +13466,7 @@
       {
         "effectName": "WeaknessPolicy",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Weakness Policy.rb",
         "hookFamilies": [
           "post_damage"

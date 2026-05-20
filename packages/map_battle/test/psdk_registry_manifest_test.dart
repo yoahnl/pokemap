@@ -383,6 +383,35 @@ void main() {
       }
     });
 
+    test('effect parity promotes Lot 250 reactive held item effects', () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'AbsorbBulb',
+        'CellBattery',
+        'LuminousMoss',
+        'RockyHelmet',
+        'Snowball',
+        'WeaknessPolicy',
+      ]) {
+        expect(
+          byFamilyAndName['item:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+      expect(
+        byFamilyAndName['item:ShellBell']?.status,
+        PsdkPortStatus.partial,
+      );
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
