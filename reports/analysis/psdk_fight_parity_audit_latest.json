@@ -9455,15 +9455,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 364,
+      "ported": 366,
       "partial": 31,
-      "missing": 87
+      "missing": 85
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 191,
+        "ported": 193,
         "partial": 17,
-        "missing": 46
+        "missing": 44
       },
       "move": {
         "ported": 83,
@@ -11390,7 +11390,7 @@
       {
         "effectName": "LiquidOoze",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Liquid Ooze.rb",
         "hookFamilies": [
           "drain"
@@ -12286,7 +12286,7 @@
       {
         "effectName": "Rivalry",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Rivalry.rb",
         "hookFamilies": []
       },

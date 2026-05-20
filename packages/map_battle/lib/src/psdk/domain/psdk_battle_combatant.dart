@@ -28,6 +28,12 @@ class PsdkBattleTypes {
   final String? secondary;
 }
 
+enum PsdkBattleGender {
+  unknown,
+  male,
+  female,
+}
+
 const Object _unchanged = Object();
 
 /// Resolved combat stats used by the first PSDK smoke engine.
@@ -492,6 +498,7 @@ class PsdkBattleCombatantSetup {
     required this.stats,
     required List<PsdkBattleMoveData> moves,
     this.abilityId,
+    this.gender = PsdkBattleGender.unknown,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -535,6 +542,7 @@ class PsdkBattleCombatantSetup {
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
   final String? abilityId;
+  final PsdkBattleGender gender;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -598,6 +606,7 @@ class PsdkBattleCombatant {
     required this.stats,
     required List<PsdkBattleMoveData> moves,
     this.abilityId,
+    this.gender = PsdkBattleGender.unknown,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -649,6 +658,7 @@ class PsdkBattleCombatant {
       stats: setup.stats,
       moves: setup.moves,
       abilityId: setup.abilityId,
+      gender: setup.gender,
       heldItemId: setup.heldItemId,
       consumedItemId: setup.consumedItemId,
       itemConsumed: setup.itemConsumed,
@@ -688,6 +698,7 @@ class PsdkBattleCombatant {
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
   final String? abilityId;
+  final PsdkBattleGender gender;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -779,6 +790,7 @@ class PsdkBattleCombatant {
     PsdkBattleStats? stats,
     int? currentHp,
     Object? abilityId = _unchanged,
+    PsdkBattleGender? gender,
     Object? heldItemId = _unchanged,
     Object? consumedItemId = _unchanged,
     bool? itemConsumed,
@@ -825,6 +837,7 @@ class PsdkBattleCombatant {
       abilityId: identical(abilityId, _unchanged)
           ? this.abilityId
           : abilityId as String?,
+      gender: gender ?? this.gender,
       heldItemId: identical(heldItemId, _unchanged)
           ? this.heldItemId
           : heldItemId as String?,

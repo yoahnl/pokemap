@@ -359,6 +359,10 @@ final class AbilityEffectRegistry {
           id: 'ability:propeller_tail',
           scope: scope,
         ),
+    'liquid_ooze': ({required scope}) => GenericBattleEffect(
+          id: 'ability:liquid_ooze',
+          scope: scope,
+        ),
     'solid_rock': ({required scope}) => AbilityFinalDamageModifierEffect(
           abilityId: 'solid_rock',
           scope: scope,
@@ -510,6 +514,7 @@ final class AbilityEffectRegistry {
           condition: AbilityBasePowerCondition.analyticOutgoing,
           multiplier: 1.3,
         ),
+    'rivalry': ({required scope}) => RivalryEffect(scope: scope),
     'ice_scales': ({required scope}) => AbilityBasePowerModifierEffect(
           abilityId: 'ice_scales',
           scope: scope,
