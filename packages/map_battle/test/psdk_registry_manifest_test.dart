@@ -2126,29 +2126,20 @@ void main() {
         byMethod['s_smelling_salt']!.dartBehavior,
         'HitThenCureStatusMoveBehavior.smellingSalt',
       );
-      expect(byMethod['s_smelling_salt']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_smelling_salt']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.handlerDamage,
-          PsdkMoveDependency.handlerStatus,
-          PsdkMoveDependency.effects,
-        ]),
-      );
+      expect(byMethod['s_smelling_salt']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_smelling_salt']!.dependencies, isEmpty);
       expect(
         byMethod['s_wakeup_slap']!.dartBehavior,
         'HitThenCureStatusMoveBehavior.wakeUpSlap',
       );
-      expect(byMethod['s_wakeup_slap']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_wakeup_slap']!.dependencies,
-        contains(PsdkMoveDependency.ability),
-      );
+      expect(byMethod['s_wakeup_slap']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_wakeup_slap']!.dependencies, isEmpty);
       expect(
         byMethod['s_sparkling_aria']!.dartBehavior,
         'HitThenCureStatusMoveBehavior.sparklingAria',
       );
-      expect(byMethod['s_sparkling_aria']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_sparkling_aria']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_sparkling_aria']!.dependencies, isEmpty);
       expect(byMethod['s_psycho_shift']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_psycho_shift']!.dartBehavior,

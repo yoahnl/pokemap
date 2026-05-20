@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 378,
-    "partiel": 350,
+    "fait": 381,
+    "partiel": 347,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -4635,9 +4635,9 @@
       {
         "moveId": "smelling_salts",
         "battleEngineMethod": "s_smelling_salt",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/smelling_salts.json"
       },
       {
@@ -4747,9 +4747,9 @@
       {
         "moveId": "sparkling_aria",
         "battleEngineMethod": "s_sparkling_aria",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sparkling_aria.json"
       },
       {
@@ -5611,9 +5611,9 @@
       {
         "moveId": "wake_up_slap",
         "battleEngineMethod": "s_wakeup_slap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/wake_up_slap.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 194,
-      "partial": 136,
+      "ported": 197,
+      "partial": 133,
       "missing": 0
     },
     "entries": [
@@ -8496,13 +8496,8 @@
         "rubyClass": "SmellingSalts",
         "rubyPath": "10 Move/2 Definitions/300 HitThenCureStatus.rb",
         "dartBehavior": "HitThenCureStatusMoveBehavior.smellingSalt",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "handlerStatus",
-          "effects"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_snatch",
@@ -8542,13 +8537,8 @@
         "rubyClass": "SparklingAria",
         "rubyPath": "10 Move/2 Definitions/300 SparklingAria.rb",
         "dartBehavior": "HitThenCureStatusMoveBehavior.sparklingAria",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "handlerStatus",
-          "effects"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_sparkly_swirl",
@@ -9199,14 +9189,8 @@
         "rubyClass": "WakeUpSlap",
         "rubyPath": "10 Move/2 Definitions/300 HitThenCureStatus.rb",
         "dartBehavior": "HitThenCureStatusMoveBehavior.wakeUpSlap",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "handlerStatus",
-          "effects",
-          "ability"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_water_shuriken",
@@ -9303,7 +9287,7 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 36,
+        "count": 33,
         "methods": [
           "s_aqua_ring",
           "s_aura_wheel",
@@ -9334,13 +9318,10 @@
           "s_roost",
           "s_scale_shot",
           "s_shell_trap",
-          "s_smelling_salt",
-          "s_sparkling_aria",
           "s_sparkly_swirl",
           "s_split_up",
           "s_trump_card",
-          "s_upper_hand",
-          "s_wakeup_slap"
+          "s_upper_hand"
         ]
       },
       {
