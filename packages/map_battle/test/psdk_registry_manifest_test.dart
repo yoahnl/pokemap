@@ -358,6 +358,31 @@ void main() {
       );
     });
 
+    test('effect parity promotes Lot 249 existing item modifier families',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'BasePowerMultiplier',
+        'BigRoot',
+        'Gems',
+        'HalfSpeed',
+        'ShedShell',
+      ]) {
+        expect(
+          byFamilyAndName['item:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(

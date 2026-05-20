@@ -9455,8 +9455,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 333,
-      "partial": 35,
+      "ported": 338,
+      "partial": 30,
       "missing": 114
     },
     "byFamilyAndStatus": {
@@ -9471,8 +9471,8 @@
         "missing": 24
       },
       "item": {
-        "ported": 45,
-        "partial": 10,
+        "ported": 50,
+        "partial": 5,
         "missing": 32
       },
       "status": {
@@ -9720,7 +9720,7 @@
       {
         "effectName": "BasePowerMultiplier",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb",
         "hookFamilies": []
       },
@@ -9841,7 +9841,7 @@
       {
         "effectName": "BigRoot",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Big Root.rb",
         "hookFamilies": [
           "drain"
@@ -10787,7 +10787,7 @@
       {
         "effectName": "Gems",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 Gems.rb",
         "hookFamilies": [
           "accuracy"
@@ -10926,7 +10926,7 @@
       {
         "effectName": "HalfSpeed",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HalfSpeedItems.rb",
         "hookFamilies": []
       },
@@ -12489,7 +12489,7 @@
       {
         "effectName": "ShedShell",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Shed Shell.rb",
         "hookFamilies": [
           "switch"

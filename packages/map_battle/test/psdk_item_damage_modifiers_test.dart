@@ -79,6 +79,39 @@ void main() {
       expect(_itemEvents(gem).single.itemId, 'normal_gem');
     });
 
+    test('Gem registry covers all PSDK gem types with matching-type consume',
+        () {
+      final baseline = _runMove(
+        playerMove: _move(id: 'mud_shot', type: 'ground', power: 40),
+      );
+      final groundGem = _runMove(
+        playerHeldItemId: 'ground_gem',
+        playerMove: _move(id: 'mud_shot', type: 'ground', power: 40),
+      );
+      final wrongTypeGem = _runMove(
+        playerHeldItemId: 'ice_gem',
+        playerMove: _move(id: 'mud_shot', type: 'ground', power: 40),
+      );
+
+      expect(
+        _damage(groundGem, moveId: 'mud_shot'),
+        greaterThan(_damage(baseline, moveId: 'mud_shot')),
+      );
+      expect(groundGem.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+        groundGem.state.battlerAt(psdkPlayerSlot).consumedItemId,
+        'ground_gem',
+      );
+      expect(
+        _damage(wrongTypeGem, moveId: 'mud_shot'),
+        _damage(baseline, moveId: 'mud_shot'),
+      );
+      expect(
+        wrongTypeGem.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'ice_gem',
+      );
+    });
+
     test('Life Orb boosts damage and applies recoil without consuming itself',
         () {
       final baseline = _runMove(
@@ -124,6 +157,37 @@ void main() {
 
       expect(ordered.first.user.toJson(), psdkPlayerSlot.toJson());
       expect((playerAction as PsdkBattleFightAction).speed, 120);
+    });
+
+    test('HalfSpeed items halve speed and respect item suppression', () {
+      const mapper = PsdkBattleActionDecisionMapper();
+      PsdkBattleFightAction fightAction(PsdkBattleState state) {
+        return mapper.map(
+          state: state,
+          user: psdkPlayerSlot,
+          decision: const BattleFightDecision(moveSlot: 0),
+        ) as PsdkBattleFightAction;
+      }
+
+      final ironBall = _state(
+        playerHeldItemId: 'iron_ball',
+        playerSpeed: 100,
+      );
+      final machoBrace = _state(
+        playerHeldItemId: 'macho_brace',
+        playerSpeed: 100,
+      );
+      final suppressedIronBall = _state(
+        playerHeldItemId: 'iron_ball',
+        playerEffects: PsdkBattleEffectStack(
+          values: const <String>['magic_room'],
+        ),
+        playerSpeed: 100,
+      );
+
+      expect(fightAction(ironBall).speed, 50);
+      expect(fightAction(machoBrace).speed, 50);
+      expect(fightAction(suppressedIronBall).speed, 100);
     });
 
     test('Assault Vest boosts special defense and blocks status moves', () {
@@ -526,6 +590,7 @@ PsdkBattleTurnResult _runMove({
 
 PsdkBattleState _state({
   String? playerHeldItemId,
+  PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
   String playerSpeciesId = 'player',
   int playerSpeed = 100,
   int opponentSpeed = 50,
@@ -536,6 +601,7 @@ PsdkBattleState _state({
         id: 'player',
         speciesId: playerSpeciesId,
         heldItemId: playerHeldItemId,
+        effects: playerEffects,
         speed: playerSpeed,
         move: _move(id: 'tackle', type: 'normal', power: 40),
       ),
@@ -554,6 +620,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleMoveData move,
   String? speciesId,
   String? heldItemId,
+  PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   int currentHp = 100,
   int speed = 50,
@@ -574,6 +641,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     heldItemId: heldItemId,
+    effects: effects,
     moves: <PsdkBattleMoveData>[move],
   );
 }
