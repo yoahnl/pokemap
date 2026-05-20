@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 198 |
-| `partial` | 132 |
+| `ported` | 201 |
+| `partial` | 129 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -23,7 +23,7 @@ Total registered methods: 330
 | `s_after_you` | `AfterYou` | `10 Move/2 Definitions/300 After you.rb` | `StaticBasicMoveRegistry.afterYou` | `ported` | `action_order` |
 | `s_alluring_voice` | `AlluringVoice` | `10 Move/2 Definitions/300 AlluringVoice.rb` | `SpecialSecondaryMoveBehavior.alluringVoice` | `ported` | `-` |
 | `s_ally_switch` | `AllySwitch` | `10 Move/2 Definitions/300 AllySwitch.rb` | `StaticBasicMoveRegistry.s_ally_switch` | `ported` | `-` |
-| `s_aqua_ring` | `AquaRing` | `10 Move/2 Definitions/300 AquaRing.rb` | `PersistentEffectMoveBehavior.aquaRing` | `partial` | `handler_damage`, `effects`, `end_turn`, `item` |
+| `s_aqua_ring` | `AquaRing` | `10 Move/2 Definitions/300 AquaRing.rb` | `PersistentEffectMoveBehavior.aquaRing` | `ported` | `handler_damage`, `effects`, `end_turn`, `item` |
 | `s_assist` | `Assist` | `10 Move/2 Definitions/300 Assist.rb` | `CopyCallMoveBehavior.assist` | `ported` | `-` |
 | `s_assurance` | `Assurance` | `10 Move/2 Definitions/300 Assurance.rb` | `HistoryPowerMoveBehavior.assurance` | `ported` | `-` |
 | `s_attract` | `Attract` | `10 Move/2 Definitions/300 Attract.rb` | `StaticBasicMoveRegistry.attract` | `partial` | `effects` |
@@ -150,7 +150,7 @@ Total registered methods: 330
 | `s_imprison` | `Imprison` | `10 Move/2 Definitions/300 Imprison.rb` | `StaticBasicMoveRegistry.imprison` | `partial` | `effects` |
 | `s_incinerate` | `Incinerate` | `10 Move/2 Definitions/300 Incinerate.rb` | `SpecialSecondaryMoveBehavior.incinerate` | `ported` | `-` |
 | `s_infernal_parade` | `InfernalParade` | `10 Move/2 Definitions/300 StatusBoostedMove.rb` | `VariablePowerMoveBehavior.infernalParade` | `ported` | `-` |
-| `s_ingrain` | `Ingrain` | `10 Move/2 Definitions/300 Ingrain.rb` | `PersistentEffectMoveBehavior.ingrain` | `partial` | `handler_damage`, `handler_switch`, `effects`, `end_turn`, `item` |
+| `s_ingrain` | `Ingrain` | `10 Move/2 Definitions/300 Ingrain.rb` | `PersistentEffectMoveBehavior.ingrain` | `ported` | `handler_damage`, `handler_switch`, `effects`, `end_turn`, `item` |
 | `s_instruct` | `Instruct` | `10 Move/2 Definitions/300 Instruct.rb` | `CopyCallMoveBehavior.instruct` | `ported` | `-` |
 | `s_ion_deluge` | `IonDeluge` | `10 Move/2 Definitions/300 Ion Deluge.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)` | `partial` | `effects`, `field` |
 | `s_ivy_cudgel` | `IvyCudgel` | `10 Move/2 Definitions/300 IvyCudgel.rb` | `TypeBasedMoveBehavior.ivyCudgel` | `ported` | `-` |
@@ -163,7 +163,7 @@ Total registered methods: 330
 | `s_lash_out` | `LashOut` | `10 Move/2 Definitions/300 LashOut.rb` | `HistoryPowerMoveBehavior.lashOut` | `ported` | `-` |
 | `s_last_resort` | `LastResort` | `10 Move/2 Definitions/300 LastResort.rb` | `StaticBasicMoveRegistry.s_last_resort` | `ported` | `-` |
 | `s_last_respects` | `LastRespects` | `10 Move/2 Definitions/300 LastRespects.rb` | `StaticBasicMoveRegistry.s_last_respects` | `ported` | `-` |
-| `s_leech_seed` | `LeechSeed` | `10 Move/2 Definitions/300 LeechSeed.rb` | `PersistentEffectMoveBehavior.leechSeed` | `partial` | `handler_damage`, `effects`, `end_turn`, `ability` |
+| `s_leech_seed` | `LeechSeed` | `10 Move/2 Definitions/300 LeechSeed.rb` | `PersistentEffectMoveBehavior.leechSeed` | `ported` | `handler_damage`, `effects`, `end_turn`, `ability` |
 | `s_life_dew` | `LifeDew` | `10 Move/2 Definitions/300 LifeDew.rb` | `HealMoveBehavior.lifeDew` | `partial` | `handler_damage`, `effects`, `targeting_multi` |
 | `s_lock_on` | `LockOn` | `10 Move/2 Definitions/300 LockOn.rb` | `StaticBasicMoveRegistry.s_lock_on` | `partial` | `effects` |
 | `s_low_kick` | `LowKick` | `10 Move/2 Definitions/300 LowKick.rb` | `WeightPowerMoveBehavior.lowKick` | `ported` | `effects`, `ability`, `grounded` |

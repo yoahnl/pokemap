@@ -124,7 +124,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'AquaRing',
     rubyPath: '10 Move/2 Definitions/300 AquaRing.rb',
     dartBehavior: 'PersistentEffectMoveBehavior.aquaRing',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
@@ -1360,7 +1360,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Ingrain',
     rubyPath: '10 Move/2 Definitions/300 Ingrain.rb',
     dartBehavior: 'PersistentEffectMoveBehavior.ingrain',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerSwitch,
@@ -1482,7 +1482,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LeechSeed',
     rubyPath: '10 Move/2 Definitions/300 LeechSeed.rb',
     dartBehavior: 'PersistentEffectMoveBehavior.leechSeed',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
