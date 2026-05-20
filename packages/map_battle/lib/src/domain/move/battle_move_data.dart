@@ -22,6 +22,9 @@ final class BattleMoveDefinition {
     required this.target,
     BattleMoveFlags flags = const BattleMoveFlags(),
     this.heal = false,
+    this.charge = false,
+    this.recharge = false,
+    this.mirrorMoveAffected = true,
     List<BattleStageMod> stageMods = const <BattleStageMod>[],
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -74,6 +77,9 @@ final class BattleMoveDefinition {
         pulse: move.pulse,
         ballistics: move.ballistics,
       ),
+      charge: move.charge,
+      recharge: move.recharge,
+      mirrorMoveAffected: move.mirrorMoveAffected,
       stageMods: move.stageMods
           .map(
             (mod) => BattleStageMod(
@@ -103,6 +109,9 @@ final class BattleMoveDefinition {
   final PsdkBattleMoveTarget target;
   final BattleMoveFlags flags;
   final bool heal;
+  final bool charge;
+  final bool recharge;
+  final bool mirrorMoveAffected;
   final List<BattleStageMod> _stageMods;
   final List<PsdkBattleMoveStatus> _statuses;
 
@@ -129,6 +138,9 @@ final class BattleMoveDefinition {
     PsdkBattleMoveTarget? target,
     BattleMoveFlags? flags,
     bool? heal,
+    bool? charge,
+    bool? recharge,
+    bool? mirrorMoveAffected,
     List<BattleStageMod>? stageMods,
     List<PsdkBattleMoveStatus>? statuses,
   }) {
@@ -149,6 +161,9 @@ final class BattleMoveDefinition {
       target: target ?? this.target,
       flags: flags ?? this.flags,
       heal: heal ?? this.heal,
+      charge: charge ?? this.charge,
+      recharge: recharge ?? this.recharge,
+      mirrorMoveAffected: mirrorMoveAffected ?? this.mirrorMoveAffected,
       stageMods: stageMods ?? this.stageMods,
       statuses: statuses ?? this.statuses,
     );
@@ -176,6 +191,9 @@ final class BattleMoveDefinition {
       pulse: flags.pulse,
       ballistics: flags.ballistics,
       heal: heal,
+      charge: charge,
+      recharge: recharge,
+      mirrorMoveAffected: mirrorMoveAffected,
       stageMods: stageMods
           .map(
             (mod) => PsdkBattleMoveStageMod(

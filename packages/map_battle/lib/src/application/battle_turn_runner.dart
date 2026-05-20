@@ -193,6 +193,7 @@ final class BattleTurnRunner {
               user: action.user,
               moveId: moveBeforePp.id,
               targets: historyTargets,
+              attackOrder: actionIndex,
             );
             timeline.add(
               BattleMoveFailedTimelineEvent(
@@ -221,6 +222,7 @@ final class BattleTurnRunner {
             user: action.user,
             moveId: moveBeforePp.id,
             targets: historyTargets,
+            attackOrder: actionIndex,
           );
           timeline.add(
             BattleMoveFailedTimelineEvent(
@@ -255,6 +257,7 @@ final class BattleTurnRunner {
                 user: action.user,
                 moveId: moveBeforePp.id,
                 targets: historyTargets,
+                attackOrder: actionIndex,
               );
             }
             timeline.add(
@@ -312,6 +315,7 @@ final class BattleTurnRunner {
             user: action.user,
             moveId: moveBeforePp.id,
             targets: historyTargets,
+            attackOrder: actionIndex,
           );
           timeline.add(
             BattleMoveFailedTimelineEvent(
@@ -336,6 +340,7 @@ final class BattleTurnRunner {
             user: action.user,
             moveId: moveBeforePp.id,
             targets: historyTargets,
+            attackOrder: actionIndex,
           );
           timeline.add(
             BattleMoveFailedTimelineEvent(
@@ -408,12 +413,14 @@ final class BattleTurnRunner {
           user: action.user,
           moveId: moveAfterPp.id,
           targets: historyTargets,
+          attackOrder: actionIndex,
         );
         if (resolution.successful) {
           _recordMoveSuccess(
             user: action.user,
             moveId: moveAfterPp.id,
             targets: historyTargets,
+            attackOrder: actionIndex,
           );
         }
 
@@ -651,6 +658,7 @@ final class BattleTurnRunner {
     required PsdkBattleSlotRef user,
     required String moveId,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     _context.applyStateAndRng(
       nextState: _moveHistoryRecorder.recordAttempt(
@@ -659,6 +667,7 @@ final class BattleTurnRunner {
         moveId: moveId,
         turn: _context.turnNumber,
         targets: targets,
+        attackOrder: attackOrder,
       ),
       nextRng: _context.rng,
     );
@@ -668,6 +677,7 @@ final class BattleTurnRunner {
     required PsdkBattleSlotRef user,
     required String moveId,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     _context.applyStateAndRng(
       nextState: _moveHistoryRecorder.recordSuccess(
@@ -676,6 +686,7 @@ final class BattleTurnRunner {
         moveId: moveId,
         turn: _context.turnNumber,
         targets: targets,
+        attackOrder: attackOrder,
       ),
       nextRng: _context.rng,
     );

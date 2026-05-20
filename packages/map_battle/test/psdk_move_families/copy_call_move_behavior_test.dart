@@ -131,13 +131,31 @@ void main() {
       );
 
       expect(_failures(result), isEmpty);
-      expect(_damageEvents(result, moveId: 'scratch'), hasLength(1));
       expect(_damageEvents(result, moveId: 'metronome'), isEmpty);
       expect(_calledEvents(result, callerMoveId: 'metronome'), hasLength(1));
       expect(
-        _calledEvents(result, callerMoveId: 'metronome').single.calledMoveId,
-        'scratch',
-      );
+          _calledEvents(result, callerMoveId: 'metronome').single.calledMoveId,
+          isNot('metronome'));
+    });
+
+    test('s_metronome samples beyond the old two-move placeholder pool', () {
+      final calledMoveIds = <String>{};
+      for (var seed = 0; seed < 24; seed++) {
+        final result = _runMove(
+          genericSeed: seed,
+          playerMove: _move(
+            id: 'metronome',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_metronome',
+          ),
+        );
+        calledMoveIds.add(
+          _calledEvents(result, callerMoveId: 'metronome').single.calledMoveId,
+        );
+      }
+
+      expect(calledMoveIds, contains(isNot(anyOf('tackle', 'scratch'))));
     });
 
     test('s_metronome spends only Metronome PP, not the called move PP', () {
@@ -152,7 +170,9 @@ void main() {
       );
 
       expect(_ppSpent(result, moveId: 'metronome'), hasLength(1));
-      expect(_ppSpent(result, moveId: 'scratch'), isEmpty);
+      final calledMoveId =
+          _calledEvents(result, callerMoveId: 'metronome').single.calledMoveId;
+      expect(_ppSpent(result, moveId: calledMoveId), isEmpty);
     });
 
     test('s_assist fails after PP when no teammate move can be selected', () {
@@ -293,6 +313,57 @@ void main() {
       expect(_ppSpent(result, moveId: 'flamethrower'), isEmpty);
     });
 
+    test('s_mirror_move copycat uses attack order inside the latest turn', () {
+      final result = _resolveCopycatWithMoveHistories(
+        firstOpponentMove: _move(id: 'tackle', power: 40),
+        firstOpponentHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'tackle',
+          turn: 3,
+          attackOrder: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+        secondOpponentMove: _move(id: 'flamethrower', power: 90),
+        secondOpponentHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'flamethrower',
+          turn: 3,
+          attackOrder: 1,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failuresFromEvents(result.events), isEmpty);
+      expect(
+        _calledEventsFromEvents(result.events, callerMoveId: 'copycat')
+            .single
+            .calledMoveId,
+        'flamethrower',
+      );
+    });
+
+    test('s_mirror_move respects the PSDK mirror-move affected flag', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'mirror_move',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_mirror_move',
+        ),
+        opponentMove: _move(
+          id: 'flamethrower',
+          power: 90,
+          mirrorMoveAffected: false,
+        ),
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'flamethrower',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'mirror_move');
+    });
+
     test('s_instruct fails after PP when target has no last move', () {
       final result = _runMove(
         playerMove: _move(
@@ -389,6 +460,57 @@ void main() {
       expect(_ppSpent(result, moveId: 'instruct'), hasLength(1));
     });
 
+    test('s_instruct fails after PP for PSDK pre-attack moves', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'instruct',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_instruct',
+        ),
+        opponentMove: _move(
+          id: 'focus_punch',
+          power: 150,
+          battleEngineMethod: 's_focus_punch',
+        ),
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'focus_punch',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'instruct');
+      expect(_ppSpent(result, moveId: 'instruct'), hasLength(1));
+    });
+
+    test('s_instruct fails after PP for PSDK charge/recharge flags', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'instruct',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_instruct',
+        ),
+        opponentMove: _move(
+          id: 'solar_beam',
+          power: 120,
+          battleEngineMethod: 's_basic',
+          charge: true,
+        ),
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'solar_beam',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'instruct');
+      expect(_ppSpent(result, moveId: 'instruct'), hasLength(1));
+    });
+
     test('s_me_first calls the target announced move before it acts', () {
       final result = _runMove(
         playerMove: _move(
@@ -474,7 +596,7 @@ void main() {
       expect(_ppSpent(result, moveId: 'me_first'), hasLength(1));
     });
 
-    test('s_mimic fails before PP when the target has no successful move', () {
+    test('s_mimic fails after PP when the target has no move history', () {
       final result = _runMove(
         playerMove: _move(
           id: 'mimic',
@@ -490,7 +612,7 @@ void main() {
         _failures(result).single.reason,
         BattleMoveFailureReason.unusableByUser.jsonName,
       );
-      expect(_ppSpent(result, moveId: 'mimic'), isEmpty);
+      expect(_ppSpent(result, moveId: 'mimic'), hasLength(1));
     });
 
     for (final moveId in <String>[
@@ -500,9 +622,9 @@ void main() {
       'struggle',
       'mimic',
     ]) {
-      test('s_mimic fails before PP when target last move is $moveId', () {
+      test('s_mimic fails after PP when target last move is $moveId', () {
         final result = _runMove(
-          opponentMoveHistory: PsdkBattleMoveHistory.empty().recordSuccess(
+          opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
             moveId: moveId,
             turn: 0,
             targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
@@ -519,7 +641,7 @@ void main() {
         expect(_failures(result), hasLength(1), reason: moveId);
         expect(
           _ppSpent(result, moveId: 'mimic', user: psdkPlayerSlot),
-          isEmpty,
+          hasLength(1),
           reason: moveId,
         );
       });
@@ -545,7 +667,7 @@ void main() {
           ),
         ],
         opponentMove: targetMove,
-        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordSuccess(
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
           moveId: 'flamethrower',
           turn: 0,
           targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
@@ -735,6 +857,62 @@ BattleMoveBehaviorResolution _resolveMoveAgainstTarget({
       );
 }
 
+BattleMoveBehaviorResolution _resolveCopycatWithMoveHistories({
+  required PsdkBattleMoveData firstOpponentMove,
+  required PsdkBattleMoveHistory firstOpponentHistory,
+  required PsdkBattleMoveData secondOpponentMove,
+  required PsdkBattleMoveHistory secondOpponentHistory,
+}) {
+  const firstOpponentSlot = PsdkBattleSlotRef(bank: 1, position: 0);
+  const secondOpponentSlot = PsdkBattleSlotRef(bank: 1, position: 1);
+  final registry = createStaticBasicMoveRegistry();
+  final playerMove = _move(
+    id: 'copycat',
+    category: PsdkBattleMoveCategory.status,
+    power: 0,
+    battleEngineMethod: 's_mirror_move',
+  );
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'player', speed: 100, move: playerMove),
+      ),
+      firstOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'first_opponent',
+          speed: 50,
+          move: firstOpponentMove,
+          moveHistory: firstOpponentHistory,
+        ),
+      ),
+      secondOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'second_opponent',
+          speed: 40,
+          move: secondOpponentMove,
+          moveHistory: secondOpponentHistory,
+        ),
+      ),
+    },
+  );
+  return registry.resolve(playerMove.battleEngineMethod).resolve(
+        BattleMoveBehaviorContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 0,
+          ),
+          turn: 4,
+          user: psdkPlayerSlot,
+          target: firstOpponentSlot,
+          move: BattleMoveDefinition.fromPsdk(playerMove),
+          moveSlot: 0,
+        ),
+      );
+}
+
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   List<PsdkBattleMoveData> playerExtraMoves = const <PsdkBattleMoveData>[],
@@ -826,6 +1004,9 @@ PsdkBattleMoveData _move({
   required int power,
   int accuracy = 100,
   String battleEngineMethod = 's_basic',
+  bool charge = false,
+  bool recharge = false,
+  bool mirrorMoveAffected = true,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -840,6 +1021,9 @@ PsdkBattleMoveData _move({
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
+    charge: charge,
+    recharge: recharge,
+    mirrorMoveAffected: mirrorMoveAffected,
   );
 }
 
