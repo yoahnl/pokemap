@@ -1313,7 +1313,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'serene_grace',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 SereneGrace.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SereneGraceEffect.secondaryChanceMultiplier',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'shadow_shield',
@@ -1347,13 +1348,15 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sheer_force',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 SheerForce.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SheerForceEffect.powerBoostAndSecondarySuppression',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'shield_dust',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 ShieldDust.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ShieldDustEffect.secondarySuppression',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'skill_link',

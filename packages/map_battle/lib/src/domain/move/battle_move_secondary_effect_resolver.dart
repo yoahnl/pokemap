@@ -4,6 +4,7 @@ import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/ability/mental_immunity_ability_effect.dart';
+import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/move/confusion_effect.dart';
 import '../handler/battle_handler_context.dart';
@@ -34,8 +35,24 @@ final class BattleMoveSecondaryEffectResolver {
     var nextState = state;
     var nextRng = rng;
     final events = <PsdkBattleEvent>[];
+    final secondaryContext = BattleAbilitySecondaryEffectContext(
+      state: nextState,
+      user: user,
+      target: target,
+      move: move,
+    );
+    if (_secondaryEffectsPrevented(secondaryContext)) {
+      return BattleMoveSecondaryEffectResult(
+        state: nextState,
+        rng: nextRng,
+        events: events,
+      );
+    }
 
-    final globalChance = move.effectChance;
+    final globalChance = _modifiedChance(
+      move.effectChance,
+      secondaryContext,
+    );
     if (globalChance != null && globalChance < 100) {
       final roll = nextRng.generic.nextPercent();
       nextRng = nextRng.copyWith(generic: roll.next);
@@ -49,10 +66,11 @@ final class BattleMoveSecondaryEffectResolver {
     }
 
     for (final status in move.statuses) {
-      if (globalChance == null && status.chance < 100) {
+      final statusChance = _modifiedChance(status.chance, secondaryContext);
+      if (globalChance == null && statusChance != null && statusChance < 100) {
         final roll = nextRng.generic.nextPercent();
         nextRng = nextRng.copyWith(generic: roll.next);
-        if (roll.value > status.chance) {
+        if (roll.value > statusChance) {
           continue;
         }
       }
@@ -115,10 +133,11 @@ final class BattleMoveSecondaryEffectResolver {
       if (mod.stages == 0) {
         continue;
       }
-      if (globalChance == null && mod.chance != null && mod.chance! < 100) {
+      final modChance = _modifiedChance(mod.chance, secondaryContext);
+      if (globalChance == null && modChance != null && modChance < 100) {
         final roll = nextRng.generic.nextPercent();
         nextRng = nextRng.copyWith(generic: roll.next);
-        if (roll.value > mod.chance!) {
+        if (roll.value > modChance) {
           continue;
         }
       }
@@ -148,6 +167,55 @@ final class BattleMoveSecondaryEffectResolver {
       events: events,
     );
   }
+}
+
+bool _secondaryEffectsPrevented(BattleAbilitySecondaryEffectContext context) {
+  if (_sheerForceSuppresses(context)) {
+    return true;
+  }
+  for (final effect in context.state.activeAbilityEffects()) {
+    if (effect.preventsSecondaryEffects(context)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _sheerForceSuppresses(BattleAbilitySecondaryEffectContext context) {
+  final user = context.state.battlerAt(context.user);
+  if (user.abilityId != 'sheer_force' ||
+      user.effects.contains('ability_suppressed') ||
+      context.move.category == PsdkBattleMoveCategory.status) {
+    return false;
+  }
+  if (context.move.statuses.any((status) => status.majorStatus != null) ||
+      context.move.effectChance != null) {
+    return true;
+  }
+  if (context.move.stageMods.isEmpty) {
+    return false;
+  }
+  final onlyPositive = context.move.stageMods.every((mod) => mod.stages > 0);
+  final onlyNegative = context.move.stageMods.every((mod) => mod.stages < 0);
+  return switch (context.move.target) {
+    PsdkBattleMoveTarget.self || PsdkBattleMoveTarget.user => onlyPositive,
+    _ => onlyNegative,
+  };
+}
+
+int? _modifiedChance(
+  int? chance,
+  BattleAbilitySecondaryEffectContext context,
+) {
+  if (chance == null) {
+    return null;
+  }
+  var multiplier = 1.0;
+  for (final effect in context.state.activeAbilityEffects()) {
+    multiplier *= effect.secondaryEffectChanceMultiplier(context);
+  }
+  final modified = (chance * multiplier).floor();
+  return modified > 100 ? 100 : modified;
 }
 
 bool _safeguardPreventsVolatileStatus({

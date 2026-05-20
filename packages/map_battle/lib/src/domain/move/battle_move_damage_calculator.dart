@@ -243,6 +243,9 @@ int _abilityAdjustedPower(
     isLastActionOfTurn: context.isLastActionOfTurn,
   );
   var multiplier = 1.0;
+  if (_sheerForceBoosts(context)) {
+    multiplier *= 1.3;
+  }
   for (final effect in context.user.abilityEffects) {
     multiplier *= effect.damageBasePowerMultiplier(abilityContext);
   }
@@ -257,6 +260,27 @@ int _abilityAdjustedPower(
   }
   final adjusted = (power * multiplier).floor();
   return adjusted < 1 ? 1 : adjusted;
+}
+
+bool _sheerForceBoosts(BattleMoveDamageContext context) {
+  if (context.user.abilityId != 'sheer_force' ||
+      context.user.effects.contains('ability_suppressed') ||
+      context.move.category == PsdkBattleMoveCategory.status) {
+    return false;
+  }
+  if (context.move.statuses.any((status) => status.majorStatus != null) ||
+      context.move.effectChance != null) {
+    return true;
+  }
+  if (context.move.stageMods.isEmpty) {
+    return false;
+  }
+  final onlyPositive = context.move.stageMods.every((mod) => mod.stages > 0);
+  final onlyNegative = context.move.stageMods.every((mod) => mod.stages < 0);
+  return switch (context.move.target) {
+    PsdkBattleMoveTarget.self || PsdkBattleMoveTarget.user => onlyPositive,
+    _ => onlyNegative,
+  };
 }
 
 int _itemAdjustedPower(

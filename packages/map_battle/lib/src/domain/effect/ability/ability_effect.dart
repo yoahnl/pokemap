@@ -68,6 +68,18 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   bool preventsRecoil(BattleAbilityMoveContext context) => false;
 
+  bool preventsSecondaryEffects(
+    BattleAbilitySecondaryEffectContext context,
+  ) {
+    return false;
+  }
+
+  double secondaryEffectChanceMultiplier(
+    BattleAbilitySecondaryEffectContext context,
+  ) {
+    return 1;
+  }
+
   bool? groundedOverride(PsdkBattleCombatant battler) => null;
 
   bool preventsStatus(BattleAbilityStatusContext context) => false;
@@ -93,6 +105,20 @@ final class BattleAbilityMovePriorityContext {
 
 final class BattleAbilityMoveContext {
   const BattleAbilityMoveContext({
+    required this.state,
+    required this.user,
+    required this.target,
+    required this.move,
+  });
+
+  final PsdkBattleState state;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final BattleMoveDefinition move;
+}
+
+final class BattleAbilitySecondaryEffectContext {
+  const BattleAbilitySecondaryEffectContext({
     required this.state,
     required this.user,
     required this.target,

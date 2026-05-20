@@ -34,6 +34,7 @@ import 'priority_move_prevention_ability_effect.dart';
 import 'reckless_effect.dart';
 import 'residual_ability_effect.dart';
 import 'rock_head_effect.dart';
+import 'secondary_effect_ability_effect.dart';
 import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
@@ -898,6 +899,9 @@ final class AbilityEffectRegistry {
           changeTarget: AbilityPostDamageStatChangeTarget.user,
         ),
     'stench': ({required scope}) => StenchEffect(scope: scope),
+    'serene_grace': ({required scope}) => SereneGraceEffect(scope: scope),
+    'sheer_force': ({required scope}) => SheerForceEffect(scope: scope),
+    'shield_dust': ({required scope}) => ShieldDustEffect(scope: scope),
     'electromorphosis': ({required scope}) =>
         ElectromorphosisEffect(scope: scope),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
