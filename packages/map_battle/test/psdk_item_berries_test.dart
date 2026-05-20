@@ -72,6 +72,70 @@ void main() {
       );
     });
 
+    test('Unnerve blocks opposing berry consumption', () {
+      final healBlocked = _damagePlayer(
+        playerHeldItemId: 'oran_berry',
+        opponentAbilityId: 'unnerve',
+        rawDamage: 60,
+      );
+      final berryJuiceBlocked = _damagePlayer(
+        playerHeldItemId: 'berry_juice',
+        opponentAbilityId: 'as_one',
+        rawDamage: 60,
+      );
+      final statusBlocked = _applyStatus(
+        playerHeldItemId: 'lum_berry',
+        opponentAbilityId: 'unnerve',
+        status: PsdkBattleMajorStatus.sleep,
+      );
+      final lansatBlocked = _tickEndTurn(
+        playerHeldItemId: 'lansat_berry',
+        playerCurrentHp: 25,
+        opponentAbilityId: 'unnerve',
+      );
+      final leppaBlocked = _tickEndTurn(
+        playerHeldItemId: 'leppa_berry',
+        playerCurrentHp: 100,
+        opponentAbilityId: 'unnerve',
+        playerMoves: <PsdkBattleMoveData>[
+          _move(id: 'empty_move', power: 40, pp: 35, currentPp: 0),
+        ],
+      );
+
+      final damagedPlayer = healBlocked.state.battlerAt(psdkPlayerSlot);
+      expect(damagedPlayer.currentHp, 40);
+      expect(damagedPlayer.heldItemId, 'oran_berry');
+      expect(damagedPlayer.consumedItemId, isNull);
+      expect(_healEvents(healBlocked, moveId: 'item:oran_berry'), isEmpty);
+      expect(_itemEvents(healBlocked), isEmpty);
+
+      final berryJuicePlayer =
+          berryJuiceBlocked.state.battlerAt(psdkPlayerSlot);
+      expect(berryJuicePlayer.currentHp, 40);
+      expect(berryJuicePlayer.heldItemId, 'berry_juice');
+      expect(berryJuicePlayer.consumedItemId, isNull);
+      expect(
+        _healEvents(berryJuiceBlocked, moveId: 'item:berry_juice'),
+        isEmpty,
+      );
+
+      final statusPlayer = statusBlocked.state.battlerAt(psdkPlayerSlot);
+      expect(statusPlayer.majorStatus, PsdkBattleMajorStatus.sleep);
+      expect(statusPlayer.heldItemId, 'lum_berry');
+      expect(statusPlayer.consumedItemId, isNull);
+      expect(_itemEvents(statusBlocked), isEmpty);
+
+      final lansatPlayer = lansatBlocked.state.battlerAt(psdkPlayerSlot);
+      expect(lansatPlayer.heldItemId, 'lansat_berry');
+      expect(lansatPlayer.effects.contains('lansat_berry'), isFalse);
+      expect(_itemEvents(lansatBlocked), isEmpty);
+
+      final leppaPlayer = leppaBlocked.state.battlerAt(psdkPlayerSlot);
+      expect(leppaPlayer.heldItemId, 'leppa_berry');
+      expect(leppaPlayer.moves.single.currentPp, 0);
+      expect(_itemEvents(leppaBlocked), isEmpty);
+    });
+
     test('Unburden doubles speed after the held item is consumed', () {
       final before = _state(
         playerHeldItemId: 'oran_berry',
@@ -262,6 +326,12 @@ void main() {
         opponentTypes: const PsdkBattleTypes(primary: 'normal'),
         playerMove: _move(id: 'tackle', type: 'normal', power: 80),
       );
+      final unnerveBlocked = _runPlayerMove(
+        playerAbilityId: 'unnerve',
+        opponentHeldItemId: 'occa_berry',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _move(id: 'ember', type: 'fire', power: 80),
+      );
 
       expect(_damage(occa, moveId: 'ember'),
           lessThan(_damage(baseline, moveId: 'ember')));
@@ -277,6 +347,13 @@ void main() {
           lessThan(_damage(chilanBaseline, moveId: 'tackle')));
       expect(chilan.state.battlerAt(psdkOpponentSlot).consumedItemId,
           'chilan_berry');
+      expect(_damage(unnerveBlocked, moveId: 'ember'),
+          _damage(baseline, moveId: 'ember'));
+      expect(
+        unnerveBlocked.state.battlerAt(psdkOpponentSlot).heldItemId,
+        'occa_berry',
+      );
+      expect(_itemEventsFromTurn(unnerveBlocked), isEmpty);
     });
 
     test('Enigma Berry heals after a super-effective hit and consumes', () {
@@ -429,6 +506,13 @@ void main() {
         playerMove: _move(id: 'low_accuracy_hit', power: 40, accuracy: 60),
         rngSeeds: _seedsWithMoveAccuracy(80),
       );
+      final foeUnnerveHit = _runPlayerMove(
+        playerHeldItemId: 'micle_berry',
+        playerCurrentHp: 25,
+        opponentAbilityId: 'unnerve',
+        playerMove: _move(id: 'low_accuracy_hit', power: 40, accuracy: 60),
+        rngSeeds: _seedsWithMoveAccuracy(80),
+      );
 
       expect(_damage(baselineMiss, moveId: 'low_accuracy_hit'), 0);
       expect(_damage(micleHit, moveId: 'low_accuracy_hit'), greaterThan(0));
@@ -439,6 +523,9 @@ void main() {
       expect(_itemEventsFromTurn(micleHit), isEmpty);
       expect(_damage(gluttonyHit, moveId: 'low_accuracy_hit'), greaterThan(0));
       expect(_damage(aboveThresholdMiss, moveId: 'low_accuracy_hit'), 0);
+      expect(
+          _damage(foeUnnerveHit, moveId: 'low_accuracy_hit'), greaterThan(0));
+      expect(_itemEventsFromTurn(foeUnnerveHit), isEmpty);
     });
 
     test('Leppa Berry restores the first exhausted move and consumes', () {
@@ -490,11 +577,13 @@ BattleRngSeeds _seedsWithMoveAccuracy(int moveAccuracy) {
 BattleHandlerResult _damagePlayer({
   required String? playerHeldItemId,
   String? playerAbilityId,
+  String? opponentAbilityId,
   required int rawDamage,
 }) {
   final state = _state(
     playerHeldItemId: playerHeldItemId,
     playerAbilityId: playerAbilityId,
+    opponentAbilityId: opponentAbilityId,
   );
   return const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
@@ -516,6 +605,7 @@ PsdkBattleTurnResult _runPlayerMove({
   String? playerAbilityId,
   int playerCurrentHp = 100,
   String? opponentHeldItemId,
+  String? opponentAbilityId,
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int opponentCurrentHp = 100,
   int opponentMaxHp = 100,
@@ -533,6 +623,7 @@ PsdkBattleTurnResult _runPlayerMove({
       opponent: _combatant(
         id: 'opponent',
         heldItemId: opponentHeldItemId,
+        abilityId: opponentAbilityId,
         types: opponentTypes,
         currentHp: opponentCurrentHp,
         maxHp: opponentMaxHp,
@@ -552,6 +643,7 @@ BattleHandlerResult _tickEndTurn({
   bool playerItemConsumed = false,
   List<PsdkBattleMoveData>? playerMoves,
   PsdkBattleWeatherId? weather,
+  String? opponentAbilityId,
 }) {
   final state = _state(
     playerHeldItemId: playerHeldItemId,
@@ -561,6 +653,7 @@ BattleHandlerResult _tickEndTurn({
     playerItemConsumed: playerItemConsumed,
     playerMoves: playerMoves,
     weather: weather,
+    opponentAbilityId: opponentAbilityId,
   );
   return const BattleEndTurnHandler().resolveEndTurn(
     BattleHandlerContext(
@@ -574,9 +667,13 @@ BattleHandlerResult _tickEndTurn({
 
 BattleHandlerResult _applyStatus({
   required String playerHeldItemId,
+  String? opponentAbilityId,
   required PsdkBattleMajorStatus status,
 }) {
-  final state = _state(playerHeldItemId: playerHeldItemId);
+  final state = _state(
+    playerHeldItemId: playerHeldItemId,
+    opponentAbilityId: opponentAbilityId,
+  );
   return const BattleStatusChangeHandler().applyMajorStatus(
     context: BattleHandlerContext(
       state: state,
@@ -594,6 +691,7 @@ PsdkBattleState _state({
   required String? playerHeldItemId,
   int playerCurrentHp = 100,
   String? playerAbilityId,
+  String? opponentAbilityId,
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
   List<PsdkBattleMoveData>? playerMoves,
@@ -613,6 +711,7 @@ PsdkBattleState _state({
       ),
       opponent: _combatant(
         id: 'opponent',
+        abilityId: opponentAbilityId,
         move: _move(id: 'status_move', power: 0),
       ),
       rngSeeds: _seeds.psdkSeeds,

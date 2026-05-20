@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../move/battle_move_data.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
@@ -143,6 +144,9 @@ final class BattleItemDamageModifierContext {
     required this.move,
     required this.moveType,
     required this.typeEffectivenessMultiplier,
+    this.state,
+    this.userSlot,
+    this.targetSlot,
   });
 
   final PsdkBattleCombatant user;
@@ -150,6 +154,9 @@ final class BattleItemDamageModifierContext {
   final BattleMoveDefinition move;
   final String moveType;
   final double typeEffectivenessMultiplier;
+  final PsdkBattleState? state;
+  final PsdkBattleSlotRef? userSlot;
+  final PsdkBattleSlotRef? targetSlot;
 }
 
 final class BattleItemMoveTypeContext {

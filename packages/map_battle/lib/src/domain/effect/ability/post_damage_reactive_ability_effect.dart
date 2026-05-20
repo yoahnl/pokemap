@@ -116,6 +116,59 @@ final class CottonDownEffect extends BattleAbilityEffect {
   }
 }
 
+final class ElectromorphosisEffect extends BattleAbilityEffect {
+  const ElectromorphosisEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'electromorphosis', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ElectromorphosisEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        context.damage <= 0) {
+      return null;
+    }
+
+    final target = context.state.battlerAt(context.target);
+    if (target.effects.contains('charge')) {
+      return null;
+    }
+
+    const chargeEffectId = 'charge';
+    const chargeRemainingTurns = 2;
+    final charge = GenericBattleEffect(
+      id: chargeEffectId,
+      scope: BattlerBattleEffectScope(context.target),
+      remainingTurns: chargeRemainingTurns,
+    );
+    return BattleEffectPostDamageResult(
+      state: context.state.updateBattler(
+        context.target,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(charge),
+        ),
+      ),
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.target,
+          effectId: chargeEffectId,
+          remainingTurns: charge.remainingTurns,
+          reason: 'ability:electromorphosis',
+        ),
+      ],
+    );
+  }
+}
+
 final class StenchEffect extends BattleAbilityEffect {
   const StenchEffect({
     required BattleEffectScope scope,

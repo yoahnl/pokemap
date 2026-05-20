@@ -146,7 +146,7 @@ final class BerryItemEffect extends BattleItemEffect {
     }
 
     final battler = context.state.battlerAt(owner);
-    if (!_canConsume(battler)) {
+    if (!_canConsume(state: context.state, owner: owner, battler: battler)) {
       return null;
     }
 
@@ -188,7 +188,8 @@ final class BerryItemEffect extends BattleItemEffect {
     required PsdkBattleSlotRef owner,
   }) {
     final battler = state.battlerAt(owner);
-    if (!_canConsume(battler) || !_isAtThreshold(battler)) {
+    if (!_canConsume(state: state, owner: owner, battler: battler) ||
+        !_isAtThreshold(battler)) {
       return null;
     }
 
@@ -241,7 +242,8 @@ final class BerryItemEffect extends BattleItemEffect {
     required PsdkBattleSlotRef owner,
   }) {
     final battler = state.battlerAt(owner);
-    if (!_canConsume(battler) || !_isAtThreshold(battler)) {
+    if (!_canConsume(state: state, owner: owner, battler: battler) ||
+        !_isAtThreshold(battler)) {
       return null;
     }
 
@@ -279,11 +281,16 @@ final class BerryItemEffect extends BattleItemEffect {
     );
   }
 
-  bool _canConsume(PsdkBattleCombatant battler) {
+  bool _canConsume({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef owner,
+    required PsdkBattleCombatant battler,
+  }) {
     return !battler.isFainted &&
         battler.heldItemId == itemId &&
         !battler.itemConsumed &&
-        !battler.itemEffectsSuppressed;
+        !battler.itemEffectsSuppressed &&
+        !psdkBerryBlockedByOpposingUnnerve(state: state, owner: owner);
   }
 
   bool _isAtThreshold(PsdkBattleCombatant battler) {
@@ -332,7 +339,9 @@ final class TypeResistingBerryEffect extends BattleItemEffect {
 
   @override
   double damageFinalMultiplier(BattleItemDamageModifierContext context) {
-    if (!_canConsumeTarget(context.target) || !_triggers(context)) {
+    if (!_canConsumeTarget(context.target) ||
+        _blockedByUnnerve(context) ||
+        !_triggers(context)) {
       return 1;
     }
     return context.target.abilityId == 'ripen' ? 0.25 : 0.5;
@@ -374,6 +383,10 @@ final class TypeResistingBerryEffect extends BattleItemEffect {
   bool _postDamageTriggers(BattleEffectPostDamageContext context) {
     final target = context.state.battlerAt(context.target);
     if (!_canConsumeTarget(target) ||
+        psdkBerryBlockedByOpposingUnnerve(
+          state: context.state,
+          owner: context.target,
+        ) ||
         context.move.power <= 0 ||
         context.move.type.toLowerCase() != resistedType) {
       return false;
@@ -392,6 +405,18 @@ final class TypeResistingBerryEffect extends BattleItemEffect {
         target.heldItemId == itemId &&
         !target.itemConsumed &&
         !target.itemEffectsSuppressed;
+  }
+
+  bool _blockedByUnnerve(BattleItemDamageModifierContext context) {
+    final state = context.state;
+    final targetSlot = context.targetSlot;
+    if (state != null && targetSlot != null) {
+      return psdkBerryBlockedByOpposingUnnerve(
+        state: state,
+        owner: targetSlot,
+      );
+    }
+    return psdkBerryBlockedByDirectUnnerve(context.user);
   }
 }
 
@@ -419,7 +444,7 @@ final class EnigmaBerryEffect extends BattleItemEffect {
     }
     final target = context.state.battlerAt(owner);
     if (target.heldItemId != itemId ||
-        !_canConsumeBerry(target) ||
+        !psdkCanConsumeBerry(state: context.state, owner: owner) ||
         !_isSuperEffective(
             moveType: context.move.type.toLowerCase(), target: target)) {
       return null;
@@ -494,7 +519,8 @@ final class RetaliateBerryEffect extends BattleItemEffect {
       return null;
     }
     final target = context.state.battlerAt(owner);
-    if (target.heldItemId != itemId || !_canConsumeBerry(target)) {
+    if (target.heldItemId != itemId ||
+        !psdkCanConsumeBerry(state: context.state, owner: owner)) {
       return null;
     }
 
@@ -563,7 +589,8 @@ final class HitStatBerryEffect extends BattleItemEffect {
       return null;
     }
     final target = context.state.battlerAt(owner);
-    if (target.heldItemId != itemId || !_canConsumeBerry(target)) {
+    if (target.heldItemId != itemId ||
+        !psdkCanConsumeBerry(state: context.state, owner: owner)) {
       return null;
     }
 
@@ -635,11 +662,36 @@ BattleRngStreams _advanceRandomStat(BattleRngStreams rng) {
   return rng.copyWith(generic: roll.next);
 }
 
-bool _canConsumeBerry(PsdkBattleCombatant battler) {
+bool psdkCanConsumeBerry({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef owner,
+}) {
+  final battler = state.battlerAt(owner);
   return !battler.isFainted &&
       battler.heldItemId != null &&
       !battler.itemConsumed &&
-      !battler.itemEffectsSuppressed;
+      !battler.itemEffectsSuppressed &&
+      !psdkBerryBlockedByOpposingUnnerve(state: state, owner: owner);
+}
+
+bool psdkBerryBlockedByOpposingUnnerve({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef owner,
+}) {
+  for (final foe in state.foesOf(owner)) {
+    if (psdkBerryBlockedByDirectUnnerve(state.battlerAt(foe))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool psdkBerryBlockedByDirectUnnerve(PsdkBattleCombatant foe) {
+  if (foe.isFainted || foe.effects.contains('ability_suppressed')) {
+    return false;
+  }
+  final abilityId = foe.abilityId?.trim().toLowerCase();
+  return abilityId == 'unnerve' || abilityId == 'as_one';
 }
 
 BattleEffectEndTurnResult? _consumeHeldBerry({

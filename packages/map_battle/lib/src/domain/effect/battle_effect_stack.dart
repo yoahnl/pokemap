@@ -314,6 +314,8 @@ final class BattleEffectObjectStack {
   }) {
     var nextState = context.state;
     var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    BattleEffectUserMovePreventionResult? nonPreventingResult;
     for (final effect in _effects) {
       if (where != null && !where(effect)) {
         continue;
@@ -338,9 +340,29 @@ final class BattleEffectObjectStack {
       if (result == null) {
         continue;
       }
-      return result;
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      if (result.prevented) {
+        return BattleEffectUserMovePreventionResult(
+          state: nextState,
+          rng: nextRng,
+          prevented: true,
+          reason: result.reason,
+          recordAttempt: result.recordAttempt,
+          events: events,
+        );
+      }
+      nonPreventingResult = BattleEffectUserMovePreventionResult(
+        state: nextState,
+        rng: nextRng,
+        prevented: false,
+        reason: result.reason,
+        recordAttempt: result.recordAttempt,
+        events: events,
+      );
     }
-    return null;
+    return nonPreventingResult;
   }
 
   BattleMoveSelectionPreventionResult? moveSelectionPrevention(
