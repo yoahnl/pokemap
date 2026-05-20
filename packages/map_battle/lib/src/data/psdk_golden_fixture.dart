@@ -491,6 +491,7 @@ PsdkBattleMoveData _moveFromJson(Map<String, Object?> json) {
     ballistics: _optionalBool(json, 'ballistics') ??
         _optionalBool(json, 'ballistic') ??
         false,
+    heal: _optionalBool(json, 'heal') ?? _optionalBool(json, 'isHeal') ?? false,
   );
 }
 

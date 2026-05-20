@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 323,
+      "ported": 328,
       "partial": 35,
-      "missing": 124
+      "missing": 119
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 172,
+        "ported": 177,
         "partial": 17,
-        "missing": 65
+        "missing": 60
       },
       "move": {
         "ported": 80,
@@ -11672,7 +11672,7 @@
       {
         "effectName": "MoldBreaker",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
         "hookFamilies": [
           "move_prevention",
@@ -12062,7 +12062,7 @@
       {
         "effectName": "Prankster",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Prankster.rb",
         "hookFamilies": [
           "action_order"
@@ -13155,7 +13155,7 @@
       {
         "effectName": "Teravolt",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
         "hookFamilies": []
       },
@@ -13309,7 +13309,7 @@
       {
         "effectName": "Triage",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Triage.rb",
         "hookFamilies": [
           "action_order"
@@ -13344,7 +13344,7 @@
       {
         "effectName": "Turboblaze",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
         "hookFamilies": []
       },

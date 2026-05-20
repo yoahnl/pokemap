@@ -870,7 +870,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'mold_breaker',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mold Breaker.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoldBreakerFamilyEffect.moldBreaker',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'moody',
@@ -1067,7 +1068,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'prankster',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Prankster.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PranksterAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'pressure',
@@ -1640,7 +1642,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'teravolt',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mold Breaker.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoldBreakerFamilyEffect.teravolt',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'thermal_exchange',
@@ -1716,7 +1719,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'triage',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Triage.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'TriageAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'truant',
@@ -1728,7 +1732,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'turboblaze',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mold Breaker.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoldBreakerFamilyEffect.turboblaze',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'unaware',

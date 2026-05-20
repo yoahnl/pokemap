@@ -128,6 +128,7 @@ class PsdkBattleMoveData {
     this.bite = false,
     this.pulse = false,
     this.ballistics = false,
+    this.heal = false,
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
     List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -179,6 +180,7 @@ class PsdkBattleMoveData {
   final bool bite;
   final bool pulse;
   final bool ballistics;
+  final bool heal;
   final List<PsdkBattleMoveStatus> _statuses;
   final List<PsdkBattleMoveStageMod> _stageMods;
 
@@ -223,6 +225,7 @@ class PsdkBattleMoveData {
     bool? bite,
     bool? pulse,
     bool? ballistics,
+    bool? heal,
     List<PsdkBattleMoveStatus>? statuses,
     List<PsdkBattleMoveStageMod>? stageMods,
   }) {
@@ -246,6 +249,7 @@ class PsdkBattleMoveData {
       bite: bite ?? this.bite,
       pulse: pulse ?? this.pulse,
       ballistics: ballistics ?? this.ballistics,
+      heal: heal ?? this.heal,
       statuses: statuses ?? this.statuses,
       stageMods: stageMods ?? this.stageMods,
     );

@@ -948,6 +948,57 @@ void main() {
       expect(nonFlying.move.priority, 0);
     });
 
+    test('Prankster boosts status move priority only', () {
+      final status = _fightActionForAbility(
+        abilityId: 'prankster',
+        move: _move(
+          id: 'thunder_wave',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+        ),
+      );
+      final damaging = _fightActionForAbility(
+        abilityId: 'prankster',
+        move: _move(id: 'tackle', power: 40),
+      );
+
+      expect(status.move.priority, 1);
+      expect(damaging.move.priority, 0);
+    });
+
+    test('Triage boosts healing move priority only', () {
+      final healing = _fightActionForAbility(
+        abilityId: 'triage',
+        move: _move(
+          id: 'recover',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          heal: true,
+        ),
+      );
+      final healingByMethod = _fightActionForAbility(
+        abilityId: 'triage',
+        move: _move(
+          id: 'roost',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_roost',
+        ),
+      );
+      final nonHealing = _fightActionForAbility(
+        abilityId: 'triage',
+        move: _move(
+          id: 'tail_whip',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+        ),
+      );
+
+      expect(healing.move.priority, 3);
+      expect(healingByMethod.move.priority, 3);
+      expect(nonHealing.move.priority, 0);
+    });
+
     test('Hadron Engine sets Electric Terrain and boosts Special Attack', () {
       final switchIn =
           _dispatchAbilitySwitchIn(playerAbilityId: 'hadron_engine');
@@ -3888,6 +3939,40 @@ void main() {
       );
     });
 
+    test('Mold Breaker family bypasses opposing stat drop prevention abilities',
+        () {
+      for (final abilityId in <String>[
+        'mold_breaker',
+        'teravolt',
+        'turboblaze',
+      ]) {
+        final result = _applyPlayerStatDrop(
+          playerAbilityId: 'clear_body',
+          opponentAbilityId: abilityId,
+          stat: 'defense',
+        );
+
+        expect(result.applied, isTrue, reason: abilityId);
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+          -1,
+          reason: abilityId,
+        );
+      }
+
+      final suppressed = _applyPlayerStatDrop(
+        playerAbilityId: 'clear_body',
+        opponentAbilityId: 'mold_breaker',
+        opponentEffects: PsdkBattleEffectStack(
+          values: <String>['ability_suppressed'],
+        ),
+        stat: 'defense',
+      );
+
+      expect(suppressed.applied, isFalse);
+      expect(suppressed.reason, 'ability:clear_body');
+    });
+
     test('Air Lock prevents new weather from being applied', () {
       final result = _runMove(
         opponentAbilityId: 'air_lock',
@@ -4824,6 +4909,7 @@ PsdkBattleMoveData _move({
   bool protectable = true,
   bool sound = false,
   bool ballistics = false,
+  bool heal = false,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -4841,6 +4927,7 @@ PsdkBattleMoveData _move({
     protectable: protectable,
     sound: sound,
     ballistics: ballistics,
+    heal: heal,
   );
 }
 
@@ -5219,6 +5306,8 @@ BattleHandlerResult _applyPlayerStatDrop({
   int stages = -1,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleSlotRef user = psdkOpponentSlot,
+  String? opponentAbilityId,
+  PsdkBattleEffectStack? opponentEffects,
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -5230,6 +5319,8 @@ BattleHandlerResult _applyPlayerStatDrop({
       ),
       opponent: _combatant(
         id: 'opponent',
+        abilityId: opponentAbilityId,
+        effects: opponentEffects,
         move: _move(id: 'opponent_wait', power: 0),
       ),
       rngSeeds: const BattleRngSeeds(

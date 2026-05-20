@@ -19,6 +19,7 @@ import 'damp_effect.dart';
 import 'item_change_ability_effect.dart';
 import 'levitate_effect.dart';
 import 'mimicry_effect.dart';
+import 'mold_breaker_ability_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
 import 'no_guard_effect.dart';
@@ -27,6 +28,7 @@ import 'post_damage_ability_copy_effect.dart';
 import 'post_damage_reactive_ability_effect.dart';
 import 'post_damage_stat_change_ability_effect.dart';
 import 'primal_weather_ability_effect.dart';
+import 'priority_modifier_ability_effect.dart';
 import 'priority_move_prevention_ability_effect.dart';
 import 'reckless_effect.dart';
 import 'residual_ability_effect.dart';
@@ -146,6 +148,18 @@ final class AbilityEffectRegistry {
     'good_as_gold': ({required scope}) => GoodAsGoldEffect(scope: scope),
     'sturdy': ({required scope}) => SturdyEffect(scope: scope),
     'wonder_guard': ({required scope}) => WonderGuardEffect(scope: scope),
+    'mold_breaker': ({required scope}) => MoldBreakerFamilyEffect(
+          abilityId: 'mold_breaker',
+          scope: scope,
+        ),
+    'teravolt': ({required scope}) => MoldBreakerFamilyEffect(
+          abilityId: 'teravolt',
+          scope: scope,
+        ),
+    'turboblaze': ({required scope}) => MoldBreakerFamilyEffect(
+          abilityId: 'turboblaze',
+          scope: scope,
+        ),
     'big_pecks': ({required scope}) => StatDropPreventionAbilityEffect(
           abilityId: 'big_pecks',
           scope: scope,
@@ -571,6 +585,8 @@ final class AbilityEffectRegistry {
         ),
     'slow_start': ({required scope}) => SlowStartAbilityEffect(scope: scope),
     'gale_wings': ({required scope}) => GaleWingsAbilityEffect(scope: scope),
+    'prankster': ({required scope}) => PranksterAbilityEffect(scope: scope),
+    'triage': ({required scope}) => TriageAbilityEffect(scope: scope),
     'swift_swim': ({required scope}) => StatModifierAbilityEffect(
           abilityId: 'swift_swim',
           scope: scope,
