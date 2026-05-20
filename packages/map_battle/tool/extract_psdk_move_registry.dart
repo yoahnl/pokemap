@@ -1134,20 +1134,19 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'TransformMoveBehavior',
     status: _PsdkPortStatus.ported,
   ),
-  // Hit-then-cure moves execute their local power/cure rules. They stay
-  // partial until status cure process hooks and Substitute-style effect
-  // interception can mirror Ruby PSDK completely.
+  // Hit-then-cure moves execute their PSDK power/cure rules through the local
+  // damage and status handlers, including ability-sensitive Wake-Up Slap.
   's_smelling_salt': _KnownDartBehavior(
     dartBehavior: 'HitThenCureStatusMoveBehavior.smellingSalt',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_wakeup_slap': _KnownDartBehavior(
     dartBehavior: 'HitThenCureStatusMoveBehavior.wakeUpSlap',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_sparkling_aria': _KnownDartBehavior(
     dartBehavior: 'HitThenCureStatusMoveBehavior.sparklingAria',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // Psycho Shift transfers the user's major status through the local status
   // handler. It remains partial until status target-immunity events,
@@ -1835,22 +1834,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   },
   's_baton_pass': {
     _PsdkMoveDependency.handlerSwitch,
-    _PsdkMoveDependency.effects,
-  },
-  's_smelling_salt': {
-    _PsdkMoveDependency.handlerDamage,
-    _PsdkMoveDependency.handlerStatus,
-    _PsdkMoveDependency.effects,
-  },
-  's_wakeup_slap': {
-    _PsdkMoveDependency.handlerDamage,
-    _PsdkMoveDependency.handlerStatus,
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.ability,
-  },
-  's_sparkling_aria': {
-    _PsdkMoveDependency.handlerDamage,
-    _PsdkMoveDependency.handlerStatus,
     _PsdkMoveDependency.effects,
   },
   's_psycho_shift': {

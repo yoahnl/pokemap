@@ -2468,12 +2468,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SmellingSalts',
     rubyPath: '10 Move/2 Definitions/300 HitThenCureStatus.rb',
     dartBehavior: 'HitThenCureStatusMoveBehavior.smellingSalt',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.effects
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_snatch',
@@ -2510,12 +2506,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SparklingAria',
     rubyPath: '10 Move/2 Definitions/300 SparklingAria.rb',
     dartBehavior: 'HitThenCureStatusMoveBehavior.sparklingAria',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.effects
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_sparkly_swirl',
@@ -3123,13 +3115,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'WakeUpSlap',
     rubyPath: '10 Move/2 Definitions/300 HitThenCureStatus.rb',
     dartBehavior: 'HitThenCureStatusMoveBehavior.wakeUpSlap',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_water_shuriken',
