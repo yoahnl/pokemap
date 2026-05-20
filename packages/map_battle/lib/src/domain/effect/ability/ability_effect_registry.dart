@@ -18,12 +18,14 @@ import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
 import 'item_change_ability_effect.dart';
 import 'levitate_effect.dart';
+import 'mimicry_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
 import 'no_guard_effect.dart';
 import 'post_damage_field_ability_effect.dart';
 import 'post_damage_reactive_ability_effect.dart';
 import 'post_damage_stat_change_ability_effect.dart';
+import 'primal_weather_ability_effect.dart';
 import 'priority_move_prevention_ability_effect.dart';
 import 'reckless_effect.dart';
 import 'residual_ability_effect.dart';
@@ -874,6 +876,22 @@ final class AbilityEffectRegistry {
     'orichalcum_pulse': ({required scope}) =>
         OrichalcumPulseEffect(scope: scope),
     'hadron_engine': ({required scope}) => HadronEngineEffect(scope: scope),
+    'mimicry': ({required scope}) => MimicryEffect(scope: scope),
+    'desolate_land': ({required scope}) => PrimalWeatherAbilityEffect(
+          abilityId: 'desolate_land',
+          scope: scope,
+          weather: PsdkBattleWeatherId.hardsun,
+        ),
+    'primordial_sea': ({required scope}) => PrimalWeatherAbilityEffect(
+          abilityId: 'primordial_sea',
+          scope: scope,
+          weather: PsdkBattleWeatherId.hardrain,
+        ),
+    'delta_stream': ({required scope}) => PrimalWeatherAbilityEffect(
+          abilityId: 'delta_stream',
+          scope: scope,
+          weather: PsdkBattleWeatherId.strongWinds,
+        ),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',
           scope: scope,

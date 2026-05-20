@@ -218,6 +218,110 @@ void main() {
       }
     });
 
+    test('Mimicry follows terrain type changes and restores original typing',
+        () {
+      final switchIn = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'mimicry',
+        playerTypes: const PsdkBattleTypes(
+          primary: 'normal',
+          secondary: 'poison',
+        ),
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.grassyTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      var player = switchIn.state.battlerAt(psdkPlayerSlot);
+      expect(player.types.primary, 'grass');
+      expect(player.types.secondary, isNull);
+
+      final misty = const BattleTerrainChangeHandler().changeTerrain(
+        context: BattleHandlerContext(
+          state: switchIn.state,
+          rng: switchIn.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+        terrain: PsdkBattleTerrainId.mistyTerrain,
+      );
+
+      player = misty.state.battlerAt(psdkPlayerSlot);
+      expect(player.types.primary, 'fairy');
+      expect(player.types.secondary, isNull);
+
+      final cleared = const BattleTerrainChangeHandler().clearTerrain(
+        context: BattleHandlerContext(
+          state: misty.state,
+          rng: misty.rng,
+          turn: 3,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      player = cleared.state.battlerAt(psdkPlayerSlot);
+      expect(player.types.primary, 'normal');
+      expect(player.types.secondary, 'poison');
+      expect(player.effects.contains('mimicry:original_typing'), isFalse);
+    });
+
+    test('primal weather abilities set permanent hard weather on switch-in',
+        () {
+      for (final entry in <String, PsdkBattleWeatherId>{
+        'desolate_land': PsdkBattleWeatherId.hardsun,
+        'primordial_sea': PsdkBattleWeatherId.hardrain,
+        'delta_stream': PsdkBattleWeatherId.strongWinds,
+      }.entries) {
+        final result = _dispatchAbilitySwitchIn(playerAbilityId: entry.key);
+
+        expect(result.applied, isTrue, reason: entry.key);
+        expect(result.state.field.weather?.id, entry.value, reason: entry.key);
+        expect(
+          result.state.field.weather?.remainingTurns,
+          isNull,
+          reason: entry.key,
+        );
+        expect(
+          result.state.field.tickEndTurn().weather?.id,
+          entry.value,
+          reason: entry.key,
+        );
+      }
+    });
+
+    test('primal weather clears on switch-out unless same holder remains', () {
+      final cleared = _switchOutPrimalWeather(
+        abilityId: 'desolate_land',
+        weather: PsdkBattleWeatherId.hardsun,
+      );
+      final kept = _switchOutPrimalWeather(
+        abilityId: 'desolate_land',
+        weather: PsdkBattleWeatherId.hardsun,
+        allyWithSameAbility: true,
+      );
+
+      expect(cleared.state.field.weather, isNull);
+      expect(kept.state.field.weather?.id, PsdkBattleWeatherId.hardsun);
+    });
+
+    test('primal weather clears on holder faint unless same holder remains',
+        () {
+      final cleared = _faintPrimalWeatherHolder(
+        abilityId: 'primordial_sea',
+        weather: PsdkBattleWeatherId.hardrain,
+      );
+      final kept = _faintPrimalWeatherHolder(
+        abilityId: 'primordial_sea',
+        weather: PsdkBattleWeatherId.hardrain,
+        allyWithSameAbility: true,
+      );
+
+      expect(cleared.state.field.weather, isNull);
+      expect(kept.state.field.weather?.id, PsdkBattleWeatherId.hardrain);
+    });
+
     test('Intimidate lowers opposing active attack on switch-in', () {
       final result = _dispatchAbilitySwitchIn(playerAbilityId: 'intimidate');
 
@@ -4192,6 +4296,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   required String playerAbilityId,
   String? playerHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   String? opponentAbilityId,
   String? opponentHeldItemId,
   String opponentSpeciesId = 'opponent',
@@ -4213,6 +4318,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         abilityId: playerAbilityId,
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,
+        types: playerTypes,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
@@ -4248,6 +4354,110 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
     ),
     who: benchSlot,
     replacement: psdkPlayerSlot,
+  );
+}
+
+BattleHandlerResult _switchOutPrimalWeather({
+  required String abilityId,
+  required PsdkBattleWeatherId weather,
+  bool allyWithSameAbility = false,
+}) {
+  final active = PsdkBattleCombatant.fromSetup(
+    _combatant(
+      id: 'player',
+      abilityId: abilityId,
+      move: _move(id: 'tackle', power: 40),
+    ),
+  );
+  final bench = PsdkBattleCombatant.fromSetup(
+    _combatant(
+      id: 'bench',
+      abilityId: 'overgrow',
+      move: _move(id: 'bench_wait', power: 0),
+    ),
+  );
+  final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
+    psdkPlayerSlot: active,
+    if (allyWithSameAbility)
+      _psdkPlayerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          abilityId: abilityId,
+          move: _move(id: 'ally_wait', power: 0),
+        ),
+      ),
+    psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+      _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
+    ),
+  };
+  final state = PsdkBattleState(
+    combatants: combatants,
+    parties: <int, List<PsdkBattleCombatant>>{
+      psdkPlayerSlot.bank: <PsdkBattleCombatant>[active, bench],
+      psdkOpponentSlot.bank: <PsdkBattleCombatant>[
+        combatants[psdkOpponentSlot]!
+      ],
+    },
+    field: PsdkBattleFieldState(
+      weather: PsdkBattleWeatherState(id: weather, remainingTurns: null),
+    ),
+  );
+
+  return const BattleSwitchHandler().switchCombatant(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkPlayerSlot,
+    partyIndex: 1,
+  );
+}
+
+BattleHandlerResult _faintPrimalWeatherHolder({
+  required String abilityId,
+  required PsdkBattleWeatherId weather,
+  bool allyWithSameAbility = false,
+}) {
+  final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
+    psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+      _combatant(
+        id: 'player',
+        abilityId: abilityId,
+        currentHp: 10,
+        move: _move(id: 'tackle', power: 40),
+      ),
+    ),
+    if (allyWithSameAbility)
+      _psdkPlayerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          abilityId: abilityId,
+          move: _move(id: 'ally_wait', power: 0),
+        ),
+      ),
+    psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+      _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
+    ),
+  };
+  final state = PsdkBattleState(
+    combatants: combatants,
+    field: PsdkBattleFieldState(
+      weather: PsdkBattleWeatherState(id: weather, remainingTurns: null),
+    ),
+  );
+
+  return const BattleDamageHandler().applyDamage(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkOpponentSlot,
+    ),
+    target: psdkPlayerSlot,
+    moveId: 'opponent_attack',
+    rawDamage: 20,
   );
 }
 

@@ -13,7 +13,7 @@ final class BattleWeatherChangeHandler {
   BattleHandlerResult changeWeather({
     required BattleHandlerContext context,
     required PsdkBattleWeatherId weather,
-    int remainingTurns = 5,
+    int? remainingTurns = 5,
   }) {
     final current = context.state.field.weather;
     if (current?.id == weather) {
