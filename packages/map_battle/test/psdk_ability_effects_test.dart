@@ -147,6 +147,37 @@ void main() {
       expect(levitate.reason, isNull);
     });
 
+    test('Suction Cups blocks force-switch moves but not plain switches', () {
+      final manualSwitch = _switchPreventionFor(
+        playerAbilityId: 'suction_cups',
+      );
+      final roar = _switchPreventionFor(
+        playerAbilityId: 'suction_cups',
+        move: BattleMoveDefinition.fromPsdk(
+          _move(
+            id: 'roar',
+            power: 0,
+            battleEngineMethod: 's_roar',
+          ),
+        ),
+      );
+      final uTurn = _switchPreventionFor(
+        playerAbilityId: 'suction_cups',
+        move: BattleMoveDefinition.fromPsdk(
+          _move(
+            id: 'u_turn',
+            power: 70,
+            battleEngineMethod: 's_u_turn',
+          ),
+        ),
+      );
+
+      expect(manualSwitch.applied, isTrue);
+      expect(roar.applied, isFalse);
+      expect(roar.reason, 'ability:suction_cups');
+      expect(uTurn.applied, isTrue);
+    });
+
     test('Drizzle sets rain on switch-in and respects Damp Rock duration', () {
       final result = _dispatchAbilitySwitchIn(
         playerAbilityId: 'drizzle',
@@ -4422,6 +4453,7 @@ BattleHandlerResult _switchPreventionFor({
   String? playerAbilityId,
   String? opponentAbilityId,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  BattleMoveDefinition? move,
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -4453,6 +4485,7 @@ BattleHandlerResult _switchPreventionFor({
       user: psdkPlayerSlot,
     ),
     target: psdkPlayerSlot,
+    move: move,
   );
 }
 

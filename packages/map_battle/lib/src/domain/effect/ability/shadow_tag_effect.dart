@@ -70,3 +70,37 @@ final class ShadowTagEffect extends BattleAbilityEffect {
     };
   }
 }
+
+final class SuctionCupsEffect extends BattleAbilityEffect {
+  const SuctionCupsEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'suction_cups', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SuctionCupsEffect(scope: scope);
+  }
+
+  @override
+  String? onSwitchPrevention(BattleEffectSwitchPreventionContext context) {
+    final owner = this.owner;
+    if (owner == null || owner != context.target) {
+      return null;
+    }
+    final move = context.move;
+    if (move == null ||
+        !_forceSwitchMethods.contains(move.battleEngineMethod)) {
+      return null;
+    }
+    final battler = context.state.battlerAt(owner);
+    if (battler.isFainted || battler.abilityId != abilityId) {
+      return null;
+    }
+    return id;
+  }
+}
+
+const _forceSwitchMethods = <String>{
+  's_dragon_tail',
+  's_roar',
+};

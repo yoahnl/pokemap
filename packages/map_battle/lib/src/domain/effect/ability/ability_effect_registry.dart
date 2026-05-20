@@ -420,6 +420,7 @@ final class AbilityEffectRegistry {
     'magnet_pull': ({required scope}) => ShadowTagEffect.magnetPull(
           scope: scope,
         ),
+    'suction_cups': ({required scope}) => SuctionCupsEffect(scope: scope),
     'skill_link': ({required scope}) => SkillLinkEffect(scope: scope),
     'soundproof': ({required scope}) => SoundproofEffect(scope: scope),
     'queenly_majesty': ({required scope}) =>
@@ -744,6 +745,12 @@ final class AbilityEffectRegistry {
           abilityId: 'wonder_skin',
           scope: scope,
           condition: AbilityAccuracyCondition.targetStatusMove,
+          multiplier: 0.5,
+        ),
+    'tangled_feet': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'tangled_feet',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetConfused,
           multiplier: 0.5,
         ),
     'flame_body': ({required scope}) => ContactStatusAbilityEffect(
