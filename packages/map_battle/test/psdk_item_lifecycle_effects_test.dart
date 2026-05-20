@@ -216,6 +216,42 @@ void main() {
       expect(_statEvents(result), isEmpty);
     });
 
+    test('Berserk Gene raises Attack, consumes, and confuses on switch-in', () {
+      final result = _dispatchSwitchIn(opponentHeldItemId: 'berserk_gene');
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final confusion =
+          opponent.effects.effects.whereType<ConfusionEffect>().single;
+
+      expect(opponent.statStages.valueOf('attack'), 2);
+      expect(opponent.heldItemId, isNull);
+      expect(opponent.consumedItemId, 'berserk_gene');
+      expect(confusion.remainingConfusionTurns, 256);
+      expect(_itemEvents(result).single.itemId, 'berserk_gene');
+      expect(_statEvents(result).single.stat, 'attack');
+      expect(_effectEvents(result).single.effectId, 'confusion');
+    });
+
+    test('Berserk Gene keeps existing confusion duration on switch-in', () {
+      final result = _dispatchSwitchIn(
+        opponentHeldItemId: 'berserk_gene',
+        opponentEffects: PsdkBattleEffectStack(
+          effects: <BattleEffect>[
+            ConfusionEffect(
+              scope: BattlerBattleEffectScope(psdkOpponentSlot),
+              remainingConfusionTurns: 3,
+            ),
+          ],
+        ),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final confusion =
+          opponent.effects.effects.whereType<ConfusionEffect>().single;
+
+      expect(opponent.statStages.valueOf('attack'), 2);
+      expect(opponent.consumedItemId, 'berserk_gene');
+      expect(confusion.remainingConfusionTurns, 3);
+    });
+
     test('type-reactive stat items consume after matching damage', () {
       final cases = <({
         String itemId,
@@ -645,6 +681,33 @@ BattleHandlerResult _dispatchSwitchIntoTerrain({
   );
 }
 
+BattleHandlerResult _dispatchSwitchIn({
+  required String opponentHeldItemId,
+  PsdkBattleEffectStack? opponentEffects,
+}) {
+  return const BattleSwitchHandler().dispatchSwitchEvents(
+    context: BattleHandlerContext(
+      state: _state(
+        opponentHeldItemId: opponentHeldItemId,
+        opponentCurrentHp: 100,
+        opponentEffects: opponentEffects,
+      ),
+      rng: BattleRngStreams.fromSeedSnapshot(
+        const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 4,
+        ),
+      ),
+      turn: 4,
+      user: psdkOpponentSlot,
+    ),
+    who: psdkPlayerSlot,
+    replacement: psdkOpponentSlot,
+  );
+}
+
 PsdkBattleState _state({
   required String opponentHeldItemId,
   String? playerHeldItemId,
@@ -774,6 +837,12 @@ List<PsdkBattleStatusEvent> _statusEvents(BattleHandlerResult result) {
 List<PsdkBattleStatStageEvent> _statEvents(BattleHandlerResult result) {
   return result.events
       .whereType<PsdkBattleStatStageEvent>()
+      .toList(growable: false);
+}
+
+List<PsdkBattleEffectEvent> _effectEvents(BattleHandlerResult result) {
+  return result.events
+      .whereType<PsdkBattleEffectEvent>()
       .toList(growable: false);
 }
 

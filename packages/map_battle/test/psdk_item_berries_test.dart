@@ -365,6 +365,109 @@ void main() {
         1,
       );
     });
+
+    test('Lansat Berry consumes at pinch and installs the critical marker', () {
+      final normalThreshold = _tickEndTurn(
+        playerHeldItemId: 'lansat_berry',
+        playerCurrentHp: 25,
+      );
+      final gluttonyThreshold = _tickEndTurn(
+        playerHeldItemId: 'lansat_berry',
+        playerCurrentHp: 50,
+        playerAbilityId: 'gluttony',
+      );
+      final aboveThreshold = _tickEndTurn(
+        playerHeldItemId: 'lansat_berry',
+        playerCurrentHp: 50,
+      );
+
+      expect(
+          normalThreshold.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+        normalThreshold.state.battlerAt(psdkPlayerSlot).consumedItemId,
+        'lansat_berry',
+      );
+      expect(
+        normalThreshold.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('lansat_berry'),
+        isTrue,
+      );
+      expect(_itemEvents(normalThreshold).single.itemId, 'lansat_berry');
+      expect(
+        gluttonyThreshold.state.battlerAt(psdkPlayerSlot).heldItemId,
+        isNull,
+      );
+      expect(
+        aboveThreshold.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'lansat_berry',
+      );
+    });
+
+    test('Micle Berry boosts holder accuracy at pinch without consuming', () {
+      final baselineMiss = _runPlayerMove(
+        playerMove: _move(id: 'low_accuracy_hit', power: 40, accuracy: 60),
+        rngSeeds: _seedsWithMoveAccuracy(80),
+      );
+      final micleHit = _runPlayerMove(
+        playerHeldItemId: 'micle_berry',
+        playerCurrentHp: 25,
+        playerMove: _move(id: 'low_accuracy_hit', power: 40, accuracy: 60),
+        rngSeeds: _seedsWithMoveAccuracy(80),
+      );
+      final gluttonyHit = _runPlayerMove(
+        playerHeldItemId: 'micle_berry',
+        playerAbilityId: 'gluttony',
+        playerCurrentHp: 50,
+        playerMove: _move(id: 'low_accuracy_hit', power: 40, accuracy: 60),
+        rngSeeds: _seedsWithMoveAccuracy(80),
+      );
+      final aboveThresholdMiss = _runPlayerMove(
+        playerHeldItemId: 'micle_berry',
+        playerCurrentHp: 50,
+        playerMove: _move(id: 'low_accuracy_hit', power: 40, accuracy: 60),
+        rngSeeds: _seedsWithMoveAccuracy(80),
+      );
+
+      expect(_damage(baselineMiss, moveId: 'low_accuracy_hit'), 0);
+      expect(_damage(micleHit, moveId: 'low_accuracy_hit'), greaterThan(0));
+      expect(
+        micleHit.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'micle_berry',
+      );
+      expect(_itemEventsFromTurn(micleHit), isEmpty);
+      expect(_damage(gluttonyHit, moveId: 'low_accuracy_hit'), greaterThan(0));
+      expect(_damage(aboveThresholdMiss, moveId: 'low_accuracy_hit'), 0);
+    });
+
+    test('Leppa Berry restores the first exhausted move and consumes', () {
+      final result = _tickEndTurn(
+        playerHeldItemId: 'leppa_berry',
+        playerCurrentHp: 100,
+        playerMoves: <PsdkBattleMoveData>[
+          _move(id: 'empty_move', power: 40, pp: 35, currentPp: 0),
+          _move(id: 'second_empty', power: 40, pp: 35, currentPp: 0),
+        ],
+      );
+      final skipped = _tickEndTurn(
+        playerHeldItemId: 'leppa_berry',
+        playerCurrentHp: 100,
+        playerMoves: <PsdkBattleMoveData>[
+          _move(id: 'not_empty', power: 40, pp: 35, currentPp: 5),
+        ],
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.moves[0].currentPp, 10);
+      expect(player.moves[1].currentPp, 0);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'leppa_berry');
+      expect(_itemEvents(result).single.itemId, 'leppa_berry');
+      expect(skipped.state.battlerAt(psdkPlayerSlot).moves.single.currentPp, 5);
+      expect(skipped.state.battlerAt(psdkPlayerSlot).heldItemId, 'leppa_berry');
+      expect(_itemEvents(skipped), isEmpty);
+    });
   });
 }
 
@@ -374,6 +477,15 @@ const _seeds = BattleRngSeeds(
   moveAccuracy: 3,
   generic: 4,
 );
+
+BattleRngSeeds _seedsWithMoveAccuracy(int moveAccuracy) {
+  return BattleRngSeeds(
+    moveDamage: _seeds.moveDamage,
+    moveCritical: _seeds.moveCritical,
+    moveAccuracy: moveAccuracy,
+    generic: _seeds.generic,
+  );
+}
 
 BattleHandlerResult _damagePlayer({
   required String? playerHeldItemId,
@@ -400,15 +512,22 @@ BattleHandlerResult _damagePlayer({
 
 PsdkBattleTurnResult _runPlayerMove({
   required PsdkBattleMoveData playerMove,
+  String? playerHeldItemId,
+  String? playerAbilityId,
+  int playerCurrentHp = 100,
   String? opponentHeldItemId,
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int opponentCurrentHp = 100,
   int opponentMaxHp = 100,
+  BattleRngSeeds rngSeeds = _seeds,
 }) {
   final engine = PsdkBattleEngine(
     setup: BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        heldItemId: playerHeldItemId,
+        abilityId: playerAbilityId,
+        currentHp: playerCurrentHp,
         move: playerMove,
       ),
       opponent: _combatant(
@@ -419,7 +538,7 @@ PsdkBattleTurnResult _runPlayerMove({
         maxHp: opponentMaxHp,
         move: _move(id: 'opponent_wait', type: 'normal', power: 0),
       ),
-      rngSeeds: _seeds.psdkSeeds,
+      rngSeeds: rngSeeds.psdkSeeds,
     ).psdkSetup,
   );
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
@@ -431,6 +550,7 @@ BattleHandlerResult _tickEndTurn({
   String? playerAbilityId,
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
+  List<PsdkBattleMoveData>? playerMoves,
   PsdkBattleWeatherId? weather,
 }) {
   final state = _state(
@@ -439,6 +559,7 @@ BattleHandlerResult _tickEndTurn({
     playerAbilityId: playerAbilityId,
     playerConsumedItemId: playerConsumedItemId,
     playerItemConsumed: playerItemConsumed,
+    playerMoves: playerMoves,
     weather: weather,
   );
   return const BattleEndTurnHandler().resolveEndTurn(
@@ -475,6 +596,7 @@ PsdkBattleState _state({
   String? playerAbilityId,
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
+  List<PsdkBattleMoveData>? playerMoves,
   PsdkBattleWeatherId? weather,
 }) {
   final state = PsdkBattleState.fromSetup(
@@ -486,6 +608,7 @@ PsdkBattleState _state({
         consumedItemId: playerConsumedItemId,
         itemConsumed: playerItemConsumed,
         currentHp: playerCurrentHp,
+        moves: playerMoves,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
@@ -502,7 +625,8 @@ PsdkBattleState _state({
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
-  required PsdkBattleMoveData move,
+  PsdkBattleMoveData? move,
+  List<PsdkBattleMoveData>? moves,
   String? heldItemId,
   String? consumedItemId,
   bool itemConsumed = false,
@@ -530,7 +654,8 @@ PsdkBattleCombatantSetup _combatant({
     consumedItemId: consumedItemId,
     itemConsumed: itemConsumed,
     abilityId: abilityId,
-    moves: <PsdkBattleMoveData>[move],
+    moves:
+        moves ?? <PsdkBattleMoveData>[move ?? _move(id: 'tackle', power: 40)],
   );
 }
 
@@ -548,6 +673,9 @@ PsdkBattleMoveData _move({
   String type = 'normal',
   required int power,
   PsdkBattleMoveCategory? category,
+  int accuracy = 100,
+  int pp = 35,
+  int? currentPp,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -559,8 +687,9 @@ PsdkBattleMoveData _move({
             ? PsdkBattleMoveCategory.physical
             : PsdkBattleMoveCategory.status),
     power: power,
-    accuracy: 100,
-    pp: 35,
+    accuracy: accuracy,
+    pp: pp,
+    currentPp: currentPp,
     priority: 0,
     criticalRate: 1,
     battleEngineMethod: power > 0 ? 's_basic' : 's_status',

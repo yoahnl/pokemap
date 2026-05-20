@@ -161,6 +161,60 @@ void main() {
       expect(player.itemConsumed, isFalse);
     });
 
+    test('held Metronome scales repeated successful move damage and caps', () {
+      final move = _move(id: 'tackle', type: 'normal', power: 40);
+      final baseline = _runMove(playerMove: move);
+      final firstUse = _runMove(
+        playerHeldItemId: 'metronome',
+        playerMove: move,
+      );
+      final fifthRepeat = _runMove(
+        playerHeldItemId: 'metronome',
+        playerMove: move,
+        playerMoveHistory: _successHistory(
+          moveIds: const <String>[
+            'tackle',
+            'tackle',
+            'tackle',
+            'tackle',
+            'tackle'
+          ],
+        ),
+      );
+      final cappedRepeat = _runMove(
+        playerHeldItemId: 'metronome',
+        playerMove: move,
+        playerMoveHistory: _successHistory(
+          moveIds: List<String>.filled(12, 'tackle'),
+        ),
+      );
+      final capBoundaryRepeat = _runMove(
+        playerHeldItemId: 'metronome',
+        playerMove: move,
+        playerMoveHistory: _successHistory(
+          moveIds: List<String>.filled(10, 'tackle'),
+        ),
+      );
+      final resetByDifferentMove = _runMove(
+        playerHeldItemId: 'metronome',
+        playerMove: move,
+        playerMoveHistory: _successHistory(
+          moveIds: const <String>['tackle', 'tackle', 'scratch'],
+        ),
+      );
+      final firstDamage = _damage(firstUse, moveId: 'tackle');
+
+      expect(firstDamage, _damage(baseline, moveId: 'tackle'));
+      expect(
+          _damage(fifthRepeat, moveId: 'tackle'), (firstDamage * 1.5).floor());
+      expect(
+          _damage(cappedRepeat, moveId: 'tackle'), (firstDamage * 2).floor());
+      expect(_damage(capBoundaryRepeat, moveId: 'tackle'),
+          _damage(cappedRepeat, moveId: 'tackle'));
+      expect(_damage(resetByDifferentMove, moveId: 'tackle'), firstDamage);
+      expect(firstUse.state.battlerAt(psdkPlayerSlot).heldItemId, 'metronome');
+    });
+
     test('Choice Scarf speed modifier affects action order', () {
       final state = _state(
         playerHeldItemId: 'choice_scarf',
@@ -584,6 +638,7 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   String? playerHeldItemId,
   String playerSpeciesId = 'player',
+  PsdkBattleMoveHistory? playerMoveHistory,
   String? opponentHeldItemId,
   String opponentSpeciesId = 'opponent',
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
@@ -595,6 +650,7 @@ PsdkBattleTurnResult _runMove({
         speciesId: playerSpeciesId,
         heldItemId: playerHeldItemId,
         speed: 100,
+        moveHistory: playerMoveHistory,
         move: playerMove,
       ),
       opponent: _combatant(
@@ -650,6 +706,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleMoveData move,
   String? speciesId,
   String? heldItemId,
+  PsdkBattleMoveHistory? moveHistory,
   PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   int currentHp = 100,
@@ -671,8 +728,23 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     heldItemId: heldItemId,
+    moveHistory: moveHistory,
     effects: effects,
     moves: <PsdkBattleMoveData>[move],
+  );
+}
+
+PsdkBattleMoveHistory _successHistory({required List<String> moveIds}) {
+  var turn = 1;
+  return PsdkBattleMoveHistory(
+    successes: <PsdkBattleMoveHistoryEntry>[
+      for (final moveId in moveIds)
+        PsdkBattleMoveHistoryEntry(
+          moveId: moveId,
+          turn: turn++,
+          targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
+        ),
+    ],
   );
 }
 

@@ -9455,9 +9455,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 347,
+      "ported": 352,
       "partial": 31,
-      "missing": 104
+      "missing": 99
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9471,9 +9471,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 59,
+        "ported": 64,
         "partial": 6,
-        "missing": 22
+        "missing": 17
       },
       "status": {
         "ported": 7,
@@ -9807,7 +9807,7 @@
       {
         "effectName": "BerserkGene",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Berserk Gene.rb",
         "hookFamilies": [
           "switch"
@@ -11273,7 +11273,7 @@
       {
         "effectName": "LansatBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Lansat Berry.rb",
         "hookFamilies": [
           "end_turn",
@@ -11322,7 +11322,7 @@
       {
         "effectName": "LeppaBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Leppa Berry.rb",
         "hookFamilies": [
           "end_turn"
@@ -11569,14 +11569,14 @@
       {
         "effectName": "Metronome",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Metronome.rb",
         "hookFamilies": []
       },
       {
         "effectName": "MicleBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Micle Berry.rb",
         "hookFamilies": []
       },

@@ -15,9 +15,12 @@ import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
 import 'move_modifier_item_effect.dart';
 import 'reactive_held_item_effect.dart';
+import 'repeat_move_item_effect.dart';
 import 'safety_goggles_effect.dart';
 import 'shed_shell_effect.dart';
+import 'special_berry_item_effect.dart';
 import 'status_orb_item_effect.dart';
+import 'switch_trigger_item_effect.dart';
 import 'terrain_extender_effect.dart';
 import 'terrain_seed_item_effect.dart';
 import 'weather_rock_effect.dart';
@@ -309,6 +312,9 @@ final Map<String, ItemEffectFactory> _berryFactories =
           resistedType: entry.value,
         ),
   'enigma_berry': ({required scope}) => EnigmaBerryEffect(scope: scope),
+  'lansat_berry': ({required scope}) => LansatBerryEffect(scope: scope),
+  'leppa_berry': ({required scope}) => LeppaBerryEffect(scope: scope),
+  'micle_berry': ({required scope}) => MicleBerryEffect(scope: scope),
   'jaboca_berry': ({required scope}) => RetaliateBerryEffect(
         itemId: 'jaboca_berry',
         scope: scope,
@@ -403,6 +409,8 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
         statMultipliers: <String, double>{'speed': 1.5},
       ),
   'assault_vest': ({required scope}) => AssaultVestEffect(scope: scope),
+  'berserk_gene': ({required scope}) => BerserkGeneEffect(scope: scope),
+  'metronome': ({required scope}) => MetronomeHeldItemEffect(scope: scope),
   'adamant_orb': ({required scope}) => HeldItemModifierEffect(
         itemId: 'adamant_orb',
         scope: scope,
