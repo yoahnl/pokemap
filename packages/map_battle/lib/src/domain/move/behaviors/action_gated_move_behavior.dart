@@ -2,7 +2,6 @@ import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../effect/ability/mental_immunity_ability_effect.dart';
-import '../../effect/battle_effect_scope.dart';
 import '../../effect/move/flinch_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -151,23 +150,24 @@ final class ActionGatedMoveBehavior
           effectId: 'flinch',
         );
     final flinched = shouldFlinch
-        ? secondary.state.updateBattler(
-            targetSlot,
-            (battler) => battler.copyWith(
-              effects: battler.effects.addEffect(
-                FlinchEffect(scope: BattlerBattleEffectScope(targetSlot)),
-              ),
-            ),
+        ? applyFlinchEffect(
+            state: secondary.state,
+            rng: secondary.rng,
+            turn: context.turn,
+            target: targetSlot,
+            reason: 'move:${context.move.id}',
+            move: context.move,
           )
-        : secondary.state;
+        : null;
 
     return BattleMoveBehaviorResolution(
-      state: flinched,
-      rng: secondary.rng,
+      state: flinched?.state ?? secondary.state,
+      rng: flinched?.rng ?? secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
         if (applied.event != null) applied.event!,
         ...secondary.events,
+        ...?flinched?.events,
       ],
     );
   }

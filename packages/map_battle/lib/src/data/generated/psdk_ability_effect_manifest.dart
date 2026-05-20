@@ -268,7 +268,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'cute_charm',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Cute Charm.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CuteCharmEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'damp',
@@ -1481,7 +1482,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'steadfast',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Steadfast.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'applyFlinchEffect.steadfast',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'steam_engine',

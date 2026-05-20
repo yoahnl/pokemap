@@ -363,6 +363,10 @@ final class AbilityEffectRegistry {
           id: 'ability:liquid_ooze',
           scope: scope,
         ),
+    'steadfast': ({required scope}) => GenericBattleEffect(
+          id: 'ability:steadfast',
+          scope: scope,
+        ),
     'solid_rock': ({required scope}) => AbilityFinalDamageModifierEffect(
           abilityId: 'solid_rock',
           scope: scope,
@@ -777,6 +781,7 @@ final class AbilityEffectRegistry {
         ),
     'effect_spore': ({required scope}) =>
         ContactStatusAbilityEffect.effectSpore(scope: scope),
+    'cute_charm': ({required scope}) => CuteCharmEffect(scope: scope),
     'cursed_body': ({required scope}) => ContactDisableAbilityEffect(
           abilityId: 'cursed_body',
           scope: scope,

@@ -1,13 +1,16 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_status_change_handler.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import '../move/attract_effect.dart';
 import 'ability_effect.dart';
+import 'mental_immunity_ability_effect.dart';
 
 final class ContactStatusAbilityEffect extends BattleAbilityEffect {
   const ContactStatusAbilityEffect({
@@ -153,5 +156,85 @@ final class ContactStatusAbilityEffect extends BattleAbilityEffect {
       events: result.events,
       applied: result.applied,
     );
+  }
+}
+
+final class CuteCharmEffect extends BattleAbilityEffect {
+  const CuteCharmEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'cute_charm', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return CuteCharmEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        context.targetFainted ||
+        !context.move.flags.contact) {
+      return null;
+    }
+
+    final user = context.state.battlerAt(context.user);
+    final target = context.state.battlerAt(context.target);
+    if (user.isFainted ||
+        user.effects.contains('attract') ||
+        !_gendersCanAttract(user.gender, target.gender) ||
+        battleMentalAbilityBlocksEffect(
+          state: context.state,
+          user: context.target,
+          target: context.user,
+          effectId: 'attract',
+        )) {
+      return null;
+    }
+
+    final roll = context.rng.generic.nextChance(numerator: 3, denominator: 10);
+    final nextRng = context.rng.copyWith(generic: roll.next);
+    if (!roll.didOccur) {
+      return BattleEffectPostDamageResult(
+        state: context.state,
+        rng: nextRng,
+        applied: false,
+      );
+    }
+
+    final attract = AttractEffect(
+      scope: BattlerBattleEffectScope(context.user),
+      attractedTo: context.target,
+    );
+    return BattleEffectPostDamageResult(
+      state: context.state.updateBattler(
+        context.user,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(attract),
+        ),
+      ),
+      rng: nextRng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.user,
+          effectId: attract.id,
+          remainingTurns: attract.remainingTurns,
+          reason: 'ability:cute_charm',
+        ),
+      ],
+    );
+  }
+
+  bool _gendersCanAttract(
+    PsdkBattleGender userGender,
+    PsdkBattleGender targetGender,
+  ) {
+    return userGender != PsdkBattleGender.unknown &&
+        targetGender != PsdkBattleGender.unknown &&
+        userGender != targetGender;
   }
 }
