@@ -2118,7 +2118,7 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
-      expect(byMethod['s_aqua_ring']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_aqua_ring']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_aqua_ring']!.dartBehavior,
         'PersistentEffectMoveBehavior.aquaRing',
@@ -2354,17 +2354,17 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_aqua_ring']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_aqua_ring']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_aqua_ring']!.dartBehavior,
         'PersistentEffectMoveBehavior.aquaRing',
       );
-      expect(byMethod['s_ingrain']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_ingrain']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_ingrain']!.dartBehavior,
         'PersistentEffectMoveBehavior.ingrain',
       );
-      expect(byMethod['s_leech_seed']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_leech_seed']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_leech_seed']!.dartBehavior,
         'PersistentEffectMoveBehavior.leechSeed',

@@ -1110,15 +1110,15 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_aqua_ring': _KnownDartBehavior(
     dartBehavior: 'PersistentEffectMoveBehavior.aquaRing',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_ingrain': _KnownDartBehavior(
     dartBehavior: 'PersistentEffectMoveBehavior.ingrain',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_leech_seed': _KnownDartBehavior(
     dartBehavior: 'PersistentEffectMoveBehavior.leechSeed',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_baton_pass': _KnownDartBehavior(
     dartBehavior: 'SwitchEffectMoveBehavior.batonPass',

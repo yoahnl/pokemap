@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 382,
-    "partiel": 346,
+    "fait": 385,
+    "partiel": 343,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -187,9 +187,9 @@
       {
         "moveId": "aqua_ring",
         "battleEngineMethod": "s_aqua_ring",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/aqua_ring.json"
       },
       {
@@ -2603,9 +2603,9 @@
       {
         "moveId": "ingrain",
         "battleEngineMethod": "s_ingrain",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ingrain.json"
       },
       {
@@ -2771,9 +2771,9 @@
       {
         "moveId": "leech_seed",
         "battleEngineMethod": "s_leech_seed",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/leech_seed.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 198,
-      "partial": 132,
+      "ported": 201,
+      "partial": 129,
       "missing": 0
     },
     "entries": [
@@ -5963,14 +5963,13 @@
         "rubyClass": "AquaRing",
         "rubyPath": "10 Move/2 Definitions/300 AquaRing.rb",
         "dartBehavior": "PersistentEffectMoveBehavior.aquaRing",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "effects",
           "endTurn",
           "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_assist",
@@ -7295,15 +7294,14 @@
         "rubyClass": "Ingrain",
         "rubyPath": "10 Move/2 Definitions/300 Ingrain.rb",
         "dartBehavior": "PersistentEffectMoveBehavior.ingrain",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerSwitch",
           "effects",
           "endTurn",
           "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_instruct",
@@ -7423,14 +7421,13 @@
         "rubyClass": "LeechSeed",
         "rubyPath": "10 Move/2 Definitions/300 LeechSeed.rb",
         "dartBehavior": "PersistentEffectMoveBehavior.leechSeed",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "effects",
           "endTurn",
           "ability"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_life_dew",
@@ -9336,9 +9333,8 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 32,
+        "count": 29,
         "methods": [
-          "s_aqua_ring",
           "s_aura_wheel",
           "s_beak_blast",
           "s_beat_up",
@@ -9351,9 +9347,7 @@
           "s_future_sight",
           "s_hidden_power",
           "s_ice_ball",
-          "s_ingrain",
           "s_jungle_healing",
-          "s_leech_seed",
           "s_life_dew",
           "s_ohko",
           "s_order_up",
