@@ -1393,12 +1393,25 @@ void main() {
           behavior:
               'StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)',
         ),
-        (
-          method: 's_yawn',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_yawn)',
-        ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+      }
+      for (final entry in <({String method, String behavior})>[
+        (
+          method: 's_fairy_lock',
+          behavior: 'StaticBasicMoveRegistry.fairyLock',
+        ),
+        (
+          method: 's_octolock',
+          behavior: 'StaticBasicMoveRegistry.octolock',
+        ),
+        (
+          method: 's_yawn',
+          behavior: 'StaticBasicMoveRegistry.drowsiness',
+        ),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
       expect(byMethod['s_ally_switch']!.status, PsdkPortStatus.ported);
@@ -1528,12 +1541,7 @@ void main() {
       );
       expect(
         byMethod['s_yawn']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.effects,
-          PsdkMoveDependency.handlerStatus,
-          PsdkMoveDependency.ability,
-          PsdkMoveDependency.terrain,
-        ]),
+        isEmpty,
       );
       expect(
         byMethod['s_future_sight']!.dependencies,
