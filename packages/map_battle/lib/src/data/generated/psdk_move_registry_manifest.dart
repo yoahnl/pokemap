@@ -734,12 +734,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_fairy_lock',
     rubyClass: 'FairyLock',
     rubyPath: '10 Move/2 Definitions/300 FairyLock.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_fairy_lock)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.field,
-      PsdkMoveDependency.effects
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.fairyLock',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_fake_out',
@@ -1754,9 +1751,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_octolock',
     rubyClass: 'Octolock',
     rubyPath: '10 Move/2 Definitions/300 Octolock.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_octolock)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    dartBehavior: 'StaticBasicMoveRegistry.octolock',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_ohko',
@@ -3217,14 +3214,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_yawn',
     rubyClass: 'Yawn',
     rubyPath: '10 Move/2 Definitions/300 Yawn.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_yawn)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.terrain
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.drowsiness',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
 ];
 

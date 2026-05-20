@@ -69,9 +69,11 @@ import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
 import '../domain/effect/move/cant_switch_effect.dart';
 import '../domain/effect/move/disable_effect.dart';
+import '../domain/effect/move/drowsiness_effect.dart';
 import '../domain/effect/move/embargo_effect.dart';
 import '../domain/effect/move/encore_effect.dart';
 import '../domain/effect/move/endure_effect.dart';
+import '../domain/effect/move/fairy_lock_effect.dart';
 import '../domain/effect/move/force_next_move_base_effect.dart';
 import '../domain/effect/move/heal_block_effect.dart';
 import '../domain/effect/move/imprison_effect.dart';
@@ -79,6 +81,7 @@ import '../domain/effect/move/leech_seed_effect.dart';
 import '../domain/effect/move/lock_on_effect.dart';
 import '../domain/effect/move/magic_coat_effect.dart';
 import '../domain/effect/move/no_retreat_effect.dart';
+import '../domain/effect/move/octolock_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
 import '../domain/effect/move/snatch_effect.dart';
 import '../domain/effect/move/substitute_effect.dart';
@@ -3685,6 +3688,7 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
           _targetMarkerEffect(
             method: context.move.battleEngineMethod,
             origin: context.move.id,
+            user: context.user,
             effectId: effectId,
             target: targetSlot,
           ),
@@ -4199,12 +4203,29 @@ BattleMoveBehaviorResolution _resolveFieldMarker(
     state: prepared.state,
     rng: prepared.rng,
     events: prepared.events,
-    effect: GenericBattleEffect(
-      id: effectId,
-      scope: const FieldBattleEffectScope(),
-      remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
+    effect: _fieldMarkerEffect(
+      method: context.move.battleEngineMethod,
+      effectId: effectId,
     ),
   );
+}
+
+BattleEffect _fieldMarkerEffect({
+  required String method,
+  required String effectId,
+}) {
+  final remainingTurns = _markerTurnCount(method);
+  return switch (effectId) {
+    'fairy_lock' => FairyLockEffect(
+        scope: const FieldBattleEffectScope(),
+        remainingTurns: remainingTurns ?? 2,
+      ),
+    _ => GenericBattleEffect(
+        id: effectId,
+        scope: const FieldBattleEffectScope(),
+        remainingTurns: remainingTurns,
+      ),
+  };
 }
 
 int? _markerTurnCount(String battleEngineMethod) {
@@ -4219,7 +4240,7 @@ int? _markerTurnCount(String battleEngineMethod) {
     's_powder' ||
     's_snatch' =>
       0,
-    's_charge' || 's_laser_focus' => 2,
+    's_charge' || 's_fairy_lock' || 's_laser_focus' => 2,
     's_disable' => 4,
     's_encore' => 3,
     's_embargo' ||
@@ -4247,6 +4268,7 @@ int? _markerTurnCount(String battleEngineMethod) {
 BattleEffect _targetMarkerEffect({
   required String method,
   required String origin,
+  required PsdkBattleSlotRef user,
   required String effectId,
   required PsdkBattleSlotRef target,
 }) {
@@ -4266,6 +4288,12 @@ BattleEffect _targetMarkerEffect({
     'magic_coat' =>
       MagicCoatEffect(scope: scope, remainingTurns: remainingTurns ?? 0),
     'snatch' => SnatchEffect(scope: scope, remainingTurns: remainingTurns ?? 0),
+    'drowsiness' => DrowsinessEffect(
+        scope: scope,
+        origin: user,
+        remainingTurns: remainingTurns ?? 2,
+      ),
+    'octolock' => OctolockEffect(scope: scope, origin: user),
     _ => GenericBattleEffect(
         id: effectId,
         scope: scope,

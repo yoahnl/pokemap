@@ -12,9 +12,11 @@ import 'move/cant_switch_effect.dart';
 import 'move/confusion_effect.dart';
 import 'move/curse_effect.dart';
 import 'move/disable_effect.dart';
+import 'move/drowsiness_effect.dart';
 import 'move/embargo_effect.dart';
 import 'move/encore_effect.dart';
 import 'move/endure_effect.dart';
+import 'move/fairy_lock_effect.dart';
 import 'move/flinch_effect.dart';
 import 'move/force_next_move_base_effect.dart';
 import 'move/focus_punch_effect.dart';
@@ -27,6 +29,7 @@ import 'move/leech_seed_effect.dart';
 import 'move/lock_on_effect.dart';
 import 'move/nightmare_effect.dart';
 import 'move/no_retreat_effect.dart';
+import 'move/octolock_effect.dart';
 import 'move/perish_song_effect.dart';
 import 'move/magic_coat_effect.dart';
 import 'move/powder_effect.dart';
@@ -76,6 +79,10 @@ final class BattleEffectRegistry {
           scope: LocalBattleEffectScope(),
           disabledMoveId: '',
         ),
+      'drowsiness' => const DrowsinessEffect(
+          scope: LocalBattleEffectScope(),
+          origin: psdkOpponentSlot,
+        ),
       'embargo' => const EmbargoEffect(scope: LocalBattleEffectScope()),
       'endure' => const EndureEffect(scope: LocalBattleEffectScope()),
       'encore' => const EncoreEffect(
@@ -83,6 +90,7 @@ final class BattleEffectRegistry {
           encoredMoveId: '',
         ),
       'flinch' => const FlinchEffect(scope: LocalBattleEffectScope()),
+      'fairy_lock' => const FairyLockEffect(scope: FieldBattleEffectScope()),
       'force_next_move_base' =>
         const ForceNextMoveBaseEffect(scope: LocalBattleEffectScope()),
       'focus_punch' => const FocusPunchEffect(scope: LocalBattleEffectScope()),
@@ -101,6 +109,10 @@ final class BattleEffectRegistry {
         ),
       'nightmare' => const NightmareEffect(scope: LocalBattleEffectScope()),
       'no_retreat' => const NoRetreatEffect(scope: LocalBattleEffectScope()),
+      'octolock' => const OctolockEffect(
+          scope: LocalBattleEffectScope(),
+          origin: psdkOpponentSlot,
+        ),
       'perish_song' => const PerishSongEffect(scope: LocalBattleEffectScope()),
       'magic_coat' => const MagicCoatEffect(scope: LocalBattleEffectScope()),
       'powder' => const PowderEffect(scope: LocalBattleEffectScope()),

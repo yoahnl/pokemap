@@ -60,9 +60,14 @@ final class BattleSwitchHandler {
       target: target,
       move: move,
     );
+    final fieldEffects = _fieldEffects(context.state);
     if (context.state.battlerAt(target).effects.switchPassthrough(
               switchContext,
             ) ||
+        _hasSwitchPassthrough(
+          effects: fieldEffects,
+          context: switchContext,
+        ) ||
         _hasSwitchPassthrough(
           effects: context.state.activeAbilityEffects(),
           context: switchContext,
@@ -76,6 +81,10 @@ final class BattleSwitchHandler {
         context.state.battlerAt(target).effects.switchPreventionReason(
                   switchContext,
                 ) ??
+            _switchPreventionReason(
+              effects: fieldEffects,
+              context: switchContext,
+            ) ??
             context.state.activeAbilityEffects().switchPreventionReason(
                   switchContext,
                 );
@@ -457,6 +466,29 @@ int _activePartyIndex({
     return fallback;
   }
   return 0;
+}
+
+Iterable<BattleEffect> _fieldEffects(PsdkBattleState state) sync* {
+  for (final combatant in state.combatants.values) {
+    for (final effect in combatant.effects.effects) {
+      if (effect.scope is FieldBattleEffectScope) {
+        yield effect;
+      }
+    }
+  }
+}
+
+String? _switchPreventionReason({
+  required Iterable<BattleEffect> effects,
+  required BattleEffectSwitchPreventionContext context,
+}) {
+  for (final effect in effects) {
+    final reason = effect.onSwitchPrevention(context);
+    if (reason != null) {
+      return reason;
+    }
+  }
+  return null;
 }
 
 PsdkBattleCombatant _switchOutSnapshot(PsdkBattleCombatant active) {
