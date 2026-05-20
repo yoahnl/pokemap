@@ -33,6 +33,12 @@ List<RuntimeStaticPlacedElementShadowSource>
     if (element == null || element.frames.isEmpty) {
       continue;
     }
+    if (_hasResolvableProjectedBuildingShadow(
+      manifest: bundle.manifest,
+      element: element,
+    )) {
+      continue;
+    }
     final frame = element.frames.first;
     final source = frame.source;
     if (source.width <= 0 || source.height <= 0) {
@@ -60,6 +66,20 @@ List<RuntimeStaticPlacedElementShadowSource>
     );
   }
   return List<RuntimeStaticPlacedElementShadowSource>.unmodifiable(sources);
+}
+
+bool _hasResolvableProjectedBuildingShadow({
+  required ProjectManifest manifest,
+  required ProjectElementEntry element,
+}) {
+  final config = element.projectedBuildingShadow;
+  if (config == null || !config.enabled) {
+    return false;
+  }
+  return manifest.projectedBuildingShadowCatalog.presetById(
+        config.presetId,
+      ) !=
+      null;
 }
 
 ShadowRuntimeInstructionCollection

@@ -146,6 +146,12 @@ List<EditorStaticShadowPreviewInstruction>
     if (element == null || element.frames.isEmpty) {
       continue;
     }
+    if (_hasResolvableProjectedBuildingShadow(
+      manifest: manifest,
+      element: element,
+    )) {
+      continue;
+    }
     final source = element.frames.first.source;
     if (source.width <= 0 || source.height <= 0) {
       continue;
@@ -221,6 +227,20 @@ List<EditorStaticShadowPreviewInstruction>
   }
 
   return List<EditorStaticShadowPreviewInstruction>.unmodifiable(instructions);
+}
+
+bool _hasResolvableProjectedBuildingShadow({
+  required ProjectManifest manifest,
+  required ProjectElementEntry element,
+}) {
+  final config = element.projectedBuildingShadow;
+  if (config == null || !config.enabled) {
+    return false;
+  }
+  return manifest.projectedBuildingShadowCatalog.presetById(
+        config.presetId,
+      ) !=
+      null;
 }
 
 StaticShadowProjectionSpec _projectionSpecForEditorLightPreview(

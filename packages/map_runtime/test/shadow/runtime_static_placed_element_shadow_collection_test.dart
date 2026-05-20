@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/shadow/runtime_static_placed_element_shadow_collection.dart';
+import 'package:map_runtime/src/shadow/runtime_static_placed_element_shadow_sources.dart';
 import 'package:map_runtime/src/shadow/shadow_runtime_instruction_collection.dart';
 import 'package:map_runtime/src/shadow/shadow_runtime_render_instruction.dart';
 import 'package:map_runtime/src/shadow/static_placed_element_shadow_runtime_resolver.dart';
@@ -37,6 +39,95 @@ void main() {
         () => _source(elementId: '   '),
         throwsA(isA<ValidationException>()),
       );
+    });
+  });
+
+  group('buildRuntimeStaticPlacedElementShadowSources', () {
+    test(
+        'skips legacy static shadow when same element has resolvable projected building shadow',
+        () {
+      final bundle = _bundle(projectedBuildingShadow: _projectedConfig());
+
+      expect(buildRuntimeStaticPlacedElementShadowSources(bundle: bundle),
+          isEmpty);
+      expect(
+        buildRuntimeStaticPlacedElementShadowCollectionForBundle(
+          bundle: bundle,
+        ).isEmpty,
+        isTrue,
+      );
+    });
+
+    test('keeps legacy static shadow when element has no projected shadow', () {
+      final sources = buildRuntimeStaticPlacedElementShadowSources(
+        bundle: _bundle(),
+      );
+
+      expect(sources, hasLength(1));
+      expect(sources.single.elementId, 'tree');
+    });
+
+    test(
+        'keeps legacy static shadow when projected building shadow is disabled',
+        () {
+      final sources = buildRuntimeStaticPlacedElementShadowSources(
+        bundle: _bundle(
+          projectedBuildingShadow: _projectedConfig(enabled: false),
+        ),
+      );
+
+      expect(sources, hasLength(1));
+      expect(sources.single.elementId, 'tree');
+    });
+
+    test(
+        'keeps legacy static shadow when projected building shadow preset is missing',
+        () {
+      final sources = buildRuntimeStaticPlacedElementShadowSources(
+        bundle: _bundle(
+          projectedBuildingShadow: _projectedConfig(),
+          includeProjectedPreset: false,
+        ),
+      );
+
+      expect(sources, hasLength(1));
+      expect(sources.single.elementId, 'tree');
+    });
+
+    test(
+        'skips custom placed legacy shadow override when same element has resolvable projected building shadow',
+        () {
+      final sources = buildRuntimeStaticPlacedElementShadowSources(
+        bundle: _bundle(
+          projectedBuildingShadow: _projectedConfig(),
+          placedOverride: MapPlacedElementShadowOverride(
+            mode: ShadowOverrideMode.custom,
+            shadowProfileId: 'plain_ellipse',
+            opacity: 0.2,
+          ),
+        ),
+      );
+
+      expect(sources, isEmpty);
+    });
+
+    test('keeps legacy V1 static shadow for another element without V2', () {
+      final sources = buildRuntimeStaticPlacedElementShadowSources(
+        bundle: _bundle(
+          projectedBuildingShadow: _projectedConfig(),
+          includeLegacyOnlyElement: true,
+        ),
+      );
+
+      expect(sources.map((source) => source.elementId), ['legacy-tree']);
+      final collection =
+          buildRuntimeStaticPlacedElementShadowCollectionForBundle(
+        bundle: _bundle(
+          projectedBuildingShadow: _projectedConfig(),
+          includeLegacyOnlyElement: true,
+        ),
+      );
+      expect(collection.groundStatic, hasLength(1));
     });
   });
 
@@ -567,6 +658,143 @@ StaticPlacedElementShadowRuntimeMetrics _metrics({
     worldTop: worldTop,
     visualWidth: visualWidth,
     visualHeight: visualHeight,
+  );
+}
+
+RuntimeMapBundle _bundle({
+  ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
+  bool includeProjectedPreset = true,
+  bool includeLegacyOnlyElement = false,
+  MapPlacedElementShadowOverride? placedOverride,
+}) {
+  return RuntimeMapBundle(
+    manifest: ProjectManifest(
+      name: 'Runtime Static Shadow Source Test',
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      settings: const ProjectSettings(
+        tileWidth: 16,
+        tileHeight: 16,
+        displayScale: 2,
+        defaultPlayerCharacterId: 'player',
+      ),
+      elements: [
+        ProjectElementEntry(
+          id: 'tree',
+          name: 'Tree',
+          tilesetId: 'props',
+          categoryId: 'nature',
+          frames: const [
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 3),
+            ),
+          ],
+          shadow: _elementShadow(),
+          projectedBuildingShadow: projectedBuildingShadow,
+        ),
+        if (includeLegacyOnlyElement)
+          ProjectElementEntry(
+            id: 'legacy-tree',
+            name: 'Legacy Tree',
+            tilesetId: 'props',
+            categoryId: 'nature',
+            frames: const [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+              ),
+            ],
+            shadow: _elementShadow(),
+          ),
+      ],
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'player',
+          name: 'Player',
+          tilesetId: 'player',
+          frameWidth: 2,
+          frameHeight: 2,
+        ),
+      ],
+      surfaceCatalog: ProjectSurfaceCatalog(),
+      shadowCatalog: _catalog(),
+      projectedBuildingShadowCatalog: includeProjectedPreset
+          ? ProjectBuildingShadowPresetCatalog(presets: [_projectedPreset()])
+          : const ProjectBuildingShadowPresetCatalog.empty(),
+    ),
+    map: MapData(
+      id: 'static-shadow-source-test',
+      name: 'Static Shadow Source Test',
+      size: const GridSize(width: 4, height: 4),
+      layers: [
+        MapLayer.tile(
+          id: 'decor',
+          name: 'Decor',
+          tilesetId: 'props',
+          tiles: List<int>.filled(16, 0),
+        ),
+      ],
+      placedElements: [
+        MapPlacedElement(
+          id: 'tree-1',
+          layerId: 'decor',
+          elementId: 'tree',
+          pos: const GridPos(x: 1, y: 1),
+          shadowOverride: placedOverride,
+        ),
+        if (includeLegacyOnlyElement)
+          const MapPlacedElement(
+            id: 'legacy-tree-1',
+            layerId: 'decor',
+            elementId: 'legacy-tree',
+            pos: GridPos(x: 2, y: 1),
+          ),
+      ],
+      entities: const [
+        MapEntity(
+          id: 'spawn',
+          name: 'Spawn',
+          kind: MapEntityKind.spawn,
+          pos: GridPos(x: 0, y: 0),
+          blocksMovement: false,
+          spawn: MapEntitySpawnData(
+            role: EntitySpawnRole.playerStart,
+            facing: EntityFacing.south,
+          ),
+        ),
+      ],
+      mapMetadata: const MapMetadata(defaultSpawnId: 'spawn'),
+    ),
+    projectRootDirectory: '/tmp/runtime-static-shadow-source-test',
+    tilesetAbsolutePathsById: const <String, String>{},
+  );
+}
+
+ProjectElementProjectedBuildingShadowConfig _projectedConfig({
+  bool enabled = true,
+}) {
+  return ProjectElementProjectedBuildingShadowConfig(
+    enabled: enabled,
+    presetId: 'shadow-a',
+    anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+    localOffset: ProjectedShadowOffset(x: 0, y: 0),
+  );
+}
+
+ProjectBuildingShadowPreset _projectedPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'shadow-a',
+    name: 'Shadow A',
+    direction: ProjectedShadowDirection(x: 1, y: 0),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0.5,
+      nearWidthRatio: 1,
+      farWidthRatio: 0.5,
+    ),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.18,
+      colorHexRgb: '123ABC',
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
 }
 

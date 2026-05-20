@@ -260,6 +260,86 @@ void main() {
       );
     });
 
+    test(
+        'skips legacy static shadow preview when same element has resolvable projected building shadow',
+        () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(
+          projectedBuildingShadow: _projectedConfig(),
+          includeProjectedPreset: true,
+        ),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      expect(instructions, isEmpty);
+    });
+
+    test(
+        'keeps legacy static shadow preview when element has no projected building shadow',
+        () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      expect(instructions, hasLength(1));
+    });
+
+    test(
+        'keeps legacy static shadow preview when projected building shadow is disabled',
+        () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(
+          projectedBuildingShadow: _projectedConfig(enabled: false),
+          includeProjectedPreset: true,
+        ),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      expect(instructions, hasLength(1));
+    });
+
+    test(
+        'keeps legacy static shadow preview when projected building shadow preset is missing',
+        () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(projectedBuildingShadow: _projectedConfig()),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      expect(instructions, hasLength(1));
+    });
+
+    test(
+        'skips custom placed legacy shadow preview override when same element has resolvable projected building shadow',
+        () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(
+          projectedBuildingShadow: _projectedConfig(),
+          includeProjectedPreset: true,
+        ),
+        map: _map(
+          shadowOverride: MapPlacedElementShadowOverride(
+            mode: ShadowOverrideMode.custom,
+            shadowProfileId: 'base_shadow',
+            opacity: 0.2,
+          ),
+        ),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      expect(instructions, isEmpty);
+    });
+
     test('uses element footprint for preview anchor and size', () {
       final instructions = buildEditorStaticShadowPreviewInstructions(
         manifest: _manifest(
@@ -851,6 +931,8 @@ ProjectManifest _manifest({
   ProjectShadowCatalog? catalog,
   ProjectShadowProfile? profile,
   ProjectElementShadowConfig? elementShadow,
+  ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
+  bool includeProjectedPreset = false,
   bool omitElementShadow = false,
   List<TilesetVisualFrame>? frames,
 }) {
@@ -863,6 +945,9 @@ ProjectManifest _manifest({
           profiles: [profile ?? _profile('base_shadow')],
         ),
     surfaceCatalog: ProjectSurfaceCatalog(),
+    projectedBuildingShadowCatalog: includeProjectedPreset
+        ? ProjectBuildingShadowPresetCatalog(presets: [_projectedPreset()])
+        : const ProjectBuildingShadowPresetCatalog.empty(),
     elements: [
       ProjectElementEntry(
         id: 'stand',
@@ -882,6 +967,7 @@ ProjectManifest _manifest({
                   castsShadow: true,
                   shadowProfileId: 'base_shadow',
                 ),
+        projectedBuildingShadow: projectedBuildingShadow,
       ),
     ],
   );
@@ -934,5 +1020,34 @@ ProjectShadowProfile _profile(
     scaleX: scaleX,
     opacity: opacity,
     colorHexRgb: colorHexRgb,
+  );
+}
+
+ProjectElementProjectedBuildingShadowConfig _projectedConfig({
+  bool enabled = true,
+}) {
+  return ProjectElementProjectedBuildingShadowConfig(
+    enabled: enabled,
+    presetId: 'shadow-a',
+    anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+    localOffset: ProjectedShadowOffset(x: 0, y: 0),
+  );
+}
+
+ProjectBuildingShadowPreset _projectedPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'shadow-a',
+    name: 'Shadow A',
+    direction: ProjectedShadowDirection(x: 1, y: 0),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0.5,
+      nearWidthRatio: 1,
+      farWidthRatio: 0.5,
+    ),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.18,
+      colorHexRgb: '123ABC',
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
 }

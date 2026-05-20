@@ -76,7 +76,7 @@ void main() {
     });
 
     test(
-        'PlayableMapGame merges V2 projected shadows with V1 static placed shadows',
+        'PlayableMapGame suppresses same-element V1 static shadow when projected building shadow is resolvable',
         () async {
       final game = PlayableMapGame(
         bundle: _bundle(withV1Shadow: true),
@@ -90,16 +90,18 @@ void main() {
       game.update(0);
       final collection = _backgroundLayer(game).shadowCollectionProvider!()!;
 
-      expect(collection.groundStatic, hasLength(2));
+      expect(collection.groundStatic, hasLength(1));
       expect(_projectedBuildingInstructions(collection), hasLength(1));
-      expect(_legacyStaticInstructions(collection), hasLength(1));
+      expect(_legacyStaticInstructions(collection), isEmpty);
     });
 
-    test(
-        'PlayableMapGame merges projected building shadows before V1 static shadows',
+    test('PlayableMapGame keeps V1 static shadows for elements without V2',
         () async {
       final game = PlayableMapGame(
-        bundle: _bundle(withV1Shadow: true),
+        bundle: _bundle(
+          withV1Shadow: true,
+          includeLegacyOnlyElement: true,
+        ),
         projectFilePath: '/tmp/project.json',
         runtimeTilesetImageLoader: _emptyImageLoader,
         enableActorContactShadows: false,
@@ -205,6 +207,7 @@ RuntimeMapBundle _bundle({
   bool withProjectedConfig = true,
   bool includeProjectedPreset = true,
   bool withV1Shadow = false,
+  bool includeLegacyOnlyElement = false,
 }) {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
@@ -237,6 +240,22 @@ RuntimeMapBundle _bundle({
           projectedBuildingShadow:
               withProjectedConfig ? _projectedConfig() : null,
         ),
+        if (includeLegacyOnlyElement)
+          ProjectElementEntry(
+            id: 'legacy-building',
+            name: 'Legacy Building',
+            tilesetId: 'props',
+            categoryId: 'building',
+            frames: const [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+              ),
+            ],
+            shadow: ProjectElementShadowConfig(
+              castsShadow: true,
+              shadowProfileId: 'legacy-shadow',
+            ),
+          ),
       ],
       characters: const [
         ProjectCharacterEntry(
@@ -248,19 +267,19 @@ RuntimeMapBundle _bundle({
         ),
       ],
       surfaceCatalog: ProjectSurfaceCatalog(),
-      shadowCatalog: withV1Shadow
+      shadowCatalog: withV1Shadow || includeLegacyOnlyElement
           ? _legacyShadowCatalog()
           : const ProjectShadowCatalog.empty(),
       projectedBuildingShadowCatalog: includeProjectedPreset
           ? ProjectBuildingShadowPresetCatalog(presets: [_preset()])
           : const ProjectBuildingShadowPresetCatalog.empty(),
     ),
-    map: const MapData(
+    map: MapData(
       id: 'projected-building-shadow-test',
       name: 'Projected Building Shadow Test',
-      size: GridSize(width: 4, height: 4),
+      size: const GridSize(width: 4, height: 4),
       layers: [
-        MapLayer.tile(
+        const MapLayer.tile(
           id: 'objects',
           name: 'Objects',
           tilesetId: 'props',
@@ -268,15 +287,22 @@ RuntimeMapBundle _bundle({
         ),
       ],
       placedElements: [
-        MapPlacedElement(
+        const MapPlacedElement(
           id: 'building-1',
           layerId: 'objects',
           elementId: 'building',
           pos: GridPos(x: 1, y: 2),
         ),
+        if (includeLegacyOnlyElement)
+          const MapPlacedElement(
+            id: 'legacy-building-1',
+            layerId: 'objects',
+            elementId: 'legacy-building',
+            pos: GridPos(x: 2, y: 2),
+          ),
       ],
       entities: [
-        MapEntity(
+        const MapEntity(
           id: 'spawn',
           name: 'Spawn',
           kind: MapEntityKind.spawn,
@@ -288,7 +314,7 @@ RuntimeMapBundle _bundle({
           ),
         ),
       ],
-      mapMetadata: MapMetadata(defaultSpawnId: 'spawn'),
+      mapMetadata: const MapMetadata(defaultSpawnId: 'spawn'),
     ),
     projectRootDirectory: '/tmp/runtime-projected-building-shadow-test',
     tilesetAbsolutePathsById: const <String, String>{},

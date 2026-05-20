@@ -38,21 +38,20 @@ void main() {
     });
 
     test(
-        'runtime projected building visual POC keeps V2 before V1 in merged collection',
+        'runtime projected building visual POC suppresses same-element V1 when V2 is resolvable',
         () async {
       final collection = await _hostShadowCollection(withV1Shadow: true);
       final groundStatic = collection!.groundStatic;
 
-      expect(groundStatic, hasLength(2));
-      _expectProjectedBuildingInstruction(groundStatic[0]);
-      _expectLegacyStaticInstruction(groundStatic[1]);
+      expect(groundStatic, hasLength(1));
+      _expectProjectedBuildingInstruction(groundStatic.single);
+      expect(_legacyStaticInstructions(collection), isEmpty);
     });
 
     test(
         'runtime projected building visual POC does not use screenshots '
         'base'
-        'lines or auto projection',
-        () {
+        'lines or auto projection', () {
       final source = File(
         'test/shadow/runtime_projected_building_shadow_visual_poc_test.dart',
       ).readAsStringSync();
@@ -258,6 +257,17 @@ List<ShadowRuntimeRenderInstruction> _projectedBuildingInstructions(
       .toList(growable: false);
 }
 
+List<ShadowRuntimeRenderInstruction> _legacyStaticInstructions(
+  ShadowRuntimeInstructionCollection collection,
+) {
+  return collection.groundStatic
+      .where(
+        (instruction) =>
+            instruction.colorHexRgb == '010203' && instruction.opacity == 0.35,
+      )
+      .toList(growable: false);
+}
+
 void _expectProjectedBuildingInstruction(
   ShadowRuntimeRenderInstruction instruction,
 ) {
@@ -270,14 +280,6 @@ void _expectProjectedBuildingInstruction(
   _expectPointClose(instruction.polygonPoints[1], x: 64, y: 192);
   _expectPointClose(instruction.polygonPoints[2], x: 112, y: 176);
   _expectPointClose(instruction.polygonPoints[3], x: 112, y: 144);
-}
-
-void _expectLegacyStaticInstruction(
-  ShadowRuntimeRenderInstruction instruction,
-) {
-  expect(instruction.renderPass, ShadowRenderPass.groundStatic);
-  expect(instruction.opacity, 0.35);
-  expect(instruction.colorHexRgb, '010203');
 }
 
 void _expectPointClose(
