@@ -1,318 +1,290 @@
 # ShadowV2-19 — Projected Building Shadow Runtime Instruction Design Gate
 
+Date: 2026-05-20
+
+Statut: design-only, runtime-instruction-design-only, no-code-change hors ce rapport.
+
 ## 1. Résumé exécutif
 
-ShadowV2-19 est un design gate pur. Aucun code runtime, core, editor, renderer, diagnostic, codec, modèle persistant, fixture Selbrume, screenshot ou fichier generated n'a été modifié par ce lot.
+ShadowV2-19 tranche le pont futur entre `ProjectedBuildingShadowGeometry` et le runtime sans l'implémenter.
 
-Décision principale :
+Décision principale: ShadowV2-20 doit réutiliser `ShadowRuntimeShapeKind.projectedPolygon` pour le POC adapter. Le renderer sait déjà dessiner ce shape, y compris les bandes d'opacité des quadrilatères. Ajouter un nouveau shape kind forcerait une modification renderer inutile pour V2-20. Ajouter une metadata `sourceKind` serait architecturalement propre à terme, mais modifierait `ShadowRuntimeRenderInstruction` trop tôt alors que l'adapter peut rester explicitement nommé et testé.
 
-- V2-20 doit créer un adapter runtime dédié `ProjectedBuildingShadowGeometry -> ShadowRuntimeRenderInstruction`.
-- L'adapter doit réutiliser `ShadowRuntimeShapeKind.projectedPolygon`.
-- L'adapter doit fixer `renderPass` à `ShadowRenderPass.groundStatic`.
-- L'adapter doit rester séparé des futurs builders manifest/map.
-- Aucun `drawPath`, renderer, collection builder, manifest traversal ou lookup catalogue ne doit être ajouté en V2-20.
+Adapter recommandé: créer plus tard `packages/map_runtime/lib/src/shadow/projected_building_shadow_runtime_adapter.dart`, avec une fonction pure:
 
-Le runtime actuel possède déjà une primitive `projectedPolygon`, un renderer `drawPath`, un filtrage par `ShadowRenderPass`, et une peinture des ombres avant les sprites d'éléments dans `MapLayersComponent`. Le pont V2 peut donc commencer par une conversion de données, sans toucher au rendu.
+```dart
+ShadowRuntimeRenderInstruction createProjectedBuildingShadowRuntimeInstruction(
+  ProjectedBuildingShadowGeometry geometry,
+)
+```
+
+La fonction devra fixer `renderPass: ShadowRenderPass.groundStatic`, convertir les quatre points V2 en `ShadowRuntimePoint`, calculer les bounds `worldLeft/worldTop/width/height`, propager `opacity` et `colorHexRgb`, et ne jamais importer Flame, Canvas, Flutter, `static_shadow_family_projection`, Selbrume, manifest traversal ou diagnostics.
 
 ## 2. Objectif du lot
 
-Objectif : décider comment convertir plus tard :
+Objectif: décider comment afficher plus tard une `ProjectedBuildingShadowGeometry` dans le runtime sans confondre V2 avec `genericProjection` V1, sans casser le renderer actuel, et sans réintroduire d'automatisme dangereux.
 
-```text
-ProjectedBuildingShadowGeometry
-```
-
-en :
-
-```text
-ShadowRuntimeRenderInstruction
-```
-
-sans implémenter cette conversion dans ce lot.
-
-La décision doit éviter :
-
-- confusion avec `genericProjection` V1 ;
-- création automatique d'ombres V2 ;
-- modification du renderer ;
-- modification de l'éditeur ;
-- mutation du `project.json` ;
-- visual baseline prématurée.
+Ce lot conçoit le pont. Il ne le construit pas.
 
 ## 3. Rappel ShadowV2-18
 
-ShadowV2-18 a créé :
+ShadowV2-18 a validé une géométrie V2 pure:
 
 - `ProjectedBuildingShadowPoint`
 - `ProjectedBuildingShadowGeometry`
 - `resolveProjectedBuildingShadowGeometry(...)`
 
-Comportements validés :
+Comportements confirmés:
 
-- `config.enabled == false -> null`
-- enabled true -> 4 points
-- ordre stable : `nearLeft`, `nearRight`, `farRight`, `farLeft`
-- direction normalisée
-- `followsSun` V0 -> fixed
-- `opacity` / `colorHexRgb` propagés
-- aucun lookup catalogue
-- aucun traversal `ProjectManifest`
-- aucun runtime
-- aucun editor
-- aucun JSON
+- `config.enabled == false` retourne `null`.
+- `enabled == true` produit exactement 4 points.
+- Ordre stable: nearLeft, nearRight, farRight, farLeft.
+- Direction normalisée.
+- `followsSun` V0 traité comme `fixed`.
+- `opacity` et `colorHexRgb` propagés.
+- Aucun lookup catalogue, aucun traversal `ProjectManifest`, aucun runtime, aucun editor, aucun JSON.
 
 ## 4. État initial du worktree
 
-Commande :
+Commande:
 
 ```bash
+cd /Users/karim/Project/pokemonProject
 git status --short --untracked-files=all
 ```
 
-Sortie :
+Résultat:
 
 ```text
- M packages/map_core/lib/map_core.dart
-?? packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart
-?? packages/map_core/test/shadow_v2/projected_building_shadow_geometry_test.dart
-?? reports/shadows/v2/shadow_v2_18_projected_building_shadow_core_geometry.md
+
 ```
 
-Interprétation :
-
-- ces changements préexistaient au démarrage de ShadowV2-19 ;
-- ils correspondent au lot ShadowV2-18 non encore commité ;
-- ShadowV2-19 ne les modifie pas.
+Interprétation: worktree initial propre.
 
 ## 5. Décision AGENTS / design gate
 
-Commandes :
+Commandes:
 
 ```bash
+cd /Users/karim/Project/pokemonProject
 find .. -name AGENTS.md -print
-rg -n "Do not invoke implementation skills|design has been presented|creative|structural|architectural|product-facing" AGENTS.md
+rg -n "Do not invoke implementation skills|design has been presented|creative|structural|architectural|product-facing" AGENTS.md ../AGENTS.md 2>/dev/null || true
 ```
 
-Sorties :
+Résultat:
 
 ```text
 ../pokemonProject/AGENTS.md
 ../free-claude-code/AGENTS.md
+AGENTS.md:765:Before structural changes, read the nearest:
+AGENTS.md:848:1. Brainstorming (`superpowers:brainstorming`) before creative work.
+AGENTS.md:1094:Do not invoke implementation skills, write code, scaffold a project, or take implementation action until a design has been presented and approved when the task is creative, structural, architectural, or product-facing.
+AGENTS.md:1096:For creative work such as features, components, behavior changes, or UI:
 ```
 
-```text
-765:Before structural changes, read the nearest:
-848:1. Brainstorming (`superpowers:brainstorming`) before creative work.
-1094:Do not invoke implementation skills, write code, scaffold a project, or take implementation action until a design has been presented and approved when the task is creative, structural, architectural, or product-facing.
-1096:For creative work such as features, components, behavior changes, or UI:
-```
+Interprétation:
 
-Interprétation :
-
-- ce lot est lui-même un design gate ;
-- aucune implémentation n'est prévue ;
-- le design gate est respecté.
-
-Note Flame :
-
-- `flame_docs` a été interrogé sur le rendu / priority / render order ;
-- les requêtes n'ont pas retourné de résultat exploitable ;
-- les décisions runtime ci-dessous s'appuient donc sur le code local existant.
+- Ce lot est un design gate.
+- Il respecte la règle AGENTS: conception avant implémentation.
+- Aucune implémentation runtime, renderer, editor, codec, diagnostic, manifest, Selbrume ou baseline n'est prévue.
 
 ## 6. Fichiers audités
 
-Géométrie V2 :
+Tous les fichiers demandés existent:
 
-- `packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart`
-- `packages/map_core/test/shadow_v2/projected_building_shadow_geometry_test.dart`
-- `reports/shadows/v2/shadow_v2_17_projected_building_shadow_resolver_runtime_preview_design.md`
-- `reports/shadows/v2/shadow_v2_18_projected_building_shadow_core_geometry.md`
+```text
+present packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart
+present packages/map_core/test/shadow_v2/projected_building_shadow_geometry_test.dart
+present packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart
+present packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart
+present packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_collection.dart
+present packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_sources.dart
+present packages/map_runtime/lib/src/shadow/static_placed_element_shadow_runtime_resolver.dart
+present packages/map_runtime/lib/src/shadow/runtime_actor_contact_shadow_collection.dart
+present packages/map_runtime/lib/src/shadow/actor_contact_shadow_runtime_resolver.dart
+present packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+present packages/map_runtime/tool/shadow/selbrume_shadow_capture_test.dart
+present packages/map_runtime/tool/shadow/README.md
+present reports/shadows/baselines/selbrume_shadow_v1/baseline_manifest.json
+present reports/shadows/v2/shadow_v2_17_projected_building_shadow_resolver_runtime_preview_design.md
+present reports/shadows/v2/shadow_v2_18_projected_building_shadow_core_geometry.md
+```
 
-Runtime Shadow :
+Tests runtime Shadow recensés:
 
-- `packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart`
-- `packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart`
-- `packages/map_runtime/lib/src/shadow/shadow_runtime_instruction_collection.dart`
-- `packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_collection.dart`
-- `packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_sources.dart`
-- `packages/map_runtime/lib/src/shadow/static_placed_element_shadow_runtime_resolver.dart`
-- `packages/map_runtime/lib/src/shadow/runtime_actor_contact_shadow_collection.dart`
-- `packages/map_runtime/lib/src/shadow/runtime_shadow_collection_merge.dart`
-- `packages/map_runtime/lib/src/shadow/shadow_runtime_collection_provider.dart`
-
-Render order :
-
-- `packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart`
-- `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart`
-- `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
-
-Tests runtime Shadow :
-
-- `packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart`
-- `packages/map_runtime/test/shadow/shadow_runtime_renderer_test.dart`
-- `packages/map_runtime/test/shadow/runtime_static_placed_element_shadow_collection_test.dart`
-- `packages/map_runtime/test/shadow/static_placed_element_shadow_runtime_resolver_test.dart`
-- `packages/map_runtime/test/shadow/runtime_actor_contact_shadow_collection_test.dart`
-- `packages/map_runtime/test/shadow/shadow_runtime_instruction_collection_test.dart`
-- `packages/map_runtime/test/shadow/shadow_runtime_render_order_mapping_test.dart`
+```text
+packages/map_runtime/test/application/load_runtime_map_bundle_shadow_policy_test.dart
+packages/map_runtime/test/shadow/actor_contact_shadow_runtime_resolver_test.dart
+packages/map_runtime/test/shadow/runtime_actor_contact_shadow_collection_test.dart
+packages/map_runtime/test/shadow/runtime_actor_contact_shadow_host_integration_test.dart
+packages/map_runtime/test/shadow/runtime_shadow_collection_merge_test.dart
+packages/map_runtime/test/shadow/runtime_shadow_render_order_contract_test.dart
+packages/map_runtime/test/shadow/runtime_static_placed_element_shadow_collection_test.dart
+packages/map_runtime/test/shadow/runtime_static_placed_element_shadow_host_integration_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_collection_provider_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_instruction_collection_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_provider_host_wiring_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_render_order_mapping_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_renderer_integration_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_renderer_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_resolver_test.dart
+packages/map_runtime/test/shadow/static_placed_element_shadow_runtime_resolver_test.dart
+```
 
 ## 7. Audit geometry V2
 
-Commande :
+Commande:
 
 ```bash
 rg -n "ProjectedBuildingShadowGeometry|ProjectedBuildingShadowPoint|resolveProjectedBuildingShadowGeometry|StaticShadowVisualMetrics" packages/map_core/lib/src packages/map_core/test/shadow_v2 reports/shadows/v2
 ```
 
-Résultats pertinents :
+Résultat structurant:
 
 ```text
-packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:7:final class ProjectedBuildingShadowPoint {
-packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:28:final class ProjectedBuildingShadowGeometry {
+packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:7:final class ProjectedBuildingShadowPoint
+packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:28:final class ProjectedBuildingShadowGeometry
+packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:43:  final List<ProjectedBuildingShadowPoint> points;
+packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:44:  final double opacity;
+packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:45:  final String colorHexRgb;
 packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:63:ProjectedBuildingShadowGeometry? resolveProjectedBuildingShadowGeometry({
 packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart:66:  required StaticShadowVisualMetrics metrics,
-packages/map_core/lib/src/operations/static_shadow_geometry.dart:10:final class StaticShadowVisualMetrics {
-packages/map_core/test/shadow_v2/projected_building_shadow_geometry_test.dart:9:      final geometry = resolveProjectedBuildingShadowGeometry(
-packages/map_core/test/shadow_v2/projected_building_shadow_geometry_test.dart:151:      final geometry = ProjectedBuildingShadowGeometry(
-reports/shadows/v2/shadow_v2_17_projected_building_shadow_resolver_runtime_preview_design.md:10:- inputs V0 : `ProjectElementProjectedBuildingShadowConfig + ProjectBuildingShadowPreset + StaticShadowVisualMetrics` ;
-reports/shadows/v2/shadow_v2_18_projected_building_shadow_core_geometry.md:451:Objectif recommandé : décider comment adapter `ProjectedBuildingShadowGeometry` vers une instruction runtime future, sans encore modifier le renderer.
+packages/map_core/test/shadow_v2/projected_building_shadow_geometry_test.dart:8:  group('Projected building shadow geometry', () {
+reports/shadows/v2/shadow_v2_17_projected_building_shadow_resolver_runtime_preview_design.md:9:- resolver location : `map_core`, géométrie pure, avec adapters runtime/editor plus tard ;
+reports/shadows/v2/shadow_v2_17_projected_building_shadow_resolver_runtime_preview_design.md:15:- render pass futur : `groundStatic`, avant sprites et actors, sans contact ledge automatique.
 ```
 
-Constats :
+Constats:
 
-- la géométrie V2 est dans `map_core`, pure Dart ;
-- elle expose 4 points ordonnés ;
-- elle porte déjà `opacity` et `colorHexRgb` ;
-- elle ne connaît ni runtime, ni renderer, ni manifest, ni catalogue ;
-- les points V2 sont en coordonnées monde de la même forme conceptuelle que les points runtime.
+- `ProjectedBuildingShadowGeometry` contient seulement points, opacity et color.
+- Le constructeur exige exactement 4 points et normalise `colorHexRgb` en uppercase.
+- Le resolver retourne `null` si la config est disabled.
+- Les tests imposent l'ordre des points, l'immuabilité, la validation et l'indépendance runtime/editor/manifest.
+- La géométrie V2 est déjà le bon input d'un adapter runtime.
 
 ## 8. Audit runtime instruction actuel
 
-Commande :
+Commande:
 
 ```bash
 rg -n "class ShadowRuntimeRenderInstruction|enum ShadowRuntimeShapeKind|ShadowRuntimeRenderInstruction\\(|projectedPolygon|ellipse|contact|points|renderPass|colorHexRgb|opacity" packages/map_runtime/lib/src packages/map_runtime/test
 ```
 
-Résultats pertinents :
+Résultat structurant:
 
 ```text
 packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:5:enum ShadowRuntimeShapeKind {
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:6:  contactBlob,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:7:  ellipse,
 packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:8:  projectedPolygon,
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:31:final class ShadowRuntimeRenderInstruction {
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:63:  final ShadowRuntimeShapeKind shape;
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:64:  final ShadowRenderPass renderPass;
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:69:  final double opacity;
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:70:  final String colorHexRgb;
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:72:  final List<ShadowRuntimePoint> polygonPoints;
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:187:    case ShadowRuntimeShapeKind.projectedPolygon:
-packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart:27:    test('creates a valid projected polygon instruction', () {
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:40:final class ShadowRuntimeRenderInstruction {
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:42:    required this.shape,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:43:    required this.renderPass,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:44:    required this.worldLeft,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:45:    required this.worldTop,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:46:    required this.width,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:47:    required this.height,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:48:    required this.opacity,
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:49:    String colorHexRgb = '000000',
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:51:    Iterable<ShadowRuntimePoint> polygonPoints = const [],
+packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart:29:    test('creates a valid projected polygon instruction', () {
+packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart:151:    test('rejects projected polygons with fewer than three points', () {
+packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart:175:    test('rejects polygon points on oval shapes', () {
 ```
 
-Lecture ciblée de `shadow_runtime_render_instruction.dart` :
+Constats:
 
-- `ShadowRuntimeShapeKind` contient déjà `contactBlob`, `ellipse`, `projectedPolygon` ;
-- `ShadowRuntimeRenderInstruction` porte `shape`, `renderPass`, `worldLeft`, `worldTop`, `width`, `height`, `opacity`, `colorHexRgb`, `softnessMode`, `polygonPoints` ;
-- `colorHexRgb` est normalisé uppercase ;
-- `projectedPolygon` exige au moins 3 points et rejette les polygones dégénérés ;
-- `polygonPoints` est immutable après construction.
+- `projectedPolygon` existe déjà dans le modèle runtime.
+- `ShadowRuntimeRenderInstruction` n'a pas de champ source/type metadata.
+- L'instruction exige toujours `worldLeft`, `worldTop`, `width`, `height`, même pour les polygones.
+- Les `polygonPoints` sont immuables après construction.
+- Le modèle valide les couleurs, opacités, dimensions et points.
 
-Conséquence :
+Implication pour V2-20:
 
-- la forme runtime nécessaire existe déjà ;
-- V2-20 n'a pas besoin de modifier `ShadowRuntimeRenderInstruction` pour un premier adapter.
+- L'adapter devra calculer les bounds à partir des points V2.
+- Aucun changement de `ShadowRuntimeRenderInstruction` n'est nécessaire pour un POC robuste.
 
 ## 9. Audit renderer actuel
 
-Commande :
+Commande:
 
 ```bash
 rg -n "drawPath|drawOval|Path\\(|ShadowRuntimeShapeKind|paint|Canvas|opacity|colorHexRgb|projectedPolygon" packages/map_runtime/lib/src/shadow packages/map_runtime/test/shadow
 ```
 
-Résultats pertinents :
+Résultat structurant:
 
 ```text
-packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:11:  void renderInstruction(
+packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:16:    switch (instruction.shape) {
 packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:17:      case ShadowRuntimeShapeKind.contactBlob:
 packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:18:      case ShadowRuntimeShapeKind.ellipse:
+packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:19:        _renderOval(canvas, instruction);
 packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:20:      case ShadowRuntimeShapeKind.projectedPolygon:
+packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:21:        _renderProjectedPolygon(canvas, instruction);
 packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:35:    canvas.drawOval(rect, shadowRuntimePaintForInstruction(instruction));
+packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:38:  void _renderProjectedPolygon(
+packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:43:    if (points.length != 4) {
 packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:44:      canvas.drawPath(
+packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:50:    for (final band in createProjectedStaticShadowOpacityBands()) {
 packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:51:      canvas.drawPath(
-packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:85:  final rgb = int.parse(instruction.colorHexRgb, radix: 16);
-packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart:86:  final alpha = (instruction.opacity * 255).round().clamp(0, 255).toInt();
 packages/map_runtime/test/shadow/shadow_runtime_renderer_test.dart:105:    test('draws projectedPolygon with visible interior and transparent outside',
-packages/map_runtime/test/shadow/shadow_runtime_renderer_test.dart:139:    test('draws projectedPolygon with stronger near alpha than far alpha',
-packages/map_runtime/test/shadow/shadow_runtime_renderer_test.dart:304:    test('filters projectedPolygon instructions by render pass', () async {
+packages/map_runtime/test/shadow/shadow_runtime_renderer_test.dart:123:    test('keeps projectedPolygon opacity zero transparent inside', () async {
+packages/map_runtime/test/shadow/shadow_runtime_renderer_test.dart:136:    test('draws projectedPolygon with stronger near alpha than far alpha',
 ```
 
-Lecture ciblée de `shadow_runtime_renderer.dart` :
+Constats:
 
-- `projectedPolygon` est déjà rendu par `drawPath` ;
-- un polygone à 4 points reçoit des bandes d'opacité via `createProjectedStaticShadowOpacityBands()` ;
-- les autres polygones utilisent un fallback path plein ;
-- `renderCollectionPass(...)` filtre par `ShadowRenderPass.groundStatic` ou `ShadowRenderPass.actorContact`.
-
-Conséquence :
-
-- V2-20 ne doit pas toucher le renderer ;
-- le rendu V2 réel pourra apparaître plus tard dès qu'une collection injecte des instructions `projectedPolygon`, mais V2-20 doit rester seulement adapter + tests unitaires.
+- Le renderer sait déjà dessiner `projectedPolygon`.
+- Les quadrilatères ont un rendu en bandes d'opacité via `createProjectedStaticShadowOpacityBands()`.
+- Les polygones non-4-points ont un fallback `drawPath` simple.
+- V2 produit exactement 4 points, donc le chemin de rendu principal sera celui des bandes.
+- ShadowV2-20 ne doit pas toucher au renderer.
 
 ## 10. Audit render pass / ordering
 
-Commande :
+Commande:
 
 ```bash
 rg -n "groundStatic|actorContact|ShadowRenderPass|renderPass|MapLayersComponent|priority|render|children|add\\(" packages/map_runtime/lib/src packages/map_runtime/test
 ```
 
-Commande de suivi ciblée utilisée pour éviter les résultats hors Shadow très larges :
-
-```bash
-rg -n "groundStatic|actorContact|ShadowRenderPass|renderPass|MapLayersComponent|priority|render|children|add\\(" packages/map_runtime/lib/src packages/map_runtime/test --glob '!packages/map_runtime/lib/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart'
-```
-
-Résultats pertinents :
+Résultat structurant:
 
 ```text
-packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:1:enum RuntimeShadowRenderOrderSlot {
-packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:5:  futureStaticPlacedElementShadows,
-packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:6:  futureDynamicActorContactShadows,
-packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:17:  RuntimeShadowRenderOrderSlot.futureStaticPlacedElementShadows,
-packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:18:  RuntimeShadowRenderOrderSlot.futureDynamicActorContactShadows,
-packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:251:  void render(Canvas canvas) {
+packages/map_core/lib/src/models/shadow.dart:18:enum ShadowRenderPass {
+packages/map_core/lib/src/models/shadow.dart:20:  groundStatic,
+packages/map_core/lib/src/models/shadow.dart:23:  actorContact,
+packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:18:  RuntimeShadowRenderOrderSlot.futureStaticPlacedElementShadows,
+packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:19:  RuntimeShadowRenderOrderSlot.futureDynamicActorContactShadows,
+packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:20:  RuntimeShadowRenderOrderSlot.placedElementSprites,
+packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart:21:  RuntimeShadowRenderOrderSlot.actorsPlayerNpc,
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:291:    for (var i = visible.length - 1; i >= 0; i--) {
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:293:      if (layer is SurfaceLayer) {
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:294:        _paintSurfaceLayer(canvas, layer);
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:297:    _paintShadows(canvas);
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:300:        tile: (id, name, tilesetId, v, o, tiles) {
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:309:          _paintPlacedElementsForLayer(
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:318:    _paintEntities(canvas);
 packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:335:    shadowRenderer.renderCollectionPass(
 packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:338:      ShadowRenderPass.groundStatic,
 packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:340:    shadowRenderer.renderCollectionPass(
 packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:343:      ShadowRenderPass.actorContact,
-packages/map_runtime/lib/src/shadow/shadow_runtime_instruction_collection.dart:57:        groundStatic = List<ShadowRuntimeRenderInstruction>.unmodifiable(
-packages/map_runtime/lib/src/shadow/shadow_runtime_instruction_collection.dart:63:        actorContact = List<ShadowRuntimeRenderInstruction>.unmodifiable(
-packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart:117:  ShadowRuntimeRenderPass pass,
-packages/map_runtime/lib/src/shadow/static_placed_element_shadow_runtime_resolver.dart:140:  if (resolved.renderPass != ShadowRenderPass.groundStatic) {
 ```
 
-Lecture ciblée de `map_layers_component.dart` :
+Ordre réel du pass background:
 
 ```text
-background pass:
-terrain
-paths
-surface layers
-_paintShadows(canvas)
-tile layers + placed elements
-entities
-collision overlay when enabled
+terrain / paths
+-> surface layers
+-> shadow collection: groundStatic puis actorContact
+-> tile layers + placed element sprites
+-> entities
+-> collision/debug overlays si activés
 ```
 
-Lecture ciblée de `_paintShadows(...)` :
-
-```text
-renderCollectionPass(..., ShadowRenderPass.groundStatic)
-renderCollectionPass(..., ShadowRenderPass.actorContact)
-```
-
-Lecture ciblée de `shadow_runtime_render_order_contract.dart` :
+Le contrat d'ordre confirme:
 
 ```text
 baseTerrain
@@ -327,315 +299,322 @@ debugOverlays
 hudUi
 ```
 
-Conséquence :
-
-- le code réel peint déjà les ombres avant les sprites d'éléments et les actors ;
-- une ombre V2 `groundStatic` ne sera pas au-dessus du bâtiment ;
-- V2-20 ne doit pas changer cet ordre.
+Décision: V2 building projected shadows doivent être `groundStatic`, donc après surfaces et avant sprites de bâtiments. Elles ne doivent pas apparaître au-dessus des bâtiments.
 
 ## 11. Décision instruction shape
 
-Options comparées :
+### Option A — Réutiliser `ShadowRuntimeShapeKind.projectedPolygon`
 
-| Option | Décision | Pourquoi |
-|---|---|---|
-| A — réutiliser `ShadowRuntimeShapeKind.projectedPolygon` | Retenue pour V2-20 | La primitive existe, le renderer sait déjà la dessiner, aucun changement renderer/instruction requis. |
-| B — ajouter `buildingProjectedPolygon` | Rejetée pour V2-20 | Nécessite de modifier `ShadowRuntimeRenderInstruction` et `ShadowRuntimeRenderer` alors que le dessin est identique. |
-| C — ajouter une metadata source/type | Différée | Plus propre pour debug à long terme, mais modifie le modèle runtime et les collections pour un gain non nécessaire au premier adapter. |
-
-Décision canonique V2-20 :
+Principe:
 
 ```text
-ProjectedBuildingShadowGeometry
--> ShadowRuntimeRenderInstruction(shape: ShadowRuntimeShapeKind.projectedPolygon)
+ProjectedBuildingShadowGeometry -> ShadowRuntimeRenderInstruction(shape: projectedPolygon)
 ```
 
-Justification :
+Avantages:
 
-- `projectedPolygon` est une forme de dessin, pas une preuve que la source est V1 ;
-- le nom de l'adapter et les tests V2 garantissent la source V2 ;
-- aucune dépendance à `genericProjection` ne doit être importée ou mentionnée dans l'adapter ;
-- si le debug/source tracking devient nécessaire, une metadata pourra être conçue plus tard sans bloquer le POC.
+- Le shape existe déjà.
+- Le renderer le gère déjà.
+- Les tests renderer couvrent déjà le rendu visible, l'opacité zéro, les bandes near/far et le filtrage de pass.
+- Aucun changement renderer.
+- Aucun changement `ShadowRuntimeRenderInstruction`.
+- V2-20 peut rester un adapter pur et unitaire.
+
+Risques:
+
+- L'inventaire runtime ne distingue pas intrinsèquement V1 projection et V2 building projection.
+- Les captures/baselines verront seulement `shapeKind: projectedPolygon` sauf si le builder futur ajoute une metadata externe.
+- Debug moins explicite dans les collections tant que `sourceKind` n'existe pas.
+
+Mitigation:
+
+- Nommer l'adapter `projected_building_shadow_runtime_adapter.dart`.
+- Tests explicites sur l'absence d'import `static_shadow_family_projection` et absence de mention `genericProjection`.
+- Reporter la metadata source à un lot futur si le builder/visual gate montre un besoin réel.
+
+### Option B — Ajouter `ShadowRuntimeShapeKind.buildingProjectedPolygon`
+
+Avantages:
+
+- Séparation V1/V2 claire dans l'instruction.
+- Inventaire/debug plus lisibles.
+
+Risques:
+
+- Modifie `ShadowRuntimeRenderInstruction`.
+- Modifie `ShadowRuntimeRenderer` pour ajouter un case.
+- Augmente la surface runtime alors que le rendu est identique à `projectedPolygon`.
+- Rend ShadowV2-20 plus large et plus risqué.
+
+Décision: rejeté pour V2-20.
+
+### Option C — Ajouter une metadata source
+
+Exemple conceptuel:
+
+```dart
+sourceKind: ShadowRuntimeSourceKind.projectedBuildingV2
+shape: ShadowRuntimeShapeKind.projectedPolygon
+```
+
+Avantages:
+
+- Sépare correctement source et forme.
+- Le renderer continue à raisonner en shape.
+- Inventaire/debug/baselines plus clairs.
+
+Risques:
+
+- Modifie `ShadowRuntimeRenderInstruction`.
+- Nécessite de toucher aux tests de collection, égalité/hash, helpers et potentiellement captures.
+- Trop gros pour le POC adapter V0.
+
+Décision: option propre pour plus tard, mais non retenue pour ShadowV2-20.
+
+### Recommandation finale
+
+Retenir Option A pour ShadowV2-20.
+
+Raison: le code réel a déjà `projectedPolygon` dans l'instruction et dans le renderer. Le besoin immédiat est de convertir une géométrie V2 validée en instruction runtime, pas de changer le modèle runtime.
 
 ## 12. Décision adapter location
 
-Options comparées :
+Options comparées:
 
 | Option | Décision | Pourquoi |
 |---|---|---|
-| A — `packages/map_runtime/lib/src/shadow/projected_building_shadow_runtime_adapter.dart` | Retenue | Responsabilité claire : geometry -> instruction. Testable sans renderer. |
-| B — dans une collection builder | Rejetée pour V2-20 | Mélange traversal manifest/map, lookup preset, geometry et instruction. Trop large. |
-| C — dans le renderer | Rejetée | Le renderer ne doit pas résoudre ou adapter de données domaine. |
+| `packages/map_runtime/lib/src/shadow/projected_building_shadow_runtime_adapter.dart` | Retenue | Fichier dédié, testable, sans pollution renderer/collection. |
+| Collection builder | Rejetée pour V2-20 | Mélange manifest traversal, lookup preset, geometry resolver et instruction. Trop tôt. |
+| Renderer | Rejetée | Le renderer doit consommer une instruction, pas résoudre une géométrie. |
 
-Décision :
-
-```text
-V2-20 crée un fichier adapter dédié dans map_runtime/lib/src/shadow/.
-```
+Décision: ShadowV2-20 crée un adapter dédié dans `map_runtime/lib/src/shadow/`.
 
 ## 13. Décision adapter inputs
 
-Signature recommandée :
+Signature recommandée:
 
 ```dart
-ShadowRuntimeRenderInstruction createProjectedBuildingShadowRuntimeInstruction({
-  required ProjectedBuildingShadowGeometry geometry,
-})
+ShadowRuntimeRenderInstruction createProjectedBuildingShadowRuntimeInstruction(
+  ProjectedBuildingShadowGeometry geometry,
+)
 ```
 
-Décisions :
+Décisions:
 
-- pas de `config` ;
-- pas de `preset` ;
-- pas de `ProjectManifest` ;
-- pas de `ProjectElementEntry` ;
-- pas de `MapPlacedElement` ;
-- pas de catalogue ;
-- pas de paramètre `renderPass` en V0.
+- `renderPass` est fixe: `ShadowRenderPass.groundStatic`.
+- Les points viennent directement de `geometry.points`, dans l'ordre déjà validé.
+- `opacity` vient de `geometry.opacity`.
+- `colorHexRgb` vient de `geometry.colorHexRgb`.
+- `width` / `height` sont requis par `ShadowRuntimeRenderInstruction`; l'adapter devra calculer une bounding box à partir des quatre points.
+- `worldLeft` / `worldTop` sont le min X/Y de cette bounding box.
+- Pas d'input `ProjectManifest`, pas de preset id, pas de config, pas de placement.
+- Pas de gestion `disabled`; si la config est disabled, le resolver V2 a déjà retourné `null`.
+- Pas de gestion `missingPreset`; l'adapter reçoit une geometry valide.
 
-Mapping :
+Pourquoi pas `required ShadowRenderPass renderPass`:
 
-```text
-shape       = ShadowRuntimeShapeKind.projectedPolygon
-renderPass  = ShadowRenderPass.groundStatic
-points      = geometry.points -> ShadowRuntimePoint(worldX: x, worldY: y)
-opacity     = geometry.opacity
-colorHexRgb = geometry.colorHexRgb
-softness    = ShadowSoftnessMode.hardEdge
-worldLeft   = min(points.worldX)
-worldTop    = min(points.worldY)
-width       = maxX - minX
-height      = maxY - minY
-```
-
-Les bounds sont nécessaires parce que `ShadowRuntimeRenderInstruction` les utilise déjà pour validation et culling.
-
-Comportement invalid/degenerate :
-
-- l'adapter ne corrige pas ;
-- l'adapter ne clamp pas ;
-- l'adapter laisse `ShadowRuntimeRenderInstruction` rejeter un polygone dégénéré ;
-- le futur builder pourra décider de filtrer ou propager cette erreur, après diagnostics.
+- Une grande ombre de bâtiment est sémantiquement au sol.
+- Ouvrir ce paramètre dès V0 rend possible une mauvaise instruction `actorContact`.
+- Si un lot futur veut plus de passes, il doit repasser par un design gate.
 
 ## 14. Décision render pass
 
-Décision :
+Décision: `ShadowRenderPass.groundStatic`.
 
-```text
-ShadowRenderPass.groundStatic
-```
+Justification:
 
-Justification :
+- Les ombres projetées de bâtiments sont des ombres au sol.
+- Le pass existe déjà.
+- Le renderer filtre déjà `groundStatic`.
+- `MapLayersComponent` dessine `groundStatic` avant les sprites de placed elements.
+- Cela évite que l'ombre V2 apparaisse au-dessus du bâtiment.
 
-- les ombres projetées de bâtiments sont au sol ;
-- elles doivent être peintes avant les sprites d'éléments ;
-- le pass existe déjà ;
-- `MapLayersComponent` peint déjà `groundStatic` avant les placed element sprites ;
-- aucun nouveau pass n'est requis pour V2-20.
+Risque:
 
-Risque :
+- V1 static shadows et V2 building projected shadows seront dans le même pass.
 
-- V1 et V2 cohabiteront dans `groundStatic`.
+Mitigation:
 
-Mitigation V0 :
-
-- le fichier adapter et les tests portent le nom `projected_building_shadow` ;
-- l'adapter ne dépend pas de `static_shadow_family_projection` ;
-- un futur builder V2 séparera clairement la provenance des instructions.
+- V2-20 ne crée pas de collection; aucun mélange runtime global.
+- Le builder futur devra garder l'inventaire V2 clair dans ses tests et rapports.
 
 ## 15. Décision render order
 
-Ordre réel constaté dans le background pass :
-
-```text
-terrain
--> paths
--> surfaces
--> shadows groundStatic
--> shadows actorContact
--> tile layers / placed elements
--> entities
--> collision overlay
-```
-
-Ordre cible pour V2 building projected shadows :
+Ordre cible documenté pour V2:
 
 ```text
 terrain / paths / surfaces
 -> groundStatic shadows V1 + V2
+-> actorContact shadows selon système existant
 -> placed element sprites
--> actors / project-element entities
--> occlusion patches / overlays / HUD selon système existant
+-> actors / player / NPC
+-> occlusion patches
+-> overlays / debug / HUD
 ```
 
-Décision :
+Nuance importante:
 
-- V2 building projected shadows doivent rester dans `groundStatic`.
-- V2-20 ne modifie pas `MapLayersComponent`.
-- V2-20 ne modifie pas le render order.
+- Le prompt proposait `actors -> actor contact shadows selon système existant`.
+- Le code réel montre que le système existant dessine `actorContact` dans `_paintShadows()`, juste après `groundStatic`, donc avant sprites/entities.
+- ShadowV2 building projected shadows ne changent pas cette politique.
 
-Note :
+Règle V2:
 
-- le code actuel peint aussi `actorContact` dans `_paintShadows` avant les sprites/actors ;
-- cette décision n'est pas changée par ShadowV2-19.
+```text
+Projected building shadows: groundStatic only, before placed element sprites.
+```
 
 ## 16. Collection future séparée
 
-ShadowV2-20 doit faire uniquement :
+ShadowV2-20 doit faire uniquement:
 
 ```text
-ProjectedBuildingShadowGeometry -> ShadowRuntimeRenderInstruction
+ProjectedBuildingShadowGeometry synthétique
+-> createProjectedBuildingShadowRuntimeInstruction(...)
+-> ShadowRuntimeRenderInstruction
 ```
 
-ShadowV2-20 ne doit pas faire :
+ShadowV2-20 ne doit pas faire:
 
-- traversal `ProjectManifest` ;
-- traversal `MapData` ;
-- lookup `ProjectBuildingShadowPresetCatalog` ;
-- extraction `ProjectElementEntry.projectedBuildingShadow` ;
-- extraction `MapPlacedElement` ;
-- conversion metrics depuis placements ;
-- merge avec collections V1 ;
-- injection dans `PlayableMapGame`.
+- manifest traversal;
+- lookup `projectedBuildingShadowCatalog`;
+- lecture `ProjectElementEntry.projectedBuildingShadow`;
+- lecture `ProjectManifest`;
+- lecture de placements;
+- intégration Selbrume;
+- screenshot;
+- renderer change.
 
-Lot futur après V2-20 :
+Lot futur après V2-20:
 
 ```text
-builder manifest/map :
-- parcourt les éléments placés ;
-- récupère ProjectElementEntry.projectedBuildingShadow ;
-- lookup preset dans ProjectManifest.projectedBuildingShadowCatalog ;
-- skip si disabled ;
-- skip ou diagnostic si preset absent ;
-- appelle resolveProjectedBuildingShadowGeometry(...) ;
-- appelle createProjectedBuildingShadowRuntimeInstruction(...) ;
-- produit une ShadowRuntimeInstructionCollection V2.
+builder manifest/map:
+- parcourt les éléments placés;
+- récupère ProjectElementEntry.projectedBuildingShadow;
+- lookup preset dans ProjectManifest.projectedBuildingShadowCatalog;
+- skip disabled;
+- skip ou diagnostique missing preset selon politique builder/diagnostics;
+- appelle resolveProjectedBuildingShadowGeometry(...);
+- appelle createProjectedBuildingShadowRuntimeInstruction(...);
+- merge avec ShadowRuntimeInstructionCollection existante.
 ```
+
+Il ne faut pas mélanger ces étapes.
 
 ## 17. Missing preset / diagnostics
 
-Décision :
+Décision:
 
-- l'adapter runtime ne traite pas `missingPreset` ;
-- l'adapter reçoit une géométrie valide, pas un `presetId` ;
-- le diagnostic `missingPreset` reste la source de vérité authoring ;
-- le futur builder haut niveau ne doit jamais fallback vers `genericProjection`.
+- L'adapter runtime ne gère jamais `missingPreset`.
+- L'adapter ne voit pas `presetId`.
+- L'adapter ne connaît pas le catalogue.
+- L'adapter ne fait aucun fallback vers `genericProjection`.
 
-Règle :
+Règle:
 
 ```text
-missing preset -> diagnostic / skip futur builder
-jamais genericProjection
+geometry adapter receives valid geometry only.
+missing preset belongs to diagnostics or future builder.
+genericProjection is never a fallback for V2 projected building shadows.
 ```
 
 ## 18. Screenshot / visual gate policy
 
-ShadowV2-20 :
+ShadowV2-20:
 
-- pas de screenshot ;
-- pas de baseline ;
-- tests unitaires runtime seulement ;
-- pas de renderer ;
-- pas de `MapLayersComponent` ;
-- pas de Selbrume.
+- Tests unitaires runtime seulement.
+- Pas de screenshot.
+- Pas de baseline.
+- Pas de Selbrume.
 
-Dès qu'un lot touche :
+À partir du premier lot qui touche renderer, collection builder runtime branchée, `PlayableMapGame`, Selbrume ou captures:
 
-- renderer ;
-- collection branchée au host ;
-- `PlayableMapGame` ;
-- `MapLayersComponent` ;
-- Selbrume ;
-- baselines ;
+- screenshot harness obligatoire;
+- baseline V2 séparée obligatoire;
+- before/after obligatoire;
+- rapport de comparaison obligatoire.
 
-alors visual gate obligatoire :
+Evidence actuelle:
 
-- harness screenshot ;
-- baseline V2 séparée ;
-- before/after ;
-- rapport visuel explicite.
+- Le README du harness indique qu'il est manuel, hors `test/`, reproductible, et non lancé par défaut.
+- Le baseline manifest V1 `selbrume_shadow_v1` compte `staticInstructions: 10`, `contactLedge: 10`, `genericProjection: 0`, `captures: 11`.
+- V2 ne doit pas modifier ce baseline.
 
 ## 19. Tests à prévoir pour ShadowV2-20
 
-Test 1 — converts geometry to runtime instruction :
+### Test 1 — Converts geometry to runtime instruction
+
+Input:
 
 ```text
-input:
-- ProjectedBuildingShadowGeometry avec 4 points
-- opacity 0.18
-- colorHexRgb 000000
+ProjectedBuildingShadowGeometry:
+- 4 points: nearLeft, nearRight, farRight, farLeft
+- opacity: 0.18
+- colorHexRgb: 000000
+```
 
-expected:
+Expected:
+
+```text
+ShadowRuntimeRenderInstruction:
 - shape == ShadowRuntimeShapeKind.projectedPolygon
 - renderPass == ShadowRenderPass.groundStatic
-- polygonPoints préservés dans l'ordre
-- opacity préservée
-- colorHexRgb préservé
+- polygonPoints preserved in order
+- opacity == 0.18
+- colorHexRgb == 000000
+- worldLeft/worldTop/width/height equal computed bounds
+- softnessMode == ShadowSoftnessMode.hardEdge
 ```
 
-Test 2 — computes bounds from polygon points :
+### Test 2 — Computes bounds from points
+
+Input with non-zero and non-sorted coordinates.
+
+Expected:
 
 ```text
-points non triés spatialement mais ordonnés géométriquement
-expected:
-- worldLeft == minX
-- worldTop == minY
-- width == maxX - minX
-- height == maxY - minY
+worldLeft = minX
+worldTop = minY
+width = maxX - minX
+height = maxY - minY
 ```
 
-Test 3 — normalizes color through runtime instruction :
+### Test 3 — Does not handle disabled
+
+No disabled test in adapter. Disabled remains resolver responsibility.
+
+### Test 4 — No renderer dependency
+
+Static source audit test if local style allows file text checks:
 
 ```text
-geometry colorHexRgb '0A0B0C' ou uppercase déjà validé
-expected:
-- runtime instruction colorHexRgb uppercase
-```
-
-Test 4 — preserves zero opacity :
-
-```text
-geometry opacity 0
-expected:
-- runtime instruction opacity 0
-```
-
-Test 5 — degenerate geometry is not silently fixed :
-
-```text
-collinear / zero-area geometry
-expected:
-- adapter throws ValidationException through ShadowRuntimeRenderInstruction
-```
-
-Test 6 — no renderer dependency :
-
-```text
-adapter source does not import:
+adapter source must not contain:
 - dart:ui
+- Canvas
+- Flame
 - flutter
-- flame
-- shadow_runtime_renderer.dart
+- ShadowRuntimeRenderer
 ```
 
-Test 7 — no genericProjection dependency :
+### Test 5 — No genericProjection dependency
+
+Static source audit:
 
 ```text
-adapter source does not import:
-- static_shadow_family_projection.dart
-- static_shadow_projection_geometry.dart
-adapter source does not contain:
+adapter source must not contain:
 - genericProjection
+- static_shadow_family_projection
+- resolveProjectedStaticShadowGeometry
+- StaticShadowFamily
 ```
 
-No disabled test :
+### Test 6 — Degenerate bounds behavior
 
-- disabled was handled in ShadowV2-18 by the geometry resolver ;
-- adapter receives non-null geometry only.
+If geometry points produce zero width or height, adapter should let `ShadowRuntimeRenderInstruction` validation throw `ValidationException`, or throw the same type with a clearer adapter message. Prefer relying on instruction validation unless implementation clarity suffers.
 
 ## 20. Fichiers proposés pour ShadowV2-20
 
-Fichiers autorisés recommandés :
+Créer:
 
 ```text
 packages/map_runtime/lib/src/shadow/projected_building_shadow_runtime_adapter.dart
@@ -643,67 +622,71 @@ packages/map_runtime/test/shadow/projected_building_shadow_runtime_adapter_test.
 reports/shadows/v2/shadow_v2_20_projected_building_shadow_runtime_instruction_adapter.md
 ```
 
-Fichiers à ne pas modifier en V2-20 :
+Modifier:
+
+```text
+none, sauf export éventuel si le package impose un barrel interne pour les tests.
+```
+
+Interdits pour ShadowV2-20:
 
 ```text
 packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart
 packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart
-packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
-packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
 packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_collection.dart
 packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_sources.dart
-packages/map_core/**
-packages/map_editor/**
-/Users/karim/Desktop/selbrume/project.json
-/Users/karim/Desktop/selbrume/maps/Selbrume.json
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+packages/map_core/lib/src/models/project_manifest.dart
+packages/map_core/lib/src/models/project_element_entry.dart
+packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart
+packages/map_runtime/tool/shadow/selbrume_shadow_capture_test.dart
+reports/shadows/baselines/**
 ```
 
-Export public :
+Si un futur lot choisit Option C metadata:
 
-- `map_runtime.dart` ne semble pas exporter les helpers shadow internes ;
-- V2-20 ne devrait pas ajouter d'export public sauf convention contraire découverte dans le lot.
+```text
+packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart
+packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart
+packages/map_runtime/test/shadow/shadow_runtime_instruction_collection_test.dart
+```
+
+Mais ce n'est pas ShadowV2-20.
 
 ## 21. Roadmap après ShadowV2-19
 
-Roadmap recommandée :
+Roadmap recommandée:
 
 ```text
-ShadowV2-20 — Projected Building Shadow Runtime Instruction Adapter V0
-ShadowV2-21 — Projected Building Shadow Runtime Collection Builder Design Gate
-ShadowV2-22 — Projected Building Shadow Runtime Collection Builder V0
-ShadowV2-23 — Projected Building Shadow Renderer / Visual POC Design Gate
+ShadowV2-20 — Runtime Instruction Adapter V0
+ShadowV2-21 — Runtime Collection Builder Design Gate
+ShadowV2-22 — Runtime Collection Builder V0
+ShadowV2-23 — Runtime Provider Integration Design Gate
 ShadowV2-24 — One Building Runtime Visual POC
 ShadowV2-25 — Screenshot Baseline V2
 ShadowV2-26 — Editor Preview Design Gate
+ShadowV2-27 — Editor Preview V0
 ```
+
+Ajustement par rapport au prompt:
+
+- Insérer un provider integration design gate avant le visual POC si le builder doit entrer dans `PlayableMapGame`.
+- Garder screenshot/baseline pour le moment où un rendu réel est modifié ou branché.
 
 ## 22. Commandes lancées
 
-Commandes :
-
 ```bash
+cd /Users/karim/Project/pokemonProject
 git status --short --untracked-files=all
 find .. -name AGENTS.md -print
-rg -n "Do not invoke implementation skills|design has been presented|creative|structural|architectural|product-facing" AGENTS.md
+rg -n "Do not invoke implementation skills|design has been presented|creative|structural|architectural|product-facing" AGENTS.md ../AGENTS.md 2>/dev/null || true
 rg -n "ProjectedBuildingShadowGeometry|ProjectedBuildingShadowPoint|resolveProjectedBuildingShadowGeometry|StaticShadowVisualMetrics" packages/map_core/lib/src packages/map_core/test/shadow_v2 reports/shadows/v2
 rg -n "class ShadowRuntimeRenderInstruction|enum ShadowRuntimeShapeKind|ShadowRuntimeRenderInstruction\\(|projectedPolygon|ellipse|contact|points|renderPass|colorHexRgb|opacity" packages/map_runtime/lib/src packages/map_runtime/test
 rg -n "drawPath|drawOval|Path\\(|ShadowRuntimeShapeKind|paint|Canvas|opacity|colorHexRgb|projectedPolygon" packages/map_runtime/lib/src/shadow packages/map_runtime/test/shadow
+rg -n "Runtime.*Shadow.*Collection|runtimeStatic|staticPlaced|actorContact|resolve.*Shadow|ShadowRuntimeRenderInstruction" packages/map_runtime/lib/src packages/map_runtime/test
 rg -n "groundStatic|actorContact|ShadowRenderPass|renderPass|MapLayersComponent|priority|render|children|add\\(" packages/map_runtime/lib/src packages/map_runtime/test
-rg -n "groundStatic|actorContact|ShadowRenderPass|renderPass|MapLayersComponent|priority|render|children|add\\(" packages/map_runtime/lib/src packages/map_runtime/test --glob '!packages/map_runtime/lib/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart'
-rg -n "Runtime.*Shadow.*Collection|runtimeStatic|staticPlaced|actorContact|resolve.*Shadow|ShadowRuntimeRenderInstruction" packages/map_runtime/lib/src packages/map_runtime/test --glob '!packages/map_runtime/lib/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart'
-sed -n '1,240p' packages/map_runtime/lib/src/shadow/shadow_runtime_render_instruction.dart
-sed -n '1,280p' packages/map_runtime/lib/src/shadow/shadow_runtime_renderer.dart
-sed -n '1,260p' packages/map_runtime/lib/src/shadow/shadow_runtime_instruction_collection.dart
-sed -n '1,260p' packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_collection.dart
-sed -n '1,260p' packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_sources.dart
-sed -n '1,560p' packages/map_runtime/lib/src/shadow/static_placed_element_shadow_runtime_resolver.dart
-sed -n '1,260p' packages/map_runtime/lib/src/shadow/runtime_actor_contact_shadow_collection.dart
-sed -n '1,120p' packages/map_runtime/lib/src/shadow/runtime_shadow_collection_merge.dart
-sed -n '1,180p' packages/map_runtime/lib/src/shadow/shadow_runtime_collection_provider.dart
-sed -n '1,260p' packages/map_runtime/lib/src/presentation/flame/shadow_runtime_render_order_contract.dart
-sed -n '1,700p' packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
-sed -n '1660,1735p' packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
-sed -n '1,420p' packages/map_runtime/test/shadow/shadow_runtime_render_instruction_test.dart
+find packages/map_runtime/test/shadow packages/map_runtime/test/application -type f | sort
 git diff --stat
 git diff --name-status
 git diff --check
@@ -712,144 +695,155 @@ git status --short --untracked-files=all
 
 ## 23. Résultats
 
-Synthèse des résultats :
+Résultats principaux:
 
-- V2 geometry existe uniquement en `map_core`.
-- Runtime instruction contient déjà `projectedPolygon`.
-- Runtime renderer dessine déjà `projectedPolygon`.
-- Runtime collection sépare `groundStatic` et `actorContact`.
-- `MapLayersComponent` peint les shadows entre surfaces et placed element sprites.
-- `PlayableMapGame` merge déjà collections static + actor contact via provider, mais V2 ne doit pas s'y brancher en V2-20.
-- Aucun blocage AGENTS pour ce lot design-only.
+- Worktree initial propre.
+- Tous les fichiers demandés sont présents.
+- `ProjectedBuildingShadowGeometry` est pure et contient les données nécessaires à une instruction runtime.
+- `ShadowRuntimeRenderInstruction` supporte déjà `projectedPolygon`.
+- `ShadowRuntimeRenderer` dessine déjà `projectedPolygon`.
+- `ShadowRuntimeInstructionCollection` trie déjà par `groundStatic` / `actorContact`.
+- `MapLayersComponent` dessine les shadows après surfaces et avant sprites/entities.
+- Le harness Selbrume est manuel et ne doit pas être lancé pour ShadowV2-20.
 
 ## 24. git diff --stat
 
-Commande :
+Commande:
 
 ```bash
 git diff --stat
 ```
 
-Sortie :
+Résultat après création de ce rapport:
 
 ```text
- packages/map_core/lib/map_core.dart | 1 +
- 1 file changed, 1 insertion(+)
+ ...d_building_shadow_runtime_instruction_design.md | 1052 ++++++++++----------
+ 1 file changed, 504 insertions(+), 548 deletions(-)
 ```
-
-Interprétation :
-
-- ce diff tracked préexistait au lot ShadowV2-19 ;
-- le rapport V2-19 est un fichier non suivi et apparaît dans `git status`.
 
 ## 25. git diff --name-status
 
-Commande :
+Commande:
 
 ```bash
 git diff --name-status
 ```
 
-Sortie :
+Résultat après création de ce rapport:
 
 ```text
-M	packages/map_core/lib/map_core.dart
+M	reports/shadows/v2/shadow_v2_19_projected_building_shadow_runtime_instruction_design.md
 ```
 
 ## 26. git diff --check
 
-Commande :
+Commande:
 
 ```bash
 git diff --check
 ```
 
-Sortie :
+Résultat après création de ce rapport:
 
 ```text
-(aucune sortie)
+
 ```
+
+Interprétation: aucun whitespace error détecté.
 
 ## 27. git status final
 
-Commande :
+Commande:
 
 ```bash
 git status --short --untracked-files=all
 ```
 
-Sortie :
+Résultat final:
 
 ```text
- M packages/map_core/lib/map_core.dart
-?? packages/map_core/lib/src/operations/projected_building_shadow_geometry.dart
-?? packages/map_core/test/shadow_v2/projected_building_shadow_geometry_test.dart
-?? reports/shadows/v2/shadow_v2_18_projected_building_shadow_core_geometry.md
-?? reports/shadows/v2/shadow_v2_19_projected_building_shadow_runtime_instruction_design.md
+ M reports/shadows/v2/shadow_v2_19_projected_building_shadow_runtime_instruction_design.md
 ```
+
+Interprétation: seul le rapport ShadowV2-19 est modifié.
 
 ## 28. Risques / réserves
 
-- Réutiliser `projectedPolygon` mélange la même shape runtime pour V1 et V2. Le risque est acceptable en V0 parce que la provenance est portée par l'adapter et les futurs builders, pas par la primitive de dessin.
-- Ajouter une metadata source serait plus clair pour les inventaires debug, mais ce serait un changement de modèle runtime prématuré pour un adapter qui peut rester strictement mécanique.
-- `ProjectedShadowShapeTuning.lengthRatio` peut être `0`, ce qui peut produire une géométrie V2 valide côté core mais dégénérée côté runtime instruction. V2-20 doit tester que l'adapter ne corrige pas silencieusement ce cas.
-- Le code actuel peint `actorContact` avant les sprites/actors. ShadowV2-19 ne change pas cette architecture ; V2 building shadows doivent rester `groundStatic`.
+- Option A ne distingue pas V1/V2 dans `ShadowRuntimeRenderInstruction`.
+- Les screenshots actuels peuvent seulement montrer `shapeKind: projectedPolygon` tant qu'une metadata source n'existe pas.
+- Le renderer applique les bandes d'opacité communes à tous les quadrilatères `projectedPolygon`; si V2 veut un rendu artistique différent, il faudra un nouveau design gate renderer.
+- L'adapter devra calculer des bounds valides; les geometries dégénérées devront échouer proprement.
+- Le futur builder ne doit pas réutiliser `runtime_static_placed_element_shadow_sources.dart` sans design, car ce fichier est aujourd'hui centré sur V1 `element.shadow` / `placed.shadowOverride`.
 
 ## 29. Auto-critique
 
-La décision Option A est volontairement conservatrice. Elle maximise la réutilisation du renderer existant et minimise les risques de dérive dans un lot qui ne doit pas rendre. Le coût est une séparation source/shape moins expressive à court terme.
+La recommandation Option A est volontairement minimaliste. Elle optimise ShadowV2-20 pour une conversion pure et testable, mais elle reporte le debug source-level. Si l'équipe veut des captures ou inventaires qui séparent immédiatement `projectedBuildingV2` de V1, Option C devra être planifiée avant le builder ou avant les baselines V2.
 
-L'audit `rg` runtime global remonte beaucoup de résultats hors Shadow à cause du code Flame et battle. Les décisions reposent donc sur des lectures ciblées des fichiers Shadow/runtime pertinents, listées dans le rapport.
+Le point le plus important à surveiller est le futur collection builder: c'est là que le risque d'un fallback `genericProjection` peut revenir. Il faudra un design gate dédié avant de parcourir manifest/map.
 
 ## 30. Regard critique sur le prompt
 
-Le prompt demande de comparer `shape kind` et metadata source. C'est utile, car le code existant rend `projectedPolygon` déjà suffisamment générique pour V2, mais le besoin de debug source est réel à moyen terme.
+Le prompt est très utile parce qu'il interdit explicitement les modifications dangereuses: renderer, runtime, editor, Selbrume, screenshots, generated files et commit.
 
-La limite "ne pas coder" est particulièrement importante ici : le renderer sait déjà dessiner la shape, donc le piège naturel aurait été de brancher une collection trop tôt. Le découpage adapter puis builder puis visual gate reste plus sûr.
+Deux points à clarifier pour les prochains lots:
+
+1. L'ordre demandé mentionne `actors -> actor contact shadows selon système existant`, mais le code existant dessine `actorContact` avant les actors. Le rapport tranche en faveur du code réel.
+2. L'Evidence Pack demande des résultats `rg` très larges. Les commandes sont bonnes pour l'audit, mais les rapports devraient inclure les lignes structurantes plutôt que des milliers de matches non décisionnels. Ce rapport reproduit les résultats pertinents qui justifient les décisions.
 
 ## 31. Prompt proposé pour ShadowV2-20
 
-`````md
+```md
 # ShadowV2-20 — Projected Building Shadow Runtime Instruction Adapter V0
 
-Tu travailles dans le repo local :
+Repo:
 
 ```text
 /Users/karim/Project/pokemonProject
 ```
 
-## CONTRAT DE LIVRAISON
+## Contrat
 
-Créer uniquement l'adapter runtime pur :
+Implémenter uniquement l'adapter pur:
 
 ```text
 ProjectedBuildingShadowGeometry -> ShadowRuntimeRenderInstruction
 ```
 
-Tu ne dois PAS modifier :
+Ne pas modifier:
 
 ```text
 ShadowRuntimeRenderInstruction
 ShadowRuntimeRenderer
 MapLayersComponent
 PlayableMapGame
+runtime_static_placed_element_shadow_collection.dart
+runtime_static_placed_element_shadow_sources.dart
 ProjectManifest
 ProjectElementEntry
-codecs JSON
+codecs
 diagnostics
-géométrie V2
-runtime collection builder existant
-editor
+geometry V2
 Selbrume
 screenshots/baselines
 generated files
 ```
 
-Tu ne dois PAS faire de commit.
+Ne pas lancer `build_runner`.
 
-## Fichiers autorisés
+## Décision ShadowV2-19 à respecter
 
-Créer :
+```text
+shape: ShadowRuntimeShapeKind.projectedPolygon
+renderPass: ShadowRenderPass.groundStatic
+adapter location: packages/map_runtime/lib/src/shadow/projected_building_shadow_runtime_adapter.dart
+input: ProjectedBuildingShadowGeometry only
+no manifest traversal
+no preset lookup
+no genericProjection fallback
+no renderer dependency
+```
+
+## Fichiers à créer
 
 ```text
 packages/map_runtime/lib/src/shadow/projected_building_shadow_runtime_adapter.dart
@@ -857,105 +851,67 @@ packages/map_runtime/test/shadow/projected_building_shadow_runtime_adapter_test.
 reports/shadows/v2/shadow_v2_20_projected_building_shadow_runtime_instruction_adapter.md
 ```
 
-Ne pas exporter publiquement depuis `map_runtime.dart` sauf convention locale clairement auditée.
-
-## API attendue
-
-Créer :
+## Adapter attendu
 
 ```dart
-ShadowRuntimeRenderInstruction createProjectedBuildingShadowRuntimeInstruction({
-  required ProjectedBuildingShadowGeometry geometry,
-})
+ShadowRuntimeRenderInstruction createProjectedBuildingShadowRuntimeInstruction(
+  ProjectedBuildingShadowGeometry geometry,
+)
 ```
 
-Mapping attendu :
+Comportement:
 
 ```text
-shape       = ShadowRuntimeShapeKind.projectedPolygon
-renderPass  = ShadowRenderPass.groundStatic
-points      = geometry.points -> ShadowRuntimePoint(worldX: x, worldY: y)
-opacity     = geometry.opacity
-colorHexRgb = geometry.colorHexRgb
-softness    = ShadowSoftnessMode.hardEdge
-worldLeft   = minX
-worldTop    = minY
-width       = maxX - minX
-height      = maxY - minY
+- convertit geometry.points en ShadowRuntimePoint en conservant l'ordre;
+- fixe shape projectedPolygon;
+- fixe renderPass groundStatic;
+- propage opacity;
+- propage colorHexRgb;
+- calcule worldLeft/worldTop/width/height depuis les bounds des points;
+- softnessMode hardEdge par défaut;
+- ne connaît pas disabled;
+- ne connaît pas missingPreset;
+- ne mentionne pas genericProjection.
 ```
 
-L'adapter ne doit pas :
+## Tests requis
 
 ```text
-chercher un preset
-lire ProjectManifest
-lire ProjectElementEntry
-lire MapPlacedElement
-appeler resolveProjectedBuildingShadowGeometry
-modifier le renderer
-importer Flutter / Flame / dart:ui
-importer static_shadow_family_projection
-mentionner genericProjection
+1. Converts geometry to projectedPolygon groundStatic instruction.
+2. Preserves polygon point order.
+3. Preserves opacity and colorHexRgb.
+4. Computes bounds from unordered coordinate extents.
+5. Does not import renderer/Canvas/Flame/Flutter.
+6. Does not import or mention genericProjection/static shadow projection.
+7. Degenerate bounds fail with ValidationException through runtime instruction validation.
 ```
 
-## Tests attendus
-
-Créer :
-
-```text
-packages/map_runtime/test/shadow/projected_building_shadow_runtime_adapter_test.dart
-```
-
-Tester :
-
-```text
-- converts geometry to projectedPolygon runtime instruction ;
-- renderPass groundStatic ;
-- polygon points preserved in order ;
-- bounds computed from min/max points ;
-- opacity/color propagated ;
-- zero opacity preserved ;
-- degenerate geometry is rejected through runtime instruction validation ;
-- adapter source has no Flutter/Flame/dart:ui/renderer import ;
-- adapter source has no genericProjection/static_shadow_family_projection dependency.
-```
-
-## Commandes à lancer
+## Commandes
 
 ```bash
 cd /Users/karim/Project/pokemonProject
-git status --short --untracked-files=all
-find .. -name AGENTS.md -print
-rg -n "projectedPolygon|ShadowRuntimeRenderInstruction|ShadowRuntimePoint|ShadowRenderPass|ProjectedBuildingShadowGeometry" packages/map_runtime/lib/src packages/map_runtime/test packages/map_core/lib/src
-cd packages/map_runtime && flutter test test/shadow/projected_building_shadow_runtime_adapter_test.dart
-cd packages/map_runtime && flutter test test/shadow
-cd packages/map_runtime && flutter analyze lib/src/shadow/projected_building_shadow_runtime_adapter.dart test/shadow/projected_building_shadow_runtime_adapter_test.dart
-cd /Users/karim/Project/pokemonProject
+dart test packages/map_runtime/test/shadow/projected_building_shadow_runtime_adapter_test.dart
+dart analyze packages/map_runtime
 git diff --stat
 git diff --name-status
 git diff --check
-git status --short --untracked-files=all
 ```
 
 ## Rapport
 
-Créer :
+Créer:
 
 ```text
 reports/shadows/v2/shadow_v2_20_projected_building_shadow_runtime_instruction_adapter.md
 ```
 
-Le rapport doit inclure :
+Le rapport doit confirmer:
 
 ```text
-- git status initial/final ;
-- fichiers créés/modifiés ;
-- contenu complet de l'adapter ;
-- contenu complet du test ;
-- sorties complètes du test ciblé, regression shadow runtime et analyze ;
-- git diff --stat ;
-- git diff --name-status ;
-- git diff --check ;
-- confirmation aucun renderer/runtime host/editor/Selbrume/screenshot modifié.
+- aucun renderer modifié;
+- aucune collection modifiée;
+- aucun Selbrume/screenshot/baseline;
+- aucun fallback genericProjection;
+- tests passés.
 ```
-`````
+```
