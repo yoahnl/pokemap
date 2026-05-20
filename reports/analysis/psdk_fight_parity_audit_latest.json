@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 381,
-    "partiel": 347,
+    "fait": 382,
+    "partiel": 346,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1755,9 +1755,9 @@
       {
         "moveId": "floral_healing",
         "battleEngineMethod": "s_floral_healing",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/floral_healing.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 197,
-      "partial": 133,
+      "ported": 198,
+      "partial": 132,
       "missing": 0
     },
     "entries": [
@@ -5938,7 +5938,9 @@
         "rubyPath": "10 Move/2 Definitions/300 After you.rb",
         "dartBehavior": "StaticBasicMoveRegistry.afterYou",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "actionOrder"
+        ]
       },
       {
         "battleEngineMethod": "s_alluring_voice",
@@ -6155,7 +6157,11 @@
         "rubyPath": "10 Move/2 Definitions/300 BodyPress.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.bodyPress",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_brick_break",
@@ -6163,7 +6169,9 @@
         "rubyPath": "10 Move/2 Definitions/300 BrickBreak.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_brick_break",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_brine",
@@ -6326,7 +6334,7 @@
         "battleEngineMethod": "s_corrosive_gas",
         "rubyClass": "CorrosiveGas",
         "rubyPath": "10 Move/2 Definitions/300 CorrosiveGas.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.s_corrosive_gas",
+        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_corrosive_gas)",
         "status": "partial",
         "dependencies": [
           "effects"
@@ -6380,7 +6388,11 @@
         "rubyPath": "10 Move/2 Definitions/300 CustomStatsBased.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.customStatsBased",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_defog",
@@ -6521,9 +6533,10 @@
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_electrify)",
         "status": "partial",
         "dependencies": [
-          "effects"
+          "effects",
+          "actionOrder"
         ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "methodBatch": "action_queue_copy_call"
       },
       {
         "battleEngineMethod": "s_electro_ball",
@@ -6746,14 +6759,13 @@
         "rubyClass": "FloralHealing",
         "rubyPath": "10 Move/2 Definitions/300 FloralHealing.rb",
         "dartBehavior": "HealMoveBehavior.floralHealing",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "terrain",
           "effects",
           "ability"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_flower_shield",
@@ -6806,9 +6818,10 @@
         "status": "partial",
         "dependencies": [
           "effects",
+          "actionOrder",
           "targetingMulti"
         ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "methodBatch": "action_queue_copy_call"
       },
       {
         "battleEngineMethod": "s_foresight",
@@ -6826,7 +6839,11 @@
         "rubyPath": "10 Move/2 Definitions/300 FoulPlay.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.foulPlay",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_freezy_frost",
@@ -7897,7 +7914,10 @@
         "rubyPath": "10 Move/1 Mechanics/103 TwoHit MultiHit.rb",
         "dartBehavior": "MultiHitMoveBehavior.populationBomb",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_powder",
@@ -8011,7 +8031,11 @@
         "rubyPath": "10 Move/2 Definitions/300 CustomStatsBased.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.psyshock",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_psywave",
@@ -8052,7 +8076,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Quash.rb",
         "dartBehavior": "StaticBasicMoveRegistry.quash",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "actionOrder"
+        ]
       },
       {
         "battleEngineMethod": "s_rage",
@@ -8312,7 +8338,10 @@
         "rubyPath": "10 Move/2 Definitions/300 SacredSword.rb",
         "dartBehavior": "CustomStatSourceMoveBehavior.sacredSword",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_safe_guard",
@@ -8805,7 +8834,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Synchronoise.rb",
         "dartBehavior": "FieldLocationMoveBehavior.synchronoise",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "targetingMulti"
+        ]
       },
       {
         "battleEngineMethod": "s_syrup_bomb",
@@ -9106,7 +9137,11 @@
         "rubyPath": "10 Move/1 Mechanics/103 TwoHit MultiHit.rb",
         "dartBehavior": "MultiHitMoveBehavior.tripleKick",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "ability",
+          "item",
+          "history"
+        ]
       },
       {
         "battleEngineMethod": "s_trump_card",
@@ -9280,14 +9315,28 @@
         "rubyPath": "10 Move/2 Definitions/300 Yawn.rb",
         "dartBehavior": "StaticBasicMoveRegistry.drowsiness",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "handlerStatus",
+          "ability",
+          "terrain"
+        ]
       }
     ],
     "backlogBatches": [
       {
+        "id": "action_queue_copy_call",
+        "label": "Action queue / copy-call residuals",
+        "count": 2,
+        "methods": [
+          "s_electrify",
+          "s_follow_me"
+        ]
+      },
+      {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 33,
+        "count": 32,
         "methods": [
           "s_aqua_ring",
           "s_aura_wheel",
@@ -9297,7 +9346,6 @@
           "s_core_enforcer",
           "s_double_iron_bash",
           "s_dragon_darts",
-          "s_floral_healing",
           "s_flying_press",
           "s_frustration",
           "s_future_sight",
@@ -9327,7 +9375,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 100,
+        "count": 98,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9348,7 +9396,6 @@
           "s_doodle",
           "s_dragon_cheer",
           "s_dragon_tail",
-          "s_electrify",
           "s_embargo",
           "s_encore",
           "s_entrainment",
@@ -9357,7 +9404,6 @@
           "s_final_gambit",
           "s_fling",
           "s_flower_shield",
-          "s_follow_me",
           "s_fusion_bolt",
           "s_fusion_flare",
           "s_gear_up",

@@ -17,8 +17,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_after_you': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_after_you)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.afterYou',
+    status: _PsdkPortStatus.ported,
   ),
   's_ally_switch': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_ally_switch',
@@ -30,7 +30,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_assist': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.assist',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_beat_up': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_beat_up)',
@@ -58,11 +58,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_counter': _KnownDartBehavior(
     dartBehavior: 'CounterDamageMoveBehavior.counter',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_echo': _KnownDartBehavior(
     dartBehavior: 'ConsecutivePowerMoveBehavior.echoedVoice',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_fling': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.fling',
@@ -92,7 +92,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_instruct': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.instruct',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_lunar_dance': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)',
@@ -109,27 +109,27 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_me_first': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.meFirst',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_metal_burst': _KnownDartBehavior(
     dartBehavior: 'CounterDamageMoveBehavior.metalBurst',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_metronome': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.metronome',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_mimic': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.mimic',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_mirror_coat': _KnownDartBehavior(
     dartBehavior: 'CounterDamageMoveBehavior.mirrorCoat',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_mirror_move': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.mirrorMove',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_natural_gift': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.naturalGift',
@@ -157,11 +157,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_sketch': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.sketch',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_sleep_talk': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.sleepTalk',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_spite': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_spite)',
@@ -193,7 +193,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_baddy_bad': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_baddy_bad',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_burning_jealousy': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.burningJealousy',
@@ -243,12 +243,12 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_fairy_lock': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_fairy_lock)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fairyLock',
+    status: _PsdkPortStatus.ported,
   ),
   's_fickle_beam': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_fickle_beam',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_fishious_rend': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.fishiousRend',
@@ -260,7 +260,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_genies_storm': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.geniesStorm',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_geomancy': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)',
@@ -276,7 +276,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_glitzy_glow': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_glitzy_glow',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_grassy_glide': _KnownDartBehavior(
     dartBehavior: 'TerrainPowerMoveBehavior.grassyGlide',
@@ -284,11 +284,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_grav_apple': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_grav_apple',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_ice_spinner': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_ice_spinner',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_ivy_cudgel': _KnownDartBehavior(
     dartBehavior: 'TypeBasedMoveBehavior.ivyCudgel',
@@ -300,11 +300,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_lash_out': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.lashOut',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_last_respects': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_last_respects',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_magic_powder': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)',
@@ -319,8 +319,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_octolock': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_octolock)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.octolock',
+    status: _PsdkPortStatus.ported,
   ),
   's_order_up': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_order_up)',
@@ -336,7 +336,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_rage_fist': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.rageFist',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_raging_bull': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_raging_bull',
@@ -357,7 +357,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_sappy_seed': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_sappy_seed',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_scale_shot': _KnownDartBehavior(
     dartBehavior: 'MultiHitMoveBehavior.scaleShot',
@@ -373,7 +373,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_steel_roller': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_steel_roller',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_stuff_cheeks': _KnownDartBehavior(
     dartBehavior:
@@ -382,7 +382,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_super_duper_effective': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_super_duper_effective',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_syrup_bomb': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.syrupBomb',
@@ -436,16 +436,13 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'StaticBasicMoveRegistry.s_protect',
     status: _PsdkPortStatus.ported,
   ),
-  // These PSDK classes are Basic descendants whose regular hit/damage path is
-  // executable locally. Their method-specific effects remain future work, so
-  // they stay partial and carry explicit dependency tags below.
   's_avalanche': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.avalanche',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_assurance': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.assurance',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_attract': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.attract',
@@ -465,7 +462,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_brick_break': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_brick_break',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_burn_up': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.burnUp',
@@ -649,8 +646,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_quash': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_quash)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.quash',
+    status: _PsdkPortStatus.ported,
   ),
   's_dragon_tail': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.forceSwitch(s_dragon_tail)',
@@ -670,11 +667,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_flame_burst': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_flame_burst',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_fury_cutter': _KnownDartBehavior(
     dartBehavior: 'ConsecutivePowerMoveBehavior.furyCutter',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_fusion_bolt': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_fusion_bolt',
@@ -706,7 +703,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_jump_kick': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_jump_kick',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_knock_off': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.knockOff',
@@ -722,7 +719,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_payback': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.payback',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_payday': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_payday)',
@@ -734,7 +731,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_pledge': _KnownDartBehavior(
     dartBehavior: 'FieldLocationMoveBehavior.pledge',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_pluck': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.pluck',
@@ -802,7 +799,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_round': _KnownDartBehavior(
     dartBehavior: 'ConsecutivePowerMoveBehavior.round',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_safe_guard': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_safe_guard',
@@ -872,11 +869,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_stomp': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_stomp',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_stomping_tantrum': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.stompingTantrum',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_substitute': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_substitute',
@@ -888,15 +885,15 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_synchronoise': _KnownDartBehavior(
     dartBehavior: 'FieldLocationMoveBehavior.synchronoise',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_techno_blast': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.technoBlast',
     status: _PsdkPortStatus.ported,
   ),
   's_tailwind': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_tailwind)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_tailwind',
+    status: _PsdkPortStatus.ported,
   ),
   's_taunt': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_taunt',
@@ -947,8 +944,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_trick_room': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_trick_room)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_trick_room',
+    status: _PsdkPortStatus.ported,
   ),
   's_tri_attack': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.triAttack',
@@ -980,8 +977,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_yawn': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_yawn)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.drowsiness',
+    status: _PsdkPortStatus.ported,
   ),
   's_fixed_damage': _KnownDartBehavior(
     dartBehavior: 'FixedDamageMoveBehavior.psdkFixedDamage',
@@ -1011,16 +1008,13 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'MultiHitMoveBehavior.psdkRandom',
     status: _PsdkPortStatus.ported,
   ),
-  // These descendants execute their local hit-count/power/accuracy rules, but
-  // stay partial until Skill Link, Population Bomb's always-hit override and
-  // form-specific Water Shuriken data are available in the combatant snapshot.
   's_triple_kick': _KnownDartBehavior(
     dartBehavior: 'MultiHitMoveBehavior.tripleKick',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_population_bomb': _KnownDartBehavior(
     dartBehavior: 'MultiHitMoveBehavior.populationBomb',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_water_shuriken': _KnownDartBehavior(
     dartBehavior: 'MultiHitMoveBehavior.waterShuriken',
@@ -1096,7 +1090,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_floral_healing': _KnownDartBehavior(
     dartBehavior: 'HealMoveBehavior.floralHealing',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_roost': _KnownDartBehavior(
     dartBehavior: 'HealMoveBehavior.roost',
@@ -1367,27 +1361,25 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'WeightPowerMoveBehavior.heavySlam',
     status: _PsdkPortStatus.ported,
   ),
-  // These moves reuse the PSDK stat-source formulas but still rely on future
-  // ability/item/effect hooks for complete damage parity.
   's_body_press': _KnownDartBehavior(
     dartBehavior: 'CustomStatSourceMoveBehavior.bodyPress',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_foul_play': _KnownDartBehavior(
     dartBehavior: 'CustomStatSourceMoveBehavior.foulPlay',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_psyshock': _KnownDartBehavior(
     dartBehavior: 'CustomStatSourceMoveBehavior.psyshock',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_custom_stats_based': _KnownDartBehavior(
     dartBehavior: 'CustomStatSourceMoveBehavior.customStatsBased',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_sacred_sword': _KnownDartBehavior(
     dartBehavior: 'CustomStatSourceMoveBehavior.sacredSword',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
 };
 

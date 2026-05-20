@@ -652,13 +652,26 @@ void main() {
         byMethod['s_triple_kick']!.dartBehavior,
         'MultiHitMoveBehavior.tripleKick',
       );
-      expect(byMethod['s_triple_kick']!.dependencies, isEmpty);
+      expect(
+        byMethod['s_triple_kick']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.history,
+        ]),
+      );
       expect(byMethod['s_population_bomb']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_population_bomb']!.dartBehavior,
         'MultiHitMoveBehavior.populationBomb',
       );
-      expect(byMethod['s_population_bomb']!.dependencies, isEmpty);
+      expect(
+        byMethod['s_population_bomb']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.item,
+        ]),
+      );
       expect(byMethod['s_water_shuriken']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_water_shuriken']!.dartBehavior,
@@ -707,31 +720,62 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      for (final entry in <({String method, String behavior})>[
+      for (final entry in <({
+        String method,
+        String behavior,
+        List<PsdkMoveDependency> dependencies,
+      })>[
         (
           method: 's_body_press',
           behavior: 'CustomStatSourceMoveBehavior.bodyPress',
+          dependencies: <PsdkMoveDependency>[
+            PsdkMoveDependency.handlerDamage,
+            PsdkMoveDependency.ability,
+            PsdkMoveDependency.item,
+          ],
         ),
         (
           method: 's_foul_play',
           behavior: 'CustomStatSourceMoveBehavior.foulPlay',
+          dependencies: <PsdkMoveDependency>[
+            PsdkMoveDependency.handlerDamage,
+            PsdkMoveDependency.ability,
+            PsdkMoveDependency.item,
+          ],
         ),
         (
           method: 's_psyshock',
           behavior: 'CustomStatSourceMoveBehavior.psyshock',
+          dependencies: <PsdkMoveDependency>[
+            PsdkMoveDependency.handlerDamage,
+            PsdkMoveDependency.ability,
+            PsdkMoveDependency.item,
+          ],
         ),
         (
           method: 's_custom_stats_based',
           behavior: 'CustomStatSourceMoveBehavior.customStatsBased',
+          dependencies: <PsdkMoveDependency>[
+            PsdkMoveDependency.handlerDamage,
+            PsdkMoveDependency.ability,
+            PsdkMoveDependency.item,
+          ],
         ),
         (
           method: 's_sacred_sword',
           behavior: 'CustomStatSourceMoveBehavior.sacredSword',
+          dependencies: <PsdkMoveDependency>[
+            PsdkMoveDependency.handlerDamage,
+            PsdkMoveDependency.effects,
+          ],
         ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
-        expect(byMethod[entry.method]!.dependencies, isEmpty);
+        expect(
+          byMethod[entry.method]!.dependencies,
+          containsAll(entry.dependencies),
+        );
       }
     });
 
@@ -801,7 +845,10 @@ void main() {
         byMethod['s_synchronoise']!.dartBehavior,
         'FieldLocationMoveBehavior.synchronoise',
       );
-      expect(byMethod['s_synchronoise']!.dependencies, isEmpty);
+      expect(
+        byMethod['s_synchronoise']!.dependencies,
+        contains(PsdkMoveDependency.targetingMulti),
+      );
       expect(byMethod['s_smack_down']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_smack_down']!.dartBehavior,
@@ -903,6 +950,14 @@ void main() {
       expect(
         byMethod['s_round']!.dartBehavior,
         'ConsecutivePowerMoveBehavior.round',
+      );
+      expect(
+        byMethod['s_round']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.actionOrder,
+          PsdkMoveDependency.history,
+          PsdkMoveDependency.targetingMulti,
+        ]),
       );
       expect(byMethod['s_last_resort']!.status, PsdkPortStatus.ported);
       expect(
@@ -1357,7 +1412,6 @@ void main() {
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
-        expect(byMethod[entry.method]!.dependencies, isEmpty);
       }
       for (final entry in <({String method, String behavior})>[
         (
@@ -1378,7 +1432,8 @@ void main() {
         ),
         (
           method: 's_corrosive_gas',
-          behavior: 'StaticBasicMoveRegistry.s_corrosive_gas',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_corrosive_gas)',
         ),
         (
           method: 's_destiny_bond',
@@ -1667,7 +1722,12 @@ void main() {
       );
       expect(
         byMethod['s_yawn']!.dependencies,
-        isEmpty,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.terrain,
+        ]),
       );
       expect(
         byMethod['s_future_sight']!.dependencies,
@@ -2031,7 +2091,7 @@ void main() {
         byMethod['s_floral_healing']!.dartBehavior,
         'HealMoveBehavior.floralHealing',
       );
-      expect(byMethod['s_floral_healing']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_floral_healing']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_roost']!.dartBehavior,
         'HealMoveBehavior.roost',
