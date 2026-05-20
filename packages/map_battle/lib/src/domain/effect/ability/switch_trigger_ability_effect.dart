@@ -11,6 +11,7 @@ import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_stat_change_handler.dart';
 import '../../handler/battle_terrain_change_handler.dart';
 import '../../handler/battle_weather_change_handler.dart';
+import '../../move/battle_move_type_processor.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
@@ -745,6 +746,189 @@ final class ForewarnEffect extends BattleAbilityEffect {
         ),
       ],
     );
+  }
+}
+
+final class AnticipationEffect extends BattleAbilityEffect {
+  const AnticipationEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'anticipation', scope: scope);
+
+  static const BattleMoveTypeProcessor _typeProcessor =
+      BattleMoveTypeProcessor();
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return AnticipationEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    final owner = context.state.battlerAt(context.replacement);
+    for (final foe in context.state.foesOf(context.replacement)) {
+      final foeBattler = context.state.battlerAt(foe);
+      if (foeBattler.isFainted) {
+        continue;
+      }
+      for (final move in foeBattler.moves) {
+        if (_isDangerousMove(move: move, target: owner)) {
+          return BattleEffectSwitchEventResult(
+            state: context.state,
+            rng: context.rng,
+            events: <PsdkBattleEvent>[
+              PsdkBattleEffectEvent.added(
+                turn: context.turn,
+                target: context.replacement,
+                effectId: 'anticipation:warning',
+                reason: 'ability:anticipation',
+              ),
+            ],
+          );
+        }
+      }
+    }
+
+    return null;
+  }
+
+  bool _isDangerousMove({
+    required PsdkBattleMoveData move,
+    required PsdkBattleCombatant target,
+  }) {
+    if (move.battleEngineMethod == 's_ohko') {
+      return true;
+    }
+    final effectiveness = _typeProcessor.resolveEffectiveness(
+      moveType: move.type,
+      targetTypes: target.types,
+      extraTargetTypes: <String>[
+        if (target.type3 != null) target.type3!,
+        ...target.temporaryTypes,
+      ],
+    );
+    return effectiveness.multiplier >= 2;
+  }
+}
+
+final class PressureEffect extends BattleAbilityEffect {
+  const PressureEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'pressure', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return PressureEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.replacement,
+          effectId: 'pressure:active',
+          reason: 'ability:pressure',
+        ),
+      ],
+    );
+  }
+}
+
+final class ScreenCleanerEffect extends BattleAbilityEffect {
+  const ScreenCleanerEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'screen_cleaner', scope: scope);
+
+  static const Set<String> _screenEffectIds = <String>{
+    'aurora_veil',
+    'light_screen',
+    'reflect',
+  };
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ScreenCleanerEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    final affectedBanks = <int>{
+      context.replacement.bank,
+      for (final foe in context.state.foesOf(context.replacement)) foe.bank,
+    };
+    var nextState = context.state;
+    final events = <PsdkBattleEvent>[];
+
+    for (final entry in context.state.combatants.entries) {
+      final keptEffects = <BattleEffect>[];
+      for (final effect in entry.value.effects.effects) {
+        if (_removesEffect(effect, affectedBanks)) {
+          events.add(
+            PsdkBattleEffectEvent.removed(
+              turn: context.turn,
+              target: entry.key,
+              effectId: effect.id,
+              remainingTurns: effect.remainingTurns,
+              reason: 'ability:screen_cleaner',
+            ),
+          );
+          continue;
+        }
+        keptEffects.add(effect);
+      }
+      if (keptEffects.length == entry.value.effects.effects.length) {
+        continue;
+      }
+      nextState = nextState.updateBattler(
+        entry.key,
+        (battler) => battler.copyWith(
+          effects: PsdkBattleEffectStack(effects: keptEffects),
+        ),
+      );
+    }
+
+    if (events.isEmpty) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: nextState,
+      rng: context.rng,
+      events: events,
+    );
+  }
+
+  bool _removesEffect(BattleEffect effect, Set<int> affectedBanks) {
+    if (!_screenEffectIds.contains(effect.id)) {
+      return false;
+    }
+    final scope = effect.scope;
+    if (scope is BankBattleEffectScope) {
+      return affectedBanks.contains(scope.bank);
+    }
+    if (scope is BattlerBattleEffectScope) {
+      return affectedBanks.contains(scope.slot.bank);
+    }
+    return false;
   }
 }
 

@@ -434,6 +434,30 @@ void main() {
       }
     });
 
+    test('effect parity promotes Lot 254 switch and flinch ability effects',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'Anticipation',
+        'Pressure',
+        'ScreenCleaner',
+        'Stench',
+      ]) {
+        expect(
+          byFamilyAndName['ability:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(

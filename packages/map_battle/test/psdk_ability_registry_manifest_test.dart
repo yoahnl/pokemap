@@ -31,6 +31,7 @@ void main() {
 
       for (final abilityId in <String>[
         'analytic',
+        'anticipation',
         'aura_break',
         'blaze',
         'aftermath',
@@ -111,6 +112,7 @@ void main() {
         'overgrow',
         'pastel_veil',
         'perish_body',
+        'pressure',
         'psychic_surge',
         'purifying_salt',
         'power_spot',
@@ -139,6 +141,7 @@ void main() {
         'skill_link',
         'magnet_pull',
         'sand_stream',
+        'screen_cleaner',
         'seed_sower',
         'snow_warning',
         'snow_cloak',
@@ -152,6 +155,7 @@ void main() {
         'steelworker',
         'steely_spirit',
         'steam_engine',
+        'stench',
         'storm_drain',
         'strong_jaw',
         'surge_surfer',

@@ -755,6 +755,137 @@ void main() {
       expect(statusOnly.reason, 'no_switch_events');
     });
 
+    test('Anticipation warns when an opposing move is dangerous', () {
+      final superEffective = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'anticipation',
+        playerTypes: const PsdkBattleTypes(primary: 'grass'),
+        opponentMoves: <PsdkBattleMoveData>[
+          _move(id: 'scratch', power: 40),
+          _move(id: 'ember', type: 'fire', power: 40),
+        ],
+      );
+      final ohko = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'anticipation',
+        opponentMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'fissure',
+            power: 0,
+            battleEngineMethod: 's_ohko',
+          ),
+        ],
+      );
+      final safe = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'anticipation',
+        playerTypes: const PsdkBattleTypes(primary: 'grass'),
+        opponentMoves: <PsdkBattleMoveData>[
+          _move(id: 'tackle', power: 40),
+          _move(id: 'growl', power: 0),
+        ],
+      );
+
+      expect(superEffective.applied, isTrue);
+      expect(
+        _effectEventsForHandler(superEffective).single.effectId,
+        'anticipation:warning',
+      );
+      expect(ohko.applied, isTrue);
+      expect(
+          _effectEventsForHandler(ohko).single.reason, 'ability:anticipation');
+      expect(safe.applied, isFalse);
+      expect(safe.reason, 'no_switch_events');
+    });
+
+    test('Screen Cleaner removes active screens from both banks on switch-in',
+        () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'screen_cleaner',
+        playerEffects: PsdkBattleEffectStack().addEffect(
+          const GenericBattleEffect(
+            id: 'reflect',
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+          ),
+        ),
+        opponentEffects: PsdkBattleEffectStack()
+            .addEffect(
+              const GenericBattleEffect(
+                id: 'light_screen',
+                scope: BankBattleEffectScope(1),
+              ),
+            )
+            .addEffect(
+              const GenericBattleEffect(
+                id: 'aurora_veil',
+                scope: BattlerBattleEffectScope(psdkOpponentSlot),
+              ),
+            )
+            .addEffect(
+              const GenericBattleEffect(
+                id: 'tailwind',
+                scope: BankBattleEffectScope(1),
+              ),
+            ),
+      );
+      final noScreens = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'screen_cleaner',
+      );
+
+      expect(result.applied, isTrue);
+      for (final bank in <int>[0, 1]) {
+        expect(_bankEffectsFor(result.state, 'reflect', bank: bank), isEmpty);
+        expect(
+          _bankEffectsFor(result.state, 'light_screen', bank: bank),
+          isEmpty,
+        );
+        expect(
+          _bankEffectsFor(result.state, 'aurora_veil', bank: bank),
+          isEmpty,
+        );
+      }
+      expect(_bankEffectsFor(result.state, 'tailwind', bank: 1), hasLength(1));
+      expect(
+        _effectEventsForHandler(result)
+            .map((event) => '${event.action}:${event.effectId}'),
+        containsAll(<String>[
+          'removed:reflect',
+          'removed:light_screen',
+          'removed:aurora_veil',
+        ]),
+      );
+      expect(noScreens.applied, isFalse);
+      expect(noScreens.reason, 'no_switch_events');
+    });
+
+    test('Pressure spends one extra PP while an alive foe has Pressure', () {
+      final engine = PsdkBattleEngine(
+        setup: BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(id: 'tackle', power: 40, pp: 5, currentPp: 5),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'pressure',
+            move: _move(id: 'opponent_wait', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final ppEvent = result.timeline.events
+          .whereType<PsdkBattleMovePpSpentEvent>()
+          .firstWhere((event) => event.user == psdkPlayerSlot);
+
+      expect(result.state.battlerAt(psdkPlayerSlot).moves.single.currentPp, 3);
+      expect(ppEvent.spent, 2);
+      expect(ppEvent.remainingPp, 3);
+    });
+
     test('Trace copies a valid opposing ability and hydrates its effect', () {
       final result = _dispatchAbilitySwitchIn(
         playerAbilityId: 'trace',
@@ -3110,6 +3241,67 @@ void main() {
       expect(_statEventsForHandler(angerPointNonCritical), isEmpty);
     });
 
+    test(
+        'Stench can flinch a damaged target unless suppressed by item or ability',
+        () {
+      final triggered = _applyDirectAbilityDamage(
+        playerAbilityId: 'stench',
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
+      final missedRoll = _applyDirectAbilityDamage(
+        playerAbilityId: 'stench',
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 9,
+        ),
+      );
+      final kingRock = _applyDirectAbilityDamage(
+        playerAbilityId: 'stench',
+        playerHeldItemId: 'king_s_rock',
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
+      final innerFocus = _applyDirectAbilityDamage(
+        playerAbilityId: 'stench',
+        opponentAbilityId: 'inner_focus',
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
+
+      expect(
+        triggered.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isTrue,
+      );
+      expect(_effectEventsForHandler(triggered).single.effectId, 'flinch');
+      expect(
+        missedRoll.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isFalse,
+      );
+      expect(
+        kingRock.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isFalse,
+      );
+      expect(
+        innerFocus.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isFalse,
+      );
+    });
+
     test('Color Change rewrites the defender type after damaging moves', () {
       final changed = _applyDirectAbilityDamage(
         opponentAbilityId: 'color_change',
@@ -4494,6 +4686,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   String? playerHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleEffectStack? playerEffects,
   String? opponentAbilityId,
   String? opponentHeldItemId,
   String opponentSpeciesId = 'opponent',
@@ -4506,6 +4699,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   double opponentCurrentWeightKg = 1,
   List<PsdkBattleMoveData>? opponentMoves,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
+  PsdkBattleEffectStack? opponentEffects,
 }) {
   const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
   final state = PsdkBattleState.fromSetup(
@@ -4516,6 +4710,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,
         types: playerTypes,
+        effects: playerEffects,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
@@ -4529,6 +4724,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         statStages: opponentStatStages,
         transformState: opponentTransformState,
         currentWeightKg: opponentCurrentWeightKg,
+        effects: opponentEffects,
         moves: opponentMoves,
         move: _move(id: 'opponent_wait', power: 0),
       ),
@@ -4955,6 +5151,8 @@ PsdkBattleMoveData _move({
   bool sound = false,
   bool ballistics = false,
   bool heal = false,
+  int? pp,
+  int? currentPp,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -4964,7 +5162,8 @@ PsdkBattleMoveData _move({
     category: category,
     power: power,
     accuracy: accuracy,
-    pp: 35,
+    pp: pp ?? 35,
+    currentPp: currentPp,
     priority: priority,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
