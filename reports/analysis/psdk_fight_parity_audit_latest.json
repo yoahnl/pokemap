@@ -9455,15 +9455,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 361,
+      "ported": 364,
       "partial": 31,
-      "missing": 90
+      "missing": 87
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 188,
+        "ported": 191,
         "partial": 17,
-        "missing": 49
+        "missing": 46
       },
       "move": {
         "ported": 83,
@@ -12466,7 +12466,7 @@
       {
         "effectName": "SereneGrace",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 SereneGrace.rb",
         "hookFamilies": []
       },
@@ -12516,7 +12516,7 @@
       {
         "effectName": "SheerForce",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 SheerForce.rb",
         "hookFamilies": [
           "stat_change",
@@ -12544,7 +12544,7 @@
       {
         "effectName": "ShieldDust",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ShieldDust.rb",
         "hookFamilies": [
           "stat_change",
