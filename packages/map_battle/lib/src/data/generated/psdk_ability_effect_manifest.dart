@@ -321,17 +321,15 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'delta_stream',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Primal Weathers.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect:
-        'PrimalWeatherAbilityEffect.deltaStream.partialNoStrongWindsEffectiveness',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PrimalWeatherAbilityEffect.deltaStream',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'desolate_land',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Primal Weathers.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect:
-        'PrimalWeatherAbilityEffect.desolateLand.partialNoMoveNullification',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PrimalWeatherAbilityEffect.desolateLand',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'disguise',
@@ -1054,7 +1052,9 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'power_of_alchemy',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect:
+        'ReceiverPowerOfAlchemyEffect.powerOfAlchemy.partialNoAbilityChangePreventionHooks',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'power_spot',
@@ -1079,9 +1079,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'primordial_sea',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Primal Weathers.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect:
-        'PrimalWeatherAbilityEffect.primordialSea.partialNoMoveNullification',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PrimalWeatherAbilityEffect.primordialSea',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'prism_armor',
@@ -1175,7 +1174,9 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'receiver',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect:
+        'ReceiverPowerOfAlchemyEffect.receiver.partialNoAbilityChangePreventionHooks',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'reckless',
@@ -1411,7 +1412,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'soul_heart',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Soul-Heart.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SoulHeartEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'soundproof',

@@ -54,6 +54,21 @@ final class BattleMoveImmunityResolver {
         continue;
       }
 
+      if (shouldCheckTypeImmunity &&
+          _isBlockedByHardWeather(execution, targetRef)) {
+        failureReason = BattleMoveFailureReason.weather;
+        execution.timeline.add(
+          BattleMoveFailedTimelineEvent(
+            turn: execution.turn,
+            user: execution.actualUser,
+            target: targetRef,
+            moveId: execution.move.id,
+            reason: BattleMoveFailureReason.weather.jsonName,
+          ),
+        );
+        continue;
+      }
+
       if (_isBlockedByPsychicTerrain(execution, targetRef)) {
         failureReason = BattleMoveFailureReason.terrain;
         execution.timeline.add(
@@ -117,8 +132,39 @@ final class BattleMoveImmunityResolver {
           moveType == 'ground' && _groundingResolver.isGrounded(target),
       foresight: target.effects.contains('foresight'),
       miracleEye: target.effects.contains('miracle_eye'),
+      neutralizeFlyingWeaknesses: _strongWindsNeutralizesFlyingWeaknesses(
+        execution,
+      ),
     );
     return effectiveness.isImmune;
+  }
+
+  bool _isBlockedByHardWeather(
+    BattleMoveProcedureExecution execution,
+    BattlePositionRef targetRef,
+  ) {
+    if (_weatherEffectsSuppressed(execution)) {
+      return false;
+    }
+    final moveType = _effectiveMoveType(execution, targetRef);
+    return switch (execution.context.state.field.weather?.id) {
+      PsdkBattleWeatherId.hardrain when moveType == 'fire' => true,
+      PsdkBattleWeatherId.hardsun when moveType == 'water' => true,
+      _ => false,
+    };
+  }
+
+  bool _strongWindsNeutralizesFlyingWeaknesses(
+    BattleMoveProcedureExecution execution,
+  ) {
+    return !_weatherEffectsSuppressed(execution) &&
+        execution.context.state.field.isWeatherActive(
+          PsdkBattleWeatherId.strongWinds,
+        );
+  }
+
+  bool _weatherEffectsSuppressed(BattleMoveProcedureExecution execution) {
+    return execution.context.state.weatherEffectsSuppressed;
   }
 
   bool _isBlockedByPsychicTerrain(

@@ -63,6 +63,10 @@ final class HitThenCureStatusMoveBehavior implements BattleMoveBehavior {
           target: target,
           move: move,
           rng: rng,
+          field: state.field,
+          state: state,
+          userSlot: context.user,
+          targetSlot: targetSlot,
         ),
       );
       rng = damageResult.rng;

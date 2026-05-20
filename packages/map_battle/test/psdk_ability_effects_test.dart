@@ -3267,6 +3267,73 @@ void main() {
       expect(_statEventsForHandler(nonLethal), isEmpty);
     });
 
+    test('Soul Heart boosts after an ally faints', () {
+      final result = _applyAllyKoAbilityDamage(
+        allyAbilityId: 'soul_heart',
+        targetAbilityId: 'overgrow',
+        targetCurrentHp: 10,
+        rawDamage: 30,
+      );
+      final event = _statEventsForHandler(result).single;
+
+      expect(event.target, _psdkOpponentAllySlot);
+      expect(event.stat, 'specialAttack');
+      expect(event.amount, 1);
+
+      final foeKo = _applyAllyKoAbilityDamage(
+        playerAbilityId: 'soul_heart',
+        targetAbilityId: 'overgrow',
+        targetCurrentHp: 10,
+        rawDamage: 30,
+      );
+      final nonLethal = _applyAllyKoAbilityDamage(
+        allyAbilityId: 'soul_heart',
+        targetAbilityId: 'overgrow',
+        targetCurrentHp: 100,
+        rawDamage: 30,
+      );
+
+      expect(_statEventsForHandler(foeKo), isEmpty);
+      expect(_statEventsForHandler(nonLethal), isEmpty);
+    });
+
+    test('Receiver and Power of Alchemy copy a fainted ally ability', () {
+      const cases = <String>['receiver', 'power_of_alchemy'];
+
+      for (final abilityId in cases) {
+        final result = _applyAllyKoAbilityDamage(
+          allyAbilityId: abilityId,
+          targetAbilityId: 'overgrow',
+          targetCurrentHp: 10,
+          rawDamage: 30,
+        );
+
+        expect(
+          result.state.battlerAt(_psdkOpponentAllySlot).abilityId,
+          'overgrow',
+          reason: abilityId,
+        );
+        expect(
+          _effectEventsForHandler(result).single.effectId,
+          'ability_copy:overgrow',
+          reason: abilityId,
+        );
+      }
+
+      final blocked = _applyAllyKoAbilityDamage(
+        allyAbilityId: 'receiver',
+        targetAbilityId: 'wonder_guard',
+        targetCurrentHp: 10,
+        rawDamage: 30,
+      );
+
+      expect(
+        blocked.state.battlerAt(_psdkOpponentAllySlot).abilityId,
+        'receiver',
+      );
+      expect(_effectEventsForHandler(blocked), isEmpty);
+    });
+
     test('Aftermath damages contact attackers after a KO unless Damp is alive',
         () {
       const contactFlags = BattleMoveFlags(contact: true);
@@ -4506,6 +4573,7 @@ BattleHandlerResult _resolveAbilityEndTurn({
 }
 
 const _psdkPlayerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+const _psdkOpponentAllySlot = PsdkBattleSlotRef(bank: 1, position: 1);
 
 BattleHandlerResult _resolveHealerEndTurn({required int genericSeed}) {
   final state = PsdkBattleState(
@@ -5033,10 +5101,64 @@ BattleHandlerResult _applyDirectAbilityDamage({
   );
 }
 
+BattleHandlerResult _applyAllyKoAbilityDamage({
+  String? playerAbilityId,
+  String? targetAbilityId,
+  String? allyAbilityId,
+  int targetCurrentHp = 100,
+  int rawDamage = 30,
+}) {
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          abilityId: playerAbilityId,
+          move: _move(id: 'typed_hit', power: 60),
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          abilityId: targetAbilityId,
+          currentHp: targetCurrentHp,
+          move: _move(id: 'opponent_wait', power: 0),
+        ),
+      ),
+      _psdkOpponentAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent_ally',
+          abilityId: allyAbilityId,
+          move: _move(id: 'ally_wait', power: 0),
+        ),
+      ),
+    },
+  );
+
+  return const BattleDamageHandler().applyDamage(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkOpponentSlot,
+    moveId: 'typed_hit',
+    rawDamage: rawDamage,
+    move: _definition(id: 'typed_hit', power: 60),
+  );
+}
+
 List<PsdkBattleStatStageEvent> _statEventsForHandler(
   BattleHandlerResult result,
 ) {
   return result.events.whereType<PsdkBattleStatStageEvent>().toList();
+}
+
+List<PsdkBattleEffectEvent> _effectEventsForHandler(
+  BattleHandlerResult result,
+) {
+  return result.events.whereType<PsdkBattleEffectEvent>().toList();
 }
 
 BattleEffect _effectFor(

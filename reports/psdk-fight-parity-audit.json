@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 319,
-      "partial": 37,
-      "missing": 126
+      "ported": 323,
+      "partial": 35,
+      "missing": 124
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 168,
-        "partial": 19,
-        "missing": 67
+        "ported": 172,
+        "partial": 17,
+        "missing": 65
       },
       "move": {
         "ported": 80,
@@ -10275,14 +10275,14 @@
       {
         "effectName": "DeltaStream",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb",
         "hookFamilies": []
       },
       {
         "effectName": "DesolateLand",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb",
         "hookFamilies": [
           "ability_change",
@@ -12046,7 +12046,7 @@
       {
         "effectName": "PowerOfAlchemy",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb",
         "hookFamilies": [
           "post_damage"
@@ -12089,7 +12089,7 @@
       {
         "effectName": "PrimordialSea",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb",
         "hookFamilies": []
       },
@@ -12703,7 +12703,7 @@
       {
         "effectName": "SoulHeart",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Soul-Heart.rb",
         "hookFamilies": [
           "post_damage"

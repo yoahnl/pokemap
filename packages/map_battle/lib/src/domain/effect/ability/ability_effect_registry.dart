@@ -23,6 +23,7 @@ import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
 import 'no_guard_effect.dart';
 import 'post_damage_field_ability_effect.dart';
+import 'post_damage_ability_copy_effect.dart';
 import 'post_damage_reactive_ability_effect.dart';
 import 'post_damage_stat_change_ability_effect.dart';
 import 'primal_weather_ability_effect.dart';
@@ -838,6 +839,15 @@ final class AbilityEffectRegistry {
         ),
     'beast_boost': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
           abilityId: 'beast_boost',
+          scope: scope,
+        ),
+    'soul_heart': ({required scope}) => SoulHeartEffect(scope: scope),
+    'receiver': ({required scope}) => ReceiverPowerOfAlchemyEffect(
+          abilityId: 'receiver',
+          scope: scope,
+        ),
+    'power_of_alchemy': ({required scope}) => ReceiverPowerOfAlchemyEffect(
+          abilityId: 'power_of_alchemy',
           scope: scope,
         ),
     'gooey': ({required scope}) => PostDamageStatChangeAbilityEffect(
