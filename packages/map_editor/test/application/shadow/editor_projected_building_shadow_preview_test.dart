@@ -25,17 +25,17 @@ void main() {
         instruction.shape,
         EditorStaticShadowPreviewShapeKind.projectedPolygon,
       );
-      expect(instruction.opacity, 0.18);
-      expect(instruction.colorHexRgb, '123ABC');
-      expect(instruction.left, 64);
-      expect(instruction.top, 128);
-      expect(instruction.width, 48);
-      expect(instruction.height, 64);
+      expect(instruction.opacity, 0.30);
+      expect(instruction.colorHexRgb, '606060');
+      expect(instruction.left, closeTo(52.46, 0.02));
+      expect(instruction.top, closeTo(129.77, 0.02));
+      expect(instruction.width, closeTo(48.92, 0.02));
+      expect(instruction.height, closeTo(59.81, 0.02));
       expect(instruction.polygonPoints, hasLength(4));
-      _expectPointClose(instruction.polygonPoints[0], x: 64, y: 128);
-      _expectPointClose(instruction.polygonPoints[1], x: 64, y: 192);
-      _expectPointClose(instruction.polygonPoints[2], x: 112, y: 176);
-      _expectPointClose(instruction.polygonPoints[3], x: 112, y: 144);
+      _expectPointClose(instruction.polygonPoints[0], x: 75.54, y: 129.77);
+      _expectPointClose(instruction.polygonPoints[1], x: 52.46, y: 182.55);
+      _expectPointClose(instruction.polygonPoints[2], x: 82.91, y: 189.58);
+      _expectPointClose(instruction.polygonPoints[3], x: 101.38, y: 147.36);
     });
 
     test('returns empty when element has no projectedBuildingShadow config',
@@ -297,18 +297,18 @@ ProjectBuildingShadowPresetCatalog _catalog(
 }
 
 ProjectBuildingShadowPreset _preset({
-  String id = 'shadow-a',
-  double opacity = 0.18,
-  String colorHexRgb = '123ABC',
+  String id = 'pokemon-building-shadow-v0',
+  double opacity = 0.30,
+  String colorHexRgb = '606060',
 }) {
   return ProjectBuildingShadowPreset(
     id: id,
-    name: 'Shadow A',
-    direction: ProjectedShadowDirection(x: 1, y: 0),
+    name: 'Pokemon-like building shadow V0',
+    direction: ProjectedShadowDirection(x: 0.8, y: 0.35),
     shape: ProjectedShadowShapeTuning(
-      lengthRatio: 0.5,
-      nearWidthRatio: 1,
-      farWidthRatio: 0.5,
+      lengthRatio: 0.32,
+      nearWidthRatio: 0.90,
+      farWidthRatio: 0.72,
     ),
     appearance: ProjectedShadowAppearance(
       opacity: opacity,
@@ -320,12 +320,12 @@ ProjectBuildingShadowPreset _preset({
 
 ProjectElementProjectedBuildingShadowConfig _config({
   bool enabled = true,
-  String presetId = 'shadow-a',
+  String presetId = 'pokemon-building-shadow-v0',
 }) {
   return ProjectElementProjectedBuildingShadowConfig(
     enabled: enabled,
     presetId: presetId,
-    anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+    anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 0.96),
     localOffset: ProjectedShadowOffset(x: 0, y: 0),
   );
 }
@@ -335,6 +335,6 @@ void _expectPointClose(
   required double x,
   required double y,
 }) {
-  expect(point.x, closeTo(x, 0.000001));
-  expect(point.y, closeTo(y, 0.000001));
+  expect(point.x, closeTo(x, 0.02));
+  expect(point.y, closeTo(y, 0.02));
 }

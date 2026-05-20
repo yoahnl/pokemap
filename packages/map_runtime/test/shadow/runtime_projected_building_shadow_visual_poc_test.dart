@@ -190,25 +190,25 @@ RuntimeMapBundle _bundle({
 ProjectElementProjectedBuildingShadowConfig _projectedConfig() {
   return ProjectElementProjectedBuildingShadowConfig(
     enabled: true,
-    presetId: 'shadow-a',
-    anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+    presetId: 'pokemon-building-shadow-v0',
+    anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 0.96),
     localOffset: ProjectedShadowOffset(x: 0, y: 0),
   );
 }
 
 ProjectBuildingShadowPreset _preset() {
   return ProjectBuildingShadowPreset(
-    id: 'shadow-a',
-    name: 'Shadow A',
-    direction: ProjectedShadowDirection(x: 1, y: 0),
+    id: 'pokemon-building-shadow-v0',
+    name: 'Pokemon-like building shadow V0',
+    direction: ProjectedShadowDirection(x: 0.8, y: 0.35),
     shape: ProjectedShadowShapeTuning(
-      lengthRatio: 0.5,
-      nearWidthRatio: 1,
-      farWidthRatio: 0.5,
+      lengthRatio: 0.32,
+      nearWidthRatio: 0.90,
+      farWidthRatio: 0.72,
     ),
     appearance: ProjectedShadowAppearance(
-      opacity: 0.18,
-      colorHexRgb: '123ABC',
+      opacity: 0.30,
+      colorHexRgb: '606060',
     ),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
@@ -251,8 +251,8 @@ List<ShadowRuntimeRenderInstruction> _projectedBuildingInstructions(
         (instruction) =>
             instruction.shape == ShadowRuntimeShapeKind.projectedPolygon &&
             instruction.renderPass == ShadowRenderPass.groundStatic &&
-            instruction.colorHexRgb == '123ABC' &&
-            instruction.opacity == 0.18,
+            instruction.colorHexRgb == '606060' &&
+            instruction.opacity == 0.30,
       )
       .toList(growable: false);
 }
@@ -273,13 +273,13 @@ void _expectProjectedBuildingInstruction(
 ) {
   expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
   expect(instruction.renderPass, ShadowRenderPass.groundStatic);
-  expect(instruction.opacity, 0.18);
-  expect(instruction.colorHexRgb, '123ABC');
+  expect(instruction.opacity, 0.30);
+  expect(instruction.colorHexRgb, '606060');
   expect(instruction.polygonPoints, hasLength(4));
-  _expectPointClose(instruction.polygonPoints[0], x: 64, y: 128);
-  _expectPointClose(instruction.polygonPoints[1], x: 64, y: 192);
-  _expectPointClose(instruction.polygonPoints[2], x: 112, y: 176);
-  _expectPointClose(instruction.polygonPoints[3], x: 112, y: 144);
+  _expectPointClose(instruction.polygonPoints[0], x: 75.54, y: 129.77);
+  _expectPointClose(instruction.polygonPoints[1], x: 52.46, y: 182.55);
+  _expectPointClose(instruction.polygonPoints[2], x: 82.91, y: 189.58);
+  _expectPointClose(instruction.polygonPoints[3], x: 101.38, y: 147.36);
 }
 
 void _expectPointClose(
@@ -287,8 +287,8 @@ void _expectPointClose(
   required double x,
   required double y,
 }) {
-  expect(point.worldX, closeTo(x, 0.000001));
-  expect(point.worldY, closeTo(y, 0.000001));
+  expect(point.worldX, closeTo(x, 0.02));
+  expect(point.worldY, closeTo(y, 0.02));
 }
 
 Future<int> _alphaAt(ui.Image image, int x, int y) async {

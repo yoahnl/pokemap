@@ -140,6 +140,70 @@ void main() {
       expect(followsSun, fixed);
     });
 
+    test('resolves pokemon-building-shadow-v0 geometry with calibrated points',
+        () {
+      final preset = ProjectBuildingShadowPreset(
+        id: 'pokemon-building-shadow-v0',
+        name: 'Pokemon-like building shadow V0',
+        direction: ProjectedShadowDirection(x: 0.8, y: 0.35),
+        shape: ProjectedShadowShapeTuning(
+          lengthRatio: 0.32,
+          nearWidthRatio: 0.90,
+          farWidthRatio: 0.72,
+        ),
+        appearance: ProjectedShadowAppearance(
+          opacity: 0.30,
+          colorHexRgb: '606060',
+        ),
+        timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+      );
+      final config = ProjectElementProjectedBuildingShadowConfig(
+        enabled: true,
+        presetId: 'pokemon-building-shadow-v0',
+        anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 0.96),
+        localOffset: ProjectedShadowOffset(x: 0, y: 0),
+      );
+      final geometry = resolveProjectedBuildingShadowGeometry(
+        config: config,
+        preset: preset,
+        metrics: StaticShadowVisualMetrics(
+          left: 32,
+          top: 64,
+          visualWidth: 64,
+          visualHeight: 96,
+        ),
+      );
+
+      expect(geometry, isNotNull);
+      expect(geometry!.opacity, 0.30);
+      expect(geometry.colorHexRgb, '606060');
+      expect(geometry.points, hasLength(4));
+      _expectPointClose(
+        geometry.points[0],
+        x: 75.54,
+        y: 129.77,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[1],
+        x: 52.46,
+        y: 182.55,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[2],
+        x: 82.91,
+        y: 189.58,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[3],
+        x: 101.38,
+        y: 147.36,
+        tolerance: 0.02,
+      );
+    });
+
     test('geometry defensively copies points and exposes an immutable list',
         () {
       final source = [
@@ -313,7 +377,8 @@ void _expectPointClose(
   ProjectedBuildingShadowPoint actual, {
   required double x,
   required double y,
+  double tolerance = 0.000001,
 }) {
-  expect(actual.x, closeTo(x, 0.000001));
-  expect(actual.y, closeTo(y, 0.000001));
+  expect(actual.x, closeTo(x, tolerance));
+  expect(actual.y, closeTo(y, tolerance));
 }
