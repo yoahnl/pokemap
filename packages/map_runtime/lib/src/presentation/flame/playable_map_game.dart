@@ -60,6 +60,7 @@ import '../../application/trainer_battle_request.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import '../../shadow/runtime_actor_contact_shadow_collection.dart';
+import '../../shadow/runtime_projected_building_shadow_collection.dart';
 import '../../shadow/runtime_shadow_collection_merge.dart';
 import '../../shadow/runtime_static_placed_element_shadow_sources.dart';
 import '../../shadow/shadow_runtime_collection_provider.dart';
@@ -187,6 +188,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final List<OverworldActorComponent> _npcActors = [];
   final ShadowRuntimeCollectionController _actorShadowCollectionController =
       ShadowRuntimeCollectionController();
+  final Map<String, ShadowRuntimeInstructionCollection>
+      _projectedBuildingShadowCollectionByMapId =
+      <String, ShadowRuntimeInstructionCollection>{};
   final Map<String, ShadowRuntimeInstructionCollection>
       _staticShadowCollectionByMapId =
       <String, ShadowRuntimeInstructionCollection>{};
@@ -1675,6 +1679,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ) {
     final collections = <ShadowRuntimeInstructionCollection>[];
     if (enableStaticPlacedElementShadows) {
+      final projectedBuildingCollection =
+          _projectedBuildingShadowCollectionByMapId[mapId];
+      if (projectedBuildingCollection != null &&
+          projectedBuildingCollection.isNotEmpty) {
+        collections.add(projectedBuildingCollection);
+      }
       final staticCollection = _staticShadowCollectionByMapId[mapId];
       if (staticCollection != null && staticCollection.isNotEmpty) {
         collections.add(staticCollection);
@@ -1704,6 +1714,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         sources: _actorContactShadowSources(),
       ),
     );
+  }
+
+  void _refreshProjectedBuildingShadowCollection(RuntimeMapBundle bundle) {
+    if (shadowCollectionProvider != null || !enableStaticPlacedElementShadows) {
+      _projectedBuildingShadowCollectionByMapId.remove(bundle.map.id);
+      return;
+    }
+    final collection = buildRuntimeProjectedBuildingShadowCollection(
+      manifest: bundle.manifest,
+      mapData: bundle.map,
+    );
+    if (collection.isEmpty) {
+      _projectedBuildingShadowCollectionByMapId.remove(bundle.map.id);
+      return;
+    }
+    _projectedBuildingShadowCollectionByMapId[bundle.map.id] = collection;
   }
 
   void _refreshStaticPlacedElementShadowCollection(RuntimeMapBundle bundle) {
@@ -5086,6 +5112,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           npcActors: activeLoaded.npcActors,
           npcActorByEntityId: activeLoaded.npcActorByEntityId,
         );
+        _refreshProjectedBuildingShadowCollection(_bundle);
         _refreshStaticPlacedElementShadowCollection(_bundle);
       }
       debugPrint(
@@ -6529,6 +6556,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       actor.removeFromParent();
       _npcActors.remove(actor);
     }
+    _projectedBuildingShadowCollectionByMapId.remove(mapId);
     _staticShadowCollectionByMapId.remove(mapId);
   }
 
@@ -6642,6 +6670,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       npcActorByEntityId: npcActorByEntityId,
     );
     _loadedMapsById[bundle.map.id] = loaded;
+    _refreshProjectedBuildingShadowCollection(bundle);
     _refreshStaticPlacedElementShadowCollection(bundle);
     _applyNpcVisibilityToLoadedMap(loaded);
     return loaded;
