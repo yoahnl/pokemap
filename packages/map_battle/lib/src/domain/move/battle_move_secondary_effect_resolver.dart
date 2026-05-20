@@ -3,6 +3,7 @@ import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../effect/ability/mental_immunity_ability_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/move/confusion_effect.dart';
 import '../handler/battle_handler_context.dart';
@@ -83,6 +84,12 @@ final class BattleMoveSecondaryEffectResolver {
             state: nextState,
             user: user,
             target: target,
+          ) &&
+          !battleMentalAbilityBlocksEffect(
+            state: nextState,
+            user: user,
+            target: target,
+            effectId: PsdkBattleEffectIds.confusion,
           ) &&
           !nextState
               .battlerAt(target)

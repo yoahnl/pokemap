@@ -9471,15 +9471,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 328,
+      "ported": 330,
       "partial": 35,
-      "missing": 119
+      "missing": 117
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 177,
+        "ported": 179,
         "partial": 17,
-        "missing": 60
+        "missing": 58
       },
       "move": {
         "ported": 80,
@@ -11155,7 +11155,7 @@
       {
         "effectName": "InnerFocus",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Inner Focus.rb",
         "hookFamilies": [
           "status_prevention"
@@ -11867,7 +11867,7 @@
       {
         "effectName": "OwnTempo",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Own Tempo.rb",
         "hookFamilies": [
           "status_prevention"

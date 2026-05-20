@@ -44,6 +44,16 @@ void main() {
           battleEngineMethod: 's_psychic_noise',
         ),
       );
+      final oblivious = _runMove(
+        opponentAbilityId: 'oblivious',
+        playerMove: _move(
+          id: 'psychic_noise',
+          type: 'psychic',
+          category: PsdkBattleMoveCategory.special,
+          power: 75,
+          battleEngineMethod: 's_psychic_noise',
+        ),
+      );
 
       expect(_damage(applied, moveId: 'psychic_noise'), greaterThan(0));
       expect(
@@ -59,6 +69,13 @@ void main() {
             .effects
             .contains('heal_block'),
         isFalse,
+      );
+      expect(
+        oblivious.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('heal_block'),
+        isTrue,
       );
     });
 
@@ -229,6 +246,33 @@ void main() {
       final target = result.state.battlerAt(psdkOpponentSlot);
       expect(_damage(result, moveId: 'alluring_voice'), greaterThan(0));
       expect(target.effects.contains('confusion'), isTrue);
+    });
+
+    test('s_alluring_voice respects Own Tempo for confusion', () {
+      final result = _runMove(
+        opponentAbilityId: 'own_tempo',
+        opponentStatHistory: PsdkBattleStatHistory(
+          entries: const <PsdkBattleStatHistoryEntry>[
+            PsdkBattleStatHistoryEntry(
+              turn: 1,
+              stat: 'attack',
+              delta: 1,
+              currentStage: 1,
+            ),
+          ],
+        ),
+        playerMove: _move(
+          id: 'alluring_voice',
+          type: 'fairy',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+          battleEngineMethod: 's_alluring_voice',
+        ),
+      );
+
+      final target = result.state.battlerAt(psdkOpponentSlot);
+      expect(_damage(result, moveId: 'alluring_voice'), greaterThan(0));
+      expect(target.effects.contains('confusion'), isFalse);
     });
 
     test('s_burning_jealousy burns targets boosted this turn', () {

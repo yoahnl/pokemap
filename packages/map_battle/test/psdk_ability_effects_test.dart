@@ -337,18 +337,30 @@ void main() {
     });
 
     test('Intimidate does not lower Gen 8 immune abilities', () {
-      final result = _dispatchAbilitySwitchIn(
-        playerAbilityId: 'intimidate',
-        opponentAbilityId: 'inner_focus',
-      );
+      for (final abilityId in <String>[
+        'own_tempo',
+        'oblivious',
+        'inner_focus',
+        'scrappy',
+      ]) {
+        final result = _dispatchAbilitySwitchIn(
+          playerAbilityId: 'intimidate',
+          opponentAbilityId: abilityId,
+        );
 
-      expect(result.applied, isFalse);
-      expect(result.reason, 'no_switch_events');
-      expect(
-        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
-        0,
-      );
-      expect(result.events.whereType<PsdkBattleStatStageEvent>(), isEmpty);
+        expect(result.applied, isFalse, reason: abilityId);
+        expect(result.reason, 'no_switch_events', reason: abilityId);
+        expect(
+          result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+          0,
+          reason: abilityId,
+        );
+        expect(
+          result.events.whereType<PsdkBattleStatStageEvent>(),
+          isEmpty,
+          reason: abilityId,
+        );
+      }
     });
 
     test('Rattled gains Speed after an activated Intimidate stat drop', () {

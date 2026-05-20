@@ -295,6 +295,57 @@ void main() {
       );
     });
 
+    test('s_status respects Own Tempo and Mold Breaker for confusion', () {
+      final blocked = _runMove(
+        genericSeed: 1,
+        opponentAbilityId: 'own_tempo',
+        playerMove: _move(
+          id: 'confuse_ray',
+          battleEngineMethod: 's_status',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.confusion,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final bypassed = _runMove(
+        genericSeed: 1,
+        playerAbilityId: 'mold_breaker',
+        opponentAbilityId: 'own_tempo',
+        playerMove: _move(
+          id: 'confuse_ray',
+          battleEngineMethod: 's_status',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.confusion,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        blocked.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isFalse,
+      );
+      expect(
+        bypassed.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isTrue,
+      );
+    });
+
     test('s_status fails when the target already has a major status', () {
       final result = _runMove(
         opponentMajorStatus: PsdkBattleMajorStatus.burn,
@@ -506,6 +557,8 @@ void main() {
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleMoveData? opponentMove,
+  String? playerAbilityId,
+  String? opponentAbilityId,
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleStatStages? playerStatStages,
@@ -520,12 +573,14 @@ PsdkBattleTurnResult _runMove({
         id: 'player',
         speed: 100,
         move: playerMove,
+        abilityId: playerAbilityId,
         majorStatus: playerMajorStatus,
         statStages: playerStatStages,
       ),
       opponent: _combatant(
         id: 'opponent',
         speed: 1,
+        abilityId: opponentAbilityId,
         move: opponentMove ??
             _move(
               id: 'opponent_wait',
@@ -552,6 +607,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required PsdkBattleMoveData move,
+  String? abilityId,
   PsdkBattleMajorStatus? majorStatus,
   PsdkBattleStatStages? statStages,
   PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
@@ -564,6 +620,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: 100,
+    abilityId: abilityId,
     types: types,
     stats: PsdkBattleStats(
       attack: 50,
