@@ -9476,14 +9476,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 368,
-      "partial": 31,
+      "ported": 371,
+      "partial": 28,
       "missing": 83
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 195,
-        "partial": 17,
+        "ported": 198,
+        "partial": 14,
         "missing": 42
       },
       "move": {
@@ -9582,7 +9582,7 @@
       {
         "effectName": "AngerShell",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Anger Shell.rb",
         "hookFamilies": [
           "post_damage"
@@ -9819,7 +9819,7 @@
       {
         "effectName": "Berserk",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Berserk.rb",
         "hookFamilies": [
           "post_damage"
@@ -11827,7 +11827,7 @@
       {
         "effectName": "Opportunist",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Opportunist.rb",
         "hookFamilies": [
           "action_order",
