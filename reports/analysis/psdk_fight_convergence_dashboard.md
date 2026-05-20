@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-20T00:03:29.319894Z
+Generated: 2026-05-20T00:32:58.429899Z
 
 ## Final Gate Axes
 
@@ -8,13 +8,13 @@ Generated: 2026-05-20T00:03:29.319894Z
 | --- | ---: | ---: | ---: |
 | Attacks | 377 / 728 | 51.8% | 351 |
 | Methods | 191 / 330 | 57.9% | 139 |
-| Effects | 319 / 482 | 66.2% | 163 |
+| Effects | 323 / 482 | 67.0% | 159 |
 
 ## Effects By Family
 
 | Family | Ported | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: | ---: |
-| ability | 168 | 19 | 67 | 86 |
+| ability | 172 | 17 | 65 | 82 |
 | field | 15 | 0 | 0 | 0 |
 | item | 45 | 10 | 32 | 42 |
 | mechanics | 4 | 0 | 0 | 0 |
@@ -34,16 +34,16 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 
 | Hook family | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: |
-| switch | 4 | 24 | 28 |
-| post_damage | 6 | 18 | 24 |
-| unclassified | 7 | 11 | 18 |
+| switch | 3 | 24 | 27 |
+| post_damage | 6 | 16 | 22 |
+| unclassified | 5 | 11 | 16 |
 | status_prevention | 0 | 7 | 7 |
 | action_order | 2 | 4 | 6 |
 | end_turn | 1 | 5 | 6 |
 | move_prevention | 0 | 6 | 6 |
-| weather_change | 2 | 3 | 5 |
-| ability_change | 2 | 2 | 4 |
 | stat_change | 1 | 3 | 4 |
+| weather_change | 1 | 3 | 4 |
+| ability_change | 1 | 2 | 3 |
 | damage_prevention | 0 | 2 | 2 |
 | item_change | 0 | 2 | 2 |
 | ability_immunity | 1 | 0 | 1 |
@@ -71,4 +71,4 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 
 ## Next Recommendation
 
-Next recommended lot: close effect family `ability` (86 remaining effects).
+Next recommended lot: close effect family `ability` (82 remaining effects).

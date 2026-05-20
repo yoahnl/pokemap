@@ -36,6 +36,13 @@ final class BattleMoveDamageCalculator {
         typeEffectivenessMultiplier: 1,
       );
     }
+    if (_hardWeatherBlocksMove(context, moveType)) {
+      return BattleMoveDamageResult.zero(
+        rng: context.rng,
+        stabMultiplier: 1,
+        typeEffectivenessMultiplier: 1,
+      );
+    }
 
     final stabMultiplier = _typeProcessor.resolveStabMultiplier(
       moveType: moveType,
@@ -50,6 +57,9 @@ final class BattleMoveDamageCalculator {
           moveType == 'ground' && _groundingResolver.isGrounded(context.target),
       foresight: context.target.effects.contains('foresight'),
       miracleEye: context.target.effects.contains('miracle_eye'),
+      neutralizeFlyingWeaknesses: _strongWindsNeutralizesFlyingWeaknesses(
+        context,
+      ),
     );
     if (effectiveness.isImmune) {
       return BattleMoveDamageResult.zero(
@@ -122,6 +132,24 @@ final class BattleMoveDamageCalculator {
       typeEffectivenessMultiplier: typeEffectivenessMultiplier,
     );
   }
+}
+
+bool _hardWeatherBlocksMove(BattleMoveDamageContext context, String moveType) {
+  if (_weatherEffectsSuppressed(context)) {
+    return false;
+  }
+  return switch (context.field.weather?.id) {
+    PsdkBattleWeatherId.hardrain when moveType == 'fire' => true,
+    PsdkBattleWeatherId.hardsun when moveType == 'water' => true,
+    _ => false,
+  };
+}
+
+bool _strongWindsNeutralizesFlyingWeaknesses(
+  BattleMoveDamageContext context,
+) {
+  return !_weatherEffectsSuppressed(context) &&
+      context.field.isWeatherActive(PsdkBattleWeatherId.strongWinds);
 }
 
 int _effectivePower(BattleMoveDamageContext context) {

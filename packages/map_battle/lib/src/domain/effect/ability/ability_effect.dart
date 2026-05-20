@@ -26,6 +26,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
     return currentOwner == slot;
   }
 
+  bool get affectsAlliesPostDamage => false;
+
   BattleMoveFailureReason? onMovePreventionUser(
     BattleAbilityMoveContext context,
   ) {

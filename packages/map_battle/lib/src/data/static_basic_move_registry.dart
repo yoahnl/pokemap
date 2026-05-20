@@ -1115,6 +1115,10 @@ BattleMoveBehaviorResolution _resolvePhotonGeyser(
       target: target,
       move: chosenMove,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
     ),
   );
   if (damageResult.damage <= 0) {
@@ -1282,6 +1286,10 @@ BattleMoveBehaviorResolution _resolvePursuit(
       target: target,
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: boosted
           ? BattleMoveDamageOverrides(power: context.move.power * 2)
           : null,
@@ -1396,6 +1404,10 @@ BattleMoveBehaviorResolution _resolveFusionMove(
       target: prepared.state.battlerAt(targetSlot),
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: boosted
           ? BattleMoveDamageOverrides(power: context.move.power * 2)
           : null,
@@ -1652,6 +1664,10 @@ BattleMoveBehaviorResolution _resolveFeint(BattleMoveBehaviorContext context) {
       target: target,
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: _targetProtectedThisTurn(target, context.turn)
           ? const BattleMoveDamageOverrides(power: 50)
           : null,
@@ -1858,6 +1874,10 @@ BattleMoveBehaviorResolution _resolveStomp(BattleMoveBehaviorContext context) {
       target: target,
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: isMinimized
           ? BattleMoveDamageOverrides(power: context.move.power * 2)
           : null,
@@ -1925,6 +1945,10 @@ BattleMoveBehaviorResolution _resolveGravApple(
       target: target,
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: gravityActive
           ? BattleMoveDamageOverrides(power: (context.move.power * 3) ~/ 2)
           : null,
@@ -2000,6 +2024,10 @@ BattleMoveBehaviorResolution _resolveMagnitude(
       target: target,
       move: context.move,
       rng: rngAfterMagnitude,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: BattleMoveDamageOverrides(power: resolvedPower),
     ),
   );
@@ -2097,6 +2125,10 @@ BattleMoveBehaviorResolution _resolvePresent(
       target: target,
       move: context.move,
       rng: rngAfterPower,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: BattleMoveDamageOverrides(power: resolvedPower),
     ),
   );
@@ -2192,6 +2224,10 @@ BattleMoveBehaviorResolution _resolveFickleBeam(
       target: target,
       move: context.move,
       rng: rngAfterEmpowerment,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: empowered
           ? BattleMoveDamageOverrides(power: context.move.power * 2)
           : null,
@@ -2265,6 +2301,10 @@ BattleMoveBehaviorResolution _resolveShellSideArm(
       target: target,
       move: physicalMove,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
     ),
   );
   final specialResult = calculator.calculate(
@@ -2273,6 +2313,10 @@ BattleMoveBehaviorResolution _resolveShellSideArm(
       target: target,
       move: specialMove,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
     ),
   );
   final physicalDamage = _screenAdjustedDamage(
@@ -2400,6 +2444,10 @@ BattleMoveBehaviorResolution _resolveElectroShot(
       target: target,
       move: context.move,
       rng: boosted.rng,
+      field: boosted.state.field,
+      state: boosted.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
     ),
   );
   if (damageResult.damage <= 0) {
@@ -2505,6 +2553,10 @@ BattleMoveBehaviorResolution _resolveLastRespects(
       target: target,
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
       overrides: BattleMoveDamageOverrides(
         power: context.move.power * multiplier,
       ),
@@ -2571,6 +2623,10 @@ BattleMoveBehaviorResolution _resolveSuperDuperEffective(
       target: target,
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
     ),
   );
   if (damageResult.damage <= 0) {
@@ -2737,6 +2793,10 @@ BattleMoveBehaviorResolution _resolveJumpKick(
       target: target,
       move: context.move,
       rng: prepared.rng,
+      field: prepared.state.field,
+      state: prepared.state,
+      userSlot: context.user,
+      targetSlot: targetSlot,
     ),
   );
   if (damageResult.damage <= 0) {

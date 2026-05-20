@@ -145,6 +145,10 @@ final class WeatherPowerMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: effectiveMove,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
       ),
     );
     if (damageResult.damage <= 0) {

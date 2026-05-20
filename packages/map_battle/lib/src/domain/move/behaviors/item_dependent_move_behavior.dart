@@ -199,6 +199,10 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
         overrides: BattleMoveDamageOverrides(power: power),
       ),
     );

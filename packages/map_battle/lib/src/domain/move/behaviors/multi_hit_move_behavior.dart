@@ -137,6 +137,10 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
           target: targetBattler,
           move: context.move,
           rng: rng,
+          field: state.field,
+          state: state,
+          userSlot: context.user,
+          targetSlot: target,
           overrides: BattleMoveDamageOverrides(
             power: _powerForHit(
               movePower: context.move.power,

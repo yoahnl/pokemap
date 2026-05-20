@@ -127,6 +127,10 @@ final class StatusCureMoveBehavior implements BattleMoveBehavior {
           target: target,
           move: context.move,
           rng: rng,
+          field: state.field,
+          state: state,
+          userSlot: context.user,
+          targetSlot: targetSlot,
         ),
       );
       rng = damageResult.rng;

@@ -143,6 +143,11 @@ final class BattleDamageHandler {
     final owners = <PsdkBattleSlotRef>[
       target,
       if (context.user != target) context.user,
+      if (nextState.battlerAt(target).isFainted)
+        for (final owner in nextState.alliesOf(target))
+          if (owner != context.user &&
+              _observesAllyPostDamage(nextState, owner))
+            owner,
     ];
     for (final owner in owners) {
       final result = nextState.battlerAt(owner).effects.dispatchPostDamage(
@@ -199,6 +204,15 @@ final class BattleDamageHandler {
       stages: 1,
     );
   }
+}
+
+bool _observesAllyPostDamage(
+  PsdkBattleState state,
+  PsdkBattleSlotRef owner,
+) {
+  return state.battlerAt(owner).abilityEffects.any(
+        (effect) => effect.affectsAlliesPostDamage,
+      );
 }
 
 const _abilityPreventionBypassAbilityIds = <String>{

@@ -354,6 +354,55 @@ final class PostDamageKoStatBoostAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class SoulHeartEffect extends BattleAbilityEffect {
+  const SoulHeartEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'soul_heart', scope: scope);
+
+  @override
+  bool get affectsAlliesPostDamage => true;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SoulHeartEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner == context.target ||
+        context.owner.bank != context.target.bank ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        !context.targetFainted ||
+        context.state.battlerAt(context.owner).isFainted) {
+      return null;
+    }
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      stat: 'specialAttack',
+      stages: 1,
+      move: context.move,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectPostDamageResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
 final class HalfHpThresholdStatChangeAbilityEffect extends BattleAbilityEffect {
   const HalfHpThresholdStatChangeAbilityEffect({
     required String abilityId,
