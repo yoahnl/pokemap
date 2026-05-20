@@ -217,9 +217,12 @@ void main() {
         counts.values.fold<int>(0, (total, count) => total + count),
         remaining.length,
       );
-      for (final batch in PsdkItemEffectBatch.values) {
+      for (final batch in PsdkItemEffectBatch.values.where(
+        (batch) => batch != PsdkItemEffectBatch.weatherTerrainField,
+      )) {
         expect(counts[batch], greaterThan(0), reason: batch.name);
       }
+      expect(counts[PsdkItemEffectBatch.weatherTerrainField], 0);
       expect(byId['babiri_berry']!.batch, PsdkItemEffectBatch.berries);
       expect(
         byId['adamant_orb']!.batch,
@@ -441,6 +444,25 @@ void main() {
       expect(byId['shell_bell']!.dartEffect, isNotNull);
       expect(registry.statusOf('shell_bell'), PsdkItemPortStatus.partial);
       expect(registry.create('shell_bell', owner: psdkPlayerSlot), isNotNull);
+    });
+
+    test('Lot 251 remaining hook-compatible held items are tracked', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'poison_barb',
+        'safety_goggles',
+        'sticky_barb',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
     });
 
     test('item lifecycle snapshots distinguish held, consumed, and removed',

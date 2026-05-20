@@ -97,6 +97,47 @@ void main() {
       expect(_statusEvents(toxic), isEmpty);
     });
 
+    test('Safety Goggles blocks powder moves targeting the holder', () {
+      final effect = ItemEffectRegistry()
+          .create('safety_goggles', owner: psdkOpponentSlot);
+
+      final blocked = effect!.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _moveDefinition(
+            id: 'sleep_powder',
+            type: 'grass',
+            power: 0,
+            flags: const BattleMoveFlags(powder: true),
+          ),
+        ),
+      );
+      final nonPowder = effect.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _moveDefinition(id: 'growl', power: 0),
+        ),
+      );
+      final wrongTarget = effect.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 1, position: 0),
+          target: const BattlePositionRef(bank: 0, position: 0),
+          move: _moveDefinition(
+            id: 'stun_spore',
+            type: 'grass',
+            power: 0,
+            flags: const BattleMoveFlags(powder: true),
+          ),
+        ),
+      );
+
+      expect(blocked, BattleMoveFailureReason.immunity);
+      expect(nonPowder, isNull);
+      expect(wrongTarget, isNull);
+    });
+
     test('terrain seeds consume after matching terrain is set', () {
       final electric = _changeTerrain(
         opponentHeldItemId: 'electric_seed',
@@ -372,6 +413,79 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
       expect(_damageEvents(result).map((event) => event.moveId),
           <String>['swift']);
+    });
+
+    test('Sticky Barb transfers to an itemless contact attacker', () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'sticky_barb',
+        rawDamage: 20,
+        moveDefinition: _moveDefinition(
+          id: 'scratch',
+          type: 'normal',
+          power: 40,
+          flags: const BattleMoveFlags(contact: true),
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.heldItemId, 'sticky_barb');
+      expect(player.itemConsumed, isFalse);
+      expect(opponent.heldItemId, isNull);
+      expect(opponent.itemConsumed, isFalse);
+      expect(_damageEvents(result).map((event) => event.moveId),
+          <String>['scratch']);
+    });
+
+    test('Sticky Barb does not transfer to an attacker already holding an item',
+        () {
+      final result = _damageOpponent(
+        playerHeldItemId: 'leftovers',
+        opponentHeldItemId: 'sticky_barb',
+        rawDamage: 20,
+        moveDefinition: _moveDefinition(
+          id: 'scratch',
+          type: 'normal',
+          power: 40,
+          flags: const BattleMoveFlags(contact: true),
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, 'leftovers');
+      expect(
+          result.state.battlerAt(psdkOpponentSlot).heldItemId, 'sticky_barb');
+    });
+
+    test('Sticky Barb can transfer after fatal contact damage', () {
+      final result = _damageOpponent(
+        opponentHeldItemId: 'sticky_barb',
+        rawDamage: 120,
+        moveDefinition: _moveDefinition(
+          id: 'scratch',
+          type: 'normal',
+          power: 40,
+          flags: const BattleMoveFlags(contact: true),
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 0);
+      expect(result.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, 'sticky_barb');
+    });
+
+    test('Sticky Barb damages holders at end turn and respects Magic Guard',
+        () {
+      final damaged = _tickOpponentEndTurn(opponentHeldItemId: 'sticky_barb');
+      final guarded = _tickOpponentEndTurn(
+        opponentHeldItemId: 'sticky_barb',
+        opponentAbilityId: 'magic_guard',
+      );
+
+      expect(damaged.state.battlerAt(psdkOpponentSlot).currentHp, 88);
+      expect(_damageEvents(damaged).single.moveId, 'item:sticky_barb');
+      expect(_damageEvents(damaged).single.damage, 12);
+      expect(guarded.state.battlerAt(psdkOpponentSlot).currentHp, 100);
+      expect(_damageEvents(guarded), isEmpty);
     });
 
     test('Shell Bell heals the damaging holder for one eighth of damage', () {

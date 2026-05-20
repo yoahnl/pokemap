@@ -202,7 +202,7 @@ final class BattleMoveImmunityResolver {
       user: execution.actualUser,
       target: targetRef,
       move: execution.move,
-      where: (effect) => _abilityPreventionHookIsActive(
+      where: (effect) => _targetPreventionHookIsActive(
         owner: target,
         effect: effect,
         abilityBypassed: abilityBypassed,
@@ -223,7 +223,7 @@ final class BattleMoveImmunityResolver {
         if (scope is! BankBattleEffectScope || scope.bank != targetRef.bank) {
           continue;
         }
-        if (!_abilityPreventionHookIsActive(
+        if (!_targetPreventionHookIsActive(
           owner: owner,
           effect: effect,
           abilityBypassed: abilityBypassed,
@@ -251,15 +251,20 @@ final class BattleMoveImmunityResolver {
     );
   }
 
-  bool _abilityPreventionHookIsActive({
+  bool _targetPreventionHookIsActive({
     required PsdkBattleCombatant owner,
     required BattleEffect effect,
     required bool abilityBypassed,
   }) {
-    if (effect is! BattleAbilityEffect) {
-      return true;
+    if (effect is BattleAbilityEffect) {
+      return !owner.effects.contains('ability_suppressed') && !abilityBypassed;
     }
-    return !owner.effects.contains('ability_suppressed') && !abilityBypassed;
+    if (effect is BattleItemEffect) {
+      return owner.heldItemId == effect.itemId &&
+          !owner.itemConsumed &&
+          !owner.itemEffectsSuppressed;
+    }
+    return true;
   }
 }
 

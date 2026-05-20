@@ -226,6 +226,105 @@ final class RockyHelmetEffect extends BattleItemEffect {
   }
 }
 
+final class StickyBarbEffect extends BattleItemEffect {
+  const StickyBarbEffect({
+    required BattleEffectScope scope,
+  }) : super(itemId: 'sticky_barb', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return StickyBarbEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    final owner = this.owner;
+    if (owner == null ||
+        context.owner != owner ||
+        context.target != owner ||
+        context.user == owner ||
+        context.damage <= 0 ||
+        !context.move.flags.contact ||
+        _isInertDamage(context.move.id)) {
+      return null;
+    }
+    if (!_hasActiveHeldItem(context.state.battlerAt(owner), itemId)) {
+      return null;
+    }
+
+    final attacker = context.state.battlerAt(context.user);
+    if (attacker.isFainted || attacker.heldItemId != null) {
+      return null;
+    }
+
+    final transferred = const BattleItemChangeHandler().changeHeldItem(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: context.user,
+      heldItemId: itemId,
+    );
+    final removed = const BattleItemChangeHandler().changeHeldItem(
+      context: BattleHandlerContext(
+        state: transferred.state,
+        rng: transferred.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: owner,
+      heldItemId: null,
+    );
+    return BattleEffectPostDamageResult(
+      state: removed.state,
+      rng: removed.rng,
+      events: <PsdkBattleEvent>[
+        ...transferred.events,
+        ...removed.events,
+      ],
+    );
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    final owner = context.owner;
+    if (!isOwnedBy(owner)) {
+      return null;
+    }
+    final holder = context.state.battlerAt(owner);
+    if (!_hasActiveHeldItem(holder, itemId) ||
+        holder.isFainted ||
+        holder.abilityId == 'magic_guard') {
+      return null;
+    }
+
+    final amount = (holder.maxHp ~/ 8).clamp(1, holder.currentHp).toInt();
+    final damaged = const BattleDamageHandler().applyDamage(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: owner,
+      moveId: 'item:sticky_barb',
+      rawDamage: amount,
+    );
+    if (!damaged.applied) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: damaged.state,
+      rng: damaged.rng,
+      events: damaged.events,
+    );
+  }
+}
+
 final class ShellBellEffect extends BattleItemEffect {
   const ShellBellEffect({
     required BattleEffectScope scope,
