@@ -18,6 +18,7 @@ import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
 import 'item_change_ability_effect.dart';
 import 'levitate_effect.dart';
+import 'mental_immunity_ability_effect.dart';
 import 'mimicry_effect.dart';
 import 'mold_breaker_ability_effect.dart';
 import 'move_shape_power_ability_effect.dart';
@@ -136,12 +137,20 @@ final class AbilityEffectRegistry {
           abilityId: 'overcoat',
           scope: scope,
         ),
-    'aroma_veil': ({required scope}) => GenericBattleEffect(
-          id: 'ability:aroma_veil',
+    'aroma_veil': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'aroma_veil',
           scope: scope,
         ),
-    'oblivious': ({required scope}) => GenericBattleEffect(
-          id: 'ability:oblivious',
+    'inner_focus': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'inner_focus',
+          scope: scope,
+        ),
+    'oblivious': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'oblivious',
+          scope: scope,
+        ),
+    'own_tempo': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'own_tempo',
           scope: scope,
         ),
     'bulletproof': ({required scope}) => BulletproofEffect(scope: scope),

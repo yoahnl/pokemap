@@ -56,6 +56,7 @@ import '../domain/handler/battle_item_change_handler.dart';
 import '../domain/handler/battle_stat_change_handler.dart';
 import '../domain/handler/battle_switch_handler.dart';
 import '../domain/handler/battle_terrain_change_handler.dart';
+import '../domain/effect/ability/mental_immunity_ability_effect.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/field/delayed_move_effect.dart';
@@ -4273,68 +4274,18 @@ BattleEffect _targetMarkerEffect({
   };
 }
 
-const _mentalAbilityBlockedEffectIds = <String>{
-  'attract',
-  'disable',
-  'encore',
-  'heal_block',
-  'taunt',
-  'torment',
-};
-
-const _mentalAbilityBypassIds = <String>{
-  'mold_breaker',
-  'teravolt',
-  'turboblaze',
-};
-
 bool _mentalAbilityBlocksEffect({
   required PsdkBattleState state,
   required PsdkBattleSlotRef user,
   required PsdkBattleSlotRef target,
   required String effectId,
 }) {
-  if (!_mentalAbilityBlockedEffectIds.contains(effectId) ||
-      _userBypassesMentalAbility(state: state, user: user)) {
-    return false;
-  }
-
-  final battler = state.battlerAt(target);
-  if (_mentalAbilityActive(battler, const <String>{
-    'aroma_veil',
-    'oblivious',
-  })) {
-    return true;
-  }
-
-  return state.aliveSlots().any((slot) {
-    if (slot.bank != target.bank) {
-      return false;
-    }
-    return _mentalAbilityActive(
-      state.battlerAt(slot),
-      const <String>{'aroma_veil'},
-    );
-  });
-}
-
-bool _mentalAbilityActive(
-  PsdkBattleCombatant battler,
-  Set<String> abilityIds,
-) {
-  return abilityIds.contains(_normalizedId(battler.abilityId)) &&
-      !battler.effects.contains('ability_suppressed');
-}
-
-bool _userBypassesMentalAbility({
-  required PsdkBattleState state,
-  required PsdkBattleSlotRef user,
-}) {
-  final battler = state.battlerAt(user);
-  if (battler.effects.contains('ability_suppressed')) {
-    return false;
-  }
-  return _mentalAbilityBypassIds.contains(_normalizedId(battler.abilityId));
+  return battleMentalAbilityBlocksEffect(
+    state: state,
+    user: user,
+    target: target,
+    effectId: effectId,
+  );
 }
 
 bool _gastroAcidBlockedTarget({

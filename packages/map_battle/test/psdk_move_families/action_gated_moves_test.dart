@@ -162,6 +162,41 @@ void main() {
       expect(_damageEvents(result, moveId: 'fake_out'), hasLength(1));
       expect(_damageEvents(result, moveId: 'opponent_tackle'), isEmpty);
     });
+
+    test('s_fake_out respects Inner Focus and Mold Breaker for flinch', () {
+      final blocked = _runMove(
+        playerBattleTurnCount: 1,
+        playerSpeed: 100,
+        opponentSpeed: 1,
+        opponentAbilityId: 'inner_focus',
+        playerMove: _move(
+          id: 'fake_out',
+          power: 40,
+          battleEngineMethod: 's_fake_out',
+        ),
+        opponentMove: _move(id: 'opponent_tackle', power: 40),
+      );
+      final bypassed = _runMove(
+        playerAbilityId: 'mold_breaker',
+        playerBattleTurnCount: 1,
+        playerSpeed: 100,
+        opponentSpeed: 1,
+        opponentAbilityId: 'inner_focus',
+        playerMove: _move(
+          id: 'fake_out',
+          power: 40,
+          battleEngineMethod: 's_fake_out',
+        ),
+        opponentMove: _move(id: 'opponent_tackle', power: 40),
+      );
+
+      expect(_failures(blocked), isEmpty);
+      expect(_damageEvents(blocked, moveId: 'fake_out'), hasLength(1));
+      expect(_damageEvents(blocked, moveId: 'opponent_tackle'), hasLength(1));
+      expect(_failures(bypassed), hasLength(1));
+      expect(_failures(bypassed).single.moveId, 'opponent_tackle');
+      expect(_damageEvents(bypassed, moveId: 'opponent_tackle'), isEmpty);
+    });
   });
 }
 
@@ -170,6 +205,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleMoveData? opponentMove,
   PsdkBattleMajorStatus? playerMajorStatus,
   String? playerAbilityId,
+  String? opponentAbilityId,
   int playerSpeed = 100,
   int opponentSpeed = 1,
   int playerBattleTurnCount = 0,
@@ -187,6 +223,7 @@ PsdkBattleTurnResult _runMove({
       opponent: _combatant(
         id: 'opponent',
         speed: opponentSpeed,
+        abilityId: opponentAbilityId,
         move: opponentMove ??
             _move(
               id: 'opponent_wait',

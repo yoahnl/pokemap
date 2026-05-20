@@ -91,6 +91,24 @@ void main() {
       expect(player.effects.contains('confusion'), isTrue);
     });
 
+    test('s_thrash respects Own Tempo when the lock ends', () {
+      final engine = _engine(
+        genericSeed: 4,
+        playerAbilityId: 'own_tempo',
+        playerMoves: <PsdkBattleMoveData>[
+          _move(id: 'thrash', power: 120, battleEngineMethod: 's_thrash'),
+        ],
+      );
+
+      engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      final player = second.state.battlerAt(psdkPlayerSlot);
+      expect(_damage(second, moveId: 'thrash'), greaterThan(0));
+      expect(player.effects.contains('force_next_move_base'), isFalse);
+      expect(player.effects.contains('confusion'), isFalse);
+    });
+
     test('s_outrage uses the same repeated-action lock as Thrash', () {
       final result = _runMove(
         playerMove: _move(
@@ -245,16 +263,19 @@ void main() {
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleMoveHistory? playerMoveHistory,
+  String? playerAbilityId,
 }) {
   return _engine(
     playerMoves: <PsdkBattleMoveData>[playerMove],
     playerMoveHistory: playerMoveHistory,
+    playerAbilityId: playerAbilityId,
   ).submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
 PsdkBattleEngine _engine({
   required List<PsdkBattleMoveData> playerMoves,
   PsdkBattleMoveHistory? playerMoveHistory,
+  String? playerAbilityId,
   PsdkBattleMajorStatus? playerMajorStatus,
   int playerSleepTurns = 0,
   PsdkBattleEffectStack? playerEffects,
@@ -265,6 +286,7 @@ PsdkBattleEngine _engine({
       player: _combatant(
         id: 'player',
         speed: 100,
+        abilityId: playerAbilityId,
         moveHistory: playerMoveHistory,
         majorStatus: playerMajorStatus,
         sleepTurns: playerSleepTurns,
@@ -298,6 +320,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required List<PsdkBattleMoveData> moves,
+  String? abilityId,
   PsdkBattleMoveHistory? moveHistory,
   PsdkBattleMajorStatus? majorStatus,
   int sleepTurns = 0,
@@ -310,6 +333,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: 100,
+    abilityId: abilityId,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: PsdkBattleStats(
       attack: 50,

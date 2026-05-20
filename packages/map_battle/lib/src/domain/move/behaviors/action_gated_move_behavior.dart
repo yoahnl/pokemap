@@ -1,6 +1,7 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/ability/mental_immunity_ability_effect.dart';
 import '../../effect/battle_effect_scope.dart';
 import '../../effect/move/flinch_effect.dart';
 import '../battle_move_behavior.dart';
@@ -142,7 +143,14 @@ final class ActionGatedMoveBehavior
       move: context.move,
       turn: context.turn,
     );
-    final flinched = _kind == _ActionGatedKind.fakeOut
+    final shouldFlinch = _kind == _ActionGatedKind.fakeOut &&
+        !battleMentalAbilityBlocksEffect(
+          state: secondary.state,
+          user: context.user,
+          target: targetSlot,
+          effectId: 'flinch',
+        );
+    final flinched = shouldFlinch
         ? secondary.state.updateBattler(
             targetSlot,
             (battler) => battler.copyWith(

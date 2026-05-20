@@ -1,4 +1,5 @@
 import '../../../domain/effect/battle_effect.dart';
+import '../../../domain/effect/ability/mental_immunity_ability_effect.dart';
 import '../../../domain/effect/battle_effect_scope.dart';
 import '../../../domain/effect/move/confusion_effect.dart';
 import '../../../domain/effect/move/force_next_move_base_effect.dart';
@@ -208,11 +209,22 @@ final class ForcedActionMoveBehavior
       return _ForcedActionEffectResult(
         state: state.updateBattler(
           user,
-          (current) => current.copyWith(
-            effects: current.effects.remove(lock.id).addEffect(
-                  ConfusionEffect(scope: BattlerBattleEffectScope(user)),
-                ),
-          ),
+          (current) {
+            final clearedEffects = current.effects.remove(lock.id);
+            if (battleMentalAbilityBlocksEffect(
+              state: state,
+              user: user,
+              target: user,
+              effectId: PsdkBattleEffectIds.confusion,
+            )) {
+              return current.copyWith(effects: clearedEffects);
+            }
+            return current.copyWith(
+              effects: clearedEffects.addEffect(
+                ConfusionEffect(scope: BattlerBattleEffectScope(user)),
+              ),
+            );
+          },
         ),
         rng: rng,
       );

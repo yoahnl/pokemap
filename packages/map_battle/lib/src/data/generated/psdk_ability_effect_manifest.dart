@@ -72,7 +72,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mental Immunity.rb',
     status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'StaticBasicMoveRegistry.mentalImmunityPartial',
+    dartEffect: 'MentalImmunityAbilityEffect.aromaVeil.partialNoPostActionHook',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'as_one',
@@ -695,7 +695,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'inner_focus',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Inner Focus.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MentalImmunityAbilityEffect.innerFocus',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'insomnia',
@@ -947,7 +948,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mental Immunity.rb',
     status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'StaticBasicMoveRegistry.mentalImmunityPartial',
+    dartEffect: 'MentalImmunityAbilityEffect.oblivious.partialNoPostActionCure',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'opportunist',
@@ -981,7 +982,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'own_tempo',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Own Tempo.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MentalImmunityAbilityEffect.ownTempo',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'parental_bond',
