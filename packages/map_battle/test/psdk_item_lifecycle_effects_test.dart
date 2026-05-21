@@ -524,6 +524,48 @@ void main() {
       expect(_damageEvents(guarded), isEmpty);
     });
 
+    test('White Herb clears negative stat stages after a stat drop', () {
+      final setup = _state(
+        opponentHeldItemId: 'white_herb',
+        opponentCurrentHp: 100,
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'attack': 2,
+            'defense': -2,
+            'specialDefense': -1,
+          },
+        ),
+      );
+
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: setup,
+          rng: BattleRngStreams.fromSeedSnapshot(
+            const BattleRngSeeds(
+              moveDamage: 1,
+              moveCritical: 99999,
+              moveAccuracy: 3,
+              generic: 4,
+            ),
+          ),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        stat: 'speed',
+        stages: -1,
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.statStages.valueOf('attack'), 2);
+      expect(opponent.statStages.valueOf('defense'), 0);
+      expect(opponent.statStages.valueOf('specialDefense'), 0);
+      expect(opponent.statStages.valueOf('speed'), 0);
+      expect(opponent.heldItemId, isNull);
+      expect(opponent.consumedItemId, 'white_herb');
+      expect(_itemEvents(result).single.itemId, 'white_herb');
+    });
+
     test('Shell Bell heals the damaging holder for one eighth of damage', () {
       final result = _damageOpponent(
         playerHeldItemId: 'shell_bell',
@@ -716,6 +758,7 @@ PsdkBattleState _state({
   String? opponentAbilityId,
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleEffectStack? opponentEffects,
+  PsdkBattleStatStages? opponentStatStages,
 }) {
   return PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -732,6 +775,7 @@ PsdkBattleState _state({
         currentHp: opponentCurrentHp,
         types: opponentTypes,
         effects: opponentEffects,
+        statStages: opponentStatStages,
         move: _move(id: 'splash', power: 0),
       ),
       rngSeeds: const BattleRngSeeds(
@@ -752,6 +796,7 @@ PsdkBattleCombatantSetup _combatant({
   int currentHp = 100,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleEffectStack? effects,
+  PsdkBattleStatStages? statStages,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -771,6 +816,7 @@ PsdkBattleCombatantSetup _combatant({
     abilityId: abilityId,
     heldItemId: heldItemId,
     effects: effects,
+    statStages: statStages,
     moves: <PsdkBattleMoveData>[move],
   );
 }

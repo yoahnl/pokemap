@@ -120,6 +120,8 @@ abstract class BattleItemEffect extends BattleEffect {
     return null;
   }
 
+  bool twoTurnShortcut(BattleMoveDefinition move) => false;
+
   double damageBasePowerMultiplier(BattleItemDamageModifierContext context) {
     return 1;
   }

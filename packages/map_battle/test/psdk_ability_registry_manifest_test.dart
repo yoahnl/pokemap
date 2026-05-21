@@ -143,6 +143,7 @@ void main() {
         'arena_trap',
         'skill_link',
         'magnet_pull',
+        'speed_boost',
         'sand_stream',
         'screen_cleaner',
         'seed_sower',
@@ -210,7 +211,6 @@ void main() {
         'cotton_down',
         'electromorphosis',
         'oblivious',
-        'speed_boost',
       ]) {
         final entry = byId[abilityId];
 
@@ -240,6 +240,19 @@ void main() {
         expect(AbilityEffectRegistry().create(abilityId), isNotNull,
             reason: abilityId);
       }
+    });
+
+    test('Lot 257 residual Speed Boost ability is strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      expect(
+        byId['speed_boost']?.status,
+        PsdkAbilityPortStatus.ported,
+      );
+      expect(byId['speed_boost']?.dartEffect, 'SpeedBoostEffect');
+      expect(AbilityEffectRegistry().create('speed_boost'), isNotNull);
     });
 
     test('unknown abilities hydrate as safe inert ability markers', () {

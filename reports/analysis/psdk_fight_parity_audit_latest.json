@@ -9476,14 +9476,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 371,
-      "partial": 28,
-      "missing": 83
+      "ported": 374,
+      "partial": 27,
+      "missing": 81
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 198,
-        "partial": 14,
+        "ported": 199,
+        "partial": 13,
         "missing": 42
       },
       "move": {
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 64,
+        "ported": 66,
         "partial": 6,
-        "missing": 17
+        "missing": 15
       },
       "status": {
         "ported": 7,
@@ -12042,7 +12042,7 @@
       {
         "effectName": "PowerHerb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 PowerHerb.rb",
         "hookFamilies": [
           "two_turn_shortcut"
@@ -12726,7 +12726,7 @@
       {
         "effectName": "SpeedBoost",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Speed Boost.rb",
         "hookFamilies": [
           "end_turn",
@@ -13512,7 +13512,7 @@
       {
         "effectName": "WhiteHerb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 White Herb.rb",
         "hookFamilies": [
           "action_order"
