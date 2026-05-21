@@ -1260,7 +1260,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'run_away',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 RunAway.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RunAwayEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sand_force',

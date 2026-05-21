@@ -8,6 +8,7 @@ import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
 import 'berry_item_effect.dart';
 import 'black_sludge_effect.dart';
+import 'flee_passthrough_item_effect.dart';
 import 'flinch_item_effect.dart';
 import 'focus_item_effect.dart';
 import 'held_item_modifier_effect.dart';
@@ -52,6 +53,7 @@ final class ItemEffectRegistry {
     'safety_goggles': ({required scope}) => SafetyGogglesEffect(scope: scope),
     'shell_bell': ({required scope}) => ShellBellEffect(scope: scope),
     'shed_shell': ({required scope}) => ShedShellEffect(scope: scope),
+    'smoke_ball': ({required scope}) => SmokeBallEffect(scope: scope),
     'sticky_barb': ({required scope}) => StickyBarbEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
           scope: scope,
