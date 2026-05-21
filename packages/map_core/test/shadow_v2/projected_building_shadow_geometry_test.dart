@@ -269,6 +269,80 @@ void main() {
       );
     });
 
+    test(
+        'resolves pokemon-building-shadow-footprint-v1 geometry with selected calibration points',
+        () {
+      final preset = ProjectBuildingShadowPreset(
+        id: 'pokemon-building-shadow-footprint-v1',
+        name: 'Pokemon-like footprint building shadow V1',
+        geometryMode: ProjectedBuildingShadowGeometryMode.footprint,
+        direction: ProjectedShadowDirection(x: 0.8, y: 0.35),
+        shape: ProjectedShadowShapeTuning(
+          lengthRatio: 0.32,
+          nearWidthRatio: 0.90,
+          farWidthRatio: 0.72,
+        ),
+        footprint: ProjectedShadowFootprintTuning(
+          attachYRatio: 0.82,
+          frontWidthRatio: 1.30,
+          rearWidthRatio: 1.42,
+          depthRatio: 0.26,
+          skewXRatio: 0.08,
+        ),
+        appearance: ProjectedShadowAppearance(
+          opacity: 0.24,
+          colorHexRgb: '606060',
+        ),
+        timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+      );
+      final config = ProjectElementProjectedBuildingShadowConfig(
+        enabled: true,
+        presetId: 'pokemon-building-shadow-footprint-v1',
+        anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+        localOffset: ProjectedShadowOffset(x: 0, y: 0),
+      );
+      final metrics = StaticShadowVisualMetrics(
+        left: 32,
+        top: 64,
+        visualWidth: 64,
+        visualHeight: 96,
+      );
+      final geometry = resolveProjectedBuildingShadowGeometry(
+        config: config,
+        preset: preset,
+        metrics: metrics,
+      );
+
+      expect(geometry, isNotNull);
+      expect(geometry!.opacity, 0.24);
+      expect(geometry.colorHexRgb, '606060');
+      expect(geometry.points, hasLength(4));
+      _expectPointClose(
+        geometry.points[0],
+        x: 22.40,
+        y: 142.72,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[1],
+        x: 105.60,
+        y: 142.72,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[2],
+        x: 114.56,
+        y: 167.68,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[3],
+        x: 23.68,
+        y: 167.68,
+        tolerance: 0.02,
+      );
+    });
+
     test('footprint geometry localOffset shifts all points', () {
       final preset = _footprintPreset();
       final withoutOffset = resolveProjectedBuildingShadowGeometry(

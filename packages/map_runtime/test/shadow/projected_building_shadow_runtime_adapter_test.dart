@@ -70,6 +70,37 @@ void main() {
       _expectPointClose(instruction.polygonPoints[3], x: 32.00, y: 173.44);
     });
 
+    test(
+        'converts footprint v1 geometry to runtime projected polygon instruction',
+        () {
+      final instruction = createProjectedBuildingShadowRuntimeInstruction(
+        _geometry(
+          [
+            ProjectedBuildingShadowPoint(x: 22.40, y: 142.72),
+            ProjectedBuildingShadowPoint(x: 105.60, y: 142.72),
+            ProjectedBuildingShadowPoint(x: 114.56, y: 167.68),
+            ProjectedBuildingShadowPoint(x: 23.68, y: 167.68),
+          ],
+          opacity: 0.24,
+          colorHexRgb: '606060',
+        ),
+      );
+
+      expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
+      expect(instruction.renderPass, ShadowRenderPass.groundStatic);
+      expect(instruction.opacity, 0.24);
+      expect(instruction.colorHexRgb, '606060');
+      expect(instruction.worldLeft, closeTo(22.40, 0.02));
+      expect(instruction.worldTop, closeTo(142.72, 0.02));
+      expect(instruction.width, closeTo(92.16, 0.02));
+      expect(instruction.height, closeTo(24.96, 0.02));
+      expect(instruction.polygonPoints, hasLength(4));
+      _expectPointClose(instruction.polygonPoints[0], x: 22.40, y: 142.72);
+      _expectPointClose(instruction.polygonPoints[1], x: 105.60, y: 142.72);
+      _expectPointClose(instruction.polygonPoints[2], x: 114.56, y: 167.68);
+      _expectPointClose(instruction.polygonPoints[3], x: 23.68, y: 167.68);
+    });
+
     test('preserves point order exactly', () {
       final instruction = createProjectedBuildingShadowRuntimeInstruction(
         _geometry(
