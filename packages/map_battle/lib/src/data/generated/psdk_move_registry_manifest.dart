@@ -1195,7 +1195,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HealBell',
     rubyPath: '10 Move/2 Definitions/300 HealBell.rb',
     dartBehavior: 'StatusCureMoveBehavior.healBell',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.effects,
@@ -1425,7 +1425,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'JungleHealing',
     rubyPath: '10 Move/2 Definitions/300 LifeDew.rb',
     dartBehavior: 'HealMoveBehavior.jungleHealing',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerStatus,
@@ -1495,7 +1495,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LifeDew',
     rubyPath: '10 Move/2 Definitions/300 LifeDew.rb',
     dartBehavior: 'HealMoveBehavior.lifeDew',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
@@ -2055,7 +2055,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Purify',
     rubyPath: '10 Move/2 Definitions/300 Purify.rb',
     dartBehavior: 'PurifyMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerStatus,
@@ -2541,7 +2541,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SparklySwirl',
     rubyPath: '10 Move/2 Definitions/300 SparklySwirl.rb',
     dartBehavior: 'StatusCureMoveBehavior.sparklySwirl',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerStatus,
@@ -2804,7 +2804,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TakeHeart',
     rubyPath: '10 Move/2 Definitions/300 TakeHeart.rb',
     dartBehavior: 'StatusCureMoveBehavior.takeHeart',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.effects,

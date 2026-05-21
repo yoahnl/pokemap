@@ -1,6 +1,8 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_status_change_handler.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_prevention.dart';
 import 'battle_move_behavior_support.dart';
@@ -100,6 +102,28 @@ final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
       rng = heal.rng;
       if (heal.event != null) {
         events.add(heal.event!);
+      }
+      if (_kind != _HealMoveKind.jungleHealing) {
+        continue;
+      }
+
+      // PSDK's Jungle Healing is the only HealMove variant that layers a major
+      // status cure after the quarter-HP heal. Keeping it local to this branch
+      // prevents the generic HealMove family from silently gaining cure logic.
+      final cure = const BattleStatusChangeHandler().cureMajorStatus(
+        context: BattleHandlerContext(
+          state: state,
+          rng: rng,
+          turn: context.turn,
+          user: context.user,
+        ),
+        target: target,
+        moveId: context.move.id,
+      );
+      state = cure.state;
+      rng = cure.rng;
+      if (cure.applied) {
+        events.addAll(cure.events);
       }
     }
 

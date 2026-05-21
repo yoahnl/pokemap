@@ -385,6 +385,30 @@ void main() {
         25,
       );
     });
+
+    test('s_jungle_healing cures the healed target major status', () {
+      final result = _runMove(
+        playerCurrentHp: 10,
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+        playerMove: _move(
+          id: 'jungle_healing',
+          battleEngineMethod: 's_jungle_healing',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 35);
+      expect(result.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(
+        result.timeline.events.map((event) => event.kind),
+        containsAllInOrder(<String>[
+          'heal',
+          'status_cure',
+        ]),
+      );
+    });
   });
 }
 
@@ -396,6 +420,7 @@ PsdkBattleTurnResult _runMove({
   bool playerItemConsumed = false,
   PsdkBattleStatStages? playerStatStages,
   PsdkBattleEffectStack? playerEffects,
+  PsdkBattleMajorStatus? playerMajorStatus,
   int opponentCurrentHp = 100,
   PsdkBattleMajorStatus? opponentMajorStatus,
   String? opponentAbilityId,
@@ -410,6 +435,7 @@ PsdkBattleTurnResult _runMove({
         itemConsumed: playerItemConsumed,
         statStages: playerStatStages,
         effects: playerEffects,
+        majorStatus: playerMajorStatus,
       ),
       opponent: _combatant(
         id: 'opponent',

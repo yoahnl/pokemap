@@ -19,9 +19,10 @@ enum _StatusCureMoveKind {
 
 /// Ports PSDK move families whose local effect is curing major statuses.
 ///
-/// These entries stay partial until Ruby's party-wide reserve traversal,
-/// Soundproof/Heal Block style hooks and full multi-target process callbacks
-/// exist in the clean battle lane.
+/// The clean lane keeps these behaviors scoped to already-resolved battle
+/// targets and active same-bank allies. That matches the PSDK scripts used for
+/// these move classes without making this behavior responsible for future
+/// topology expansion or reserve traversal.
 final class StatusCureMoveBehavior implements BattleMoveBehavior {
   const StatusCureMoveBehavior.healBell()
       : battleEngineMethod = 's_heal_bell',
