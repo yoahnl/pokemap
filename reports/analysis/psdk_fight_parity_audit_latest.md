@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 394 |
-| Studio attacks `partiel` | 334 |
+| Studio attacks `fait` | 412 |
+| Studio attacks `partiel` | 316 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -29,11 +29,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_baton_pass | 1 |
 | s_beak_blast | 1 |
 | s_beat_up | 1 |
-| s_bestow | 1 |
 | s_bide | 1 |
 | s_camouflage | 1 |
 | s_captivate | 1 |
-| s_change_type | 1 |
 | s_conversion | 1 |
 | s_conversion2 | 1 |
 | s_core_enforcer | 1 |
@@ -44,7 +42,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_entrainment | 1 |
 | s_fell_stinger | 1 |
 | s_final_gambit | 1 |
-| s_fling | 1 |
 | s_flower_shield | 1 |
 | s_flying_press | 1 |
 | s_follow_me | 3 |
@@ -65,7 +62,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_hyperspace_hole | 1 |
 | s_ice_ball | 1 |
 | s_ion_deluge | 1 |
-| s_knock_off | 1 |
 | s_light_that_burns_the_sky | 1 |
 | s_lock_on | 1 |
 | s_lunar_dance | 1 |
@@ -84,15 +80,12 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_parting_shot | 1 |
 | s_payday | 1 |
 | s_perish_song | 1 |
-| s_plasma_fists | 1 |
-| s_pluck | 2 |
 | s_powder | 1 |
 | s_protect | 3 |
 | s_psycho_shift | 1 |
 | s_pursuit | 1 |
 | s_rage | 1 |
 | s_recoil | 4 |
-| s_reflect_type | 1 |
 | s_return | 1 |
 | s_roar | 2 |
 | s_role_play | 1 |
@@ -105,7 +98,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_shell_trap | 1 |
 | s_simple_beam | 1 |
 | s_skill_swap | 1 |
-| s_smack_down | 2 |
 | s_snatch | 1 |
 | s_spectral_thief | 1 |
 | s_spite | 1 |
@@ -113,15 +105,10 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_split_up | 1 |
 | s_stat | 8 |
 | s_status | 4 |
-| s_stockpile | 1 |
-| s_struggle | 1 |
 | s_swallow | 1 |
 | s_teleport | 1 |
-| s_thief | 2 |
-| s_thing_sport | 2 |
 | s_thrash | 1 |
 | s_toxic_thread | 1 |
-| s_trick | 2 |
 | s_trump_card | 1 |
 | s_u_turn | 2 |
 | s_uproar | 1 |
@@ -135,8 +122,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 212 |
-| `partial` | 118 |
+| `ported` | 225 |
+| `partial` | 105 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -144,23 +131,22 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 108 |
-| ability | 42 |
-| item | 25 |
+| effects | 97 |
+| ability | 35 |
 | handlerDamage | 20 |
-| field | 12 |
+| item | 19 |
+| field | 11 |
 | handlerStatus | 10 |
 | history | 10 |
-| targetingMulti | 8 |
+| targetingMulti | 7 |
 | handlerStat | 6 |
 | handlerSwitch | 6 |
 | accuracy | 5 |
-| grounded | 3 |
 | actionOrder | 2 |
 | endTurn | 2 |
 | faintProcess | 2 |
+| grounded | 2 |
 | terrain | 2 |
-| handlerItem | 1 |
 
 ### Partial Method Batches
 
@@ -170,7 +156,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | --- | ---: | --- |
 | Action queue / copy-call residuals | 2 | `s_electrify`, `s_follow_me` |
 | Damage formula / variable power | 25 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_bide`, `s_core_enforcer`, `s_double_iron_bash`, `s_dragon_darts`, `s_flying_press`, `s_frustration`, `s_future_sight`, `s_hidden_power`, `s_ice_ball`, `s_ohko`, `s_order_up`, `s_pain_split`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_rollout`, `s_roost`, `s_scale_shot`, `s_shell_trap`, `s_split_up`, `s_trump_card`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 91 | `s_a_fang`, `s_add_type`, `s_attract`, `s_autotomize`, `s_baton_pass`, `s_bestow`, `s_camouflage`, `s_captivate`, `s_change_type`, `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_corrosive_gas`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_dragon_tail`, `s_embargo`, `s_entrainment`, `s_expanding_force`, `s_fell_stinger`, `s_final_gambit`, `s_fling`, `s_flower_shield`, `s_fusion_bolt`, `s_fusion_flare`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_knock_off`, `s_lock_on`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_magnitude`, `s_make_it_rain`, `s_mind_reader`, `s_misty_explosion`, `s_nature_power`, `s_nightmare`, `s_no_retreat`, `s_outrage`, `s_parting_shot`, `s_perish_song`, `s_plasma_fists`, `s_pluck`, `s_powder`, `s_psycho_shift`, `s_pursuit`, `s_rage`, `s_raging_bull`, `s_reflect_type`, `s_revival_blessing`, `s_roar`, `s_role_play`, `s_rototiller`, `s_secret_power`, `s_shed_tail`, `s_shell_side_arm`, `s_simple_beam`, `s_skill_swap`, `s_smack_down`, `s_snatch`, `s_spectral_thief`, `s_spite`, `s_stockpile`, `s_struggle`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_thief`, `s_thing_sport`, `s_thrash`, `s_toxic_thread`, `s_trick`, `s_u_turn`, `s_uproar`, `s_venom_drench`, `s_water_shuriken`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
+| Effect hook / manifest final sweep | 78 | `s_a_fang`, `s_add_type`, `s_attract`, `s_autotomize`, `s_baton_pass`, `s_camouflage`, `s_captivate`, `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_corrosive_gas`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_dragon_tail`, `s_embargo`, `s_entrainment`, `s_expanding_force`, `s_fell_stinger`, `s_final_gambit`, `s_flower_shield`, `s_fusion_bolt`, `s_fusion_flare`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_lock_on`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_magnitude`, `s_make_it_rain`, `s_mind_reader`, `s_misty_explosion`, `s_nature_power`, `s_nightmare`, `s_no_retreat`, `s_outrage`, `s_parting_shot`, `s_perish_song`, `s_powder`, `s_psycho_shift`, `s_pursuit`, `s_rage`, `s_raging_bull`, `s_revival_blessing`, `s_roar`, `s_role_play`, `s_rototiller`, `s_secret_power`, `s_shed_tail`, `s_shell_side_arm`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spectral_thief`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_thrash`, `s_toxic_thread`, `s_u_turn`, `s_uproar`, `s_venom_drench`, `s_water_shuriken`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
 
 ## Effect Coverage
 

@@ -850,7 +850,7 @@ void main() {
         byMethod['s_synchronoise']!.dependencies,
         contains(PsdkMoveDependency.targetingMulti),
       );
-      expect(byMethod['s_smack_down']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_smack_down']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_smack_down']!.dartBehavior,
         'GroundingMoveBehavior.smackDown',
@@ -1363,12 +1363,12 @@ void main() {
         byMethod['s_foresight']!.dartBehavior,
         'StaticBasicMoveRegistry.s_foresight',
       );
-      expect(byMethod['s_thing_sport']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_thing_sport']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_thing_sport']!.dartBehavior,
         'StaticBasicMoveRegistry.s_thing_sport',
       );
-      expect(byMethod['s_trick']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_trick']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_trick']!.dartBehavior,
         'StaticBasicMoveRegistry.s_trick',
@@ -1396,12 +1396,16 @@ void main() {
         (method: 's_pluck', behavior: 'ItemDependentMoveBehavior.pluck'),
         (method: 's_thief', behavior: 'ItemDependentMoveBehavior.thief'),
       ]) {
-        expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
       for (final entry in <({String method, String behavior})>[
         (method: 's_after_you', behavior: 'StaticBasicMoveRegistry.afterYou'),
         (method: 's_assist', behavior: 'CopyCallMoveBehavior.assist'),
+        (
+          method: 's_change_type',
+          behavior: 'StaticBasicMoveRegistry.s_change_type',
+        ),
         (method: 's_disable', behavior: 'StaticBasicMoveRegistry.disable'),
         (method: 's_encore', behavior: 'StaticBasicMoveRegistry.encore'),
         (method: 's_heal_block', behavior: 'StaticBasicMoveRegistry.healBlock'),
@@ -1411,9 +1415,21 @@ void main() {
         (method: 's_mimic', behavior: 'CopyCallMoveBehavior.mimic'),
         (method: 's_mirror_move', behavior: 'CopyCallMoveBehavior.mirrorMove'),
         (method: 's_me_first', behavior: 'CopyCallMoveBehavior.meFirst'),
+        (
+          method: 's_plasma_fists',
+          behavior: 'StaticBasicMoveRegistry.s_plasma_fists',
+        ),
         (method: 's_quash', behavior: 'StaticBasicMoveRegistry.quash'),
+        (
+          method: 's_reflect_type',
+          behavior: 'StaticBasicMoveRegistry.s_reflect_type',
+        ),
         (method: 's_sketch', behavior: 'CopyCallMoveBehavior.sketch'),
         (method: 's_sleep_talk', behavior: 'CopyCallMoveBehavior.sleepTalk'),
+        (
+          method: 's_stockpile',
+          behavior: 'StaticBasicMoveRegistry.s_stockpile'
+        ),
         (method: 's_torment', behavior: 'StaticBasicMoveRegistry.s_torment'),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
@@ -1431,10 +1447,6 @@ void main() {
         (
           method: 's_captivate',
           behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_captivate)',
-        ),
-        (
-          method: 's_change_type',
-          behavior: 'StaticBasicMoveRegistry.s_change_type',
         ),
         (
           method: 's_corrosive_gas',
@@ -1513,10 +1525,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_powder)',
         ),
         (
-          method: 's_plasma_fists',
-          behavior: 'StaticBasicMoveRegistry.s_plasma_fists',
-        ),
-        (
           method: 's_simple_beam',
           behavior:
               'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
@@ -1524,14 +1532,6 @@ void main() {
         (
           method: 's_snatch',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
-        ),
-        (
-          method: 's_stockpile',
-          behavior: 'StaticBasicMoveRegistry.s_stockpile',
-        ),
-        (
-          method: 's_reflect_type',
-          behavior: 'StaticBasicMoveRegistry.s_reflect_type',
         ),
         (
           method: 's_role_play',
@@ -1926,7 +1926,7 @@ void main() {
         byMethod['s_recoil']!.dartBehavior,
         'RecoilMoveBehavior.psdkRecoil',
       );
-      expect(byMethod['s_struggle']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_struggle']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_struggle']!.dartBehavior,
         'RecoilMoveBehavior.struggle',
