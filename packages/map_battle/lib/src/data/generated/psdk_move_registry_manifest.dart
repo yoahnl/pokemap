@@ -206,7 +206,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BatonPass',
     rubyPath: '10 Move/2 Definitions/300 BatonPass.rb',
     dartBehavior: 'SwitchEffectMoveBehavior.batonPass',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerSwitch,
       PsdkMoveDependency.effects
@@ -718,7 +718,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ExpandingForce',
     rubyPath: '10 Move/2 Definitions/300 TerrainDamageMoves.rb',
     dartBehavior: 'TerrainPowerMoveBehavior.expandingForce',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.terrain,
       PsdkMoveDependency.grounded,
@@ -982,7 +982,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FusionBolt',
     rubyPath: '10 Move/2 Definitions/300 FusionFlareBolt.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_fusion_bolt',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -990,7 +990,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FusionFlare',
     rubyPath: '10 Move/2 Definitions/300 FusionFlareBolt.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_fusion_flare',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1589,7 +1589,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Magnitude',
     rubyPath: '10 Move/2 Definitions/300 Magnitude.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_magnitude',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1597,7 +1597,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MakeItRain',
     rubyPath: '10 Move/2 Definitions/300 MakeItRain.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_make_it_rain',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1704,7 +1704,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MistyExplosion',
     rubyPath: '10 Move/2 Definitions/300 TerrainDamageMoves.rb',
     dartBehavior: 'SelfDestructMoveBehavior.mistyExplosion',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.faintProcess,
@@ -2021,7 +2021,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PsychoShift',
     rubyPath: '10 Move/2 Definitions/300 PsychoShift.rb',
     dartBehavior: 'PsychoShiftMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.effects,
@@ -2099,7 +2099,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'RagingBull',
     rubyPath: '10 Move/2 Definitions/300 BrickBreak.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_raging_bull',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2401,7 +2401,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ShellSideArm',
     rubyPath: '10 Move/2 Definitions/300 ShellSideArm.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_shell_side_arm',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2553,7 +2553,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SpectralThief',
     rubyPath: '10 Move/2 Definitions/300 SpectralThief.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_spectral_thief',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(

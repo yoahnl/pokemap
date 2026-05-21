@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 427,
-    "partiel": 301,
+    "fait": 433,
+    "partiel": 295,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -339,9 +339,9 @@
       {
         "moveId": "baton_pass",
         "battleEngineMethod": "s_baton_pass",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/baton_pass.json"
       },
       {
@@ -1915,17 +1915,17 @@
       {
         "moveId": "fusion_bolt",
         "battleEngineMethod": "s_fusion_bolt",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fusion_bolt.json"
       },
       {
         "moveId": "fusion_flare",
         "battleEngineMethod": "s_fusion_flare",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fusion_flare.json"
       },
       {
@@ -2963,9 +2963,9 @@
       {
         "moveId": "magnitude",
         "battleEngineMethod": "s_magnitude",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/magnitude.json"
       },
       {
@@ -3803,9 +3803,9 @@
       {
         "moveId": "psycho_shift",
         "battleEngineMethod": "s_psycho_shift",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psycho_shift.json"
       },
       {
@@ -4755,9 +4755,9 @@
       {
         "moveId": "spectral_thief",
         "battleEngineMethod": "s_spectral_thief",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/spectral_thief.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 235,
-      "partial": 95,
+      "ported": 246,
+      "partial": 84,
       "missing": 0
     },
     "entries": [
@@ -6049,12 +6049,11 @@
         "rubyClass": "BatonPass",
         "rubyPath": "10 Move/2 Definitions/300 BatonPass.rb",
         "dartBehavior": "SwitchEffectMoveBehavior.batonPass",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerSwitch",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_beak_blast",
@@ -6598,13 +6597,12 @@
         "rubyClass": "ExpandingForce",
         "rubyPath": "10 Move/2 Definitions/300 TerrainDamageMoves.rb",
         "dartBehavior": "TerrainPowerMoveBehavior.expandingForce",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "terrain",
           "grounded",
           "targetingMulti"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_explosion",
@@ -6874,22 +6872,20 @@
         "rubyClass": "FusionBolt",
         "rubyPath": "10 Move/2 Definitions/300 FusionFlareBolt.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_fusion_bolt",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_fusion_flare",
         "rubyClass": "FusionFlare",
         "rubyPath": "10 Move/2 Definitions/300 FusionFlareBolt.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_fusion_flare",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_future_sight",
@@ -7526,22 +7522,20 @@
         "rubyClass": "Magnitude",
         "rubyPath": "10 Move/2 Definitions/300 Magnitude.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_magnitude",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_make_it_rain",
         "rubyClass": "MakeItRain",
         "rubyPath": "10 Move/2 Definitions/300 MakeItRain.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_make_it_rain",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_me_first",
@@ -7652,14 +7646,13 @@
         "rubyClass": "MistyExplosion",
         "rubyPath": "10 Move/2 Definitions/300 TerrainDamageMoves.rb",
         "dartBehavior": "SelfDestructMoveBehavior.mistyExplosion",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "ability",
           "faintProcess",
           "terrain",
           "grounded"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_multi_attack",
@@ -7992,14 +7985,13 @@
         "rubyClass": "PsychoShift",
         "rubyPath": "10 Move/2 Definitions/300 PsychoShift.rb",
         "dartBehavior": "PsychoShiftMoveBehavior",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStatus",
           "effects",
           "ability",
           "targetingMulti"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_psyshock",
@@ -8079,11 +8071,10 @@
         "rubyClass": "RagingBull",
         "rubyPath": "10 Move/2 Definitions/300 BrickBreak.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_raging_bull",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_rapid_spin",
@@ -8400,11 +8391,10 @@
         "rubyClass": "ShellSideArm",
         "rubyPath": "10 Move/2 Definitions/300 ShellSideArm.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_shell_side_arm",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_shell_trap",
@@ -8559,11 +8549,10 @@
         "rubyClass": "SpectralThief",
         "rubyPath": "10 Move/2 Definitions/300 SpectralThief.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_spectral_thief",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_speed_swap",
@@ -9331,10 +9320,9 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 68,
+        "count": 57,
         "methods": [
           "s_attract",
-          "s_baton_pass",
           "s_captivate",
           "s_chilly_reception",
           "s_conversion",
@@ -9345,10 +9333,7 @@
           "s_dragon_cheer",
           "s_embargo",
           "s_entrainment",
-          "s_expanding_force",
           "s_flower_shield",
-          "s_fusion_bolt",
-          "s_fusion_flare",
           "s_gear_up",
           "s_geomancy",
           "s_gravity",
@@ -9363,10 +9348,7 @@
           "s_magic_powder",
           "s_magic_room",
           "s_magnetic_flux",
-          "s_magnitude",
-          "s_make_it_rain",
           "s_mind_reader",
-          "s_misty_explosion",
           "s_nature_power",
           "s_nightmare",
           "s_no_retreat",
@@ -9374,20 +9356,16 @@
           "s_parting_shot",
           "s_perish_song",
           "s_powder",
-          "s_psycho_shift",
           "s_pursuit",
           "s_rage",
-          "s_raging_bull",
           "s_revival_blessing",
           "s_role_play",
           "s_rototiller",
           "s_secret_power",
           "s_shed_tail",
-          "s_shell_side_arm",
           "s_simple_beam",
           "s_skill_swap",
           "s_snatch",
-          "s_spectral_thief",
           "s_spite",
           "s_stuff_cheeks",
           "s_swallow",
