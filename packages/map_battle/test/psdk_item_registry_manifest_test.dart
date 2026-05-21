@@ -491,6 +491,7 @@ void main() {
       for (final itemId in <String>[
         'poison_barb',
         'safety_goggles',
+        'smoke_ball',
         'sticky_barb',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);

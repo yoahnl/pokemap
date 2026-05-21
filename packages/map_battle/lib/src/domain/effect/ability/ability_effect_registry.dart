@@ -16,6 +16,7 @@ import 'contact_reaction_ability_effect.dart';
 import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
+import 'flee_passthrough_ability_effect.dart';
 import 'gorilla_tactics_effect.dart';
 import 'item_change_ability_effect.dart';
 import 'item_steal_ability_effect.dart';
@@ -66,6 +67,7 @@ final class AbilityEffectRegistry {
     'air_lock': ({required scope}) => AirLockEffect(scope: scope),
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
     'damp': ({required scope}) => DampEffect(scope: scope),
+    'run_away': ({required scope}) => RunAwayEffect(scope: scope),
     'cheek_pouch': ({required scope}) => CheekPouchEffect(scope: scope),
     'cud_chew': ({required scope}) => CudChewEffect(scope: scope),
     'harvest': ({required scope}) => HarvestEffect(scope: scope),

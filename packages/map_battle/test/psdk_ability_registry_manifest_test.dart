@@ -200,6 +200,7 @@ void main() {
         'weak_armor',
         'well_baked_body',
         'wonder_skin',
+        'run_away',
       ]) {
         final entry = byId[abilityId];
 

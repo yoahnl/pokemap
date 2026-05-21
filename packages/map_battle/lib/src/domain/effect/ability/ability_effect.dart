@@ -36,6 +36,13 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   bool bypassesAccuracy(BattleAbilityMoveContext context) => false;
 
+  bool fleePassthrough({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+  }) {
+    return false;
+  }
+
   double chanceOfHitMultiplier(BattleAbilityMoveContext context) => 1;
 
   int? forcedHitCount(BattleAbilityMoveContext context) => null;

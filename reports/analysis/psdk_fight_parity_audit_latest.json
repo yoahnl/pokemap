@@ -9476,15 +9476,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 386,
+      "ported": 388,
       "partial": 25,
-      "missing": 71
+      "missing": 69
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 206,
+        "ported": 207,
         "partial": 12,
-        "missing": 36
+        "missing": 35
       },
       "move": {
         "ported": 83,
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 71,
+        "ported": 72,
         "partial": 5,
-        "missing": 11
+        "missing": 10
       },
       "status": {
         "ported": 7,
@@ -12353,7 +12353,7 @@
       {
         "effectName": "RunAway",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 RunAway.rb",
         "hookFamilies": [
           "switch"
@@ -12646,7 +12646,7 @@
       {
         "effectName": "SmokeBall",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 SmokeBall.rb",
         "hookFamilies": [
           "switch"

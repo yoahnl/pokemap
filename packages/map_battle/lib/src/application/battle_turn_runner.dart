@@ -12,6 +12,7 @@ import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/battle_effect_hooks.dart';
+import '../domain/effect/item/item_effect.dart';
 import '../domain/effect/status/status_effect_registry.dart';
 import '../domain/handler/battle_end_turn_handler.dart';
 import '../domain/handler/battle_handler_context.dart';
@@ -529,7 +530,8 @@ final class BattleTurnRunner {
     PsdkBattleFleeAction action,
     BattleTimelineBuilder timeline,
   ) {
-    final succeeded = _context.setup.canFlee;
+    final succeeded =
+        _context.setup.canFlee || _hasFleePassthrough(action.user);
     timeline.add(
       BattleFleeAttemptTimelineEvent(
         turn: _context.turnNumber,
@@ -545,6 +547,24 @@ final class BattleTurnRunner {
     _context.finish(outcome);
     timeline.add(BattleEndedTimelineEvent(outcome: outcome));
     return true;
+  }
+
+  bool _hasFleePassthrough(PsdkBattleSlotRef user) {
+    final battler = _context.state.battlerAt(user);
+    if (battler.isFainted) {
+      return false;
+    }
+    for (final effect in battler.abilityEffects) {
+      if (effect.fleePassthrough(state: _context.state, user: user)) {
+        return true;
+      }
+    }
+    for (final effect in battler.activeItemEffects) {
+      if (effect.fleePassthrough(state: _context.state, user: user)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   BattleHandlerResult _resolveShiftAction(PsdkBattleShiftAction action) {

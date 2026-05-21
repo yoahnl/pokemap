@@ -134,6 +134,13 @@ abstract class BattleItemEffect extends BattleEffect {
 
   double accuracyMultiplier(BattleItemAccuracyContext context) => 1;
 
+  bool fleePassthrough({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+  }) {
+    return false;
+  }
+
   double statMultiplier(PsdkBattleCombatant battler, String stat) {
     return 1;
   }

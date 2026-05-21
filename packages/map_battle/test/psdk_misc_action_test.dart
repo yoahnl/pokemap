@@ -46,6 +46,71 @@ void main() {
       );
     });
 
+    test('Run Away allows flee passthrough when fleeing is normally blocked',
+        () {
+      final engine = BattleEngine(
+        setup: _setup(
+          playerAbilityId: 'run_away',
+          opponentMoves: <PsdkBattleMoveData>[_move(id: 'wait', power: 0)],
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.flee());
+
+      expect(result.outcome?.kind, BattleEngineOutcomeKind.fled);
+      expect(
+        result.timeline.events
+            .whereType<BattleFleeAttemptTimelineEvent>()
+            .single,
+        isA<BattleFleeAttemptTimelineEvent>()
+            .having((event) => event.succeeded, 'succeeded', isTrue),
+      );
+    });
+
+    test('Run Away flee passthrough is suppressed by ability suppression', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          playerAbilityId: 'run_away',
+          playerEffects: PsdkBattleEffectStack(
+            values: <String>['ability_suppressed'],
+          ),
+          opponentMoves: <PsdkBattleMoveData>[_move(id: 'wait', power: 0)],
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.flee());
+
+      expect(result.outcome, isNull);
+      expect(
+        result.timeline.events
+            .whereType<BattleFleeAttemptTimelineEvent>()
+            .single,
+        isA<BattleFleeAttemptTimelineEvent>()
+            .having((event) => event.succeeded, 'succeeded', isFalse),
+      );
+    });
+
+    test('Smoke Ball allows flee passthrough when fleeing is normally blocked',
+        () {
+      final engine = BattleEngine(
+        setup: _setup(
+          playerHeldItemId: 'smoke_ball',
+          opponentMoves: <PsdkBattleMoveData>[_move(id: 'wait', power: 0)],
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.flee());
+
+      expect(result.outcome?.kind, BattleEngineOutcomeKind.fled);
+      expect(
+        result.timeline.events
+            .whereType<BattleFleeAttemptTimelineEvent>()
+            .single,
+        isA<BattleFleeAttemptTimelineEvent>()
+            .having((event) => event.succeeded, 'succeeded', isTrue),
+      );
+    });
+
     test('no action consumes the player action without move effects', () {
       final engine = BattleEngine(
         setup: _setup(
@@ -132,6 +197,9 @@ void main() {
 
 BattleEngineSetup _setup({
   bool canFlee = false,
+  String? playerAbilityId,
+  String? playerHeldItemId,
+  PsdkBattleEffectStack? playerEffects,
   List<PsdkBattleMoveData>? opponentMoves,
 }) {
   return BattleEngineSetup.singles(
@@ -140,6 +208,9 @@ BattleEngineSetup _setup({
       id: 'player-eevee',
       speciesId: 'eevee',
       hp: 100,
+      abilityId: playerAbilityId,
+      heldItemId: playerHeldItemId,
+      effects: playerEffects,
     ),
     opponent: _combatant(
       id: 'opponent-rattata',
@@ -160,6 +231,9 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required String speciesId,
   required int hp,
+  String? abilityId,
+  String? heldItemId,
+  PsdkBattleEffectStack? effects,
   List<PsdkBattleMoveData>? moves,
 }) {
   return PsdkBattleCombatantSetup(
@@ -177,6 +251,9 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: 50,
     ),
+    abilityId: abilityId,
+    heldItemId: heldItemId,
+    effects: effects,
     moves: moves ?? <PsdkBattleMoveData>[_move(id: 'tackle', power: 40)],
   );
 }
