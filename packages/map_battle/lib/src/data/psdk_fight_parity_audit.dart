@@ -722,6 +722,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
   const portedEffects = <String>{
     'AbilitySuppressed',
     'Asleep',
+    'AttackMultiplier',
     'AquaRing',
     'ArenaTrap',
     'Autotomize',
@@ -735,6 +736,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Charge',
     'CraftyShield',
     'Curse',
+    'DefenseMultiplier',
     'Disable',
     'DragonCheer',
     'Drowsiness',

@@ -9476,9 +9476,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 392,
-      "partial": 21,
-      "missing": 69
+      "ported": 396,
+      "partial": 19,
+      "missing": 67
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 72,
-        "partial": 5,
-        "missing": 10
+        "ported": 76,
+        "partial": 3,
+        "missing": 8
       },
       "status": {
         "ported": 7,
@@ -9674,7 +9674,7 @@
       {
         "effectName": "AttackMultiplier",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 ItemAttackMultiplier.rb",
         "hookFamilies": []
       },
@@ -10264,7 +10264,7 @@
       {
         "effectName": "DefenseMultiplier",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 ItemDefenseMultiplier.rb",
         "hookFamilies": []
       },
@@ -11361,7 +11361,7 @@
       {
         "effectName": "LifeOrb",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Life Orb.rb",
         "hookFamilies": [
           "action_order",
@@ -12547,7 +12547,7 @@
       {
         "effectName": "ShellBell",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Shell Bell.rb",
         "hookFamilies": [
           "post_damage"
