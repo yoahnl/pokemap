@@ -606,6 +606,7 @@ BattleMoveDefinition _meFirstBoostedMove(PsdkBattleMoveData move) {
       bite: move.bite,
       pulse: move.pulse,
       ballistics: move.ballistics,
+      kingRockUtility: move.kingRockUtility,
     ),
     stageMods: move.stageMods
         .map(

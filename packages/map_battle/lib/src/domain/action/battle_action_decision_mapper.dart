@@ -186,6 +186,7 @@ PsdkBattleMoveData _copyMoveWithPriority(
     bite: move.bite,
     pulse: move.pulse,
     ballistics: move.ballistics,
+    kingRockUtility: move.kingRockUtility,
     heal: move.heal,
     statuses: move.statuses,
     stageMods: move.stageMods,

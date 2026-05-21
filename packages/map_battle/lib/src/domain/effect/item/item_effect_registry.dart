@@ -8,6 +8,7 @@ import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
 import 'berry_item_effect.dart';
 import 'black_sludge_effect.dart';
+import 'flinch_item_effect.dart';
 import 'focus_item_effect.dart';
 import 'held_item_modifier_effect.dart';
 import 'iron_ball_effect.dart';
@@ -379,6 +380,14 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
   'life_orb': ({required scope}) => LifeOrbEffect(scope: scope),
   'focus_sash': ({required scope}) => FocusSashEffect(scope: scope),
   'focus_band': ({required scope}) => FocusBandEffect(scope: scope),
+  'king_s_rock': ({required scope}) => FlinchItemEffect(
+        itemId: 'king_s_rock',
+        scope: scope,
+      ),
+  'razor_fang': ({required scope}) => FlinchItemEffect(
+        itemId: 'razor_fang',
+        scope: scope,
+      ),
   'flame_orb': ({required scope}) => StatusOrbItemEffect(
         itemId: 'flame_orb',
         scope: scope,

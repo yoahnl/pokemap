@@ -76,6 +76,7 @@ final class BattleMoveDefinition {
         bite: move.bite,
         pulse: move.pulse,
         ballistics: move.ballistics,
+        kingRockUtility: move.kingRockUtility,
       ),
       charge: move.charge,
       recharge: move.recharge,
@@ -190,6 +191,7 @@ final class BattleMoveDefinition {
       bite: flags.bite,
       pulse: flags.pulse,
       ballistics: flags.ballistics,
+      kingRockUtility: flags.kingRockUtility,
       heal: heal,
       charge: charge,
       recharge: recharge,
@@ -219,6 +221,7 @@ final class BattleMoveFlags {
     this.bite = false,
     this.pulse = false,
     this.ballistics = false,
+    this.kingRockUtility = false,
   });
 
   final bool contact;
@@ -230,6 +233,7 @@ final class BattleMoveFlags {
   final bool bite;
   final bool pulse;
   final bool ballistics;
+  final bool kingRockUtility;
 }
 
 final class BattleStageMod {
