@@ -2278,11 +2278,66 @@ void main() {
     test('Supersweet Syrup lowers foe Evasion on switch-in', () {
       final result =
           _dispatchAbilitySwitchIn(playerAbilityId: 'supersweet_syrup');
+      final alreadyUsed = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'supersweet_syrup',
+        playerEffects: PsdkBattleEffectStack(
+          values: const <String>['supersweet_syrup_used'],
+        ),
+      );
 
       expect(result.applied, isTrue);
       expect(
         result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('evasion'),
         -1,
+      );
+      expect(alreadyUsed.applied, isFalse);
+      expect(
+        alreadyUsed.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('evasion'),
+        0,
+      );
+    });
+
+    test('Poison Puppeteer confuses targets poisoned by the owner move', () {
+      final result = _applyStatusWithAbility(
+        playerAbilityId: 'poison_puppeteer',
+        status: PsdkBattleMajorStatus.poison,
+        move: _definition(id: 'poison_thread', power: 0),
+      );
+      final nonPoison = _applyStatusWithAbility(
+        playerAbilityId: 'poison_puppeteer',
+        status: PsdkBattleMajorStatus.paralysis,
+        move: _definition(id: 'stun_spore', power: 0),
+      );
+      final noMove = _applyStatusWithAbility(
+        playerAbilityId: 'poison_puppeteer',
+        status: PsdkBattleMajorStatus.poison,
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).majorStatus,
+          PsdkBattleMajorStatus.poison);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains('confusion'),
+        isTrue,
+      );
+      expect(
+        result.events
+            .whereType<PsdkBattleEffectEvent>()
+            .where((event) => event.reason == 'ability:poison_puppeteer'),
+        hasLength(1),
+      );
+      expect(
+        nonPoison.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('confusion'),
+        isFalse,
+      );
+      expect(
+        noMove.state.battlerAt(psdkOpponentSlot).effects.contains('confusion'),
+        isFalse,
       );
     });
 
@@ -5319,6 +5374,45 @@ BattleHandlerResult _resolveAbilityEndTurn({
       turn: 1,
       user: psdkPlayerSlot,
     ),
+  );
+}
+
+BattleHandlerResult _applyStatusWithAbility({
+  required String playerAbilityId,
+  required PsdkBattleMajorStatus status,
+  BattleMoveDefinition? move,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: playerAbilityId,
+        move: _move(id: 'status_probe', power: 0),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleStatusChangeHandler().applyMajorStatus(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkOpponentSlot,
+    moveId: move?.id ?? 'status_probe',
+    status: status,
+    move: move,
   );
 }
 

@@ -128,6 +128,7 @@ void main() {
         'poison_touch',
         'punk_rock',
         'pure_power',
+        'poison_puppeteer',
         'queenly_majesty',
         'quick_feet',
         'rain_dish',
