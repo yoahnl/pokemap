@@ -9476,14 +9476,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 388,
-      "partial": 25,
+      "ported": 392,
+      "partial": 21,
       "missing": 69
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 207,
-        "partial": 12,
+        "ported": 211,
+        "partial": 8,
         "missing": 35
       },
       "move": {
@@ -9773,14 +9773,14 @@
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },
@@ -13014,14 +13014,14 @@
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
         "hookFamilies": []
       },
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
         "hookFamilies": []
       },

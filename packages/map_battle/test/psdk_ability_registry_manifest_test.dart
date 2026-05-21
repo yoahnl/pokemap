@@ -201,6 +201,8 @@ void main() {
         'well_baked_body',
         'wonder_skin',
         'run_away',
+        'beads_of_ruin',
+        'sword_of_ruin',
       ]) {
         final entry = byId[abilityId];
 

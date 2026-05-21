@@ -134,11 +134,35 @@ final class RuinStatAbilityEffect extends BattleAbilityEffect {
     if (ownerSlot == null ||
         battlerSlot == null ||
         battlerSlot == ownerSlot ||
-        context.stat != stat ||
+        context.stat != _effectiveRuinStat(context) ||
         context.battler.abilityId == abilityId) {
       return 1;
     }
     return 0.75;
+  }
+
+  String _effectiveRuinStat(BattleAbilityStatContext context) {
+    if (!_wonderRoomActive(context)) {
+      return stat;
+    }
+    return switch (abilityId) {
+      'beads_of_ruin' => 'defense',
+      'sword_of_ruin' => 'specialDefense',
+      _ => stat,
+    };
+  }
+
+  bool _wonderRoomActive(BattleAbilityStatContext context) {
+    final state = context.state;
+    if (state == null) {
+      return false;
+    }
+    for (final slot in state.aliveSlots()) {
+      if (state.battlerAt(slot).effects.contains('wonder_room')) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
