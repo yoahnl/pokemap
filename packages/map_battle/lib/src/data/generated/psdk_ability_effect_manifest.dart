@@ -1052,7 +1052,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'poison_puppeteer',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Poison Puppeteer.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PoisonPuppeteerEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'poison_touch',
@@ -1556,8 +1557,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'supersweet_syrup',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Supersweet Syrup.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'SupersweetSyrupEffect.partialNoPersistentAbilityUsed',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SupersweetSyrupEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'supreme_overlord',

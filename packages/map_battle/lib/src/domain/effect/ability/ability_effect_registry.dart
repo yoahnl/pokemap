@@ -782,6 +782,8 @@ final class AbilityEffectRegistry {
           scope: scope,
           status: PsdkBattleMajorStatus.poison,
         ),
+    'poison_puppeteer': ({required scope}) =>
+        PoisonPuppeteerEffect(scope: scope),
     'effect_spore': ({required scope}) =>
         ContactStatusAbilityEffect.effectSpore(scope: scope),
     'cute_charm': ({required scope}) => CuteCharmEffect(scope: scope),

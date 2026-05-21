@@ -1,9 +1,11 @@
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_status_change_handler.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import '../move/confusion_effect.dart';
 import 'ability_effect.dart';
 
 final class SynchronizeEffect extends BattleAbilityEffect {
@@ -56,6 +58,58 @@ final class SynchronizeEffect extends BattleAbilityEffect {
       state: result.state,
       rng: result.rng,
       events: result.events,
+    );
+  }
+}
+
+final class PoisonPuppeteerEffect extends BattleAbilityEffect {
+  const PoisonPuppeteerEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'poison_puppeteer', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return PoisonPuppeteerEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectStatusChangeResult? onPostStatusChange(
+    BattleEffectStatusChangeContext context,
+  ) {
+    if (!isOwnedBy(context.user) ||
+        context.user == context.target ||
+        context.move == null ||
+        context.cured ||
+        (context.status != PsdkBattleMajorStatus.poison &&
+            context.status != PsdkBattleMajorStatus.toxic)) {
+      return null;
+    }
+
+    final target = context.state.battlerAt(context.target);
+    if (target.isFainted || target.effects.contains('confusion')) {
+      return null;
+    }
+
+    final nextState = context.state.updateBattler(
+      context.target,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          ConfusionEffect(scope: BattlerBattleEffectScope(context.target)),
+        ),
+      ),
+    );
+    return BattleEffectStatusChangeResult(
+      state: nextState,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.target,
+          effectId: 'confusion',
+          remainingTurns: 2,
+          reason: 'ability:poison_puppeteer',
+        ),
+      ],
     );
   }
 }

@@ -9476,15 +9476,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 380,
-      "partial": 27,
-      "missing": 75
+      "ported": 382,
+      "partial": 26,
+      "missing": 74
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 204,
-        "partial": 13,
-        "missing": 37
+        "ported": 206,
+        "partial": 12,
+        "missing": 36
       },
       "move": {
         "ported": 83,
@@ -11991,7 +11991,7 @@
       {
         "effectName": "PoisonPuppeteer",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Poison Puppeteer.rb",
         "hookFamilies": [
           "status_prevention"
@@ -12964,7 +12964,7 @@
       {
         "effectName": "SupersweetSyrup",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Supersweet Syrup.rb",
         "hookFamilies": [
           "switch"
