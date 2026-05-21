@@ -7,6 +7,7 @@ import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
 import '../item/berry_item_effect.dart';
+import '../item/item_effect_registry.dart';
 import 'ability_effect.dart';
 
 const String unburdenActiveEffectId = 'unburden_active';
@@ -218,6 +219,134 @@ final class CheekPouchEffect extends BattleAbilityEffect {
           remainingHp: current.currentHp,
         ),
       ],
+    );
+  }
+}
+
+final class CudChewEffect extends BattleAbilityEffect {
+  const CudChewEffect({required BattleEffectScope scope})
+      : super(abilityId: 'cud_chew', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return CudChewEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectItemChangeResult? onPostItemChange(
+    BattleEffectItemChangeContext context,
+  ) {
+    if (!isOwnedBy(context.target) ||
+        context.reason != 'consumed' ||
+        context.consumedItemId == null ||
+        !isPsdkBerryItemId(context.consumedItemId!)) {
+      return null;
+    }
+
+    final battler = context.state.battlerAt(context.target);
+    if (battler.abilityId != abilityId || battler.isFainted) {
+      return null;
+    }
+
+    final nextEffects = battler.effects.addEffect(
+      CudChewPendingEffect(
+        scope: BattlerBattleEffectScope(context.target),
+        berryItemId: context.consumedItemId!,
+        remainingTurns: 2,
+      ),
+    );
+    return BattleEffectItemChangeResult(
+      state: context.state.updateBattler(
+        context.target,
+        (current) => current.copyWith(effects: nextEffects),
+      ),
+      rng: context.rng,
+    );
+  }
+}
+
+final class CudChewPendingEffect extends BattleEffect {
+  const CudChewPendingEffect({
+    required BattleEffectScope scope,
+    required this.berryItemId,
+    required int remainingTurns,
+  }) : super(
+          id: 'cud_chew_pending',
+          scope: scope,
+          remainingTurns: remainingTurns,
+        );
+
+  final String berryItemId;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return CudChewPendingEffect(
+      scope: scope,
+      berryItemId: berryItemId,
+      remainingTurns: remainingTurns,
+    );
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    final owner = switch (scope) {
+      BattlerBattleEffectScope(:final slot) => slot,
+      _ => null,
+    };
+    if (owner == null || owner != context.owner) {
+      return null;
+    }
+
+    final turns = remainingTurns ?? 0;
+    if (turns > 1) {
+      return _replaceSelf(context, turns - 1);
+    }
+
+    final withoutPending = context.state.updateBattler(
+      owner,
+      (battler) => battler.copyWith(
+        effects: battler.effects.remove(id),
+      ),
+    );
+    final berryEffect = ItemEffectRegistry().create(berryItemId, owner: owner);
+    final berryResult = berryEffect is BerryItemEffect
+        ? berryEffect.forceExecute(
+            state: withoutPending,
+            rng: context.rng,
+            turn: context.turn,
+            owner: owner,
+          )
+        : null;
+    return BattleEffectEndTurnResult(
+      state: berryResult?.state ?? withoutPending,
+      rng: berryResult?.rng ?? context.rng,
+      events: <PsdkBattleEvent>[
+        ...?berryResult?.events,
+        PsdkBattleEffectEvent.removed(
+          turn: context.turn,
+          target: owner,
+          effectId: id,
+          remainingTurns: 0,
+          reason: 'cud_chew',
+        ),
+      ],
+    );
+  }
+
+  BattleEffectEndTurnResult _replaceSelf(
+    BattleEffectEndTurnContext context,
+    int nextTurns,
+  ) {
+    final owner = context.owner;
+    return BattleEffectEndTurnResult(
+      state: context.state.updateBattler(
+        owner,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(copyWithRemainingTurns(nextTurns)),
+        ),
+      ),
+      rng: context.rng,
+      applied: true,
     );
   }
 }

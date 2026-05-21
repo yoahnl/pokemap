@@ -9476,15 +9476,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 378,
+      "ported": 380,
       "partial": 27,
-      "missing": 77
+      "missing": 75
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 202,
+        "ported": 204,
         "partial": 13,
-        "missing": 39
+        "missing": 37
       },
       "move": {
         "ported": 83,
@@ -10173,7 +10173,7 @@
       {
         "effectName": "CudChew",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Cud Chew.rb",
         "hookFamilies": [
           "item_change"
@@ -10182,7 +10182,7 @@
       {
         "effectName": "CudChewEffect",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 Cud Chew Effect.rb",
         "hookFamilies": [
           "end_turn"

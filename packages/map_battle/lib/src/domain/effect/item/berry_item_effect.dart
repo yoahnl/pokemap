@@ -77,6 +77,38 @@ final class BerryItemEffect extends BattleItemEffect {
     return this;
   }
 
+  BattleEffectEndTurnResult? forceExecute({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+  }) {
+    final battler = state.battlerAt(owner);
+    if (battler.isFainted || battler.itemEffectsSuppressed) {
+      return null;
+    }
+    return switch (kind) {
+      BerryItemEffectKind.hpHeal => _forceHpHeal(
+          state: state,
+          rng: rng,
+          turn: turn,
+          owner: owner,
+        ),
+      BerryItemEffectKind.statPinch => _forceStatPinch(
+          state: state,
+          rng: rng,
+          turn: turn,
+          owner: owner,
+        ),
+      BerryItemEffectKind.statusCure => _forceStatusCure(
+          state: state,
+          rng: rng,
+          turn: turn,
+          owner: owner,
+        ),
+    };
+  }
+
   @override
   BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
     final owner = context.owner;
@@ -235,6 +267,43 @@ final class BerryItemEffect extends BattleItemEffect {
     );
   }
 
+  BattleEffectEndTurnResult? _forceHpHeal({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+  }) {
+    final battler = state.battlerAt(owner);
+    final healed = const BattleHealHandler().heal(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: turn,
+        user: owner,
+      ),
+      target: owner,
+      amount: _healAmount!(battler),
+    );
+    if (!healed.applied) {
+      return null;
+    }
+
+    final current = healed.state.battlerAt(owner);
+    return BattleEffectEndTurnResult(
+      state: healed.state,
+      rng: healed.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleHealEvent(
+          user: owner,
+          target: owner,
+          moveId: 'item:$itemId',
+          amount: healed.amount,
+          remainingHp: current.currentHp,
+        ),
+      ],
+    );
+  }
+
   BattleEffectEndTurnResult? _triggerStatPinch({
     required PsdkBattleState state,
     required BattleRngStreams rng,
@@ -278,6 +347,64 @@ final class BerryItemEffect extends BattleItemEffect {
         ...changed.events,
       ],
       applied: consumed.applied || changed.applied,
+    );
+  }
+
+  BattleEffectEndTurnResult _forceStatPinch({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+  }) {
+    final battler = state.battlerAt(owner);
+    final stat = _stat == 'random' ? _randomStat(rng) : _stat!;
+    final statRng = _stat == 'random' ? _advanceRandomStat(rng) : null;
+    final changed = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: state,
+        rng: statRng ?? rng,
+        turn: turn,
+        user: owner,
+      ),
+      target: owner,
+      stat: stat,
+      stages: battler.abilityId == 'ripen' ? 2 : 1,
+    );
+    return BattleEffectEndTurnResult(
+      state: changed.state,
+      rng: changed.rng,
+      events: changed.events,
+      applied: changed.applied,
+    );
+  }
+
+  BattleEffectEndTurnResult? _forceStatusCure({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+  }) {
+    final status = state.battlerAt(owner).majorStatus;
+    if (status == null || !_curedStatuses.contains(status)) {
+      return null;
+    }
+    final cured = const BattleStatusChangeHandler().cureMajorStatus(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: turn,
+        user: owner,
+      ),
+      target: owner,
+      moveId: 'item:$itemId',
+    );
+    if (!cured.applied) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: cured.state,
+      rng: cured.rng,
+      events: cured.events,
     );
   }
 

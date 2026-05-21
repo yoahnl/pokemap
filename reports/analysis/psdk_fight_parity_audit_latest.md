@@ -183,16 +183,16 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 378 |
+| `ported` | 380 |
 | `partial` | 27 |
-| `missing` | 77 |
+| `missing` | 75 |
 | Total effect classes | 482 |
 
 ### Effects by Family
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 202 | 13 | 39 |
+| ability | 204 | 13 | 37 |
 | field | 15 | 0 | 0 |
 | item | 67 | 6 | 14 |
 | mechanics | 4 | 0 | 0 |
@@ -203,7 +203,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Family | Missing effects |
 | --- | ---: |
-| ability | 39 |
+| ability | 37 |
 | item | 14 |
 | move | 24 |
 

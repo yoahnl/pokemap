@@ -248,7 +248,15 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'cud_chew',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Cud Chew.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CudChewEffect',
+  ),
+  PsdkAbilityEffectManifestEntry(
+    abilityId: 'cud_chew_effect',
+    rubyPath:
+        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/101 Cud Chew Effect.rb',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CudChewPendingEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'curious_medicine',

@@ -7,7 +7,7 @@ void main() {
     test('tracks all PSDK ability registrations without duplicates', () {
       final ids = psdkAbilityEffectManifest.map((entry) => entry.abilityId);
 
-      expect(psdkAbilityEffectManifest.length, 277);
+      expect(psdkAbilityEffectManifest.length, 278);
       expect(ids.toSet(), hasLength(psdkAbilityEffectManifest.length));
       expect(
         ids,
@@ -48,6 +48,7 @@ void main() {
         'cloud_nine',
         'comatose',
         'compound_eyes',
+        'cud_chew',
         'cursed_body',
         'damp',
         'dark_aura',
@@ -268,7 +269,7 @@ void main() {
     test('registry coverage keeps manifest evidence and factories aligned', () {
       final coverage = AbilityEffectRegistry().manifestCoverage();
 
-      expect(coverage.totalManifestAbilities, 277);
+      expect(coverage.totalManifestAbilities, 278);
       expect(coverage.factoryIdsOutsideManifest, isEmpty);
       expect(coverage.declaredEffectsWithoutFactory, isEmpty);
       expect(coverage.concreteFactoryAbilityIds, contains('imposter'));
