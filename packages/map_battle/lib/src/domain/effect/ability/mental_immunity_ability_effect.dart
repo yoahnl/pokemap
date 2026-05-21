@@ -1,7 +1,9 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_effect.dart';
+import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
 import 'ability_effect.dart';
 
@@ -14,6 +16,51 @@ final class MentalImmunityAbilityEffect extends BattleAbilityEffect {
   @override
   BattleEffect copyWithRemainingTurns(int remainingTurns) {
     return MentalImmunityAbilityEffect(abilityId: abilityId, scope: scope);
+  }
+
+  @override
+  BattleEffectPostActionResult? onPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    if (abilityId != 'oblivious') {
+      return null;
+    }
+
+    final owner = context.state.battlerAt(context.owner);
+    if (owner.isFainted) {
+      return null;
+    }
+
+    var effects = owner.effects;
+    final removed = <String>[];
+    for (final effectId in _mentalEffectIds) {
+      if (!effects.contains(effectId)) {
+        continue;
+      }
+      effects = effects.remove(effectId);
+      removed.add(effectId);
+    }
+
+    if (removed.isEmpty) {
+      return null;
+    }
+
+    return BattleEffectPostActionResult(
+      state: context.state.updateBattler(
+        context.owner,
+        (battler) => battler.copyWith(effects: effects),
+      ),
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        for (final effectId in removed)
+          PsdkBattleEffectEvent.removed(
+            turn: context.turn,
+            target: context.owner,
+            effectId: effectId,
+            reason: 'ability:oblivious',
+          ),
+      ],
+    );
   }
 }
 

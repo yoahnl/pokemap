@@ -19,11 +19,11 @@ void main() {
       final result = psdkLot02ParityGate.evaluate(audit);
 
       expect(result.passed, isTrue, reason: result.message);
-      expect(audit.attackMetrics.fait, 433);
+      expect(audit.attackMetrics.fait, 463);
       expect(audit.attackMetrics.unknownMethods, 0);
-      expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 246);
-      expect(audit.effectMetrics.byStatus[PsdkPortStatus.ported], 401);
-      expect(audit.effectMetrics.byStatus[PsdkPortStatus.partial], 16);
+      expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 272);
+      expect(audit.effectMetrics.byStatus[PsdkPortStatus.ported], 404);
+      expect(audit.effectMetrics.byStatus[PsdkPortStatus.partial], 13);
     });
 
     test('reports every threshold regression with actionable messages', () {
