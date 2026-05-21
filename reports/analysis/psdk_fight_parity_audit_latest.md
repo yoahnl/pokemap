@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 433 |
-| Studio attacks `partiel` | 295 |
+| Studio attacks `fait` | 463 |
+| Studio attacks `partiel` | 265 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -21,12 +21,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | --- | ---: |
 | s_2turns | 7 |
 | s_absorb | 2 |
-| s_attract | 1 |
 | s_basic | 148 |
 | s_beak_blast | 1 |
 | s_beat_up | 1 |
-| s_bide | 1 |
-| s_captivate | 1 |
 | s_conversion | 1 |
 | s_conversion2 | 1 |
 | s_core_enforcer | 1 |
@@ -36,9 +33,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_entrainment | 1 |
 | s_flower_shield | 1 |
 | s_flying_press | 1 |
-| s_follow_me | 3 |
 | s_frustration | 1 |
-| s_future_sight | 2 |
 | s_gear_up | 1 |
 | s_genesis_supernova | 1 |
 | s_gravity | 1 |
@@ -50,36 +45,23 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_helping_hand | 1 |
 | s_hidden_power | 1 |
 | s_hyperspace_hole | 1 |
-| s_ice_ball | 1 |
 | s_ion_deluge | 1 |
 | s_light_that_burns_the_sky | 1 |
-| s_lock_on | 1 |
 | s_lunar_dance | 1 |
 | s_magic_coat | 1 |
 | s_magic_room | 1 |
 | s_magnetic_flux | 1 |
 | s_malicious_moonsault | 1 |
-| s_mind_reader | 1 |
 | s_multi_hit | 1 |
-| s_nature_power | 1 |
 | s_nightmare | 1 |
-| s_ohko | 4 |
-| s_outrage | 2 |
-| s_pain_split | 1 |
-| s_parting_shot | 1 |
 | s_payday | 1 |
 | s_perish_song | 1 |
 | s_powder | 1 |
 | s_protect | 3 |
-| s_pursuit | 1 |
-| s_rage | 1 |
 | s_recoil | 4 |
 | s_return | 1 |
 | s_role_play | 1 |
-| s_rollout | 1 |
-| s_roost | 1 |
 | s_rototiller | 1 |
-| s_secret_power | 1 |
 | s_self_stat | 27 |
 | s_self_stat_z_move | 2 |
 | s_shell_trap | 1 |
@@ -93,11 +75,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_status | 4 |
 | s_swallow | 1 |
 | s_teleport | 1 |
-| s_thrash | 1 |
-| s_toxic_thread | 1 |
-| s_trump_card | 1 |
-| s_uproar | 1 |
-| s_venom_drench | 1 |
 | s_wish | 1 |
 | s_wonder_room | 1 |
 | s_worry_seed | 1 |
@@ -107,8 +84,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 246 |
-| `partial` | 84 |
+| `ported` | 272 |
+| `partial` | 58 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -116,19 +93,16 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 80 |
-| ability | 28 |
-| handlerDamage | 20 |
-| item | 18 |
-| field | 10 |
-| history | 9 |
-| handlerStatus | 8 |
-| handlerStat | 6 |
-| accuracy | 5 |
-| targetingMulti | 5 |
-| actionOrder | 2 |
-| endTurn | 2 |
-| handlerSwitch | 2 |
+| effects | 58 |
+| ability | 20 |
+| handlerDamage | 15 |
+| item | 15 |
+| field | 8 |
+| actionOrder | 1 |
+| endTurn | 1 |
+| handlerStat | 1 |
+| handlerSwitch | 1 |
+| targetingMulti | 1 |
 
 ### Partial Method Batches
 
@@ -136,16 +110,16 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Action queue / copy-call residuals | 2 | `s_electrify`, `s_follow_me` |
-| Damage formula / variable power | 25 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_bide`, `s_core_enforcer`, `s_double_iron_bash`, `s_dragon_darts`, `s_flying_press`, `s_frustration`, `s_future_sight`, `s_hidden_power`, `s_ice_ball`, `s_ohko`, `s_order_up`, `s_pain_split`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_rollout`, `s_roost`, `s_scale_shot`, `s_shell_trap`, `s_split_up`, `s_trump_card`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 57 | `s_attract`, `s_captivate`, `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_embargo`, `s_entrainment`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_lock_on`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_mind_reader`, `s_nature_power`, `s_nightmare`, `s_no_retreat`, `s_outrage`, `s_parting_shot`, `s_perish_song`, `s_powder`, `s_pursuit`, `s_rage`, `s_revival_blessing`, `s_role_play`, `s_rototiller`, `s_secret_power`, `s_shed_tail`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_thrash`, `s_toxic_thread`, `s_uproar`, `s_venom_drench`, `s_water_shuriken`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
+| Action queue / copy-call residuals | 1 | `s_electrify` |
+| Damage formula / variable power | 15 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_flying_press`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
+| Effect hook / manifest final sweep | 42 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_embargo`, `s_entrainment`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_nightmare`, `s_no_retreat`, `s_perish_song`, `s_powder`, `s_revival_blessing`, `s_role_play`, `s_rototiller`, `s_shed_tail`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
 
 ## Effect Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 401 |
-| `partial` | 16 |
+| `ported` | 404 |
+| `partial` | 13 |
 | `missing` | 65 |
 | Total effect classes | 482 |
 
@@ -153,7 +127,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 211 | 8 | 35 |
+| ability | 214 | 5 | 35 |
 | field | 15 | 0 | 0 |
 | item | 81 | 0 | 6 |
 | mechanics | 4 | 0 | 0 |

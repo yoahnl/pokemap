@@ -201,6 +201,8 @@ void main() {
         'well_baked_body',
         'wonder_skin',
         'run_away',
+        'aroma_veil',
+        'oblivious',
         'beads_of_ruin',
         'sword_of_ruin',
       ]) {
@@ -213,11 +215,9 @@ void main() {
       }
 
       for (final abilityId in <String>[
-        'aroma_veil',
         'color_change',
         'cotton_down',
         'electromorphosis',
-        'oblivious',
       ]) {
         final entry = byId[abilityId];
 

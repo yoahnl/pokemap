@@ -72,8 +72,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'aroma_veil',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mental Immunity.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'MentalImmunityAbilityEffect.aromaVeil.partialNoPostActionHook',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MentalImmunityAbilityEffect.aromaVeil',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'as_one',
@@ -962,8 +962,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'oblivious',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mental Immunity.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'MentalImmunityAbilityEffect.oblivious.partialNoPostActionCure',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MentalImmunityAbilityEffect.oblivious',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'opportunist',

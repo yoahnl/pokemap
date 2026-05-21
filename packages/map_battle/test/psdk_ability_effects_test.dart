@@ -394,6 +394,74 @@ void main() {
       }
     });
 
+    test('Oblivious cures mental volatile effects after an action', () {
+      final mentalEffects = PsdkBattleEffectStack()
+          .addEffect(
+            const GenericBattleEffect(
+              id: 'attract',
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            ),
+          )
+          .addEffect(
+            const GenericBattleEffect(
+              id: 'taunt',
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            ),
+          )
+          .addEffect(
+            const GenericBattleEffect(
+              id: 'charge',
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              remainingTurns: 1,
+            ),
+          );
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'oblivious',
+            effects: mentalEffects,
+            move: _move(id: 'tackle', power: 40),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'opponent_wait', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final postAction =
+          state.battlerAt(psdkPlayerSlot).effects.dispatchPostAction(
+                BattleEffectPostActionContext(
+                  state: state,
+                  rng: _rng(),
+                  turn: 1,
+                  owner: psdkPlayerSlot,
+                  user: psdkPlayerSlot,
+                  move: _definition(id: 'tackle', power: 40),
+                  successful: true,
+                ),
+              );
+      final player = postAction.state.battlerAt(psdkPlayerSlot);
+
+      expect(postAction.applied, isTrue);
+      expect(player.effects.contains('attract'), isFalse);
+      expect(player.effects.contains('taunt'), isFalse);
+      expect(player.effects.contains('charge'), isTrue);
+      expect(
+        postAction.events
+            .whereType<PsdkBattleEffectEvent>()
+            .map((event) => event.effectId),
+        containsAll(<String>['attract', 'taunt']),
+      );
+    });
+
     test('Rattled gains Speed after an activated Intimidate stat drop', () {
       final result = _dispatchAbilitySwitchIn(
         playerAbilityId: 'intimidate',
