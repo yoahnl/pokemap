@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 394,
-    "partiel": 334,
+    "fait": 412,
+    "partiel": 316,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -379,9 +379,9 @@
       {
         "moveId": "bestow",
         "battleEngineMethod": "s_bestow",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bestow.json"
       },
       {
@@ -603,9 +603,9 @@
       {
         "moveId": "bug_bite",
         "battleEngineMethod": "s_pluck",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bug_bite.json"
       },
       {
@@ -931,9 +931,9 @@
       {
         "moveId": "covet",
         "battleEngineMethod": "s_thief",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/covet.json"
       },
       {
@@ -1747,9 +1747,9 @@
       {
         "moveId": "fling",
         "battleEngineMethod": "s_fling",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fling.json"
       },
       {
@@ -2691,9 +2691,9 @@
       {
         "moveId": "knock_off",
         "battleEngineMethod": "s_knock_off",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/knock_off.json"
       },
       {
@@ -3251,9 +3251,9 @@
       {
         "moveId": "mud_sport",
         "battleEngineMethod": "s_thing_sport",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mud_sport.json"
       },
       {
@@ -3547,9 +3547,9 @@
       {
         "moveId": "plasma_fists",
         "battleEngineMethod": "s_plasma_fists",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/plasma_fists.json"
       },
       {
@@ -3571,9 +3571,9 @@
       {
         "moveId": "pluck",
         "battleEngineMethod": "s_pluck",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/pluck.json"
       },
       {
@@ -3979,9 +3979,9 @@
       {
         "moveId": "reflect_type",
         "battleEngineMethod": "s_reflect_type",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/reflect_type.json"
       },
       {
@@ -4619,9 +4619,9 @@
       {
         "moveId": "smack_down",
         "battleEngineMethod": "s_smack_down",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/smack_down.json"
       },
       {
@@ -4683,9 +4683,9 @@
       {
         "moveId": "soak",
         "battleEngineMethod": "s_change_type",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/soak.json"
       },
       {
@@ -4899,9 +4899,9 @@
       {
         "moveId": "stockpile",
         "battleEngineMethod": "s_stockpile",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/stockpile.json"
       },
       {
@@ -4979,9 +4979,9 @@
       {
         "moveId": "struggle",
         "battleEngineMethod": "s_struggle",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/struggle.json"
       },
       {
@@ -5147,9 +5147,9 @@
       {
         "moveId": "switcheroo",
         "battleEngineMethod": "s_trick",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/switcheroo.json"
       },
       {
@@ -5291,17 +5291,17 @@
       {
         "moveId": "thief",
         "battleEngineMethod": "s_thief",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/thief.json"
       },
       {
         "moveId": "thousand_arrows",
         "battleEngineMethod": "s_smack_down",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/thousand_arrows.json"
       },
       {
@@ -5443,9 +5443,9 @@
       {
         "moveId": "trick",
         "battleEngineMethod": "s_trick",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/trick.json"
       },
       {
@@ -5651,9 +5651,9 @@
       {
         "moveId": "water_sport",
         "battleEngineMethod": "s_thing_sport",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/water_sport.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 212,
-      "partial": 118,
+      "ported": 225,
+      "partial": 105,
       "missing": 0
     },
     "entries": [
@@ -6113,13 +6113,12 @@
         "rubyClass": "Bestow",
         "rubyPath": "10 Move/2 Definitions/300 Bestow.rb",
         "dartBehavior": "ItemDependentMoveBehavior.bestow",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "item",
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_bide",
@@ -6243,11 +6242,10 @@
         "rubyClass": "ChangeType",
         "rubyPath": "10 Move/2 Definitions/300 ChangeType.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_change_type",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_charge",
@@ -6743,13 +6741,12 @@
         "rubyClass": "Fling",
         "rubyPath": "10 Move/2 Definitions/300 Fling.rb",
         "dartBehavior": "ItemDependentMoveBehavior.fling",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "item",
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_floral_healing",
@@ -7368,13 +7365,12 @@
         "rubyClass": "KnockOff",
         "rubyPath": "10 Move/2 Definitions/300 KnockOff.rb",
         "dartBehavior": "ItemDependentMoveBehavior.knockOff",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "item",
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_laser_focus",
@@ -7851,11 +7847,10 @@
         "rubyClass": "PlasmaFists",
         "rubyPath": "10 Move/2 Definitions/300 PlasmaFists.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_plasma_fists",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_pledge",
@@ -7875,12 +7870,11 @@
         "rubyClass": "Pluck",
         "rubyPath": "10 Move/2 Definitions/300 Pluck.rb",
         "dartBehavior": "ItemDependentMoveBehavior.pluck",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "item",
           "ability"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_pollen_puff",
@@ -8141,12 +8135,11 @@
         "rubyClass": "ReflectType",
         "rubyPath": "10 Move/2 Definitions/300 ReflectType.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_reflect_type",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects",
           "ability"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_relic_song",
@@ -8501,13 +8494,12 @@
         "rubyClass": "SmackDown",
         "rubyPath": "10 Move/2 Definitions/300 SmackDown.rb",
         "dartBehavior": "GroundingMoveBehavior.smackDown",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects",
           "grounded",
           "targetingMulti"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_smelling_salt",
@@ -8695,11 +8687,10 @@
         "rubyClass": "Stockpile",
         "rubyPath": "10 Move/2 Definitions/300 Stockpile.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_stockpile",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_stomp",
@@ -8754,11 +8745,10 @@
         "rubyClass": "Struggle",
         "rubyPath": "10 Move/2 Definitions/300 RecoilMove.rb",
         "dartBehavior": "RecoilMoveBehavior.struggle",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_stuff_cheeks",
@@ -8955,25 +8945,23 @@
         "rubyClass": "Thief",
         "rubyPath": "10 Move/2 Definitions/300 Thief.rb",
         "dartBehavior": "ItemDependentMoveBehavior.thief",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "item",
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_thing_sport",
         "rubyClass": "MudSport",
         "rubyPath": "10 Move/2 Definitions/300 MudSport.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_thing_sport",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects",
           "field"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_thrash",
@@ -9089,13 +9077,12 @@
         "rubyClass": "Switcheroo",
         "rubyPath": "10 Move/2 Definitions/300 Switcheroo.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_trick",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerItem",
           "item",
           "ability"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_trick_room",
@@ -9354,17 +9341,15 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 91,
+        "count": 78,
         "methods": [
           "s_a_fang",
           "s_add_type",
           "s_attract",
           "s_autotomize",
           "s_baton_pass",
-          "s_bestow",
           "s_camouflage",
           "s_captivate",
-          "s_change_type",
           "s_chilly_reception",
           "s_conversion",
           "s_conversion2",
@@ -9379,7 +9364,6 @@
           "s_expanding_force",
           "s_fell_stinger",
           "s_final_gambit",
-          "s_fling",
           "s_flower_shield",
           "s_fusion_bolt",
           "s_fusion_flare",
@@ -9391,7 +9375,6 @@
           "s_healing_wish",
           "s_helping_hand",
           "s_ion_deluge",
-          "s_knock_off",
           "s_lock_on",
           "s_lunar_dance",
           "s_magic_coat",
@@ -9408,14 +9391,11 @@
           "s_outrage",
           "s_parting_shot",
           "s_perish_song",
-          "s_plasma_fists",
-          "s_pluck",
           "s_powder",
           "s_psycho_shift",
           "s_pursuit",
           "s_rage",
           "s_raging_bull",
-          "s_reflect_type",
           "s_revival_blessing",
           "s_roar",
           "s_role_play",
@@ -9425,21 +9405,15 @@
           "s_shell_side_arm",
           "s_simple_beam",
           "s_skill_swap",
-          "s_smack_down",
           "s_snatch",
           "s_spectral_thief",
           "s_spite",
-          "s_stockpile",
-          "s_struggle",
           "s_stuff_cheeks",
           "s_swallow",
           "s_teatime",
           "s_teleport",
-          "s_thief",
-          "s_thing_sport",
           "s_thrash",
           "s_toxic_thread",
-          "s_trick",
           "s_u_turn",
           "s_uproar",
           "s_venom_drench",
