@@ -566,6 +566,95 @@ void main() {
       expect(_itemEvents(result).single.itemId, 'white_herb');
     });
 
+    test('King Rock and Razor Fang can flinch after qualifying damage', () {
+      final kingRock = _damageOpponent(
+        playerHeldItemId: 'king_s_rock',
+        opponentHeldItemId: 'leftovers',
+        rawDamage: 20,
+        genericSeed: 0,
+        moveDefinition: _moveDefinition(
+          id: 'rock_slide',
+          power: 75,
+          flags: const BattleMoveFlags(kingRockUtility: true),
+        ),
+      );
+      final razorFang = _damageOpponent(
+        playerHeldItemId: 'razor_fang',
+        opponentHeldItemId: 'leftovers',
+        rawDamage: 20,
+        genericSeed: 0,
+        moveDefinition: _moveDefinition(
+          id: 'bite',
+          power: 60,
+          flags: const BattleMoveFlags(kingRockUtility: true),
+        ),
+      );
+
+      expect(
+        kingRock.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isTrue,
+      );
+      expect(
+        razorFang.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isTrue,
+      );
+      expect(_effectEvents(kingRock).single.reason, 'item:king_s_rock');
+      expect(_effectEvents(razorFang).single.reason, 'item:razor_fang');
+      expect(
+          kingRock.state.battlerAt(psdkPlayerSlot).heldItemId, 'king_s_rock');
+      expect(
+          razorFang.state.battlerAt(psdkPlayerSlot).heldItemId, 'razor_fang');
+    });
+
+    test('King Rock requires utility flag, chance, and flinchable target', () {
+      final noUtility = _damageOpponent(
+        playerHeldItemId: 'king_s_rock',
+        opponentHeldItemId: 'leftovers',
+        rawDamage: 20,
+        genericSeed: 0,
+        moveDefinition: _moveDefinition(id: 'tackle', power: 40),
+      );
+      final missedRoll = _damageOpponent(
+        playerHeldItemId: 'king_s_rock',
+        opponentHeldItemId: 'leftovers',
+        rawDamage: 20,
+        genericSeed: 9,
+        moveDefinition: _moveDefinition(
+          id: 'rock_slide',
+          power: 75,
+          flags: const BattleMoveFlags(kingRockUtility: true),
+        ),
+      );
+      final innerFocus = _damageOpponent(
+        playerHeldItemId: 'king_s_rock',
+        opponentHeldItemId: 'leftovers',
+        opponentAbilityId: 'inner_focus',
+        rawDamage: 20,
+        genericSeed: 0,
+        moveDefinition: _moveDefinition(
+          id: 'rock_slide',
+          power: 75,
+          flags: const BattleMoveFlags(kingRockUtility: true),
+        ),
+      );
+
+      expect(
+        noUtility.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isFalse,
+      );
+      expect(
+        missedRoll.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isFalse,
+      );
+      expect(
+        innerFocus.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isFalse,
+      );
+      expect(_effectEvents(noUtility), isEmpty);
+      expect(_effectEvents(missedRoll), isEmpty);
+      expect(_effectEvents(innerFocus), isEmpty);
+    });
+
     test('Shell Bell heals the damaging holder for one eighth of damage', () {
       final result = _damageOpponent(
         playerHeldItemId: 'shell_bell',
@@ -608,6 +697,7 @@ BattleHandlerResult _damageOpponent({
   int opponentCurrentHp = 100,
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleEffectStack? opponentEffects,
+  String? opponentAbilityId,
   PsdkBattleMoveData? move,
   BattleMoveDefinition? moveDefinition,
   int genericSeed = 4,
@@ -623,6 +713,7 @@ BattleHandlerResult _damageOpponent({
         playerCurrentHp: playerCurrentHp,
         opponentHeldItemId: opponentHeldItemId,
         opponentCurrentHp: opponentCurrentHp,
+        opponentAbilityId: opponentAbilityId,
         opponentTypes: opponentTypes,
         opponentEffects: opponentEffects,
       ),

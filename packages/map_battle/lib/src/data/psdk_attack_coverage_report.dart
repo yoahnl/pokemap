@@ -24,6 +24,7 @@ final class PsdkStudioMoveCoverageEntry {
     this.protectable = true,
     this.sound = false,
     this.ballistics = false,
+    this.kingRockUtility = false,
   });
 
   final String dbSymbol;
@@ -45,6 +46,7 @@ final class PsdkStudioMoveCoverageEntry {
   final bool protectable;
   final bool sound;
   final bool ballistics;
+  final bool kingRockUtility;
 
   bool get isStrictPlainBasicDamage {
     if (battleEngineMethod != 's_basic') {
@@ -610,6 +612,7 @@ PsdkStudioMoveCoverageEntry _entryFromPayload(
     protectable: _boolValue(payload['isBlocable'], fallback: true),
     sound: _boolValue(payload['isSoundAttack'], fallback: false),
     ballistics: _boolValue(payload['isBallistics'], fallback: false),
+    kingRockUtility: _boolValue(payload['isKingRockUtility'], fallback: false),
     sourceFile: sourceFile,
   );
 }

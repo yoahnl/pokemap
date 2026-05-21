@@ -433,7 +433,9 @@ void main() {
       for (final itemId in <String>[
         'absorb_bulb',
         'cell_battery',
+        'king_s_rock',
         'luminous_moss',
+        'razor_fang',
         'rocky_helmet',
         'snowball',
         'weakness_policy',

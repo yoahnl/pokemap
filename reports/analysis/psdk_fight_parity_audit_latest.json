@@ -9476,9 +9476,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 374,
+      "ported": 375,
       "partial": 27,
-      "missing": 81
+      "missing": 80
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 66,
+        "ported": 67,
         "partial": 6,
-        "missing": 15
+        "missing": 14
       },
       "status": {
         "ported": 7,
@@ -11278,7 +11278,7 @@
       {
         "effectName": "KingsRock",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Kings Rock - Razor Fang.rb",
         "hookFamilies": [
           "post_damage"
