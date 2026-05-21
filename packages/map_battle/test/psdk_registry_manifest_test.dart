@@ -2106,10 +2106,12 @@ void main() {
         byMethod['s_life_dew']!.dartBehavior,
         'HealMoveBehavior.lifeDew',
       );
+      expect(byMethod['s_life_dew']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_jungle_healing']!.dartBehavior,
         'HealMoveBehavior.jungleHealing',
       );
+      expect(byMethod['s_jungle_healing']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_jungle_healing']!.dependencies,
         containsAll(<PsdkMoveDependency>[
@@ -2215,7 +2217,7 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
-      expect(byMethod['s_purify']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_purify']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_purify']!.dartBehavior, 'PurifyMoveBehavior');
       expect(
         byMethod['s_purify']!.dependencies,
@@ -2226,7 +2228,7 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
-      expect(byMethod['s_heal_bell']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_heal_bell']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_heal_bell']!.dartBehavior,
         'StatusCureMoveBehavior.healBell',
@@ -2240,12 +2242,12 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
-      expect(byMethod['s_take_heart']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_take_heart']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_take_heart']!.dartBehavior,
         'StatusCureMoveBehavior.takeHeart',
       );
-      expect(byMethod['s_sparkly_swirl']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_sparkly_swirl']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_sparkly_swirl']!.dartBehavior,
         'StatusCureMoveBehavior.sparklySwirl',

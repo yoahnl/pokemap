@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 385,
-    "partiel": 343,
+    "fait": 389,
+    "partiel": 339,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -211,9 +211,9 @@
       {
         "moveId": "aromatherapy",
         "battleEngineMethod": "s_heal_bell",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/aromatherapy.json"
       },
       {
@@ -2211,9 +2211,9 @@
       {
         "moveId": "heal_bell",
         "battleEngineMethod": "s_heal_bell",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heal_bell.json"
       },
       {
@@ -3851,9 +3851,9 @@
       {
         "moveId": "purify",
         "battleEngineMethod": "s_purify",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/purify.json"
       },
       {
@@ -3987,9 +3987,9 @@
       {
         "moveId": "refresh",
         "battleEngineMethod": "s_heal_bell",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/refresh.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 201,
-      "partial": 129,
+      "ported": 207,
+      "partial": 123,
       "missing": 0
     },
     "entries": [
@@ -7117,14 +7117,13 @@
         "rubyClass": "HealBell",
         "rubyPath": "10 Move/2 Definitions/300 HealBell.rb",
         "dartBehavior": "StatusCureMoveBehavior.healBell",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStatus",
           "effects",
           "ability",
           "targetingMulti"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_heal_block",
@@ -7360,14 +7359,13 @@
         "rubyClass": "JungleHealing",
         "rubyPath": "10 Move/2 Definitions/300 LifeDew.rb",
         "dartBehavior": "HealMoveBehavior.jungleHealing",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStatus",
           "effects",
           "targetingMulti"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_knock_off",
@@ -7434,13 +7432,12 @@
         "rubyClass": "LifeDew",
         "rubyPath": "10 Move/2 Definitions/300 LifeDew.rb",
         "dartBehavior": "HealMoveBehavior.lifeDew",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "effects",
           "targetingMulti"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_lock_on",
@@ -8047,14 +8044,13 @@
         "rubyClass": "Purify",
         "rubyPath": "10 Move/2 Definitions/300 Purify.rb",
         "dartBehavior": "PurifyMoveBehavior",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStatus",
           "effects",
           "targetingMulti"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_pursuit",
@@ -8571,14 +8567,13 @@
         "rubyClass": "SparklySwirl",
         "rubyPath": "10 Move/2 Definitions/300 SparklySwirl.rb",
         "dartBehavior": "StatusCureMoveBehavior.sparklySwirl",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStatus",
           "effects",
           "targetingMulti"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_spectral_thief",
@@ -8859,13 +8854,12 @@
         "rubyClass": "TakeHeart",
         "rubyPath": "10 Move/2 Definitions/300 TakeHeart.rb",
         "dartBehavior": "StatusCureMoveBehavior.takeHeart",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStatus",
           "effects",
           "targetingMulti"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_tar_shot",
@@ -9333,7 +9327,7 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 29,
+        "count": 25,
         "methods": [
           "s_aura_wheel",
           "s_beak_blast",
@@ -9347,20 +9341,16 @@
           "s_future_sight",
           "s_hidden_power",
           "s_ice_ball",
-          "s_jungle_healing",
-          "s_life_dew",
           "s_ohko",
           "s_order_up",
           "s_pain_split",
           "s_payday",
           "s_pre_attack_base",
-          "s_purify",
           "s_return",
           "s_rollout",
           "s_roost",
           "s_scale_shot",
           "s_shell_trap",
-          "s_sparkly_swirl",
           "s_split_up",
           "s_trump_card",
           "s_upper_hand"
@@ -9369,7 +9359,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 98,
+        "count": 96,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9405,7 +9395,6 @@
           "s_gravity",
           "s_grudge",
           "s_happy_hour",
-          "s_heal_bell",
           "s_heal_block",
           "s_healing_wish",
           "s_helping_hand",
@@ -9453,7 +9442,6 @@
           "s_struggle",
           "s_stuff_cheeks",
           "s_swallow",
-          "s_take_heart",
           "s_teatime",
           "s_teleport",
           "s_thief",
