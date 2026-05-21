@@ -300,6 +300,7 @@ const _portedItemEffects = <String>{
   'wise_glasses',
   'yache_berry',
   'zap_plate',
+  'zoom_lens',
 };
 
 const _dartItemEffects = <String, String>{
@@ -478,6 +479,7 @@ const _dartItemEffects = <String, String>{
   'wise_glasses': 'HeldItemModifierEffect.categoryBoost',
   'yache_berry': 'TypeResistingBerryEffect',
   'zap_plate': 'HeldItemModifierEffect.typeBoost',
+  'zoom_lens': 'ZoomLensEffect',
 };
 
 const _psdkItemEffectRows = '''
