@@ -566,6 +566,78 @@ void main() {
       expect(_itemEvents(result).single.itemId, 'white_herb');
     });
 
+    test('Mirror Herb copies opposing positive stat boosts after the action',
+        () {
+      final setup = _state(
+        playerHeldItemId: 'mirror_herb',
+        opponentHeldItemId: 'leftovers',
+        opponentCurrentHp: 100,
+      );
+      final rng = BattleRngStreams.fromSeedSnapshot(
+        const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 4,
+        ),
+      );
+      final first = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: setup,
+          rng: rng,
+          turn: 4,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkOpponentSlot,
+        stat: 'attack',
+        stages: 2,
+      );
+      final second = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: first.state,
+          rng: first.rng,
+          turn: 4,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkOpponentSlot,
+        stat: 'speed',
+        stages: 1,
+      );
+
+      expect(
+        second.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        0,
+      );
+      expect(second.state.battlerAt(psdkPlayerSlot).heldItemId, 'mirror_herb');
+
+      final postAction =
+          second.state.battlerAt(psdkPlayerSlot).effects.dispatchPostAction(
+                BattleEffectPostActionContext(
+                  state: second.state,
+                  rng: second.rng,
+                  turn: 4,
+                  owner: psdkPlayerSlot,
+                  user: psdkOpponentSlot,
+                  move: _moveDefinition(id: 'dragon_dance', power: 0),
+                  successful: true,
+                ),
+              );
+      final player = postAction.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.statStages.valueOf('attack'), 2);
+      expect(player.statStages.valueOf('speed'), 1);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'mirror_herb');
+      expect(
+        postAction.events.whereType<PsdkBattleItemEvent>().single.itemId,
+        'mirror_herb',
+      );
+      expect(
+        postAction.events.whereType<PsdkBattleStatStageEvent>(),
+        hasLength(2),
+      );
+    });
+
     test('King Rock and Razor Fang can flinch after qualifying damage', () {
       final kingRock = _damageOpponent(
         playerHeldItemId: 'king_s_rock',

@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
@@ -450,6 +451,169 @@ final class ThroatSprayEffect extends BattleItemEffect {
       ],
     );
   }
+}
+
+final class MirrorHerbEffect extends BattleItemEffect {
+  const MirrorHerbEffect({
+    required BattleEffectScope scope,
+  }) : super(itemId: 'mirror_herb', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return MirrorHerbEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectStatChangePostResult? onStatChangePost(
+    BattleEffectStatChangeContext context,
+  ) {
+    final owner = this.owner;
+    if (owner == null ||
+        context.owner != owner ||
+        context.owner.bank == context.target.bank ||
+        context.stages <= 0 ||
+        context.sourceAbilityId == itemId) {
+      return null;
+    }
+    final holder = _activeHolder(context.state.battlerAt(owner), itemId);
+    if (holder == null) {
+      return null;
+    }
+
+    final pending = _findMirrorHerbPending(holder, owner)
+        .record(stat: context.stat, stages: context.stages);
+    final nextState = context.state.updateBattler(
+      owner,
+      (current) => current.copyWith(
+        effects: current.effects.addEffect(pending),
+      ),
+    );
+    return BattleEffectStatChangePostResult(
+      state: nextState,
+      rng: context.rng,
+    );
+  }
+
+  @override
+  BattleEffectPostActionResult? onPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    final owner = this.owner;
+    if (owner == null || context.owner != owner || !context.successful) {
+      return null;
+    }
+    final holder = _activeHolder(context.state.battlerAt(owner), itemId);
+    final pending = holder == null ? null : _existingMirrorHerbPending(holder);
+    if (holder == null || pending == null) {
+      return null;
+    }
+
+    final consumed = const BattleItemChangeHandler().consumeHeldItem(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: owner,
+    );
+    if (!consumed.applied) {
+      return null;
+    }
+
+    var nextState = consumed.state.updateBattler(
+      owner,
+      (current) => current.copyWith(
+        effects: current.effects.remove(_mirrorHerbPendingEffectId),
+      ),
+    );
+    var nextRng = consumed.rng;
+    final events = <PsdkBattleEvent>[...consumed.events];
+    for (final boost in pending.boosts) {
+      final copied = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: owner,
+        ),
+        target: owner,
+        stat: boost.stat,
+        stages: boost.stages,
+        sourceAbilityId: itemId,
+      );
+      nextState = copied.state;
+      nextRng = copied.rng;
+      events.addAll(copied.events);
+    }
+
+    return BattleEffectPostActionResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
+  }
+}
+
+const _mirrorHerbPendingEffectId = 'mirror_herb_pending';
+
+final class _MirrorHerbPendingEffect extends BattleEffect {
+  const _MirrorHerbPendingEffect({
+    required super.scope,
+    required this.boosts,
+  }) : super(id: _mirrorHerbPendingEffectId);
+
+  final List<_MirrorHerbBoost> boosts;
+
+  _MirrorHerbPendingEffect record({
+    required String stat,
+    required int stages,
+  }) {
+    return _MirrorHerbPendingEffect(
+      scope: scope,
+      boosts: List<_MirrorHerbBoost>.unmodifiable(<_MirrorHerbBoost>[
+        ...boosts,
+        _MirrorHerbBoost(stat: stat, stages: stages),
+      ]),
+    );
+  }
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return this;
+  }
+}
+
+final class _MirrorHerbBoost {
+  const _MirrorHerbBoost({
+    required this.stat,
+    required this.stages,
+  });
+
+  final String stat;
+  final int stages;
+}
+
+_MirrorHerbPendingEffect _findMirrorHerbPending(
+  PsdkBattleCombatant holder,
+  PsdkBattleSlotRef owner,
+) {
+  return _existingMirrorHerbPending(holder) ??
+      _MirrorHerbPendingEffect(
+        scope: BattlerBattleEffectScope(owner),
+        boosts: const <_MirrorHerbBoost>[],
+      );
+}
+
+_MirrorHerbPendingEffect? _existingMirrorHerbPending(
+  PsdkBattleCombatant holder,
+) {
+  for (final effect in holder.effects.effects) {
+    if (effect is _MirrorHerbPendingEffect) {
+      return effect;
+    }
+  }
+  return null;
 }
 
 PsdkBattleCombatant? _activeHolder(PsdkBattleCombatant battler, String itemId) {

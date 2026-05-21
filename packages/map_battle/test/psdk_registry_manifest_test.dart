@@ -398,6 +398,7 @@ void main() {
         'AbsorbBulb',
         'CellBattery',
         'LuminousMoss',
+        'MirrorHerb',
         'RockyHelmet',
         'ShellBell',
         'Snowball',

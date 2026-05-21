@@ -98,6 +98,7 @@ final class ItemEffectRegistry {
           stat: 'specialDefense',
         ),
     'mental_herb': ({required scope}) => MentalHerbEffect(scope: scope),
+    'mirror_herb': ({required scope}) => MirrorHerbEffect(scope: scope),
     'snowball': ({required scope}) => TypeReactiveStatItemEffect(
           itemId: 'snowball',
           scope: scope,
