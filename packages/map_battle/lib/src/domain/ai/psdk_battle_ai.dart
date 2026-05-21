@@ -415,9 +415,16 @@ final class PsdkBattleAi {
         }
         continue;
       }
-      if (status.volatileStatus == PsdkBattleVolatileStatus.confusion &&
-          !target.effects.contains(PsdkBattleEffectIds.confusion)) {
-        score += 30.0 * (status.chance / 100.0);
+      switch (status.volatileStatus) {
+        case PsdkBattleVolatileStatus.confusion:
+          if (!target.effects.contains(PsdkBattleEffectIds.confusion)) {
+            score += 30.0 * (status.chance / 100.0);
+          }
+        case PsdkBattleVolatileStatus.flinch:
+          if (!target.effects.contains(PsdkBattleEffectIds.flinch)) {
+            score += 18.0 * (status.chance / 100.0);
+          }
+        case null:
       }
     }
     for (final stageMod in move.stageMods) {

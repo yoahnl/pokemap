@@ -99,6 +99,95 @@ void main() {
       );
     });
 
+    test('a damaging move can apply flinch after damage', () {
+      final result = _runPlayerMove(
+        _move(
+          id: 'bite',
+          type: 'dark',
+          power: 60,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.flinch,
+              chance: 100,
+            ),
+          ],
+        ),
+        opponentMove: _move(
+          id: 'opponent_tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(opponent.currentHp, lessThan(100));
+      expect(
+        result.timeline.events
+            .map((event) => event.toJson())
+            .where((event) => event['kind'] == 'effect_added')
+            .map((event) => event['effectId']),
+        contains('flinch'),
+      );
+      expect(
+        result.timeline.events
+            .map((event) => event.toJson())
+            .where((event) => event['kind'] == 'move_failed')
+            .map((event) => event['moveId']),
+        contains('opponent_tackle'),
+      );
+    });
+
+    test('a damaging move can apply confusion after damage', () {
+      final result = _runPlayerMove(
+        _move(
+          id: 'confusion',
+          type: 'psychic',
+          category: PsdkBattleMoveCategory.special,
+          power: 50,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.confusion,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final confusion = opponent.effects.effects.whereType<ConfusionEffect>();
+      expect(opponent.currentHp, lessThan(100));
+      expect(opponent.effects.contains(PsdkBattleEffectIds.confusion), isTrue);
+      expect(confusion.single.remainingConfusionTurns, greaterThan(0));
+    });
+
+    test('Inner Focus blocks move flinch secondaries', () {
+      final result = _runPlayerMove(
+        _move(
+          id: 'bite',
+          type: 'dark',
+          power: 60,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.flinch,
+              chance: 100,
+            ),
+          ],
+        ),
+        opponentAbilityId: 'inner_focus',
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(opponent.currentHp, lessThan(100));
+      expect(opponent.effects.contains('flinch'), isFalse);
+      expect(
+        result.timeline.events
+            .map((event) => event.toJson())
+            .where((event) => event['kind'] == 'effect_added')
+            .where((event) => event['effectId'] == 'flinch'),
+        isEmpty,
+      );
+    });
+
     test('Serene Grace doubles secondary effect chances', () {
       final result = _runPlayerMove(
         _move(
@@ -241,6 +330,7 @@ BattleEngineTurnResult _runPlayerMove(
   PsdkBattleMoveData move, {
   String? playerAbilityId,
   String? opponentAbilityId,
+  PsdkBattleMoveData? opponentMove,
   BattleRngSeeds seeds = const BattleRngSeeds(
     moveDamage: 1,
     moveCritical: 99999,
@@ -263,12 +353,13 @@ BattleEngineTurnResult _runPlayerMove(
         abilityId: opponentAbilityId,
         types: const PsdkBattleTypes(primary: 'grass'),
         moves: <PsdkBattleMoveData>[
-          _move(
-            id: 'opponent_wait',
-            type: 'normal',
-            power: 0,
-            accuracy: 1,
-          ),
+          opponentMove ??
+              _move(
+                id: 'opponent_wait',
+                type: 'normal',
+                power: 0,
+                accuracy: 1,
+              ),
         ],
       ),
       rngSeeds: seeds.psdkSeeds,

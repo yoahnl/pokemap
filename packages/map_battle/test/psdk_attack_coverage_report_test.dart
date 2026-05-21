@@ -101,7 +101,7 @@ void main() {
       );
     });
 
-    test('scopes ported s_basic coverage to plain damage and Blizzard', () {
+    test('scopes ported s_basic coverage to supported damage riders', () {
       final report = generatePsdkAttackCoverageReport(
         moves: const <PsdkStudioMoveCoverageEntry>[
           PsdkStudioMoveCoverageEntry(
@@ -128,7 +128,81 @@ void main() {
             criticalRate: 1,
             effectChance: 20,
             battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(
+                stat: 'defense',
+                stages: -1,
+              ),
+            ],
             sourceFile: 'liquidation.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'fire_punch',
+            battleEngineMethod: 's_basic',
+            type: 'fire',
+            category: 'physical',
+            power: 75,
+            accuracy: '100',
+            pp: 15,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 10,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'burn'),
+            ],
+            sourceFile: 'fire_punch.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'bite',
+            battleEngineMethod: 's_basic',
+            type: 'dark',
+            category: 'physical',
+            power: 60,
+            accuracy: '100',
+            pp: 25,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 30,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'flinch'),
+            ],
+            sourceFile: 'bite.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'confusion',
+            battleEngineMethod: 's_basic',
+            type: 'psychic',
+            category: 'special',
+            power: 50,
+            accuracy: '100',
+            pp: 25,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 10,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'confusion'),
+            ],
+            sourceFile: 'confusion.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'chatter',
+            battleEngineMethod: 's_basic',
+            type: 'flying',
+            category: 'special',
+            power: 65,
+            accuracy: '100',
+            pp: 20,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'confusion'),
+            ],
+            sourceFile: 'chatter.json',
           ),
           PsdkStudioMoveCoverageEntry(
             dbSymbol: 'blizzard',
@@ -149,6 +223,23 @@ void main() {
             sourceFile: 'blizzard.json',
           ),
           PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'mud_slap',
+            battleEngineMethod: 's_basic',
+            type: 'ground',
+            category: 'special',
+            power: 20,
+            accuracy: '100',
+            pp: 10,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'accuracy', stages: -1),
+            ],
+            sourceFile: 'mud_slap.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
             dbSymbol: 'growl_like_bad_data',
             battleEngineMethod: 's_basic',
             type: 'normal',
@@ -159,6 +250,26 @@ void main() {
             priority: 0,
             criticalRate: 1,
             sourceFile: 'growl_like_bad_data.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'flash',
+            battleEngineMethod: 's_basic',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 20,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(
+                stat: 'accuracy',
+                stages: -1,
+              ),
+            ],
+            sourceFile: 'flash.json',
           ),
         ],
         manifest: const <PsdkMoveRegistryManifestEntry>[
@@ -173,7 +284,7 @@ void main() {
         sourceDescription: 's_basic test moves',
       );
 
-      expect(report, contains('| fait | 2 |'));
+      expect(report, contains('| fait | 8 |'));
       expect(report, contains('| partiel | 2 |'));
       expect(
         report,
@@ -181,7 +292,23 @@ void main() {
       );
       expect(
         report,
-        contains('| partiel | liquidation | s_basic | ported |'),
+        contains('| fait | liquidation | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | fire_punch | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | bite | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | confusion | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | chatter | s_basic | ported |'),
       );
       expect(
         report,
@@ -189,7 +316,15 @@ void main() {
       );
       expect(
         report,
+        contains('| fait | mud_slap | s_basic | ported |'),
+      );
+      expect(
+        report,
         contains('| partiel | growl_like_bad_data | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | flash | s_basic | ported |'),
       );
     });
 
@@ -265,16 +400,16 @@ void main() {
         sourceDescription: 's_self_stat test moves',
       );
 
-      expect(report, contains('| fait | 1 |'));
-      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | 3 |'));
+      expect(report, contains('| partiel | 0 |'));
       expect(report, contains('| fait | calm_mind | s_self_stat | ported |'));
       expect(
         report,
-        contains('| partiel | hone_claws | s_self_stat | ported |'),
+        contains('| fait | hone_claws | s_self_stat | ported |'),
       );
       expect(
         report,
-        contains('| partiel | power_up_punch | s_self_stat | ported |'),
+        contains('| fait | power_up_punch | s_self_stat | ported |'),
       );
     });
 
@@ -343,8 +478,34 @@ void main() {
               PsdkStudioStageModCoverageEntry(stat: 'attack', stages: 2),
             ],
             moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'confusion'),
+            ],
             target: 'adjacent_pokemon',
             sourceFile: 'swagger.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'flatter',
+            battleEngineMethod: 's_stat',
+            type: 'dark',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 15,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(
+                stat: 'specialAttack',
+                stages: 1,
+              ),
+            ],
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'confusion'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'flatter.json',
           ),
         ],
         manifest: const <PsdkMoveRegistryManifestEntry>[
@@ -359,12 +520,13 @@ void main() {
         sourceDescription: 's_stat test moves',
       );
 
-      expect(report, contains('| fait | 2 |'));
-      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | 5 |'));
+      expect(report, contains('| partiel | 0 |'));
       expect(report, contains('| fait | tail_whip | s_stat | ported |'));
       expect(report, contains('| fait | swords_dance | s_stat | ported |'));
-      expect(report, contains('| partiel | sand_attack | s_stat | ported |'));
-      expect(report, contains('| partiel | swagger | s_stat | ported |'));
+      expect(report, contains('| fait | sand_attack | s_stat | ported |'));
+      expect(report, contains('| fait | swagger | s_stat | ported |'));
+      expect(report, contains('| fait | flatter | s_stat | ported |'));
     });
 
     test('scopes ported s_status coverage to strict major statuses', () {
@@ -419,6 +581,22 @@ void main() {
             sourceFile: 'confuse_ray.json',
           ),
           PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'teeter_dance',
+            battleEngineMethod: 's_status',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 20,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'confusion'),
+            ],
+            target: 'all_pokemon',
+            sourceFile: 'teeter_dance.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
             dbSymbol: 'poison_sting_like_bad_data',
             battleEngineMethod: 's_status',
             type: 'poison',
@@ -447,11 +625,15 @@ void main() {
         sourceDescription: 's_status test moves',
       );
 
-      expect(report, contains('| fait | 2 |'));
+      expect(report, contains('| fait | 3 |'));
       expect(report, contains('| partiel | 2 |'));
       expect(report, contains('| fait | thunder_wave | s_status | ported |'));
       expect(report, contains('| fait | toxic | s_status | ported |'));
-      expect(report, contains('| partiel | confuse_ray | s_status | ported |'));
+      expect(report, contains('| fait | confuse_ray | s_status | ported |'));
+      expect(
+        report,
+        contains('| partiel | teeter_dance | s_status | ported |'),
+      );
       expect(
         report,
         contains(
@@ -768,6 +950,18 @@ void main() {
             target: 'adjacent_all_pokemon',
             sourceFile: 'mind_blown.json',
           ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'light_of_ruin',
+            battleEngineMethod: 's_recoil',
+            type: 'fairy',
+            category: 'special',
+            power: 140,
+            accuracy: '90',
+            pp: 5,
+            effectChance: 100,
+            target: 'adjacent_pokemon',
+            sourceFile: 'light_of_ruin.json',
+          ),
         ],
         manifest: const <PsdkMoveRegistryManifestEntry>[
           PsdkMoveRegistryManifestEntry(
@@ -781,11 +975,15 @@ void main() {
         sourceDescription: 's_recoil test moves',
       );
 
-      expect(report, contains('| fait | 1 |'));
-      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | 3 |'));
+      expect(report, contains('| partiel | 1 |'));
       expect(report, contains('| fait | take_down | s_recoil | ported |'));
-      expect(report, contains('| partiel | flare_blitz | s_recoil | ported |'));
+      expect(report, contains('| fait | flare_blitz | s_recoil | ported |'));
       expect(report, contains('| partiel | mind_blown | s_recoil | ported |'));
+      expect(
+        report,
+        contains('| fait | light_of_ruin | s_recoil | ported |'),
+      );
     });
 
     test('scopes ported s_absorb coverage to strict single-target drains', () {
@@ -814,6 +1012,17 @@ void main() {
             sourceFile: 'parabolic_charge.json',
           ),
           PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'oblivion_wing',
+            battleEngineMethod: 's_absorb',
+            type: 'flying',
+            category: 'special',
+            power: 80,
+            accuracy: '100',
+            pp: 10,
+            target: 'all_ally',
+            sourceFile: 'oblivion_wing.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
             dbSymbol: 'absorb_status',
             battleEngineMethod: 's_absorb',
             type: 'grass',
@@ -837,12 +1046,16 @@ void main() {
         sourceDescription: 's_absorb test moves',
       );
 
-      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| fait | 2 |'));
       expect(report, contains('| partiel | 2 |'));
       expect(report, contains('| fait | giga_drain | s_absorb | ported |'));
       expect(
         report,
-        contains('| partiel | parabolic_charge | s_absorb | ported |'),
+        contains('| fait | parabolic_charge | s_absorb | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | oblivion_wing | s_absorb | ported |'),
       );
       expect(
         report,
@@ -925,10 +1138,10 @@ void main() {
         sourceDescription: 'heal test moves',
       );
 
-      expect(report, contains('| fait | 3 |'));
-      expect(report, contains('| partiel | 1 |'));
+      expect(report, contains('| fait | 4 |'));
+      expect(report, contains('| partiel | 0 |'));
       expect(report, contains('| fait | recover | s_heal | ported |'));
-      expect(report, contains('| partiel | heal_pulse | s_heal | ported |'));
+      expect(report, contains('| fait | heal_pulse | s_heal | ported |'));
       expect(
         report,
         contains('| fait | synthesis | s_heal_weather | ported |'),
@@ -988,6 +1201,30 @@ void main() {
             sourceFile: 'spiky_shield.json',
           ),
           PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'king_s_shield',
+            battleEngineMethod: 's_protect',
+            type: 'steel',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 10,
+            priority: 4,
+            target: 'user',
+            sourceFile: 'king_s_shield.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'baneful_bunker',
+            battleEngineMethod: 's_protect',
+            type: 'poison',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 10,
+            priority: 4,
+            target: 'user',
+            sourceFile: 'baneful_bunker.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
             dbSymbol: 'wide_guard',
             battleEngineMethod: 's_protect',
             type: 'rock',
@@ -1012,14 +1249,22 @@ void main() {
         sourceDescription: 's_protect test moves',
       );
 
-      expect(report, contains('| fait | 4 |'));
-      expect(report, contains('| partiel | 1 |'));
+      expect(report, contains('| fait | 7 |'));
+      expect(report, contains('| partiel | 0 |'));
       expect(report, contains('| fait | protect | s_protect | ported |'));
       expect(report, contains('| fait | detect | s_protect | ported |'));
       expect(report, contains('| fait | endure | s_protect | ported |'));
       expect(
         report,
-        contains('| partiel | spiky_shield | s_protect | ported |'),
+        contains('| fait | spiky_shield | s_protect | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | king_s_shield | s_protect | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | baneful_bunker | s_protect | ported |'),
       );
       expect(
         report,

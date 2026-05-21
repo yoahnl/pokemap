@@ -8,6 +8,7 @@ import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/move/confusion_effect.dart';
+import '../effect/move/flinch_effect.dart';
 import '../handler/battle_handler_context.dart';
 import '../handler/battle_stat_change_handler.dart';
 import '../handler/battle_status_change_handler.dart';
@@ -148,6 +149,30 @@ final class BattleMoveSecondaryEffectResolver {
         nextRng = postVolatile.rng;
         events.addAll(postVolatile.events);
       }
+
+      if (status.volatileStatus == PsdkBattleVolatileStatus.flinch &&
+          !battleMentalAbilityBlocksEffect(
+            state: nextState,
+            user: user,
+            target: target,
+            effectId: PsdkBattleEffectIds.flinch,
+          ) &&
+          !nextState
+              .battlerAt(target)
+              .effects
+              .contains(PsdkBattleEffectIds.flinch)) {
+        final result = applyFlinchEffect(
+          state: nextState,
+          rng: nextRng,
+          turn: turn,
+          target: target,
+          reason: move.id,
+          move: move,
+        );
+        nextState = result.state;
+        nextRng = result.rng;
+        events.addAll(result.events);
+      }
     }
 
     for (final mod in move.stageMods) {
@@ -209,7 +234,9 @@ bool _sheerForceSuppresses(BattleAbilitySecondaryEffectContext context) {
       context.move.category == PsdkBattleMoveCategory.status) {
     return false;
   }
-  if (context.move.statuses.any((status) => status.majorStatus != null) ||
+  if (context.move.statuses.any(
+        (status) => status.majorStatus != null || status.volatileStatus != null,
+      ) ||
       context.move.effectChance != null) {
     return true;
   }
