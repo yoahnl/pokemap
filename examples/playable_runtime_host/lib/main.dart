@@ -23,6 +23,7 @@ import 'src/runtime_launch_options.dart';
 import 'src/runtime_party_builder.dart';
 import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
+import 'src/runtime_projects_directory.dart';
 import 'src/runtime_touch_controls.dart';
 import 'src/runtime_touch_controls_visibility.dart';
 
@@ -382,18 +383,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     if (kIsWeb) {
       return Directory('');
     }
-    String docsPath;
-    if (Platform.isIOS) {
-      final docDir = await getApplicationDocumentsDirectory();
-      docsPath = docDir.path;
-    } else {
-      docsPath = Platform.environment['HOME'] ?? '.';
-    }
-    final projectsDir = Directory(p.join(docsPath, 'playable_projects'));
-    if (!await projectsDir.exists()) {
-      await projectsDir.create(recursive: true);
-    }
-    return projectsDir;
+    return ensureRuntimeProjectsDirectory(
+      getDocumentsDirectory: getApplicationDocumentsDirectory,
+    );
   }
 
   Future<void> _copyDirectory(Directory source, Directory target) async {
