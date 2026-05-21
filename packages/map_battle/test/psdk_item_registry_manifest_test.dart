@@ -55,6 +55,7 @@ void main() {
         'iron_ball',
         'leftovers',
         'light_ball',
+        'life_orb',
         'loaded_dice',
         'liechi_berry',
         'lum_berry',
@@ -69,6 +70,7 @@ void main() {
         'rawst_berry',
         'salac_berry',
         'shed_shell',
+        'shell_bell',
         'sitrus_berry',
         'smooth_rock',
         'starf_berry',
@@ -466,6 +468,7 @@ void main() {
         'luminous_moss',
         'razor_fang',
         'rocky_helmet',
+        'shell_bell',
         'snowball',
         'weakness_policy',
       ]) {
@@ -475,11 +478,6 @@ void main() {
         expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
             reason: itemId);
       }
-
-      expect(byId['shell_bell']!.status, PsdkItemPortStatus.partial);
-      expect(byId['shell_bell']!.dartEffect, isNotNull);
-      expect(registry.statusOf('shell_bell'), PsdkItemPortStatus.partial);
-      expect(registry.create('shell_bell', owner: psdkPlayerSlot), isNotNull);
     });
 
     test('Lot 251 remaining hook-compatible held items are tracked', () {

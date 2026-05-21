@@ -298,12 +298,14 @@ void main() {
 
       for (final effectName in <String>[
         'AssaultVest',
+        'AttackMultiplier',
         'ChoiceBand',
         'ChoiceItemMultiplier',
         'ChoiceScarf',
         'ChoiceSpecs',
         'DeepSeaScale',
         'DeepSeaTooth',
+        'DefenseMultiplier',
         'ExpertBelt',
         'LightBall',
         'MetalPowder',
@@ -335,6 +337,7 @@ void main() {
         'Chesto',
         'Ganlon',
         'HpTriggeredStatBerries',
+        'LifeOrb',
         'LumBerry',
         'Pecha',
         'PersimBerry',
@@ -396,6 +399,7 @@ void main() {
         'CellBattery',
         'LuminousMoss',
         'RockyHelmet',
+        'ShellBell',
         'Snowball',
         'WeaknessPolicy',
       ]) {
@@ -405,10 +409,6 @@ void main() {
           reason: effectName,
         );
       }
-      expect(
-        byFamilyAndName['item:ShellBell']?.status,
-        PsdkPortStatus.partial,
-      );
     });
 
     test('effect parity promotes Lot 253 passive ability effects', () async {
