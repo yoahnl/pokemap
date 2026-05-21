@@ -16,6 +16,7 @@ import 'contact_reaction_ability_effect.dart';
 import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
+import 'gorilla_tactics_effect.dart';
 import 'item_change_ability_effect.dart';
 import 'levitate_effect.dart';
 import 'mental_immunity_ability_effect.dart';
@@ -1016,6 +1017,7 @@ final class AbilityEffectRegistry {
     'anticipation': ({required scope}) => AnticipationEffect(scope: scope),
     'forewarn': ({required scope}) => ForewarnEffect(scope: scope),
     'frisk': ({required scope}) => FriskEffect(scope: scope),
+    'gorilla_tactics': ({required scope}) => GorillaTacticsEffect(scope: scope),
     'intimidate': ({required scope}) => IntimidateEffect(scope: scope),
     'imposter': ({required scope}) => ImposterEffect(scope: scope),
     'pressure': ({required scope}) => PressureEffect(scope: scope),

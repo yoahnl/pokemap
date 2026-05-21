@@ -543,7 +543,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'gorilla_tactics',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Gorilla Tactics.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'GorillaTacticsEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'grass_pelt',
