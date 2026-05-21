@@ -1,4 +1,4 @@
-name: PokeMap_Loader
+name: pokemap_loader
 description: Standalone consumer example for map_runtime — loads a project.json and runs a playable Flame map.
 publish_to: none
 version: 1.0.0+1
