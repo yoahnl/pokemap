@@ -2406,6 +2406,53 @@ BattleMoveBehaviorResolution _resolveElectroShot(
     );
   }
 
+  BattleItemEffect? shortcutItem;
+  for (final effect in user.activeItemEffects) {
+    if (effect.twoTurnShortcut(context.move)) {
+      shortcutItem = effect;
+      break;
+    }
+  }
+  if (shortcutItem != null) {
+    final consumed = const BattleItemChangeHandler().consumeHeldItem(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: context.user,
+    );
+    if (!consumed.applied) {
+      return BattleMoveBehaviorResolution(
+        state: context.state,
+        rng: context.rng,
+        events: const <PsdkBattleEvent>[],
+      );
+    }
+    final resolved = _resolveBasic(
+      BattleMoveBehaviorContext(
+        state: consumed.state,
+        rng: consumed.rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        moveSlot: context.moveSlot,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+      ),
+    );
+    return BattleMoveBehaviorResolution(
+      state: resolved.state,
+      rng: resolved.rng,
+      events: <PsdkBattleEvent>[
+        ...consumed.events,
+        ...resolved.events,
+      ],
+    );
+  }
+
   final prepared = prepareBattleMove(context, forceAccuracyBypass: true);
   if (!prepared.shouldExecuteBehavior) {
     return prepared.toResolution();
@@ -4387,6 +4434,48 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
         moveProcedureHooks: context.moveProcedureHooks,
       ),
     );
+  }
+
+  BattleItemEffect? shortcutItem;
+  for (final effect in user.activeItemEffects) {
+    if (effect.twoTurnShortcut(context.move)) {
+      shortcutItem = effect;
+      break;
+    }
+  }
+  if (shortcutItem != null) {
+    final consumed = const BattleItemChangeHandler().consumeHeldItem(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: context.user,
+    );
+    if (consumed.applied) {
+      final resolved = _resolveBasic(
+        BattleMoveBehaviorContext(
+          state: consumed.state,
+          rng: consumed.rng,
+          turn: context.turn,
+          user: context.user,
+          target: context.target,
+          move: context.move,
+          moveSlot: context.moveSlot,
+          isLastActionOfTurn: context.isLastActionOfTurn,
+          moveProcedureHooks: context.moveProcedureHooks,
+        ),
+      );
+      return BattleMoveBehaviorResolution(
+        state: resolved.state,
+        rng: resolved.rng,
+        events: <PsdkBattleEvent>[
+          ...consumed.events,
+          ...resolved.events,
+        ],
+      );
+    }
   }
 
   final prepared = prepareBattleMove(context, forceAccuracyBypass: true);

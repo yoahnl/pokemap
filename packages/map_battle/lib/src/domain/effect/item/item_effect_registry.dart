@@ -14,6 +14,7 @@ import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
 import 'move_modifier_item_effect.dart';
+import 'power_herb_effect.dart';
 import 'reactive_held_item_effect.dart';
 import 'repeat_move_item_effect.dart';
 import 'safety_goggles_effect.dart';
@@ -24,6 +25,7 @@ import 'switch_trigger_item_effect.dart';
 import 'terrain_extender_effect.dart';
 import 'terrain_seed_item_effect.dart';
 import 'weather_rock_effect.dart';
+import 'white_herb_effect.dart';
 
 typedef ItemEffectFactory = BattleEffect Function({
   required BattleEffectScope scope,
@@ -387,6 +389,8 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
         scope: scope,
         status: PsdkBattleMajorStatus.toxic,
       ),
+  'white_herb': ({required scope}) => WhiteHerbEffect(scope: scope),
+  'power_herb': ({required scope}) => PowerHerbEffect(scope: scope),
   for (final entry in _gemTypes.entries)
     entry.key: ({required scope}) => GemItemEffect(
           itemId: entry.key,

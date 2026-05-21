@@ -323,7 +323,9 @@ void main() {
         'flame_orb',
         'focus_band',
         'focus_sash',
+        'power_herb',
         'toxic_orb',
+        'white_herb',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
         expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,

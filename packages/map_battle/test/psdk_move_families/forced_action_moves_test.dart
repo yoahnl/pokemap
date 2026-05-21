@@ -222,6 +222,55 @@ void main() {
       );
     });
 
+    test('Power Herb consumes itself and skips the s_2turns charge turn', () {
+      final engine = _engine(
+        playerHeldItemId: 'power_herb',
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'fly',
+            type: 'flying',
+            power: 90,
+            battleEngineMethod: 's_2turns',
+          ),
+        ],
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(_damage(result, moveId: 'fly'), greaterThan(0));
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'power_herb');
+      expect(
+          player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isFalse);
+      expect(
+        result.timeline.events.whereType<PsdkBattleItemEvent>().single.itemId,
+        'power_herb',
+      );
+    });
+
+    test('Power Herb does not shortcut Sky Drop', () {
+      final engine = _engine(
+        playerHeldItemId: 'power_herb',
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'sky_drop',
+            type: 'flying',
+            power: 60,
+            battleEngineMethod: 's_2turns',
+          ),
+        ],
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(_damageEvents(result, moveId: 'sky_drop'), isEmpty);
+      expect(player.heldItemId, 'power_herb');
+      expect(
+          player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isTrue);
+    });
+
     test('s_2turns preserves the charge when sleep stops release', () {
       final engine = _engine(
         playerMajorStatus: PsdkBattleMajorStatus.sleep,
@@ -279,6 +328,7 @@ PsdkBattleEngine _engine({
   PsdkBattleMajorStatus? playerMajorStatus,
   int playerSleepTurns = 0,
   PsdkBattleEffectStack? playerEffects,
+  String? playerHeldItemId,
   int genericSeed = 4,
 }) {
   return PsdkBattleEngine(
@@ -291,6 +341,7 @@ PsdkBattleEngine _engine({
         majorStatus: playerMajorStatus,
         sleepTurns: playerSleepTurns,
         effects: playerEffects,
+        heldItemId: playerHeldItemId,
         moves: playerMoves,
       ),
       opponent: _combatant(
@@ -325,6 +376,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleMajorStatus? majorStatus,
   int sleepTurns = 0,
   PsdkBattleEffectStack? effects,
+  String? heldItemId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -334,6 +386,7 @@ PsdkBattleCombatantSetup _combatant({
     maxHp: 100,
     currentHp: 100,
     abilityId: abilityId,
+    heldItemId: heldItemId,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: PsdkBattleStats(
       attack: 50,
