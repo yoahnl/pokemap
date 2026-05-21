@@ -450,6 +450,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_lunar_dance',
       resolve: _resolveHealingSacrifice,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_torment',
+      resolve: _resolveTorment,
+    ),
     for (final method in _partialTargetMarkerMethods.keys)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -723,7 +727,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_taunt': 'taunt',
   's_telekinesis': 'telekinesis',
   's_teleport': 'teleport',
-  's_torment': 'torment',
   's_yawn': 'drowsiness',
 };
 
@@ -3684,13 +3687,26 @@ String _actionQueueEffectId(String battleEngineMethod) {
 BattleMoveBehaviorResolution _resolveTargetMarker(
   BattleMoveBehaviorContext context,
 ) {
+  final effectId =
+      _partialTargetMarkerMethods[context.move.battleEngineMethod]!;
+  return _resolveTargetMarkerWithEffect(context, effectId: effectId);
+}
+
+BattleMoveBehaviorResolution _resolveTorment(
+  BattleMoveBehaviorContext context,
+) {
+  return _resolveTargetMarkerWithEffect(context, effectId: 'torment');
+}
+
+BattleMoveBehaviorResolution _resolveTargetMarkerWithEffect(
+  BattleMoveBehaviorContext context, {
+  required String effectId,
+}) {
   final prepared = prepareBattleMove(context);
   if (!prepared.shouldExecuteBehavior) {
     return prepared.toResolution();
   }
 
-  final effectId =
-      _partialTargetMarkerMethods[context.move.battleEngineMethod]!;
   var state = prepared.state;
   var rng = prepared.rng;
   final events = <PsdkBattleEvent>[...prepared.events];

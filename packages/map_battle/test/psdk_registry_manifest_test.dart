@@ -1402,6 +1402,10 @@ void main() {
       for (final entry in <({String method, String behavior})>[
         (method: 's_after_you', behavior: 'StaticBasicMoveRegistry.afterYou'),
         (method: 's_assist', behavior: 'CopyCallMoveBehavior.assist'),
+        (method: 's_disable', behavior: 'StaticBasicMoveRegistry.disable'),
+        (method: 's_encore', behavior: 'StaticBasicMoveRegistry.encore'),
+        (method: 's_heal_block', behavior: 'StaticBasicMoveRegistry.healBlock'),
+        (method: 's_imprison', behavior: 'StaticBasicMoveRegistry.imprison'),
         (method: 's_instruct', behavior: 'CopyCallMoveBehavior.instruct'),
         (method: 's_metronome', behavior: 'CopyCallMoveBehavior.metronome'),
         (method: 's_mimic', behavior: 'CopyCallMoveBehavior.mimic'),
@@ -1410,6 +1414,7 @@ void main() {
         (method: 's_quash', behavior: 'StaticBasicMoveRegistry.quash'),
         (method: 's_sketch', behavior: 'CopyCallMoveBehavior.sketch'),
         (method: 's_sleep_talk', behavior: 'CopyCallMoveBehavior.sleepTalk'),
+        (method: 's_torment', behavior: 'StaticBasicMoveRegistry.s_torment'),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
@@ -1442,20 +1447,12 @@ void main() {
               'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
         ),
         (
-          method: 's_disable',
-          behavior: 'StaticBasicMoveRegistry.disable',
-        ),
-        (
           method: 's_electrify',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_electrify)',
         ),
         (
           method: 's_embargo',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_embargo)',
-        ),
-        (
-          method: 's_encore',
-          behavior: 'StaticBasicMoveRegistry.encore',
         ),
         (
           method: 's_entrainment',
@@ -1477,14 +1474,6 @@ void main() {
         (
           method: 's_happy_hour',
           behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)',
-        ),
-        (
-          method: 's_heal_block',
-          behavior: 'StaticBasicMoveRegistry.healBlock',
-        ),
-        (
-          method: 's_imprison',
-          behavior: 'StaticBasicMoveRegistry.imprison',
         ),
         (
           method: 's_ion_deluge',
@@ -1553,10 +1542,6 @@ void main() {
           method: 's_skill_swap',
           behavior:
               'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
-        ),
-        (
-          method: 's_torment',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_torment)',
         ),
         (
           method: 's_toxic_thread',
