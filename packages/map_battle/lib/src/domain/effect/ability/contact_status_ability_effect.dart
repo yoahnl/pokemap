@@ -209,14 +209,32 @@ final class CuteCharmEffect extends BattleAbilityEffect {
       scope: BattlerBattleEffectScope(context.user),
       attractedTo: context.target,
     );
-    return BattleEffectPostDamageResult(
-      state: context.state.updateBattler(
-        context.user,
-        (battler) => battler.copyWith(
-          effects: battler.effects.addEffect(attract),
-        ),
+    final installed = context.state.updateBattler(
+      context.user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(attract),
       ),
-      rng: nextRng,
+    );
+    final post = installed
+        .battlerAt(context.user)
+        .effects
+        .dispatchPostVolatileStatusChange(
+          BattleEffectVolatileStatusChangeContext(
+            state: installed,
+            rng: nextRng,
+            turn: context.turn,
+            owner: context.user,
+            user: context.target,
+            target: context.user,
+            effectId: attract.id,
+            cured: false,
+            moveId: 'ability:cute_charm',
+            move: context.move,
+          ),
+        );
+    return BattleEffectPostDamageResult(
+      state: post.state,
+      rng: post.rng,
       events: <PsdkBattleEvent>[
         PsdkBattleEffectEvent.added(
           turn: context.turn,
@@ -225,6 +243,7 @@ final class CuteCharmEffect extends BattleAbilityEffect {
           remainingTurns: attract.remainingTurns,
           reason: 'ability:cute_charm',
         ),
+        ...post.events,
       ],
     );
   }

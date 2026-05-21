@@ -50,6 +50,7 @@ export '../domain/effect/item/item_effect.dart';
 export '../domain/effect/item/item_effect_registry.dart';
 export '../domain/effect/item/leftovers_effect.dart';
 export '../domain/effect/item/loaded_dice_effect.dart';
+export '../domain/effect/item/mental_herb_effect.dart';
 export '../domain/effect/item/terrain_extender_effect.dart';
 export '../domain/effect/item/weather_rock_effect.dart';
 export '../domain/effect/move/ability_suppressed_effect.dart';

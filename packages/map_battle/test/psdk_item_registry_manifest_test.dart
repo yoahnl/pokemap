@@ -57,10 +57,13 @@ void main() {
         'light_ball',
         'loaded_dice',
         'liechi_berry',
+        'lum_berry',
+        'mental_herb',
         'metal_powder',
         'normal_gem',
         'oran_berry',
         'pecha_berry',
+        'persim_berry',
         'petaya_berry',
         'quick_powder',
         'rawst_berry',
@@ -90,8 +93,10 @@ void main() {
         'life_orb',
         'loaded_dice',
         'lum_berry',
+        'mental_herb',
         'normal_gem',
         'oran_berry',
+        'persim_berry',
         'shed_shell',
         'sitrus_berry',
         'terrain_extender',
@@ -297,6 +302,7 @@ void main() {
         'occa_berry',
         'passho_berry',
         'payapa_berry',
+        'persim_berry',
         'rindo_berry',
         'roseli_berry',
         'rowap_berry',
@@ -304,6 +310,25 @@ void main() {
         'tanga_berry',
         'wacan_berry',
         'yache_berry',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
+    test('Lot 124 status and mental cleanup items are promoted', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'lum_berry',
+        'mental_herb',
+        'persim_berry',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
         expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,

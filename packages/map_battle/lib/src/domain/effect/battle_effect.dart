@@ -136,6 +136,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectVolatileStatusChangeResult? onPostVolatileStatusChange(
+    BattleEffectVolatileStatusChangeContext context,
+  ) {
+    return null;
+  }
+
   String? onWeatherPrevention(
     BattleEffectWeatherPreventionContext context,
   ) {

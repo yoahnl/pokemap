@@ -650,6 +650,53 @@ final class BattleEffectObjectStack {
     );
   }
 
+  BattleEffectVolatileStatusChangeResult dispatchPostVolatileStatusChange(
+    BattleEffectVolatileStatusChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostVolatileStatusChange(
+        BattleEffectVolatileStatusChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          target: context.target,
+          effectId: context.effectId,
+          cured: context.cured,
+          moveId: context.moveId,
+          move: context.move,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectVolatileStatusChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   String? weatherPreventionReason(
     BattleEffectWeatherPreventionContext context,
   ) {

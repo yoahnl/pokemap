@@ -9476,9 +9476,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 382,
-      "partial": 26,
-      "missing": 74
+      "ported": 385,
+      "partial": 25,
+      "missing": 72
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 67,
-        "partial": 6,
-        "missing": 14
+        "ported": 70,
+        "partial": 5,
+        "missing": 12
       },
       "status": {
         "ported": 7,
@@ -11445,7 +11445,7 @@
       {
         "effectName": "LumBerry",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Lum Berry.rb",
         "hookFamilies": [
           "status_prevention"
@@ -11565,7 +11565,7 @@
       {
         "effectName": "MentalHerb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 MentalHerb.rb",
         "hookFamilies": [
           "action_order"
@@ -11933,7 +11933,7 @@
       {
         "effectName": "PersimBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Persim Berry.rb",
         "hookFamilies": [
           "status_prevention"

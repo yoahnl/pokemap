@@ -314,6 +314,12 @@ class PsdkBattleEffectStack {
     );
   }
 
+  BattleEffectVolatileStatusChangeResult dispatchPostVolatileStatusChange(
+    BattleEffectVolatileStatusChangeContext context,
+  ) {
+    return _stack.dispatchPostVolatileStatusChange(context);
+  }
+
   PsdkBattleEffectStack batonPassTransferEffects({
     required PsdkBattleSlotRef source,
     required PsdkBattleSlotRef target,

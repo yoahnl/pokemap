@@ -335,12 +335,15 @@ void main() {
         'Chesto',
         'Ganlon',
         'HpTriggeredStatBerries',
+        'LumBerry',
         'Pecha',
+        'PersimBerry',
         'Petaya',
         'Rawst',
         'Salac',
         'Starf',
         'StatusBerry',
+        'MentalHerb',
       ]) {
         expect(
           byFamilyAndName['item:$effectName']?.status,
@@ -348,10 +351,6 @@ void main() {
           reason: effectName,
         );
       }
-      expect(
-        byFamilyAndName['item:LumBerry']?.status,
-        PsdkPortStatus.partial,
-      );
       expect(
         byFamilyAndName['item:ConfusingBerries']?.status,
         PsdkPortStatus.partial,

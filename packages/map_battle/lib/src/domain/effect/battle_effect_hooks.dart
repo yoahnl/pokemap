@@ -473,6 +473,46 @@ final class BattleEffectStatusChangeResult {
   final bool applied;
 }
 
+final class BattleEffectVolatileStatusChangeContext {
+  const BattleEffectVolatileStatusChangeContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.target,
+    required this.effectId,
+    required this.cured,
+    this.moveId,
+    this.move,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final String effectId;
+  final bool cured;
+  final String? moveId;
+  final BattleMoveDefinition? move;
+}
+
+final class BattleEffectVolatileStatusChangeResult {
+  const BattleEffectVolatileStatusChangeResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
 final class BattleEffectWeatherPreventionContext {
   const BattleEffectWeatherPreventionContext({
     required this.state,

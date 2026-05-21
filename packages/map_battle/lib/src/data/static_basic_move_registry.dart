@@ -58,6 +58,7 @@ import '../domain/handler/battle_switch_handler.dart';
 import '../domain/handler/battle_terrain_change_handler.dart';
 import '../domain/effect/ability/mental_immunity_ability_effect.dart';
 import '../domain/effect/battle_effect.dart';
+import '../domain/effect/battle_effect_hooks.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/field/delayed_move_effect.dart';
 import '../domain/effect/field/healing_wish_effect.dart';
@@ -3191,17 +3192,20 @@ BattleMoveBehaviorResolution _resolveAttract(
       continue;
     }
 
-    state = state.updateBattler(
-      targetSlot,
-      (battler) => battler.copyWith(
-        effects: battler.effects.addEffect(
-          AttractEffect(
-            scope: BattlerBattleEffectScope(targetSlot),
-            attractedTo: context.user,
-          ),
-        ),
+    final installed = _addTargetEffectAndDispatchVolatile(
+      state: state,
+      rng: prepared.rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      effect: AttractEffect(
+        scope: BattlerBattleEffectScope(targetSlot),
+        attractedTo: context.user,
       ),
     );
+    state = installed.state;
+    events.addAll(installed.events);
   }
 
   return BattleMoveBehaviorResolution(
@@ -3450,18 +3454,21 @@ BattleMoveBehaviorResolution _resolveDisable(
     }
 
     installed = true;
-    state = state.updateBattler(
-      targetSlot,
-      (battler) => battler.copyWith(
-        effects: battler.effects.addEffect(
-          DisableEffect(
-            scope: BattlerBattleEffectScope(targetSlot),
-            disabledMoveId: disabledMoveId,
-            remainingTurns: _markerTurnCount('s_disable') ?? 4,
-          ),
-        ),
+    final applied = _addTargetEffectAndDispatchVolatile(
+      state: state,
+      rng: prepared.rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      effect: DisableEffect(
+        scope: BattlerBattleEffectScope(targetSlot),
+        disabledMoveId: disabledMoveId,
+        remainingTurns: _markerTurnCount('s_disable') ?? 4,
       ),
     );
+    state = applied.state;
+    events.addAll(applied.events);
   }
 
   return BattleMoveBehaviorResolution(
@@ -3515,18 +3522,21 @@ BattleMoveBehaviorResolution _resolveEncore(
     }
 
     installed = true;
-    state = state.updateBattler(
-      targetSlot,
-      (battler) => battler.copyWith(
-        effects: battler.effects.addEffect(
-          EncoreEffect(
-            scope: BattlerBattleEffectScope(targetSlot),
-            encoredMoveId: encoredMoveId,
-            remainingTurns: _markerTurnCount('s_encore') ?? 3,
-          ),
-        ),
+    final applied = _addTargetEffectAndDispatchVolatile(
+      state: state,
+      rng: prepared.rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      effect: EncoreEffect(
+        scope: BattlerBattleEffectScope(targetSlot),
+        encoredMoveId: encoredMoveId,
+        remainingTurns: _markerTurnCount('s_encore') ?? 3,
       ),
     );
+    state = applied.state;
+    events.addAll(applied.events);
   }
 
   return BattleMoveBehaviorResolution(
@@ -3564,17 +3574,20 @@ BattleMoveBehaviorResolution _resolveHealBlock(
       continue;
     }
 
-    state = state.updateBattler(
-      targetSlot,
-      (battler) => battler.copyWith(
-        effects: battler.effects.addEffect(
-          HealBlockEffect(
-            scope: BattlerBattleEffectScope(targetSlot),
-            remainingTurns: _markerTurnCount('s_heal_block') ?? 5,
-          ),
-        ),
+    final applied = _addTargetEffectAndDispatchVolatile(
+      state: state,
+      rng: prepared.rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      effect: HealBlockEffect(
+        scope: BattlerBattleEffectScope(targetSlot),
+        remainingTurns: _markerTurnCount('s_heal_block') ?? 5,
       ),
     );
+    state = applied.state;
+    events.addAll(applied.events);
   }
 
   return BattleMoveBehaviorResolution(
@@ -3728,20 +3741,24 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
       continue;
     }
 
-    state = state.updateBattler(
-      targetSlot,
-      (battler) => battler.copyWith(
-        effects: battler.effects.addEffect(
-          _targetMarkerEffect(
-            method: context.move.battleEngineMethod,
-            origin: context.move.id,
-            user: context.user,
-            effectId: effectId,
-            target: targetSlot,
-          ),
-        ),
+    final installed = _addTargetEffectAndDispatchVolatile(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      effect: _targetMarkerEffect(
+        method: context.move.battleEngineMethod,
+        origin: context.move.id,
+        user: context.user,
+        effectId: effectId,
+        target: targetSlot,
       ),
     );
+    state = installed.state;
+    rng = installed.rng;
+    events.addAll(installed.events);
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: state,
       rng: rng,
@@ -4347,6 +4364,54 @@ BattleEffect _targetMarkerEffect({
         remainingTurns: remainingTurns,
       ),
   };
+}
+
+_TargetEffectApplication _addTargetEffectAndDispatchVolatile({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required String moveId,
+  required BattleEffect effect,
+}) {
+  final installed = state.updateBattler(
+    target,
+    (battler) => battler.copyWith(
+      effects: battler.effects.addEffect(effect),
+    ),
+  );
+  final post =
+      installed.battlerAt(target).effects.dispatchPostVolatileStatusChange(
+            BattleEffectVolatileStatusChangeContext(
+              state: installed,
+              rng: rng,
+              turn: turn,
+              owner: target,
+              user: user,
+              target: target,
+              effectId: effect.id,
+              cured: false,
+              moveId: moveId,
+            ),
+          );
+  return _TargetEffectApplication(
+    state: post.state,
+    rng: post.rng,
+    events: post.events,
+  );
+}
+
+final class _TargetEffectApplication {
+  const _TargetEffectApplication({
+    required this.state,
+    required this.rng,
+    required this.events,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
 }
 
 bool _mentalAbilityBlocksEffect({

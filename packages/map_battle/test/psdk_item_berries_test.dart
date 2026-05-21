@@ -215,6 +215,129 @@ void main() {
           pecha.state.battlerAt(psdkPlayerSlot).consumedItemId, 'pecha_berry');
     });
 
+    test('Lum Berry cures confusion when it is applied as a volatile status',
+        () {
+      final result = _applyConfusion(playerHeldItemId: 'lum_berry');
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.effects.contains(PsdkBattleEffectIds.confusion), isFalse);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'lum_berry');
+      expect(_itemEventsFromSecondary(result).single.itemId, 'lum_berry');
+      expect(
+        _effectEventsFromSecondary(result)
+            .where((event) => event.effectId == PsdkBattleEffectIds.confusion)
+            .single
+            .reason,
+        'confuse_ray',
+      );
+    });
+
+    test('Lum Berry cures a major status and existing confusion together', () {
+      final result = _applyStatus(
+        playerHeldItemId: 'lum_berry',
+        status: PsdkBattleMajorStatus.burn,
+        playerEffects: PsdkBattleEffectStack(
+          effects: const <BattleEffect>[
+            ConfusionEffect(scope: BattlerBattleEffectScope(psdkPlayerSlot)),
+          ],
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.majorStatus, isNull);
+      expect(player.effects.contains(PsdkBattleEffectIds.confusion), isFalse);
+      expect(player.consumedItemId, 'lum_berry');
+      expect(
+        _statusCureEvents(result, moveId: 'status_move').single.status,
+        PsdkBattleMajorStatus.burn,
+      );
+      expect(
+        _effectEvents(result)
+            .where((event) => event.effectId == PsdkBattleEffectIds.confusion)
+            .single
+            .reason,
+        'status_move',
+      );
+    });
+
+    test('Persim Berry cures confusion but ignores major-only statuses', () {
+      final confused = _applyConfusion(playerHeldItemId: 'persim_berry');
+      final burned = _applyStatus(
+        playerHeldItemId: 'persim_berry',
+        status: PsdkBattleMajorStatus.burn,
+      );
+
+      expect(
+        confused.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isFalse,
+      );
+      expect(
+        confused.state.battlerAt(psdkPlayerSlot).consumedItemId,
+        'persim_berry',
+      );
+      expect(burned.state.battlerAt(psdkPlayerSlot).majorStatus,
+          PsdkBattleMajorStatus.burn);
+      expect(burned.state.battlerAt(psdkPlayerSlot).heldItemId, 'persim_berry');
+      expect(_itemEvents(burned), isEmpty);
+    });
+
+    test('Mental Herb consumes and removes one mental volatile effect', () {
+      final result = _applyVolatileEffect(
+        playerHeldItemId: 'mental_herb',
+        effectId: 'attract',
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.consumedItemId, 'mental_herb');
+      expect(player.effects.contains('attract'), isFalse);
+      expect(_itemEventsFromVolatile(result).single.itemId, 'mental_herb');
+      expect(
+        _effectEventsFromVolatile(result)
+            .where((event) => event.effectId == 'attract')
+            .single
+            .reason,
+        'item:mental_herb',
+      );
+    });
+
+    test('Mental Herb handles every PSDK mental volatile effect', () {
+      for (final effectId in <String>[
+        'attract',
+        'disable',
+        'encore',
+        'heal_block',
+        'taunt',
+        'torment',
+      ]) {
+        final result = _applyVolatileEffect(
+          playerHeldItemId: 'mental_herb',
+          effectId: effectId,
+        );
+        final player = result.state.battlerAt(psdkPlayerSlot);
+
+        expect(player.consumedItemId, 'mental_herb', reason: effectId);
+        expect(player.effects.contains(effectId), isFalse, reason: effectId);
+        expect(_itemEventsFromVolatile(result).single.itemId, 'mental_herb',
+            reason: effectId);
+      }
+    });
+
+    test('Mental Herb ignores non-mental volatile effects', () {
+      final result = _applyVolatileEffect(
+        playerHeldItemId: 'mental_herb',
+        effectId: PsdkBattleEffectIds.confusion,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.heldItemId, 'mental_herb');
+      expect(player.effects.contains(PsdkBattleEffectIds.confusion), isTrue);
+      expect(_itemEventsFromVolatile(result), isEmpty);
+    });
+
     test('PSDK status berries cure their exact major status', () {
       final cases = <(String, PsdkBattleMajorStatus)>[
         ('aspear_berry', PsdkBattleMajorStatus.freeze),
@@ -642,6 +765,7 @@ BattleHandlerResult _tickEndTurn({
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
   List<PsdkBattleMoveData>? playerMoves,
+  PsdkBattleEffectStack? playerEffects,
   PsdkBattleWeatherId? weather,
   String? opponentAbilityId,
 }) {
@@ -652,6 +776,7 @@ BattleHandlerResult _tickEndTurn({
     playerConsumedItemId: playerConsumedItemId,
     playerItemConsumed: playerItemConsumed,
     playerMoves: playerMoves,
+    playerEffects: playerEffects,
     weather: weather,
     opponentAbilityId: opponentAbilityId,
   );
@@ -669,10 +794,12 @@ BattleHandlerResult _applyStatus({
   required String playerHeldItemId,
   String? opponentAbilityId,
   required PsdkBattleMajorStatus status,
+  PsdkBattleEffectStack? playerEffects,
 }) {
   final state = _state(
     playerHeldItemId: playerHeldItemId,
     opponentAbilityId: opponentAbilityId,
+    playerEffects: playerEffects,
   );
   return const BattleStatusChangeHandler().applyMajorStatus(
     context: BattleHandlerContext(
@@ -687,6 +814,59 @@ BattleHandlerResult _applyStatus({
   );
 }
 
+BattleEffectVolatileStatusChangeResult _applyVolatileEffect({
+  required String playerHeldItemId,
+  required String effectId,
+}) {
+  final state = _state(playerHeldItemId: playerHeldItemId).updateBattler(
+    psdkPlayerSlot,
+    (battler) => battler.copyWith(
+      effects: battler.effects.add(effectId),
+    ),
+  );
+  return state
+      .battlerAt(psdkPlayerSlot)
+      .effects
+      .dispatchPostVolatileStatusChange(
+        BattleEffectVolatileStatusChangeContext(
+          state: state,
+          rng: BattleRngStreams.fromSeedSnapshot(_seeds),
+          turn: 1,
+          owner: psdkPlayerSlot,
+          user: psdkOpponentSlot,
+          target: psdkPlayerSlot,
+          effectId: effectId,
+          cured: false,
+          moveId: 'volatile_move',
+        ),
+      );
+}
+
+BattleMoveSecondaryEffectResult _applyConfusion({
+  required String playerHeldItemId,
+}) {
+  final state = _state(playerHeldItemId: playerHeldItemId);
+  return const BattleMoveSecondaryEffectResolver().resolve(
+    state: state,
+    rng: BattleRngStreams.fromSeedSnapshot(_seeds),
+    user: psdkOpponentSlot,
+    target: psdkPlayerSlot,
+    turn: 1,
+    move: BattleMoveDefinition.fromPsdk(
+      _move(
+        id: 'confuse_ray',
+        power: 0,
+        statuses: <PsdkBattleMoveStatus>[
+          PsdkBattleMoveStatus.volatile(
+            status: PsdkBattleVolatileStatus.confusion,
+            chance: 100,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 PsdkBattleState _state({
   required String? playerHeldItemId,
   int playerCurrentHp = 100,
@@ -695,6 +875,7 @@ PsdkBattleState _state({
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
   List<PsdkBattleMoveData>? playerMoves,
+  PsdkBattleEffectStack? playerEffects,
   PsdkBattleWeatherId? weather,
 }) {
   final state = PsdkBattleState.fromSetup(
@@ -717,9 +898,18 @@ PsdkBattleState _state({
       rngSeeds: _seeds.psdkSeeds,
     ).psdkSetup,
   );
-  return weather == null
+  final stateWithEffects = playerEffects == null
       ? state
-      : state.copyWith(field: state.field.withWeather(weather));
+      : state.updateBattler(
+          psdkPlayerSlot,
+          (battler) => battler.copyWith(
+            effects: battler.effects.addEffects(playerEffects.effects),
+          ),
+        );
+  return weather == null
+      ? stateWithEffects
+      : stateWithEffects.copyWith(
+          field: stateWithEffects.field.withWeather(weather));
 }
 
 PsdkBattleCombatantSetup _combatant({
@@ -775,6 +965,7 @@ PsdkBattleMoveData _move({
   int accuracy = 100,
   int pp = 35,
   int? currentPp,
+  List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -793,6 +984,7 @@ PsdkBattleMoveData _move({
     criticalRate: 1,
     battleEngineMethod: power > 0 ? 's_basic' : 's_status',
     target: PsdkBattleMoveTarget.adjacentFoe,
+    statuses: statuses,
   );
 }
 
@@ -823,6 +1015,40 @@ List<PsdkBattleStatusCureEvent> _statusCureEvents(
 List<PsdkBattleStatStageEvent> _statEvents(BattleHandlerResult result) {
   return result.events
       .whereType<PsdkBattleStatStageEvent>()
+      .toList(growable: false);
+}
+
+List<PsdkBattleEffectEvent> _effectEvents(BattleHandlerResult result) {
+  return result.events
+      .whereType<PsdkBattleEffectEvent>()
+      .toList(growable: false);
+}
+
+List<PsdkBattleItemEvent> _itemEventsFromVolatile(
+  BattleEffectVolatileStatusChangeResult result,
+) {
+  return result.events.whereType<PsdkBattleItemEvent>().toList(growable: false);
+}
+
+List<PsdkBattleEffectEvent> _effectEventsFromVolatile(
+  BattleEffectVolatileStatusChangeResult result,
+) {
+  return result.events
+      .whereType<PsdkBattleEffectEvent>()
+      .toList(growable: false);
+}
+
+List<PsdkBattleItemEvent> _itemEventsFromSecondary(
+  BattleMoveSecondaryEffectResult result,
+) {
+  return result.events.whereType<PsdkBattleItemEvent>().toList(growable: false);
+}
+
+List<PsdkBattleEffectEvent> _effectEventsFromSecondary(
+  BattleMoveSecondaryEffectResult result,
+) {
+  return result.events
+      .whereType<PsdkBattleEffectEvent>()
       .toList(growable: false);
 }
 

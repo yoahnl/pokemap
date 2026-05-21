@@ -14,6 +14,7 @@ import 'held_item_modifier_effect.dart';
 import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
+import 'mental_herb_effect.dart';
 import 'move_modifier_item_effect.dart';
 import 'power_herb_effect.dart';
 import 'reactive_held_item_effect.dart';
@@ -93,6 +94,7 @@ final class ItemEffectRegistry {
           triggerType: 'water',
           stat: 'specialDefense',
         ),
+    'mental_herb': ({required scope}) => MentalHerbEffect(scope: scope),
     'snowball': ({required scope}) => TypeReactiveStatItemEffect(
           itemId: 'snowball',
           scope: scope,
@@ -269,6 +271,7 @@ final Map<String, ItemEffectFactory> _berryFactories =
   'lum_berry': ({required scope}) => BerryItemEffect.statusCure(
         itemId: 'lum_berry',
         scope: scope,
+        curesConfusion: true,
         statuses: const <PsdkBattleMajorStatus>{
           PsdkBattleMajorStatus.paralysis,
           PsdkBattleMajorStatus.burn,
@@ -277,6 +280,12 @@ final Map<String, ItemEffectFactory> _berryFactories =
           PsdkBattleMajorStatus.sleep,
           PsdkBattleMajorStatus.freeze,
         },
+      ),
+  'persim_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'persim_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{},
+        curesConfusion: true,
       ),
   'liechi_berry': ({required scope}) => BerryItemEffect.statPinch(
         itemId: 'liechi_berry',
