@@ -75,6 +75,7 @@ void main() {
         'smooth_rock',
         'starf_berry',
         'terrain_extender',
+        'throat_spray',
         'thick_club',
       };
 
@@ -491,6 +492,7 @@ void main() {
         'safety_goggles',
         'smoke_ball',
         'sticky_barb',
+        'throat_spray',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
         expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
