@@ -818,6 +818,58 @@ void main() {
       );
     });
 
+    test('Cud Chew replays a consumed berry after its countdown', () {
+      final consumed = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cud_chew',
+        opponentHeldItemId: 'oran_berry',
+        opponentCurrentHp: 45,
+        rawDamage: 10,
+      );
+
+      expect(consumed.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(
+        consumed.state.battlerAt(psdkOpponentSlot).consumedItemId,
+        'oran_berry',
+      );
+      expect(consumed.state.battlerAt(psdkOpponentSlot).currentHp, 45);
+      expect(
+        consumed.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'cud_chew_pending',
+            ),
+        isTrue,
+      );
+
+      final firstEndTurn = _tickEndTurnEffectsFrom(consumed, turn: 1);
+
+      expect(firstEndTurn.state.battlerAt(psdkOpponentSlot).currentHp, 45);
+      expect(
+        _healEventsForHandler(firstEndTurn, moveId: 'item:oran_berry'),
+        isEmpty,
+      );
+      expect(
+        firstEndTurn.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'cud_chew_pending',
+            ),
+        isTrue,
+      );
+
+      final secondEndTurn = _tickEndTurnEffectsFrom(firstEndTurn, turn: 2);
+
+      expect(secondEndTurn.state.battlerAt(psdkOpponentSlot).currentHp, 55);
+      expect(
+        _healEventsForHandler(secondEndTurn, moveId: 'item:oran_berry')
+            .single
+            .amount,
+        10,
+      );
+      expect(
+        secondEndTurn.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'cud_chew_pending',
+            ),
+        isFalse,
+      );
+    });
+
     test('Download chooses Attack or Special Attack from foe defenses', () {
       final attackBoost = _dispatchAbilitySwitchIn(
         playerAbilityId: 'download',
@@ -5574,6 +5626,30 @@ List<PsdkBattleDamageEvent> _damageEventsForHandler(
   return result.events.whereType<PsdkBattleDamageEvent>().toList(
         growable: false,
       );
+}
+
+List<PsdkBattleHealEvent> _healEventsForHandler(
+  BattleHandlerResult result, {
+  String? moveId,
+}) {
+  return result.events
+      .whereType<PsdkBattleHealEvent>()
+      .where((event) => moveId == null || event.moveId == moveId)
+      .toList(growable: false);
+}
+
+BattleHandlerResult _tickEndTurnEffectsFrom(
+  BattleHandlerResult result, {
+  required int turn,
+}) {
+  return const BattleEndTurnHandler().tickEndTurnEffects(
+    BattleHandlerContext(
+      state: result.state,
+      rng: result.rng,
+      turn: turn,
+      user: psdkPlayerSlot,
+    ),
+  );
 }
 
 BattleRngStreams _rng() {

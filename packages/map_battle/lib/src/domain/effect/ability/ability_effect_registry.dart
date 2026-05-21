@@ -67,6 +67,7 @@ final class AbilityEffectRegistry {
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
     'damp': ({required scope}) => DampEffect(scope: scope),
     'cheek_pouch': ({required scope}) => CheekPouchEffect(scope: scope),
+    'cud_chew': ({required scope}) => CudChewEffect(scope: scope),
     'harvest': ({required scope}) => HarvestEffect(scope: scope),
     'opportunist': ({required scope}) => OpportunistEffect(scope: scope),
     'ripen': ({required scope}) => RipenEffect(scope: scope),
@@ -1056,7 +1057,9 @@ final class AbilityEffectRegistry {
       factoryIdsOutsideManifest: factoryIds.difference(manifestIds),
       declaredEffectsWithoutFactory: <String>{
         for (final entry in psdkAbilityEffectManifest)
-          if (entry.dartEffect != null && !factoryIds.contains(entry.abilityId))
+          if (entry.dartEffect != null &&
+              !_isNestedAbilityEffectEntry(entry.abilityId) &&
+              !factoryIds.contains(entry.abilityId))
             entry.abilityId,
       },
       missingAbilityIds: <String>{
@@ -1096,6 +1099,10 @@ final class AbilityEffectRegistry {
     final effect = create(abilityId, owner: owner);
     return effect == null ? base : base.addEffect(effect);
   }
+}
+
+bool _isNestedAbilityEffectEntry(String abilityId) {
+  return abilityId.endsWith('_effect');
 }
 
 final class AbilityEffectRegistryCoverage {
