@@ -9476,15 +9476,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 376,
+      "ported": 378,
       "partial": 27,
-      "missing": 79
+      "missing": 77
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 200,
+        "ported": 202,
         "partial": 13,
-        "missing": 41
+        "missing": 39
       },
       "move": {
         "ported": 83,
@@ -11489,7 +11489,7 @@
       {
         "effectName": "Magician",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb",
         "hookFamilies": [
           "post_damage"
@@ -11949,7 +11949,7 @@
       {
         "effectName": "Pickpocket",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb",
         "hookFamilies": [
           "post_damage"

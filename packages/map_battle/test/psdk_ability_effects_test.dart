@@ -746,6 +746,78 @@ void main() {
       );
     });
 
+    test('Magician steals the damaged target held item after a hit', () {
+      final stolen = _applyDirectAbilityDamage(
+        playerAbilityId: 'magician',
+        opponentHeldItemId: 'leftovers',
+      );
+      final alreadyHolding = _applyDirectAbilityDamage(
+        playerAbilityId: 'magician',
+        playerHeldItemId: 'oran_berry',
+        opponentHeldItemId: 'leftovers',
+      );
+      final targetFainted = _applyDirectAbilityDamage(
+        playerAbilityId: 'magician',
+        opponentHeldItemId: 'leftovers',
+        opponentCurrentHp: 10,
+        rawDamage: 40,
+      );
+
+      expect(stolen.state.battlerAt(psdkPlayerSlot).heldItemId, 'leftovers');
+      expect(stolen.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(
+        alreadyHolding.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'oran_berry',
+      );
+      expect(
+        alreadyHolding.state.battlerAt(psdkOpponentSlot).heldItemId,
+        'leftovers',
+      );
+      expect(
+        targetFainted.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'leftovers',
+      );
+      expect(
+          targetFainted.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+    });
+
+    test('Pickpocket steals from a living contact attacker after damage', () {
+      final stolen = _applyDirectAbilityDamage(
+        opponentAbilityId: 'pickpocket',
+        playerHeldItemId: 'choice_scarf',
+        flags: const BattleMoveFlags(contact: true),
+      );
+      final nonContact = _applyDirectAbilityDamage(
+        opponentAbilityId: 'pickpocket',
+        playerHeldItemId: 'choice_scarf',
+      );
+      final targetHolding = _applyDirectAbilityDamage(
+        opponentAbilityId: 'pickpocket',
+        playerHeldItemId: 'choice_scarf',
+        opponentHeldItemId: 'leftovers',
+        flags: const BattleMoveFlags(contact: true),
+      );
+
+      expect(
+        stolen.state.battlerAt(psdkOpponentSlot).heldItemId,
+        'choice_scarf',
+      );
+      expect(stolen.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(nonContact.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(
+        nonContact.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'choice_scarf',
+      );
+      expect(
+        targetHolding.state.battlerAt(psdkOpponentSlot).heldItemId,
+        'leftovers',
+      );
+      expect(
+        targetHolding.state.battlerAt(psdkPlayerSlot).heldItemId,
+        'choice_scarf',
+      );
+    });
+
     test('Download chooses Attack or Special Attack from foe defenses', () {
       final attackBoost = _dispatchAbilitySwitchIn(
         playerAbilityId: 'download',
@@ -5677,6 +5749,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   String? playerHeldItemId,
+  String? opponentHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleGender playerGender = PsdkBattleGender.unknown,
   PsdkBattleGender opponentGender = PsdkBattleGender.unknown,
@@ -5706,6 +5779,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
         currentHp: opponentCurrentHp,
         types: opponentTypes,
         abilityId: opponentAbilityId,
+        heldItemId: opponentHeldItemId,
         gender: opponentGender,
         effects: opponentEffects,
         move: _move(id: 'opponent_wait', power: 0),
