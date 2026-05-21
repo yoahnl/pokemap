@@ -69,6 +69,27 @@ ProjectedBuildingShadowGeometry? resolveProjectedBuildingShadowGeometry({
     return null;
   }
 
+  return switch (preset.geometryMode) {
+    ProjectedBuildingShadowGeometryMode.directional =>
+      _resolveDirectionalProjectedBuildingShadowGeometry(
+        config: config,
+        preset: preset,
+        metrics: metrics,
+      ),
+    ProjectedBuildingShadowGeometryMode.footprint =>
+      _resolveFootprintProjectedBuildingShadowGeometry(
+        config: config,
+        preset: preset,
+        metrics: metrics,
+      ),
+  };
+}
+
+ProjectedBuildingShadowGeometry _resolveDirectionalProjectedBuildingShadowGeometry({
+  required ProjectElementProjectedBuildingShadowConfig config,
+  required ProjectBuildingShadowPreset preset,
+  required StaticShadowVisualMetrics metrics,
+}) {
   final direction = switch (preset.timeOfDayMode) {
     ProjectedShadowTimeOfDayMode.fixed => preset.direction.normalized,
     ProjectedShadowTimeOfDayMode.followsSun => preset.direction.normalized,
@@ -109,6 +130,49 @@ ProjectedBuildingShadowGeometry? resolveProjectedBuildingShadowGeometry({
       ProjectedBuildingShadowPoint(
         x: farCenterX - perpendicularX * farHalfWidth,
         y: farCenterY - perpendicularY * farHalfWidth,
+      ),
+    ],
+    opacity: preset.appearance.opacity,
+    colorHexRgb: preset.appearance.colorHexRgb,
+  );
+}
+
+ProjectedBuildingShadowGeometry _resolveFootprintProjectedBuildingShadowGeometry({
+  required ProjectElementProjectedBuildingShadowConfig config,
+  required ProjectBuildingShadowPreset preset,
+  required StaticShadowVisualMetrics metrics,
+}) {
+  final footprint = preset.footprint!;
+  final centerX =
+      metrics.left + metrics.visualWidth * 0.5 + config.localOffset.x;
+  final frontY = metrics.top +
+      metrics.visualHeight * footprint.attachYRatio +
+      config.localOffset.y;
+
+  final frontWidth = metrics.visualWidth * footprint.frontWidthRatio;
+  final rearWidth = metrics.visualWidth * footprint.rearWidthRatio;
+  final depth = metrics.visualHeight * footprint.depthRatio;
+
+  final rearCenterX = centerX + metrics.visualWidth * footprint.skewXRatio;
+  final rearY = frontY + depth;
+
+  return ProjectedBuildingShadowGeometry(
+    points: [
+      ProjectedBuildingShadowPoint(
+        x: centerX - frontWidth / 2,
+        y: frontY,
+      ),
+      ProjectedBuildingShadowPoint(
+        x: centerX + frontWidth / 2,
+        y: frontY,
+      ),
+      ProjectedBuildingShadowPoint(
+        x: rearCenterX + rearWidth / 2,
+        y: rearY,
+      ),
+      ProjectedBuildingShadowPoint(
+        x: rearCenterX - rearWidth / 2,
+        y: rearY,
       ),
     ],
     opacity: preset.appearance.opacity,

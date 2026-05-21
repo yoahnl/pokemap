@@ -204,6 +204,118 @@ void main() {
       );
     });
 
+    test('resolves footprint geometry with attached skewed rectangle points',
+        () {
+      final preset = ProjectBuildingShadowPreset(
+        id: 'pokemon-building-shadow-footprint-v0',
+        name: 'Pokemon-like footprint building shadow V0',
+        direction: ProjectedShadowDirection(x: 1, y: 0),
+        shape: ProjectedShadowShapeTuning(
+          lengthRatio: 0,
+          nearWidthRatio: 1,
+          farWidthRatio: 1,
+        ),
+        appearance: ProjectedShadowAppearance(
+          opacity: 0.28,
+          colorHexRgb: '606060',
+        ),
+        timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+        geometryMode: ProjectedBuildingShadowGeometryMode.footprint,
+        footprint: ProjectedShadowFootprintTuning(),
+      );
+      final geometry = resolveProjectedBuildingShadowGeometry(
+        config: ProjectElementProjectedBuildingShadowConfig(
+          enabled: true,
+          presetId: 'pokemon-building-shadow-footprint-v0',
+          anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+          localOffset: ProjectedShadowOffset(x: 0, y: 0),
+        ),
+        preset: preset,
+        metrics: StaticShadowVisualMetrics(
+          left: 32,
+          top: 64,
+          visualWidth: 64,
+          visualHeight: 96,
+        ),
+      );
+
+      expect(geometry, isNotNull);
+      expect(geometry!.opacity, 0.28);
+      expect(geometry.colorHexRgb, '606060');
+      expect(geometry.points, hasLength(4));
+      _expectPointClose(
+        geometry.points[0],
+        x: 28.80,
+        y: 146.56,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[1],
+        x: 99.20,
+        y: 146.56,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[2],
+        x: 108.80,
+        y: 173.44,
+        tolerance: 0.02,
+      );
+      _expectPointClose(
+        geometry.points[3],
+        x: 32.00,
+        y: 173.44,
+        tolerance: 0.02,
+      );
+    });
+
+    test('footprint geometry localOffset shifts all points', () {
+      final preset = _footprintPreset();
+      final withoutOffset = resolveProjectedBuildingShadowGeometry(
+        config: _footprintConfig(),
+        preset: preset,
+        metrics: _footprintMetrics(),
+      );
+      final withOffset = resolveProjectedBuildingShadowGeometry(
+        config: _footprintConfig(
+          offset: ProjectedShadowOffset(x: 5, y: -3),
+        ),
+        preset: preset,
+        metrics: _footprintMetrics(),
+      );
+
+      expect(withoutOffset, isNotNull);
+      expect(withOffset, isNotNull);
+      for (var index = 0; index < withoutOffset!.points.length; index += 1) {
+        _expectPointClose(
+          withOffset!.points[index],
+          x: withoutOffset.points[index].x + 5,
+          y: withoutOffset.points[index].y - 3,
+          tolerance: 0.02,
+        );
+      }
+    });
+
+    test('footprint geometry ignores anchor', () {
+      final preset = _footprintPreset();
+      final centeredAnchor = resolveProjectedBuildingShadowGeometry(
+        config: _footprintConfig(
+          anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+        ),
+        preset: preset,
+        metrics: _footprintMetrics(),
+      );
+      final shiftedAnchor = resolveProjectedBuildingShadowGeometry(
+        config: _footprintConfig(
+          anchor: ProjectedShadowAnchor(xRatio: 0.1, yRatio: 0.2),
+        ),
+        preset: preset,
+        metrics: _footprintMetrics(),
+      );
+
+      expect(shiftedAnchor, centeredAnchor);
+    });
+
     test('geometry defensively copies points and exposes an immutable list',
         () {
       final source = [
@@ -342,6 +454,47 @@ ProjectBuildingShadowPreset _preset({
         ),
     appearance: appearance ?? ProjectedShadowAppearance(opacity: 0.18),
     timeOfDayMode: timeOfDayMode,
+  );
+}
+
+ProjectBuildingShadowPreset _footprintPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'pokemon-building-shadow-footprint-v0',
+    name: 'Pokemon-like footprint building shadow V0',
+    direction: ProjectedShadowDirection(x: 1, y: 0),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0,
+      nearWidthRatio: 1,
+      farWidthRatio: 1,
+    ),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.28,
+      colorHexRgb: '606060',
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+    geometryMode: ProjectedBuildingShadowGeometryMode.footprint,
+    footprint: ProjectedShadowFootprintTuning(),
+  );
+}
+
+ProjectElementProjectedBuildingShadowConfig _footprintConfig({
+  ProjectedShadowAnchor? anchor,
+  ProjectedShadowOffset? offset,
+}) {
+  return ProjectElementProjectedBuildingShadowConfig(
+    enabled: true,
+    presetId: 'pokemon-building-shadow-footprint-v0',
+    anchor: anchor ?? ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
+    localOffset: offset ?? ProjectedShadowOffset(x: 0, y: 0),
+  );
+}
+
+StaticShadowVisualMetrics _footprintMetrics() {
+  return StaticShadowVisualMetrics(
+    left: 32,
+    top: 64,
+    visualWidth: 64,
+    visualHeight: 96,
   );
 }
 

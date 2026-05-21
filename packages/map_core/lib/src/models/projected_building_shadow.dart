@@ -13,6 +13,11 @@ enum ProjectedShadowTimeOfDayMode {
   followsSun,
 }
 
+enum ProjectedBuildingShadowGeometryMode {
+  directional,
+  footprint,
+}
+
 /// Authored 2D direction for a future projected building shadow.
 ///
 /// The raw values are intentionally preserved so the editor can keep the
@@ -170,6 +175,84 @@ final class ProjectedShadowShapeTuning {
       );
 }
 
+/// Parametric footprint tuning for a broad building shadow attached to bounds.
+@immutable
+final class ProjectedShadowFootprintTuning {
+  factory ProjectedShadowFootprintTuning({
+    double attachYRatio = 0.86,
+    double frontWidthRatio = 1.10,
+    double rearWidthRatio = 1.20,
+    double depthRatio = 0.28,
+    double skewXRatio = 0.10,
+  }) {
+    _validateRatio01(
+      attachYRatio,
+      'ProjectedShadowFootprintTuning.attachYRatio',
+    );
+    _validatePositiveRatioMax(
+      frontWidthRatio,
+      'ProjectedShadowFootprintTuning.frontWidthRatio',
+      2.0,
+    );
+    _validatePositiveRatioMax(
+      rearWidthRatio,
+      'ProjectedShadowFootprintTuning.rearWidthRatio',
+      2.0,
+    );
+    _validatePositiveRatioMax(
+      depthRatio,
+      'ProjectedShadowFootprintTuning.depthRatio',
+      1.0,
+    );
+    _validateFinite(skewXRatio, 'ProjectedShadowFootprintTuning.skewXRatio');
+    if (skewXRatio < -0.5 || skewXRatio > 0.5) {
+      throw const ValidationException(
+        'ProjectedShadowFootprintTuning.skewXRatio must be between -0.5 and 0.5',
+      );
+    }
+    return ProjectedShadowFootprintTuning._(
+      attachYRatio: attachYRatio,
+      frontWidthRatio: frontWidthRatio,
+      rearWidthRatio: rearWidthRatio,
+      depthRatio: depthRatio,
+      skewXRatio: skewXRatio,
+    );
+  }
+
+  const ProjectedShadowFootprintTuning._({
+    required this.attachYRatio,
+    required this.frontWidthRatio,
+    required this.rearWidthRatio,
+    required this.depthRatio,
+    required this.skewXRatio,
+  });
+
+  final double attachYRatio;
+  final double frontWidthRatio;
+  final double rearWidthRatio;
+  final double depthRatio;
+  final double skewXRatio;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectedShadowFootprintTuning &&
+          other.attachYRatio == attachYRatio &&
+          other.frontWidthRatio == frontWidthRatio &&
+          other.rearWidthRatio == rearWidthRatio &&
+          other.depthRatio == depthRatio &&
+          other.skewXRatio == skewXRatio;
+
+  @override
+  int get hashCode => Object.hash(
+        attachYRatio,
+        frontWidthRatio,
+        rearWidthRatio,
+        depthRatio,
+        skewXRatio,
+      );
+}
+
 /// Simple visual appearance for a future projected building shadow.
 @immutable
 final class ProjectedShadowAppearance {
@@ -216,6 +299,9 @@ final class ProjectBuildingShadowPreset {
     required ProjectedShadowShapeTuning shape,
     required ProjectedShadowAppearance appearance,
     required ProjectedShadowTimeOfDayMode timeOfDayMode,
+    ProjectedBuildingShadowGeometryMode geometryMode =
+        ProjectedBuildingShadowGeometryMode.directional,
+    ProjectedShadowFootprintTuning? footprint,
     String? categoryId,
     int sortOrder = 0,
   }) {
@@ -225,6 +311,10 @@ final class ProjectBuildingShadowPreset {
     if (category != null) {
       _validateNonBlank(category, 'ProjectBuildingShadowPreset.categoryId');
     }
+    _validateProjectedBuildingShadowGeometryMode(
+      geometryMode: geometryMode,
+      footprint: footprint,
+    );
     return ProjectBuildingShadowPreset._(
       id: id,
       name: name,
@@ -232,6 +322,8 @@ final class ProjectBuildingShadowPreset {
       shape: shape,
       appearance: appearance,
       timeOfDayMode: timeOfDayMode,
+      geometryMode: geometryMode,
+      footprint: footprint,
       categoryId: categoryId,
       sortOrder: sortOrder,
     );
@@ -244,6 +336,8 @@ final class ProjectBuildingShadowPreset {
     required this.shape,
     required this.appearance,
     required this.timeOfDayMode,
+    required this.geometryMode,
+    required this.footprint,
     required this.categoryId,
     required this.sortOrder,
   });
@@ -254,6 +348,8 @@ final class ProjectBuildingShadowPreset {
   final ProjectedShadowShapeTuning shape;
   final ProjectedShadowAppearance appearance;
   final ProjectedShadowTimeOfDayMode timeOfDayMode;
+  final ProjectedBuildingShadowGeometryMode geometryMode;
+  final ProjectedShadowFootprintTuning? footprint;
   final String? categoryId;
   final int sortOrder;
 
@@ -267,6 +363,8 @@ final class ProjectBuildingShadowPreset {
           other.shape == shape &&
           other.appearance == appearance &&
           other.timeOfDayMode == timeOfDayMode &&
+          other.geometryMode == geometryMode &&
+          other.footprint == footprint &&
           other.categoryId == categoryId &&
           other.sortOrder == sortOrder;
 
@@ -278,6 +376,8 @@ final class ProjectBuildingShadowPreset {
         shape,
         appearance,
         timeOfDayMode,
+        geometryMode,
+        footprint,
         categoryId,
         sortOrder,
       );
@@ -450,6 +550,33 @@ void _validatePositiveFinite(double value, String name) {
   _validateFinite(value, name);
   if (value <= 0) {
     throw ValidationException('$name must be > 0');
+  }
+}
+
+void _validatePositiveRatioMax(double value, String name, double max) {
+  _validatePositiveFinite(value, name);
+  if (value > max) {
+    throw ValidationException('$name must be <= $max');
+  }
+}
+
+void _validateProjectedBuildingShadowGeometryMode({
+  required ProjectedBuildingShadowGeometryMode geometryMode,
+  required ProjectedShadowFootprintTuning? footprint,
+}) {
+  switch (geometryMode) {
+    case ProjectedBuildingShadowGeometryMode.directional:
+      if (footprint != null) {
+        throw const ValidationException(
+          'ProjectBuildingShadowPreset.footprint must be null for directional geometry',
+        );
+      }
+    case ProjectedBuildingShadowGeometryMode.footprint:
+      if (footprint == null) {
+        throw const ValidationException(
+          'ProjectBuildingShadowPreset.footprint is required for footprint geometry',
+        );
+      }
   }
 }
 
