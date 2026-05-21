@@ -9476,9 +9476,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 396,
+      "ported": 397,
       "partial": 19,
-      "missing": 67
+      "missing": 66
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 76,
+        "ported": 77,
         "partial": 3,
-        "missing": 8
+        "missing": 7
       },
       "status": {
         "ported": 7,
@@ -13211,7 +13211,7 @@
       {
         "effectName": "ThroatSpray",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Throat Spray.rb",
         "hookFamilies": [
           "action_order"

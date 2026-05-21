@@ -55,6 +55,7 @@ final class ItemEffectRegistry {
     'shed_shell': ({required scope}) => ShedShellEffect(scope: scope),
     'smoke_ball': ({required scope}) => SmokeBallEffect(scope: scope),
     'sticky_barb': ({required scope}) => StickyBarbEffect(scope: scope),
+    'throat_spray': ({required scope}) => ThroatSprayEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
           scope: scope,
         ),

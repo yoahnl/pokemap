@@ -401,6 +401,7 @@ void main() {
         'RockyHelmet',
         'ShellBell',
         'Snowball',
+        'ThroatSpray',
         'WeaknessPolicy',
       ]) {
         expect(

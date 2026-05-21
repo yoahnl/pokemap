@@ -385,6 +385,73 @@ final class ShellBellEffect extends BattleItemEffect {
   }
 }
 
+final class ThroatSprayEffect extends BattleItemEffect {
+  const ThroatSprayEffect({
+    required BattleEffectScope scope,
+  }) : super(itemId: 'throat_spray', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ThroatSprayEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostActionResult? onPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    final owner = this.owner;
+    if (owner == null ||
+        context.owner != owner ||
+        context.user != owner ||
+        !context.successful ||
+        !context.move.flags.sound) {
+      return null;
+    }
+    final holder = _activeHolder(context.state.battlerAt(owner), itemId);
+    if (holder == null) {
+      return null;
+    }
+
+    final changed = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: owner,
+      stat: 'specialAttack',
+      stages: 1,
+      move: context.move,
+    );
+    if (!changed.applied) {
+      return null;
+    }
+
+    final consumed = const BattleItemChangeHandler().consumeHeldItem(
+      context: BattleHandlerContext(
+        state: changed.state,
+        rng: changed.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: owner,
+    );
+    if (!consumed.applied) {
+      return null;
+    }
+
+    return BattleEffectPostActionResult(
+      state: consumed.state,
+      rng: consumed.rng,
+      events: <PsdkBattleEvent>[
+        ...changed.events,
+        ...consumed.events,
+      ],
+    );
+  }
+}
+
 PsdkBattleCombatant? _activeHolder(PsdkBattleCombatant battler, String itemId) {
   if (battler.isFainted || !_hasActiveHeldItem(battler, itemId)) {
     return null;

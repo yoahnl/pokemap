@@ -183,6 +183,40 @@ final class BattleEffectPostDamageResult {
   final bool applied;
 }
 
+final class BattleEffectPostActionContext {
+  const BattleEffectPostActionContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.move,
+    required this.successful,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final BattleMoveDefinition move;
+  final bool successful;
+}
+
+final class BattleEffectPostActionResult {
+  const BattleEffectPostActionResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
 final class BattleEffectItemChangeContext {
   const BattleEffectItemChangeContext({
     required this.state,

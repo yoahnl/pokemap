@@ -204,6 +204,50 @@ final class BattleEffectObjectStack {
     );
   }
 
+  BattleEffectPostActionResult dispatchPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostAction(
+        BattleEffectPostActionContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          move: context.move,
+          successful: context.successful,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectPostActionResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   BattleEffectItemChangeResult dispatchPostItemChange(
     BattleEffectItemChangeContext context,
   ) {
