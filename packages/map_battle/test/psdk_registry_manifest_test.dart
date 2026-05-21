@@ -786,7 +786,7 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_a_fang']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_a_fang']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_a_fang']!.dartBehavior,
         'BasicDamageSpecializationMoveBehavior.fangs',
@@ -821,7 +821,7 @@ void main() {
         byMethod['s_uproar']!.dartBehavior,
         'ForcedActionMoveBehavior.uproar',
       );
-      expect(byMethod['s_camouflage']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_camouflage']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_camouflage']!.dartBehavior,
         'FieldLocationMoveBehavior.camouflage',
@@ -980,7 +980,7 @@ void main() {
         byMethod['s_pursuit']!.dartBehavior,
         'StaticBasicMoveRegistry.s_pursuit',
       );
-      expect(byMethod['s_u_turn']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_u_turn']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_u_turn']!.dartBehavior,
         'StaticBasicMoveRegistry.s_u_turn',
@@ -1098,7 +1098,7 @@ void main() {
         byMethod['s_feint']!.dartBehavior,
         'StaticBasicMoveRegistry.s_feint',
       );
-      expect(byMethod['s_fell_stinger']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_fell_stinger']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_fell_stinger']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fell_stinger',
@@ -1333,12 +1333,12 @@ void main() {
         byMethod['s_bind']!.dartBehavior,
         'StaticBasicMoveRegistry.s_bind',
       );
-      expect(byMethod['s_dragon_tail']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_dragon_tail']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_dragon_tail']!.dartBehavior,
         'StaticBasicMoveRegistry.forceSwitch(s_dragon_tail)',
       );
-      expect(byMethod['s_roar']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_roar']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_roar']!.dartBehavior,
         'StaticBasicMoveRegistry.forceSwitch(s_roar)',
@@ -1353,7 +1353,7 @@ void main() {
         byMethod['s_follow_me']!.dartBehavior,
         'StaticBasicMoveRegistry.s_follow_me',
       );
-      expect(byMethod['s_add_type']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_add_type']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_add_type']!.dartBehavior,
         'StaticBasicMoveRegistry.s_add_type',
@@ -1401,10 +1401,15 @@ void main() {
       }
       for (final entry in <({String method, String behavior})>[
         (method: 's_after_you', behavior: 'StaticBasicMoveRegistry.afterYou'),
+        (method: 's_add_type', behavior: 'StaticBasicMoveRegistry.s_add_type'),
         (method: 's_assist', behavior: 'CopyCallMoveBehavior.assist'),
         (
           method: 's_change_type',
           behavior: 'StaticBasicMoveRegistry.s_change_type',
+        ),
+        (
+          method: 's_corrosive_gas',
+          behavior: 'StaticBasicMoveRegistry.s_corrosive_gas',
         ),
         (method: 's_disable', behavior: 'StaticBasicMoveRegistry.disable'),
         (method: 's_encore', behavior: 'StaticBasicMoveRegistry.encore'),
@@ -1431,6 +1436,10 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.s_stockpile'
         ),
         (method: 's_torment', behavior: 'StaticBasicMoveRegistry.s_torment'),
+        (
+          method: 's_autotomize',
+          behavior: 'StaticBasicMoveRegistry.s_autotomize'
+        ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
@@ -1441,17 +1450,8 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.attract',
         ),
         (
-          method: 's_autotomize',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)',
-        ),
-        (
           method: 's_captivate',
           behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_captivate)',
-        ),
-        (
-          method: 's_corrosive_gas',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_corrosive_gas)',
         ),
         (
           method: 's_destiny_bond',
@@ -1896,7 +1896,7 @@ void main() {
         byMethod['s_endeavor']!.dartBehavior,
         'DirectHpMoveBehavior.endeavor',
       );
-      expect(byMethod['s_final_gambit']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_final_gambit']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_final_gambit']!.dartBehavior,
         'DirectHpMoveBehavior.finalGambit',

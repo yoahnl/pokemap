@@ -237,6 +237,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveAttract,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_autotomize',
+      resolve: _resolveAutotomize,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_bind',
       resolve: _resolveBind,
     ),
@@ -699,7 +703,6 @@ const _partialBasicDescendantMethods = <String>[
 ];
 
 const _partialTargetMarkerMethods = <String, String>{
-  's_autotomize': 'autotomize',
   's_charge': 'charge',
   's_conversion': 'conversion',
   's_conversion2': 'conversion2',
@@ -3696,6 +3699,12 @@ BattleMoveBehaviorResolution _resolveTorment(
   BattleMoveBehaviorContext context,
 ) {
   return _resolveTargetMarkerWithEffect(context, effectId: 'torment');
+}
+
+BattleMoveBehaviorResolution _resolveAutotomize(
+  BattleMoveBehaviorContext context,
+) {
+  return _resolveTargetMarkerWithEffect(context, effectId: 'autotomize');
 }
 
 BattleMoveBehaviorResolution _resolveTargetMarkerWithEffect(
