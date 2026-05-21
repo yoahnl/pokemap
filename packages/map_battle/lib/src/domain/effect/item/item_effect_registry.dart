@@ -494,6 +494,7 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
         multiplier: 0.9,
         appliesToTarget: true,
       ),
+  'zoom_lens': ({required scope}) => ZoomLensEffect(scope: scope),
   'douse_drive': ({required scope}) => DriveItemEffect(
         itemId: 'douse_drive',
         scope: scope,

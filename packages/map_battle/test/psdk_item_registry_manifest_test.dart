@@ -226,11 +226,14 @@ void main() {
         remaining.length,
       );
       for (final batch in PsdkItemEffectBatch.values.where(
-        (batch) => batch != PsdkItemEffectBatch.weatherTerrainField,
+        (batch) =>
+            batch != PsdkItemEffectBatch.weatherTerrainField &&
+            batch != PsdkItemEffectBatch.damageTypeStatModifiers,
       )) {
         expect(counts[batch], greaterThan(0), reason: batch.name);
       }
       expect(counts[PsdkItemEffectBatch.weatherTerrainField], 0);
+      expect(counts[PsdkItemEffectBatch.damageTypeStatModifiers], 0);
       expect(byId['babiri_berry']!.batch, PsdkItemEffectBatch.berries);
       expect(
         byId['adamant_orb']!.batch,
@@ -266,6 +269,7 @@ void main() {
         'wide_lens',
         'lax_incense',
         'bright_powder',
+        'zoom_lens',
         'douse_drive',
         'shock_drive',
         'burn_drive',

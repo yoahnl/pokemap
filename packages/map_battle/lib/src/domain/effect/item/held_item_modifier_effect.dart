@@ -129,6 +129,34 @@ final class AccuracyModifierItemEffect extends BattleItemEffect {
   }
 }
 
+final class ZoomLensEffect extends BattleItemEffect {
+  const ZoomLensEffect({
+    required BattleEffectScope scope,
+  }) : super(itemId: 'zoom_lens', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return this;
+  }
+
+  @override
+  double accuracyMultiplier(BattleItemAccuracyContext context) {
+    if (context.user.heldItemId != itemId ||
+        context.user.itemConsumed ||
+        context.user.itemEffectsSuppressed ||
+        !_targetAlreadyAttackedThisTurn(context)) {
+      return 1;
+    }
+    return 1.2;
+  }
+
+  bool _targetAlreadyAttackedThisTurn(BattleItemAccuracyContext context) {
+    return context.target.moveHistory.attempts.any(
+      (entry) => entry.turn == context.turn,
+    );
+  }
+}
+
 final class ChoiceItemEffect extends BattleItemEffect {
   const ChoiceItemEffect({
     required String itemId,

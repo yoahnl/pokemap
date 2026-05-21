@@ -90,6 +90,7 @@ final class BattleAccuracyResolver {
       user: user,
       target: target,
       move: execution.move,
+      turn: execution.turn,
     );
     var multiplier = 1.0;
     for (final effect in user.activeItemEffects) {

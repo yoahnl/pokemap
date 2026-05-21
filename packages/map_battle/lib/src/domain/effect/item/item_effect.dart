@@ -180,11 +180,13 @@ final class BattleItemAccuracyContext {
     required this.user,
     required this.target,
     required this.move,
+    required this.turn,
   });
 
   final PsdkBattleCombatant user;
   final PsdkBattleCombatant target;
   final BattleMoveDefinition move;
+  final int turn;
 }
 
 final class BattleItemDrainModifierContext {

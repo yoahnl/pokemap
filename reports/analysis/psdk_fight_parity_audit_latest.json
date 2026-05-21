@@ -9476,9 +9476,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 385,
+      "ported": 386,
       "partial": 25,
-      "missing": 72
+      "missing": 71
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 70,
+        "ported": 71,
         "partial": 5,
-        "missing": 12
+        "missing": 11
       },
       "status": {
         "ported": 7,
@@ -13620,7 +13620,7 @@
       {
         "effectName": "ZoomLens",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Zoom Lens.rb",
         "hookFamilies": []
       }
