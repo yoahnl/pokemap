@@ -73,6 +73,40 @@ void main() {
       expect(result.rng.seeds.moveAccuracy, isNot(99));
     });
 
+    test('accuracy and evasion stages modify chance of hit like PSDK', () {
+      final neutral = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 90,
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final loweredAccuracy = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 90,
+          playerStatStages: PsdkBattleStatStages(
+            values: <String, int>{'accuracy': -1},
+          ),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final raisedEvasion = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 90,
+          opponentStatStages: PsdkBattleStatStages(
+            values: <String, int>{'evasion': 1},
+          ),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+
+      expect(neutral.hitTargets, <BattlePositionRef>[_opponent]);
+      expect(loweredAccuracy.missedTargets, <BattlePositionRef>[_opponent]);
+      expect(raisedEvasion.missedTargets, <BattlePositionRef>[_opponent]);
+    });
+
     test('held accuracy items modify chance of hit like PSDK item hooks', () {
       final wideLens = const BattleAccuracyResolver().resolve(
         execution: _execution(
@@ -198,6 +232,8 @@ BattleMoveProcedureExecution _execution({
   String? opponentAbilityId,
   PsdkBattleEffectStack? opponentEffects,
   PsdkBattleMoveHistory? opponentMoveHistory,
+  PsdkBattleStatStages? playerStatStages,
+  PsdkBattleStatStages? opponentStatStages,
 }) {
   final move = BattleMoveDefinition(
     id: 'tackle',
@@ -222,6 +258,8 @@ BattleMoveProcedureExecution _execution({
           opponentAbilityId: opponentAbilityId,
           opponentEffects: opponentEffects,
           opponentMoveHistory: opponentMoveHistory,
+          playerStatStages: playerStatStages,
+          opponentStatStages: opponentStatStages,
         ),
       ),
       rng: BattleRngStreams.fromSeeds(
@@ -249,11 +287,14 @@ PsdkBattleSetup _setup(
   String? opponentAbilityId,
   PsdkBattleEffectStack? opponentEffects,
   PsdkBattleMoveHistory? opponentMoveHistory,
+  PsdkBattleStatStages? playerStatStages,
+  PsdkBattleStatStages? opponentStatStages,
 }) {
   return PsdkBattleSetup.singles(
     player: _combatant(
       id: 'player',
       heldItemId: playerHeldItemId,
+      statStages: playerStatStages,
       moves: <PsdkBattleMoveData>[move],
     ),
     opponent: _combatant(
@@ -262,6 +303,7 @@ PsdkBattleSetup _setup(
       heldItemId: opponentHeldItemId,
       effects: opponentEffects,
       moveHistory: opponentMoveHistory,
+      statStages: opponentStatStages,
     ),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
@@ -278,6 +320,7 @@ PsdkBattleCombatantSetup _combatant({
   String? heldItemId,
   PsdkBattleEffectStack? effects,
   PsdkBattleMoveHistory? moveHistory,
+  PsdkBattleStatStages? statStages,
   List<PsdkBattleMoveData>? moves,
 }) {
   return PsdkBattleCombatantSetup(
@@ -299,6 +342,7 @@ PsdkBattleCombatantSetup _combatant({
     heldItemId: heldItemId,
     effects: effects,
     moveHistory: moveHistory,
+    statStages: statStages,
     moves: moves ?? <PsdkBattleMoveData>[moveStub()],
   );
 }

@@ -50,6 +50,7 @@ enum PsdkBattleMajorStatus {
 /// Volatile statuses carried by PSDK move data.
 enum PsdkBattleVolatileStatus {
   confusion,
+  flinch,
 }
 
 /// Status rider carried by a PSDK move import.

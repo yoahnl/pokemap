@@ -153,6 +153,61 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 60);
     });
 
+    test('s_absorb drains from each spread target independently', () {
+      final result = const PsdkBattleMoveExecutor().execute(
+        PsdkBattleMoveRequest(
+          state: _doublesState(userCurrentHp: 1),
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          moveId: 'parabolic_charge',
+          battleEngineMethod: 's_absorb',
+          studioMove: _move(
+            id: 'parabolic_charge',
+            type: 'electric',
+            category: PsdkBattleMoveCategory.special,
+            power: 65,
+            battleEngineMethod: 's_absorb',
+            target: PsdkBattleMoveTarget.allAdjacent,
+          ),
+        ),
+      );
+
+      final damageEvents = _resolutionDamageEvents(
+        result,
+        moveId: 'parabolic_charge',
+      );
+      final healEvents = _resolutionHealEvents(
+        result,
+        moveId: 'parabolic_charge',
+      );
+
+      expect(damageEvents.map((event) => event.target), <PsdkBattleSlotRef>[
+        _psdkPlayerRightSlot,
+        psdkOpponentSlot,
+        _psdkOpponentRightSlot,
+      ]);
+      expect(healEvents, hasLength(damageEvents.length));
+      for (var i = 0; i < damageEvents.length; i += 1) {
+        expect(healEvents[i].amount, damageEvents[i].damage ~/ 2);
+        expect(healEvents[i].target, psdkPlayerSlot);
+      }
+      final totalHeal = healEvents.fold<int>(
+        0,
+        (sum, event) => sum + event.amount,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).currentHp,
+        1 + totalHeal,
+      );
+    });
+
     test('s_dream_eater only drains targets that are asleep', () {
       final awake = _runMove(
         playerCurrentHp: 60,
@@ -205,6 +260,69 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 85);
       expect(heal['amount'], 50);
       expect(heal['remainingHp'], 85);
+    });
+
+    test('s_heal Heal Pulse heals an adjacent target', () {
+      final result = _runMove(
+        opponentCurrentHp: 10,
+        playerMove: _move(
+          id: 'heal_pulse',
+          battleEngineMethod: 's_heal',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.anyFoe,
+          pulse: true,
+        ),
+      );
+      final heal = _healJson(result, moveId: 'heal_pulse');
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 60);
+      expect(heal['amount'], 50);
+      expect(heal['target'], psdkOpponentSlot.toJson());
+    });
+
+    test('s_heal Heal Pulse gets Mega Launcher healing boost', () {
+      final result = _runMove(
+        playerAbilityId: 'mega_launcher',
+        opponentCurrentHp: 1,
+        playerMove: _move(
+          id: 'heal_pulse',
+          battleEngineMethod: 's_heal',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.anyFoe,
+          pulse: true,
+        ),
+      );
+      final heal = _healJson(result, moveId: 'heal_pulse');
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 76);
+      expect(heal['amount'], 75);
+    });
+
+    test('s_heal Heal Pulse is blocked by target Substitute', () {
+      final result = _runMove(
+        opponentCurrentHp: 10,
+        opponentEffects: PsdkBattleEffectStack(
+          values: const <String>['substitute'],
+        ),
+        playerMove: _move(
+          id: 'heal_pulse',
+          battleEngineMethod: 's_heal',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.anyFoe,
+          pulse: true,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 10);
+      expect(_healEvents(result, moveId: 'heal_pulse'), isEmpty);
+      expect(
+        _moveJsonEvents(result, moveId: 'heal_pulse')
+            .map((event) => event['kind']),
+        contains('move_immune'),
+      );
     });
 
     test('s_heal fails before PP spending when the target is already full HP',
@@ -417,12 +535,14 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   int playerCurrentHp = 100,
   String? playerHeldItemId,
+  String? playerAbilityId,
   bool playerItemConsumed = false,
   PsdkBattleStatStages? playerStatStages,
   PsdkBattleEffectStack? playerEffects,
   PsdkBattleMajorStatus? playerMajorStatus,
   int opponentCurrentHp = 100,
   PsdkBattleMajorStatus? opponentMajorStatus,
+  PsdkBattleEffectStack? opponentEffects,
   String? opponentAbilityId,
 }) {
   final engine = PsdkBattleEngine(
@@ -436,6 +556,7 @@ PsdkBattleTurnResult _runMove({
         statStages: playerStatStages,
         effects: playerEffects,
         majorStatus: playerMajorStatus,
+        abilityId: playerAbilityId,
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -446,6 +567,7 @@ PsdkBattleTurnResult _runMove({
           accuracy: 1,
         ),
         majorStatus: opponentMajorStatus,
+        effects: opponentEffects,
         abilityId: opponentAbilityId,
       ),
       rngSeeds: const PsdkBattleRngSeeds(
@@ -505,6 +627,7 @@ PsdkBattleMoveData _move({
   int criticalRate = 0,
   String battleEngineMethod = 's_basic',
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
+  bool pulse = false,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -519,6 +642,7 @@ PsdkBattleMoveData _move({
     criticalRate: criticalRate,
     battleEngineMethod: battleEngineMethod,
     target: target,
+    pulse: pulse,
   );
 }
 
@@ -559,6 +683,26 @@ List<PsdkBattleHealEvent> _healEvents(
       .toList(growable: false);
 }
 
+List<PsdkBattleDamageEvent> _resolutionDamageEvents(
+  BattleMoveBehaviorResolution result, {
+  required String moveId,
+}) {
+  return result.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleHealEvent> _resolutionHealEvents(
+  BattleMoveBehaviorResolution result, {
+  required String moveId,
+}) {
+  return result.events
+      .whereType<PsdkBattleHealEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
 List<Map<String, Object?>> _moveJsonEvents(
   PsdkBattleTurnResult result, {
   required String moveId,
@@ -567,4 +711,51 @@ List<Map<String, Object?>> _moveJsonEvents(
       .map((event) => event.toJson())
       .where((event) => event['moveId'] == moveId)
       .toList(growable: false);
+}
+
+const _psdkPlayerRightSlot = PsdkBattleSlotRef(bank: 0, position: 1);
+const _psdkOpponentRightSlot = PsdkBattleSlotRef(bank: 1, position: 1);
+
+PsdkBattleState _doublesState({
+  required int userCurrentHp,
+}) {
+  return PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          currentHp: userCurrentHp,
+          move: _move(
+            id: 'parabolic_charge',
+            battleEngineMethod: 's_absorb',
+            power: 65,
+            type: 'electric',
+            category: PsdkBattleMoveCategory.special,
+            target: PsdkBattleMoveTarget.allAdjacent,
+          ),
+        ),
+      ),
+      _psdkPlayerRightSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player_ally',
+          currentHp: 100,
+          move: _move(id: 'player_ally_wait', power: 0, accuracy: 1),
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          currentHp: 100,
+          move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+        ),
+      ),
+      _psdkOpponentRightSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent_ally',
+          currentHp: 100,
+          move: _move(id: 'opponent_ally_wait', power: 0, accuracy: 1),
+        ),
+      ),
+    },
+  );
 }

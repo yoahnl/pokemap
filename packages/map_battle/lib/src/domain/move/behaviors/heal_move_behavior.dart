@@ -1,10 +1,16 @@
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../battle/battle_slot.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_status_change_handler.dart';
+import '../../timeline/battle_timeline_event.dart';
 import '../battle_move_behavior.dart';
+import '../battle_move_data.dart';
+import '../battle_move_execution.dart';
 import '../battle_move_prevention.dart';
+import '../battle_move_procedure.dart';
 import 'battle_move_behavior_support.dart';
 
 enum _HealMoveKind {
@@ -77,7 +83,10 @@ final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
       return _failedBeforeProcedure(context, prevention);
     }
 
-    final prepared = prepareBattleMove(context);
+    final prepared = prepareBattleMove(
+      context,
+      targetPrecheck: _precheckHealTarget,
+    );
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
     }
@@ -87,8 +96,14 @@ final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
     final events = <PsdkBattleEvent>[...prepared.events];
 
     for (final target in prepared.psdkTargets) {
+      final user = state.battlerAt(context.user);
       final battler = state.battlerAt(target);
-      final amount = _healAmount(prepared.state, battler.maxHp);
+      final amount = _healAmount(
+        prepared.state,
+        battler.maxHp,
+        move: context.move,
+        user: user,
+      );
       final heal = applyDirectHeal(
         state: state,
         user: context.user,
@@ -155,9 +170,11 @@ final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
 
   int _healAmount(
     PsdkBattleState state,
-    int maxHp,
-  ) {
-    return switch (_kind) {
+    int maxHp, {
+    required BattleMoveDefinition move,
+    required PsdkBattleCombatant user,
+  }) {
+    final amount = switch (_kind) {
       _HealMoveKind.half || _HealMoveKind.roost => maxHp ~/ 2,
       _HealMoveKind.weather => _weatherHealAmount(state, maxHp),
       _HealMoveKind.floralHealing => state.field.isTerrainActive(
@@ -171,6 +188,10 @@ final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
             : maxHp ~/ 2,
       _HealMoveKind.quarter || _HealMoveKind.jungleHealing => maxHp ~/ 4,
     };
+    if (move.flags.pulse && user.abilityId == 'mega_launcher') {
+      return amount * 3 ~/ 2;
+    }
+    return amount;
   }
 
   int _weatherHealAmount(
@@ -191,4 +212,46 @@ final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
 
 int _ratio(int value, int numerator, int denominator) {
   return (value * numerator) ~/ denominator;
+}
+
+BattleMoveTargetPrecheckResult _precheckHealTarget(
+  BattleMoveProcedureExecution execution,
+  List<BattlePositionRef> targets,
+) {
+  final base = precheckTypeImmunityAndProtect(execution, targets);
+  final affectedTargets = <BattlePositionRef>[];
+  var reason = base.reason;
+
+  for (final targetRef in base.targets) {
+    final target = execution.context.state.battlerAt(
+      psdkSlotFromBattlePosition(targetRef),
+    );
+    if (_isSubstituteBlockedHeal(execution.move) &&
+        target.effects.contains('substitute')) {
+      reason = BattleMoveFailureReason.immunity;
+      execution.timeline.add(
+        BattleMoveImmuneTimelineEvent(
+          turn: execution.turn,
+          user: execution.actualUser,
+          target: targetRef,
+          moveId: execution.move.id,
+        ),
+      );
+      continue;
+    }
+
+    affectedTargets.add(targetRef);
+  }
+
+  return BattleMoveTargetPrecheckResult(
+    targets: affectedTargets,
+    reason: reason,
+  );
+}
+
+bool _isSubstituteBlockedHeal(BattleMoveDefinition move) {
+  return move.id == 'heal_pulse' ||
+      move.dbSymbol == 'heal_pulse' ||
+      move.id == 'floral_healing' ||
+      move.dbSymbol == 'floral_healing';
 }

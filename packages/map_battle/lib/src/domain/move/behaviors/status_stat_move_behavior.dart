@@ -439,8 +439,13 @@ bool _hasApplicableMoveStatus({
         move: move,
       );
     }
-    return status.volatileStatus == PsdkBattleVolatileStatus.confusion &&
-        !targetBattler.effects.contains(PsdkBattleEffectIds.confusion);
+    return switch (status.volatileStatus) {
+      PsdkBattleVolatileStatus.confusion =>
+        !targetBattler.effects.contains(PsdkBattleEffectIds.confusion),
+      PsdkBattleVolatileStatus.flinch =>
+        !targetBattler.effects.contains(PsdkBattleEffectIds.flinch),
+      null => false,
+    };
   });
 }
 

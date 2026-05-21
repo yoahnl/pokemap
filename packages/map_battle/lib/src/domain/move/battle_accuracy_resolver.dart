@@ -111,8 +111,19 @@ final class BattleAccuracyResolver {
     for (final effect in execution.context.state.activeAbilityEffects()) {
       multiplier *= effect.chanceOfHitMultiplier(abilityContext);
     }
+    multiplier *= _accuracyStageMultiplier(user.statStages.valueOf('accuracy'));
+    multiplier *=
+        _accuracyStageMultiplier(-target.statStages.valueOf('evasion'));
     final adjusted = (execution.move.accuracy * multiplier).floor();
     return adjusted.clamp(1, 100).toInt();
+  }
+
+  double _accuracyStageMultiplier(int stage) {
+    final clamped = stage.clamp(-6, 6).toInt();
+    if (clamped >= 0) {
+      return (3 + clamped) / 3;
+    }
+    return 3 / (3 - clamped);
   }
 }
 
