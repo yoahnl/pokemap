@@ -118,8 +118,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'beads_of_ruin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TabletsOfRuin.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'RuinStatAbilityEffect.beadsOfRuin.partialNoWonderRoomSwap',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RuinStatAbilityEffect.beadsOfRuin',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'beast_boost',
@@ -1599,8 +1599,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sword_of_ruin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TabletsOfRuin.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'RuinStatAbilityEffect.swordOfRuin.partialNoWonderRoomSwap',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'RuinStatAbilityEffect.swordOfRuin',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'symbiosis',

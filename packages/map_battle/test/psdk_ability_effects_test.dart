@@ -1620,6 +1620,65 @@ void main() {
       );
     });
 
+    test('Beads and Sword of Ruin swap defense penalties during Wonder Room',
+        () {
+      const wonderRoomEffect = GenericBattleEffect(
+        id: 'wonder_room',
+        scope: FieldBattleEffectScope(),
+        remainingTurns: 4,
+      );
+      final normalPhysical = _calculatedDoublesDamage(
+        userEffects: PsdkBattleEffectStack(
+          effects: <BattleEffect>[wonderRoomEffect],
+        ),
+      );
+      final normalSpecial = _calculatedDoublesDamage(
+        category: PsdkBattleMoveCategory.special,
+        userEffects: PsdkBattleEffectStack(
+          effects: <BattleEffect>[wonderRoomEffect],
+        ),
+      );
+
+      expect(
+        _calculatedDoublesDamage(
+          targetAllyAbilityId: 'beads_of_ruin',
+          userEffects: PsdkBattleEffectStack(
+            effects: <BattleEffect>[wonderRoomEffect],
+          ),
+        ),
+        greaterThan(normalPhysical),
+      );
+      expect(
+        _calculatedDoublesDamage(
+          targetAllyAbilityId: 'beads_of_ruin',
+          category: PsdkBattleMoveCategory.special,
+          userEffects: PsdkBattleEffectStack(
+            effects: <BattleEffect>[wonderRoomEffect],
+          ),
+        ),
+        normalSpecial,
+      );
+      expect(
+        _calculatedDoublesDamage(
+          targetAllyAbilityId: 'sword_of_ruin',
+          userEffects: PsdkBattleEffectStack(
+            effects: <BattleEffect>[wonderRoomEffect],
+          ),
+        ),
+        normalPhysical,
+      );
+      expect(
+        _calculatedDoublesDamage(
+          targetAllyAbilityId: 'sword_of_ruin',
+          category: PsdkBattleMoveCategory.special,
+          userEffects: PsdkBattleEffectStack(
+            effects: <BattleEffect>[wonderRoomEffect],
+          ),
+        ),
+        greaterThan(normalSpecial),
+      );
+    });
+
     test('Flower Gift boosts allied Attack and Special Defense under sun', () {
       const sunnyField = PsdkBattleFieldState(
         weather: PsdkBattleWeatherState(
@@ -5836,6 +5895,7 @@ int _calculatedDoublesDamage({
   String? userAllyAbilityId,
   String? targetAbilityId,
   String? targetAllyAbilityId,
+  PsdkBattleEffectStack? userEffects,
   String moveType = 'normal',
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
@@ -5850,6 +5910,7 @@ int _calculatedDoublesDamage({
         _combatant(
           id: 'user',
           abilityId: userAbilityId,
+          effects: userEffects,
           move: _move(id: 'doubles_move', power: 60),
         ),
       ),
