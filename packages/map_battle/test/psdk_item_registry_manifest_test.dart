@@ -232,10 +232,12 @@ void main() {
         (batch) =>
             batch != PsdkItemEffectBatch.weatherTerrainField &&
             batch != PsdkItemEffectBatch.damageTypeStatModifiers &&
+            batch != PsdkItemEffectBatch.berries &&
             batch != PsdkItemEffectBatch.heldItemLifecycleConsumption,
       )) {
         expect(counts[batch], greaterThan(0), reason: batch.name);
       }
+      expect(counts[PsdkItemEffectBatch.berries], 0);
       expect(counts[PsdkItemEffectBatch.weatherTerrainField], 0);
       expect(counts[PsdkItemEffectBatch.damageTypeStatModifiers], 0);
       expect(counts[PsdkItemEffectBatch.heldItemLifecycleConsumption], 0);

@@ -15,6 +15,7 @@ import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import '../move/confusion_effect.dart';
 import 'item_effect.dart';
 
 enum BerryItemEffectKind {
@@ -30,6 +31,7 @@ final class BerryItemEffect extends BattleItemEffect {
     required int Function(PsdkBattleCombatant battler) healAmount,
     double Function(PsdkBattleCombatant battler) hpThreshold = _halfHpThreshold,
     bool mayConfuseFromNature = false,
+    String? confusingFlavor,
   })  : kind = BerryItemEffectKind.hpHeal,
         _healAmount = healAmount,
         _hpThreshold = hpThreshold,
@@ -37,6 +39,7 @@ final class BerryItemEffect extends BattleItemEffect {
         _curesConfusion = false,
         _stat = null,
         _mayConfuseFromNature = mayConfuseFromNature,
+        _confusingFlavor = confusingFlavor,
         super(itemId: itemId, scope: scope);
 
   const BerryItemEffect.statusCure({
@@ -51,6 +54,7 @@ final class BerryItemEffect extends BattleItemEffect {
         _curesConfusion = curesConfusion,
         _stat = null,
         _mayConfuseFromNature = false,
+        _confusingFlavor = null,
         super(itemId: itemId, scope: scope);
 
   const BerryItemEffect.statPinch({
@@ -59,6 +63,7 @@ final class BerryItemEffect extends BattleItemEffect {
     required String stat,
     double Function(PsdkBattleCombatant battler) hpThreshold = _pinchThreshold,
     bool mayConfuseFromNature = false,
+    String? confusingFlavor,
   })  : kind = BerryItemEffectKind.statPinch,
         _healAmount = null,
         _hpThreshold = hpThreshold,
@@ -66,6 +71,7 @@ final class BerryItemEffect extends BattleItemEffect {
         _curesConfusion = false,
         _stat = stat,
         _mayConfuseFromNature = mayConfuseFromNature,
+        _confusingFlavor = confusingFlavor,
         super(itemId: itemId, scope: scope);
 
   final BerryItemEffectKind kind;
@@ -75,6 +81,7 @@ final class BerryItemEffect extends BattleItemEffect {
   final bool _curesConfusion;
   final String? _stat;
   final bool _mayConfuseFromNature;
+  final String? _confusingFlavor;
 
   bool get mayConfuseFromNature => _mayConfuseFromNature;
 
@@ -311,10 +318,16 @@ final class BerryItemEffect extends BattleItemEffect {
       return null;
     }
 
-    final current = healed.state.battlerAt(owner);
-    return BattleEffectEndTurnResult(
+    final confused = _maybeConfuseFromNature(
       state: consumed.state,
       rng: consumed.rng,
+      turn: turn,
+      owner: owner,
+    );
+    final current = healed.state.battlerAt(owner);
+    return BattleEffectEndTurnResult(
+      state: confused.state,
+      rng: confused.rng,
       events: <PsdkBattleEvent>[
         PsdkBattleHealEvent(
           user: owner,
@@ -324,6 +337,7 @@ final class BerryItemEffect extends BattleItemEffect {
           remainingHp: current.currentHp,
         ),
         ...consumed.events,
+        ...confused.events,
       ],
     );
   }
@@ -555,6 +569,48 @@ final class BerryItemEffect extends BattleItemEffect {
       state: consumed.state,
       rng: consumed.rng,
       events: consumed.events,
+    );
+  }
+
+  BattleEffectEndTurnResult _maybeConfuseFromNature({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+  }) {
+    final battler = state.battlerAt(owner);
+    if (!_mayConfuseFromNature ||
+        _confusingFlavor == null ||
+        battler.dislikedFlavor?.toLowerCase() != _confusingFlavor ||
+        battler.effects.contains(PsdkBattleEffectIds.confusion)) {
+      return BattleEffectEndTurnResult(
+        state: state,
+        rng: rng,
+        applied: false,
+      );
+    }
+    final nextState = state.updateBattler(
+      owner,
+      (current) => current.copyWith(
+        effects: current.effects.addEffect(
+          ConfusionEffect(
+            scope: BattlerBattleEffectScope(owner),
+            remainingConfusionTurns: 256,
+          ),
+        ),
+      ),
+    );
+    return BattleEffectEndTurnResult(
+      state: nextState,
+      rng: rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: turn,
+          target: owner,
+          effectId: PsdkBattleEffectIds.confusion,
+          reason: 'item:$itemId',
+        ),
+      ],
     );
   }
 }

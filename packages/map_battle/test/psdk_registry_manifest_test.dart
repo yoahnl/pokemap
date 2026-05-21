@@ -356,7 +356,7 @@ void main() {
       }
       expect(
         byFamilyAndName['item:ConfusingBerries']?.status,
-        PsdkPortStatus.partial,
+        PsdkPortStatus.ported,
       );
     });
 
