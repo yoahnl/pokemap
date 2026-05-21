@@ -55,6 +55,59 @@ void main() {
           _healEvents(result, moveId: 'item:sitrus_berry').single.amount, 50);
     });
 
+    test('nature-confusion healing berries confuse disliked flavors', () {
+      final result = _tickEndTurn(
+        playerHeldItemId: 'figy_berry',
+        playerCurrentHp: 20,
+        playerDislikedFlavor: 'spicy',
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 53);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'figy_berry');
+      expect(player.effects.contains(PsdkBattleEffectIds.confusion), isTrue);
+      expect(_healEvents(result, moveId: 'item:figy_berry').single.amount, 33);
+      expect(
+        _effectEvents(result)
+            .where((event) => event.effectId == PsdkBattleEffectIds.confusion)
+            .single
+            .reason,
+        'item:figy_berry',
+      );
+    });
+
+    test('nature-confusion healing berries skip liked or neutral flavors', () {
+      final neutral = _tickEndTurn(
+        playerHeldItemId: 'wiki_berry',
+        playerCurrentHp: 20,
+      );
+      final differentFlavor = _tickEndTurn(
+        playerHeldItemId: 'mago_berry',
+        playerCurrentHp: 20,
+        playerDislikedFlavor: 'dry',
+      );
+
+      expect(neutral.state.battlerAt(psdkPlayerSlot).currentHp, 53);
+      expect(
+        neutral.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isFalse,
+      );
+      expect(differentFlavor.state.battlerAt(psdkPlayerSlot).currentHp, 53);
+      expect(
+        differentFlavor.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isFalse,
+      );
+      expect(_effectEvents(neutral), isEmpty);
+      expect(_effectEvents(differentFlavor), isEmpty);
+    });
+
     test('Cheek Pouch heals after consuming a berry', () {
       final result = _damagePlayer(
         playerHeldItemId: 'oran_berry',
@@ -762,6 +815,7 @@ BattleHandlerResult _tickEndTurn({
   required String? playerHeldItemId,
   required int playerCurrentHp,
   String? playerAbilityId,
+  String? playerDislikedFlavor,
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
   List<PsdkBattleMoveData>? playerMoves,
@@ -773,6 +827,7 @@ BattleHandlerResult _tickEndTurn({
     playerHeldItemId: playerHeldItemId,
     playerCurrentHp: playerCurrentHp,
     playerAbilityId: playerAbilityId,
+    playerDislikedFlavor: playerDislikedFlavor,
     playerConsumedItemId: playerConsumedItemId,
     playerItemConsumed: playerItemConsumed,
     playerMoves: playerMoves,
@@ -871,6 +926,7 @@ PsdkBattleState _state({
   required String? playerHeldItemId,
   int playerCurrentHp = 100,
   String? playerAbilityId,
+  String? playerDislikedFlavor,
   String? opponentAbilityId,
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
@@ -884,6 +940,7 @@ PsdkBattleState _state({
         id: 'player',
         heldItemId: playerHeldItemId,
         abilityId: playerAbilityId,
+        dislikedFlavor: playerDislikedFlavor,
         consumedItemId: playerConsumedItemId,
         itemConsumed: playerItemConsumed,
         currentHp: playerCurrentHp,
@@ -920,6 +977,7 @@ PsdkBattleCombatantSetup _combatant({
   String? consumedItemId,
   bool itemConsumed = false,
   String? abilityId,
+  String? dislikedFlavor,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   int maxHp = 100,
   int currentHp = 100,
@@ -943,6 +1001,7 @@ PsdkBattleCombatantSetup _combatant({
     consumedItemId: consumedItemId,
     itemConsumed: itemConsumed,
     abilityId: abilityId,
+    dislikedFlavor: dislikedFlavor,
     moves:
         moves ?? <PsdkBattleMoveData>[move ?? _move(id: 'tackle', power: 40)],
   );

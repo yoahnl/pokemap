@@ -224,15 +224,15 @@ final Map<String, ItemEffectFactory> _berryFactories =
         scope: scope,
         healAmount: (battler) => battler.abilityId == 'ripen' ? 40 : 20,
       ),
-  for (final itemId in const <String>[
-    'figy_berry',
-    'wiki_berry',
-    'mago_berry',
-    'aguav_berry',
-    'iapapa_berry',
-  ])
-    itemId: ({required scope}) => BerryItemEffect.hpHeal(
-          itemId: itemId,
+  for (final entry in const <String, String>{
+    'figy_berry': 'spicy',
+    'wiki_berry': 'dry',
+    'mago_berry': 'sweet',
+    'aguav_berry': 'bitter',
+    'iapapa_berry': 'sour',
+  }.entries)
+    entry.key: ({required scope}) => BerryItemEffect.hpHeal(
+          itemId: entry.key,
           scope: scope,
           hpThreshold: (battler) =>
               battler.abilityId == 'gluttony' ? 0.5 : 0.25,
@@ -241,6 +241,7 @@ final Map<String, ItemEffectFactory> _berryFactories =
                   .clamp(1, battler.maxHp)
                   .toInt(),
           mayConfuseFromNature: true,
+          confusingFlavor: entry.value,
         ),
   'aspear_berry': ({required scope}) => BerryItemEffect.statusCure(
         itemId: 'aspear_berry',

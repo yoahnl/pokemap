@@ -511,6 +511,7 @@ class PsdkBattleCombatantSetup {
     required List<PsdkBattleMoveData> moves,
     this.abilityId,
     this.gender = PsdkBattleGender.unknown,
+    this.dislikedFlavor,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -555,6 +556,7 @@ class PsdkBattleCombatantSetup {
   final PsdkBattleStats stats;
   final String? abilityId;
   final PsdkBattleGender gender;
+  final String? dislikedFlavor;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -619,6 +621,7 @@ class PsdkBattleCombatant {
     required List<PsdkBattleMoveData> moves,
     this.abilityId,
     this.gender = PsdkBattleGender.unknown,
+    this.dislikedFlavor,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -671,6 +674,7 @@ class PsdkBattleCombatant {
       moves: setup.moves,
       abilityId: setup.abilityId,
       gender: setup.gender,
+      dislikedFlavor: setup.dislikedFlavor,
       heldItemId: setup.heldItemId,
       consumedItemId: setup.consumedItemId,
       itemConsumed: setup.itemConsumed,
@@ -711,6 +715,7 @@ class PsdkBattleCombatant {
   final PsdkBattleStats stats;
   final String? abilityId;
   final PsdkBattleGender gender;
+  final String? dislikedFlavor;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -803,6 +808,7 @@ class PsdkBattleCombatant {
     int? currentHp,
     Object? abilityId = _unchanged,
     PsdkBattleGender? gender,
+    Object? dislikedFlavor = _unchanged,
     Object? heldItemId = _unchanged,
     Object? consumedItemId = _unchanged,
     bool? itemConsumed,
@@ -850,6 +856,9 @@ class PsdkBattleCombatant {
           ? this.abilityId
           : abilityId as String?,
       gender: gender ?? this.gender,
+      dislikedFlavor: identical(dislikedFlavor, _unchanged)
+          ? this.dislikedFlavor
+          : dislikedFlavor as String?,
       heldItemId: identical(heldItemId, _unchanged)
           ? this.heldItemId
           : heldItemId as String?,

@@ -9476,8 +9476,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 398,
-      "partial": 19,
+      "ported": 401,
+      "partial": 16,
       "missing": 65
     },
     "byFamilyAndStatus": {
@@ -9492,8 +9492,8 @@
         "missing": 24
       },
       "item": {
-        "ported": 78,
-        "partial": 3,
+        "ported": 81,
+        "partial": 0,
         "missing": 6
       },
       "status": {
@@ -10121,7 +10121,7 @@
       {
         "effectName": "ConfusingBerries",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb",
         "hookFamilies": []
       },
@@ -11837,7 +11837,7 @@
       {
         "effectName": "OranBerry",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb",
         "hookFamilies": [
           "end_turn",
@@ -12607,7 +12607,7 @@
       {
         "effectName": "SitrusBerry",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb",
         "hookFamilies": []
       },
