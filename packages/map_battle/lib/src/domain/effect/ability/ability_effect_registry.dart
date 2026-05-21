@@ -18,6 +18,7 @@ import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
 import 'gorilla_tactics_effect.dart';
 import 'item_change_ability_effect.dart';
+import 'item_steal_ability_effect.dart';
 import 'levitate_effect.dart';
 import 'mental_immunity_ability_effect.dart';
 import 'mimicry_effect.dart';
@@ -928,6 +929,16 @@ final class AbilityEffectRegistry {
     'natural_cure': ({required scope}) => NaturalCureEffect(scope: scope),
     'regenerator': ({required scope}) => RegeneratorEffect(scope: scope),
     'synchronize': ({required scope}) => SynchronizeEffect(scope: scope),
+    'magician': ({required scope}) => ItemStealAbilityEffect(
+          abilityId: 'magician',
+          scope: scope,
+          mode: ItemStealAbilityMode.stealFromTarget,
+        ),
+    'pickpocket': ({required scope}) => ItemStealAbilityEffect(
+          abilityId: 'pickpocket',
+          scope: scope,
+          mode: ItemStealAbilityMode.stealFromAttacker,
+        ),
     'costar': ({required scope}) => CostarEffect(scope: scope),
     'curious_medicine': ({required scope}) =>
         CuriousMedicineEffect(scope: scope),

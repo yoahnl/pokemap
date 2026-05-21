@@ -810,7 +810,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'magician',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ItemStealAbilityEffect.magician',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'magma_armor',
@@ -1015,7 +1016,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'pickpocket',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ItemStealAbilityEffect.pickpocket',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'pixilate',
