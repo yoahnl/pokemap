@@ -38,6 +38,45 @@ void main() {
       _expectPointClose(instruction.polygonPoints[3], x: 101.38, y: 147.36);
     });
 
+    test(
+        'buildEditorProjectedBuildingShadowPreviewInstructions builds a footprint projected polygon preview',
+        () {
+      final instructions =
+          buildEditorProjectedBuildingShadowPreviewInstructions(
+        manifest: _manifest(
+          catalog: _catalog([_footprintPreset()]),
+          elements: [
+            _element(
+              projectedBuildingShadow: _config(
+                presetId: 'pokemon-building-shadow-footprint-v0',
+              ),
+            ),
+          ],
+        ),
+        map: _map(placedElements: [_placed(pos: const GridPos(x: 1, y: 2))]),
+        tileWidth: 32,
+        tileHeight: 32,
+      );
+
+      expect(instructions, hasLength(1));
+      final instruction = instructions.single;
+      expect(
+        instruction.shape,
+        EditorStaticShadowPreviewShapeKind.projectedPolygon,
+      );
+      expect(instruction.opacity, 0.28);
+      expect(instruction.colorHexRgb, '606060');
+      expect(instruction.left, closeTo(28.80, 0.02));
+      expect(instruction.top, closeTo(146.56, 0.02));
+      expect(instruction.width, closeTo(80.00, 0.02));
+      expect(instruction.height, closeTo(26.88, 0.02));
+      expect(instruction.polygonPoints, hasLength(4));
+      _expectPointClose(instruction.polygonPoints[0], x: 28.80, y: 146.56);
+      _expectPointClose(instruction.polygonPoints[1], x: 99.20, y: 146.56);
+      _expectPointClose(instruction.polygonPoints[2], x: 108.80, y: 173.44);
+      _expectPointClose(instruction.polygonPoints[3], x: 32.00, y: 173.44);
+    });
+
     test('returns empty when element has no projectedBuildingShadow config',
         () {
       final instructions =
@@ -313,6 +352,26 @@ ProjectBuildingShadowPreset _preset({
     appearance: ProjectedShadowAppearance(
       opacity: opacity,
       colorHexRgb: colorHexRgb,
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+  );
+}
+
+ProjectBuildingShadowPreset _footprintPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'pokemon-building-shadow-footprint-v0',
+    name: 'Pokemon-like footprint building shadow V0',
+    geometryMode: ProjectedBuildingShadowGeometryMode.footprint,
+    direction: ProjectedShadowDirection(x: 0.8, y: 0.35),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0.32,
+      nearWidthRatio: 0.90,
+      farWidthRatio: 0.72,
+    ),
+    footprint: ProjectedShadowFootprintTuning(),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.28,
+      colorHexRgb: '606060',
     ),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );

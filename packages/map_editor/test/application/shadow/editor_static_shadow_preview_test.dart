@@ -277,6 +277,25 @@ void main() {
     });
 
     test(
+        'skips legacy static shadow preview when same element has resolvable footprint projected building shadow',
+        () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(
+          projectedBuildingShadow: _projectedConfig(
+            presetId: 'pokemon-building-shadow-footprint-v0',
+          ),
+          includeProjectedPreset: true,
+          projectedPreset: _projectedFootprintPreset(),
+        ),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      expect(instructions, isEmpty);
+    });
+
+    test(
         'keeps legacy static shadow preview when element has no projected building shadow',
         () {
       final instructions = buildEditorStaticShadowPreviewInstructions(
@@ -935,6 +954,7 @@ ProjectManifest _manifest({
   bool includeProjectedPreset = false,
   bool omitElementShadow = false,
   List<TilesetVisualFrame>? frames,
+  ProjectBuildingShadowPreset? projectedPreset,
 }) {
   return ProjectManifest(
     name: 'Project',
@@ -946,7 +966,9 @@ ProjectManifest _manifest({
         ),
     surfaceCatalog: ProjectSurfaceCatalog(),
     projectedBuildingShadowCatalog: includeProjectedPreset
-        ? ProjectBuildingShadowPresetCatalog(presets: [_projectedPreset()])
+        ? ProjectBuildingShadowPresetCatalog(
+            presets: [projectedPreset ?? _projectedPreset()],
+          )
         : const ProjectBuildingShadowPresetCatalog.empty(),
     elements: [
       ProjectElementEntry(
@@ -1025,10 +1047,11 @@ ProjectShadowProfile _profile(
 
 ProjectElementProjectedBuildingShadowConfig _projectedConfig({
   bool enabled = true,
+  String presetId = 'shadow-a',
 }) {
   return ProjectElementProjectedBuildingShadowConfig(
     enabled: enabled,
-    presetId: 'shadow-a',
+    presetId: presetId,
     anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
     localOffset: ProjectedShadowOffset(x: 0, y: 0),
   );
@@ -1047,6 +1070,26 @@ ProjectBuildingShadowPreset _projectedPreset() {
     appearance: ProjectedShadowAppearance(
       opacity: 0.18,
       colorHexRgb: '123ABC',
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+  );
+}
+
+ProjectBuildingShadowPreset _projectedFootprintPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'pokemon-building-shadow-footprint-v0',
+    name: 'Pokemon-like footprint building shadow V0',
+    geometryMode: ProjectedBuildingShadowGeometryMode.footprint,
+    direction: ProjectedShadowDirection(x: 1, y: 0),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0.5,
+      nearWidthRatio: 1,
+      farWidthRatio: 0.5,
+    ),
+    footprint: ProjectedShadowFootprintTuning(),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.28,
+      colorHexRgb: '606060',
     ),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );

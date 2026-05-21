@@ -51,6 +51,43 @@ void main() {
       _expectPointClose(instruction.polygonPoints[3], x: 112, y: 144);
     });
 
+    test(
+        'buildRuntimeProjectedBuildingShadowCollection resolves footprint preset through map_core geometry',
+        () {
+      final collection = buildRuntimeProjectedBuildingShadowCollection(
+        manifest: _manifest(
+          catalog: _catalog([_footprintPreset()]),
+          elements: [
+            _element(
+              projectedBuildingShadow:
+                  _config(presetId: 'pokemon-building-shadow-footprint-v0'),
+            ),
+          ],
+        ),
+        mapData:
+            _map(placedElements: [_placed(pos: const GridPos(x: 1, y: 2))]),
+      );
+
+      expect(collection.length, 1);
+      expect(collection.groundStatic, hasLength(1));
+      expect(collection.actorContact, isEmpty);
+
+      final instruction = collection.groundStatic.single;
+      expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
+      expect(instruction.renderPass, ShadowRenderPass.groundStatic);
+      expect(instruction.opacity, 0.28);
+      expect(instruction.colorHexRgb, '606060');
+      expect(instruction.worldLeft, closeTo(28.80, 0.02));
+      expect(instruction.worldTop, closeTo(146.56, 0.02));
+      expect(instruction.width, closeTo(80.00, 0.02));
+      expect(instruction.height, closeTo(26.88, 0.02));
+      expect(instruction.polygonPoints, hasLength(4));
+      _expectPointClose(instruction.polygonPoints[0], x: 28.80, y: 146.56);
+      _expectPointClose(instruction.polygonPoints[1], x: 99.20, y: 146.56);
+      _expectPointClose(instruction.polygonPoints[2], x: 108.80, y: 173.44);
+      _expectPointClose(instruction.polygonPoints[3], x: 32.00, y: 173.44);
+    });
+
     test('skips disabled projected shadow config', () {
       final collection = buildRuntimeProjectedBuildingShadowCollection(
         manifest: _manifest(
@@ -340,6 +377,26 @@ ProjectBuildingShadowPreset _preset({
     appearance: ProjectedShadowAppearance(
       opacity: opacity,
       colorHexRgb: colorHexRgb,
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+  );
+}
+
+ProjectBuildingShadowPreset _footprintPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'pokemon-building-shadow-footprint-v0',
+    name: 'Pokemon-like footprint building shadow V0',
+    geometryMode: ProjectedBuildingShadowGeometryMode.footprint,
+    direction: ProjectedShadowDirection(x: 1, y: 0),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0.5,
+      nearWidthRatio: 1,
+      farWidthRatio: 0.5,
+    ),
+    footprint: ProjectedShadowFootprintTuning(),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.28,
+      colorHexRgb: '606060',
     ),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );

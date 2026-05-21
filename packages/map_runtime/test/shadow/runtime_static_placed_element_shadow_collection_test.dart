@@ -58,6 +58,26 @@ void main() {
       );
     });
 
+    test(
+        'skips legacy static shadow when same element has resolvable footprint projected building shadow',
+        () {
+      final bundle = _bundle(
+        projectedBuildingShadow: _projectedConfig(
+          presetId: 'pokemon-building-shadow-footprint-v0',
+        ),
+        projectedPreset: _projectedFootprintPreset(),
+      );
+
+      expect(buildRuntimeStaticPlacedElementShadowSources(bundle: bundle),
+          isEmpty);
+      expect(
+        buildRuntimeStaticPlacedElementShadowCollectionForBundle(
+          bundle: bundle,
+        ).isEmpty,
+        isTrue,
+      );
+    });
+
     test('keeps legacy static shadow when element has no projected shadow', () {
       final sources = buildRuntimeStaticPlacedElementShadowSources(
         bundle: _bundle(),
@@ -666,6 +686,7 @@ RuntimeMapBundle _bundle({
   bool includeProjectedPreset = true,
   bool includeLegacyOnlyElement = false,
   MapPlacedElementShadowOverride? placedOverride,
+  ProjectBuildingShadowPreset? projectedPreset,
 }) {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
@@ -718,7 +739,9 @@ RuntimeMapBundle _bundle({
       surfaceCatalog: ProjectSurfaceCatalog(),
       shadowCatalog: _catalog(),
       projectedBuildingShadowCatalog: includeProjectedPreset
-          ? ProjectBuildingShadowPresetCatalog(presets: [_projectedPreset()])
+          ? ProjectBuildingShadowPresetCatalog(
+              presets: [projectedPreset ?? _projectedPreset()],
+            )
           : const ProjectBuildingShadowPresetCatalog.empty(),
     ),
     map: MapData(
@@ -771,10 +794,11 @@ RuntimeMapBundle _bundle({
 
 ProjectElementProjectedBuildingShadowConfig _projectedConfig({
   bool enabled = true,
+  String presetId = 'shadow-a',
 }) {
   return ProjectElementProjectedBuildingShadowConfig(
     enabled: enabled,
-    presetId: 'shadow-a',
+    presetId: presetId,
     anchor: ProjectedShadowAnchor(xRatio: 0.5, yRatio: 1),
     localOffset: ProjectedShadowOffset(x: 0, y: 0),
   );
@@ -793,6 +817,26 @@ ProjectBuildingShadowPreset _projectedPreset() {
     appearance: ProjectedShadowAppearance(
       opacity: 0.18,
       colorHexRgb: '123ABC',
+    ),
+    timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
+  );
+}
+
+ProjectBuildingShadowPreset _projectedFootprintPreset() {
+  return ProjectBuildingShadowPreset(
+    id: 'pokemon-building-shadow-footprint-v0',
+    name: 'Pokemon-like footprint building shadow V0',
+    geometryMode: ProjectedBuildingShadowGeometryMode.footprint,
+    direction: ProjectedShadowDirection(x: 1, y: 0),
+    shape: ProjectedShadowShapeTuning(
+      lengthRatio: 0.5,
+      nearWidthRatio: 1,
+      farWidthRatio: 0.5,
+    ),
+    footprint: ProjectedShadowFootprintTuning(),
+    appearance: ProjectedShadowAppearance(
+      opacity: 0.28,
+      colorHexRgb: '606060',
     ),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
