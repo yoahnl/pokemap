@@ -5,6 +5,7 @@ import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_handler_result.dart';
 import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_item_change_handler.dart';
 import '../../handler/battle_stat_change_handler.dart';
@@ -33,6 +34,7 @@ final class BerryItemEffect extends BattleItemEffect {
         _healAmount = healAmount,
         _hpThreshold = hpThreshold,
         _curedStatuses = const <PsdkBattleMajorStatus>{},
+        _curesConfusion = false,
         _stat = null,
         _mayConfuseFromNature = mayConfuseFromNature,
         super(itemId: itemId, scope: scope);
@@ -41,10 +43,12 @@ final class BerryItemEffect extends BattleItemEffect {
     required String itemId,
     required BattleEffectScope scope,
     required Set<PsdkBattleMajorStatus> statuses,
+    bool curesConfusion = false,
   })  : kind = BerryItemEffectKind.statusCure,
         _healAmount = null,
         _hpThreshold = null,
         _curedStatuses = statuses,
+        _curesConfusion = curesConfusion,
         _stat = null,
         _mayConfuseFromNature = false,
         super(itemId: itemId, scope: scope);
@@ -59,6 +63,7 @@ final class BerryItemEffect extends BattleItemEffect {
         _healAmount = null,
         _hpThreshold = hpThreshold,
         _curedStatuses = const <PsdkBattleMajorStatus>{},
+        _curesConfusion = false,
         _stat = stat,
         _mayConfuseFromNature = mayConfuseFromNature,
         super(itemId: itemId, scope: scope);
@@ -67,6 +72,7 @@ final class BerryItemEffect extends BattleItemEffect {
   final int Function(PsdkBattleCombatant battler)? _healAmount;
   final double Function(PsdkBattleCombatant battler)? _hpThreshold;
   final Set<PsdkBattleMajorStatus> _curedStatuses;
+  final bool _curesConfusion;
   final String? _stat;
   final bool _mayConfuseFromNature;
 
@@ -202,7 +208,62 @@ final class BerryItemEffect extends BattleItemEffect {
       target: owner,
       moveId: context.moveId ?? 'item:$itemId',
     );
+    final confusionCured = _cureConfusion(
+      state: cured.state,
+      rng: cured.rng,
+      turn: context.turn,
+      owner: owner,
+      moveId: context.moveId ?? 'item:$itemId',
+    );
     return BattleEffectStatusChangeResult(
+      state: confusionCured.state,
+      rng: confusionCured.rng,
+      events: <PsdkBattleEvent>[
+        ...consumed.events,
+        ...cured.events,
+        ...confusionCured.events,
+      ],
+      applied: consumed.applied || cured.applied || confusionCured.applied,
+    );
+  }
+
+  @override
+  BattleEffectVolatileStatusChangeResult? onPostVolatileStatusChange(
+    BattleEffectVolatileStatusChangeContext context,
+  ) {
+    final owner = context.owner;
+    if (kind != BerryItemEffectKind.statusCure ||
+        !_curesConfusion ||
+        context.cured ||
+        context.effectId != 'confusion' ||
+        !isOwnedBy(owner) ||
+        context.target != owner) {
+      return null;
+    }
+
+    final battler = context.state.battlerAt(owner);
+    if (!_canConsume(state: context.state, owner: owner, battler: battler)) {
+      return null;
+    }
+
+    final consumed = _consume(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: owner,
+    );
+    if (consumed == null) {
+      return null;
+    }
+
+    final cured = _cureConfusion(
+      state: consumed.state,
+      rng: consumed.rng,
+      turn: context.turn,
+      owner: owner,
+      moveId: context.moveId ?? 'item:$itemId',
+    );
+    return BattleEffectVolatileStatusChangeResult(
       state: cured.state,
       rng: cured.rng,
       events: <PsdkBattleEvent>[
@@ -385,26 +446,74 @@ final class BerryItemEffect extends BattleItemEffect {
     required PsdkBattleSlotRef owner,
   }) {
     final status = state.battlerAt(owner).majorStatus;
-    if (status == null || !_curedStatuses.contains(status)) {
+    if ((status == null || !_curedStatuses.contains(status)) &&
+        !(_curesConfusion &&
+            state.battlerAt(owner).effects.contains('confusion'))) {
       return null;
     }
-    final cured = const BattleStatusChangeHandler().cureMajorStatus(
-      context: BattleHandlerContext(
-        state: state,
-        rng: rng,
-        turn: turn,
-        user: owner,
-      ),
-      target: owner,
+    final cured = status == null || !_curedStatuses.contains(status)
+        ? BattleHandlerResult(state: state, rng: rng, applied: false)
+        : const BattleStatusChangeHandler().cureMajorStatus(
+            context: BattleHandlerContext(
+              state: state,
+              rng: rng,
+              turn: turn,
+              user: owner,
+            ),
+            target: owner,
+            moveId: 'item:$itemId',
+          );
+    final confusionCured = _cureConfusion(
+      state: cured.state,
+      rng: cured.rng,
+      turn: turn,
+      owner: owner,
       moveId: 'item:$itemId',
     );
-    if (!cured.applied) {
+    if (!cured.applied && !confusionCured.applied) {
       return null;
     }
     return BattleEffectEndTurnResult(
-      state: cured.state,
-      rng: cured.rng,
-      events: cured.events,
+      state: confusionCured.state,
+      rng: confusionCured.rng,
+      events: <PsdkBattleEvent>[
+        ...cured.events,
+        ...confusionCured.events,
+      ],
+    );
+  }
+
+  BattleEffectEndTurnResult _cureConfusion({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+    required String moveId,
+  }) {
+    if (!_curesConfusion ||
+        !state.battlerAt(owner).effects.contains('confusion')) {
+      return BattleEffectEndTurnResult(
+        state: state,
+        rng: rng,
+        applied: false,
+      );
+    }
+    return BattleEffectEndTurnResult(
+      state: state.updateBattler(
+        owner,
+        (battler) => battler.copyWith(
+          effects: battler.effects.remove('confusion'),
+        ),
+      ),
+      rng: rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.removed(
+          turn: turn,
+          target: owner,
+          effectId: 'confusion',
+          reason: moveId,
+        ),
+      ],
     );
   }
 

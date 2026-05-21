@@ -61,14 +61,32 @@ final class ContactDisableAbilityEffect extends BattleAbilityEffect {
       scope: BattlerBattleEffectScope(context.user),
       disabledMoveId: context.move.id,
     );
-    return BattleEffectPostDamageResult(
-      state: context.state.updateBattler(
-        context.user,
-        (battler) => battler.copyWith(
-          effects: battler.effects.addEffect(disable),
-        ),
+    final installed = context.state.updateBattler(
+      context.user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(disable),
       ),
-      rng: nextRng,
+    );
+    final post = installed
+        .battlerAt(context.user)
+        .effects
+        .dispatchPostVolatileStatusChange(
+          BattleEffectVolatileStatusChangeContext(
+            state: installed,
+            rng: nextRng,
+            turn: context.turn,
+            owner: context.user,
+            user: context.target,
+            target: context.user,
+            effectId: disable.id,
+            cured: false,
+            moveId: 'ability:$abilityId',
+            move: context.move,
+          ),
+        );
+    return BattleEffectPostDamageResult(
+      state: post.state,
+      rng: post.rng,
       events: <PsdkBattleEvent>[
         PsdkBattleEffectEvent.added(
           turn: context.turn,
@@ -77,6 +95,7 @@ final class ContactDisableAbilityEffect extends BattleAbilityEffect {
           remainingTurns: disable.remainingTurns,
           reason: 'ability:$abilityId',
         ),
+        ...post.events,
       ],
     );
   }

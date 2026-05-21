@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/ability/mental_immunity_ability_effect.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/move/confusion_effect.dart';
 import '../handler/battle_handler_context.dart';
@@ -126,6 +127,26 @@ final class BattleMoveSecondaryEffectResolver {
             ),
           ),
         );
+        final postVolatile = nextState
+            .battlerAt(target)
+            .effects
+            .dispatchPostVolatileStatusChange(
+              BattleEffectVolatileStatusChangeContext(
+                state: nextState,
+                rng: nextRng,
+                turn: turn,
+                owner: target,
+                user: user,
+                target: target,
+                effectId: PsdkBattleEffectIds.confusion,
+                cured: false,
+                moveId: move.id,
+                move: move,
+              ),
+            );
+        nextState = postVolatile.state;
+        nextRng = postVolatile.rng;
+        events.addAll(postVolatile.events);
       }
     }
 

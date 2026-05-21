@@ -5,6 +5,7 @@ import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../effect/ability/mental_immunity_ability_effect.dart';
 import '../../effect/battle_effect.dart';
+import '../../effect/battle_effect_hooks.dart';
 import '../../effect/battle_effect_scope.dart';
 import '../../effect/move/confusion_effect.dart';
 import '../../effect/move/heal_block_effect.dart';
@@ -133,7 +134,10 @@ final class SpecialSecondaryMoveBehavior
       return _addTargetEffect(
         state: prepared.state,
         rng: prepared.rng,
+        turn: context.turn,
+        userSlot: context.user,
         targetSlot: targetSlot,
+        moveId: context.move.id,
         effect: TarShotEffect(scope: BattlerBattleEffectScope(targetSlot)),
       ).toResolution(events: prepared.events);
     }
@@ -238,7 +242,10 @@ final class SpecialSecondaryMoveBehavior
       _SpecialSecondaryMoveKind.psychicNoise => _addTargetEffect(
           state: state,
           rng: rng,
+          turn: turn,
+          userSlot: userSlot,
           targetSlot: targetSlot,
+          moveId: moveId,
           effect: battleAromaVeilBlocksEffect(
             state: state,
             user: userSlot,
@@ -255,13 +262,19 @@ final class SpecialSecondaryMoveBehavior
       _SpecialSecondaryMoveKind.saltCure => _addTargetEffect(
           state: state,
           rng: rng,
+          turn: turn,
+          userSlot: userSlot,
           targetSlot: targetSlot,
+          moveId: moveId,
           effect: SaltCureEffect(scope: BattlerBattleEffectScope(targetSlot)),
         ),
       _SpecialSecondaryMoveKind.syrupBomb => _addTargetEffect(
           state: state,
           rng: rng,
+          turn: turn,
+          userSlot: userSlot,
           targetSlot: targetSlot,
+          moveId: moveId,
           effect: SyrupBombEffect(scope: BattlerBattleEffectScope(targetSlot)),
         ),
       _SpecialSecondaryMoveKind.tarShot =>
@@ -269,7 +282,10 @@ final class SpecialSecondaryMoveBehavior
       _SpecialSecondaryMoveKind.throatChop => _addTargetEffect(
           state: state,
           rng: rng,
+          turn: turn,
+          userSlot: userSlot,
           targetSlot: targetSlot,
+          moveId: moveId,
           effect: ThroatChopEffect(
             scope: BattlerBattleEffectScope(targetSlot),
           ),
@@ -437,21 +453,42 @@ final class SpecialSecondaryMoveBehavior
   _SpecialSecondaryResult _addTargetEffect({
     required PsdkBattleState state,
     required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef userSlot,
     required PsdkBattleSlotRef targetSlot,
+    required String moveId,
     required BattleEffect? effect,
   }) {
     if (effect == null ||
         state.battlerAt(targetSlot).effects.contains(effect.id)) {
       return _SpecialSecondaryResult(state: state, rng: rng);
     }
-    return _SpecialSecondaryResult(
-      state: state.updateBattler(
-        targetSlot,
-        (battler) => battler.copyWith(
-          effects: battler.effects.addEffect(effect),
-        ),
+    final installed = state.updateBattler(
+      targetSlot,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(effect),
       ),
-      rng: rng,
+    );
+    final post = installed
+        .battlerAt(targetSlot)
+        .effects
+        .dispatchPostVolatileStatusChange(
+          BattleEffectVolatileStatusChangeContext(
+            state: installed,
+            rng: rng,
+            turn: turn,
+            owner: targetSlot,
+            user: userSlot,
+            target: targetSlot,
+            effectId: effect.id,
+            cured: false,
+            moveId: moveId,
+          ),
+        );
+    return _SpecialSecondaryResult(
+      state: post.state,
+      rng: post.rng,
+      events: post.events,
     );
   }
 }
