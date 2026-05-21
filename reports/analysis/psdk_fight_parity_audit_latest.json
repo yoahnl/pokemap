@@ -9476,15 +9476,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 375,
+      "ported": 376,
       "partial": 27,
-      "missing": 80
+      "missing": 79
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 199,
+        "ported": 200,
         "partial": 13,
-        "missing": 42
+        "missing": 41
       },
       "move": {
         "ported": 83,
@@ -10844,7 +10844,7 @@
       {
         "effectName": "GorillaTactics",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Gorilla Tactics.rb",
         "hookFamilies": [
           "move_prevention"

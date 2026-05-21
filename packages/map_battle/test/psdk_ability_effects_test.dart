@@ -661,6 +661,91 @@ void main() {
       );
     });
 
+    test('Gorilla Tactics boosts Attack and locks later move selection', () {
+      final boostedDamage = _calculatedDamage(
+        abilityId: 'gorilla_tactics',
+        category: PsdkBattleMoveCategory.physical,
+      );
+      final specialDamage = _calculatedDamage(
+        abilityId: 'gorilla_tactics',
+        category: PsdkBattleMoveCategory.special,
+      );
+      final baselinePhysical =
+          _calculatedDamage(category: PsdkBattleMoveCategory.physical);
+      final baselineSpecial =
+          _calculatedDamage(category: PsdkBattleMoveCategory.special);
+
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'gorilla_tactics',
+            move: _move(id: 'tackle', power: 40),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'opponent_wait', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      ).updateBattler(
+        psdkPlayerSlot,
+        (battler) => battler.copyWith(
+          moveHistory: PsdkBattleMoveHistory(
+            attempts: <PsdkBattleMoveHistoryEntry>[
+              PsdkBattleMoveHistoryEntry(
+                moveId: 'tackle',
+                turn: 1,
+                targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
+              ),
+            ],
+          ),
+        ),
+      );
+      final sameMove = _definition(id: 'tackle', power: 40);
+      final differentMove = _definition(id: 'ember', power: 40);
+      final struggle = _definition(id: 'struggle', power: 50);
+
+      expect(boostedDamage, greaterThan(baselinePhysical));
+      expect(specialDamage, baselineSpecial);
+      expect(
+        state.battlerAt(psdkPlayerSlot).effects.moveSelectionPrevention(
+              state: state,
+              user: psdkPlayerSlot,
+              target: psdkOpponentSlot,
+              move: sameMove,
+            ),
+        isNull,
+      );
+      expect(
+        state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .moveSelectionPrevention(
+              state: state,
+              user: psdkPlayerSlot,
+              target: psdkOpponentSlot,
+              move: differentMove,
+            )
+            ?.reason,
+        BattleMoveFailureReason.unusableByUser,
+      );
+      expect(
+        state.battlerAt(psdkPlayerSlot).effects.moveSelectionPrevention(
+              state: state,
+              user: psdkPlayerSlot,
+              target: psdkOpponentSlot,
+              move: struggle,
+            ),
+        isNull,
+      );
+    });
+
     test('Download chooses Attack or Special Attack from foe defenses', () {
       final attackBoost = _dispatchAbilitySwitchIn(
         playerAbilityId: 'download',
