@@ -937,12 +937,12 @@ void main() {
         byMethod['s_flame_burst']!.dartBehavior,
         'StaticBasicMoveRegistry.s_flame_burst',
       );
-      expect(byMethod['s_fusion_bolt']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_fusion_bolt']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_fusion_bolt']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fusion_bolt',
       );
-      expect(byMethod['s_fusion_flare']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_fusion_flare']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_fusion_flare']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fusion_flare',
@@ -1015,12 +1015,12 @@ void main() {
         byMethod['s_rapid_spin']!.dartBehavior,
         'StaticBasicMoveRegistry.s_rapid_spin',
       );
-      expect(byMethod['s_spectral_thief']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_spectral_thief']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_spectral_thief']!.dartBehavior,
         'StaticBasicMoveRegistry.s_spectral_thief',
       );
-      expect(byMethod['s_make_it_rain']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_make_it_rain']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_make_it_rain']!.dartBehavior,
         'StaticBasicMoveRegistry.s_make_it_rain',
@@ -1040,7 +1040,7 @@ void main() {
         byMethod['s_fickle_beam']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fickle_beam',
       );
-      expect(byMethod['s_magnitude']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_magnitude']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_magnitude']!.dartBehavior,
         'StaticBasicMoveRegistry.s_magnitude',
@@ -1065,7 +1065,7 @@ void main() {
         byMethod['s_last_respects']!.dartBehavior,
         'StaticBasicMoveRegistry.s_last_respects',
       );
-      expect(byMethod['s_shell_side_arm']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_shell_side_arm']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_shell_side_arm']!.dartBehavior,
         'StaticBasicMoveRegistry.s_shell_side_arm',
@@ -1088,7 +1088,7 @@ void main() {
         byMethod['s_brick_break']!.dartBehavior,
         'StaticBasicMoveRegistry.s_brick_break',
       );
-      expect(byMethod['s_raging_bull']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_raging_bull']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_raging_bull']!.dartBehavior,
         'StaticBasicMoveRegistry.s_raging_bull',
@@ -1969,7 +1969,7 @@ void main() {
       );
       expect(byMethod['s_explosion']!.rubyClass, 'SelfDestruct');
 
-      expect(byMethod['s_misty_explosion']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_misty_explosion']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_misty_explosion']!.dartBehavior,
         'SelfDestructMoveBehavior.mistyExplosion',
@@ -1989,7 +1989,7 @@ void main() {
         'TerrainPowerMoveBehavior.terrainBoosting',
       );
 
-      expect(byMethod['s_expanding_force']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_expanding_force']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_expanding_force']!.dartBehavior,
         'TerrainPowerMoveBehavior.expandingForce',
@@ -2188,7 +2188,7 @@ void main() {
       );
       expect(byMethod['s_sparkling_aria']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_sparkling_aria']!.dependencies, isEmpty);
-      expect(byMethod['s_psycho_shift']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_psycho_shift']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_psycho_shift']!.dartBehavior,
         'PsychoShiftMoveBehavior',
@@ -2384,7 +2384,7 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_baton_pass']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_baton_pass']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_baton_pass']!.dartBehavior,
         'SwitchEffectMoveBehavior.batonPass',
