@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 389,
-    "partiel": 339,
+    "fait": 394,
+    "partiel": 334,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1115,9 +1115,9 @@
       {
         "moveId": "disable",
         "battleEngineMethod": "s_disable",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/disable.json"
       },
       {
@@ -1427,9 +1427,9 @@
       {
         "moveId": "encore",
         "battleEngineMethod": "s_encore",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/encore.json"
       },
       {
@@ -2219,9 +2219,9 @@
       {
         "moveId": "heal_block",
         "battleEngineMethod": "s_heal_block",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heal_block.json"
       },
       {
@@ -2555,9 +2555,9 @@
       {
         "moveId": "imprison",
         "battleEngineMethod": "s_imprison",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/imprison.json"
       },
       {
@@ -5395,9 +5395,9 @@
       {
         "moveId": "torment",
         "battleEngineMethod": "s_torment",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/torment.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 207,
-      "partial": 123,
+      "ported": 212,
+      "partial": 118,
       "missing": 0
     },
     "entries": [
@@ -6417,11 +6417,10 @@
         "rubyClass": "Disable",
         "rubyPath": "10 Move/2 Definitions/300 Disable.rb",
         "dartBehavior": "StaticBasicMoveRegistry.disable",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_do_nothing",
@@ -6569,11 +6568,10 @@
         "rubyClass": "Encore",
         "rubyPath": "10 Move/2 Definitions/300 Encore.rb",
         "dartBehavior": "StaticBasicMoveRegistry.encore",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_endeavor",
@@ -7130,11 +7128,10 @@
         "rubyClass": "HealBlock",
         "rubyPath": "10 Move/2 Definitions/300 HealBlock.rb",
         "dartBehavior": "StaticBasicMoveRegistry.healBlock",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_heal_weather",
@@ -7266,11 +7263,10 @@
         "rubyClass": "Imprison",
         "rubyPath": "10 Move/2 Definitions/300 Imprison.rb",
         "dartBehavior": "StaticBasicMoveRegistry.imprison",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_incinerate",
@@ -9037,13 +9033,12 @@
         "battleEngineMethod": "s_torment",
         "rubyClass": "Torment",
         "rubyPath": "10 Move/2 Definitions/300 Torment.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_torment)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_torment",
+        "status": "ported",
         "dependencies": [
           "effects",
           "history"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_toxic_spike",
@@ -9359,7 +9354,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 96,
+        "count": 91,
         "methods": [
           "s_a_fang",
           "s_add_type",
@@ -9376,12 +9371,10 @@
           "s_corrosive_gas",
           "s_court_change",
           "s_destiny_bond",
-          "s_disable",
           "s_doodle",
           "s_dragon_cheer",
           "s_dragon_tail",
           "s_embargo",
-          "s_encore",
           "s_entrainment",
           "s_expanding_force",
           "s_fell_stinger",
@@ -9395,10 +9388,8 @@
           "s_gravity",
           "s_grudge",
           "s_happy_hour",
-          "s_heal_block",
           "s_healing_wish",
           "s_helping_hand",
-          "s_imprison",
           "s_ion_deluge",
           "s_knock_off",
           "s_lock_on",
@@ -9447,7 +9438,6 @@
           "s_thief",
           "s_thing_sport",
           "s_thrash",
-          "s_torment",
           "s_toxic_thread",
           "s_trick",
           "s_u_turn",

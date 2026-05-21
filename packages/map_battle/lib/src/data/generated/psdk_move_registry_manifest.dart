@@ -546,7 +546,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Disable',
     rubyPath: '10 Move/2 Definitions/300 Disable.rb',
     dartBehavior: 'StaticBasicMoveRegistry.disable',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -683,7 +683,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Encore',
     rubyPath: '10 Move/2 Definitions/300 Encore.rb',
     dartBehavior: 'StaticBasicMoveRegistry.encore',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1208,7 +1208,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HealBlock',
     rubyPath: '10 Move/2 Definitions/300 HealBlock.rb',
     dartBehavior: 'StaticBasicMoveRegistry.healBlock',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1336,7 +1336,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Imprison',
     rubyPath: '10 Move/2 Definitions/300 Imprison.rb',
     dartBehavior: 'StaticBasicMoveRegistry.imprison',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2978,8 +2978,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_torment',
     rubyClass: 'Torment',
     rubyPath: '10 Move/2 Definitions/300 Torment.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_torment)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_torment',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.history
