@@ -41,27 +41,38 @@ final class PsdkBattleMoveExecutor {
     if (!result.successful) {
       return result;
     }
-    final postAction =
-        result.state.battlerAt(request.user).effects.dispatchPostAction(
-              BattleEffectPostActionContext(
-                state: result.state,
-                rng: result.rng,
-                turn: request.turn,
-                owner: request.user,
-                user: request.user,
-                move: move,
-                successful: result.successful,
-              ),
-            );
-    if (!postAction.applied && postAction.events.isEmpty) {
+    var nextState = result.state;
+    var nextRng = result.rng;
+    final postActionEvents = <PsdkBattleEvent>[];
+    var applied = false;
+
+    for (final owner in result.state.aliveSlots()) {
+      final postAction = nextState.battlerAt(owner).effects.dispatchPostAction(
+            BattleEffectPostActionContext(
+              state: nextState,
+              rng: nextRng,
+              turn: request.turn,
+              owner: owner,
+              user: request.user,
+              move: move,
+              successful: result.successful,
+            ),
+          );
+      nextState = postAction.state;
+      nextRng = postAction.rng;
+      postActionEvents.addAll(postAction.events);
+      applied = applied || postAction.applied || postAction.events.isNotEmpty;
+    }
+
+    if (!applied && postActionEvents.isEmpty) {
       return result;
     }
     return BattleMoveBehaviorResolution(
-      state: postAction.state,
-      rng: postAction.rng,
+      state: nextState,
+      rng: nextRng,
       events: <PsdkBattleEvent>[
         ...result.events,
-        ...postAction.events,
+        ...postActionEvents,
       ],
       successful: result.successful,
     );

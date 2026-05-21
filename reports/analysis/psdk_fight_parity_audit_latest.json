@@ -9476,9 +9476,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 397,
+      "ported": 398,
       "partial": 19,
-      "missing": 66
+      "missing": 65
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9492,9 +9492,9 @@
         "missing": 24
       },
       "item": {
-        "ported": 77,
+        "ported": 78,
         "partial": 3,
-        "missing": 7
+        "missing": 6
       },
       "status": {
         "ported": 7,
@@ -11639,7 +11639,7 @@
       {
         "effectName": "MirrorHerb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 MirrorHerb.rb",
         "hookFamilies": [
           "action_order",

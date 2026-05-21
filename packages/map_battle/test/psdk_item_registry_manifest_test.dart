@@ -231,12 +231,14 @@ void main() {
       for (final batch in PsdkItemEffectBatch.values.where(
         (batch) =>
             batch != PsdkItemEffectBatch.weatherTerrainField &&
-            batch != PsdkItemEffectBatch.damageTypeStatModifiers,
+            batch != PsdkItemEffectBatch.damageTypeStatModifiers &&
+            batch != PsdkItemEffectBatch.heldItemLifecycleConsumption,
       )) {
         expect(counts[batch], greaterThan(0), reason: batch.name);
       }
       expect(counts[PsdkItemEffectBatch.weatherTerrainField], 0);
       expect(counts[PsdkItemEffectBatch.damageTypeStatModifiers], 0);
+      expect(counts[PsdkItemEffectBatch.heldItemLifecycleConsumption], 0);
       expect(byId['babiri_berry']!.batch, PsdkItemEffectBatch.berries);
       expect(
         byId['adamant_orb']!.batch,
@@ -493,6 +495,7 @@ void main() {
         'smoke_ball',
         'sticky_barb',
         'throat_spray',
+        'mirror_herb',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
         expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
