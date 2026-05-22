@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 289 |
-| `partial` | 41 |
+| `ported` | 291 |
+| `partial` | 39 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -193,7 +193,7 @@ Total registered methods: 330
 | `s_multi_hit` | `MultiHit` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.psdkRandom` | `ported` | `-` |
 | `s_natural_gift` | `NaturalGift` | `10 Move/2 Definitions/300 NaturalGift.rb` | `ItemDependentMoveBehavior.naturalGift` | `ported` | `-` |
 | `s_nature_power` | `NaturePower` | `10 Move/2 Definitions/300 NaturePower.rb` | `FieldLocationMoveBehavior.naturePower` | `ported` | `field, effects` |
-| `s_nightmare` | `Nightmare` | `10 Move/2 Definitions/300 Nightmare.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)` | `partial` | `effects` |
+| `s_nightmare` | `Nightmare` | `10 Move/2 Definitions/300 Nightmare.rb` | `StaticBasicMoveRegistry.targetMarker(s_nightmare)` | `ported` | `effects` |
 | `s_no_retreat` | `NoRetreat` | `10 Move/2 Definitions/300 NoRetreat.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)` | `partial` | `effects` |
 | `s_octolock` | `Octolock` | `10 Move/2 Definitions/300 Octolock.rb` | `StaticBasicMoveRegistry.octolock` | `ported` | `-` |
 | `s_ohko` | `OHKO` | `10 Move/2 Definitions/300 OHKO.rb` | `OhkoMoveBehavior` | `ported` | `handler_damage, ability, effects` |
@@ -203,7 +203,7 @@ Total registered methods: 330
 | `s_parting_shot` | `PartingShot` | `10 Move/2 Definitions/300 PartingShot.rb` | `StaticBasicMoveRegistry.secondaryOnly(s_parting_shot)` | `ported` | `effects, handler_status, handler_stat, ability` |
 | `s_payback` | `PayBack` | `10 Move/2 Definitions/300 PayBack.rb` | `HistoryPowerMoveBehavior.payback` | `ported` | `-` |
 | `s_payday` | `PayDay` | `10 Move/2 Definitions/300 Payday.rb` | `StaticBasicMoveRegistry.partialBasic(s_payday)` | `partial` | `handler_damage, effects, ability, item` |
-| `s_perish_song` | `PerishSong` | `10 Move/2 Definitions/300 PerishSong.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)` | `partial` | `effects` |
+| `s_perish_song` | `PerishSong` | `10 Move/2 Definitions/300 PerishSong.rb` | `StaticBasicMoveRegistry.targetMarker(s_perish_song)` | `ported` | `effects` |
 | `s_photon_geyser` | `PhotonGeyser` | `10 Move/2 Definitions/300 PhotonGeyser.rb` | `StaticBasicMoveRegistry.s_photon_geyser` | `ported` | `-` |
 | `s_plasma_fists` | `PlasmaFists` | `10 Move/2 Definitions/300 PlasmaFists.rb` | `StaticBasicMoveRegistry.s_plasma_fists` | `ported` | `effects` |
 | `s_pledge` | `Pledge` | `10 Move/1 Mechanics/130 Pledge.rb` | `FieldLocationMoveBehavior.pledge` | `ported` | `effects, field, targeting_multi, action_order` |

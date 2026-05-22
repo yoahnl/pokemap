@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 645 |
-| partiel | 83 |
+| fait | 647 |
+| partiel | 81 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -453,7 +453,7 @@ Coverage semantics:
 | fait | night_daze | s_basic | ported | StaticBasicMoveRegistry.s_basic | dark | special | 85 | 95 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/night_daze.json |
 | fait | night_shade | s_hp_eq_level | ported | FixedDamageMoveBehavior.userLevel | ghost | special | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/night_shade.json |
 | fait | night_slash | s_basic | ported | StaticBasicMoveRegistry.s_basic | dark | physical | 70 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/night_slash.json |
-| partiel | nightmare | s_nightmare | partial | StaticBasicMoveRegistry.partialTargetMarker(s_nightmare) | ghost | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/nightmare.json |
+| fait | nightmare | s_nightmare | ported | StaticBasicMoveRegistry.targetMarker(s_nightmare) | ghost | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/nightmare.json |
 | fait | noble_roar | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/noble_roar.json |
 | fait | nuzzle | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | physical | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/nuzzle.json |
 | partiel | oblivion_wing | s_absorb | ported | DrainMoveBehavior.absorb | flying | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/oblivion_wing.json |
@@ -470,7 +470,7 @@ Coverage semantics:
 | partiel | pay_day | s_payday | partial | StaticBasicMoveRegistry.partialBasic(s_payday) | normal | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pay_day.json |
 | fait | payback | s_payback | ported | HistoryPowerMoveBehavior.payback | dark | physical | 50 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/payback.json |
 | fait | peck | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | physical | 35 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/peck.json |
-| partiel | perish_song | s_perish_song | partial | StaticBasicMoveRegistry.partialTargetMarker(s_perish_song) | normal | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/perish_song.json |
+| fait | perish_song | s_perish_song | ported | StaticBasicMoveRegistry.targetMarker(s_perish_song) | normal | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/perish_song.json |
 | fait | petal_blizzard | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | physical | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/petal_blizzard.json |
 | fait | petal_dance | s_outrage | ported | ForcedActionMoveBehavior.outrage | grass | special | 120 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/petal_dance.json |
 | fait | phantom_force | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | ghost | physical | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/phantom_force.json |

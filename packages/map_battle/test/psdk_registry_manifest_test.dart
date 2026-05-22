@@ -1505,6 +1505,14 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.abilityChanging(s_skill_swap)',
         ),
         (
+          method: 's_nightmare',
+          behavior: 'StaticBasicMoveRegistry.targetMarker(s_nightmare)',
+        ),
+        (
+          method: 's_perish_song',
+          behavior: 'StaticBasicMoveRegistry.targetMarker(s_perish_song)',
+        ),
+        (
           method: 's_wonder_room',
           behavior: 'StaticBasicMoveRegistry.fieldMarker(s_wonder_room)',
         ),
@@ -1533,15 +1541,6 @@ void main() {
         (
           method: 's_magic_coat',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)',
-        ),
-        (
-          method: 's_nightmare',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)',
-        ),
-        (
-          method: 's_perish_song',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)',
         ),
         (
           method: 's_snatch',

@@ -625,12 +625,12 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_nightmare': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_nightmare)',
+    status: _PsdkPortStatus.ported,
   ),
   's_perish_song': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_perish_song)',
+    status: _PsdkPortStatus.ported,
   ),
   's_parting_shot': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_parting_shot)',

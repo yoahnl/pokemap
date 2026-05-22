@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 645,
-    "partiel": 83,
+    "fait": 647,
+    "partiel": 81,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -3363,9 +3363,9 @@
       {
         "moveId": "nightmare",
         "battleEngineMethod": "s_nightmare",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/nightmare.json"
       },
       {
@@ -3499,9 +3499,9 @@
       {
         "moveId": "perish_song",
         "battleEngineMethod": "s_perish_song",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/perish_song.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 289,
-      "partial": 41,
+      "ported": 291,
+      "partial": 39,
       "missing": 0
     },
     "entries": [
@@ -7665,12 +7665,11 @@
         "battleEngineMethod": "s_nightmare",
         "rubyClass": "Nightmare",
         "rubyPath": "10 Move/2 Definitions/300 Nightmare.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_nightmare)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_no_retreat",
@@ -7779,12 +7778,11 @@
         "battleEngineMethod": "s_perish_song",
         "rubyClass": "PerishSong",
         "rubyPath": "10 Move/2 Definitions/300 PerishSong.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_perish_song)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_photon_geyser",
@@ -9248,7 +9246,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 27,
+        "count": 25,
         "methods": [
           "s_chilly_reception",
           "s_conversion",
@@ -9265,9 +9263,7 @@
           "s_helping_hand",
           "s_magic_coat",
           "s_magnetic_flux",
-          "s_nightmare",
           "s_no_retreat",
-          "s_perish_song",
           "s_revival_blessing",
           "s_rototiller",
           "s_shed_tail",

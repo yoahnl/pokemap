@@ -1739,8 +1739,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_nightmare',
     rubyClass: 'Nightmare',
     rubyPath: '10 Move/2 Definitions/300 Nightmare.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_nightmare)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1845,8 +1845,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_perish_song',
     rubyClass: 'PerishSong',
     rubyPath: '10 Move/2 Definitions/300 PerishSong.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_perish_song)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
