@@ -1,6 +1,6 @@
 # PSDK Fight Parity Audit
 
-Source: `moves=/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves; effects=/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
+Source: `moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle`
 
 Important: `partiel` is executable coverage, not strict PSDK parity.
 
@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 629 |
-| Studio attacks `partiel` | 99 |
+| Studio attacks `fait` | 631 |
+| Studio attacks `partiel` | 97 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -27,11 +27,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_conversion2 | 1 |
 | s_core_enforcer | 1 |
 | s_destiny_bond | 1 |
-| s_electrify | 1 |
 | s_embargo | 1 |
 | s_entrainment | 1 |
 | s_flower_shield | 1 |
-| s_flying_press | 1 |
 | s_frustration | 1 |
 | s_gear_up | 1 |
 | s_genesis_supernova | 1 |
@@ -77,8 +75,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 272 |
-| `partial` | 58 |
+| `ported` | 274 |
+| `partial` | 56 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -86,12 +84,11 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 58 |
-| ability | 20 |
-| handlerDamage | 15 |
-| item | 15 |
+| effects | 56 |
+| ability | 19 |
+| handlerDamage | 14 |
+| item | 14 |
 | field | 8 |
-| actionOrder | 1 |
 | endTurn | 1 |
 | handlerStat | 1 |
 | handlerSwitch | 1 |
@@ -103,8 +100,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Action queue / copy-call residuals | 1 | `s_electrify` |
-| Damage formula / variable power | 15 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_flying_press`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
+| Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
 | Effect hook / manifest final sweep | 42 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_embargo`, `s_entrainment`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_nightmare`, `s_no_retreat`, `s_perish_song`, `s_powder`, `s_revival_blessing`, `s_role_play`, `s_rototiller`, `s_shed_tail`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
 
 ## Effect Coverage

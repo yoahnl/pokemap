@@ -448,6 +448,19 @@ double _applyLocalEffectivenessModifiers(
   BattleMoveDamageContext context,
   String moveType,
 ) {
+  if (context.move.battleEngineMethod == 's_flying_press') {
+    final flyingEffectiveness = const BattleMoveTypeProcessor()
+        .resolveEffectiveness(
+          moveType: 'flying',
+          targetTypes: context.target.types,
+          extraTargetTypes: _extraTypes(context.target),
+          neutralizeFlyingWeaknesses: _strongWindsNeutralizesFlyingWeaknesses(
+            context,
+          ),
+        )
+        .multiplier;
+    multiplier *= flyingEffectiveness;
+  }
   if (moveType == 'fire' && context.target.effects.contains('tar_shot')) {
     return multiplier * 2;
   }

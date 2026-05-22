@@ -646,12 +646,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_electrify',
     rubyClass: 'Electrify',
     rubyPath: '10 Move/2 Definitions/300 Electrify.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_electrify)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.actionOrder
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_electrify',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_electro_ball',
@@ -883,14 +880,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_flying_press',
     rubyClass: 'FlyingPress',
     rubyPath: '10 Move/2 Definitions/300 FlyingPress.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_flying_press)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_flying_press',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_focus_energy',

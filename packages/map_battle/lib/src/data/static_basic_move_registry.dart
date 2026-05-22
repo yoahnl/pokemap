@@ -458,6 +458,14 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_torment',
       resolve: _resolveTorment,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_electrify',
+      resolve: _resolveElectrify,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_flying_press',
+      resolve: _resolveFlyingPress,
+    ),
     for (final method in _partialTargetMarkerMethods.keys)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -682,7 +690,6 @@ const _partialBasicDescendantMethods = <String>[
   's_beak_blast',
   's_beat_up',
   's_core_enforcer',
-  's_flying_press',
   's_frustration',
   's_genesis_supernova',
   's_guardian_of_alola',
@@ -708,7 +715,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_conversion2': 'conversion2',
   's_doodle': 'doodle',
   's_destiny_bond': 'destiny_bond',
-  's_electrify': 'electrify',
   's_embargo': 'embargo',
   's_focus_energy': 'focus_energy',
   's_gastro_acid': 'ability_suppressed',
@@ -3780,6 +3786,18 @@ BattleMoveBehaviorResolution _resolveTorment(
   BattleMoveBehaviorContext context,
 ) {
   return _resolveTargetMarkerWithEffect(context, effectId: 'torment');
+}
+
+BattleMoveBehaviorResolution _resolveElectrify(
+  BattleMoveBehaviorContext context,
+) {
+  return _resolveTargetMarkerWithEffect(context, effectId: 'electrify');
+}
+
+BattleMoveBehaviorResolution _resolveFlyingPress(
+  BattleMoveBehaviorContext context,
+) {
+  return _resolveBasic(context);
 }
 
 BattleMoveBehaviorResolution _resolveAutotomize(

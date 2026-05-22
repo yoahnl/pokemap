@@ -921,7 +921,6 @@ void main() {
       for (final method in <String>[
         's_beak_blast',
         's_core_enforcer',
-        's_flying_press',
         's_hidden_power',
         's_payday',
         's_shell_trap',
@@ -946,6 +945,11 @@ void main() {
       expect(
         byMethod['s_fusion_flare']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fusion_flare',
+      );
+      expect(byMethod['s_flying_press']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_flying_press']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_flying_press',
       );
       expect(byMethod['s_round']!.status, PsdkPortStatus.ported);
       expect(
@@ -1463,10 +1467,6 @@ void main() {
               'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
         ),
         (
-          method: 's_electrify',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_electrify)',
-        ),
-        (
           method: 's_embargo',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_embargo)',
         ),
@@ -1548,6 +1548,11 @@ void main() {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
+      expect(byMethod['s_electrify']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_electrify']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_electrify',
+      );
       for (final entry in <({String method, String behavior})>[
         (
           method: 's_fairy_lock',

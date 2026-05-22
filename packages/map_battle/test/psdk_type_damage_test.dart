@@ -751,6 +751,95 @@ void main() {
       expect(ionDelugeIntoGhost.damageToOpponent, greaterThan(0));
     });
 
+    test('Flying Press applies Fighting and Flying effectiveness together', () {
+      final fightingIntoGrass = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fighting'),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _damagingMove(
+          id: 'brick_break',
+          type: 'fighting',
+          power: 100,
+        ),
+      );
+      final fightingIntoNormal = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fighting'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _damagingMove(
+          id: 'brick_break',
+          type: 'fighting',
+          power: 100,
+        ),
+      );
+      final flyingPressIntoGrass = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fighting'),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _damagingMove(
+          id: 'flying_press',
+          type: 'fighting',
+          power: 100,
+          battleEngineMethod: 's_flying_press',
+        ),
+      );
+
+      expect(fightingIntoGrass.damageToOpponent, lessThan(fightingIntoNormal.damageToOpponent));
+      expect(flyingPressIntoGrass.damageToOpponent, fightingIntoNormal.damageToOpponent);
+    });
+
+    test('Electrify move rewrites only the target next move then expires', () {
+      final engine = BattleEngine(
+        setup: BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            types: const PsdkBattleTypes(primary: 'ground'),
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _damagingMove(
+                id: 'electrify',
+                type: 'electric',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                battleEngineMethod: 's_electrify',
+              ),
+              _damagingMove(
+                id: 'splash',
+                type: 'normal',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 50,
+            moves: <PsdkBattleMoveData>[
+              _damagingMove(
+                id: 'tackle',
+                type: 'normal',
+                power: 40,
+              ),
+            ],
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ),
+      );
+
+      final firstTurn = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final secondTurn = engine.submit(const BattleDecision.fight(moveSlot: 1));
+
+      expect(firstTurn.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(
+        firstTurn.state.battlerAt(psdkOpponentSlot).effects.contains('electrify'),
+        isFalse,
+      );
+      expect(secondTurn.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
+    });
+
     test('durable change-type marker does not behave like Electrify', () {
       final changedType = _runSinglePlayerMove(
         playerTypes: const PsdkBattleTypes(primary: 'normal'),
@@ -1003,6 +1092,7 @@ PsdkBattleMoveData _damagingMove({
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   required int power,
   int criticalRate = 1,
+  String battleEngineMethod = 's_basic',
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -1015,7 +1105,7 @@ PsdkBattleMoveData _damagingMove({
     pp: 35,
     priority: 0,
     criticalRate: criticalRate,
-    battleEngineMethod: 's_basic',
+    battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
   );
 }
