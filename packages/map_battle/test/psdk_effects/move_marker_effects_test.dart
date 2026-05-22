@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_battle/src/domain/effect/battle_effect_registry.dart';
+import 'package:map_battle/src/domain/effect/move/embargo_effect.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -164,6 +165,70 @@ void main() {
       expect(prevention.reason, 'no_retreat');
     });
 
+    test('Embargo counts down and expires through end-turn dispatch', () {
+      final initialState = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                EmbargoEffect(
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                  remainingTurns: 2,
+                ),
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'opponent'),
+          ),
+        },
+      );
+
+      final ticked = initialState.battlerAt(psdkPlayerSlot).effects
+          .dispatchEndTurn(
+            BattleEffectEndTurnContext(
+              state: initialState,
+              rng: _rng(),
+              turn: 7,
+              owner: psdkPlayerSlot,
+            ),
+          );
+
+      final tickedEffect = ticked.state
+          .battlerAt(psdkPlayerSlot)
+          .effects
+          .effects
+          .singleWhere((effect) => effect.id == 'embargo');
+      expect(tickedEffect, isA<EmbargoEffect>());
+      expect(tickedEffect.remainingTurns, 1);
+
+      final expired = ticked.state.battlerAt(psdkPlayerSlot).effects
+          .dispatchEndTurn(
+            BattleEffectEndTurnContext(
+              state: ticked.state,
+              rng: ticked.rng,
+              turn: 8,
+              owner: psdkPlayerSlot,
+            ),
+          );
+
+      expect(
+        expired.state.battlerAt(psdkPlayerSlot).effects.contains('embargo'),
+        isFalse,
+      );
+    });
+
+    test('Powder remains a turn-scoped marker effect', () {
+      final stack = const PsdkBattleEffectStack.empty().addEffect(
+        const PowderEffect(
+          scope: BattlerBattleEffectScope(psdkPlayerSlot),
+        ),
+      );
+
+      expect(stack.contains('powder'), isTrue);
+      expect(stack.clearTurnScopedEffects().contains('powder'), isFalse);
+    });
+
     test('registry exposes carried move effect objects', () {
       const registry = BattleEffectRegistry();
 
@@ -171,11 +236,13 @@ void main() {
         registry.fromId('ability_suppressed'),
         isA<AbilitySuppressedEffect>(),
       );
+      expect(registry.fromId('embargo'), isA<EmbargoEffect>());
       expect(registry.fromId('force_next_move_base'),
           isA<ForceNextMoveBaseEffect>());
       expect(registry.fromId('item_burnt'), isA<ItemBurntEffect>());
       expect(registry.fromId('lock_on'), isA<LockOnEffect>());
       expect(registry.fromId('no_retreat'), isA<NoRetreatEffect>());
+      expect(registry.fromId('powder'), isA<PowderEffect>());
       expect(registry.fromId('triple_arrows'), isA<TripleArrowsEffect>());
     });
   });

@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 272 |
-| `partial` | 58 |
+| `ported` | 276 |
+| `partial` | 54 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -79,7 +79,7 @@ Total registered methods: 330
 | `s_electrify` | `Electrify` | `10 Move/2 Definitions/300 Electrify.rb` | `StaticBasicMoveRegistry.s_electrify` | `ported` | `effects` |
 | `s_electro_ball` | `ElectroBall` | `10 Move/2 Definitions/300 ElectroBall.rb` | `VariablePowerMoveBehavior.electroBall` | `ported` | `-` |
 | `s_electro_shot` | `ElectroShot` | `10 Move/2 Definitions/300 ElectroShot.rb` | `StaticBasicMoveRegistry.s_electro_shot` | `ported` | `-` |
-| `s_embargo` | `Embargo` | `10 Move/2 Definitions/300 Embargo.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_embargo)` | `partial` | `effects` |
+| `s_embargo` | `Embargo` | `10 Move/2 Definitions/300 Embargo.rb` | `StaticBasicMoveRegistry.targetMarker(s_embargo)` | `ported` | `effects` |
 | `s_encore` | `Encore` | `10 Move/2 Definitions/300 Encore.rb` | `StaticBasicMoveRegistry.encore` | `ported` | `effects` |
 | `s_endeavor` | `Endeavor` | `10 Move/2 Definitions/300 Endeavor.rb` | `DirectHpMoveBehavior.endeavor` | `ported` | `-` |
 | `s_entrainment` | `Entrainment` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)` | `partial` | `ability, effects` |
@@ -211,7 +211,7 @@ Total registered methods: 330
 | `s_pollen_puff` | `PollenPuff` | `10 Move/2 Definitions/300 PollenPuff.rb` | `StaticBasicMoveRegistry.s_pollen_puff` | `ported` | `-` |
 | `s_poltergeist` | `Poltergeist` | `10 Move/2 Definitions/300 Poltergeist.rb` | `StaticBasicMoveRegistry.s_poltergeist` | `ported` | `-` |
 | `s_population_bomb` | `PopulationBomb` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.populationBomb` | `ported` | `ability, item` |
-| `s_powder` | `Powder` | `10 Move/2 Definitions/300 Powder.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_powder)` | `partial` | `effects` |
+| `s_powder` | `Powder` | `10 Move/2 Definitions/300 Powder.rb` | `StaticBasicMoveRegistry.targetMarker(s_powder)` | `ported` | `effects` |
 | `s_power_split` | `PowerSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `StatSplitMoveBehavior.power` | `ported` | `-` |
 | `s_power_swap` | `PowerSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.powerSwap` | `ported` | `handler_stat, effects, ability` |
 | `s_power_trick` | `PowerTrick` | `10 Move/2 Definitions/300 PowerTrick.rb` | `PowerTrickMoveBehavior` | `ported` | `-` |

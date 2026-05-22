@@ -1416,6 +1416,10 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.s_corrosive_gas',
         ),
         (method: 's_disable', behavior: 'StaticBasicMoveRegistry.disable'),
+        (
+          method: 's_embargo',
+          behavior: 'StaticBasicMoveRegistry.targetMarker(s_embargo)',
+        ),
         (method: 's_encore', behavior: 'StaticBasicMoveRegistry.encore'),
         (method: 's_heal_block', behavior: 'StaticBasicMoveRegistry.healBlock'),
         (method: 's_imprison', behavior: 'StaticBasicMoveRegistry.imprison'),
@@ -1427,6 +1431,10 @@ void main() {
         (
           method: 's_plasma_fists',
           behavior: 'StaticBasicMoveRegistry.s_plasma_fists',
+        ),
+        (
+          method: 's_powder',
+          behavior: 'StaticBasicMoveRegistry.targetMarker(s_powder)',
         ),
         (method: 's_quash', behavior: 'StaticBasicMoveRegistry.quash'),
         (
@@ -1467,10 +1475,6 @@ void main() {
               'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
         ),
         (
-          method: 's_embargo',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_embargo)',
-        ),
-        (
           method: 's_entrainment',
           behavior:
               'StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)',
@@ -1507,10 +1511,6 @@ void main() {
           method: 's_perish_song',
           behavior:
               'StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)',
-        ),
-        (
-          method: 's_powder',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_powder)',
         ),
         (
           method: 's_simple_beam',

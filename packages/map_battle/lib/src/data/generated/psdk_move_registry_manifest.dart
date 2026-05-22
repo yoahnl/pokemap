@@ -670,8 +670,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_embargo',
     rubyClass: 'Embargo',
     rubyPath: '10 Move/2 Definitions/300 Embargo.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_embargo)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_embargo)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1924,8 +1924,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_powder',
     rubyClass: 'Powder',
     rubyPath: '10 Move/2 Definitions/300 Powder.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_powder)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_powder)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
