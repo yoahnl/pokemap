@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 631 |
-| partiel | 97 |
+| fait | 633 |
+| partiel | 95 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -209,7 +209,7 @@ Coverage semantics:
 | fait | electrify | s_electrify | ported | StaticBasicMoveRegistry.s_electrify | electric | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/electrify.json |
 | fait | electro_ball | s_electro_ball | ported | VariablePowerMoveBehavior.electroBall | electric | special | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/electro_ball.json |
 | fait | electroweb | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 55 | 95 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/electroweb.json |
-| partiel | embargo | s_embargo | partial | StaticBasicMoveRegistry.partialTargetMarker(s_embargo) | dark | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/embargo.json |
+| fait | embargo | s_embargo | ported | StaticBasicMoveRegistry.targetMarker(s_embargo) | dark | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/embargo.json |
 | fait | ember | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | special | 40 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/ember.json |
 | fait | encore | s_encore | ported | StaticBasicMoveRegistry.encore | normal | status | 0 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/encore.json |
 | fait | endeavor | s_endeavor | ported | DirectHpMoveBehavior.endeavor | normal | physical | 0 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/endeavor.json |
@@ -488,7 +488,7 @@ Coverage semantics:
 | fait | poison_tail | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | physical | 50 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/poison_tail.json |
 | fait | pollen_puff | s_pollen_puff | ported | StaticBasicMoveRegistry.s_pollen_puff | bug | special | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/pollen_puff.json |
 | fait | pound | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 40 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/pound.json |
-| partiel | powder | s_powder | partial | StaticBasicMoveRegistry.partialTargetMarker(s_powder) | bug | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/powder.json |
+| fait | powder | s_powder | ported | StaticBasicMoveRegistry.targetMarker(s_powder) | bug | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/powder.json |
 | fait | powder_snow | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | special | 40 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/powder_snow.json |
 | fait | power_gem | s_basic | ported | StaticBasicMoveRegistry.s_basic | rock | special | 80 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_gem.json |
 | fait | power_split | s_power_split | ported | StatSplitMoveBehavior.power | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_split.json |

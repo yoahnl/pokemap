@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 631,
-    "partiel": 97,
+    "fait": 633,
+    "partiel": 95,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1411,9 +1411,9 @@
       {
         "moveId": "embargo",
         "battleEngineMethod": "s_embargo",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/embargo.json"
       },
       {
@@ -3643,9 +3643,9 @@
       {
         "moveId": "powder",
         "battleEngineMethod": "s_powder",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/powder.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 274,
-      "partial": 56,
+      "ported": 276,
+      "partial": 54,
       "missing": 0
     },
     "entries": [
@@ -6541,12 +6541,11 @@
         "battleEngineMethod": "s_embargo",
         "rubyClass": "Embargo",
         "rubyPath": "10 Move/2 Definitions/300 Embargo.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_embargo)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_embargo)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_encore",
@@ -7870,12 +7869,11 @@
         "battleEngineMethod": "s_powder",
         "rubyClass": "Powder",
         "rubyPath": "10 Move/2 Definitions/300 Powder.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_powder)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_powder)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_power_split",
@@ -9266,7 +9264,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 42,
+        "count": 40,
         "methods": [
           "s_chilly_reception",
           "s_conversion",
@@ -9275,7 +9273,6 @@
           "s_destiny_bond",
           "s_doodle",
           "s_dragon_cheer",
-          "s_embargo",
           "s_entrainment",
           "s_flower_shield",
           "s_gear_up",
@@ -9294,7 +9291,6 @@
           "s_nightmare",
           "s_no_retreat",
           "s_perish_song",
-          "s_powder",
           "s_revival_blessing",
           "s_role_play",
           "s_rototiller",

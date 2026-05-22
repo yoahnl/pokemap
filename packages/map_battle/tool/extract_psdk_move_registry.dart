@@ -545,8 +545,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_embargo': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_embargo)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_embargo)',
+    status: _PsdkPortStatus.ported,
   ),
   's_encore': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.encore',
@@ -638,8 +638,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_powder': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_powder)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_powder)',
+    status: _PsdkPortStatus.ported,
   ),
   's_plasma_fists': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_plasma_fists',
