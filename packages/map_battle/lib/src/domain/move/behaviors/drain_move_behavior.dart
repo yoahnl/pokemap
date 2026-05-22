@@ -1,6 +1,7 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
 import '../../effect/item/item_effect.dart';
@@ -98,6 +99,8 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
         damage: damage.damage,
         dbSymbol: context.move.dbSymbol,
         user: user,
+        state: state,
+        userSlot: context.user,
         target: target,
         move: context.move,
       );
@@ -199,6 +202,8 @@ int _drainHealAmount({
   required int damage,
   required String dbSymbol,
   required PsdkBattleCombatant user,
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef userSlot,
   required PsdkBattleCombatant target,
   required BattleMoveDefinition move,
 }) {
@@ -206,6 +211,8 @@ int _drainHealAmount({
       dbSymbol == 'draining_kiss' || dbSymbol == 'oblivion_wing' ? 4 / 3 : 2;
   final multiplier = _drainHealMultiplier(
     user: user,
+    state: state,
+    userSlot: userSlot,
     target: target,
     move: move,
     baseHealAmount: (damage / drainFactor).floor(),
@@ -216,12 +223,18 @@ int _drainHealAmount({
 
 double _drainHealMultiplier({
   required PsdkBattleCombatant user,
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef userSlot,
   required PsdkBattleCombatant target,
   required BattleMoveDefinition move,
   required int baseHealAmount,
 }) {
   var multiplier = 1.0;
-  for (final effect in user.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: user,
+    state: state,
+    slot: userSlot,
+  )) {
     multiplier *= effect.drainHealMultiplier(
       BattleItemDrainModifierContext(
         user: user,

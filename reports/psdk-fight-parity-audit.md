@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 633 |
-| Studio attacks `partiel` | 95 |
+| Studio attacks `fait` | 639 |
+| Studio attacks `partiel` | 89 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -35,16 +35,11 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_gravity | 1 |
 | s_grudge | 1 |
 | s_guardian_of_alola | 1 |
-| s_happy_hour | 1 |
-| s_healing_wish | 1 |
 | s_helping_hand | 1 |
 | s_hidden_power | 1 |
 | s_hyperspace_hole | 1 |
-| s_ion_deluge | 1 |
 | s_light_that_burns_the_sky | 1 |
-| s_lunar_dance | 1 |
 | s_magic_coat | 1 |
-| s_magic_room | 1 |
 | s_magnetic_flux | 1 |
 | s_malicious_moonsault | 1 |
 | s_multi_hit | 1 |
@@ -64,7 +59,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_split_up | 1 |
 | s_swallow | 1 |
 | s_teleport | 1 |
-| s_wish | 1 |
 | s_wonder_room | 1 |
 | s_worry_seed | 1 |
 | s_z_move | 10 |
@@ -73,8 +67,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 276 |
-| `partial` | 54 |
+| `ported` | 283 |
+| `partial` | 47 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -82,14 +76,12 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 54 |
+| effects | 47 |
 | ability | 19 |
 | handlerDamage | 14 |
 | item | 14 |
-| field | 8 |
-| endTurn | 1 |
+| field | 5 |
 | handlerStat | 1 |
-| handlerSwitch | 1 |
 | targetingMulti | 1 |
 
 ### Partial Method Batches
@@ -99,7 +91,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 40 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_entrainment`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_nightmare`, `s_no_retreat`, `s_perish_song`, `s_revival_blessing`, `s_role_play`, `s_rototiller`, `s_shed_tail`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
+| Effect hook / manifest final sweep | 33 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_entrainment`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_helping_hand`, `s_magic_coat`, `s_magnetic_flux`, `s_nightmare`, `s_no_retreat`, `s_perish_song`, `s_revival_blessing`, `s_role_play`, `s_rototiller`, `s_shed_tail`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_wonder_room`, `s_worry_seed` |
 
 ## Effect Coverage
 

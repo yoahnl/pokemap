@@ -68,8 +68,8 @@ final class SwitchWeatherAbilityEffect extends BattleAbilityEffect {
   }
 
   int _weatherDuration(BattleEffectSwitchEventContext context) {
-    final battler = context.state.battlerAt(context.replacement);
-    for (final itemEffect in battler.activeItemEffects) {
+    for (final itemEffect
+        in context.state.activeItemEffectsAt(context.replacement)) {
       final duration = itemEffect.weatherDuration(weatherMoveDbSymbol);
       if (duration != null) {
         return duration;
@@ -1176,8 +1176,9 @@ int _weatherDuration(
   BattleEffectSwitchEventContext context,
   String weatherMoveDbSymbol,
 ) {
-  final battler = context.state.battlerAt(context.replacement);
-  for (final itemEffect in battler.activeItemEffects) {
+  for (final itemEffect in context.state.activeItemEffectsAt(
+    context.replacement,
+  )) {
     final duration = itemEffect.weatherDuration(weatherMoveDbSymbol);
     if (duration != null) {
       return duration;
@@ -1190,8 +1191,9 @@ int _terrainDuration(
   BattleEffectSwitchEventContext context,
   String terrainMoveDbSymbol,
 ) {
-  final battler = context.state.battlerAt(context.replacement);
-  for (final itemEffect in battler.activeItemEffects) {
+  for (final itemEffect in context.state.activeItemEffectsAt(
+    context.replacement,
+  )) {
     final duration = itemEffect.terrainDuration(terrainMoveDbSymbol);
     if (duration != null) {
       return duration;

@@ -254,3 +254,60 @@ extension BattleItemEffectList on PsdkBattleCombatant {
     yield* itemEffects;
   }
 }
+
+bool battleItemEffectsSuppressed({
+  required PsdkBattleCombatant battler,
+  PsdkBattleState? state,
+  PsdkBattleSlotRef? slot,
+}) {
+  if (battler.effects.contains('embargo') ||
+      battler.effects.contains('magic_room')) {
+    return true;
+  }
+  if (state == null || slot == null) {
+    return false;
+  }
+  return state.hasFieldEffect('magic_room');
+}
+
+Iterable<BattleItemEffect> battleActiveItemEffects({
+  required PsdkBattleCombatant battler,
+  PsdkBattleState? state,
+  PsdkBattleSlotRef? slot,
+}) sync* {
+  if (battleItemEffectsSuppressed(
+    battler: battler,
+    state: state,
+    slot: slot,
+  )) {
+    return;
+  }
+  yield* battler.itemEffects;
+}
+
+extension BattleItemEffectStateList on PsdkBattleState {
+  bool hasFieldEffect(String effectId) {
+    return combatants.values.any(
+      (battler) => battler.effects.effects.any(
+        (effect) =>
+            effect.id == effectId && effect.scope is FieldBattleEffectScope,
+      ),
+    );
+  }
+
+  bool itemEffectsSuppressedAt(PsdkBattleSlotRef slot) {
+    return battleItemEffectsSuppressed(
+      battler: battlerAt(slot),
+      state: this,
+      slot: slot,
+    );
+  }
+
+  Iterable<BattleItemEffect> activeItemEffectsAt(PsdkBattleSlotRef slot) sync* {
+    yield* battleActiveItemEffects(
+      battler: battlerAt(slot),
+      state: this,
+      slot: slot,
+    );
+  }
+}

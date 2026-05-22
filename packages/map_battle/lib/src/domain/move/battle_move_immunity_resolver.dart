@@ -2,6 +2,7 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import '../battle/battle_slot.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
@@ -116,11 +117,15 @@ final class BattleMoveImmunityResolver {
     BattleMoveProcedureExecution execution,
     BattlePositionRef targetRef,
   ) {
-    final target = execution.context.state.battlerAt(
-      _psdkSlotFromBattlePosition(targetRef),
-    );
+    final targetSlot = _psdkSlotFromBattlePosition(targetRef);
+    final target = execution.context.state.battlerAt(targetSlot);
     final moveType = _effectiveMoveType(execution, targetRef);
-    if (_isGroundMoveBlockedByGrounding(moveType, target)) {
+    if (_isGroundMoveBlockedByGrounding(
+      moveType,
+      target,
+      state: execution.context.state,
+      targetSlot: targetSlot,
+    )) {
       return true;
     }
 
@@ -128,8 +133,12 @@ final class BattleMoveImmunityResolver {
       moveType: moveType,
       targetTypes: target.types,
       extraTargetTypes: _extraTypes(target),
-      forceGrounded:
-          moveType == 'ground' && _groundingResolver.isGrounded(target),
+      forceGrounded: moveType == 'ground' &&
+          _groundingResolver.isGrounded(
+            target,
+            state: execution.context.state,
+            slot: targetSlot,
+          ),
       foresight: target.effects.contains('foresight'),
       miracleEye: target.effects.contains('miracle_eye'),
       neutralizeFlyingWeaknesses: _strongWindsNeutralizesFlyingWeaknesses(
@@ -177,32 +186,45 @@ final class BattleMoveImmunityResolver {
         !execution.move.flags.protectable) {
       return false;
     }
-    final target = execution.context.state.battlerAt(
-      _psdkSlotFromBattlePosition(targetRef),
+    final targetSlot = _psdkSlotFromBattlePosition(targetRef);
+    final target = execution.context.state.battlerAt(targetSlot);
+    return _groundingResolver.isGrounded(
+      target,
+      state: execution.context.state,
+      slot: targetSlot,
     );
-    return _groundingResolver.isGrounded(target);
   }
 
   bool _isGroundMoveBlockedByGrounding(
     String moveType,
     PsdkBattleCombatant target,
+    {
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef targetSlot,
+  }
   ) {
-    return moveType == 'ground' && !_groundingResolver.isGrounded(target);
+    return moveType == 'ground' &&
+        !_groundingResolver.isGrounded(
+          target,
+          state: state,
+          slot: targetSlot,
+        );
   }
 
   BattleMoveFailureReason? _targetEffectPreventionReason(
     BattleMoveProcedureExecution execution,
     BattlePositionRef targetRef,
   ) {
-    final target = execution.context.state.battlerAt(
-      _psdkSlotFromBattlePosition(targetRef),
-    );
+    final targetSlot = _psdkSlotFromBattlePosition(targetRef);
+    final target = execution.context.state.battlerAt(targetSlot);
     final abilityBypassed = _userBypassesAbilityPrevention(execution);
     final localReason = target.effects.targetMovePreventionReason(
       user: execution.actualUser,
       target: targetRef,
       move: execution.move,
       where: (effect) => _targetPreventionHookIsActive(
+        state: execution.context.state,
+        ownerSlot: targetSlot,
         owner: target,
         effect: effect,
         abilityBypassed: abilityBypassed,
@@ -217,13 +239,16 @@ final class BattleMoveImmunityResolver {
       target: targetRef,
       move: execution.move,
     );
-    for (final owner in execution.context.state.combatants.values) {
+    for (final entry in execution.context.state.combatants.entries) {
+      final owner = entry.value;
       for (final effect in owner.effects.effects) {
         final scope = effect.scope;
         if (scope is! BankBattleEffectScope || scope.bank != targetRef.bank) {
           continue;
         }
         if (!_targetPreventionHookIsActive(
+          state: execution.context.state,
+          ownerSlot: entry.key,
           owner: owner,
           effect: effect,
           abilityBypassed: abilityBypassed,
@@ -252,6 +277,8 @@ final class BattleMoveImmunityResolver {
   }
 
   bool _targetPreventionHookIsActive({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef ownerSlot,
     required PsdkBattleCombatant owner,
     required BattleEffect effect,
     required bool abilityBypassed,
@@ -262,7 +289,11 @@ final class BattleMoveImmunityResolver {
     if (effect is BattleItemEffect) {
       return owner.heldItemId == effect.itemId &&
           !owner.itemConsumed &&
-          !owner.itemEffectsSuppressed;
+          !battleItemEffectsSuppressed(
+            battler: owner,
+            state: state,
+            slot: ownerSlot,
+          );
     }
     return true;
   }
@@ -290,7 +321,8 @@ String _effectiveMoveType(
   var moveType = execution.move.type.toLowerCase();
   if (user.effects.contains('electrify')) {
     moveType = 'electric';
-  } else if (user.effects.contains('ion_deluge') && moveType == 'normal') {
+  } else if (_hasBattleWideEffect(execution.context.state, 'ion_deluge') &&
+      moveType == 'normal') {
     moveType = 'electric';
   }
   final target = execution.context.state.battlerAt(
@@ -309,7 +341,8 @@ String _effectiveMoveType(
       moveType = overridden;
     }
   }
-  for (final effect in user.activeItemEffects) {
+  for (final effect
+      in execution.context.state.activeItemEffectsAt(execution.psdkActualUser)) {
     final overridden = effect.moveTypeOverride(
       BattleItemMoveTypeContext(
         user: user,
@@ -323,6 +356,18 @@ String _effectiveMoveType(
     }
   }
   return moveType;
+}
+
+bool _hasBattleWideEffect(PsdkBattleState state, String effectId) {
+  return state.combatants.values.any(
+    (battler) =>
+        battler.effects.contains(effectId) ||
+        battler.effects.effects.any(
+          (effect) =>
+              effect.id == effectId &&
+              effect.scope is FieldBattleEffectScope,
+        ),
+  );
 }
 
 Iterable<String> _extraTypes(PsdkBattleCombatant battler) {

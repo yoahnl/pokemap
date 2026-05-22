@@ -42,7 +42,7 @@ final class IngrainEffect extends BattleEffect {
     if (healAmount < 1) {
       healAmount = 1;
     }
-    healAmount = _itemAdjustedHealAmount(battler, healAmount);
+    healAmount = _itemAdjustedHealAmount(context, battler, healAmount);
 
     final result = const BattleHealHandler().heal(
       context: BattleHandlerContext(
@@ -74,9 +74,13 @@ final class IngrainEffect extends BattleEffect {
   }
 }
 
-int _itemAdjustedHealAmount(PsdkBattleCombatant battler, int healAmount) {
+int _itemAdjustedHealAmount(
+  BattleEffectEndTurnContext context,
+  PsdkBattleCombatant battler,
+  int healAmount,
+) {
   var multiplier = 1.0;
-  for (final effect in battler.activeItemEffects) {
+  for (final effect in context.state.activeItemEffectsAt(context.owner)) {
     multiplier *= effect.drainHealMultiplier(
       BattleItemDrainModifierContext(
         user: battler,

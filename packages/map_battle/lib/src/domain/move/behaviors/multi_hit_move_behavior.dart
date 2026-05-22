@@ -320,8 +320,7 @@ int? _forcedHitCount({
 }
 
 int? _minimumHitCount(BattleMoveBehaviorContext context) {
-  for (final effect
-      in context.state.battlerAt(context.user).activeItemEffects) {
+  for (final effect in context.state.activeItemEffectsAt(context.user)) {
     final minimum = effect.minimumHitCount(context.move);
     if (minimum != null) {
       return minimum;

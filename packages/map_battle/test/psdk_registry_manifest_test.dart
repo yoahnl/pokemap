@@ -1422,8 +1422,28 @@ void main() {
         ),
         (method: 's_encore', behavior: 'StaticBasicMoveRegistry.encore'),
         (method: 's_heal_block', behavior: 'StaticBasicMoveRegistry.healBlock'),
+        (
+          method: 's_happy_hour',
+          behavior: 'StaticBasicMoveRegistry.fieldMarker(s_happy_hour)',
+        ),
+        (
+          method: 's_healing_wish',
+          behavior: 'StaticBasicMoveRegistry.s_healing_wish',
+        ),
         (method: 's_imprison', behavior: 'StaticBasicMoveRegistry.imprison'),
         (method: 's_instruct', behavior: 'CopyCallMoveBehavior.instruct'),
+        (
+          method: 's_ion_deluge',
+          behavior: 'StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)',
+        ),
+        (
+          method: 's_lunar_dance',
+          behavior: 'StaticBasicMoveRegistry.s_lunar_dance',
+        ),
+        (
+          method: 's_magic_powder',
+          behavior: 'StaticBasicMoveRegistry.s_magic_powder',
+        ),
         (method: 's_metronome', behavior: 'CopyCallMoveBehavior.metronome'),
         (method: 's_mimic', behavior: 'CopyCallMoveBehavior.mimic'),
         (method: 's_mirror_move', behavior: 'CopyCallMoveBehavior.mirrorMove'),
@@ -1464,6 +1484,10 @@ void main() {
           method: 's_future_sight',
           behavior: 'StaticBasicMoveRegistry.delayedMove(s_future_sight)',
         ),
+        (
+          method: 's_magic_room',
+          behavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
+        ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
@@ -1488,20 +1512,8 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
         ),
         (
-          method: 's_happy_hour',
-          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)',
-        ),
-        (
-          method: 's_ion_deluge',
-          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)',
-        ),
-        (
           method: 's_magic_coat',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)',
-        ),
-        (
-          method: 's_magic_room',
-          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)',
         ),
         (
           method: 's_nightmare',
@@ -1532,10 +1544,6 @@ void main() {
               'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
         ),
         (
-          method: 's_wish',
-          behavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_wish)',
-        ),
-        (
           method: 's_wonder_room',
           behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)',
         ),
@@ -1553,6 +1561,8 @@ void main() {
         byMethod['s_electrify']!.dartBehavior,
         'StaticBasicMoveRegistry.s_electrify',
       );
+      expect(byMethod['s_wish']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_wish']!.dartBehavior, 'StaticBasicMoveRegistry.s_wish');
       for (final entry in <({String method, String behavior})>[
         (
           method: 's_fairy_lock',
@@ -1761,7 +1771,6 @@ void main() {
         byMethod['s_ion_deluge']!.dependencies,
         containsAll(<PsdkMoveDependency>[
           PsdkMoveDependency.effects,
-          PsdkMoveDependency.field,
         ]),
       );
       expect(

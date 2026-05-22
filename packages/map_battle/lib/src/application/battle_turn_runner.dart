@@ -559,7 +559,7 @@ final class BattleTurnRunner {
         return true;
       }
     }
-    for (final effect in battler.activeItemEffects) {
+    for (final effect in _context.state.activeItemEffectsAt(user)) {
       if (effect.fleePassthrough(state: _context.state, user: user)) {
         return true;
       }

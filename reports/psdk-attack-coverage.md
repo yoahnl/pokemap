@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 633 |
-| partiel | 95 |
+| fait | 639 |
+| partiel | 89 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -303,7 +303,7 @@ Coverage semantics:
 | fait | gyro_ball | s_gyro_ball | ported | VariablePowerMoveBehavior.gyroBall | steel | physical | 0 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/gyro_ball.json |
 | fait | hail | s_weather | ported | WeatherMoveBehavior | ice | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hail.json |
 | fait | hammer_arm | s_self_stat | ported | StatusStatMoveBehavior.selfStat | fighting | physical | 100 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hammer_arm.json |
-| partiel | happy_hour | s_happy_hour | partial | StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/happy_hour.json |
+| fait | happy_hour | s_happy_hour | ported | StaticBasicMoveRegistry.fieldMarker(s_happy_hour) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/happy_hour.json |
 | fait | harden | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/harden.json |
 | fait | haze | s_haze | ported | AdvancedStatMoveBehavior.haze | ice | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/haze.json |
 | fait | head_charge | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | normal | physical | 120 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/head_charge.json |
@@ -313,7 +313,7 @@ Coverage semantics:
 | fait | heal_block | s_heal_block | ported | StaticBasicMoveRegistry.healBlock | psychic | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/heal_block.json |
 | fait | heal_order | s_heal | ported | HealMoveBehavior | bug | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heal_order.json |
 | fait | heal_pulse | s_heal | ported | HealMoveBehavior | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heal_pulse.json |
-| partiel | healing_wish | s_healing_wish | partial | StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/healing_wish.json |
+| fait | healing_wish | s_healing_wish | ported | StaticBasicMoveRegistry.s_healing_wish | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/healing_wish.json |
 | fait | heart_stamp | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | physical | 60 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/heart_stamp.json |
 | fait | heart_swap | s_heart_swap | ported | AdvancedStatMoveBehavior.heartSwap | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heart_swap.json |
 | fait | heat_crash | s_heavy_slam | ported | WeightPowerMoveBehavior.heavySlam | fire | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heat_crash.json |
@@ -360,7 +360,7 @@ Coverage semantics:
 | fait | infestation | s_bind | ported | StaticBasicMoveRegistry.s_bind | bug | special | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/infestation.json |
 | fait | ingrain | s_ingrain | ported | PersistentEffectMoveBehavior.ingrain | grass | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/ingrain.json |
 | fait | instruct | s_instruct | ported | CopyCallMoveBehavior.instruct | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/instruct.json |
-| partiel | ion_deluge | s_ion_deluge | partial | StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge) | electric | status | 0 | 0 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/ion_deluge.json |
+| fait | ion_deluge | s_ion_deluge | ported | StaticBasicMoveRegistry.fieldMarker(s_ion_deluge) | electric | status | 0 | 0 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/ion_deluge.json |
 | fait | iron_defense | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/iron_defense.json |
 | fait | iron_head | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/iron_head.json |
 | fait | iron_tail | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 100 | 75 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/iron_tail.json |
@@ -392,12 +392,12 @@ Coverage semantics:
 | fait | low_kick | s_low_kick | ported | WeightPowerMoveBehavior.lowKick | fighting | physical | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/low_kick.json |
 | fait | low_sweep | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | physical | 65 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/low_sweep.json |
 | fait | lucky_chant | s_lucky_chant | ported | StaticBasicMoveRegistry.s_lucky_chant | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/lucky_chant.json |
-| partiel | lunar_dance | s_lunar_dance | partial | StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/lunar_dance.json |
+| fait | lunar_dance | s_lunar_dance | ported | StaticBasicMoveRegistry.s_lunar_dance | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/lunar_dance.json |
 | fait | lunge | s_basic | ported | StaticBasicMoveRegistry.s_basic | bug | physical | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/lunge.json |
 | fait | luster_purge | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | special | 70 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/luster_purge.json |
 | fait | mach_punch | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | physical | 40 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/mach_punch.json |
 | partiel | magic_coat | s_magic_coat | partial | StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat) | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/magic_coat.json |
-| partiel | magic_room | s_magic_room | partial | StaticBasicMoveRegistry.partialFieldMarker(s_magic_room) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/magic_room.json |
+| fait | magic_room | s_magic_room | ported | StaticBasicMoveRegistry.fieldMarker(s_magic_room) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/magic_room.json |
 | fait | magical_leaf | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | special | 60 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/magical_leaf.json |
 | fait | magma_storm | s_bind | ported | StaticBasicMoveRegistry.s_bind | fire | special | 100 | 75 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/magma_storm.json |
 | fait | magnet_bomb | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 60 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/magnet_bomb.json |
@@ -749,7 +749,7 @@ Coverage semantics:
 | fait | wild_charge | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | electric | physical | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/wild_charge.json |
 | fait | will_o_wisp | s_status | ported | StatusStatMoveBehavior.status | fire | status | 0 | 85 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/will_o_wisp.json |
 | fait | wing_attack | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | physical | 60 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/wing_attack.json |
-| partiel | wish | s_wish | partial | StaticBasicMoveRegistry.partialUserBankMarker(s_wish) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wish.json |
+| fait | wish | s_wish | ported | StaticBasicMoveRegistry.s_wish | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wish.json |
 | fait | withdraw | s_self_stat | ported | StatusStatMoveBehavior.selfStat | water | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/withdraw.json |
 | partiel | wonder_room | s_wonder_room | partial | StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wonder_room.json |
 | fait | wood_hammer | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | grass | physical | 120 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/wood_hammer.json |

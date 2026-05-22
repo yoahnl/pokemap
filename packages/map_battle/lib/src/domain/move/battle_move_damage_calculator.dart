@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_move_critical_resolver.dart';
@@ -53,8 +54,12 @@ final class BattleMoveDamageCalculator {
       moveType: moveType,
       targetTypes: context.target.types,
       extraTargetTypes: _extraTypes(context.target),
-      forceGrounded:
-          moveType == 'ground' && _groundingResolver.isGrounded(context.target),
+      forceGrounded: moveType == 'ground' &&
+          _groundingResolver.isGrounded(
+            context.target,
+            state: context.state,
+            slot: context.targetSlot,
+          ),
       foresight: context.target.effects.contains('foresight'),
       miracleEye: context.target.effects.contains('miracle_eye'),
       neutralizeFlyingWeaknesses: _strongWindsNeutralizesFlyingWeaknesses(
@@ -302,7 +307,11 @@ int _itemAdjustedPower(
     targetSlot: context.targetSlot,
   );
   var multiplier = 1.0;
-  for (final effect in context.user.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: context.user,
+    state: context.state,
+    slot: context.userSlot,
+  )) {
     multiplier *= effect.damageBasePowerMultiplier(itemContext);
   }
   if (multiplier == 1.0) {
@@ -321,8 +330,16 @@ double _terrainMod1Multiplier(
     return 1.0;
   }
   final grounding = const BattleGroundingResolver();
-  final userGrounded = grounding.isGrounded(context.user);
-  final targetGrounded = grounding.isGrounded(context.target);
+  final userGrounded = grounding.isGrounded(
+    context.user,
+    state: context.state,
+    slot: context.userSlot,
+  );
+  final targetGrounded = grounding.isGrounded(
+    context.target,
+    state: context.state,
+    slot: context.targetSlot,
+  );
   return switch (terrain) {
     PsdkBattleTerrainId.electricTerrain when moveType == 'electric' =>
       userGrounded ? 1.5 : 1.0,
@@ -365,7 +382,11 @@ String _effectiveMoveType(BattleMoveDamageContext context) {
       moveType = overridden;
     }
   }
-  for (final effect in context.user.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: context.user,
+    state: context.state,
+    slot: context.userSlot,
+  )) {
     final overridden = effect.moveTypeOverride(
       BattleItemMoveTypeContext(
         user: context.user,
@@ -382,8 +403,19 @@ String _effectiveMoveType(BattleMoveDamageContext context) {
 }
 
 bool _hasBattleEffect(BattleMoveDamageContext context, String id) {
+  final state = context.state;
   return context.user.effects.contains(id) ||
-      context.target.effects.contains(id);
+      context.target.effects.contains(id) ||
+      (state != null &&
+          state.combatants.values.any(
+            (battler) =>
+                battler.effects.contains(id) ||
+                battler.effects.effects.any(
+                  (effect) =>
+                      effect.id == id &&
+                      effect.scope is FieldBattleEffectScope,
+                ),
+          ));
 }
 
 Iterable<String> _extraTypes(PsdkBattleCombatant battler) {
@@ -490,10 +522,18 @@ int _applyHeldItemFinalDamageModifiers(
     targetSlot: context.targetSlot,
   );
   var multiplier = 1.0;
-  for (final effect in context.user.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: context.user,
+    state: context.state,
+    slot: context.userSlot,
+  )) {
     multiplier *= effect.damageFinalMultiplier(itemContext);
   }
-  for (final effect in context.target.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: context.target,
+    state: context.state,
+    slot: context.targetSlot,
+  )) {
     multiplier *= effect.damageFinalMultiplier(itemContext);
   }
   if (multiplier == 1.0) {
@@ -760,7 +800,11 @@ int _adjustedStat({
   required String stat,
 }) {
   var multiplier = 1.0;
-  for (final effect in battler.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: battler,
+    state: state,
+    slot: battlerSlot,
+  )) {
     multiplier *= effect.statMultiplier(battler, stat);
   }
   final abilityContext = BattleAbilityStatContext(

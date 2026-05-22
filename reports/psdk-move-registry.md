@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 276 |
-| `partial` | 54 |
+| `ported` | 283 |
+| `partial` | 47 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -130,14 +130,14 @@ Total registered methods: 330
 | `s_guard_split` | `GuardSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `StatSplitMoveBehavior.guard` | `ported` | `-` |
 | `s_guard_swap` | `GuardSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.guardSwap` | `ported` | `handler_stat, effects, ability` |
 | `s_gyro_ball` | `GyroBall` | `10 Move/2 Definitions/300 GyroBall.rb` | `VariablePowerMoveBehavior.gyroBall` | `ported` | `-` |
-| `s_happy_hour` | `HappyHour` | `10 Move/2 Definitions/300 HappyHour.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)` | `partial` | `field, effects` |
+| `s_happy_hour` | `HappyHour` | `10 Move/2 Definitions/300 HappyHour.rb` | `StaticBasicMoveRegistry.fieldMarker(s_happy_hour)` | `ported` | `field, effects` |
 | `s_hard_press` | `HardPress` | `10 Move/2 Definitions/300 WringOut.rb` | `VariablePowerMoveBehavior.hardPress` | `ported` | `-` |
 | `s_haze` | `Haze` | `10 Move/2 Definitions/300 Haze.rb` | `AdvancedStatMoveBehavior.haze` | `ported` | `handler_stat, effects, ability, targeting_multi` |
 | `s_heal` | `HealMove` | `10 Move/1 Mechanics/105 Heal.rb` | `HealMoveBehavior` | `ported` | `handler_damage, effects, ability` |
 | `s_heal_bell` | `HealBell` | `10 Move/2 Definitions/300 HealBell.rb` | `StatusCureMoveBehavior.healBell` | `ported` | `handler_status, effects, ability, targeting_multi` |
 | `s_heal_block` | `HealBlock` | `10 Move/2 Definitions/300 HealBlock.rb` | `StaticBasicMoveRegistry.healBlock` | `ported` | `effects` |
 | `s_heal_weather` | `HealWeather` | `10 Move/2 Definitions/300 HealWeather.rb` | `HealMoveBehavior.weather` | `ported` | `handler_damage, weather, effects, ability` |
-| `s_healing_wish` | `HealingWish` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish)` | `partial` | `effects` |
+| `s_healing_wish` | `HealingWish` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `StaticBasicMoveRegistry.s_healing_wish` | `ported` | `effects` |
 | `s_heart_swap` | `HeartSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.heartSwap` | `ported` | `handler_stat, effects, ability` |
 | `s_heavy_slam` | `HeavySlam` | `10 Move/2 Definitions/300 HeavySlam.rb` | `WeightPowerMoveBehavior.heavySlam` | `ported` | `effects, ability` |
 | `s_helping_hand` | `HelpingHand` | `10 Move/2 Definitions/300 HelpingHand.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)` | `partial` | `effects, targeting_multi` |
@@ -152,7 +152,7 @@ Total registered methods: 330
 | `s_infernal_parade` | `InfernalParade` | `10 Move/2 Definitions/300 StatusBoostedMove.rb` | `VariablePowerMoveBehavior.infernalParade` | `ported` | `-` |
 | `s_ingrain` | `Ingrain` | `10 Move/2 Definitions/300 Ingrain.rb` | `PersistentEffectMoveBehavior.ingrain` | `ported` | `handler_damage, handler_switch, effects, end_turn, item` |
 | `s_instruct` | `Instruct` | `10 Move/2 Definitions/300 Instruct.rb` | `CopyCallMoveBehavior.instruct` | `ported` | `-` |
-| `s_ion_deluge` | `IonDeluge` | `10 Move/2 Definitions/300 Ion Deluge.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)` | `partial` | `effects, field` |
+| `s_ion_deluge` | `IonDeluge` | `10 Move/2 Definitions/300 Ion Deluge.rb` | `StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)` | `ported` | `effects` |
 | `s_ivy_cudgel` | `IvyCudgel` | `10 Move/2 Definitions/300 IvyCudgel.rb` | `TypeBasedMoveBehavior.ivyCudgel` | `ported` | `-` |
 | `s_jaw_lock` | `JawLock` | `10 Move/2 Definitions/300 JawLock.rb` | `StaticBasicMoveRegistry.s_jaw_lock` | `ported` | `-` |
 | `s_judgment` | `Judgment` | `10 Move/2 Definitions/300 Judgment.rb` | `TypeBasedMoveBehavior.judgment` | `ported` | `-` |
@@ -168,10 +168,10 @@ Total registered methods: 330
 | `s_lock_on` | `LockOn` | `10 Move/2 Definitions/300 LockOn.rb` | `StaticBasicMoveRegistry.s_lock_on` | `ported` | `effects` |
 | `s_low_kick` | `LowKick` | `10 Move/2 Definitions/300 LowKick.rb` | `WeightPowerMoveBehavior.lowKick` | `ported` | `effects, ability, grounded` |
 | `s_lucky_chant` | `LuckyChant` | `10 Move/2 Definitions/300 LuckyChant.rb` | `StaticBasicMoveRegistry.s_lucky_chant` | `ported` | `-` |
-| `s_lunar_dance` | `LunarDance` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)` | `partial` | `effects` |
+| `s_lunar_dance` | `LunarDance` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `StaticBasicMoveRegistry.s_lunar_dance` | `ported` | `effects` |
 | `s_magic_coat` | `MagicCoat` | `10 Move/2 Definitions/300 MagicCoat.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)` | `partial` | `effects` |
-| `s_magic_powder` | `MagicPowder` | `10 Move/2 Definitions/300 MagicPowder.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)` | `partial` | `effects` |
-| `s_magic_room` | `MagicRoom` | `10 Move/2 Definitions/300 MagicRoom.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)` | `partial` | `field, effects` |
+| `s_magic_powder` | `MagicPowder` | `10 Move/2 Definitions/300 MagicPowder.rb` | `StaticBasicMoveRegistry.s_magic_powder` | `ported` | `-` |
+| `s_magic_room` | `MagicRoom` | `10 Move/2 Definitions/300 MagicRoom.rb` | `StaticBasicMoveRegistry.fieldMarker(s_magic_room)` | `ported` | `field, effects` |
 | `s_magnet_rise` | `MagnetRise` | `10 Move/2 Definitions/300 MagnetRise.rb` | `StaticBasicMoveRegistry.s_magnet_rise` | `ported` | `effects, grounded` |
 | `s_magnetic_flux` | `MagneticFlux` | `10 Move/2 Definitions/300 MagneticFlux.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)` | `partial` | `effects` |
 | `s_magnitude` | `Magnitude` | `10 Move/2 Definitions/300 Magnitude.rb` | `StaticBasicMoveRegistry.s_magnitude` | `ported` | `effects` |
@@ -337,7 +337,7 @@ Total registered methods: 330
 | `s_water_shuriken` | `WaterShuriken` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.waterShuriken` | `ported` | `ability, item` |
 | `s_weather` | `WeatherMove` | `10 Move/2 Definitions/300 WeatherMove.rb` | `WeatherMoveBehavior` | `ported` | `handler_weather, weather, effects, item` |
 | `s_weather_ball` | `WeatherBall` | `10 Move/2 Definitions/300 WeatherBall.rb` | `WeatherPowerMoveBehavior.weatherBall` | `ported` | `weather, ability` |
-| `s_wish` | `Wish` | `10 Move/2 Definitions/300 Wish.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_wish)` | `partial` | `effects, end_turn, handler_switch` |
+| `s_wish` | `Wish` | `10 Move/2 Definitions/300 Wish.rb` | `StaticBasicMoveRegistry.s_wish` | `ported` | `effects, end_turn, handler_switch` |
 | `s_wonder_room` | `WonderRoom` | `10 Move/2 Definitions/300 WonderRoom.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)` | `partial` | `effects, handler_stat, field` |
 | `s_worry_seed` | `WorrySeed` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)` | `partial` | `ability, effects` |
 | `s_wring_out` | `WringOut` | `10 Move/2 Definitions/300 WringOut.rb` | `VariablePowerMoveBehavior.wringOut` | `ported` | `-` |

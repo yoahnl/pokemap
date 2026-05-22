@@ -152,6 +152,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveChangeType,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_magic_powder',
+      resolve: _resolveMagicPowder,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_foresight',
       resolve: _resolveForesight,
     ),
@@ -721,7 +725,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_grudge': 'grudge',
   's_laser_focus': 'laser_focus',
   's_magic_coat': 'magic_coat',
-  's_magic_powder': 'magic_powder',
   's_magnet_rise': 'magnet_rise',
   's_minimize': 'minimize',
   's_miracle_eye': 'miracle_eye',
@@ -2501,7 +2504,7 @@ BattleMoveBehaviorResolution _resolveElectroShot(
   }
 
   BattleItemEffect? shortcutItem;
-  for (final effect in user.activeItemEffects) {
+  for (final effect in context.state.activeItemEffectsAt(context.user)) {
     if (effect.twoTurnShortcut(context.move)) {
       shortcutItem = effect;
       break;
@@ -3327,6 +3330,8 @@ BattleMoveBehaviorResolution _resolveBind(
   final user = basic.state.battlerAt(context.user);
   final roll = basic.rng.generic.nextIntInclusive(min: 4, max: 5);
   final remainingTurns = _bindDuration(
+    state: basic.state,
+    userSlot: context.user,
     user: user,
     target: target,
     rolledTurns: roll.value,
@@ -3350,11 +3355,17 @@ BattleMoveBehaviorResolution _resolveBind(
 }
 
 int _bindDuration({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef userSlot,
   required PsdkBattleCombatant user,
   required PsdkBattleCombatant target,
   required int rolledTurns,
 }) {
-  for (final effect in user.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: user,
+    state: state,
+    slot: userSlot,
+  )) {
     final duration = effect.bindDuration(
       BattleItemBindDurationContext(
         user: user,
@@ -3974,6 +3985,23 @@ BattleMoveBehaviorResolution _resolveFutureSight(
 BattleMoveBehaviorResolution _resolveWish(
   BattleMoveBehaviorContext context,
 ) {
+  final activeUser = context.state.battlerAt(context.user);
+  if (activeUser.effects.contains('wish')) {
+    return BattleMoveBehaviorResolution(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'wish_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
   final prepared = prepareBattleMove(
     BattleMoveBehaviorContext(
       state: context.state,
@@ -3991,24 +4019,6 @@ BattleMoveBehaviorResolution _resolveWish(
     return prepared.toResolution();
   }
 
-  final user = prepared.state.battlerAt(context.user);
-  if (user.effects.contains('wish')) {
-    return BattleMoveBehaviorResolution(
-      state: prepared.state,
-      rng: prepared.rng,
-      events: <PsdkBattleEvent>[
-        ...prepared.events,
-        PsdkBattleMoveFailedEvent(
-          user: context.user,
-          target: context.user,
-          moveId: context.move.id,
-          reason: 'wish_already_active',
-        ),
-      ],
-      successful: false,
-    );
-  }
-
   return _addEffectToUser(
     context: context,
     state: prepared.state,
@@ -4016,7 +4026,7 @@ BattleMoveBehaviorResolution _resolveWish(
     events: prepared.events,
     effect: WishEffect(
       scope: BattlerBattleEffectScope(context.user),
-      healAmount: (user.maxHp / 2).floor().clamp(1, user.maxHp).toInt(),
+      healAmount: (activeUser.maxHp / 2).floor().clamp(1, activeUser.maxHp).toInt(),
       remainingTurns: _markerTurnCount(context.move.battleEngineMethod) ?? 2,
     ),
   );
@@ -4638,8 +4648,7 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
   );
 
   BattleItemEffect? shortcutItem;
-  for (final effect
-      in chargeEffects.state.battlerAt(context.user).activeItemEffects) {
+  for (final effect in chargeEffects.state.activeItemEffectsAt(context.user)) {
     if (effect.twoTurnShortcut(context.move)) {
       shortcutItem = effect;
       break;
@@ -5095,6 +5104,33 @@ BattleMoveBehaviorResolution _resolveChangeType(
             scope: BattlerBattleEffectScope(targetSlot),
           ),
         ),
+      ),
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: prepared.rng,
+    events: prepared.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveMagicPowder(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  var state = prepared.state;
+  for (final targetSlot in prepared.psdkTargets) {
+    state = state.updateBattler(
+      targetSlot,
+      (battler) => battler.copyWith(
+        types: const PsdkBattleTypes(primary: 'psychic'),
+        type3: null,
+        temporaryTypes: const <String>[],
       ),
     );
   }

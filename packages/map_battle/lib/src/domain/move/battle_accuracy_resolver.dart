@@ -93,10 +93,14 @@ final class BattleAccuracyResolver {
       turn: execution.turn,
     );
     var multiplier = 1.0;
-    for (final effect in user.activeItemEffects) {
+    for (final effect in execution.context.state.activeItemEffectsAt(
+      execution.psdkUser,
+    )) {
       multiplier *= effect.accuracyMultiplier(context);
     }
-    for (final effect in target.activeItemEffects) {
+    for (final effect in execution.context.state.activeItemEffectsAt(
+      PsdkBattleSlotRef(bank: targetRef.bank, position: targetRef.position),
+    )) {
       multiplier *= effect.accuracyMultiplier(context);
     }
     final abilityContext = BattleAbilityMoveContext(

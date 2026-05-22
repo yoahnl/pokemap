@@ -366,7 +366,7 @@ PsdkBattleState _consumeRestWakeBerry({
 }) {
   final battler = state.battlerAt(target);
   if (battler.majorStatus != PsdkBattleMajorStatus.sleep ||
-      battler.itemEffectsSuppressed ||
+      state.itemEffectsSuppressedAt(target) ||
       (battler.heldItemId != 'chesto_berry' &&
           battler.heldItemId != 'lum_berry')) {
     return state;

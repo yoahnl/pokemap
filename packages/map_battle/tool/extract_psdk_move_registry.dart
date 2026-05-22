@@ -82,8 +82,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_healing_wish': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_healing_wish',
+    status: _PsdkPortStatus.ported,
   ),
   's_helping_hand': _KnownDartBehavior(
     dartBehavior:
@@ -95,8 +95,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_lunar_dance': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_lunar_dance',
+    status: _PsdkPortStatus.ported,
   ),
   's_magnetic_flux': _KnownDartBehavior(
     dartBehavior:
@@ -307,8 +307,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_magic_powder': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_magic_powder',
+    status: _PsdkPortStatus.ported,
   ),
   's_make_it_rain': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_make_it_rain',
@@ -562,8 +562,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_happy_hour': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_happy_hour)',
+    status: _PsdkPortStatus.ported,
   ),
   's_heal_block': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.healBlock',
@@ -574,8 +574,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_ion_deluge': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)',
+    status: _PsdkPortStatus.ported,
   ),
   's_lucky_chant': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_lucky_chant',
@@ -594,8 +594,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_magic_room': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
+    status: _PsdkPortStatus.ported,
   ),
   's_magnet_rise': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_magnet_rise',
@@ -964,8 +964,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_wish': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_wish)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_wish',
+    status: _PsdkPortStatus.ported,
   ),
   's_wonder_room': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)',

@@ -751,6 +751,21 @@ void main() {
       expect(ionDelugeIntoGhost.damageToOpponent, greaterThan(0));
     });
 
+    test('Ion Deluge rewrites Normal moves from any battler on the field', () {
+      final opponentOwnedIonDelugeIntoGhost = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'ghost'),
+        opponentEffects: _opponentEffect('ion_deluge'),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+
+      expect(opponentOwnedIonDelugeIntoGhost.damageToOpponent, greaterThan(0));
+    });
+
     test('Flying Press applies Fighting and Flying effectiveness together', () {
       final fightingIntoGrass = _runSinglePlayerMove(
         playerTypes: const PsdkBattleTypes(primary: 'fighting'),

@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
@@ -62,6 +63,8 @@ final class LeechSeedEffect extends BattleEffect {
     }
 
     final healAmount = _itemAdjustedHealAmount(
+      state: damaged.state,
+      source: source,
       sourceBattler: sourceBattler,
       targetBattler: targetBattler,
       healAmount: damaged.amount,
@@ -130,12 +133,14 @@ final class LeechSeedEffect extends BattleEffect {
 }
 
 int _itemAdjustedHealAmount({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef source,
   required PsdkBattleCombatant sourceBattler,
   required PsdkBattleCombatant targetBattler,
   required int healAmount,
 }) {
   var multiplier = 1.0;
-  for (final effect in sourceBattler.activeItemEffects) {
+  for (final effect in state.activeItemEffectsAt(source)) {
     multiplier *= effect.drainHealMultiplier(
       BattleItemDrainModifierContext(
         user: sourceBattler,

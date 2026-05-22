@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
@@ -56,6 +57,8 @@ final class BindEffect extends BattleEffect {
     }
 
     final hpFactor = _bindResidualDamageDivisor(
+      state: context.state,
+      originSlot: origin,
       origin: originBattler,
       target: targetBattler,
     );
@@ -122,11 +125,13 @@ final class BindEffect extends BattleEffect {
 }
 
 int _bindResidualDamageDivisor({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef originSlot,
   required PsdkBattleCombatant origin,
   required PsdkBattleCombatant target,
 }) {
   const defaultDivisor = 8;
-  for (final effect in origin.activeItemEffects) {
+  for (final effect in state.activeItemEffectsAt(originSlot)) {
     final divisor = effect.bindResidualDamageDivisor(
       BattleItemBindResidualContext(
         origin: origin,

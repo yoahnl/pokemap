@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 633,
-    "partiel": 95,
+    "fait": 639,
+    "partiel": 89,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -2163,9 +2163,9 @@
       {
         "moveId": "happy_hour",
         "battleEngineMethod": "s_happy_hour",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/happy_hour.json"
       },
       {
@@ -2243,9 +2243,9 @@
       {
         "moveId": "healing_wish",
         "battleEngineMethod": "s_healing_wish",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/healing_wish.json"
       },
       {
@@ -2619,9 +2619,9 @@
       {
         "moveId": "ion_deluge",
         "battleEngineMethod": "s_ion_deluge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ion_deluge.json"
       },
       {
@@ -2875,9 +2875,9 @@
       {
         "moveId": "lunar_dance",
         "battleEngineMethod": "s_lunar_dance",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/lunar_dance.json"
       },
       {
@@ -2915,9 +2915,9 @@
       {
         "moveId": "magic_room",
         "battleEngineMethod": "s_magic_room",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/magic_room.json"
       },
       {
@@ -5731,9 +5731,9 @@
       {
         "moveId": "wish",
         "battleEngineMethod": "s_wish",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/wish.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 276,
-      "partial": 54,
+      "ported": 283,
+      "partial": 47,
       "missing": 0
     },
     "entries": [
@@ -7039,13 +7039,12 @@
         "battleEngineMethod": "s_happy_hour",
         "rubyClass": "HappyHour",
         "rubyPath": "10 Move/2 Definitions/300 HappyHour.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_happy_hour)",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_hard_press",
@@ -7120,12 +7119,11 @@
         "battleEngineMethod": "s_healing_wish",
         "rubyClass": "HealingWish",
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_healing_wish",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_heart_swap",
@@ -7279,13 +7277,11 @@
         "battleEngineMethod": "s_ion_deluge",
         "rubyClass": "IonDeluge",
         "rubyPath": "10 Move/2 Definitions/300 Ion Deluge.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)",
+        "status": "ported",
         "dependencies": [
-          "effects",
-          "field"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_ivy_cudgel",
@@ -7437,12 +7433,11 @@
         "battleEngineMethod": "s_lunar_dance",
         "rubyClass": "LunarDance",
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_lunar_dance",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_magic_coat",
@@ -7459,24 +7454,20 @@
         "battleEngineMethod": "s_magic_powder",
         "rubyClass": "MagicPowder",
         "rubyPath": "10 Move/2 Definitions/300 MagicPowder.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.s_magic_powder",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_magic_room",
         "rubyClass": "MagicRoom",
         "rubyPath": "10 Move/2 Definitions/300 MagicRoom.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_magic_room)",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_magnet_rise",
@@ -9183,14 +9174,13 @@
         "battleEngineMethod": "s_wish",
         "rubyClass": "Wish",
         "rubyPath": "10 Move/2 Definitions/300 Wish.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_wish)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_wish",
+        "status": "ported",
         "dependencies": [
           "effects",
           "endTurn",
           "handlerSwitch"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_wonder_room",
@@ -9264,7 +9254,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 40,
+        "count": 33,
         "methods": [
           "s_chilly_reception",
           "s_conversion",
@@ -9279,14 +9269,8 @@
           "s_geomancy",
           "s_gravity",
           "s_grudge",
-          "s_happy_hour",
-          "s_healing_wish",
           "s_helping_hand",
-          "s_ion_deluge",
-          "s_lunar_dance",
           "s_magic_coat",
-          "s_magic_powder",
-          "s_magic_room",
           "s_magnetic_flux",
           "s_nightmare",
           "s_no_retreat",
@@ -9303,7 +9287,6 @@
           "s_swallow",
           "s_teatime",
           "s_teleport",
-          "s_wish",
           "s_wonder_room",
           "s_worry_seed"
         ]

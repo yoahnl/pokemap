@@ -1141,8 +1141,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_happy_hour',
     rubyClass: 'HappyHour',
     rubyPath: '10 Move/2 Definitions/300 HappyHour.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_happy_hour)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.field,
       PsdkMoveDependency.effects
@@ -1219,8 +1219,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_healing_wish',
     rubyClass: 'HealingWish',
     rubyPath: '10 Move/2 Definitions/300 HealingSacrifice.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_healing_wish',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1372,12 +1372,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_ion_deluge',
     rubyClass: 'IonDeluge',
     rubyPath: '10 Move/2 Definitions/300 Ion Deluge.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.field
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_ivy_cudgel',
@@ -1525,8 +1522,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_lunar_dance',
     rubyClass: 'LunarDance',
     rubyPath: '10 Move/2 Definitions/300 HealingSacrifice.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_lunar_dance',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1541,16 +1538,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_magic_powder',
     rubyClass: 'MagicPowder',
     rubyPath: '10 Move/2 Definitions/300 MagicPowder.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    dartBehavior: 'StaticBasicMoveRegistry.s_magic_powder',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_magic_room',
     rubyClass: 'MagicRoom',
     rubyPath: '10 Move/2 Definitions/300 MagicRoom.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.field,
       PsdkMoveDependency.effects
@@ -3179,8 +3176,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_wish',
     rubyClass: 'Wish',
     rubyPath: '10 Move/2 Definitions/300 Wish.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_wish)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_wish',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.endTurn,

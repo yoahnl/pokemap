@@ -227,7 +227,7 @@ int _adjustedStat({
   required int value,
 }) {
   var multiplier = 1.0;
-  for (final effect in battler.activeItemEffects) {
+  for (final effect in state.activeItemEffectsAt(battlerSlot)) {
     multiplier *= effect.statMultiplier(battler, stat);
   }
   final abilityContext = BattleAbilityStatContext(

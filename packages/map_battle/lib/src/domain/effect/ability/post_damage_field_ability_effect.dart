@@ -50,8 +50,7 @@ final class SandSpitEffect extends BattleAbilityEffect {
   }
 
   int _weatherDuration(BattleEffectPostDamageContext context) {
-    final battler = context.state.battlerAt(context.owner);
-    for (final itemEffect in battler.activeItemEffects) {
+    for (final itemEffect in context.state.activeItemEffectsAt(context.owner)) {
       final duration = itemEffect.weatherDuration('sandstorm');
       if (duration != null) {
         return duration;
@@ -103,8 +102,7 @@ final class SeedSowerEffect extends BattleAbilityEffect {
   }
 
   int _terrainDuration(BattleEffectPostDamageContext context) {
-    final battler = context.state.battlerAt(context.owner);
-    for (final itemEffect in battler.activeItemEffects) {
+    for (final itemEffect in context.state.activeItemEffectsAt(context.owner)) {
       final duration = itemEffect.terrainDuration('grassy_terrain');
       if (duration != null) {
         return duration;

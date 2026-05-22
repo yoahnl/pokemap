@@ -1271,6 +1271,30 @@ void main() {
       expect(opponent.effects.contains('change_type'), isTrue);
     });
 
+    test('s_magic_powder replaces the target visible types with Psychic', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'magic_powder',
+          type: 'psychic',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_magic_powder',
+          target: PsdkBattleMoveTarget.adjacentFoe,
+        ),
+        opponentTypes: const PsdkBattleTypes(
+          primary: 'fire',
+          secondary: 'flying',
+        ),
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(opponent.types.primary, 'psychic');
+      expect(opponent.types.secondary, isNull);
+      expect(opponent.type3, isNull);
+      expect(opponent.temporaryTypes, isEmpty);
+    });
+
     test('s_stockpile marks the user and raises both defensive stages', () {
       final result = _runMove(
         playerMove: _move(
@@ -1508,7 +1532,6 @@ void main() {
     for (final entry in <({String method, String moveId, String effectId})>[
       (method: 's_gravity', moveId: 'gravity', effectId: 'gravity'),
       (method: 's_happy_hour', moveId: 'happy_hour', effectId: 'happy_hour'),
-      (method: 's_magic_room', moveId: 'magic_room', effectId: 'magic_room'),
     ]) {
       test('${entry.method} installs a local field marker', () {
         final result = _runMove(
@@ -1531,6 +1554,32 @@ void main() {
         );
       });
     }
+
+    test('s_magic_room suppresses opposing held item effects battle-wide', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'magic_room',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_magic_room',
+          target: PsdkBattleMoveTarget.none,
+        ),
+        opponentHeldItemId: 'loaded_dice',
+        opponentCurrentHp: 200,
+        opponentMove: _move(
+          id: 'double_slap',
+          power: 25,
+          battleEngineMethod: 's_multi_hit',
+        ),
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('magic_room'),
+        isTrue,
+      );
+      expect(_damageEvents(result, moveId: 'double_slap'), hasLength(2));
+    });
 
     test('s_substitute consumes one quarter of user HP and installs a marker',
         () {

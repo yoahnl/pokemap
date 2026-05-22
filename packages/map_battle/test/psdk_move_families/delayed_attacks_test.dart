@@ -231,6 +231,47 @@ void main() {
       expect(_healEvents(healed, moveId: 'wish'), hasLength(1));
     });
 
+    test('Wish fails while a previous Wish is still active on the slot', () {
+      final engine = BattleEngine.fromPsdk(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'wish',
+                battleEngineMethod: 's_wish',
+                target: PsdkBattleMoveTarget.user,
+              ),
+              _move(id: 'wait'),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[_move(id: 'opponent_wait')],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final first = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      expect(first.state.battlerAt(psdkPlayerSlot).effects.contains('wish'), isTrue);
+      final blocked = engine.submit(const BattleDecision.fight(moveSlot: 0));
+
+      final failures = blocked.timeline.events
+          .whereType<BattleMoveFailedTimelineEvent>()
+          .where((event) => event.moveId == 'wish')
+          .toList(growable: false);
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, 'wish_already_active');
+    });
+
     test('Healing Wish restores the next replacement HP and status', () {
       final engine = BattleEngine.fromPsdk(
         setup: PsdkBattleSetup.singles(
@@ -280,6 +321,98 @@ void main() {
       expect(replacement.currentHp, replacement.maxHp);
       expect(replacement.majorStatus, isNull);
     });
+
+    test('Healing Wish fails when no replacement is available', () {
+      final engine = BattleEngine.fromPsdk(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'healing_wish',
+                battleEngineMethod: 's_healing_wish',
+                target: PsdkBattleMoveTarget.user,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[_move(id: 'opponent_wait')],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final failures = result.timeline.events
+          .whereType<BattleMoveFailedTimelineEvent>()
+          .where((event) => event.moveId == 'healing_wish')
+          .toList(growable: false);
+
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, 'no_replacement');
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+    });
+
+    test('Lunar Dance restores PP to the next replacement', () {
+      final engine = BattleEngine.fromPsdk(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'lunar_dance',
+                battleEngineMethod: 's_lunar_dance',
+                target: PsdkBattleMoveTarget.user,
+              ),
+            ],
+          ),
+          playerReserves: <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'player-reserve',
+              speed: 100,
+              currentHp: 20,
+              majorStatus: PsdkBattleMajorStatus.burn,
+              moves: <PsdkBattleMoveData>[
+                _move(id: 'reserve_wait', pp: 20, currentPp: 3),
+              ],
+            ),
+          ],
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[_move(id: 'opponent_wait')],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final sacrifice = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      expect(sacrifice.state.battlerAt(psdkPlayerSlot).currentHp, 0);
+
+      final switched = engine.submit(
+        const BattleDecision.switchPokemon(partyIndex: 1),
+      );
+      final replacement = switched.state.battlerAt(psdkPlayerSlot);
+
+      expect(replacement.id, 'player-reserve');
+      expect(replacement.currentHp, replacement.maxHp);
+      expect(replacement.majorStatus, isNull);
+      expect(replacement.moves.single.currentPp, replacement.moves.single.pp);
+    });
   });
 }
 
@@ -316,6 +449,8 @@ PsdkBattleMoveData _move({
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.status,
   int power = 0,
   int accuracy = 0,
+  int pp = 10,
+  int? currentPp,
   String battleEngineMethod = 's_splash',
   PsdkBattleMoveTarget? target,
 }) {
@@ -327,7 +462,8 @@ PsdkBattleMoveData _move({
     category: category,
     power: power,
     accuracy: accuracy,
-    pp: 10,
+    pp: pp,
+    currentPp: currentPp ?? pp,
     priority: 0,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
