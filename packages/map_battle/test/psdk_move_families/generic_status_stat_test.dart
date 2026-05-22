@@ -471,6 +471,37 @@ void main() {
           player.moveHistory.successfulMoveIds, isNot(contains('calm_mind')));
     });
 
+    test('s_self_stat applies mixed self boosts and drops', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'shell_smash',
+          battleEngineMethod: 's_self_stat',
+          power: 0,
+          accuracy: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(stat: 'attack', stages: 2),
+            PsdkBattleMoveStageMod(stat: 'defense', stages: -1),
+            PsdkBattleMoveStageMod(stat: 'speed', stages: 2),
+            PsdkBattleMoveStageMod(stat: 'specialAttack', stages: 2),
+            PsdkBattleMoveStageMod(stat: 'specialDefense', stages: -1),
+          ],
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.statStages.valueOf('attack'), 2);
+      expect(player.statStages.valueOf('defense'), -1);
+      expect(player.statStages.valueOf('speed'), 2);
+      expect(player.statStages.valueOf('specialAttack'), 2);
+      expect(player.statStages.valueOf('specialDefense'), -1);
+      expect(
+        result.timeline.events.whereType<PsdkBattleStatStageEvent>(),
+        hasLength(5),
+      );
+    });
+
     test('s_self_status damages the target and applies status to the user', () {
       final result = _runMove(
         playerMove: _move(

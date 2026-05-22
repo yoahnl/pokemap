@@ -10,15 +10,15 @@ Coverage semantics:
 - `fait`: the move uses a `ported` battle engine method.
 - `partiel`: the move executes through a partial method.
 - `pas_fait`: the method is missing or unknown locally.
-- `s_basic` is counted as `fait` for damaging Studio moves with no rider, with supported stat/major-status/confusion/flinch riders, or Blizzard; unsupported metadata riders remain `partiel`.
-- `s_self_stat` is counted as `fait` only for status self-boosts or single-target damage self-stage riders on supported stats; mixed riders remain `partiel`.
-- `s_stat` is counted as `fait` only for status stage-only moves on supported stats and targets, optionally with one supported status rider; other riders remain `partiel`.
-- `s_status` is counted as `fait` only for single major-status or single-target Confusion moves; mixed/multi-target payloads remain `partiel`.
+- `s_basic` is counted as `fait` for damaging Studio moves with no rider, with supported single-target or adjacent spread stat/major-status/confusion/flinch riders, or Blizzard; unsupported metadata riders remain `partiel`.
+- `s_self_stat` is counted as `fait` for status self-stage payloads and supported single-target or adjacent-foe spread damage self-stage riders; mixed status riders remain `partiel`.
+- `s_stat` is counted as `fait` only for status stage-only moves on supported stats and single-target foe/ally/self targets, optionally with one supported status rider; other riders remain `partiel`.
+- `s_status` is counted as `fait` only for single major-status or Confusion moves on supported single or adjacent spread targets; mixed payloads remain `partiel`.
 - `s_self_status` is counted as `fait` only for single self-applied major-status or Confusion moves without damage/stat riders.
 - `s_multi_hit` is counted as `fait` only for plain random 2-5 hit moves; Water Shuriken and metadata riders remain `partiel`.
-- `s_2turns` is counted as `fait` only for plain charged damage moves with forced release; Power Herb, weather/stat/status and multi-target variants remain `partiel`.
+- `s_2turns` is counted as `fait` for charged damage moves, supported release-turn status riders, Skull Bash charge boost, Geomancy release boosts and supported spread release targets; unsupported weather or custom charge variants remain `partiel`.
 - `s_reload` is counted as `fait` only for plain damage moves that require a recharge turn after a successful hit.
-- `s_recoil` is counted as `fait` only for plain recoil damage moves; implemented status riders are supported, while special self-crash and multi-target variants remain `partiel`.
+- `s_recoil` is counted as `fait` only for plain recoil damage moves; implemented status riders and Studio Mind Blown self-crash are supported, while other special self-crash or multi-target variants remain `partiel`.
 - `s_absorb` is counted as `fait` for plain drain moves, including implemented adjacent spread drain; unusual target variants remain `partiel`.
 - Heal/recovery methods are counted as `fait` only for status-only self recovery moves plus Heal Pulse with Substitute and Mega Launcher branches; mixed riders remain `partiel`.
 - `s_protect` is counted as `fait` for Protect, Detect, Endure, Wide Guard, Quick Guard, Mat Block and implemented contact-punish variants.
@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 610 |
-| partiel | 118 |
+| fait | 629 |
+| partiel | 99 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -60,7 +60,7 @@ Coverage semantics:
 | fait | aqua_tail | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 90 | 90 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/aqua_tail.json |
 | fait | arm_thrust | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | fighting | physical | 15 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/arm_thrust.json |
 | fait | aromatherapy | s_heal_bell | ported | StatusCureMoveBehavior.healBell | grass | status | 0 | 0 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/aromatherapy.json |
-| partiel | aromatic_mist | s_stat | ported | StatusStatMoveBehavior.stat | fairy | status | 0 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/aromatic_mist.json |
+| fait | aromatic_mist | s_stat | ported | StatusStatMoveBehavior.stat | fairy | status | 0 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/aromatic_mist.json |
 | fait | assist | s_assist | ported | CopyCallMoveBehavior.assist | normal | status | 0 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/assist.json |
 | fait | assurance | s_assurance | ported | HistoryPowerMoveBehavior.assurance | dark | physical | 60 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/assurance.json |
 | fait | astonish | s_basic | ported | StaticBasicMoveRegistry.s_basic | ghost | physical | 30 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/astonish.json |
@@ -99,7 +99,7 @@ Coverage semantics:
 | fait | bone_rush | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | ground | physical | 25 | 90 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bone_rush.json |
 | fait | bonemerang | s_2hits | ported | MultiHitMoveBehavior.fixed(2) | ground | physical | 50 | 90 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bonemerang.json |
 | fait | boomburst | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | special | 140 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/boomburst.json |
-| partiel | bounce | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | flying | physical | 85 | 85 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bounce.json |
+| fait | bounce | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | flying | physical | 85 | 85 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bounce.json |
 | fait | brave_bird | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | flying | physical | 120 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/brave_bird.json |
 | partiel | breakneck_blitz | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/breakneck_blitz.json |
 | partiel | breakneck_blitz2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | special | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/breakneck_blitz2.json |
@@ -111,7 +111,7 @@ Coverage semantics:
 | fait | bug_bite | s_pluck | ported | ItemDependentMoveBehavior.pluck | bug | physical | 60 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bug_bite.json |
 | fait | bug_buzz | s_basic | ported | StaticBasicMoveRegistry.s_basic | bug | special | 90 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bug_buzz.json |
 | fait | bulk_up | s_self_stat | ported | StatusStatMoveBehavior.selfStat | fighting | status | 0 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bulk_up.json |
-| partiel | bulldoze | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | physical | 60 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bulldoze.json |
+| fait | bulldoze | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | physical | 60 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bulldoze.json |
 | fait | bullet_punch | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 40 | 100 | 30 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bullet_punch.json |
 | fait | bullet_seed | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | grass | physical | 25 | 100 | 30 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bullet_seed.json |
 | fait | burn_up | s_burn_up | ported | SpecialSecondaryMoveBehavior.burnUp | fire | special | 130 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/burn_up.json |
@@ -127,7 +127,7 @@ Coverage semantics:
 | fait | chip_away | s_sacred_sword | ported | CustomStatSourceMoveBehavior.sacredSword | normal | physical | 70 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/chip_away.json |
 | fait | circle_throw | s_dragon_tail | ported | StaticBasicMoveRegistry.forceSwitch(s_dragon_tail) | fighting | physical | 60 | 90 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/circle_throw.json |
 | fait | clamp | s_bind | ported | StaticBasicMoveRegistry.s_bind | water | physical | 35 | 85 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/clamp.json |
-| partiel | clanging_scales | s_self_stat | ported | StatusStatMoveBehavior.selfStat | dragon | special | 110 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/clanging_scales.json |
+| fait | clanging_scales | s_self_stat | ported | StatusStatMoveBehavior.selfStat | dragon | special | 110 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/clanging_scales.json |
 | partiel | clangorous_soulblaze | s_self_stat_z_move | partial | StaticBasicMoveRegistry.secondaryOnly(s_self_stat_z_move) | dragon | special | 185 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/clangorous_soulblaze.json |
 | fait | clear_smog | s_haze | ported | AdvancedStatMoveBehavior.haze | poison | special | 50 | 0 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/clear_smog.json |
 | fait | close_combat | s_self_stat | ported | StatusStatMoveBehavior.selfStat | fighting | physical | 120 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/close_combat.json |
@@ -170,11 +170,11 @@ Coverage semantics:
 | fait | detect | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/detect.json |
 | partiel | devastating_drake | s_basic | ported | StaticBasicMoveRegistry.s_basic | dragon | physical | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/devastating_drake.json |
 | partiel | devastating_drake2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | dragon | special | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/devastating_drake2.json |
-| partiel | diamond_storm | s_self_stat | ported | StatusStatMoveBehavior.selfStat | rock | physical | 100 | 95 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/diamond_storm.json |
+| fait | diamond_storm | s_self_stat | ported | StatusStatMoveBehavior.selfStat | rock | physical | 100 | 95 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/diamond_storm.json |
 | fait | dig | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | ground | physical | 80 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/dig.json |
 | fait | disable | s_disable | ported | StaticBasicMoveRegistry.disable | normal | status | 0 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/disable.json |
 | fait | disarming_voice | s_basic | ported | StaticBasicMoveRegistry.s_basic | fairy | special | 40 | 0 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/disarming_voice.json |
-| partiel | discharge | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 80 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/discharge.json |
+| fait | discharge | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 80 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/discharge.json |
 | fait | dive | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | water | physical | 80 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/dive.json |
 | fait | dizzy_punch | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 70 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/dizzy_punch.json |
 | fait | doom_desire | s_future_sight | ported | StaticBasicMoveRegistry.delayedMove(s_future_sight) | steel | special | 140 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/doom_desire.json |
@@ -265,7 +265,7 @@ Coverage semantics:
 | fait | forest_s_curse | s_add_type | ported | StaticBasicMoveRegistry.s_add_type | grass | status | 0 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/forest_s_curse.json |
 | fait | foul_play | s_foul_play | ported | CustomStatSourceMoveBehavior.foulPlay | dark | physical | 95 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/foul_play.json |
 | fait | freeze_dry | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | special | 70 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/freeze_dry.json |
-| partiel | freeze_shock | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | ice | physical | 140 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/freeze_shock.json |
+| fait | freeze_shock | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | ice | physical | 140 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/freeze_shock.json |
 | fait | frenzy_plant | s_reload | ported | StaticBasicMoveRegistry.s_reload | grass | special | 150 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/frenzy_plant.json |
 | fait | frost_breath | s_full_crit | ported | BasicDamageSpecializationMoveBehavior.fullCrit | ice | special | 60 | 90 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/frost_breath.json |
 | partiel | frustration | s_frustration | partial | StaticBasicMoveRegistry.partialBasic(s_frustration) | normal | physical | 0 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/frustration.json |
@@ -279,7 +279,7 @@ Coverage semantics:
 | fait | gear_grind | s_2hits | ported | MultiHitMoveBehavior.fixed(2) | steel | physical | 50 | 85 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/gear_grind.json |
 | partiel | gear_up | s_gear_up | partial | StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up) | steel | status | 0 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/gear_up.json |
 | partiel | genesis_supernova | s_genesis_supernova | partial | StaticBasicMoveRegistry.partialBasic(s_genesis_supernova) | psychic | special | 185 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/genesis_supernova.json |
-| partiel | geomancy | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | fairy | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/geomancy.json |
+| fait | geomancy | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | fairy | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/geomancy.json |
 | fait | giga_drain | s_absorb | ported | DrainMoveBehavior.absorb | grass | special | 75 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/giga_drain.json |
 | fait | giga_impact | s_reload | ported | StaticBasicMoveRegistry.s_reload | normal | physical | 150 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/giga_impact.json |
 | partiel | gigavolt_havoc | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | physical | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/gigavolt_havoc.json |
@@ -344,7 +344,7 @@ Coverage semantics:
 | fait | hypnosis | s_status | ported | StatusStatMoveBehavior.status | psychic | status | 0 | 60 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/hypnosis.json |
 | fait | ice_ball | s_ice_ball | ported | ConsecutivePowerMoveBehavior.iceBall | ice | physical | 30 | 90 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_ball.json |
 | fait | ice_beam | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | special | 90 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_beam.json |
-| partiel | ice_burn | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | ice | special | 140 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_burn.json |
+| fait | ice_burn | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | ice | special | 140 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_burn.json |
 | fait | ice_fang | s_a_fang | ported | BasicDamageSpecializationMoveBehavior.fangs | ice | physical | 65 | 95 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_fang.json |
 | fait | ice_hammer | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | physical | 100 | 90 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_hammer.json |
 | fait | ice_punch | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | physical | 75 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_punch.json |
@@ -373,7 +373,7 @@ Coverage semantics:
 | fait | land_s_wrath | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | physical | 90 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/land_s_wrath.json |
 | fait | laser_focus | s_laser_focus | ported | StaticBasicMoveRegistry.s_laser_focus | normal | status | 0 | 0 | 30 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/laser_focus.json |
 | fait | last_resort | s_last_resort | ported | StaticBasicMoveRegistry.s_last_resort | normal | physical | 140 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/last_resort.json |
-| partiel | lava_plume | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | special | 80 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/lava_plume.json |
+| fait | lava_plume | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | special | 80 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/lava_plume.json |
 | fait | leaf_blade | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | physical | 90 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/leaf_blade.json |
 | fait | leaf_storm | s_self_stat | ported | StatusStatMoveBehavior.selfStat | grass | special | 130 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/leaf_storm.json |
 | fait | leaf_tornado | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | special | 65 | 90 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/leaf_tornado.json |
@@ -422,7 +422,7 @@ Coverage semantics:
 | fait | metronome | s_metronome | ported | CopyCallMoveBehavior.metronome | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/metronome.json |
 | fait | milk_drink | s_heal | ported | HealMoveBehavior | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/milk_drink.json |
 | fait | mimic | s_mimic | ported | CopyCallMoveBehavior.mimic | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/mimic.json |
-| partiel | mind_blown | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | fire | special | 150 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/mind_blown.json |
+| fait | mind_blown | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | fire | special | 150 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/mind_blown.json |
 | fait | mind_reader | s_mind_reader | ported | StaticBasicMoveRegistry.s_mind_reader | normal | status | 0 | 0 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/mind_reader.json |
 | fait | minimize | s_minimize | ported | StaticBasicMoveRegistry.s_minimize | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/minimize.json |
 | fait | miracle_eye | s_miracle_eye | ported | StaticBasicMoveRegistry.s_miracle_eye | psychic | status | 0 | 0 | 40 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/miracle_eye.json |
@@ -450,7 +450,7 @@ Coverage semantics:
 | fait | needle_arm | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | physical | 60 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/needle_arm.json |
 | partiel | never_ending_nightmare | s_basic | ported | StaticBasicMoveRegistry.s_basic | ghost | physical | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/never_ending_nightmare.json |
 | partiel | never_ending_nightmare2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | ghost | special | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/never_ending_nightmare2.json |
-| partiel | night_daze | s_basic | ported | StaticBasicMoveRegistry.s_basic | dark | special | 85 | 95 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/night_daze.json |
+| fait | night_daze | s_basic | ported | StaticBasicMoveRegistry.s_basic | dark | special | 85 | 95 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/night_daze.json |
 | fait | night_shade | s_hp_eq_level | ported | FixedDamageMoveBehavior.userLevel | ghost | special | 0 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/night_shade.json |
 | fait | night_slash | s_basic | ported | StaticBasicMoveRegistry.s_basic | dark | physical | 70 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/night_slash.json |
 | partiel | nightmare | s_nightmare | partial | StaticBasicMoveRegistry.partialTargetMarker(s_nightmare) | ghost | status | 0 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/nightmare.json |
@@ -526,7 +526,7 @@ Coverage semantics:
 | fait | rapid_spin | s_rapid_spin | ported | StaticBasicMoveRegistry.s_rapid_spin | normal | physical | 20 | 100 | 40 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/rapid_spin.json |
 | fait | razor_leaf | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | physical | 55 | 95 | 25 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/razor_leaf.json |
 | fait | razor_shell | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 75 | 95 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/razor_shell.json |
-| partiel | razor_wind | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | normal | special | 80 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/razor_wind.json |
+| fait | razor_wind | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | normal | special | 80 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/razor_wind.json |
 | fait | recover | s_heal | ported | HealMoveBehavior | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/recover.json |
 | fait | recycle | s_recycle | ported | ItemDependentMoveBehavior.recycle | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/recycle.json |
 | fait | reflect | s_reflect | ported | StaticBasicMoveRegistry.s_reflect | psychic | status | 0 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/reflect.json |
@@ -568,7 +568,7 @@ Coverage semantics:
 | fait | scary_face | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/scary_face.json |
 | fait | scratch | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 40 | 100 | 35 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/scratch.json |
 | fait | screech | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 85 | 40 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/screech.json |
-| partiel | searing_shot | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | special | 100 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/searing_shot.json |
+| fait | searing_shot | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | special | 100 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/searing_shot.json |
 | partiel | searing_sunraze_smash | s_z_move | partial | StaticBasicMoveRegistry.s_z_move | steel | physical | 200 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/searing_sunraze_smash.json |
 | fait | secret_power | s_secret_power | ported | FieldLocationMoveBehavior.secretPower | normal | physical | 70 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/secret_power.json |
 | partiel | secret_sword | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | special | 85 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/secret_sword.json |
@@ -586,7 +586,7 @@ Coverage semantics:
 | partiel | shattered_psyche | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | physical | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shattered_psyche.json |
 | partiel | shattered_psyche2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | special | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shattered_psyche2.json |
 | fait | sheer_cold | s_ohko | ported | OhkoMoveBehavior | ice | special | 0 | 30 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sheer_cold.json |
-| partiel | shell_smash | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shell_smash.json |
+| fait | shell_smash | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shell_smash.json |
 | partiel | shell_trap | s_shell_trap | partial | StaticBasicMoveRegistry.partialBasic(s_shell_trap) | fire | special | 150 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shell_trap.json |
 | fait | shift_gear | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shift_gear.json |
 | fait | shock_wave | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 60 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shock_wave.json |
@@ -598,8 +598,8 @@ Coverage semantics:
 | partiel | sinister_arrow_raid | s_z_move | partial | StaticBasicMoveRegistry.s_z_move | ghost | physical | 180 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sinister_arrow_raid.json |
 | fait | sketch | s_sketch | ported | CopyCallMoveBehavior.sketch | normal | status | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sketch.json |
 | partiel | skill_swap | s_skill_swap | partial | StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap) | psychic | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/skill_swap.json |
-| partiel | skull_bash | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | normal | physical | 130 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/skull_bash.json |
-| partiel | sky_attack | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | flying | physical | 140 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sky_attack.json |
+| fait | skull_bash | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | normal | physical | 130 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/skull_bash.json |
+| fait | sky_attack | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | flying | physical | 140 | 90 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sky_attack.json |
 | fait | sky_drop | s_sky_drop | ported | StaticBasicMoveRegistry.s_sky_drop | flying | physical | 60 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sky_drop.json |
 | fait | sky_uppercut | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | physical | 85 | 90 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sky_uppercut.json |
 | fait | slack_off | s_heal | ported | HealMoveBehavior | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/slack_off.json |
@@ -609,7 +609,7 @@ Coverage semantics:
 | fait | sleep_talk | s_sleep_talk | ported | CopyCallMoveBehavior.sleepTalk | normal | status | 0 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sleep_talk.json |
 | fait | sludge | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | special | 65 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sludge.json |
 | fait | sludge_bomb | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | special | 90 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sludge_bomb.json |
-| partiel | sludge_wave | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | special | 95 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sludge_wave.json |
+| fait | sludge_wave | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | special | 95 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sludge_wave.json |
 | fait | smack_down | s_smack_down | ported | GroundingMoveBehavior.smackDown | rock | physical | 50 | 100 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/smack_down.json |
 | fait | smart_strike | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 70 | 0 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/smart_strike.json |
 | fait | smelling_salts | s_smelling_salt | ported | HitThenCureStatusMoveBehavior.smellingSalt | normal | physical | 70 | 100 | 10 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/smelling_salts.json |
@@ -691,7 +691,7 @@ Coverage semantics:
 | fait | techno_blast | s_techno_blast | ported | ItemDependentMoveBehavior.technoBlast | normal | special | 120 | 100 | 5 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/techno_blast.json |
 | partiel | tectonic_rage | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | physical | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/tectonic_rage.json |
 | partiel | tectonic_rage2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | special | 0 | 0 | 1 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/tectonic_rage2.json |
-| partiel | teeter_dance | s_status | ported | StatusStatMoveBehavior.status | normal | status | 0 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/teeter_dance.json |
+| fait | teeter_dance | s_status | ported | StatusStatMoveBehavior.status | normal | status | 0 | 100 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/teeter_dance.json |
 | fait | telekinesis | s_telekinesis | ported | StaticBasicMoveRegistry.s_telekinesis | psychic | status | 0 | 0 | 15 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/telekinesis.json |
 | partiel | teleport | s_teleport | partial | StaticBasicMoveRegistry.partialTargetMarker(s_teleport) | psychic | status | 0 | 0 | 20 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/teleport.json |
 | fait | thief | s_thief | ported | ItemDependentMoveBehavior.thief | dark | physical | 60 | 100 | 25 | /Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/thief.json |

@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 610,
-    "partiel": 118,
+    "fait": 629,
+    "partiel": 99,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -219,9 +219,9 @@
       {
         "moveId": "aromatic_mist",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/aromatic_mist.json"
       },
       {
@@ -531,9 +531,9 @@
       {
         "moveId": "bounce",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bounce.json"
       },
       {
@@ -627,9 +627,9 @@
       {
         "moveId": "bulldoze",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/bulldoze.json"
       },
       {
@@ -755,9 +755,9 @@
       {
         "moveId": "clanging_scales",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/clanging_scales.json"
       },
       {
@@ -1099,9 +1099,9 @@
       {
         "moveId": "diamond_storm",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/diamond_storm.json"
       },
       {
@@ -1131,9 +1131,9 @@
       {
         "moveId": "discharge",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/discharge.json"
       },
       {
@@ -1859,9 +1859,9 @@
       {
         "moveId": "freeze_shock",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/freeze_shock.json"
       },
       {
@@ -1971,9 +1971,9 @@
       {
         "moveId": "geomancy",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/geomancy.json"
       },
       {
@@ -2491,9 +2491,9 @@
       {
         "moveId": "ice_burn",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/ice_burn.json"
       },
       {
@@ -2723,9 +2723,9 @@
       {
         "moveId": "lava_plume",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/lava_plume.json"
       },
       {
@@ -3115,9 +3115,9 @@
       {
         "moveId": "mind_blown",
         "battleEngineMethod": "s_recoil",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/mind_blown.json"
       },
       {
@@ -3339,9 +3339,9 @@
       {
         "moveId": "night_daze",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/night_daze.json"
       },
       {
@@ -3947,9 +3947,9 @@
       {
         "moveId": "razor_wind",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/razor_wind.json"
       },
       {
@@ -4283,9 +4283,9 @@
       {
         "moveId": "searing_shot",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/searing_shot.json"
       },
       {
@@ -4427,9 +4427,9 @@
       {
         "moveId": "shell_smash",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/shell_smash.json"
       },
       {
@@ -4523,17 +4523,17 @@
       {
         "moveId": "skull_bash",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/skull_bash.json"
       },
       {
         "moveId": "sky_attack",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sky_attack.json"
       },
       {
@@ -4611,9 +4611,9 @@
       {
         "moveId": "sludge_wave",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/sludge_wave.json"
       },
       {
@@ -5267,9 +5267,9 @@
       {
         "moveId": "teeter_dance",
         "battleEngineMethod": "s_status",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves/teeter_dance.json"
       },
       {

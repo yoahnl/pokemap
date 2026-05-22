@@ -25,7 +25,8 @@ final class DampEffect extends BattleAbilityEffect {
   BattleMoveFailureReason? onMovePreventionUser(
     BattleAbilityMoveContext context,
   ) {
-    if (_dampBlockedMethods.contains(context.move.battleEngineMethod)) {
+    if (_dampBlockedMethods.contains(context.move.battleEngineMethod) ||
+        context.move.dbSymbol == 'mind_blown') {
       return BattleMoveFailureReason.unusableByUser;
     }
     return null;

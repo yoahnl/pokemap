@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 610 |
-| Studio attacks `partiel` | 118 |
+| Studio attacks `fait` | 629 |
+| Studio attacks `partiel` | 99 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -19,9 +19,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Battle method | Partial attacks |
 | --- | ---: |
-| s_2turns | 7 |
 | s_absorb | 1 |
-| s_basic | 43 |
+| s_basic | 37 |
 | s_beak_blast | 1 |
 | s_beat_up | 1 |
 | s_conversion | 1 |
@@ -56,11 +55,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_payday | 1 |
 | s_perish_song | 1 |
 | s_powder | 1 |
-| s_recoil | 1 |
 | s_return | 1 |
 | s_role_play | 1 |
 | s_rototiller | 1 |
-| s_self_stat | 3 |
 | s_self_stat_z_move | 2 |
 | s_shell_trap | 1 |
 | s_simple_beam | 1 |
@@ -69,8 +66,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_spite | 1 |
 | s_splintered_stormshards | 1 |
 | s_split_up | 1 |
-| s_stat | 1 |
-| s_status | 1 |
 | s_swallow | 1 |
 | s_teleport | 1 |
 | s_wish | 1 |

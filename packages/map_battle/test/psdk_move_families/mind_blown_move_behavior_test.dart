@@ -236,6 +236,101 @@ void main() {
       expect(_damageEvents(result, moveId: 'mind_blown').last.target,
           psdkPlayerSlot);
     });
+
+    test('Studio s_recoil mind_blown crashes once after adjacent damage', () {
+      final move = _move(
+        id: 'mind_blown',
+        power: 40,
+        battleEngineMethod: 's_recoil',
+        target: PsdkBattleMoveTarget.allAdjacent,
+      );
+      final result = const PsdkBattleMoveExecutor().execute(
+        PsdkBattleMoveRequest(
+          state: PsdkBattleState(
+            combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+              psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+                _combatant(
+                  id: 'player',
+                  maxHp: 100,
+                  currentHp: 100,
+                  speed: 100,
+                  types: const PsdkBattleTypes(primary: 'fire'),
+                  move: move,
+                ),
+              ),
+              _playerAllySlot: PsdkBattleCombatant.fromSetup(
+                _combatant(
+                  id: 'player_ally',
+                  maxHp: 100,
+                  currentHp: 100,
+                  speed: 90,
+                  types: const PsdkBattleTypes(primary: 'fire'),
+                  move: _move(
+                    id: 'player_ally_wait',
+                    power: 0,
+                    battleEngineMethod: 's_splash',
+                  ),
+                ),
+              ),
+              psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+                _combatant(
+                  id: 'opponent',
+                  maxHp: 100,
+                  currentHp: 100,
+                  speed: 1,
+                  types: const PsdkBattleTypes(primary: 'fire'),
+                  move: _move(
+                    id: 'opponent_wait',
+                    power: 0,
+                    battleEngineMethod: 's_splash',
+                  ),
+                ),
+              ),
+              _opponentRightSlot: PsdkBattleCombatant.fromSetup(
+                _combatant(
+                  id: 'opponent_right',
+                  maxHp: 100,
+                  currentHp: 100,
+                  speed: 1,
+                  types: const PsdkBattleTypes(primary: 'fire'),
+                  move: _move(
+                    id: 'opponent_right_wait',
+                    power: 0,
+                    battleEngineMethod: 's_splash',
+                  ),
+                ),
+              ),
+            },
+          ),
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          moveId: 'mind_blown',
+          battleEngineMethod: 's_recoil',
+          studioMove: move,
+        ),
+      );
+
+      final damage = _damageEventsForResolution(result, moveId: 'mind_blown');
+      expect(
+        damage.map((event) => event.target),
+        <PsdkBattleSlotRef>[
+          _playerAllySlot,
+          psdkOpponentSlot,
+          _opponentRightSlot,
+          psdkPlayerSlot,
+        ],
+      );
+      expect(damage.take(3).map((event) => event.damage), <int>[8, 8, 8]);
+      expect(damage.last.damage, 50);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 50);
+    });
   });
 }
 
@@ -324,6 +419,7 @@ PsdkBattleMoveData _move({
   int pp = 35,
   int? currentPp,
   String battleEngineMethod = 's_basic',
+  PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
   List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
 }) {
   return PsdkBattleMoveData(
@@ -339,7 +435,7 @@ PsdkBattleMoveData _move({
     priority: 0,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
-    target: PsdkBattleMoveTarget.adjacentFoe,
+    target: target,
     statuses: statuses,
   );
 }
@@ -362,3 +458,16 @@ List<PsdkBattleDamageEvent> _damageEvents(
       .where((event) => event.moveId == moveId)
       .toList(growable: false);
 }
+
+List<PsdkBattleDamageEvent> _damageEventsForResolution(
+  BattleMoveBehaviorResolution result, {
+  required String moveId,
+}) {
+  return result.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+const _playerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+const _opponentRightSlot = PsdkBattleSlotRef(bank: 1, position: 1);

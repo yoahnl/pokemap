@@ -1,6 +1,6 @@
 # PSDK Report Consistency Audit
 
-Date: 2026-05-21
+Date: 2026-05-22
 Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-c-lot88-transform`
 
 ## Files Audited
@@ -29,13 +29,13 @@ Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-
 | --- | --- | ---: |
 | `psdk-attack-coverage.md` | total attacks | 728 |
 | `psdk-attack-coverage.md` | unique battle engine methods | 258 |
-| `psdk-attack-coverage.md` | fait | 610 |
-| `psdk-attack-coverage.md` | partiel | 118 |
+| `psdk-attack-coverage.md` | fait | 629 |
+| `psdk-attack-coverage.md` | partiel | 99 |
 | `psdk-attack-coverage.md` | pas_fait | 0 |
 | `psdk-attack-coverage.md` | unknown_methods | 0 |
 | `psdk-fight-parity-audit.json` | total attacks | 728 |
-| `psdk-fight-parity-audit.json` | fait | 610 |
-| `psdk-fight-parity-audit.json` | partiel | 118 |
+| `psdk-fight-parity-audit.json` | fait | 629 |
+| `psdk-fight-parity-audit.json` | partiel | 99 |
 | `psdk-fight-parity-audit.json` | pas_fait | 0 |
 | `psdk-fight-parity-audit.json` | unknown methods | 0 |
 | `psdk-move-registry.md` | ported methods | 272 |
@@ -74,18 +74,14 @@ These explain why `unknown_methods = 0` does not mean every Studio method is a r
 
 ### Registry Ported, Attack Still Partiel
 
-There are now `58` attacks that use methods marked `ported` in the registry, but the attack-level audit downgrades the attack to `partiel`.
+There are now `39` attacks that use methods marked `ported` in the registry, but the attack-level audit downgrades the attack to `partiel`.
 Representative examples:
 
 | Attack | Method | Registry status | Attack status |
 | --- | --- | --- | --- |
 | `acid_downpour` | `s_basic` | ported | partiel |
-| `aromatic_mist` | `s_stat` | ported | partiel |
-| `bounce` | `s_2turns` | ported | partiel |
-| `bulldoze` | `s_basic` | ported | partiel |
-| `clanging_scales` | `s_self_stat` | ported | partiel |
-| `discharge` | `s_basic` | ported | partiel |
-| `mind_blown` | `s_recoil` | ported | partiel |
+| `acid_downpour2` | `s_basic` | ported | partiel |
+| `breakneck_blitz` | `s_basic` | ported | partiel |
 | `oblivion_wing` | `s_absorb` | ported | partiel |
 
 This is expected if the move method's core local behavior is ported but some attack-specific PSDK hooks remain outside strict parity.
@@ -94,19 +90,19 @@ This is expected if the move method's core local behavior is ported but some att
 
 | Reason | Count |
 | --- | ---: |
-| `ported_method_metadata_outside_strict_slice` | 58 |
+| `ported_method_metadata_outside_strict_slice` | 39 |
 | `method_partial` | 60 |
 
-So the remaining `118` partial attacks split into:
+So the remaining `99` partial attacks split into:
 
-- `58` attacks whose method is considered ported, but metadata/riders are outside strict coverage;
+- `39` attacks whose method is considered ported, but metadata/riders are outside strict coverage;
 - `60` attacks whose method itself is still partial.
 
 ## Conclusion
 
 The headline numbers are reliable:
 
-- attack strict parity: `610 / 728 = 83.8%`;
+- attack strict parity: `629 / 728 = 86.4%`;
 - method strict parity: `272 / 330 = 82.4%`;
 - executable coverage: `100%` for known Studio attacks and registered PSDK methods.
 

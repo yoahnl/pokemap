@@ -251,6 +251,24 @@ bool _sheerForceSuppresses(BattleAbilitySecondaryEffectContext context) {
   };
 }
 
+int? battleModifiedSecondaryEffectChance({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition move,
+  required int? chance,
+}) {
+  return _modifiedChance(
+    chance,
+    BattleAbilitySecondaryEffectContext(
+      state: state,
+      user: user,
+      target: target,
+      move: move,
+    ),
+  );
+}
+
 int? _modifiedChance(
   int? chance,
   BattleAbilitySecondaryEffectContext context,

@@ -249,6 +249,202 @@ void main() {
       );
     });
 
+    test('s_2turns applies release-turn status riders after damage', () {
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'freeze_shock',
+            type: 'ice',
+            power: 140,
+            accuracy: 90,
+            battleEngineMethod: 's_2turns',
+            effectChance: 100,
+            statuses: <PsdkBattleMoveStatus>[
+              PsdkBattleMoveStatus(
+                status: PsdkBattleMajorStatus.paralysis,
+                chance: 100,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final charge = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final strike = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_damageEvents(charge, moveId: 'freeze_shock'), isEmpty);
+      expect(
+          charge.timeline.events.whereType<PsdkBattleStatusEvent>(), isEmpty);
+      expect(_damage(strike, moveId: 'freeze_shock'), greaterThan(0));
+      expect(
+        strike.state.battlerAt(psdkOpponentSlot).majorStatus,
+        PsdkBattleMajorStatus.paralysis,
+      );
+    });
+
+    test('s_2turns applies Skull Bash defense boost before charging', () {
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'skull_bash',
+            power: 130,
+            battleEngineMethod: 's_2turns',
+          ),
+        ],
+      );
+
+      final charge = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = charge.state.battlerAt(psdkPlayerSlot);
+
+      expect(_damageEvents(charge, moveId: 'skull_bash'), isEmpty);
+      expect(player.statStages.valueOf('defense'), 1);
+      expect(
+          player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isTrue);
+      expect(
+        charge.timeline.events
+            .whereType<PsdkBattleStatStageEvent>()
+            .single
+            .stat,
+        'defense',
+      );
+    });
+
+    test('Power Herb keeps Skull Bash boost while skipping charge', () {
+      final engine = _engine(
+        playerHeldItemId: 'power_herb',
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'skull_bash',
+            power: 130,
+            battleEngineMethod: 's_2turns',
+          ),
+        ],
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(_damage(result, moveId: 'skull_bash'), greaterThan(0));
+      expect(player.statStages.valueOf('defense'), 1);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'power_herb');
+    });
+
+    test('s_2turns applies Geomancy boosts on release', () {
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'geomancy',
+            type: 'fairy',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_2turns',
+            target: PsdkBattleMoveTarget.user,
+            stageMods: const <PsdkBattleMoveStageMod>[
+              PsdkBattleMoveStageMod(stat: 'specialAttack', stages: 2),
+              PsdkBattleMoveStageMod(stat: 'specialDefense', stages: 2),
+              PsdkBattleMoveStageMod(stat: 'speed', stages: 2),
+            ],
+          ),
+        ],
+      );
+
+      final charge = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final strike = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final chargedPlayer = charge.state.battlerAt(psdkPlayerSlot);
+      final player = strike.state.battlerAt(psdkPlayerSlot);
+
+      expect(chargedPlayer.statStages.valueOf('specialAttack'), 0);
+      expect(chargedPlayer.effects.contains(PsdkBattleEffectIds.twoTurnCharge),
+          isTrue);
+      expect(player.statStages.valueOf('specialAttack'), 2);
+      expect(player.statStages.valueOf('specialDefense'), 2);
+      expect(player.statStages.valueOf('speed'), 2);
+      expect(
+          player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isFalse);
+    });
+
+    test('s_2turns release can damage every adjacent foe target', () {
+      final result = const PsdkBattleMoveExecutor().execute(
+        PsdkBattleMoveRequest(
+          state: PsdkBattleState(
+            combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+              psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+                _combatant(
+                  id: 'player',
+                  speed: 100,
+                  moves: <PsdkBattleMoveData>[
+                    _move(
+                      id: 'razor_wind',
+                      type: 'normal',
+                      category: PsdkBattleMoveCategory.special,
+                      power: 80,
+                      battleEngineMethod: 's_2turns',
+                      target: PsdkBattleMoveTarget.allAdjacentFoes,
+                    ),
+                  ],
+                  effects: PsdkBattleEffectStack(
+                    effects: const <BattleEffect>[
+                      TwoTurnChargeEffect(
+                        scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                        chargedMoveId: 'razor_wind',
+                        chargedTarget: psdkOpponentSlot,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+                _combatant(
+                  id: 'opponent',
+                  speed: 1,
+                  moves: <PsdkBattleMoveData>[
+                    _move(id: 'opponent_wait', power: 0),
+                  ],
+                ),
+              ),
+              _opponentRightSlot: PsdkBattleCombatant.fromSetup(
+                _combatant(
+                  id: 'opponent_ally',
+                  speed: 1,
+                  moves: <PsdkBattleMoveData>[
+                    _move(id: 'opponent_ally_wait', power: 0),
+                  ],
+                ),
+              ),
+            },
+          ),
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 2,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          moveId: 'razor_wind',
+          battleEngineMethod: 's_2turns',
+          studioMove: _move(
+            id: 'razor_wind',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.special,
+            power: 80,
+            battleEngineMethod: 's_2turns',
+            target: PsdkBattleMoveTarget.allAdjacentFoes,
+          ),
+        ),
+      );
+
+      expect(
+        result.events
+            .whereType<PsdkBattleDamageEvent>()
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[psdkOpponentSlot, _opponentRightSlot],
+      );
+    });
+
     test('Power Herb does not shortcut Sky Drop', () {
       final engine = _engine(
         playerHeldItemId: 'power_herb',
@@ -410,6 +606,10 @@ PsdkBattleMoveData _move({
   required int power,
   int accuracy = 100,
   String battleEngineMethod = 's_basic',
+  PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
+  int? effectChance,
+  List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
+  List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -423,7 +623,10 @@ PsdkBattleMoveData _move({
     priority: 0,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
-    target: PsdkBattleMoveTarget.adjacentFoe,
+    target: target,
+    effectChance: effectChance,
+    statuses: statuses,
+    stageMods: stageMods,
   );
 }
 
@@ -446,3 +649,5 @@ bool _failed(PsdkBattleTurnResult result, {required String moveId}) {
       .whereType<PsdkBattleMoveFailedEvent>()
       .any((event) => event.moveId == moveId);
 }
+
+const _opponentRightSlot = PsdkBattleSlotRef(bank: 1, position: 1);
