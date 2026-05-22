@@ -18,6 +18,11 @@ enum ProjectedBuildingShadowGeometryMode {
   footprint,
 }
 
+enum ProjectedBuildingShadowCasterKind {
+  building,
+  largeVolume,
+}
+
 /// Authored 2D direction for a future projected building shadow.
 ///
 /// The raw values are intentionally preserved so the editor can keep the
@@ -250,6 +255,162 @@ final class ProjectedShadowFootprintTuning {
         rearWidthRatio,
         depthRatio,
         skewXRatio,
+      );
+}
+
+@immutable
+sealed class ProjectedShadowFootprintTuningStrategy {
+  const ProjectedShadowFootprintTuningStrategy();
+}
+
+@immutable
+final class ProjectedShadowFootprintFixedTuning
+    extends ProjectedShadowFootprintTuningStrategy {
+  const ProjectedShadowFootprintFixedTuning({
+    required this.tuning,
+  });
+
+  final ProjectedShadowFootprintTuning tuning;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectedShadowFootprintFixedTuning && other.tuning == tuning;
+
+  @override
+  int get hashCode => tuning.hashCode;
+}
+
+@immutable
+final class ProjectedShadowAdaptiveDepthGate {
+  factory ProjectedShadowAdaptiveDepthGate({
+    double referenceHeight = 80,
+    double targetHeight = 112,
+    double referenceRatio = 1.25,
+    double targetRatio = 1.75,
+  }) {
+    _validatePositiveFinite(
+      referenceHeight,
+      'ProjectedShadowAdaptiveDepthGate.referenceHeight',
+    );
+    _validatePositiveFinite(
+      targetHeight,
+      'ProjectedShadowAdaptiveDepthGate.targetHeight',
+    );
+    if (targetHeight <= referenceHeight) {
+      throw const ValidationException(
+        'ProjectedShadowAdaptiveDepthGate.targetHeight must be greater than referenceHeight',
+      );
+    }
+    _validatePositiveFinite(
+      referenceRatio,
+      'ProjectedShadowAdaptiveDepthGate.referenceRatio',
+    );
+    _validatePositiveFinite(
+      targetRatio,
+      'ProjectedShadowAdaptiveDepthGate.targetRatio',
+    );
+    if (targetRatio <= referenceRatio) {
+      throw const ValidationException(
+        'ProjectedShadowAdaptiveDepthGate.targetRatio must be greater than referenceRatio',
+      );
+    }
+    return ProjectedShadowAdaptiveDepthGate._(
+      referenceHeight: referenceHeight,
+      targetHeight: targetHeight,
+      referenceRatio: referenceRatio,
+      targetRatio: targetRatio,
+    );
+  }
+
+  const ProjectedShadowAdaptiveDepthGate._({
+    required this.referenceHeight,
+    required this.targetHeight,
+    required this.referenceRatio,
+    required this.targetRatio,
+  });
+
+  final double referenceHeight;
+  final double targetHeight;
+  final double referenceRatio;
+  final double targetRatio;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectedShadowAdaptiveDepthGate &&
+          other.referenceHeight == referenceHeight &&
+          other.targetHeight == targetHeight &&
+          other.referenceRatio == referenceRatio &&
+          other.targetRatio == targetRatio;
+
+  @override
+  int get hashCode => Object.hash(
+        referenceHeight,
+        targetHeight,
+        referenceRatio,
+        targetRatio,
+      );
+}
+
+@immutable
+final class ProjectedShadowFootprintAdaptiveDepthTuning
+    extends ProjectedShadowFootprintTuningStrategy {
+  factory ProjectedShadowFootprintAdaptiveDepthTuning({
+    required ProjectedShadowFootprintTuning base,
+    required ProjectedShadowFootprintTuning target,
+    required ProjectedShadowAdaptiveDepthGate gate,
+    required double baseOpacity,
+    required double targetOpacity,
+  }) {
+    _validateOpacity(
+      baseOpacity,
+      'ProjectedShadowFootprintAdaptiveDepthTuning.baseOpacity',
+    );
+    _validateOpacity(
+      targetOpacity,
+      'ProjectedShadowFootprintAdaptiveDepthTuning.targetOpacity',
+    );
+    return ProjectedShadowFootprintAdaptiveDepthTuning._(
+      base: base,
+      target: target,
+      gate: gate,
+      baseOpacity: baseOpacity,
+      targetOpacity: targetOpacity,
+    );
+  }
+
+  const ProjectedShadowFootprintAdaptiveDepthTuning._({
+    required this.base,
+    required this.target,
+    required this.gate,
+    required this.baseOpacity,
+    required this.targetOpacity,
+  });
+
+  final ProjectedShadowFootprintTuning base;
+  final ProjectedShadowFootprintTuning target;
+  final ProjectedShadowAdaptiveDepthGate gate;
+  final double baseOpacity;
+  final double targetOpacity;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectedShadowFootprintAdaptiveDepthTuning &&
+          other.base == base &&
+          other.target == target &&
+          other.gate == gate &&
+          other.baseOpacity == baseOpacity &&
+          other.targetOpacity == targetOpacity;
+
+  @override
+  int get hashCode => Object.hash(
+        base,
+        target,
+        gate,
+        baseOpacity,
+        targetOpacity,
       );
 }
 
