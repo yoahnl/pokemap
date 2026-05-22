@@ -14,8 +14,8 @@ Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-
 
 | Scope | Strict parity | Executable | Remaining strict work |
 | --- | ---: | ---: | ---: |
-| PSDK methods | 272 / 330 = 82.4% | 330 / 330 = 100% | 58 partial |
-| Studio attacks | 629 / 728 = 86.4% | 728 / 728 = 100% | 99 partial |
+| PSDK methods | 274 / 330 = 83.0% | 330 / 330 = 100% | 56 partial |
+| Studio attacks | 631 / 728 = 86.7% | 728 / 728 = 100% | 97 partial |
 
 ## Strict Parity by Large Family
 
@@ -42,18 +42,17 @@ current audit and should be treated as authoritative.
 
 These are non-exclusive: one partial method can appear in several rows.
 
-| Blocker | Partial methods affected | Share of remaining 58 partial methods |
+| Blocker | Partial methods affected | Share of remaining 56 partial methods |
 | --- | ---: | ---: |
-| Effects | 58 | 100.0% |
-| Abilities | 20 | 34.5% |
-| Damage handler | 15 | 25.9% |
-| Items | 15 | 25.9% |
-| Field | 8 | 13.8% |
-| Action order | 1 | 1.7% |
-| Multi-target targeting | 1 | 1.7% |
-| End turn | 1 | 1.7% |
-| Switch handler | 1 | 1.7% |
-| Stat handler | 1 | 1.7% |
+| Effects | 56 | 100.0% |
+| Abilities | 19 | 33.9% |
+| Damage handler | 14 | 25.0% |
+| Items | 14 | 25.0% |
+| Field | 8 | 14.3% |
+| Multi-target targeting | 1 | 1.8% |
+| End turn | 1 | 1.8% |
+| Switch handler | 1 | 1.8% |
+| Stat handler | 1 | 1.8% |
 
 ## High-Impact Partial Attack Families
 
@@ -65,7 +64,7 @@ These are non-exclusive: one partial method can appear in several rows.
 
 ## Estimate
 
-For true 100% strict parity, remaining work is not 99 isolated lots. It should be grouped into roughly 21 to 27 large lots:
+For true 100% strict parity, remaining work is not 97 isolated lots. It should be grouped into roughly 20 to 26 large lots:
 
 - effects lifecycle first;
 - ability hooks second;

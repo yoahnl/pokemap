@@ -76,7 +76,7 @@ Total registered methods: 330
 | `s_dream_eater` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `DrainMoveBehavior.dreamEater` | `ported` | `handler_damage, handler_status, effects, item, ability` |
 | `s_echo` | `EchoedVoice` | `10 Move/2 Definitions/300 EchoedVoice.rb` | `ConsecutivePowerMoveBehavior.echoedVoice` | `ported` | `-` |
 | `s_eerie_spell` | `EerieSpell` | `10 Move/2 Definitions/300 EerieSpell.rb` | `StaticBasicMoveRegistry.s_eerie_spell` | `ported` | `-` |
-| `s_electrify` | `Electrify` | `10 Move/2 Definitions/300 Electrify.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_electrify)` | `partial` | `effects, action_order` |
+| `s_electrify` | `Electrify` | `10 Move/2 Definitions/300 Electrify.rb` | `StaticBasicMoveRegistry.s_electrify` | `ported` | `effects` |
 | `s_electro_ball` | `ElectroBall` | `10 Move/2 Definitions/300 ElectroBall.rb` | `VariablePowerMoveBehavior.electroBall` | `ported` | `-` |
 | `s_electro_shot` | `ElectroShot` | `10 Move/2 Definitions/300 ElectroShot.rb` | `StaticBasicMoveRegistry.s_electro_shot` | `ported` | `-` |
 | `s_embargo` | `Embargo` | `10 Move/2 Definitions/300 Embargo.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_embargo)` | `partial` | `effects` |
@@ -102,7 +102,7 @@ Total registered methods: 330
 | `s_fling` | `Fling` | `10 Move/2 Definitions/300 Fling.rb` | `ItemDependentMoveBehavior.fling` | `ported` | `item, ability, effects` |
 | `s_floral_healing` | `FloralHealing` | `10 Move/2 Definitions/300 FloralHealing.rb` | `HealMoveBehavior.floralHealing` | `ported` | `handler_damage, terrain, effects, ability` |
 | `s_flower_shield` | `FlowerShield` | `10 Move/2 Definitions/300 FlowerShield.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)` | `partial` | `effects` |
-| `s_flying_press` | `FlyingPress` | `10 Move/2 Definitions/300 FlyingPress.rb` | `StaticBasicMoveRegistry.partialBasic(s_flying_press)` | `partial` | `handler_damage, effects, ability, item` |
+| `s_flying_press` | `FlyingPress` | `10 Move/2 Definitions/300 FlyingPress.rb` | `StaticBasicMoveRegistry.s_flying_press` | `ported` | `none` |
 | `s_focus_energy` | `FocusEnergy` | `10 Move/2 Definitions/300 FocusEnergy.rb` | `StaticBasicMoveRegistry.s_focus_energy` | `ported` | `effects` |
 | `s_focus_punch` | `FocusPunch` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `ActionGatedMoveBehavior.focusPunch` | `ported` | `-` |
 | `s_follow_me` | `FollowMe` | `10 Move/2 Definitions/300 FollowMe.rb` | `StaticBasicMoveRegistry.s_follow_me` | `ported` | `effects, action_order, targeting_multi` |
