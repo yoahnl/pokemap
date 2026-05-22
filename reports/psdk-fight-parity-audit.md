@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 647 |
-| Studio attacks `partiel` | 81 |
+| Studio attacks `fait` | 648 |
+| Studio attacks `partiel` | 80 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -31,7 +31,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_frustration | 1 |
 | s_gear_up | 1 |
 | s_genesis_supernova | 1 |
-| s_gravity | 1 |
 | s_grudge | 1 |
 | s_guardian_of_alola | 1 |
 | s_helping_hand | 1 |
@@ -59,8 +58,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 291 |
-| `partial` | 39 |
+| `ported` | 294 |
+| `partial` | 36 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -68,11 +67,11 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 39 |
+| effects | 36 |
 | ability | 14 |
 | handlerDamage | 14 |
 | item | 14 |
-| field | 4 |
+| field | 3 |
 | targetingMulti | 1 |
 
 ### Partial Method Batches
@@ -82,7 +81,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 25 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_helping_hand`, `s_magic_coat`, `s_magnetic_flux`, `s_no_retreat`, `s_revival_blessing`, `s_rototiller`, `s_shed_tail`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
+| Effect hook / manifest final sweep | 22 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_grudge`, `s_helping_hand`, `s_magic_coat`, `s_magnetic_flux`, `s_revival_blessing`, `s_rototiller`, `s_shed_tail`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
 
 ## Effect Coverage
 

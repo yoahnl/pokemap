@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 647 |
-| partiel | 81 |
+| fait | 648 |
+| partiel | 80 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -290,7 +290,7 @@ Coverage semantics:
 | fait | grass_pledge | s_pledge | ported | FieldLocationMoveBehavior.pledge | grass | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/grass_pledge.json |
 | fait | grass_whistle | s_status | ported | StatusStatMoveBehavior.status | grass | status | 0 | 55 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/grass_whistle.json |
 | fait | grassy_terrain | s_terrain | ported | TerrainMoveBehavior | grass | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/grassy_terrain.json |
-| partiel | gravity | s_gravity | partial | StaticBasicMoveRegistry.partialFieldMarker(s_gravity) | psychic | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/gravity.json |
+| fait | gravity | s_gravity | ported | StaticBasicMoveRegistry.s_gravity | psychic | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/gravity.json |
 | fait | growl | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/growl.json |
 | fait | growth | s_growth | ported | AdvancedStatMoveBehavior.growth | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/growth.json |
 | partiel | grudge | s_grudge | partial | StaticBasicMoveRegistry.partialTargetMarker(s_grudge) | ghost | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/grudge.json |

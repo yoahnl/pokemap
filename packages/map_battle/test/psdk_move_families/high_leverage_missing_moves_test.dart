@@ -1555,6 +1555,31 @@ void main() {
       });
     }
 
+    test('s_gravity fails when gravity is already active on the field', () {
+      final result = _runMove(
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(
+            id: 'gravity',
+            scope: FieldBattleEffectScope(),
+            remainingTurns: 5,
+          ),
+        ),
+        playerMove: _move(
+          id: 'gravity',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_gravity',
+          target: PsdkBattleMoveTarget.none,
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        'gravity_already_active',
+      );
+    });
+
     test('s_magic_room suppresses opposing held item effects battle-wide', () {
       final result = _runMove(
         playerMove: _move(
@@ -2390,11 +2415,11 @@ void main() {
         ),
       ];
 
-      for (final entry in entries) {
-        final result = _runMove(
-          playerMove: _move(
-            id: entry.moveId,
-            category: entry.category,
+    for (final entry in entries) {
+      final result = _runMove(
+        playerMove: _move(
+          id: entry.moveId,
+          category: entry.category,
             power: entry.power,
             battleEngineMethod: entry.method,
           ),
@@ -2406,6 +2431,73 @@ void main() {
           reason: entry.method,
         );
       }
+    });
+
+    test('s_dragon_cheer installs a battler-scoped effect on the user', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'dragon_cheer',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_dragon_cheer',
+          target: PsdkBattleMoveTarget.allAllies,
+        ),
+      );
+
+      final effect =
+          _effect(result.state.battlerAt(psdkPlayerSlot), 'dragon_cheer');
+      expect(effect.scope, isA<BattlerBattleEffectScope>());
+    });
+
+    test(
+        's_dragon_cheer fails when an unstackable critical marker is already active',
+        () {
+      final result = _runMove(
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          TripleArrowsEffect(
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            remainingTurns: 1,
+          ),
+        ),
+        playerMove: _move(
+          id: 'dragon_cheer',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_dragon_cheer',
+          target: PsdkBattleMoveTarget.allAllies,
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        'dragon_cheer_already_active',
+      );
+    });
+
+    test('s_no_retreat fails for Ghost users and does not install the effect',
+        () {
+      final result = _runMove(
+        playerTypes: const PsdkBattleTypes(primary: 'ghost'),
+        playerMove: _move(
+          id: 'no_retreat',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_no_retreat',
+          target: PsdkBattleMoveTarget.self,
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        'no_retreat_failed',
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('no_retreat'),
+        isFalse,
+      );
     });
 
     test('remaining Ruby-only missing methods are executable as partials', () {
@@ -2661,6 +2753,7 @@ PsdkBattleTurnResult _runMove({
   double? playerCurrentWeightKg,
   PsdkBattleStatStages? playerStages,
   PsdkBattleStatStages? opponentStages,
+  PsdkBattleEffectStack? playerEffects,
   PsdkBattleEffectStack? opponentEffects,
   PsdkBattleStats? playerStats,
   PsdkBattleStats? opponentStats,
@@ -2681,6 +2774,7 @@ PsdkBattleTurnResult _runMove({
         majorStatus: playerMajorStatus,
         heldItemId: playerHeldItemId,
         abilityId: playerAbilityId,
+        effects: playerEffects,
         koCount: playerKoCount,
         baseWeightKg: playerBaseWeightKg,
         currentWeightKg: playerCurrentWeightKg,

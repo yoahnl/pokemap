@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 291 |
-| `partial` | 39 |
+| `ported` | 294 |
+| `partial` | 36 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -70,7 +70,7 @@ Total registered methods: 330
 | `s_do_nothing` | `DoNothing` | `10 Move/2 Definitions/300 Splash.rb` | `NoEffectMoveBehavior.doNothing` | `ported` | `-` |
 | `s_doodle` | `Doodle` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_doodle)` | `partial` | `effects` |
 | `s_double_iron_bash` | `DoubleIronBash` | `10 Move/2 Definitions/300 DoubleIronBash.rb` | `MultiHitMoveBehavior.doubleIronBash` | `ported` | `targeting_multi, history, accuracy, ability, item` |
-| `s_dragon_cheer` | `DragonCheer` | `10 Move/2 Definitions/300 DragonCheer.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_dragon_cheer)` | `partial` | `effects` |
+| `s_dragon_cheer` | `DragonCheer` | `10 Move/2 Definitions/300 DragonCheer.rb` | `StaticBasicMoveRegistry.s_dragon_cheer` | `ported` | `effects` |
 | `s_dragon_darts` | `DragonDarts` | `10 Move/2 Definitions/300 DragonDarts.rb` | `StaticBasicMoveRegistry.partialBasic(s_dragon_darts)` | `partial` | `handler_damage, effects, ability, item` |
 | `s_dragon_tail` | `ForceSwitch` | `10 Move/2 Definitions/300 ForceSwitch.rb` | `StaticBasicMoveRegistry.forceSwitch(s_dragon_tail)` | `ported` | `handler_switch, effects, ability` |
 | `s_dream_eater` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `DrainMoveBehavior.dreamEater` | `ported` | `handler_damage, handler_status, effects, item, ability` |
@@ -124,7 +124,7 @@ Total registered methods: 330
 | `s_glitzy_glow` | `GlitzyGlow` | `10 Move/2 Definitions/300 GlitzyGlow.rb` | `StaticBasicMoveRegistry.s_glitzy_glow` | `ported` | `-` |
 | `s_grassy_glide` | `GrassyGlide` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.grassyGlide` | `ported` | `terrain, grounded, action_order` |
 | `s_grav_apple` | `GravApple` | `10 Move/2 Definitions/300 GravApple.rb` | `StaticBasicMoveRegistry.s_grav_apple` | `ported` | `-` |
-| `s_gravity` | `Gravity` | `10 Move/2 Definitions/300 Gravity.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_gravity)` | `partial` | `field, effects` |
+| `s_gravity` | `Gravity` | `10 Move/2 Definitions/300 Gravity.rb` | `StaticBasicMoveRegistry.s_gravity` | `ported` | `field, effects` |
 | `s_growth` | `Growth` | `10 Move/2 Definitions/300 Growth.rb` | `AdvancedStatMoveBehavior.growth` | `ported` | `handler_stat, weather, effects, ability` |
 | `s_grudge` | `Grudge` | `10 Move/2 Definitions/300 Grudge.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_grudge)` | `partial` | `effects` |
 | `s_guard_split` | `GuardSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `StatSplitMoveBehavior.guard` | `ported` | `-` |
@@ -194,7 +194,7 @@ Total registered methods: 330
 | `s_natural_gift` | `NaturalGift` | `10 Move/2 Definitions/300 NaturalGift.rb` | `ItemDependentMoveBehavior.naturalGift` | `ported` | `-` |
 | `s_nature_power` | `NaturePower` | `10 Move/2 Definitions/300 NaturePower.rb` | `FieldLocationMoveBehavior.naturePower` | `ported` | `field, effects` |
 | `s_nightmare` | `Nightmare` | `10 Move/2 Definitions/300 Nightmare.rb` | `StaticBasicMoveRegistry.targetMarker(s_nightmare)` | `ported` | `effects` |
-| `s_no_retreat` | `NoRetreat` | `10 Move/2 Definitions/300 NoRetreat.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)` | `partial` | `effects` |
+| `s_no_retreat` | `NoRetreat` | `10 Move/2 Definitions/300 NoRetreat.rb` | `StaticBasicMoveRegistry.s_no_retreat` | `ported` | `effects` |
 | `s_octolock` | `Octolock` | `10 Move/2 Definitions/300 Octolock.rb` | `StaticBasicMoveRegistry.octolock` | `ported` | `-` |
 | `s_ohko` | `OHKO` | `10 Move/2 Definitions/300 OHKO.rb` | `OhkoMoveBehavior` | `ported` | `handler_damage, ability, effects` |
 | `s_order_up` | `OrderUp` | `10 Move/2 Definitions/300 OrderUp.rb` | `StaticBasicMoveRegistry.partialBasic(s_order_up)` | `partial` | `handler_damage, effects, ability, item` |

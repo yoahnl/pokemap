@@ -1531,10 +1531,6 @@ void main() {
               'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
         ),
         (
-          method: 's_gravity',
-          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_gravity)',
-        ),
-        (
           method: 's_grudge',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
         ),
@@ -1557,6 +1553,21 @@ void main() {
       );
       expect(byMethod['s_wish']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_wish']!.dartBehavior, 'StaticBasicMoveRegistry.s_wish');
+      expect(byMethod['s_dragon_cheer']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_dragon_cheer']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_dragon_cheer',
+      );
+      expect(byMethod['s_gravity']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_gravity']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_gravity',
+      );
+      expect(byMethod['s_no_retreat']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_no_retreat']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_no_retreat',
+      );
       for (final entry in <({String method, String behavior})>[
         (
           method: 's_fairy_lock',

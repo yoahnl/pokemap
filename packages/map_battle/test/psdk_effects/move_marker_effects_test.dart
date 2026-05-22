@@ -165,6 +165,26 @@ void main() {
       expect(prevention.reason, 'no_retreat');
     });
 
+    test('No Retreat carries through Baton Pass to the incoming battler', () {
+      const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
+      const effect = NoRetreatEffect(
+        scope: BattlerBattleEffectScope(psdkPlayerSlot),
+      );
+
+      final transferred = effect.onBatonPassTransfer(
+        const BattleEffectBatonPassContext(
+          source: psdkPlayerSlot,
+          target: benchSlot,
+        ),
+      );
+
+      expect(transferred, isA<NoRetreatEffect>());
+      expect(
+        (transferred!.scope as BattlerBattleEffectScope).slot,
+        benchSlot,
+      );
+    });
+
     test('Embargo counts down and expires through end-turn dispatch', () {
       final initialState = PsdkBattleState(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{

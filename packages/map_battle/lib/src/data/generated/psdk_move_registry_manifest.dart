@@ -582,9 +582,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_dragon_cheer',
     rubyClass: 'DragonCheer',
     rubyPath: '10 Move/2 Definitions/300 DragonCheer.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_dragon_cheer)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_dragon_cheer',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1080,8 +1079,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_gravity',
     rubyClass: 'Gravity',
     rubyPath: '10 Move/2 Definitions/300 Gravity.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_gravity)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_gravity',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.field,
       PsdkMoveDependency.effects
@@ -1747,8 +1746,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_no_retreat',
     rubyClass: 'NoRetreat',
     rubyPath: '10 Move/2 Definitions/300 NoRetreat.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_no_retreat',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(

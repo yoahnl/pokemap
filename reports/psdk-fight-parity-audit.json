@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 647,
-    "partiel": 81,
+    "fait": 648,
+    "partiel": 80,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -2059,9 +2059,9 @@
       {
         "moveId": "gravity",
         "battleEngineMethod": "s_gravity",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gravity.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 291,
-      "partial": 39,
+      "ported": 294,
+      "partial": 36,
       "missing": 0
     },
     "entries": [
@@ -6448,12 +6448,11 @@
         "battleEngineMethod": "s_dragon_cheer",
         "rubyClass": "DragonCheer",
         "rubyPath": "10 Move/2 Definitions/300 DragonCheer.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_dragon_cheer)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_dragon_cheer",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_dragon_darts",
@@ -6974,13 +6973,12 @@
         "battleEngineMethod": "s_gravity",
         "rubyClass": "Gravity",
         "rubyPath": "10 Move/2 Definitions/300 Gravity.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_gravity)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_gravity",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_growth",
@@ -7675,12 +7673,11 @@
         "battleEngineMethod": "s_no_retreat",
         "rubyClass": "NoRetreat",
         "rubyPath": "10 Move/2 Definitions/300 NoRetreat.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_no_retreat",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_octolock",
@@ -9246,7 +9243,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 25,
+        "count": 22,
         "methods": [
           "s_chilly_reception",
           "s_conversion",
@@ -9254,16 +9251,13 @@
           "s_court_change",
           "s_destiny_bond",
           "s_doodle",
-          "s_dragon_cheer",
           "s_flower_shield",
           "s_gear_up",
           "s_geomancy",
-          "s_gravity",
           "s_grudge",
           "s_helping_hand",
           "s_magic_coat",
           "s_magnetic_flux",
-          "s_no_retreat",
           "s_revival_blessing",
           "s_rototiller",
           "s_shed_tail",

@@ -222,9 +222,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_dragon_cheer': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_dragon_cheer)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_dragon_cheer',
+    status: _PsdkPortStatus.ported,
   ),
   's_dragon_darts': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_dragon_darts)',
@@ -315,8 +314,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_no_retreat': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_no_retreat',
+    status: _PsdkPortStatus.ported,
   ),
   's_octolock': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.octolock',
@@ -529,8 +528,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_gravity': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_gravity)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_gravity',
+    status: _PsdkPortStatus.ported,
   ),
   's_destiny_bond': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',

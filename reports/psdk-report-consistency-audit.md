@@ -29,17 +29,17 @@ Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-
 | --- | --- | ---: |
 | `psdk-attack-coverage.md` | total attacks | 728 |
 | `psdk-attack-coverage.md` | unique battle engine methods | 258 |
-| `psdk-attack-coverage.md` | fait | 647 |
-| `psdk-attack-coverage.md` | partiel | 81 |
+| `psdk-attack-coverage.md` | fait | 648 |
+| `psdk-attack-coverage.md` | partiel | 80 |
 | `psdk-attack-coverage.md` | pas_fait | 0 |
 | `psdk-attack-coverage.md` | unknown_methods | 0 |
 | `psdk-fight-parity-audit.json` | total attacks | 728 |
-| `psdk-fight-parity-audit.json` | fait | 647 |
-| `psdk-fight-parity-audit.json` | partiel | 81 |
+| `psdk-fight-parity-audit.json` | fait | 648 |
+| `psdk-fight-parity-audit.json` | partiel | 80 |
 | `psdk-fight-parity-audit.json` | pas_fait | 0 |
 | `psdk-fight-parity-audit.json` | unknown methods | 0 |
-| `psdk-move-registry.md` | ported methods | 291 |
-| `psdk-move-registry.md` | partial methods | 39 |
+| `psdk-move-registry.md` | ported methods | 294 |
+| `psdk-move-registry.md` | partial methods | 36 |
 | `psdk-move-registry.md` | missing methods | 0 |
 
 ## Important Interpretation
@@ -91,19 +91,19 @@ This is expected if the move method's core local behavior is ported but some att
 | Reason | Count |
 | --- | ---: |
 | `ported_method_metadata_outside_strict_slice` | 39 |
-| `method_partial` | 42 |
+| `method_partial` | 41 |
 
-So the remaining `81` partial attacks split into:
+So the remaining `80` partial attacks split into:
 
 - `39` attacks whose method is considered ported, but metadata/riders are outside strict coverage;
-- `42` attacks whose method itself is still partial.
+- `41` attacks whose method itself is still partial.
 
 ## Conclusion
 
 The headline numbers are reliable:
 
-- attack strict parity: `647 / 728 = 88.9%`;
-- method strict parity: `291 / 330 = 88.2%`;
+- attack strict parity: `648 / 728 = 89.0%`;
+- method strict parity: `294 / 330 = 89.1%`;
 - executable coverage: `100%` for known Studio attacks and registered PSDK methods.
 
 But the previous family summary must be read carefully: method parity and attack parity are different layers. The remaining work is mostly strict hook parity, not basic method routing.

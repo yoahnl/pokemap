@@ -501,6 +501,18 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
         resolve: _resolveBasic,
       ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_dragon_cheer',
+      resolve: _resolveDragonCheer,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_gravity',
+      resolve: _resolveGravity,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_no_retreat',
+      resolve: _resolveNoRetreat,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_reload',
       resolve: _resolveReload,
     ),
@@ -4150,7 +4162,7 @@ BattleMoveBehaviorResolution _resolveUserBankMarker(
       user: context.user,
       target: context.target,
       move: BattleMoveDefinition.fromPsdk(
-        context.move.psdkMove.copyWith(target: PsdkBattleMoveTarget.userSide),
+        context.move.psdkMove.copyWith(target: PsdkBattleMoveTarget.self),
       ),
       moveSlot: context.moveSlot,
       isLastActionOfTurn: context.isLastActionOfTurn,
@@ -4408,6 +4420,40 @@ BattleMoveBehaviorResolution _resolveFieldMarker(
   );
 }
 
+BattleMoveBehaviorResolution _resolveGravity(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  if (_firstFieldEffectWithId(prepared.state, 'gravity') != null) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'gravity_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  return _addEffectToUser(
+    context: context,
+    state: prepared.state,
+    rng: prepared.rng,
+    events: prepared.events,
+    effect: _fieldMarkerEffect(method: 's_gravity', effectId: 'gravity'),
+  );
+}
+
 BattleEffect _fieldMarkerEffect({
   required String method,
   required String effectId,
@@ -4461,6 +4507,81 @@ int? _markerTurnCount(String battleEngineMethod) {
     's_wish' || 's_yawn' => 2,
     _ => null,
   };
+}
+
+BattleMoveBehaviorResolution _resolveDragonCheer(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.target,
+      move: BattleMoveDefinition.fromPsdk(
+        context.move.psdkMove.copyWith(target: PsdkBattleMoveTarget.userSide),
+      ),
+      moveSlot: context.moveSlot,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+    ),
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final eligibleTargets = prepared.state.combatants.keys.where((targetSlot) {
+    if (targetSlot.bank != context.user.bank ||
+        prepared.state.battlerAt(targetSlot).isFainted) {
+      return false;
+    }
+    final battler = prepared.state.battlerAt(targetSlot);
+    return !_tripleArrowsUnstackableEffects.any(battler.effects.contains);
+  }).toList(growable: false);
+  if (eligibleTargets.isEmpty) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'dragon_cheer_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  var state = prepared.state;
+  var rng = prepared.rng;
+  final events = <PsdkBattleEvent>[...prepared.events];
+  for (final targetSlot in eligibleTargets) {
+    final applied = _addTargetEffectAndDispatchVolatile(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      effect: GenericBattleEffect(
+        id: 'dragon_cheer',
+        scope: BattlerBattleEffectScope(targetSlot),
+        remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
+      ),
+    );
+    state = applied.state;
+    rng = applied.rng;
+    events.addAll(applied.events);
+  }
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
+    events: events,
+  );
 }
 
 BattleEffect _targetMarkerEffect({
@@ -5405,6 +5526,60 @@ BattleMoveBehaviorResolution _addEffectToUser({
     ),
     rng: rng,
     events: events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveNoRetreat(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final user = prepared.state.battlerAt(context.user);
+  if (user.effects.contains('no_retreat')) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'no_retreat_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+  if (user.hasType('ghost') || user.effects.contains(PsdkBattleEffectIds.cantSwitch)) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'no_retreat_failed',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  return _addEffectToUser(
+    context: context,
+    state: prepared.state,
+    rng: prepared.rng,
+    events: prepared.events,
+    effect: NoRetreatEffect(
+      scope: BattlerBattleEffectScope(context.user),
+      remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
+    ),
   );
 }
 
