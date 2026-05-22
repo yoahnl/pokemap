@@ -645,6 +645,7 @@ final class ProjectElementProjectedBuildingShadowConfig {
     required String presetId,
     required ProjectedShadowAnchor anchor,
     required ProjectedShadowOffset localOffset,
+    ProjectedBuildingShadowCasterKind? casterKind,
   }) {
     _validateNonBlank(
       presetId,
@@ -655,6 +656,7 @@ final class ProjectElementProjectedBuildingShadowConfig {
       presetId: presetId,
       anchor: anchor,
       localOffset: localOffset,
+      casterKind: casterKind,
     );
   }
 
@@ -663,12 +665,14 @@ final class ProjectElementProjectedBuildingShadowConfig {
     required this.presetId,
     required this.anchor,
     required this.localOffset,
+    required this.casterKind,
   });
 
   final bool enabled;
   final String presetId;
   final ProjectedShadowAnchor anchor;
   final ProjectedShadowOffset localOffset;
+  final ProjectedBuildingShadowCasterKind? casterKind;
 
   @override
   bool operator ==(Object other) =>
@@ -677,7 +681,8 @@ final class ProjectElementProjectedBuildingShadowConfig {
           other.enabled == enabled &&
           other.presetId == presetId &&
           other.anchor == anchor &&
-          other.localOffset == localOffset;
+          other.localOffset == localOffset &&
+          other.casterKind == casterKind;
 
   @override
   int get hashCode => Object.hash(
@@ -685,6 +690,7 @@ final class ProjectElementProjectedBuildingShadowConfig {
         presetId,
         anchor,
         localOffset,
+        casterKind,
       );
 }
 
