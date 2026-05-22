@@ -134,21 +134,27 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final secondary = const BattleMoveSecondaryEffectResolver().resolve(
-      state: prepared.state,
-      rng: prepared.rng,
-      user: context.user,
-      target: prepared.psdkTargets.single,
-      move: _secondaryMove(context.move, effectChance: null),
-      turn: context.turn,
-    );
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final move = _secondaryMove(context.move, effectChance: null);
+    for (final target in prepared.psdkTargets) {
+      final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: rng,
+        user: context.user,
+        target: target,
+        move: move,
+        turn: context.turn,
+      );
+      state = secondary.state;
+      rng = secondary.rng;
+      events.addAll(secondary.events);
+    }
     return BattleMoveBehaviorResolution(
-      state: secondary.state,
-      rng: secondary.rng,
-      events: <PsdkBattleEvent>[
-        ...prepared.events,
-        ...secondary.events,
-      ],
+      state: state,
+      rng: rng,
+      events: events,
     );
   }
 
@@ -183,20 +189,31 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
       context: context,
       prepared: prepared,
     );
-    final withStatuses = _resolveSecondary(
-      state: damaged.state,
-      rng: damaged.rng,
-      user: context.user,
-      target: prepared.psdkTargets.single,
-      move: _secondaryMove(
+    var state = damaged.state;
+    var rng = damaged.rng;
+    final events = <PsdkBattleEvent>[...damaged.events];
+    if (context.move.statuses.isNotEmpty) {
+      final statusMove = _secondaryMove(
         context.move,
         stageMods: const <BattleStageMod>[],
-      ),
-      turn: context.turn,
-    );
+      );
+      for (final target in prepared.psdkTargets) {
+        final withStatuses = _resolveSecondary(
+          state: state,
+          rng: rng,
+          user: context.user,
+          target: target,
+          move: statusMove,
+          turn: context.turn,
+        );
+        state = withStatuses.state;
+        rng = withStatuses.rng;
+        events.addAll(withStatuses.events);
+      }
+    }
     final withStats = _resolveSecondary(
-      state: withStatuses.state,
-      rng: withStatuses.rng,
+      state: state,
+      rng: rng,
       user: context.user,
       target: context.user,
       move: _secondaryMove(
@@ -210,8 +227,7 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
       state: withStats.state,
       rng: withStats.rng,
       events: <PsdkBattleEvent>[
-        ...damaged.events,
-        ...withStatuses.events,
+        ...events,
         ...withStats.events,
       ],
     );
@@ -252,37 +268,49 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
       context: context,
       prepared: prepared,
     );
-    final withStatuses = _resolveSecondary(
-      state: damaged.state,
-      rng: damaged.rng,
-      user: context.user,
-      target: context.user,
-      move: _secondaryMove(
-        context.move,
-        stageMods: const <BattleStageMod>[],
-      ),
-      turn: context.turn,
-    );
-    final withStats = _resolveSecondary(
-      state: withStatuses.state,
-      rng: withStatuses.rng,
-      user: context.user,
-      target: prepared.psdkTargets.single,
-      move: _secondaryMove(
+    var state = damaged.state;
+    var rng = damaged.rng;
+    final events = <PsdkBattleEvent>[...damaged.events];
+    if (context.move.statuses.isNotEmpty) {
+      final withStatuses = _resolveSecondary(
+        state: state,
+        rng: rng,
+        user: context.user,
+        target: context.user,
+        move: _secondaryMove(
+          context.move,
+          stageMods: const <BattleStageMod>[],
+        ),
+        turn: context.turn,
+      );
+      state = withStatuses.state;
+      rng = withStatuses.rng;
+      events.addAll(withStatuses.events);
+    }
+    if (context.move.stageMods.isNotEmpty) {
+      final statMove = _secondaryMove(
         context.move,
         statuses: const <PsdkBattleMoveStatus>[],
-      ),
-      turn: context.turn,
-    );
+      );
+      for (final target in prepared.psdkTargets) {
+        final withStats = _resolveSecondary(
+          state: state,
+          rng: rng,
+          user: context.user,
+          target: target,
+          move: statMove,
+          turn: context.turn,
+        );
+        state = withStats.state;
+        rng = withStats.rng;
+        events.addAll(withStats.events);
+      }
+    }
 
     return BattleMoveBehaviorResolution(
-      state: withStats.state,
-      rng: withStats.rng,
-      events: <PsdkBattleEvent>[
-        ...damaged.events,
-        ...withStatuses.events,
-        ...withStats.events,
-      ],
+      state: state,
+      rng: rng,
+      events: events,
     );
   }
 
@@ -300,42 +328,44 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final targetSlot = prepared.psdkTargets.single;
-    final damageResult = const BattleMoveDamageCalculator().calculate(
-      BattleMoveDamageContext(
-        user: prepared.state.battlerAt(context.user),
-        target: prepared.state.battlerAt(targetSlot),
-        move: context.move,
-        rng: prepared.rng,
-        field: prepared.state.field,
-        state: prepared.state,
-        userSlot: context.user,
-        targetSlot: targetSlot,
-      ),
-    );
-    if (damageResult.damage <= 0) {
-      return _DamageResolution(
-        state: prepared.state,
-        rng: damageResult.rng,
-        events: events,
+    var state = prepared.state;
+    var rng = prepared.rng;
+    for (final targetSlot in prepared.psdkTargets) {
+      final damageResult = const BattleMoveDamageCalculator().calculate(
+        BattleMoveDamageContext(
+          user: state.battlerAt(context.user),
+          target: state.battlerAt(targetSlot),
+          move: context.move,
+          rng: rng,
+          field: state.field,
+          state: state,
+          userSlot: context.user,
+          targetSlot: targetSlot,
+        ),
       );
-    }
+      rng = damageResult.rng;
+      if (damageResult.damage <= 0) {
+        continue;
+      }
 
-    final applied = applyDirectDamage(
-      state: prepared.state,
-      user: context.user,
-      target: targetSlot,
-      moveId: context.move.id,
-      rng: damageResult.rng,
-      turn: context.turn,
-      amount: damageResult.damage,
-    );
-    if (applied.event != null) {
-      events.add(applied.event!);
+      final applied = applyDirectDamage(
+        state: state,
+        user: context.user,
+        target: targetSlot,
+        moveId: context.move.id,
+        rng: rng,
+        turn: context.turn,
+        amount: damageResult.damage,
+        moveCategory: context.move.category,
+        move: context.move,
+      );
+      state = applied.state;
+      rng = applied.rng;
+      events.addAll(applied.events);
     }
     return _DamageResolution(
-      state: applied.state,
-      rng: applied.rng,
+      state: state,
+      rng: rng,
       events: events,
     );
   }

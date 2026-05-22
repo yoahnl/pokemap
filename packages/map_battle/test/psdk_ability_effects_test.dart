@@ -32,6 +32,7 @@ void main() {
     for (final move in <({String id, String method})>[
       (id: 'explosion', method: 's_explosion'),
       (id: 'misty_explosion', method: 's_misty_explosion'),
+      (id: 'mind_blown', method: 's_recoil'),
       (id: 'mind_blown', method: 's_mind_blown'),
       (id: 'steel_beam', method: 's_steel_beam'),
       (id: 'chloroblast', method: 's_chloroblast'),

@@ -131,6 +131,9 @@ final class PsdkStudioMoveCoverageEntry {
     if (category.trim().toLowerCase() != 'status' || power != 0) {
       return false;
     }
+    if (moveStatusCount != 0) {
+      return false;
+    }
     if (effectChance != 0 && effectChance != 100) {
       return false;
     }
@@ -145,7 +148,7 @@ final class PsdkStudioMoveCoverageEntry {
       return false;
     }
     return battleStageMods.every((mod) {
-      return mod.stages > 0 && _strictSelfStatBoostStats.contains(mod.stat);
+      return mod.stages != 0 && _strictSelfStatBoostStats.contains(mod.stat);
     });
   }
 
@@ -164,7 +167,7 @@ final class PsdkStudioMoveCoverageEntry {
     }
     final normalizedTarget = target.trim().toLowerCase();
     if (normalizedTarget.isNotEmpty &&
-        !_strictSingleTargetDamageTargets.contains(normalizedTarget)) {
+        !_strictSelfStatDamageTargets.contains(normalizedTarget)) {
       return false;
     }
     if (battleStageMods.isEmpty ||
@@ -301,6 +304,9 @@ final class PsdkStudioMoveCoverageEntry {
     if (battleEngineMethod != 's_2turns') {
       return false;
     }
+    if (dbSymbol == 'geomancy') {
+      return isStrictTwoTurnStatusPayload;
+    }
     if (!_strictTwoTurnDamageMoves.contains(dbSymbol)) {
       return false;
     }
@@ -316,9 +322,49 @@ final class PsdkStudioMoveCoverageEntry {
         !_strictTwoTurnDamageTargets.contains(normalizedTarget)) {
       return false;
     }
-    return battleStageModCount == 0 &&
-        moveStatusCount == 0 &&
-        effectChance == 0;
+    if (battleStageModCount != 0) {
+      return false;
+    }
+    if (moveStatusCount == 0) {
+      return effectChance == 0;
+    }
+    if (effectChance <= 0) {
+      return false;
+    }
+    return moveStatuses.every((status) {
+      return _strictMajorStatuses.contains(status.status) ||
+          status.status == 'confusion' ||
+          status.status == 'flinch';
+    });
+  }
+
+  bool get isStrictTwoTurnStatusPayload {
+    if (battleEngineMethod != 's_2turns' || dbSymbol != 'geomancy') {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedCategory != 'status' ||
+        power != 0 ||
+        moveStatusCount != 0 ||
+        effectChance != 0 ||
+        normalizedTarget != 'user') {
+      return false;
+    }
+    const expected = <String, int>{
+      'specialAttack': 2,
+      'specialDefense': 2,
+      'speed': 2,
+    };
+    if (battleStageMods.length != expected.length) {
+      return false;
+    }
+    for (final mod in battleStageMods) {
+      if (expected[mod.stat] != mod.stages) {
+        return false;
+      }
+    }
+    return true;
   }
 
   bool get isStrictRechargeDamage {
@@ -345,6 +391,9 @@ final class PsdkStudioMoveCoverageEntry {
   bool get isStrictRecoilDamage {
     if (battleEngineMethod != 's_recoil') {
       return false;
+    }
+    if (dbSymbol == 'mind_blown') {
+      return _isStrictStudioMindBlownRecoil;
     }
     if (!_strictRecoilDamageMoves.contains(dbSymbol)) {
       return false;
@@ -378,6 +427,20 @@ final class PsdkStudioMoveCoverageEntry {
           status.status == 'confusion' ||
           status.status == 'flinch';
     });
+  }
+
+  bool get _isStrictStudioMindBlownRecoil {
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    final normalizedTarget = target.trim().toLowerCase();
+    return (normalizedCategory == 'physical' ||
+            normalizedCategory == 'special') &&
+        normalizedTarget == 'adjacent_all_pokemon' &&
+        battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
   }
 
   bool get isStrictAbsorbDrain {
@@ -564,23 +627,25 @@ String generatePsdkAttackCoverageReport({
     ..writeln('- `pas_fait`: the method is missing or unknown locally.')
     ..writeln(
       '- `s_basic` is counted as `fait` for damaging Studio moves with no '
-      'rider, with supported stat/major-status/confusion/flinch riders, or '
-      'Blizzard; unsupported metadata riders remain `partiel`.',
+      'rider, with supported single-target or adjacent spread '
+      'stat/major-status/confusion/flinch riders, or Blizzard; unsupported '
+      'metadata riders remain `partiel`.',
     )
     ..writeln(
-      '- `s_self_stat` is counted as `fait` only for status self-boosts '
-      'or single-target damage self-stage riders on supported stats; '
-      'mixed riders remain `partiel`.',
+      '- `s_self_stat` is counted as `fait` for status self-stage payloads '
+      'and supported single-target or adjacent-foe spread damage self-stage '
+      'riders; mixed status riders remain `partiel`.',
     )
     ..writeln(
       '- `s_stat` is counted as `fait` only for status stage-only moves '
-      'on supported stats and targets, optionally with one supported status '
-      'rider; other riders remain `partiel`.',
+      'on supported stats and single-target foe/ally/self targets, '
+      'optionally with one supported status rider; other riders remain '
+      '`partiel`.',
     )
     ..writeln(
       '- `s_status` is counted as `fait` only for single major-status or '
-      'single-target Confusion moves; mixed/multi-target payloads remain '
-      '`partiel`.',
+      'Confusion moves on supported single or adjacent spread targets; '
+      'mixed payloads remain `partiel`.',
     )
     ..writeln(
       '- `s_self_status` is counted as `fait` only for single self-applied '
@@ -591,9 +656,10 @@ String generatePsdkAttackCoverageReport({
       'moves; Water Shuriken and metadata riders remain `partiel`.',
     )
     ..writeln(
-      '- `s_2turns` is counted as `fait` only for plain charged damage moves '
-      'with forced release; Power Herb, weather/stat/status and multi-target '
-      'variants remain `partiel`.',
+      '- `s_2turns` is counted as `fait` for charged damage moves, supported '
+      'release-turn status riders, Skull Bash charge boost, Geomancy release '
+      'boosts and supported spread release targets; unsupported weather or '
+      'custom charge variants remain `partiel`.',
     )
     ..writeln(
       '- `s_reload` is counted as `fait` only for plain damage moves that '
@@ -601,9 +667,9 @@ String generatePsdkAttackCoverageReport({
     )
     ..writeln(
       '- `s_recoil` is counted as `fait` only for plain recoil damage moves; '
-      'implemented status riders are supported, while special self-crash and '
-      'multi-target variants remain '
-      '`partiel`.',
+      'implemented status riders and Studio Mind Blown self-crash are '
+      'supported, while other special self-crash or multi-target variants '
+      'remain `partiel`.',
     )
     ..writeln(
       '- `s_absorb` is counted as `fait` for plain drain moves, including '
@@ -920,6 +986,7 @@ const _strictStatChangeStats = <String>{
 };
 
 const _strictTargetStatChangeTargets = <String>{
+  'adjacent_ally',
   'adjacent_foe',
   'adjacent_pokemon',
   'adjacent_all_foe',
@@ -928,13 +995,15 @@ const _strictTargetStatChangeTargets = <String>{
 };
 
 const _strictBasicDamageRiderTargets = <String>{
+  'adjacent_all_pokemon',
   'adjacent_pokemon',
   'adjacent_foe',
   'adjacent_all_foe',
   'any_other_pokemon',
 };
 
-const _strictSingleTargetDamageTargets = <String>{
+const _strictSelfStatDamageTargets = <String>{
+  'adjacent_all_foe',
   'adjacent_pokemon',
   'adjacent_foe',
   'any_other_pokemon',
@@ -955,14 +1024,21 @@ const _strictSelfStatuses = <String>{
 };
 
 const _strictTwoTurnDamageMoves = <String>{
+  'bounce',
   'dig',
   'dive',
   'fly',
+  'freeze_shock',
+  'ice_burn',
   'phantom_force',
+  'razor_wind',
   'shadow_force',
+  'skull_bash',
+  'sky_attack',
 };
 
 const _strictTwoTurnDamageTargets = <String>{
+  'adjacent_all_foe',
   'adjacent_pokemon',
   'adjacent_foe',
   'any_other_pokemon',
@@ -1029,6 +1105,7 @@ const _strictProtectCoveredMoves = <String>{
 };
 
 const _strictMajorStatusTargets = <String>{
+  'adjacent_all_pokemon',
   'adjacent_pokemon',
   'adjacent_foe',
   'adjacent_all_foe',

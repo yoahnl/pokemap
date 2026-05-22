@@ -831,67 +831,148 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     return common.toResolution();
   }
 
-  final targetSlot = common.psdkTargets.single;
-  final user = common.state.battlerAt(context.user);
-  final target = common.state.battlerAt(targetSlot);
-  final damageResult = const BattleMoveDamageCalculator().calculate(
-    BattleMoveDamageContext(
-      user: user,
-      target: target,
-      move: context.move,
-      rng: common.rng,
-      field: common.state.field,
-      state: common.state,
-      userSlot: context.user,
-      targetSlot: targetSlot,
-      isLastActionOfTurn: context.isLastActionOfTurn,
-    ),
-  );
-  if (damageResult.damage <= 0) {
-    return BattleMoveBehaviorResolution(
-      state: common.state,
-      rng: damageResult.rng,
-      events: common.events,
-    );
-  }
-  final damage = _screenAdjustedDamage(
-    state: common.state,
-    user: user,
-    target: targetSlot,
-    move: context.move,
-    damage: damageResult.damage,
-    isCritical: damageResult.isCritical,
-  );
+  var state = common.state;
+  var rng = common.rng;
+  final events = <PsdkBattleEvent>[...common.events];
+  final successfulTargets = <PsdkBattleSlotRef>[];
 
-  final applied = applyDirectDamage(
-    state: common.state,
-    user: context.user,
-    target: targetSlot,
-    moveId: context.move.id,
-    rng: damageResult.rng,
-    turn: context.turn,
-    amount: damage,
-    moveCategory: context.move.category,
-    move: context.move,
-  );
-  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
-    state: applied.state,
-    rng: applied.rng,
-    user: context.user,
-    target: targetSlot,
-    move: context.move,
-    turn: context.turn,
-  );
+  for (final targetSlot in common.psdkTargets) {
+    final user = state.battlerAt(context.user);
+    final target = state.battlerAt(targetSlot);
+    final damageResult = const BattleMoveDamageCalculator().calculate(
+      BattleMoveDamageContext(
+        user: user,
+        target: target,
+        move: context.move,
+        rng: rng,
+        field: state.field,
+        state: state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+      ),
+    );
+    rng = damageResult.rng;
+    if (damageResult.damage <= 0) {
+      continue;
+    }
+    final damage = _screenAdjustedDamage(
+      state: state,
+      user: user,
+      target: targetSlot,
+      move: context.move,
+      damage: damageResult.damage,
+      isCritical: damageResult.isCritical,
+    );
+
+    final applied = applyDirectDamage(
+      state: state,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
+      amount: damage,
+      moveCategory: context.move.category,
+      move: context.move,
+    );
+    state = applied.state;
+    rng = applied.rng;
+    events.addAll(applied.events);
+    if (applied.damage > 0) {
+      successfulTargets.add(targetSlot);
+    }
+  }
+
+  if (successfulTargets.isNotEmpty) {
+    final secondaryGate = _resolveBasicSecondaryGate(
+      move: context.move,
+      rng: rng,
+      state: state,
+      user: context.user,
+      target: successfulTargets.first,
+    );
+    rng = secondaryGate.rng;
+    if (!secondaryGate.applies) {
+      return BattleMoveBehaviorResolution(
+        state: state,
+        rng: rng,
+        events: events,
+      );
+    }
+    final secondaryMove = secondaryGate.move;
+    for (final targetSlot in successfulTargets) {
+      final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: rng,
+        user: context.user,
+        target: targetSlot,
+        move: secondaryMove,
+        turn: context.turn,
+      );
+      state = secondary.state;
+      rng = secondary.rng;
+      events.addAll(secondary.events);
+    }
+  }
 
   return BattleMoveBehaviorResolution(
-    state: secondary.state,
-    rng: secondary.rng,
-    events: <PsdkBattleEvent>[
-      ...common.events,
-      ...applied.events,
-      ...secondary.events,
-    ],
+    state: state,
+    rng: rng,
+    events: events,
   );
+}
+
+_BasicSecondaryGate _resolveBasicSecondaryGate({
+  required BattleMoveDefinition move,
+  required BattleRngStreams rng,
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+}) {
+  if (move.statuses.isEmpty && move.stageMods.isEmpty) {
+    return _BasicSecondaryGate(applies: false, rng: rng, move: move);
+  }
+  final effectChance = battleModifiedSecondaryEffectChance(
+    state: state,
+    user: user,
+    target: target,
+    move: move,
+    chance: move.effectChance,
+  );
+  if (effectChance == null) {
+    return _BasicSecondaryGate(applies: true, rng: rng, move: move);
+  }
+  final moveAfterGlobalGate = move.copyWith(effectChance: 100);
+  if (effectChance == 100) {
+    return _BasicSecondaryGate(
+      applies: true,
+      rng: rng,
+      move: moveAfterGlobalGate,
+    );
+  }
+  final roll = rng.generic.nextPercent();
+  final nextRng = rng.copyWith(generic: roll.next);
+  if (roll.value > effectChance) {
+    return _BasicSecondaryGate(applies: false, rng: nextRng, move: move);
+  }
+  return _BasicSecondaryGate(
+    applies: true,
+    rng: nextRng,
+    move: moveAfterGlobalGate,
+  );
+}
+
+final class _BasicSecondaryGate {
+  const _BasicSecondaryGate({
+    required this.applies,
+    required this.rng,
+    required this.move,
+  });
+
+  final bool applies;
+  final BattleRngStreams rng;
+  final BattleMoveDefinition move;
 }
 
 int _screenAdjustedDamage({
@@ -2398,7 +2479,7 @@ BattleMoveBehaviorResolution _resolveElectroShot(
         effects: battler.effects.remove(PsdkBattleEffectIds.twoTurnCharge),
       ),
     );
-    return _resolveBasic(
+    return _resolveTwoTurnRelease(
       BattleMoveBehaviorContext(
         state: releasedState,
         rng: context.rng,
@@ -4511,7 +4592,7 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
         effects: battler.effects.remove(PsdkBattleEffectIds.twoTurnCharge),
       ),
     );
-    return _resolveBasic(
+    return _resolveTwoTurnRelease(
       BattleMoveBehaviorContext(
         state: releasedState,
         rng: context.rng,
@@ -4526,8 +4607,21 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
     );
   }
 
+  final prepared = prepareBattleMove(context, forceAccuracyBypass: true);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final chargeEffects = _applyTwoTurnChargeStageEffects(
+    context: context,
+    state: prepared.state,
+    rng: prepared.rng,
+    events: prepared.events,
+  );
+
   BattleItemEffect? shortcutItem;
-  for (final effect in user.activeItemEffects) {
+  for (final effect
+      in chargeEffects.state.battlerAt(context.user).activeItemEffects) {
     if (effect.twoTurnShortcut(context.move)) {
       shortcutItem = effect;
       break;
@@ -4536,15 +4630,15 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
   if (shortcutItem != null) {
     final consumed = const BattleItemChangeHandler().consumeHeldItem(
       context: BattleHandlerContext(
-        state: context.state,
-        rng: context.rng,
+        state: chargeEffects.state,
+        rng: chargeEffects.rng,
         turn: context.turn,
         user: context.user,
       ),
       target: context.user,
     );
     if (consumed.applied) {
-      final resolved = _resolveBasic(
+      final resolved = _resolveTwoTurnRelease(
         BattleMoveBehaviorContext(
           state: consumed.state,
           rng: consumed.rng,
@@ -4561,6 +4655,7 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
         state: resolved.state,
         rng: resolved.rng,
         events: <PsdkBattleEvent>[
+          ...chargeEffects.events,
           ...consumed.events,
           ...resolved.events,
         ],
@@ -4568,22 +4663,140 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
     }
   }
 
-  final prepared = prepareBattleMove(context, forceAccuracyBypass: true);
-  if (!prepared.shouldExecuteBehavior) {
-    return prepared.toResolution();
-  }
-
   return _addEffectToUser(
     context: context,
-    state: prepared.state,
-    rng: prepared.rng,
-    events: prepared.events,
+    state: chargeEffects.state,
+    rng: chargeEffects.rng,
+    events: chargeEffects.events,
     effect: TwoTurnChargeEffect(
       scope: BattlerBattleEffectScope(context.user),
       chargedMoveId: context.move.id,
       chargedTarget: context.target,
     ),
   );
+}
+
+BattleMoveBehaviorResolution _resolveTwoTurnRelease(
+  BattleMoveBehaviorContext context,
+) {
+  if (context.move.power == 0 &&
+      (context.move.statuses.isNotEmpty || context.move.stageMods.isNotEmpty)) {
+    return _resolveTwoTurnStatusRelease(context);
+  }
+  return _resolveBasic(context);
+}
+
+BattleMoveBehaviorResolution _resolveTwoTurnStatusRelease(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+  var state = prepared.state;
+  var rng = prepared.rng;
+  final events = <PsdkBattleEvent>[...prepared.events];
+  final targets = prepared.psdkTargets.isEmpty
+      ? <PsdkBattleSlotRef>[context.user]
+      : prepared.psdkTargets;
+  for (final target in targets) {
+    for (final mod in context.move.stageMods) {
+      final changed = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: state,
+          rng: rng,
+          turn: context.turn,
+          user: context.user,
+        ),
+        target: target,
+        stat: mod.stat,
+        stages: mod.stages,
+        move: context.move,
+      );
+      state = changed.state;
+      rng = changed.rng;
+      if (changed.applied) {
+        events.addAll(changed.events);
+      }
+    }
+    if (context.move.statuses.isNotEmpty) {
+      final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: rng,
+        user: context.user,
+        target: target,
+        move: context.move.copyWith(stageMods: const <BattleStageMod>[]),
+        turn: context.turn,
+      );
+      state = secondary.state;
+      rng = secondary.rng;
+      events.addAll(secondary.events);
+    }
+  }
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
+    events: events,
+  );
+}
+
+_TwoTurnChargeEffects _applyTwoTurnChargeStageEffects({
+  required BattleMoveBehaviorContext context,
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required List<PsdkBattleEvent> events,
+}) {
+  var nextState = state;
+  var nextRng = rng;
+  final nextEvents = <PsdkBattleEvent>[...events];
+  for (final mod in _twoTurnChargeStageMods(context.move)) {
+    final changed = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: nextState,
+        rng: nextRng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: context.user,
+      stat: mod.stat,
+      stages: mod.stages,
+      move: context.move,
+    );
+    nextState = changed.state;
+    nextRng = changed.rng;
+    if (changed.applied) {
+      nextEvents.addAll(changed.events);
+    }
+  }
+  return _TwoTurnChargeEffects(
+    state: nextState,
+    rng: nextRng,
+    events: nextEvents,
+  );
+}
+
+List<BattleStageMod> _twoTurnChargeStageMods(BattleMoveDefinition move) {
+  return switch (move.dbSymbol) {
+    'electro_shot' || 'meteor_beam' => const <BattleStageMod>[
+        BattleStageMod(stat: 'specialAttack', stages: 1),
+      ],
+    'skull_bash' => const <BattleStageMod>[
+        BattleStageMod(stat: 'defense', stages: 1),
+      ],
+    _ => const <BattleStageMod>[],
+  };
+}
+
+final class _TwoTurnChargeEffects {
+  const _TwoTurnChargeEffects({
+    required this.state,
+    required this.rng,
+    required this.events,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
 }
 
 bool _isRainActive(PsdkBattleState state) {
