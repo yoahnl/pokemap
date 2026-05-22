@@ -968,8 +968,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_wonder_room': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_wonder_room)',
+    status: _PsdkPortStatus.ported,
   ),
   's_worry_seed': _KnownDartBehavior(
     dartBehavior:

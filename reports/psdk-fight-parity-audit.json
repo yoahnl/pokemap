@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 639,
-    "partiel": 89,
+    "fait": 640,
+    "partiel": 88,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5747,9 +5747,9 @@
       {
         "moveId": "wonder_room",
         "battleEngineMethod": "s_wonder_room",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/wonder_room.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 283,
-      "partial": 47,
+      "ported": 284,
+      "partial": 46,
       "missing": 0
     },
     "entries": [
@@ -9186,14 +9186,13 @@
         "battleEngineMethod": "s_wonder_room",
         "rubyClass": "WonderRoom",
         "rubyPath": "10 Move/2 Definitions/300 WonderRoom.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_wonder_room)",
+        "status": "ported",
         "dependencies": [
           "effects",
           "handlerStat",
           "field"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_worry_seed",
@@ -9254,7 +9253,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 33,
+        "count": 32,
         "methods": [
           "s_chilly_reception",
           "s_conversion",
@@ -9287,7 +9286,6 @@
           "s_swallow",
           "s_teatime",
           "s_teleport",
-          "s_wonder_room",
           "s_worry_seed"
         ]
       }

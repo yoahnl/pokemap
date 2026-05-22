@@ -14,8 +14,8 @@ Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-
 
 | Scope | Strict parity | Executable | Remaining strict work |
 | --- | ---: | ---: | ---: |
-| PSDK methods | 283 / 330 = 85.8% | 330 / 330 = 100% | 47 partial |
-| Studio attacks | 639 / 728 = 87.8% | 728 / 728 = 100% | 89 partial |
+| PSDK methods | 284 / 330 = 86.1% | 330 / 330 = 100% | 46 partial |
+| Studio attacks | 640 / 728 = 87.9% | 728 / 728 = 100% | 88 partial |
 
 ## Strict Parity by Large Family
 
@@ -29,7 +29,7 @@ current audit and should be treated as authoritative.
 | Effects / volatiles / protections | 37 / 111 = 33.3% | 71 / 134 = 53.0% | Effect lifecycle, Substitute, volatiles |
 | Abilities | 34 / 78 = 43.6% | 49 / 106 = 46.2% | Ability hooks and suppression edge cases |
 | Items | 6 / 6 = 100.0% | 14 / 23 = 60.9% | Attack-level item branches still partial |
-| Field / weather / terrain / rooms | 6 / 7 = 85.7% | 3 / 3 = 100.0% | Wonder Room and remaining field hooks |
+| Field / weather / terrain / rooms | 7 / 7 = 100.0% | 3 / 3 = 100.0% | No strict blocker in current grouping |
 | KO / faint process | 2 / 3 = 66.7% | 3 / 4 = 75.0% | Faint callbacks and double-KO semantics |
 | Damage / power / HP healing | 38 / 38 = 100.0% | 54 / 57 = 94.7% | A few attack-level special branches |
 | History / action order / forced turns | 8 / 8 = 100.0% | 16 / 16 = 100.0% | No strict blocker in current grouping |
@@ -42,15 +42,14 @@ current audit and should be treated as authoritative.
 
 These are non-exclusive: one partial method can appear in several rows.
 
-| Blocker | Partial methods affected | Share of remaining 47 partial methods |
+| Blocker | Partial methods affected | Share of remaining 46 partial methods |
 | --- | ---: | ---: |
-| Effects | 47 | 100.0% |
-| Abilities | 19 | 40.4% |
-| Damage handler | 14 | 29.8% |
-| Items | 14 | 29.8% |
-| Field | 5 | 10.6% |
-| Multi-target targeting | 1 | 2.1% |
-| Stat handler | 1 | 2.1% |
+| Effects | 46 | 100.0% |
+| Abilities | 19 | 41.3% |
+| Damage handler | 14 | 30.4% |
+| Items | 14 | 30.4% |
+| Field | 4 | 8.7% |
+| Multi-target targeting | 1 | 2.2% |
 
 ## High-Impact Partial Attack Families
 
@@ -62,7 +61,7 @@ These are non-exclusive: one partial method can appear in several rows.
 
 ## Estimate
 
-For true 100% strict parity, remaining work is not 89 isolated lots. It should be grouped into roughly 16 to 20 large lots:
+For true 100% strict parity, remaining work is not 88 isolated lots. It should be grouped into roughly 15 to 19 large lots:
 
 - effects lifecycle first;
 - ability hooks second;

@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 283 |
-| `partial` | 47 |
+| `ported` | 284 |
+| `partial` | 46 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -338,7 +338,7 @@ Total registered methods: 330
 | `s_weather` | `WeatherMove` | `10 Move/2 Definitions/300 WeatherMove.rb` | `WeatherMoveBehavior` | `ported` | `handler_weather, weather, effects, item` |
 | `s_weather_ball` | `WeatherBall` | `10 Move/2 Definitions/300 WeatherBall.rb` | `WeatherPowerMoveBehavior.weatherBall` | `ported` | `weather, ability` |
 | `s_wish` | `Wish` | `10 Move/2 Definitions/300 Wish.rb` | `StaticBasicMoveRegistry.s_wish` | `ported` | `effects, end_turn, handler_switch` |
-| `s_wonder_room` | `WonderRoom` | `10 Move/2 Definitions/300 WonderRoom.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)` | `partial` | `effects, handler_stat, field` |
+| `s_wonder_room` | `WonderRoom` | `10 Move/2 Definitions/300 WonderRoom.rb` | `StaticBasicMoveRegistry.fieldMarker(s_wonder_room)` | `ported` | `effects, handler_stat, field` |
 | `s_worry_seed` | `WorrySeed` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)` | `partial` | `ability, effects` |
 | `s_wring_out` | `WringOut` | `10 Move/2 Definitions/300 WringOut.rb` | `VariablePowerMoveBehavior.wringOut` | `ported` | `-` |
 | `s_yawn` | `Yawn` | `10 Move/2 Definitions/300 Yawn.rb` | `StaticBasicMoveRegistry.drowsiness` | `ported` | `effects, handler_status, ability, terrain` |

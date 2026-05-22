@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 639 |
-| partiel | 89 |
+| fait | 640 |
+| partiel | 88 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -751,7 +751,7 @@ Coverage semantics:
 | fait | wing_attack | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | physical | 60 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/wing_attack.json |
 | fait | wish | s_wish | ported | StaticBasicMoveRegistry.s_wish | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wish.json |
 | fait | withdraw | s_self_stat | ported | StatusStatMoveBehavior.selfStat | water | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/withdraw.json |
-| partiel | wonder_room | s_wonder_room | partial | StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wonder_room.json |
+| fait | wonder_room | s_wonder_room | ported | StaticBasicMoveRegistry.fieldMarker(s_wonder_room) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wonder_room.json |
 | fait | wood_hammer | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | grass | physical | 120 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/wood_hammer.json |
 | fait | work_up | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/work_up.json |
 | partiel | worry_seed | s_worry_seed | partial | StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed) | grass | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/worry_seed.json |

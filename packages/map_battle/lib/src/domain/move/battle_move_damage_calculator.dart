@@ -769,9 +769,14 @@ int _physicalAttack(BattleMoveDamageContext context) {
 }
 
 int _defensiveStat(BattleMoveDamageContext context) {
+  final wonderRoomActive =
+      (context.state?.hasFieldEffect('wonder_room') ?? false) ||
+      _hasBattleEffect(context, 'wonder_room');
   final value = switch (context.move.category) {
     PsdkBattleMoveCategory.physical => _adjustedStat(
-        value: context.target.stats.defense,
+        value: wonderRoomActive
+            ? context.target.stats.specialDefense
+            : context.target.stats.defense,
         battler: context.target,
         battlerSlot: context.targetSlot,
         field: context.field,
@@ -779,7 +784,9 @@ int _defensiveStat(BattleMoveDamageContext context) {
         stat: 'defense',
       ),
     PsdkBattleMoveCategory.special => _adjustedStat(
-        value: context.target.stats.specialDefense,
+        value: wonderRoomActive
+            ? context.target.stats.defense
+            : context.target.stats.specialDefense,
         battler: context.target,
         battlerSlot: context.targetSlot,
         field: context.field,

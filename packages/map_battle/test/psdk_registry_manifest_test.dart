@@ -1488,6 +1488,10 @@ void main() {
           method: 's_magic_room',
           behavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
         ),
+        (
+          method: 's_wonder_room',
+          behavior: 'StaticBasicMoveRegistry.fieldMarker(s_wonder_room)',
+        ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
@@ -1542,10 +1546,6 @@ void main() {
           method: 's_skill_swap',
           behavior:
               'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
-        ),
-        (
-          method: 's_wonder_room',
-          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)',
         ),
         (
           method: 's_worry_seed',

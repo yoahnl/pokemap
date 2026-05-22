@@ -978,6 +978,90 @@ void main() {
           greaterThan(normalTarget.damageToOpponent));
       expect(ghostThirdType.damageToOpponent, 0);
     });
+
+    test('Wonder Room swaps target defensive stats for damage calculation', () {
+      final baselinePhysical = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.physical,
+        ),
+      );
+      final baselineSpecial = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        playerMove: _damagingMove(
+          id: 'swift',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final wonderPhysical = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        opponentEffects: _fieldEffect('wonder_room'),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.physical,
+        ),
+      );
+      final wonderSpecial = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        opponentEffects: _fieldEffect('wonder_room'),
+        playerMove: _damagingMove(
+          id: 'swift',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+
+      expect(wonderPhysical.damageToOpponent, baselineSpecial.damageToOpponent);
+      expect(wonderSpecial.damageToOpponent, baselinePhysical.damageToOpponent);
+      expect(
+        wonderPhysical.damageToOpponent,
+        greaterThan(baselinePhysical.damageToOpponent),
+      );
+      expect(
+        wonderSpecial.damageToOpponent,
+        lessThan(baselineSpecial.damageToOpponent),
+      );
+    });
   });
 }
 
@@ -992,6 +1076,8 @@ _RunResult _runSinglePlayerMove({
   String? opponentAbilityId,
   String? playerHeldItemId,
   String? opponentHeldItemId,
+  PsdkBattleStats? playerStats,
+  PsdkBattleStats? opponentStats,
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
@@ -1009,6 +1095,7 @@ _RunResult _runSinglePlayerMove({
       types: playerTypes,
       type3: playerType3,
       speed: 100,
+      stats: playerStats,
       abilityId: playerAbilityId,
       heldItemId: playerHeldItemId,
       effects: playerEffects,
@@ -1019,6 +1106,7 @@ _RunResult _runSinglePlayerMove({
       types: opponentTypes,
       type3: opponentType3,
       speed: 1,
+      stats: opponentStats,
       abilityId: opponentAbilityId,
       heldItemId: opponentHeldItemId,
       majorStatus: opponentMajorStatus,
@@ -1071,6 +1159,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleTypes types,
   String? type3,
   required int speed,
+  PsdkBattleStats? stats,
   required List<PsdkBattleMoveData> moves,
   String? abilityId,
   String? heldItemId,
@@ -1086,13 +1175,14 @@ PsdkBattleCombatantSetup _combatant({
     currentHp: 100,
     types: types,
     type3: type3,
-    stats: PsdkBattleStats(
-      attack: 50,
-      defense: 50,
-      specialAttack: 50,
-      specialDefense: 50,
-      speed: speed,
-    ),
+    stats: stats ??
+        PsdkBattleStats(
+          attack: 50,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: speed,
+        ),
     abilityId: abilityId,
     heldItemId: heldItemId,
     majorStatus: majorStatus,

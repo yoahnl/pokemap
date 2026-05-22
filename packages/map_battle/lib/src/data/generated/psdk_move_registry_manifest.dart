@@ -3188,8 +3188,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_wonder_room',
     rubyClass: 'WonderRoom',
     rubyPath: '10 Move/2 Definitions/300 WonderRoom.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_wonder_room)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerStat,
