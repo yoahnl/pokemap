@@ -463,6 +463,7 @@ final class ProjectBuildingShadowPreset {
     ProjectedBuildingShadowGeometryMode geometryMode =
         ProjectedBuildingShadowGeometryMode.directional,
     ProjectedShadowFootprintTuning? footprint,
+    ProjectedShadowFootprintTuningStrategy? footprintStrategy,
     String? categoryId,
     int sortOrder = 0,
   }) {
@@ -475,6 +476,7 @@ final class ProjectBuildingShadowPreset {
     _validateProjectedBuildingShadowGeometryMode(
       geometryMode: geometryMode,
       footprint: footprint,
+      footprintStrategy: footprintStrategy,
     );
     return ProjectBuildingShadowPreset._(
       id: id,
@@ -485,6 +487,7 @@ final class ProjectBuildingShadowPreset {
       timeOfDayMode: timeOfDayMode,
       geometryMode: geometryMode,
       footprint: footprint,
+      footprintStrategy: footprintStrategy,
       categoryId: categoryId,
       sortOrder: sortOrder,
     );
@@ -499,6 +502,7 @@ final class ProjectBuildingShadowPreset {
     required this.timeOfDayMode,
     required this.geometryMode,
     required this.footprint,
+    required this.footprintStrategy,
     required this.categoryId,
     required this.sortOrder,
   });
@@ -511,6 +515,7 @@ final class ProjectBuildingShadowPreset {
   final ProjectedShadowTimeOfDayMode timeOfDayMode;
   final ProjectedBuildingShadowGeometryMode geometryMode;
   final ProjectedShadowFootprintTuning? footprint;
+  final ProjectedShadowFootprintTuningStrategy? footprintStrategy;
   final String? categoryId;
   final int sortOrder;
 
@@ -526,6 +531,7 @@ final class ProjectBuildingShadowPreset {
           other.timeOfDayMode == timeOfDayMode &&
           other.geometryMode == geometryMode &&
           other.footprint == footprint &&
+          other.footprintStrategy == footprintStrategy &&
           other.categoryId == categoryId &&
           other.sortOrder == sortOrder;
 
@@ -539,6 +545,7 @@ final class ProjectBuildingShadowPreset {
         timeOfDayMode,
         geometryMode,
         footprint,
+        footprintStrategy,
         categoryId,
         sortOrder,
       );
@@ -724,6 +731,7 @@ void _validatePositiveRatioMax(double value, String name, double max) {
 void _validateProjectedBuildingShadowGeometryMode({
   required ProjectedBuildingShadowGeometryMode geometryMode,
   required ProjectedShadowFootprintTuning? footprint,
+  required ProjectedShadowFootprintTuningStrategy? footprintStrategy,
 }) {
   switch (geometryMode) {
     case ProjectedBuildingShadowGeometryMode.directional:
@@ -732,11 +740,29 @@ void _validateProjectedBuildingShadowGeometryMode({
           'ProjectBuildingShadowPreset.footprint must be null for directional geometry',
         );
       }
-    case ProjectedBuildingShadowGeometryMode.footprint:
-      if (footprint == null) {
+      if (footprintStrategy != null) {
         throw const ValidationException(
-          'ProjectBuildingShadowPreset.footprint is required for footprint geometry',
+          'ProjectBuildingShadowPreset.footprintStrategy must be null for directional geometry',
         );
+      }
+    case ProjectedBuildingShadowGeometryMode.footprint:
+      switch (footprintStrategy) {
+        case null:
+          if (footprint == null) {
+            throw const ValidationException(
+              'ProjectBuildingShadowPreset.footprint is required for footprint geometry',
+            );
+          }
+        case ProjectedShadowFootprintFixedTuning():
+          throw const ValidationException(
+            'ProjectBuildingShadowPreset.footprintStrategy fixed tuning is not supported in preset V0',
+          );
+        case ProjectedShadowFootprintAdaptiveDepthTuning():
+          if (footprint != null) {
+            throw const ValidationException(
+              'ProjectBuildingShadowPreset.footprint must be null when adaptive footprintStrategy is used',
+            );
+          }
       }
   }
 }
