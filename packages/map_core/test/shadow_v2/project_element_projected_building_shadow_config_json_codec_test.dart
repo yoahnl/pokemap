@@ -22,6 +22,37 @@ void main() {
       );
     });
 
+    test('omits casterKind when null', () {
+      final encoded = encodeProjectElementProjectedBuildingShadowConfig(
+        _config(),
+      );
+
+      expect(encoded.containsKey('casterKind'), isFalse);
+      expect(encoded, _configJson());
+    });
+
+    test('encodes building casterKind', () {
+      final config = _config(
+        casterKind: ProjectedBuildingShadowCasterKind.building,
+      );
+
+      expect(
+        encodeProjectElementProjectedBuildingShadowConfig(config),
+        _configJson(casterKind: 'building'),
+      );
+    });
+
+    test('encodes largeVolume casterKind', () {
+      final config = _config(
+        casterKind: ProjectedBuildingShadowCasterKind.largeVolume,
+      );
+
+      expect(
+        encodeProjectElementProjectedBuildingShadowConfig(config),
+        _configJson(casterKind: 'largeVolume'),
+      );
+    });
+
     test('decodes canonical config with enabled true', () {
       final config = decodeProjectElementProjectedBuildingShadowConfig(
         _configJson(),
@@ -31,6 +62,38 @@ void main() {
       expect(config.presetId, 'short-west-building-shadow');
       expect(config.anchor, ProjectedShadowAnchor(xRatio: 0.5, yRatio: 0.98));
       expect(config.localOffset, ProjectedShadowOffset(x: 0, y: 0));
+    });
+
+    test('decodes missing casterKind as null', () {
+      final config = decodeProjectElementProjectedBuildingShadowConfig(
+        _configJson(),
+      );
+
+      expect(config.casterKind, isNull);
+    });
+
+    test('decodes explicit null casterKind as null', () {
+      final config = decodeProjectElementProjectedBuildingShadowConfig(
+        _configJson(casterKind: null),
+      );
+
+      expect(config.casterKind, isNull);
+    });
+
+    test('decodes building casterKind', () {
+      final config = decodeProjectElementProjectedBuildingShadowConfig(
+        _configJson(casterKind: 'building'),
+      );
+
+      expect(config.casterKind, ProjectedBuildingShadowCasterKind.building);
+    });
+
+    test('decodes largeVolume casterKind', () {
+      final config = decodeProjectElementProjectedBuildingShadowConfig(
+        _configJson(casterKind: 'largeVolume'),
+      );
+
+      expect(config.casterKind, ProjectedBuildingShadowCasterKind.largeVolume);
     });
 
     test('decodes canonical config with enabled false', () {
@@ -59,6 +122,19 @@ void main() {
       );
     });
 
+    test('round-trips config with casterKind', () {
+      final config = _config(
+        casterKind: ProjectedBuildingShadowCasterKind.building,
+      );
+
+      expect(
+        decodeProjectElementProjectedBuildingShadowConfig(
+          encodeProjectElementProjectedBuildingShadowConfig(config),
+        ),
+        config,
+      );
+    });
+
     test('round-trips JSON without re-emitting unknown keys', () {
       final json = _configJson(
         localOffset: _offsetJson(x: 3, y: -2.5),
@@ -74,6 +150,19 @@ void main() {
         ),
         _configJson(localOffset: _offsetJson(x: 3, y: -2.5)),
       );
+    });
+
+    test('round-trips legacy JSON without re-emitting casterKind', () {
+      final decoded = decodeProjectElementProjectedBuildingShadowConfig(
+        _configJson(),
+      );
+      final encoded = encodeProjectElementProjectedBuildingShadowConfig(
+        decoded,
+      );
+
+      expect(decoded.casterKind, isNull);
+      expect(encoded.containsKey('casterKind'), isFalse);
+      expect(encoded, _configJson());
     });
 
     test('rejects missing required fields', () {
@@ -118,6 +207,19 @@ void main() {
         ),
         throwsA(isA<ValidationException>()),
       );
+      for (final casterKind in <Object?>[
+        1,
+        true,
+        <String, Object?>{},
+        <Object?>[],
+      ]) {
+        expect(
+          () => decodeProjectElementProjectedBuildingShadowConfig(
+            _configJson(casterKind: casterKind),
+          ),
+          throwsA(isA<ValidationException>()),
+        );
+      }
     });
 
     test('rejects invalid values delegated to model and value objects', () {
@@ -143,9 +245,17 @@ void main() {
         ),
         throwsA(isA<ValidationException>()),
       );
+      expect(
+        () => decodeProjectElementProjectedBuildingShadowConfig(
+          _configJson(casterKind: 'lampPost'),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
     });
   });
 }
+
+const Object _absent = Object();
 
 ProjectElementProjectedBuildingShadowConfig _config({
   bool enabled = true,
@@ -154,6 +264,7 @@ ProjectElementProjectedBuildingShadowConfig _config({
   double anchorYRatio = 0.98,
   double offsetX = 0,
   double offsetY = 0,
+  ProjectedBuildingShadowCasterKind? casterKind,
 }) {
   return ProjectElementProjectedBuildingShadowConfig(
     enabled: enabled,
@@ -163,6 +274,7 @@ ProjectElementProjectedBuildingShadowConfig _config({
       yRatio: anchorYRatio,
     ),
     localOffset: ProjectedShadowOffset(x: offsetX, y: offsetY),
+    casterKind: casterKind,
   );
 }
 
@@ -171,12 +283,14 @@ Map<String, Object?> _configJson({
   Object? presetId = 'short-west-building-shadow',
   Object? anchor,
   Object? localOffset,
+  Object? casterKind = _absent,
 }) {
   return <String, Object?>{
     'enabled': enabled,
     'presetId': presetId,
     'anchor': anchor ?? _anchorJson(),
     'localOffset': localOffset ?? _offsetJson(),
+    if (!identical(casterKind, _absent)) 'casterKind': casterKind,
   };
 }
 

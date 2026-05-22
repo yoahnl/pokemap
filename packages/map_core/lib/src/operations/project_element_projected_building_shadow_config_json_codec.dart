@@ -62,11 +62,14 @@ String _requiredString(
 Map<String, dynamic> encodeProjectElementProjectedBuildingShadowConfig(
   ProjectElementProjectedBuildingShadowConfig config,
 ) {
+  final casterKind = config.casterKind;
   return <String, dynamic>{
     'enabled': config.enabled,
     'presetId': config.presetId,
     'anchor': encodeProjectedShadowAnchor(config.anchor),
     'localOffset': encodeProjectedShadowOffset(config.localOffset),
+    if (casterKind != null)
+      'casterKind': encodeProjectedBuildingShadowCasterKind(casterKind),
   };
 }
 
@@ -81,6 +84,7 @@ ProjectElementProjectedBuildingShadowConfig
     json,
     'ProjectElementProjectedBuildingShadowConfig',
   );
+  final casterKindJson = map['casterKind'];
   return ProjectElementProjectedBuildingShadowConfig(
     enabled: _requiredBool(
       map,
@@ -106,5 +110,8 @@ ProjectElementProjectedBuildingShadowConfig
         'ProjectElementProjectedBuildingShadowConfig.localOffset',
       ),
     ),
+    casterKind: casterKindJson == null
+        ? null
+        : decodeProjectedBuildingShadowCasterKind(casterKindJson),
   );
 }

@@ -215,3 +215,29 @@ ProjectedShadowTimeOfDayMode decodeProjectedShadowTimeOfDayMode(Object? json) {
       ),
   };
 }
+
+String encodeProjectedBuildingShadowCasterKind(
+  ProjectedBuildingShadowCasterKind casterKind,
+) {
+  return switch (casterKind) {
+    ProjectedBuildingShadowCasterKind.building => 'building',
+    ProjectedBuildingShadowCasterKind.largeVolume => 'largeVolume',
+  };
+}
+
+ProjectedBuildingShadowCasterKind decodeProjectedBuildingShadowCasterKind(
+  Object? json,
+) {
+  if (json is! String) {
+    throw ValidationException(
+      'ProjectedBuildingShadowCasterKind must be a String, got ${json.runtimeType}',
+    );
+  }
+  return switch (json) {
+    'building' => ProjectedBuildingShadowCasterKind.building,
+    'largeVolume' => ProjectedBuildingShadowCasterKind.largeVolume,
+    _ => throw ValidationException(
+        'ProjectedBuildingShadowCasterKind has unknown value "$json"',
+      ),
+  };
+}

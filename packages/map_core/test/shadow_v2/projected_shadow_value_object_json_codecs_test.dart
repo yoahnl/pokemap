@@ -438,4 +438,59 @@ void main() {
       );
     });
   });
+
+  group('ProjectedBuildingShadowCasterKind JSON codec', () {
+    test('encodes building', () {
+      expect(
+        encodeProjectedBuildingShadowCasterKind(
+          ProjectedBuildingShadowCasterKind.building,
+        ),
+        'building',
+      );
+    });
+
+    test('encodes largeVolume', () {
+      expect(
+        encodeProjectedBuildingShadowCasterKind(
+          ProjectedBuildingShadowCasterKind.largeVolume,
+        ),
+        'largeVolume',
+      );
+    });
+
+    test('decodes building', () {
+      expect(
+        decodeProjectedBuildingShadowCasterKind('building'),
+        ProjectedBuildingShadowCasterKind.building,
+      );
+    });
+
+    test('decodes largeVolume', () {
+      expect(
+        decodeProjectedBuildingShadowCasterKind('largeVolume'),
+        ProjectedBuildingShadowCasterKind.largeVolume,
+      );
+    });
+
+    test('rejects unknown string', () {
+      expect(
+        () => decodeProjectedBuildingShadowCasterKind('lampPost'),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects non-string', () {
+      expect(
+        () => decodeProjectedBuildingShadowCasterKind(1),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects null', () {
+      expect(
+        () => decodeProjectedBuildingShadowCasterKind(null),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+  });
 }
