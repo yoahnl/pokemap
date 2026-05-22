@@ -553,9 +553,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_entrainment': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_entrainment)',
+    status: _PsdkPortStatus.ported,
   ),
   's_grudge': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
@@ -794,8 +793,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_role_play': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_role_play)',
+    status: _PsdkPortStatus.ported,
   ),
   's_round': _KnownDartBehavior(
     dartBehavior: 'ConsecutivePowerMoveBehavior.round',
@@ -814,18 +813,16 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_simple_beam': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_simple_beam)',
+    status: _PsdkPortStatus.ported,
   ),
   's_snatch': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
     status: _PsdkPortStatus.partial,
   ),
   's_skill_swap': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_skill_swap)',
+    status: _PsdkPortStatus.ported,
   ),
   's_snore': _KnownDartBehavior(
     dartBehavior: 'ActionGatedMoveBehavior.snore',
@@ -972,9 +969,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_worry_seed': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_worry_seed)',
+    status: _PsdkPortStatus.ported,
   ),
   's_yawn': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.drowsiness',

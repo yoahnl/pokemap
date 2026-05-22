@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 284 |
-| `partial` | 46 |
+| `ported` | 289 |
+| `partial` | 41 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -82,7 +82,7 @@ Total registered methods: 330
 | `s_embargo` | `Embargo` | `10 Move/2 Definitions/300 Embargo.rb` | `StaticBasicMoveRegistry.targetMarker(s_embargo)` | `ported` | `effects` |
 | `s_encore` | `Encore` | `10 Move/2 Definitions/300 Encore.rb` | `StaticBasicMoveRegistry.encore` | `ported` | `effects` |
 | `s_endeavor` | `Endeavor` | `10 Move/2 Definitions/300 Endeavor.rb` | `DirectHpMoveBehavior.endeavor` | `ported` | `-` |
-| `s_entrainment` | `Entrainment` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)` | `partial` | `ability, effects` |
+| `s_entrainment` | `Entrainment` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_entrainment)` | `ported` | `ability, effects` |
 | `s_eruption` | `Eruption` | `10 Move/2 Definitions/300 Eruption.rb` | `VariablePowerMoveBehavior.eruption` | `ported` | `-` |
 | `s_expanding_force` | `ExpandingForce` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.expandingForce` | `ported` | `terrain, grounded, targeting_multi` |
 | `s_explosion` | `SelfDestruct` | `10 Move/2 Definitions/300 SelfDestruct.rb` | `SelfDestructMoveBehavior.explosion` | `ported` | `-` |
@@ -244,7 +244,7 @@ Total registered methods: 330
 | `s_revival_blessing` | `RevivalBlessing` | `10 Move/2 Definitions/300 RevivalBlessing.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_revival_blessing)` | `partial` | `effects` |
 | `s_rising_voltage` | `RisingVoltage` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.risingVoltage` | `ported` | `terrain, grounded` |
 | `s_roar` | `ForceSwitch` | `10 Move/2 Definitions/300 ForceSwitch.rb` | `StaticBasicMoveRegistry.forceSwitch(s_roar)` | `ported` | `handler_switch, effects, ability` |
-| `s_role_play` | `RolePlay` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)` | `partial` | `ability, effects` |
+| `s_role_play` | `RolePlay` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_role_play)` | `ported` | `ability, effects` |
 | `s_rollout` | `Rollout` | `10 Move/2 Definitions/300 Rollout.rb` | `ConsecutivePowerMoveBehavior.rollout` | `ported` | `effects, history, accuracy` |
 | `s_roost` | `Roost` | `10 Move/2 Definitions/300 Roost.rb` | `HealMoveBehavior.roost` | `ported` | `handler_damage, effects` |
 | `s_rototiller` | `Rototiller` | `10 Move/2 Definitions/300 Rototiller.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)` | `partial` | `effects` |
@@ -261,9 +261,9 @@ Total registered methods: 330
 | `s_shell_side_arm` | `ShellSideArm` | `10 Move/2 Definitions/300 ShellSideArm.rb` | `StaticBasicMoveRegistry.s_shell_side_arm` | `ported` | `effects` |
 | `s_shell_trap` | `ShellTrap` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `StaticBasicMoveRegistry.partialBasic(s_shell_trap)` | `partial` | `handler_damage, effects, ability, item` |
 | `s_shore_up` | `ShoreUp` | `10 Move/2 Definitions/300 Shore Up.rb` | `HealMoveBehavior.shoreUp` | `ported` | `weather, handler_damage, effects` |
-| `s_simple_beam` | `SimpleBeam` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)` | `partial` | `ability, effects` |
+| `s_simple_beam` | `SimpleBeam` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_simple_beam)` | `ported` | `ability, effects` |
 | `s_sketch` | `Sketch` | `10 Move/2 Definitions/300 Sketch.rb` | `CopyCallMoveBehavior.sketch` | `ported` | `-` |
-| `s_skill_swap` | `SkillSwap` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)` | `partial` | `ability, effects` |
+| `s_skill_swap` | `SkillSwap` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_skill_swap)` | `ported` | `ability, effects` |
 | `s_sky_drop` | `SkyDrop` | `10 Move/2 Definitions/300 SkyDrop.rb` | `StaticBasicMoveRegistry.s_sky_drop` | `ported` | `-` |
 | `s_sleep_talk` | `SleepTalk` | `10 Move/2 Definitions/300 SleepTalk.rb` | `CopyCallMoveBehavior.sleepTalk` | `ported` | `-` |
 | `s_smack_down` | `SmackDown` | `10 Move/2 Definitions/300 SmackDown.rb` | `GroundingMoveBehavior.smackDown` | `ported` | `effects, grounded, targeting_multi` |
@@ -339,6 +339,6 @@ Total registered methods: 330
 | `s_weather_ball` | `WeatherBall` | `10 Move/2 Definitions/300 WeatherBall.rb` | `WeatherPowerMoveBehavior.weatherBall` | `ported` | `weather, ability` |
 | `s_wish` | `Wish` | `10 Move/2 Definitions/300 Wish.rb` | `StaticBasicMoveRegistry.s_wish` | `ported` | `effects, end_turn, handler_switch` |
 | `s_wonder_room` | `WonderRoom` | `10 Move/2 Definitions/300 WonderRoom.rb` | `StaticBasicMoveRegistry.fieldMarker(s_wonder_room)` | `ported` | `effects, handler_stat, field` |
-| `s_worry_seed` | `WorrySeed` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)` | `partial` | `ability, effects` |
+| `s_worry_seed` | `WorrySeed` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_worry_seed)` | `ported` | `ability, effects` |
 | `s_wring_out` | `WringOut` | `10 Move/2 Definitions/300 WringOut.rb` | `VariablePowerMoveBehavior.wringOut` | `ported` | `-` |
 | `s_yawn` | `Yawn` | `10 Move/2 Definitions/300 Yawn.rb` | `StaticBasicMoveRegistry.drowsiness` | `ported` | `effects, handler_status, ability, terrain` |

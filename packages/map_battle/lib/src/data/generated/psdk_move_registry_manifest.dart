@@ -694,9 +694,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_entrainment',
     rubyClass: 'Entrainment',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_entrainment)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -2250,8 +2249,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_role_play',
     rubyClass: 'RolePlay',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_role_play)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -2422,9 +2421,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_simple_beam',
     rubyClass: 'SimpleBeam',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_simple_beam)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -2442,9 +2440,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_skill_swap',
     rubyClass: 'SkillSwap',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_skill_swap)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -3200,9 +3197,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_worry_seed',
     rubyClass: 'WorrySeed',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_worry_seed)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects

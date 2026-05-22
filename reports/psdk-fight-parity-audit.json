@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 640,
-    "partiel": 88,
+    "fait": 645,
+    "partiel": 83,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1459,9 +1459,9 @@
       {
         "moveId": "entrainment",
         "battleEngineMethod": "s_entrainment",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/entrainment.json"
       },
       {
@@ -4131,9 +4131,9 @@
       {
         "moveId": "role_play",
         "battleEngineMethod": "s_role_play",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/role_play.json"
       },
       {
@@ -4483,9 +4483,9 @@
       {
         "moveId": "simple_beam",
         "battleEngineMethod": "s_simple_beam",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/simple_beam.json"
       },
       {
@@ -4515,9 +4515,9 @@
       {
         "moveId": "skill_swap",
         "battleEngineMethod": "s_skill_swap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/skill_swap.json"
       },
       {
@@ -5771,9 +5771,9 @@
       {
         "moveId": "worry_seed",
         "battleEngineMethod": "s_worry_seed",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/worry_seed.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 284,
-      "partial": 46,
+      "ported": 289,
+      "partial": 41,
       "missing": 0
     },
     "entries": [
@@ -6569,13 +6569,12 @@
         "battleEngineMethod": "s_entrainment",
         "rubyClass": "Entrainment",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_entrainment)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_eruption",
@@ -8205,13 +8204,12 @@
         "battleEngineMethod": "s_role_play",
         "rubyClass": "RolePlay",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_role_play)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_rollout",
@@ -8387,13 +8385,12 @@
         "battleEngineMethod": "s_simple_beam",
         "rubyClass": "SimpleBeam",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_simple_beam)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_sketch",
@@ -8407,13 +8404,12 @@
         "battleEngineMethod": "s_skill_swap",
         "rubyClass": "SkillSwap",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_skill_swap)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_sky_drop",
@@ -9198,13 +9194,12 @@
         "battleEngineMethod": "s_worry_seed",
         "rubyClass": "WorrySeed",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_worry_seed)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_wring_out",
@@ -9253,7 +9248,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 32,
+        "count": 27,
         "methods": [
           "s_chilly_reception",
           "s_conversion",
@@ -9262,7 +9257,6 @@
           "s_destiny_bond",
           "s_doodle",
           "s_dragon_cheer",
-          "s_entrainment",
           "s_flower_shield",
           "s_gear_up",
           "s_geomancy",
@@ -9275,18 +9269,14 @@
           "s_no_retreat",
           "s_perish_song",
           "s_revival_blessing",
-          "s_role_play",
           "s_rototiller",
           "s_shed_tail",
-          "s_simple_beam",
-          "s_skill_swap",
           "s_snatch",
           "s_spite",
           "s_stuff_cheeks",
           "s_swallow",
           "s_teatime",
-          "s_teleport",
-          "s_worry_seed"
+          "s_teleport"
         ]
       }
     ]

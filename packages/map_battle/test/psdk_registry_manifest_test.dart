@@ -1489,8 +1489,28 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
         ),
         (
+          method: 's_entrainment',
+          behavior: 'StaticBasicMoveRegistry.abilityChanging(s_entrainment)',
+        ),
+        (
+          method: 's_role_play',
+          behavior: 'StaticBasicMoveRegistry.abilityChanging(s_role_play)',
+        ),
+        (
+          method: 's_simple_beam',
+          behavior: 'StaticBasicMoveRegistry.abilityChanging(s_simple_beam)',
+        ),
+        (
+          method: 's_skill_swap',
+          behavior: 'StaticBasicMoveRegistry.abilityChanging(s_skill_swap)',
+        ),
+        (
           method: 's_wonder_room',
           behavior: 'StaticBasicMoveRegistry.fieldMarker(s_wonder_room)',
+        ),
+        (
+          method: 's_worry_seed',
+          behavior: 'StaticBasicMoveRegistry.abilityChanging(s_worry_seed)',
         ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
@@ -1501,11 +1521,6 @@ void main() {
           method: 's_destiny_bond',
           behavior:
               'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
-        ),
-        (
-          method: 's_entrainment',
-          behavior:
-              'StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)',
         ),
         (
           method: 's_gravity',
@@ -1529,28 +1544,8 @@ void main() {
               'StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)',
         ),
         (
-          method: 's_simple_beam',
-          behavior:
-              'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
-        ),
-        (
           method: 's_snatch',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
-        ),
-        (
-          method: 's_role_play',
-          behavior:
-              'StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)',
-        ),
-        (
-          method: 's_skill_swap',
-          behavior:
-              'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
-        ),
-        (
-          method: 's_worry_seed',
-          behavior:
-              'StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)',
         ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
