@@ -1,19 +1,69 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../theme/theme.dart';
 
-class StatusBar extends ConsumerWidget {
+class StatusBar extends ConsumerStatefulWidget {
   const StatusBar({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StatusBar> createState() => _StatusBarState();
+}
+
+class _StatusBarState extends ConsumerState<StatusBar> {
+  late DateTime _lastSaveTime;
+  late String _lastSaveText;
+  Timer? _updateTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastSaveTime = DateTime.now();
+    _updateSaveText();
+    _updateTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        setState(() => _updateSaveText());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _updateTimer?.cancel();
+    super.dispose();
+  }
+
+  void _updateSaveText() {
+    final diff = DateTime.now().difference(_lastSaveTime);
+    if (diff.inMinutes < 1) {
+      _lastSaveText = "Sauvegardé : à l'instant";
+    } else {
+      _lastSaveText = "Sauvegardé : il y a ${diff.inMinutes} min";
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Listen to transitions on isSaving to reset the last save timestamp.
+    ref.listen<bool>(
+      editorNotifierProvider.select((s) => s.isSaving),
+      (prev, next) {
+        if (prev == true && next == false) {
+          setState(() {
+            _lastSaveTime = DateTime.now();
+            _updateSaveText();
+          });
+        }
+      },
+    );
+
     final state = ref.watch(editorNotifierProvider);
     final colors = context.pokeMapColors;
     final activeMap = state.activeMap;
+
     const pendingProjectSaveMessage =
         'Projet modifié en mémoire — sauvegardez le projet avec la disquette.';
     final hasError = state.errorMessage != null;
@@ -23,141 +73,245 @@ class StatusBar extends ConsumerWidget {
             ? pendingProjectSaveMessage
             : state.statusMessage ?? 'Prêt';
 
-    final leadingTint = hasError ? colors.error : colors.brandPrimary;
-    final icon = hasError
+    // Left status pill styling
+    final pillBg = hasError
+        ? colors.errorSoft
+        : (state.isProjectDirty
+            ? colors.warning.withValues(alpha: 0.15)
+            : colors.brandPrimarySoft);
+    final pillBorder = hasError
+        ? colors.errorBorder
+        : (state.isProjectDirty
+            ? colors.warning.withValues(alpha: 0.4)
+            : colors.brandPrimaryBorder);
+    final pillText = hasError
+        ? colors.error
+        : (state.isProjectDirty
+            ? colors.warning
+            : colors.brandPrimary);
+    final pillIcon = hasError
         ? CupertinoIcons.exclamationmark_triangle_fill
         : CupertinoIcons.sparkles;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 2, 22, 18),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colors.surfaceBase,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: colors.borderSubtle,
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 1100;
+
+        return Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: colors.backgroundShell,
+            border: Border(
+              top: BorderSide(
+                color: colors.divider,
+                width: 1,
+              ),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
+              // 1. Status message pill
               Container(
-                width: 28,
-                height: 28,
+                constraints: const BoxConstraints(maxWidth: 220),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: hasError ? colors.errorSoft : colors.brandPrimarySoft,
-                  borderRadius: BorderRadius.circular(10),
+                  color: pillBg,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: hasError ? colors.errorBorder : colors.brandPrimaryBorder,
-                    width: 1.1,
+                    color: pillBorder,
+                    width: 1,
                   ),
                 ),
-                alignment: Alignment.center,
-                child: MacosIcon(
-                  icon,
-                  size: 14,
-                  color: leadingTint,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    MacosIcon(
+                      pillIcon,
+                      size: 13,
+                      color: pillText,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        primaryMessage,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: pillText,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.none,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  primaryMessage,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: hasError ? colors.error : colors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.none,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+
+              if (isWide) ...[
+                const SizedBox(width: 12),
+                // 2. Sync state
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: state.isProjectDirty ? colors.warning : colors.success,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      state.isProjectDirty ? 'Non synchronisé' : 'Synchronisé',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+                _verticalDivider(colors),
+                // 3. Last save relative time
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    MacosIcon(
+                      CupertinoIcons.time,
+                      size: 13,
+                      color: colors.textMuted,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _lastSaveText,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
+                _verticalDivider(colors),
+                // 4. Project status health
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: hasError
+                            ? colors.error
+                            : (state.isProjectDirty ? colors.warning : colors.success),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Projet : ${hasError ? 'Erreur' : (state.isProjectDirty ? 'Modifié' : 'Bon')}',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              const Spacer(),
+
+              // Right segments
               if (activeMap != null) ...[
-                _statusChip(
-                  context,
+                _rightSegment(
+                  colors,
                   'Carte ${activeMap.id}',
                   CupertinoIcons.map,
-                  colors,
                 ),
-                const SizedBox(width: 8),
-                _statusChip(
-                  context,
+                const SizedBox(width: 16),
+                _rightSegment(
+                  colors,
                   '${activeMap.size.width} x ${activeMap.size.height}',
                   CupertinoIcons.rectangle_grid_2x2,
-                  colors,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
               ],
               if (state.isProjectDirty) ...[
-                _statusChip(
-                  context,
+                _rightSegment(
+                  colors,
                   'Projet non sauvegardé',
                   CupertinoIcons.floppy_disk,
-                  colors,
                   key: const Key('status-bar-project-dirty-chip'),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 16),
               ],
-              _statusChip(
-                context,
+              _rightSegment(
+                colors,
                 'Zoom ${(state.zoom * 100).toInt()} %',
                 CupertinoIcons.search,
-                colors,
-                isZoom: true,
               ),
+              if (isWide) ...[
+                const SizedBox(width: 16),
+                _rightSegment(
+                  colors,
+                  'Locale : FR',
+                  CupertinoIcons.globe,
+                ),
+                const SizedBox(width: 16),
+                _rightSegment(
+                  colors,
+                  'v0.3.0',
+                  CupertinoIcons.info,
+                ),
+              ],
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  static Widget _statusChip(
-      BuildContext context, String label, IconData icon, PokeMapColorTokens colors,
-      {Key? key, bool isZoom = false}) {
+  Widget _verticalDivider(PokeMapColorTokens colors) {
     return Container(
+      height: 16,
+      width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      color: colors.divider.withValues(alpha: 0.5),
+    );
+  }
+
+  Widget _rightSegment(
+    PokeMapColorTokens colors,
+    String label,
+    IconData icon, {
+    Key? key,
+  }) {
+    return Row(
       key: key,
-      padding: EdgeInsets.symmetric(
-        horizontal: isZoom ? 8 : 10,
-        vertical: isZoom ? 5 : 7,
-      ),
-      decoration: BoxDecoration(
-        color: isZoom ? colors.surfaceSubtle.withValues(alpha: 0.5) : colors.surfaceSubtle,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: colors.borderSubtle.withValues(alpha: isZoom ? 0.5 : 1.0),
-          width: 1,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MacosIcon(
+          icon,
+          size: 13,
+          color: colors.textMuted,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          MacosIcon(
-            icon,
-            size: isZoom ? 11 : 12,
-            color: isZoom ? colors.textMuted : colors.textSecondary,
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: colors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.none,
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isZoom ? 10 : 11,
-              color: isZoom ? colors.textMuted : colors.textSecondary,
-              fontWeight: isZoom ? FontWeight.w500 : FontWeight.w600,
-              decoration: TextDecoration.none,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

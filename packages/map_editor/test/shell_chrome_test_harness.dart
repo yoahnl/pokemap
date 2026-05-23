@@ -71,7 +71,7 @@ MapData buildShellChromeMap({
 Future<ProviderContainer> pumpEditorShellPage(
   WidgetTester tester, {
   required EditorState initialState,
-  Size surfaceSize = const Size(1600, 1000),
+  Size surfaceSize = const Size(1800, 1000),
   List<Override> overrides = const <Override>[],
 }) async {
   _installMacosAccentColorMock();
@@ -258,11 +258,8 @@ class _TopToolbarHarness extends ConsumerWidget {
     return const CupertinoPageScaffold(
       child: Align(
         alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: 1200,
-          child: TopToolbar(
-            key: Key('top-toolbar-under-test'),
-          ),
+        child: TopToolbar(
+          key: Key('top-toolbar-under-test'),
         ),
       ),
     );
@@ -277,10 +274,7 @@ class _StatusBarHarness extends StatelessWidget {
     return const CupertinoPageScaffold(
       child: Align(
         alignment: Alignment.bottomCenter,
-        child: SizedBox(
-          width: 860,
-          child: StatusBar(),
-        ),
+        child: StatusBar(),
       ),
     );
   }

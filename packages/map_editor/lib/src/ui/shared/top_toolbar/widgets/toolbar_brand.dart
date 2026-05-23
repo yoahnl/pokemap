@@ -27,6 +27,7 @@ class TopToolbarBrand extends StatelessWidget {
     return SizedBox(
       height: 40,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 32,
@@ -54,6 +55,22 @@ class TopToolbarBrand extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
+          Text(
+            'PokeMap',
+            style: TextStyle(
+              color: label,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              decoration: TextDecoration.none,
+            ),
+          ),
+          Container(
+            height: 14,
+            width: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 10),
+            color: colors.divider.withValues(alpha: 0.5),
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,9 +83,10 @@ class TopToolbarBrand extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: label,
-                    fontSize: 14,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.15,
+                    decoration: TextDecoration.none,
                   ),
                 ),
                 Text(
@@ -79,8 +97,9 @@ class TopToolbarBrand extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: subtle,
-                    fontSize: 10.5,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ],

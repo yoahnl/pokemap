@@ -11,41 +11,84 @@ class ToolbarCapsuleGroup extends StatelessWidget {
   const ToolbarCapsuleGroup({
     super.key,
     required this.children,
+    this.title,
+    this.selected = false,
   });
 
   final List<Widget> children;
+  final String? title;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final visibleChildren =
         children.whereType<Widget>().toList(growable: false);
-    return SizedBox(
+    if (visibleChildren.isEmpty) return const SizedBox.shrink();
+
+    final capsule = Container(
       height: 40,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceSubtle,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: colors.borderSubtle,
-            width: 1,
-          ),
+      decoration: BoxDecoration(
+        color: colors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: selected ? colors.brandPrimaryBorder : colors.borderSubtle,
+          width: 1,
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var index = 0; index < visibleChildren.length; index++) ...[
-                visibleChildren[index],
-                if (index < visibleChildren.length - 1)
-                  const SizedBox(width: 4),
-              ],
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: colors.brandPrimary.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                )
+              ]
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var index = 0; index < visibleChildren.length; index++) ...[
+              visibleChildren[index],
+              if (index < visibleChildren.length - 1)
+                const SizedBox(width: 4),
             ],
-          ),
+          ],
         ),
       ),
+    );
+
+    final Widget content;
+    if (title == null) {
+      content = capsule;
+    } else {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              title!,
+              style: TextStyle(
+                color: selected ? colors.brandPrimary : colors.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ),
+          capsule,
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: content,
     );
   }
 }
