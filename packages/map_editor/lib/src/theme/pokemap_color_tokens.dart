@@ -55,7 +55,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     required this.reward,
     required this.worldRule,
     required this.fact,
-    required this.map,
+    required this.mapAccent,
 
     // Graph / Nodes Colors
     required this.graphStartBg,
@@ -222,7 +222,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   final Color fact;
 
   /// Grid map editor theme.
-  final Color map;
+  final Color mapAccent;
 
   // ==========================================
   // Properties - Graph / Nodes Colors
@@ -338,7 +338,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     reward: Color(0xFFF59E0B),
     worldRule: Color(0xFF14B8A6),
     fact: Color(0xFFEAB308),
-    map: Color(0xFF22A06B),
+    mapAccent: Color(0xFF22A06B),
 
     // Graph / Nodes Colors
     graphStartBg: Color(0xFFEAF8EF),
@@ -413,7 +413,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     reward: Color(0xFFFBBF24),
     worldRule: Color(0xFF2DD4BF),
     fact: Color(0xFFFACC15),
-    map: Color(0xFF4ADE80),
+    mapAccent: Color(0xFF4ADE80),
 
     // Graph / Nodes Colors
     graphStartBg: Color(0xFF0E3320),
@@ -483,7 +483,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     Color? reward,
     Color? worldRule,
     Color? fact,
-    Color? map,
+    Color? mapAccent,
     Color? graphStartBg,
     Color? graphStartBorder,
     Color? graphDialogueBg,
@@ -545,7 +545,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       reward: reward ?? this.reward,
       worldRule: worldRule ?? this.worldRule,
       fact: fact ?? this.fact,
-      map: map ?? this.map,
+      mapAccent: mapAccent ?? this.mapAccent,
       graphStartBg: graphStartBg ?? this.graphStartBg,
       graphStartBorder: graphStartBorder ?? this.graphStartBorder,
       graphDialogueBg: graphDialogueBg ?? this.graphDialogueBg,
@@ -617,7 +617,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       reward: Color.lerp(reward, other.reward, t)!,
       worldRule: Color.lerp(worldRule, other.worldRule, t)!,
       fact: Color.lerp(fact, other.fact, t)!,
-      map: Color.lerp(map, other.map, t)!,
+      mapAccent: Color.lerp(mapAccent, other.mapAccent, t)!,
       graphStartBg: Color.lerp(graphStartBg, other.graphStartBg, t)!,
       graphStartBorder: Color.lerp(graphStartBorder, other.graphStartBorder, t)!,
       graphDialogueBg: Color.lerp(graphDialogueBg, other.graphDialogueBg, t)!,

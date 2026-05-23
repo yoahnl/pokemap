@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show MaterialApp;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
@@ -99,8 +101,11 @@ Future<ProviderContainer> pumpEditorShellPage(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MacosApp(
-        home: EditorShellPage(),
+      child: MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: const PokeMapMacosCompatibilityBridge(
+          child: EditorShellPage(),
+        ),
       ),
     ),
   );
@@ -137,9 +142,12 @@ Future<ProviderContainer> pumpEditorCanvasHostHarness(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MacosApp(
-        home: CupertinoPageScaffold(
-          child: EditorCanvasHost(),
+      child: MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: const PokeMapMacosCompatibilityBridge(
+          child: CupertinoPageScaffold(
+            child: EditorCanvasHost(),
+          ),
         ),
       ),
     ),
@@ -177,8 +185,11 @@ Future<ProviderContainer> pumpTopToolbarHarness(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MacosApp(
-        home: _TopToolbarHarness(),
+      child: MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: const PokeMapMacosCompatibilityBridge(
+          child: _TopToolbarHarness(),
+        ),
       ),
     ),
   );
@@ -215,8 +226,11 @@ Future<ProviderContainer> pumpStatusBarHarness(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MacosApp(
-        home: _StatusBarHarness(),
+      child: MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: const PokeMapMacosCompatibilityBridge(
+          child: _StatusBarHarness(),
+        ),
       ),
     ),
   );

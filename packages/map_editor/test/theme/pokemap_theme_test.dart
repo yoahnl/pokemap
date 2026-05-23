@@ -14,6 +14,7 @@ void main() {
       expect(tokens, isNotNull);
       expect(tokens!.backgroundApp, const Color(0xFFF5F8FC));
       expect(tokens.textPrimary, const Color(0xFF13213A));
+      expect(tokens.mapAccent, const Color(0xFF22A06B));
     });
 
     test('PokeMapTheme.dark() creates a ThemeData brightness dark with tokens', () {
@@ -25,6 +26,7 @@ void main() {
       expect(tokens, isNotNull);
       expect(tokens!.backgroundApp, const Color(0xFF06111F));
       expect(tokens.textPrimary, const Color(0xFFEDF4FF));
+      expect(tokens.mapAccent, const Color(0xFF4ADE80));
     });
 
     test('Light and Dark color tokens are not accidentally identical for major surfaces', () {
@@ -35,6 +37,7 @@ void main() {
       expect(light.surfaceBase, isNot(dark.surfaceBase));
       expect(light.textPrimary, isNot(dark.textPrimary));
       expect(light.brandPrimary, isNot(dark.brandPrimary));
+      expect(light.mapAccent, isNot(dark.mapAccent));
     });
 
     testWidgets('BuildContext.pokeMapColors resolves from MaterialApp Theme', (tester) async {
@@ -108,6 +111,26 @@ void main() {
 
       expect(resolvedColorsLight.backgroundApp, const Color(0xFFF5F8FC));
       expect(resolvedColorsDark.backgroundApp, const Color(0xFF06111F));
+    });
+
+    testWidgets('PokeMapMacosCompatibilityBridge maps dark/light Material Theme to MacosTheme brightness', (tester) async {
+      late Brightness macosBrightness;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.dark(),
+          home: PokeMapMacosCompatibilityBridge(
+            child: Builder(
+              builder: (context) {
+                macosBrightness = MacosTheme.brightnessOf(context);
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(macosBrightness, Brightness.dark);
     });
   });
 }

@@ -1,11 +1,11 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart' show ThemeMode, VisualDensity;
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:macos_ui/macos_ui.dart' show MacosWindowUtilsConfig, NSWindowToolbarStyle, WindowManipulator;
 
+import 'src/theme/theme.dart';
 import 'src/ui/editor_shell_page.dart';
 
 Future<void> main() async {
@@ -26,38 +26,25 @@ Future<void> main() async {
   );
 }
 
+/// The root widget of the PokeMap Editor application.
+///
+/// Migrated from [MacosApp] to [MaterialApp] to serve as the unified root
+/// for the custom design system. Underneath, a [PokeMapMacosCompatibilityBridge]
+/// is inserted to satisfy the styling needs of legacy [macos_ui] components.
 class MapEditorApp extends StatelessWidget {
   const MapEditorApp({super.key});
 
-  MacosThemeData _buildLightTheme() {
-    return MacosThemeData.light().copyWith(
-      accentColor: AccentColor.blue,
-      primaryColor: const Color(0xFF4A87F5),
-      canvasColor: const Color(0xFFF5F3EF),
-      dividerColor: const Color(0x14000000),
-      visualDensity: const VisualDensity(horizontal: 0, vertical: -0.25),
-    );
-  }
-
-  MacosThemeData _buildDarkTheme() {
-    return MacosThemeData.dark().copyWith(
-      accentColor: AccentColor.blue,
-      primaryColor: const Color(0xFF4D8EF7),
-      canvasColor: const Color(0xFF0E1014),
-      dividerColor: const Color(0x1FFFFFFF),
-      visualDensity: const VisualDensity(horizontal: 0, vertical: -0.25),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return MacosApp(
+    return MaterialApp(
       title: 'RPG Map Editor',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.dark,
-      theme: _buildLightTheme(),
-      darkTheme: _buildDarkTheme(),
-      home: const EditorShellPage(),
+      themeMode: ThemeMode.system,
+      theme: PokeMapTheme.light(),
+      darkTheme: PokeMapTheme.dark(),
+      home: const PokeMapMacosCompatibilityBridge(
+        child: EditorShellPage(),
+      ),
     );
   }
 }
