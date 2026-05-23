@@ -295,7 +295,7 @@ Un seul Pokémon donné (le starter), un seul donneur (Maël)
 |---|---|---|---|---|---|---|
 | `event_mael_intro` | entityInteract | Joueur interagit avec `entity_mael_bourg` | fact_starter_received absent (ou party vide) | Lance scene_mael_intro | NS-GS-08 | Scène complète : dialogue + givePokemon + mission |
 | `event_mael_encouragement` | entityInteract | Joueur re-parle à Maël après starter | fact_starter_received posé | Lance yarn_mael_encouragement ou yarn_mael_post_rival | NS-GS-08 | Dialogue conditionnel |
-| `event_rival_meet` | entityInteract | Joueur interagit avec `entity_lysa_port` | fact_mission_started posé, fact_rival_battle_done absent | Lance scene_rival_meet | NS-GS-09 | Scène complète : dialogue + combat + branch |
+| `event_rival_meet` | entityInteract | Joueur interagit avec `entity_lysa_port` | `fact_starter_received` ET `fact_mission_started` posés, `fact_rival_battle_done` absent | Lance scene_rival_meet | NS-GS-09 | Scène complète : dialogue + choix posture + cinematic + combat + branch |
 | `event_rival_after` | entityInteract | Joueur re-parle à Lysa après combat | fact_rival_battle_done posé | Lance yarn_rival_after_win ou yarn_rival_after_loss | NS-GS-09 | Dialogue conditionnel |
 | `event_soline_idle` | entityInteract | Joueur interagit avec `entity_soline_port` | Aucune | Lance yarn_soline_port_idle | NS-GS-09 | Dialogue simple placeholder |
 | `trigger_port_arrival` | triggerEnter | Joueur entre dans une zone du port | fact_mission_started posé, first visit | Cutscene d'arrivée optionnelle | NS-GS-09 | Optionnel en V0 |
@@ -364,13 +364,13 @@ Un seul Pokémon donné (le starter), un seul donneur (Maël)
 
 | Rule id | Cible | Condition | Effet visible | Lot | Notes |
 |---|---|---|---|---|---|
-| `wr_lysa_visible_before_battle` | `entity_lysa_port` | fact_mission_started ET NOT fact_rival_battle_done | Lysa visible au port | NS-GS-10 | Via `MapEntityNpcVisibilityRule` ou `StepStudioWorldPresenceRule` |
-| `wr_lysa_invisible_before_mission` | `entity_lysa_port` | NOT fact_mission_started | Lysa absente / invisible | NS-GS-10 | Le joueur ne doit pas combattre avant la mission |
-| `wr_lysa_dialogue_post_victory` | `entity_lysa_port` | fact_rival_defeated | Lysa dialogue post-victoire | NS-GS-10 | Via `MapEntityConditionalDialogue` |
-| `wr_lysa_dialogue_post_defeat` | `entity_lysa_port` | fact_rival_lost | Lysa dialogue post-défaite | NS-GS-10 | Via `MapEntityConditionalDialogue` |
-| `wr_mael_dialogue_before_starter` | `entity_mael_bourg` | NOT fact_starter_received | Maël lance scene_mael_intro | NS-GS-10 | Interaction → scénario |
-| `wr_mael_dialogue_after_starter` | `entity_mael_bourg` | fact_starter_received ET NOT fact_rival_battle_done | Maël dit encouragement (yarn_mael_encouragement) | NS-GS-10 | Via `MapEntityConditionalDialogue` |
-| `wr_mael_dialogue_post_rival` | `entity_mael_bourg` | fact_rival_battle_done | Maël réagit au résultat du combat | NS-GS-10 | Via `MapEntityConditionalDialogue` |
+| `wr_lysa_invisible_before_starter_or_mission` | `entity_lysa_port` | NOT `fact_starter_received` OR NOT `fact_mission_started` | Lysa absente ou non-interactable | NS-GS-10 | Empêche l'accès au combat avant réception du starter et mission. |
+| `wr_lysa_visible_before_battle` | `entity_lysa_port` | `fact_starter_received` AND `fact_mission_started` AND NOT `fact_rival_battle_done` | Lysa visible/interactable au port | NS-GS-10 | Condition robuste avant `battle_rival_port`. Via `MapEntityNpcVisibilityRule` ou `StepStudioWorldPresenceRule`. |
+| `wr_lysa_dialogue_post_victory` | `entity_lysa_port` | `fact_rival_defeated` | Lysa dialogue post-victoire | NS-GS-10 | Via `MapEntityConditionalDialogue` |
+| `wr_lysa_dialogue_post_defeat` | `entity_lysa_port` | `fact_rival_lost` | Lysa dialogue post-défaite | NS-GS-10 | Via `MapEntityConditionalDialogue` |
+| `wr_mael_dialogue_before_starter` | `entity_mael_bourg` | NOT `fact_starter_received` | Maël lance scene_mael_intro | NS-GS-10 | Interaction → scénario |
+| `wr_mael_dialogue_after_starter` | `entity_mael_bourg` | `fact_starter_received` AND NOT `fact_rival_battle_done` | Maël dit encouragement (yarn_mael_encouragement) | NS-GS-10 | Via `MapEntityConditionalDialogue` |
+| `wr_mael_dialogue_post_rival` | `entity_mael_bourg` | `fact_rival_battle_done` | Maël réagit au résultat du combat | NS-GS-10 | Via `MapEntityConditionalDialogue` |
 | `wr_soline_idle` | `entity_soline_port` | Aucune condition (toujours visible) | Soline dialogue simple | NS-GS-09 | Figurante — dialogue placeholder |
 
 > [!NOTE]
@@ -387,7 +387,7 @@ Un seul Pokémon donné (le starter), un seul donneur (Maël)
 | Scene id | Backing technique | Déclencheur | Nodes requis | Facts/outcomes produits | Lot | Notes |
 |---|---|---|---|---|---|---|
 | `scene_mael_intro` | ScenarioAsset (localEventFlow) | entityInteract sur entity_mael_bourg | openDialogue → yarn_mael_intro_before_gift, **givePokemon → starterCandidate**, setFlag → fact_starter_received, openDialogue → yarn_mael_mission, setFlag → fact_mission_started, emitOutcome → mission_started | fact_starter_received, fact_mission_started, outcome:mission_started | NS-GS-08 | Dépend de NS-GS-06 (givePokemon) |
-| `scene_rival_meet` | ScenarioAsset (localEventFlow) | entityInteract sur entity_lysa_port | openDialogue → yarn_rival_intro, faceCharacter → entity_lysa_port, startTrainerBattle → trainer_lysa_port (battleId: battle_rival_port), **branch on battle outcome**, setFlag → fact_rival_defeated ou fact_rival_lost, setFlag → fact_rival_battle_done, openDialogue → yarn_rival_after_win ou yarn_rival_after_loss, emitOutcome → rival_battle_done | fact_rival_defeated ou fact_rival_lost, fact_rival_battle_done, battle:battle_rival_port:*, outcome:rival_battle_done | NS-GS-09 | Branch victory/defeat post-combat |
+| `scene_rival_meet` | ScenarioAsset (localEventFlow) | entityInteract sur entity_lysa_port | openDialogue → yarn_rival_intro (outcomes: confident/hesitant/aggressive), **branch pré-combat** (confident → cinematic_rival_smiles, hesitant/aggressive → cinematic_rival_teases), faceCharacter → entity_lysa_port, startTrainerBattle → trainer_lysa_port (battleId: battle_rival_port), **branch on battle outcome**, setFlag → fact_rival_defeated ou fact_rival_lost, setFlag → fact_rival_battle_done, openDialogue → yarn_rival_after_win ou yarn_rival_after_loss, emitOutcome → rival_battle_done | fact_rival_defeated ou fact_rival_lost, fact_rival_battle_done, battle:battle_rival_port:*, outcome:rival_battle_done | NS-GS-09 | Branch posture pré-combat + victory/defeat post-combat |
 
 ### scene_mael_intro — graphe conceptuel
 
@@ -415,7 +415,11 @@ Un seul Pokémon donné (le starter), un seul donneur (Maël)
 [source: entityInteract, mapId: map_port_brisants, entityId: entity_lysa_port]
   ↓
 [node_dialogue_intro] (openDialogue → yarn_rival_intro)
-  ↓
+  ↓ outcomes: confident / hesitant / aggressive
+[node_condition_tone] (branch on yarn outcome)
+  ├── confident → [cinematic_rival_smiles] (ShowMessage / cutscene)
+  └── hesitant | aggressive → [cinematic_rival_teases] (ShowMessage / cutscene)
+  ↓ (merge)
 [node_face_lysa] (faceCharacter → entity_lysa_port)
   ↓
 [node_start_battle] (startTrainerBattle → trainerId: trainer_lysa_port, battleId: battle_rival_port)
@@ -450,13 +454,19 @@ Un seul Pokémon donné (le starter), un seul donneur (Maël)
 | Yarn id | Rôle | Choix joueur | Outcomes | Lot | Notes |
 |---|---|---|---|---|---|
 | `yarn_mael_intro_before_gift` | Maël accueille le joueur et annonce le don du starter | Non | — | NS-GS-08 | Texte placeholder acceptable en V0 |
-| `yarn_mael_mission` | Maël explique la mission (brume, phare, port) | Oui (accepter / demander plus) | accept_mission | NS-GS-08 | Texte placeholder acceptable |
+| `yarn_mael_mission` | Maël explique la mission (brume, phare, port) | Oui (accepter / demander plus) | `accept_mission` | NS-GS-08 | Texte placeholder acceptable |
 | `yarn_mael_encouragement` | Maël encourage le joueur (re-parle après starter, avant combat) | Non | — | NS-GS-08 | Texte court placeholder |
 | `yarn_mael_post_rival` | Maël réagit au résultat du combat rival | Non | — | NS-GS-08 | Conditionnel : victory vs defeat. Placeholder acceptable |
-| `yarn_rival_intro` | Lysa se présente et provoque le joueur | Non | — | NS-GS-09 | Texte placeholder acceptable |
+| `yarn_rival_intro` | Lysa se présente, provoque le joueur et demande une posture | Oui | `confident`, `hesitant`, `aggressive` | NS-GS-09 | Les outcomes influencent la cinematic pré-combat, pas le battle setup. Texte placeholder acceptable en V0. |
 | `yarn_rival_after_win` | Lysa réagit après défaite (joueur gagne) | Non | — | NS-GS-09 | Texte placeholder acceptable |
 | `yarn_rival_after_loss` | Lysa réagit après victoire (joueur perd) | Non | — | NS-GS-09 | Texte placeholder acceptable |
 | `yarn_soline_port_idle` | Soline dit un dialogue simple | Non | — | NS-GS-09 | Texte placeholder — figurante |
+
+> [!NOTE]
+> Les outcomes `confident` / `hesitant` / `aggressive` sont conservés dans l'inventaire car ils font partie du Golden Slice cible.
+> Ils peuvent être implémentés en V0 avec une branche minimale :
+> - `confident` → `cinematic_rival_smiles`
+> - `hesitant` / `aggressive` → `cinematic_rival_teases`
 
 ---
 
@@ -464,15 +474,20 @@ Un seul Pokémon donné (le starter), un seul donneur (Maël)
 
 | Cinematic id | Déclenchée par | Steps minimaux | Lot | Notes |
 |---|---|---|---|---|
-| `cinematic_starter_received` | scene_mael_intro après givePokemon | ShowMessage "[Joueur] reçoit [Starter] !" + Wait | NS-GS-08 | Peut être un simple `showMessage` dans le ScenarioAsset au lieu d'une cutscene dédiée |
-| `cinematic_rival_approach` | scene_rival_meet avant combat | FaceNpc, Wait, MoveNpc (Lysa s'approche) | NS-GS-09 | Optionnel en V0 — peut être remplacé par faceCharacter |
-| `cinematic_rival_depart_win` | scene_rival_meet branch victory | MoveNpc (Lysa s'éloigne), ShowMessage | NS-GS-09 | Optionnel en V0 — peut être un simple dialogue |
-| `cinematic_rival_depart_loss` | scene_rival_meet branch defeat | ShowMessage | NS-GS-09 | Optionnel en V0 — peut être un simple dialogue |
+| `cinematic_starter_received` | scene_mael_intro après GivePokemon | ShowMessage "[Joueur] reçoit [Starter] !" + Wait | NS-GS-08 | Peut être un simple `showMessage` en V0. |
+| `cinematic_rival_smiles` | outcome `confident` de yarn_rival_intro | Lysa sourit / accepte le défi / transition vers combat | NS-GS-09 | Peut être ShowMessage + Wait en V0. |
+| `cinematic_rival_teases` | outcomes `hesitant` ou `aggressive` de yarn_rival_intro | Lysa taquine / provoque / transition vers combat | NS-GS-09 | Peut être ShowMessage + Wait en V0. |
+| `cinematic_rival_depart_win` | branch victory après combat | Lysa reconnaît la force du joueur puis se retire ou change de dialogue | NS-GS-09 | Optionnel, peut être dialogue simple en V0. |
+| `cinematic_rival_depart_loss` | branch defeat après combat | Lysa se moque gentiment puis laisse le joueur continuer | NS-GS-09 | Optionnel, peut être dialogue simple en V0. |
 
 > [!NOTE]
-> En V0, la plupart des cinematics peuvent être remplacées par des actions ScenarioAsset simples :
-> `showMessage` + `faceCharacter` + `moveCharacter`. Le RuntimeCutsceneAsset est disponible
-> pour des séquences plus complexes, mais pas obligatoire pour le GS V0.
+> NS-GS-03 ne force pas une mise en scène complexe.
+> En V0, les cinematics peuvent être implémentées avec `showMessage` + `wait`.
+> Mais les ids canoniques doivent rester alignés avec la spécification Golden Slice.
+>
+> `cinematic_rival_approach` (supprimé) n'était pas un id canonique. Il est remplacé par
+> `cinematic_rival_smiles` et `cinematic_rival_teases`, qui correspondent aux outcomes
+> de posture `confident` / `hesitant` / `aggressive` de `yarn_rival_intro`.
 
 ---
 
@@ -543,12 +558,14 @@ Un seul Pokémon donné (le starter), un seul donneur (Maël)
 | map_bourg_selbrume | — | Spawn, Maël, warp vers Port | NS-GS-08 | NS-GS-12 |
 | map_port_brisants | map_bourg_selbrume (warp) | Lysa, combat, warp retour | NS-GS-09 | NS-GS-12 |
 | scene_mael_intro | GivePokemon (NS-GS-06), map_bourg_selbrume (NS-GS-08) | scene_rival_meet (fact_mission_started) | NS-GS-08 | NS-GS-12 |
-| scene_rival_meet | scene_mael_intro (fact_mission_started), trainer_lysa_port (NS-GS-11) | smoke test | NS-GS-09 | NS-GS-12 |
+| Lysa visible/interactable avant combat | `fact_starter_received`, `fact_mission_started`, NOT `fact_rival_battle_done` | `scene_rival_meet`, `battle_rival_port` | NS-GS-10 | NS-GS-12 |
+| scene_rival_meet | scene_mael_intro (`fact_starter_received` + `fact_mission_started`), trainer_lysa_port (NS-GS-11) | smoke test | NS-GS-09 | NS-GS-12 |
+| yarn_rival_intro outcomes | yarn_rival_intro (`confident`/`hesitant`/`aggressive`) | cinematic_rival_smiles, cinematic_rival_teases | NS-GS-09 | NS-GS-12 |
 | trainer_lysa_port | ProjectManifest (NS-GS-11), species sparkitten (existe) | startTrainerBattle | NS-GS-11 | NS-GS-12 |
 | battle_rival_port | trainer_lysa_port | battle outcome flags | NS-GS-11 | NS-GS-12 |
 | Save/load starter reçu | GivePokemon, SaveData sérialisation (existe) | smoke test | NS-GS-06 | NS-GS-12 |
 | Story steps | scene_mael_intro, scene_rival_meet | World rules, chapter completion | NS-GS-10 | NS-GS-12 |
-| World rules | story steps, facts | NPC visibility, conditional dialogues | NS-GS-10 | NS-GS-12 |
+| World rules | story steps, facts (`fact_starter_received`, `fact_mission_started`) | NPC visibility, conditional dialogues | NS-GS-10 | NS-GS-12 |
 
 ---
 
@@ -637,6 +654,9 @@ Deuxième chapter / storyline
 | Confusion Maël/joueur dans les lots | Moyen | Vocabulaire strict : "le joueur parle à Maël", "Maël donne le starter au joueur" | Tous |
 | Fixtures créées avant inventaire validé | Moyen — rework | NS-GS-03 doit être validé avant NS-GS-05 | NS-GS-03 |
 | Smoke test incomplet | Fort — faux positif | NS-GS-04 définit la stratégie ; NS-GS-12 l'exécute | NS-GS-04, NS-GS-12 |
+| Dérive silencieuse des outcomes rival | Moyen | Conserver `confident`, `hesitant`, `aggressive` dans l'inventaire et dans NS-GS-04 | NS-GS-09 / NS-GS-12 |
+| Lysa accessible sans starter reçu | Fort — crash combat party vide | Conditionner visibilité/interactivité à `fact_starter_received` + `fact_mission_started` | NS-GS-10 / NS-GS-12 |
+| Simplification non validée des cinematics | Moyen | Garder les ids canoniques `cinematic_rival_smiles` / `cinematic_rival_teases`, même si implémentés en ShowMessage + Wait | NS-GS-09 |
 | Save/load corrompt le starter reçu | Fort | Test obligatoire save → reload → party identique | NS-GS-06, NS-GS-12 |
 
 ---
@@ -670,10 +690,10 @@ L'inventaire couvre :
 - 6 events / triggers
 - 1 storyline, 1 chapter, 5 steps
 - 11 facts / flags / outcomes
-- 7 world rules
+- 8 world rules
 - 2 ScenarioAssets
-- 8 Yarn dialogues
-- 4 cinematics (optionnelles en V0)
+- 8 Yarn dialogues (dont yarn_rival_intro avec 3 outcomes de posture)
+- 5 cinematics (dont cinematic_rival_smiles / cinematic_rival_teases)
 - 1 trainer + 1 battle
 - ~11 assets visuels (placeholders acceptés)
 - 5 fixtures de test
@@ -757,16 +777,69 @@ Aucune opération Git d'écriture effectuée.
 
 | Question | Réponse |
 |---|---|
-| Le rapport est-il exhaustif ? | ✅ 2 maps, 3 NPCs, 7 entities, 6 events, 5 steps, 11 facts, 7 world rules, 2 scénarios, 8 yarns, 4 cinematics, 1 trainer/battle, ~11 assets, 5 fixtures |
-| Le lot reste-t-il documentaire ? | ✅ Un seul fichier MD créé, aucun code |
+| Le rapport est-il exhaustif ? | ✅ 2 maps, 3 NPCs, 7 entities, 6 events, 5 steps, 11 facts, 8 world rules, 2 scénarios, 8 yarns (dont 1 avec outcomes de posture), 5 cinematics, 1 trainer/battle, ~11 assets, 5 fixtures |
+| Le lot reste-t-il documentaire ? | ✅ Un seul fichier MD créé/modifié, aucun code |
 | Maël est-il bien traité comme PNJ et non comme joueur ? | ✅ "le joueur parle à Maël", "Maël donne le starter au joueur" |
 | La décision GivePokemon est-elle correctement propagée ? | ✅ NS-GS-06 obligatoire, party initiale vide, scene_mael_intro utilise givePokemon |
 | Sproutle est-il bien marqué comme candidat/recommandation ? | ✅ Marqué `starterCandidate` / "recommandation technique actuelle" partout |
 | Sparkitten est-il bien marqué comme candidat/recommandation ? | ✅ Marqué "candidat technique" / "confirmable par l'utilisateur" |
 | Chaque élément a-t-il un lot responsable ? | ✅ Colonne `Lot` dans chaque tableau |
 | NS-GS-04 sait-il quoi utiliser pour sa stratégie de test ? | ✅ Inventaire complet, matrice de dépendances, fixtures de test listées |
+| yarn_rival_intro contient-il les outcomes de posture ? | ✅ `confident`, `hesitant`, `aggressive` restaurés (§15) |
+| Les cinematics canoniques sont-elles restaurées ? | ✅ `cinematic_rival_smiles` et `cinematic_rival_teases` (§16) — `cinematic_rival_approach` supprimé |
+| Lysa visibility dépend-elle de fact_starter_received ? | ✅ `wr_lysa_invisible_before_starter_or_mission` et `wr_lysa_visible_before_battle` corrigées (§13) |
 | Y a-t-il une dette restante ? | ⚠️ Décisions ouvertes pour l'utilisateur (§24) — à trancher avant les lots concernés |
 
 ---
 
-*Fin du document NS-GS-03.*
+## 28. Evidence Pack — NS-GS-03-bis
+
+### Fichier modifié
+
+```text
+reports/gameplay/ns_gs_03_content_inventory_fixture_plan.md
+```
+
+### Résumé des corrections
+
+| # | Correction | Section |
+|---|---|---|
+| 1 | yarn_rival_intro : outcomes `confident` / `hesitant` / `aggressive` restaurés | §15 |
+| 2 | Cinematics canoniques : `cinematic_rival_smiles` + `cinematic_rival_teases` remplacent `cinematic_rival_approach` | §16 |
+| 3 | World rules Lysa : visibilité conditionnée à `fact_starter_received` + `fact_mission_started` | §13 |
+| 4 | scene_rival_meet : branche pré-combat par outcome de posture ajoutée au graphe conceptuel | §14 |
+| 5 | Matrice de dépendances : condition Lysa robuste + outcomes yarn_rival_intro ajoutés | §20 |
+| 6 | Risques : 3 nouveaux risques ajoutés (dérive outcomes, Lysa sans starter, simplification cinematics) | §23 |
+
+### Git status/diff final
+
+```bash
+$ git diff --check
+(sortie vide — pas de whitespace errors)
+EXIT:0
+
+$ git diff --stat
+ .../ns_gs_03_content_inventory_fixture_plan.md | 113 ++++++++++++++++-----
+ 1 file changed, 86 insertions(+), 27 deletions(-)
+
+$ git diff --name-only
+reports/gameplay/ns_gs_03_content_inventory_fixture_plan.md
+
+$ git status --short --untracked-files=all
+ M reports/gameplay/ns_gs_03_content_inventory_fixture_plan.md
+```
+
+### Confirmations
+
+```text
+Un seul fichier modifié : reports/gameplay/ns_gs_03_content_inventory_fixture_plan.md
+Aucun code modifié.
+Aucune fixture modifiée.
+Aucun test modifié.
+Aucun build_runner lancé.
+Aucune opération Git d'écriture effectuée.
+```
+
+---
+
+*Fin du document NS-GS-03 (incluant corrections NS-GS-03-bis).*
