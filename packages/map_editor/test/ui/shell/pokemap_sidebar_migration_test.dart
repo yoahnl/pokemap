@@ -1,11 +1,11 @@
-// Theme-4 — Sidebar Migration tests.
+// Theme-4bis — Sidebar Migration Hardening & Visual Alignment tests.
 //
 // Strategy: pump only the migrated atomic components (EditorSidebarListRow,
-// PokeMapSidebarItem, design-system tokens) rather than the full
-// ProjectExplorerPanel which embeds several heavy sub-panels (Narrative,
-// Terrain, Trainer…) that each require async I/O and platform channels.
+// PokeMapSidebarItem, CupertinoDisclosureTile, design-system tokens) rather
+// than the full ProjectExplorerPanel which embeds several heavy sub-panels
+// (Narrative, Terrain, Trainer…) that each require async I/O and platform channels.
 //
-// Testing the atomic components is sufficient to prove the Theme-4 migration:
+// Testing the atomic components is sufficient to prove the migration:
 // the color tokens are resolved, selection state is applied, and the
 // design-system widgets work inside a MaterialApp + bridge harness.
 
@@ -56,6 +56,12 @@ void main() {
       );
 
       expect(find.text('Route 101'), findsOneWidget);
+      
+      // The left selection indicator should have 0.0 opacity when unselected
+      final animatedOpacityFinder = find.byType(AnimatedOpacity);
+      expect(animatedOpacityFinder, findsOneWidget);
+      final AnimatedOpacity animatedOpacity = tester.widget(animatedOpacityFinder);
+      expect(animatedOpacity.opacity, 0.0);
     });
 
     testWidgets('renders selected row under Dark Theme', (tester) async {
@@ -71,6 +77,12 @@ void main() {
       );
 
       expect(find.text('Route 101'), findsOneWidget);
+      
+      // The left selection indicator should have 1.0 opacity when selected
+      final animatedOpacityFinder = find.byType(AnimatedOpacity);
+      expect(animatedOpacityFinder, findsOneWidget);
+      final AnimatedOpacity animatedOpacity = tester.widget(animatedOpacityFinder);
+      expect(animatedOpacity.opacity, 1.0);
     });
 
     testWidgets('onTap callback fires', (tester) async {
@@ -88,6 +100,40 @@ void main() {
       await tester.tap(find.text('Pallet Town'));
       await tester.pump();
       expect(tapped, isTrue);
+    });
+
+    testWidgets('renders subtitle with correct styling', (tester) async {
+      await _pumpInBridge(
+        tester,
+        EditorSidebarListRow(
+          selected: false,
+          onTap: () {},
+          title: const Text('New Bark Town'),
+          subtitle: const Text('The Town Where the Wind Blows'),
+        ),
+        theme: PokeMapTheme.light(),
+      );
+
+      expect(find.text('New Bark Town'), findsOneWidget);
+      expect(find.text('The Town Where the Wind Blows'), findsOneWidget);
+    });
+
+    testWidgets('applies leftIndent layout safety', (tester) async {
+      await _pumpInBridge(
+        tester,
+        EditorSidebarListRow(
+          selected: false,
+          onTap: () {},
+          leftIndent: 20,
+          title: const Text('Cherrygrove City'),
+        ),
+        theme: PokeMapTheme.light(),
+      );
+
+      final paddingFinder = find.byType(Padding).first;
+      final Padding paddingWidget = tester.widget(paddingFinder);
+      // Verify outer padding left value accounts for indent
+      expect(paddingWidget.padding, const EdgeInsets.fromLTRB(30, 2, 10, 2));
     });
   });
 
@@ -138,6 +184,45 @@ void main() {
       await tester.tap(find.text('Catalogues'));
       await tester.pump();
       expect(activated, isTrue);
+    });
+  });
+
+  group('PokeMap Sidebar Migration — CupertinoDisclosureTile', () {
+    testWidgets('renders title and expandable children', (tester) async {
+      await _pumpInBridge(
+        tester,
+        const CupertinoDisclosureTile(
+          title: Text('Disclosure Section'),
+          initiallyExpanded: true,
+          children: [
+            Text('Child Item 1'),
+            Text('Child Item 2'),
+          ],
+        ),
+        theme: PokeMapTheme.light(),
+      );
+
+      expect(find.text('Disclosure Section'), findsOneWidget);
+      expect(find.text('Child Item 1'), findsOneWidget);
+      expect(find.text('Child Item 2'), findsOneWidget);
+    });
+
+    testWidgets('renders in editor sidebar mode with custom styling', (tester) async {
+      await _pumpInBridge(
+        tester,
+        const CupertinoDisclosureTile(
+          title: Text('Sidebar Disclosure'),
+          useEditorMacosSidebarDisclosureStyle: true,
+          initiallyExpanded: false,
+          children: [
+            Text('Hidden Child'),
+          ],
+        ),
+        theme: PokeMapTheme.dark(),
+      );
+
+      expect(find.text('Sidebar Disclosure'), findsOneWidget);
+      expect(find.text('Hidden Child'), findsNothing);
     });
   });
 

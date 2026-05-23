@@ -462,7 +462,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
         : (_hovered ? colors.textPrimary : colors.textSecondary);
 
     final subtitleColor = widget.selected
-        ? colors.brandPrimary.withValues(alpha: 0.8)
+        ? colors.textSecondary
         : colors.textMuted;
 
     const isDisabled = false;
@@ -596,7 +596,31 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
             ? Border.all(color: colors.brandPrimaryBorder, width: 1.2)
             : null,
       ),
-      child: core,
+      child: Stack(
+        children: [
+          core,
+          Positioned(
+            left: 0,
+            top: 6,
+            bottom: 6,
+            child: AnimatedOpacity(
+              opacity: widget.selected ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
+              child: Container(
+                width: 3.5,
+                decoration: BoxDecoration(
+                  color: colors.brandPrimary,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(1.75),
+                    bottomRight: Radius.circular(1.75),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
 
     return Padding(
@@ -640,6 +664,7 @@ class EditorHorizontalDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Container(
@@ -647,9 +672,9 @@ class EditorHorizontalDivider extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              CupertinoColors.transparent,
-              EditorChrome.subtleSeparator(context),
-              CupertinoColors.transparent,
+              Colors.transparent,
+              colors.divider,
+              Colors.transparent,
             ],
           ),
         ),
@@ -665,10 +690,11 @@ class EditorVerticalDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return Container(
       width: 1,
       margin: EdgeInsets.symmetric(vertical: indent),
-      color: EditorChrome.separator(context),
+      color: colors.divider,
     );
   }
 }
