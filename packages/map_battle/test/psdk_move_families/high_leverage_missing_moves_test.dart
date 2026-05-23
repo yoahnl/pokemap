@@ -861,7 +861,8 @@ void main() {
       engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
       final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
 
-      final failures = second.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+      final failures =
+          second.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
       expect(failures, hasLength(1));
       expect(failures.single.reason, 'destiny_bond_already_active');
     });
@@ -1564,6 +1565,160 @@ void main() {
       expect(player.statStages.valueOf('specialDefense'), 1);
     });
 
+    test('s_stockpile increments an existing stockpile up to three layers', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'stockpile',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_stockpile',
+          target: PsdkBattleMoveTarget.self,
+        ),
+        playerStages: PsdkBattleStatStages(
+          values: <String, int>{
+            'defense': 2,
+            'specialDefense': 2,
+          },
+        ),
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          StockpileEffect(
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            stockpile: 2,
+            defenseBonus: 2,
+            specialDefenseBonus: 2,
+          ),
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final stockpile = player.effects.effects.singleWhere(
+        (effect) => effect.id == 'stockpile',
+      ) as StockpileEffect;
+      expect(stockpile.stockpile, 3);
+      expect(stockpile.defenseBonus, 3);
+      expect(stockpile.specialDefenseBonus, 3);
+      expect(player.statStages.valueOf('defense'), 3);
+      expect(player.statStages.valueOf('specialDefense'), 3);
+    });
+
+    test('s_swallow heals from stockpile and clears its staged bonuses', () {
+      final result = _runMove(
+        playerCurrentHp: 40,
+        playerMove: _move(
+          id: 'swallow',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_swallow',
+          target: PsdkBattleMoveTarget.self,
+        ),
+        playerStages: PsdkBattleStatStages(
+          values: <String, int>{
+            'defense': 2,
+            'specialDefense': 2,
+          },
+        ),
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          StockpileEffect(
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            stockpile: 2,
+            defenseBonus: 2,
+            specialDefenseBonus: 2,
+          ),
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(player.currentHp, 90);
+      expect(player.effects.contains('stockpile'), isFalse);
+      expect(player.statStages.valueOf('defense'), 0);
+      expect(player.statStages.valueOf('specialDefense'), 0);
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isEmpty,
+      );
+    });
+
+    test('s_swallow fails without a usable stockpile effect', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'swallow',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_swallow',
+          target: PsdkBattleMoveTarget.self,
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single,
+        isA<PsdkBattleMoveFailedEvent>()
+            .having((event) => event.moveId, 'moveId', 'swallow')
+            .having(
+              (event) => event.reason,
+              'reason',
+              BattleMoveFailureReason.unusableByUser.jsonName,
+            ),
+      );
+    });
+
+    test('s_geomancy uses the two-turn release boosts on its dedicated method',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            types: const PsdkBattleTypes(primary: 'fairy'),
+            speed: 100,
+            move: _move(
+              id: 'geomancy',
+              type: 'fairy',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              battleEngineMethod: 's_geomancy',
+              target: PsdkBattleMoveTarget.self,
+            ),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 1,
+            move: _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 1,
+            ),
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 0,
+          ),
+        ),
+      );
+
+      final charge = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final release =
+          engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final chargedPlayer = charge.state.battlerAt(psdkPlayerSlot);
+      final player = release.state.battlerAt(psdkPlayerSlot);
+
+      expect(chargedPlayer.effects.contains(PsdkBattleEffectIds.twoTurnCharge),
+          isTrue);
+      expect(chargedPlayer.statStages.valueOf('specialAttack'), 0);
+      expect(chargedPlayer.statStages.valueOf('specialDefense'), 0);
+      expect(chargedPlayer.statStages.valueOf('speed'), 0);
+      expect(
+          player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isFalse);
+      expect(player.statStages.valueOf('specialAttack'), 2);
+      expect(player.statStages.valueOf('specialDefense'), 2);
+      expect(player.statStages.valueOf('speed'), 2);
+    });
+
     for (final entry in <({String method, String moveId})>[
       (method: 's_after_you', moveId: 'after_you'),
       (method: 's_magic_coat', moveId: 'magic_coat'),
@@ -2256,7 +2411,8 @@ void main() {
         failures.single.reason,
         BattleMoveFailureReason.unusableByUser.jsonName,
       );
-      expect(result.state.battlerAt(psdkOpponentSlot).moves.single.currentPp, 0);
+      expect(
+          result.state.battlerAt(psdkOpponentSlot).moves.single.currentPp, 0);
     });
 
     test('s_last_respects scales power with local KO count', () {
@@ -2918,7 +3074,8 @@ void main() {
       );
     });
 
-    test('s_stuff_cheeks consumes the user berry, heals and raises defense', () {
+    test('s_stuff_cheeks consumes the user berry, heals and raises defense',
+        () {
       final result = _runMove(
         playerCurrentHp: 40,
         playerHeldItemId: 'oran_berry',
@@ -2965,7 +3122,9 @@ void main() {
             .having((event) => event.reason, 'reason', 'unusable_by_user'),
       );
       expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
-      expect(result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'), 0);
+      expect(
+          result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+          0);
       expect(_itemEvents(result), isEmpty);
     });
 
@@ -3474,12 +3633,6 @@ void main() {
           moveId: 'bleakwind_storm',
           category: PsdkBattleMoveCategory.special,
           power: 100,
-        ),
-        (
-          method: 's_geomancy',
-          moveId: 'geomancy',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
         ),
         (
           method: 's_grassy_glide',

@@ -1027,8 +1027,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_geomancy',
     rubyClass: 'Geomancy',
     rubyPath: '10 Move/2 Definitions/300 Geomancy.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_geomancy',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2751,8 +2751,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_swallow',
     rubyClass: 'Swallow',
     rubyPath: '10 Move/2 Definitions/300 Swallow.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_swallow)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_swallow',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(

@@ -172,8 +172,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_swallow': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_swallow)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_swallow',
+    status: _PsdkPortStatus.ported,
   ),
   's_teleport': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_teleport)',
@@ -262,8 +262,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_geomancy': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_geomancy',
+    status: _PsdkPortStatus.ported,
   ),
   's_gigaton_hammer': _KnownDartBehavior(
     dartBehavior: 'ForcedActionMoveBehavior.gigatonHammer',

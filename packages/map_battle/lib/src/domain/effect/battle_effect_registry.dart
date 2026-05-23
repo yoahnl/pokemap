@@ -39,6 +39,7 @@ import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
 import 'move/snatch_effect.dart';
+import 'move/stockpile_effect.dart';
 import 'move/substitute_effect.dart';
 import 'move/syrup_bomb_effect.dart';
 import 'move/taunt_effect.dart';
@@ -142,6 +143,7 @@ final class BattleEffectRegistry {
       'smack_down' => const SmackDownEffect(scope: LocalBattleEffectScope()),
       'snatch' => const SnatchEffect(scope: LocalBattleEffectScope()),
       'snatched' => const SnatchedEffect(scope: LocalBattleEffectScope()),
+      'stockpile' => const StockpileEffect(scope: LocalBattleEffectScope()),
       'substitute' => const SubstituteEffect(
           scope: LocalBattleEffectScope(),
           remainingHp: 1,

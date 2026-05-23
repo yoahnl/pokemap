@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 658 |
-| Studio attacks `partiel` | 70 |
+| Studio attacks `fait` | 659 |
+| Studio attacks `partiel` | 69 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -40,7 +40,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_snatch | 1 |
 | s_splintered_stormshards | 1 |
 | s_split_up | 1 |
-| s_swallow | 1 |
 | s_teleport | 1 |
 | s_z_move | 10 |
 
@@ -48,8 +47,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 306 |
-| `partial` | 24 |
+| `ported` | 308 |
+| `partial` | 22 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -57,7 +56,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 24 |
+| effects | 22 |
 | ability | 14 |
 | handlerDamage | 14 |
 | item | 14 |
@@ -70,7 +69,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 10 | `s_chilly_reception`, `s_court_change`, `s_doodle`, `s_geomancy`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_swallow`, `s_teleport` |
+| Effect hook / manifest final sweep | 8 | `s_chilly_reception`, `s_court_change`, `s_doodle`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_teleport` |
 
 ## Effect Coverage
 

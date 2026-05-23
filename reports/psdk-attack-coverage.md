@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 658 |
-| partiel | 70 |
+| fait | 659 |
+| partiel | 69 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -672,7 +672,7 @@ Coverage semantics:
 | partiel | supersonic_skystrike2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/supersonic_skystrike2.json |
 | fait | surf | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | special | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/surf.json |
 | fait | swagger | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 85 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/swagger.json |
-| partiel | swallow | s_swallow | partial | StaticBasicMoveRegistry.partialTargetMarker(s_swallow) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/swallow.json |
+| fait | swallow | s_swallow | ported | StaticBasicMoveRegistry.s_swallow | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/swallow.json |
 | fait | sweet_kiss | s_status | ported | StatusStatMoveBehavior.status | fairy | status | 0 | 75 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sweet_kiss.json |
 | fait | sweet_scent | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/sweet_scent.json |
 | fait | swift | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | special | 60 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/swift.json |

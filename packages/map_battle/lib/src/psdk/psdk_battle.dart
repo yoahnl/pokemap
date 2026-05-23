@@ -79,6 +79,7 @@ export '../domain/effect/move/powder_effect.dart';
 export '../domain/effect/move/protect_effect.dart';
 export '../domain/effect/move/salt_cure_effect.dart';
 export '../domain/effect/move/smack_down_effect.dart';
+export '../domain/effect/move/stockpile_effect.dart';
 export '../domain/effect/move/substitute_effect.dart';
 export '../domain/effect/move/syrup_bomb_effect.dart';
 export '../domain/effect/move/tar_shot_effect.dart';

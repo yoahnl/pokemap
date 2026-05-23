@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 658,
-    "partiel": 70,
+    "fait": 659,
+    "partiel": 69,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5115,9 +5115,9 @@
       {
         "moveId": "swallow",
         "battleEngineMethod": "s_swallow",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/swallow.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 306,
-      "partial": 24,
+      "ported": 308,
+      "partial": 22,
       "missing": 0
     },
     "entries": [
@@ -6911,12 +6911,11 @@
         "battleEngineMethod": "s_geomancy",
         "rubyClass": "Geomancy",
         "rubyPath": "10 Move/2 Definitions/300 Geomancy.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_geomancy",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_gigaton_hammer",
@@ -8718,12 +8717,11 @@
         "battleEngineMethod": "s_swallow",
         "rubyClass": "Swallow",
         "rubyPath": "10 Move/2 Definitions/300 Swallow.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_swallow)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_swallow",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_synchronoise",
@@ -9229,17 +9227,15 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 10,
+        "count": 8,
         "methods": [
           "s_chilly_reception",
           "s_court_change",
           "s_doodle",
-          "s_geomancy",
           "s_magic_coat",
           "s_revival_blessing",
           "s_shed_tail",
           "s_snatch",
-          "s_swallow",
           "s_teleport"
         ]
       }
