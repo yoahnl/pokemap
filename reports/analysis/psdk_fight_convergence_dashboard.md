@@ -1,13 +1,13 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-23T16:18:05.934062Z
+Generated: 2026-05-23T17:04:44.823345Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
-| Attacks | 661 / 728 | 90.8% | 67 |
-| Methods | 313 / 330 | 94.8% | 17 |
+| Attacks | 665 / 728 | 91.3% | 63 |
+| Methods | 317 / 330 | 96.1% | 13 |
 | Effects | 406 / 482 | 84.2% | 76 |
 
 ## Effects By Family
@@ -25,8 +25,8 @@ Generated: 2026-05-23T16:18:05.934062Z
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Damage formula / variable power | 12 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 5 | `s_court_change`, `s_magic_coat`, `s_revival_blessing`, `s_snatch`, `s_teleport` |
+| Damage formula / variable power | 10 | `s_aura_wheel`, `s_beak_blast`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_upper_hand` |
+| Effect hook / manifest final sweep | 3 | `s_magic_coat`, `s_revival_blessing`, `s_snatch` |
 
 ## Ability Effect Backlog
 

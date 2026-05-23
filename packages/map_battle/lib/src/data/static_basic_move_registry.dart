@@ -793,6 +793,8 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const VariablePowerMoveBehavior.bitterMalice(),
     const VariablePowerMoveBehavior.hex(),
     const VariablePowerMoveBehavior.venoshock(),
+    const VariablePowerMoveBehavior.returnMove(),
+    const VariablePowerMoveBehavior.frustration(),
     const WeightPowerMoveBehavior.lowKick(),
     const WeightPowerMoveBehavior.heavySlam(),
     const CustomStatSourceMoveBehavior.bodyPress(),
@@ -810,14 +812,12 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
 
 const _partialBasicDescendantMethods = <String>[
   's_beak_blast',
-  's_frustration',
   's_genesis_supernova',
   's_guardian_of_alola',
   's_hidden_power',
   's_hyperspace_hole',
   's_light_that_burns_the_sky',
   's_malicious_moonsault',
-  's_return',
   's_shell_trap',
   's_splintered_stormshards',
   's_aura_wheel',

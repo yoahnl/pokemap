@@ -2010,6 +2010,66 @@ void main() {
       expect(result.state.field.additionalMoney, 100);
     });
 
+    test('s_return scales damage with high loyalty', () {
+      final lowLoyalty = _runMove(
+        playerMove: _move(
+          id: 'return',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.physical,
+          power: 1,
+          battleEngineMethod: 's_return',
+        ),
+        playerLoyalty: 0,
+      );
+      final highLoyalty = _runMove(
+        playerMove: _move(
+          id: 'return',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.physical,
+          power: 1,
+          battleEngineMethod: 's_return',
+        ),
+        playerLoyalty: 255,
+      );
+
+      expect(_damageEvents(lowLoyalty, moveId: 'return'), hasLength(1));
+      expect(_damageEvents(highLoyalty, moveId: 'return'), hasLength(1));
+      expect(
+        _damage(highLoyalty, moveId: 'return'),
+        greaterThan(_damage(lowLoyalty, moveId: 'return')),
+      );
+    });
+
+    test('s_frustration scales damage with low loyalty', () {
+      final lowLoyalty = _runMove(
+        playerMove: _move(
+          id: 'frustration',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.physical,
+          power: 1,
+          battleEngineMethod: 's_frustration',
+        ),
+        playerLoyalty: 0,
+      );
+      final highLoyalty = _runMove(
+        playerMove: _move(
+          id: 'frustration',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.physical,
+          power: 1,
+          battleEngineMethod: 's_frustration',
+        ),
+        playerLoyalty: 255,
+      );
+
+      expect(_damageEvents(lowLoyalty, moveId: 'frustration'), hasLength(1));
+      expect(_damageEvents(highLoyalty, moveId: 'frustration'), hasLength(1));
+      expect(
+        _damage(lowLoyalty, moveId: 'frustration'),
+        greaterThan(_damage(highLoyalty, moveId: 'frustration')),
+      );
+    });
+
     for (final entry in <({String method, String moveId})>[
       (method: 's_after_you', moveId: 'after_you'),
       (method: 's_magic_coat', moveId: 'magic_coat'),
@@ -3305,22 +3365,10 @@ void main() {
           power: 0,
         ),
         (
-          method: 's_frustration',
-          moveId: 'frustration',
-          category: PsdkBattleMoveCategory.physical,
-          power: 40,
-        ),
-        (
           method: 's_metronome',
           moveId: 'metronome',
           category: PsdkBattleMoveCategory.status,
           power: 0,
-        ),
-        (
-          method: 's_return',
-          moveId: 'return',
-          category: PsdkBattleMoveCategory.physical,
-          power: 40,
         ),
         (
           method: 's_teleport',
@@ -4212,6 +4260,8 @@ PsdkBattleTurnResult _runMove({
   int opponentCurrentHp = 100,
   int playerKoCount = 0,
   int opponentKoCount = 0,
+  int playerLoyalty = 255,
+  int opponentLoyalty = 255,
   bool opponentSwitching = false,
   int? opponentLastSentTurn,
   double playerBaseWeightKg = 1,
@@ -4241,6 +4291,7 @@ PsdkBattleTurnResult _runMove({
         abilityId: playerAbilityId,
         effects: playerEffects,
         koCount: playerKoCount,
+        loyalty: playerLoyalty,
         baseWeightKg: playerBaseWeightKg,
         currentWeightKg: playerCurrentWeightKg,
         moveHistory: playerMoveHistory,
@@ -4263,6 +4314,7 @@ PsdkBattleTurnResult _runMove({
         effects: opponentEffects,
         moveHistory: opponentMoveHistory,
         koCount: opponentKoCount,
+        loyalty: opponentLoyalty,
         switching: opponentSwitching,
         lastSentTurn: opponentLastSentTurn,
       ),
@@ -4294,6 +4346,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleEffectStack? effects,
   PsdkBattleMoveHistory? moveHistory,
   int koCount = 0,
+  int loyalty = 255,
   bool switching = false,
   int? lastSentTurn,
   double baseWeightKg = 1,
@@ -4323,6 +4376,7 @@ PsdkBattleCombatantSetup _combatant({
     effects: effects,
     moveHistory: moveHistory,
     koCount: koCount,
+    loyalty: loyalty,
     switching: switching,
     lastSentTurn: lastSentTurn,
     baseWeightKg: baseWeightKg,

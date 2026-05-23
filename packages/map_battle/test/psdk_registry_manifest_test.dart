@@ -706,6 +706,16 @@ void main() {
       expect(byMethod['s_facade']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_infernal_parade']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_bitter_malice']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_return']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_return']!.dartBehavior,
+        'VariablePowerMoveBehavior.returnMove',
+      );
+      expect(byMethod['s_frustration']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_frustration']!.dartBehavior,
+        'VariablePowerMoveBehavior.frustration',
+      );
       expect(byMethod['s_venoshock']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_hex']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_low_kick']!.status, PsdkPortStatus.ported);

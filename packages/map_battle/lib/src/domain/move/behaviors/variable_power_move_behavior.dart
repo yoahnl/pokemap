@@ -18,6 +18,8 @@ enum _VariablePowerKind {
   targetStatusPowerBoost,
   hex,
   venoshock,
+  returnMove,
+  frustration,
 }
 
 /// Ports PSDK move classes whose main override is dynamic base power.
@@ -75,6 +77,14 @@ final class VariablePowerMoveBehavior implements BattleMoveBehavior {
   const VariablePowerMoveBehavior.venoshock()
       : battleEngineMethod = 's_venoshock',
         _kind = _VariablePowerKind.venoshock;
+
+  const VariablePowerMoveBehavior.returnMove()
+      : battleEngineMethod = 's_return',
+        _kind = _VariablePowerKind.returnMove;
+
+  const VariablePowerMoveBehavior.frustration()
+      : battleEngineMethod = 's_frustration',
+        _kind = _VariablePowerKind.frustration;
 
   @override
   final String battleEngineMethod;
@@ -165,6 +175,8 @@ final class VariablePowerMoveBehavior implements BattleMoveBehavior {
       _VariablePowerKind.facade => _facadePower(movePower, user),
       _VariablePowerKind.targetStatusPowerBoost =>
         target.majorStatus == null ? movePower : movePower * 2,
+      _VariablePowerKind.returnMove => _returnPower(user),
+      _VariablePowerKind.frustration => _frustrationPower(user),
       // Hex and Venoshock double final damage in PSDK, not base power.
       _VariablePowerKind.hex || _VariablePowerKind.venoshock => movePower,
     };
@@ -247,6 +259,14 @@ final class VariablePowerMoveBehavior implements BattleMoveBehavior {
     return _isFacadeBoostingStatus(user.majorStatus)
         ? movePower * 2
         : movePower;
+  }
+
+  int _returnPower(PsdkBattleCombatant user) {
+    return (user.loyalty / 2.5).floor().clamp(1, 102).toInt();
+  }
+
+  int _frustrationPower(PsdkBattleCombatant user) {
+    return ((255 - user.loyalty) / 2.5).floor().clamp(1, 102).toInt();
   }
 
   double _hpRate(PsdkBattleCombatant battler) {

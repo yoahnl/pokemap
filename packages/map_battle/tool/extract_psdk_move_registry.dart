@@ -74,8 +74,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_frustration': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_frustration)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'VariablePowerMoveBehavior.frustration',
+    status: _PsdkPortStatus.ported,
   ),
   's_gear_up': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)',
@@ -147,8 +147,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_return': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_return)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'VariablePowerMoveBehavior.returnMove',
+    status: _PsdkPortStatus.ported,
   ),
   's_rototiller': _KnownDartBehavior(
     dartBehavior:

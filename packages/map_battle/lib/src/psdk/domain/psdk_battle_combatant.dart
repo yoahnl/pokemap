@@ -513,6 +513,7 @@ class PsdkBattleCombatantSetup {
     this.abilityId,
     this.gender = PsdkBattleGender.unknown,
     this.dislikedFlavor,
+    this.loyalty = 255,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -558,6 +559,7 @@ class PsdkBattleCombatantSetup {
   final String? abilityId;
   final PsdkBattleGender gender;
   final String? dislikedFlavor;
+  final int loyalty;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -623,6 +625,7 @@ class PsdkBattleCombatant {
     this.abilityId,
     this.gender = PsdkBattleGender.unknown,
     this.dislikedFlavor,
+    this.loyalty = 255,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -676,6 +679,7 @@ class PsdkBattleCombatant {
       abilityId: setup.abilityId,
       gender: setup.gender,
       dislikedFlavor: setup.dislikedFlavor,
+      loyalty: setup.loyalty,
       heldItemId: setup.heldItemId,
       consumedItemId: setup.consumedItemId,
       itemConsumed: setup.itemConsumed,
@@ -717,6 +721,7 @@ class PsdkBattleCombatant {
   final String? abilityId;
   final PsdkBattleGender gender;
   final String? dislikedFlavor;
+  final int loyalty;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -810,6 +815,7 @@ class PsdkBattleCombatant {
     Object? abilityId = _unchanged,
     PsdkBattleGender? gender,
     Object? dislikedFlavor = _unchanged,
+    int? loyalty,
     Object? heldItemId = _unchanged,
     Object? consumedItemId = _unchanged,
     bool? itemConsumed,
@@ -860,6 +866,7 @@ class PsdkBattleCombatant {
       dislikedFlavor: identical(dislikedFlavor, _unchanged)
           ? this.dislikedFlavor
           : dislikedFlavor as String?,
+      loyalty: loyalty ?? this.loyalty,
       heldItemId: identical(heldItemId, _unchanged)
           ? this.heldItemId
           : heldItemId as String?,

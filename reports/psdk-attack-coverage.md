@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 665 |
-| partiel | 63 |
+| fait | 667 |
+| partiel | 61 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -268,7 +268,7 @@ Coverage semantics:
 | fait | freeze_shock | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | ice | physical | 140 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/freeze_shock.json |
 | fait | frenzy_plant | s_reload | ported | StaticBasicMoveRegistry.s_reload | grass | special | 150 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/frenzy_plant.json |
 | fait | frost_breath | s_full_crit | ported | BasicDamageSpecializationMoveBehavior.fullCrit | ice | special | 60 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/frost_breath.json |
-| partiel | frustration | s_frustration | partial | StaticBasicMoveRegistry.partialBasic(s_frustration) | normal | physical | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/frustration.json |
+| fait | frustration | s_frustration | ported | VariablePowerMoveBehavior.frustration | normal | physical | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/frustration.json |
 | fait | fury_attack | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | normal | physical | 15 | 85 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/fury_attack.json |
 | fait | fury_cutter | s_fury_cutter | ported | ConsecutivePowerMoveBehavior.furyCutter | bug | physical | 40 | 95 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/fury_cutter.json |
 | fait | fury_swipes | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | normal | physical | 18 | 80 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/fury_swipes.json |
@@ -535,7 +535,7 @@ Coverage semantics:
 | fait | relic_song | s_relic_song | ported | SpecialSecondaryMoveBehavior.relicSong | normal | special | 75 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/relic_song.json |
 | fait | rest | s_rest | ported | RecoveryStatMoveBehavior.rest | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/rest.json |
 | fait | retaliate | s_retaliate | ported | HistoryPowerMoveBehavior.retaliate | normal | physical | 70 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/retaliate.json |
-| partiel | return | s_return | partial | StaticBasicMoveRegistry.partialBasic(s_return) | normal | physical | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/return.json |
+| fait | return | s_return | ported | VariablePowerMoveBehavior.returnMove | normal | physical | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/return.json |
 | fait | revelation_dance | s_revelation_dance | ported | TypeBasedMoveBehavior.revelationDance | normal | special | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/revelation_dance.json |
 | fait | revenge | s_revenge | ported | HistoryPowerMoveBehavior.revenge | fighting | physical | 60 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/revenge.json |
 | fait | reversal | s_flail | ported | VariablePowerMoveBehavior.flail | fighting | physical | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/reversal.json |

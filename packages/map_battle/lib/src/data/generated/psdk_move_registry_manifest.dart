@@ -936,14 +936,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_frustration',
     rubyClass: 'Frustration',
     rubyPath: '10 Move/2 Definitions/300 Frustration.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_frustration)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'VariablePowerMoveBehavior.frustration',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_full_crit',
@@ -2175,14 +2170,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_return',
     rubyClass: 'Return',
     rubyPath: '10 Move/2 Definitions/300 Return.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_return)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'VariablePowerMoveBehavior.returnMove',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_revelation_dance',

@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 665,
-    "partiel": 63,
+    "fait": 667,
+    "partiel": 61,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1883,9 +1883,9 @@
       {
         "moveId": "frustration",
         "battleEngineMethod": "s_frustration",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/frustration.json"
       },
       {
@@ -4019,9 +4019,9 @@
       {
         "moveId": "return",
         "battleEngineMethod": "s_return",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/return.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 317,
-      "partial": 13,
+      "ported": 319,
+      "partial": 11,
       "missing": 0
     },
     "entries": [
@@ -6809,15 +6809,9 @@
         "battleEngineMethod": "s_frustration",
         "rubyClass": "Frustration",
         "rubyPath": "10 Move/2 Definitions/300 Frustration.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_frustration)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "VariablePowerMoveBehavior.frustration",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_full_crit",
@@ -8106,15 +8100,9 @@
         "battleEngineMethod": "s_return",
         "rubyClass": "Return",
         "rubyPath": "10 Move/2 Definitions/300 Return.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_return)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "VariablePowerMoveBehavior.returnMove",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_revelation_dance",
@@ -9187,16 +9175,14 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 10,
+        "count": 8,
         "methods": [
           "s_aura_wheel",
           "s_beak_blast",
           "s_dragon_darts",
-          "s_frustration",
           "s_hidden_power",
           "s_order_up",
           "s_pre_attack_base",
-          "s_return",
           "s_shell_trap",
           "s_upper_hand"
         ]
