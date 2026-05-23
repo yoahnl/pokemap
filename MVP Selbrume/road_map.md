@@ -681,3 +681,18 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. createNewGameState inchangé. |
 | Prochain lot | NS-GS-08 — NPC Interaction → Scene Authoring Readiness |
 | Rapport | `reports/gameplay/ns_gs_07_step_completion_progression_hooks.md` |
+
+---
+
+# Mise à jour NS-GS-07-bis — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-07-bis — Analyzer Cleanup for Step Completion Tests |
+| Résultat | 2 imports relatifs remplacés par `package:`. 0 diagnostic analyzer sur le fichier. 8 tests passent. |
+| Fichiers | `scenario_complete_step_test.dart` (2 lignes modifiées), rapport |
+| Décision | Import `package:map_runtime/src/...` au lieu de `../lib/src/...`. |
+| Limites | `map_entity_runtime_predicate_evaluator_test.dart` pré-existant utilise aussi des imports relatifs (hors scope). |
+| Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
+| Prochain lot | NS-GS-08 — NPC Interaction → Scene Authoring Readiness |
+| Rapport | `reports/gameplay/ns_gs_07_bis_analyzer_cleanup_step_completion_tests.md` |

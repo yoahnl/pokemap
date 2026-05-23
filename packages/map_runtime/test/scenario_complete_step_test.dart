@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../lib/src/application/global_story_chapter_runtime.dart';
-import '../lib/src/application/map_entity_runtime_predicate_evaluator.dart';
+import 'package:map_runtime/src/application/global_story_chapter_runtime.dart';
+import 'package:map_runtime/src/application/map_entity_runtime_predicate_evaluator.dart';
 
 // ignore_for_file: prefer_const_constructors
 
