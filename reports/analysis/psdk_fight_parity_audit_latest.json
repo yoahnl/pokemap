@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 463,
-    "partiel": 265,
+    "fait": 655,
+    "partiel": 73,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -27,9 +27,9 @@
       {
         "moveId": "acid",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/acid.json"
       },
       {
@@ -59,9 +59,9 @@
       {
         "moveId": "acid_spray",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/acid_spray.json"
       },
       {
@@ -123,9 +123,9 @@
       {
         "moveId": "air_slash",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/air_slash.json"
       },
       {
@@ -171,9 +171,9 @@
       {
         "moveId": "ancient_power",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ancient_power.json"
       },
       {
@@ -219,9 +219,9 @@
       {
         "moveId": "aromatic_mist",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/aromatic_mist.json"
       },
       {
@@ -243,9 +243,9 @@
       {
         "moveId": "astonish",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/astonish.json"
       },
       {
@@ -275,9 +275,9 @@
       {
         "moveId": "aurora_beam",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/aurora_beam.json"
       },
       {
@@ -315,9 +315,9 @@
       {
         "moveId": "baneful_bunker",
         "battleEngineMethod": "s_protect",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/baneful_bunker.json"
       },
       {
@@ -403,9 +403,9 @@
       {
         "moveId": "bite",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bite.json"
       },
       {
@@ -435,9 +435,9 @@
       {
         "moveId": "blaze_kick",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/blaze_kick.json"
       },
       {
@@ -475,9 +475,9 @@
       {
         "moveId": "blue_flare",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/blue_flare.json"
       },
       {
@@ -491,17 +491,17 @@
       {
         "moveId": "bolt_strike",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bolt_strike.json"
       },
       {
         "moveId": "bone_club",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bone_club.json"
       },
       {
@@ -531,9 +531,9 @@
       {
         "moveId": "bounce",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bounce.json"
       },
       {
@@ -587,17 +587,17 @@
       {
         "moveId": "bubble",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bubble.json"
       },
       {
         "moveId": "bubble_beam",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bubble_beam.json"
       },
       {
@@ -611,9 +611,9 @@
       {
         "moveId": "bug_buzz",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bug_buzz.json"
       },
       {
@@ -627,9 +627,9 @@
       {
         "moveId": "bulldoze",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bulldoze.json"
       },
       {
@@ -707,9 +707,9 @@
       {
         "moveId": "charge_beam",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/charge_beam.json"
       },
       {
@@ -723,9 +723,9 @@
       {
         "moveId": "chatter",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/chatter.json"
       },
       {
@@ -755,9 +755,9 @@
       {
         "moveId": "clanging_scales",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/clanging_scales.json"
       },
       {
@@ -779,17 +779,17 @@
       {
         "moveId": "close_combat",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/close_combat.json"
       },
       {
         "moveId": "coil",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/coil.json"
       },
       {
@@ -811,25 +811,25 @@
       {
         "moveId": "confuse_ray",
         "battleEngineMethod": "s_status",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/confuse_ray.json"
       },
       {
         "moveId": "confusion",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/confusion.json"
       },
       {
         "moveId": "constrict",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/constrict.json"
       },
       {
@@ -851,17 +851,17 @@
       {
         "moveId": "conversion",
         "battleEngineMethod": "s_conversion",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/conversion.json"
       },
       {
         "moveId": "conversion_2",
         "battleEngineMethod": "s_conversion2",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/conversion_2.json"
       },
       {
@@ -963,25 +963,25 @@
       {
         "moveId": "cross_poison",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/cross_poison.json"
       },
       {
         "moveId": "crunch",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/crunch.json"
       },
       {
         "moveId": "crush_claw",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/crush_claw.json"
       },
       {
@@ -1011,9 +1011,9 @@
       {
         "moveId": "dark_pulse",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/dark_pulse.json"
       },
       {
@@ -1099,9 +1099,9 @@
       {
         "moveId": "diamond_storm",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/diamond_storm.json"
       },
       {
@@ -1131,9 +1131,9 @@
       {
         "moveId": "discharge",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/discharge.json"
       },
       {
@@ -1147,9 +1147,9 @@
       {
         "moveId": "dizzy_punch",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/dizzy_punch.json"
       },
       {
@@ -1195,33 +1195,33 @@
       {
         "moveId": "double_team",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/double_team.json"
       },
       {
         "moveId": "draco_meteor",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/draco_meteor.json"
       },
       {
         "moveId": "dragon_ascent",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/dragon_ascent.json"
       },
       {
         "moveId": "dragon_breath",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/dragon_breath.json"
       },
       {
@@ -1331,17 +1331,17 @@
       {
         "moveId": "dynamic_punch",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/dynamic_punch.json"
       },
       {
         "moveId": "earth_power",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/earth_power.json"
       },
       {
@@ -1387,9 +1387,9 @@
       {
         "moveId": "electrify",
         "battleEngineMethod": "s_electrify",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/electrify.json"
       },
       {
@@ -1403,25 +1403,25 @@
       {
         "moveId": "electroweb",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/electroweb.json"
       },
       {
         "moveId": "embargo",
         "battleEngineMethod": "s_embargo",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/embargo.json"
       },
       {
         "moveId": "ember",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ember.json"
       },
       {
@@ -1451,17 +1451,17 @@
       {
         "moveId": "energy_ball",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/energy_ball.json"
       },
       {
         "moveId": "entrainment",
         "battleEngineMethod": "s_entrainment",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/entrainment.json"
       },
       {
@@ -1483,9 +1483,9 @@
       {
         "moveId": "extrasensory",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/extrasensory.json"
       },
       {
@@ -1587,9 +1587,9 @@
       {
         "moveId": "fiery_dance",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fiery_dance.json"
       },
       {
@@ -1603,9 +1603,9 @@
       {
         "moveId": "fire_blast",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fire_blast.json"
       },
       {
@@ -1619,9 +1619,9 @@
       {
         "moveId": "fire_lash",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fire_lash.json"
       },
       {
@@ -1635,9 +1635,9 @@
       {
         "moveId": "fire_punch",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fire_punch.json"
       },
       {
@@ -1683,65 +1683,65 @@
       {
         "moveId": "flame_charge",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flame_charge.json"
       },
       {
         "moveId": "flame_wheel",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flame_wheel.json"
       },
       {
         "moveId": "flamethrower",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flamethrower.json"
       },
       {
         "moveId": "flare_blitz",
         "battleEngineMethod": "s_recoil",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flare_blitz.json"
       },
       {
         "moveId": "flash",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flash.json"
       },
       {
         "moveId": "flash_cannon",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flash_cannon.json"
       },
       {
         "moveId": "flatter",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flatter.json"
       },
       {
         "moveId": "fleur_cannon",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fleur_cannon.json"
       },
       {
@@ -1763,9 +1763,9 @@
       {
         "moveId": "flower_shield",
         "battleEngineMethod": "s_flower_shield",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flower_shield.json"
       },
       {
@@ -1779,17 +1779,17 @@
       {
         "moveId": "flying_press",
         "battleEngineMethod": "s_flying_press",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flying_press.json"
       },
       {
         "moveId": "focus_blast",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/focus_blast.json"
       },
       {
@@ -1819,9 +1819,9 @@
       {
         "moveId": "force_palm",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/force_palm.json"
       },
       {
@@ -1851,17 +1851,17 @@
       {
         "moveId": "freeze_dry",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/freeze_dry.json"
       },
       {
         "moveId": "freeze_shock",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/freeze_shock.json"
       },
       {
@@ -1955,9 +1955,9 @@
       {
         "moveId": "gear_up",
         "battleEngineMethod": "s_gear_up",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gear_up.json"
       },
       {
@@ -1971,9 +1971,9 @@
       {
         "moveId": "geomancy",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/geomancy.json"
       },
       {
@@ -2011,9 +2011,9 @@
       {
         "moveId": "glaciate",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/glaciate.json"
       },
       {
@@ -2059,9 +2059,9 @@
       {
         "moveId": "gravity",
         "battleEngineMethod": "s_gravity",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gravity.json"
       },
       {
@@ -2123,9 +2123,9 @@
       {
         "moveId": "gunk_shot",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gunk_shot.json"
       },
       {
@@ -2155,17 +2155,17 @@
       {
         "moveId": "hammer_arm",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hammer_arm.json"
       },
       {
         "moveId": "happy_hour",
         "battleEngineMethod": "s_happy_hour",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/happy_hour.json"
       },
       {
@@ -2203,9 +2203,9 @@
       {
         "moveId": "headbutt",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/headbutt.json"
       },
       {
@@ -2235,25 +2235,25 @@
       {
         "moveId": "heal_pulse",
         "battleEngineMethod": "s_heal",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heal_pulse.json"
       },
       {
         "moveId": "healing_wish",
         "battleEngineMethod": "s_healing_wish",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/healing_wish.json"
       },
       {
         "moveId": "heart_stamp",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heart_stamp.json"
       },
       {
@@ -2275,9 +2275,9 @@
       {
         "moveId": "heat_wave",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heat_wave.json"
       },
       {
@@ -2291,9 +2291,9 @@
       {
         "moveId": "helping_hand",
         "battleEngineMethod": "s_helping_hand",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/helping_hand.json"
       },
       {
@@ -2347,9 +2347,9 @@
       {
         "moveId": "hone_claws",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hone_claws.json"
       },
       {
@@ -2435,9 +2435,9 @@
       {
         "moveId": "hyper_fang",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hyper_fang.json"
       },
       {
@@ -2451,9 +2451,9 @@
       {
         "moveId": "hyperspace_fury",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hyperspace_fury.json"
       },
       {
@@ -2483,17 +2483,17 @@
       {
         "moveId": "ice_beam",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ice_beam.json"
       },
       {
         "moveId": "ice_burn",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ice_burn.json"
       },
       {
@@ -2507,17 +2507,17 @@
       {
         "moveId": "ice_hammer",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ice_hammer.json"
       },
       {
         "moveId": "ice_punch",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ice_punch.json"
       },
       {
@@ -2531,9 +2531,9 @@
       {
         "moveId": "icicle_crash",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/icicle_crash.json"
       },
       {
@@ -2547,9 +2547,9 @@
       {
         "moveId": "icy_wind",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/icy_wind.json"
       },
       {
@@ -2571,9 +2571,9 @@
       {
         "moveId": "inferno",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/inferno.json"
       },
       {
@@ -2619,9 +2619,9 @@
       {
         "moveId": "ion_deluge",
         "battleEngineMethod": "s_ion_deluge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ion_deluge.json"
       },
       {
@@ -2635,17 +2635,17 @@
       {
         "moveId": "iron_head",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/iron_head.json"
       },
       {
         "moveId": "iron_tail",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/iron_tail.json"
       },
       {
@@ -2675,17 +2675,17 @@
       {
         "moveId": "kinesis",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/kinesis.json"
       },
       {
         "moveId": "king_s_shield",
         "battleEngineMethod": "s_protect",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/king_s_shield.json"
       },
       {
@@ -2723,9 +2723,9 @@
       {
         "moveId": "lava_plume",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/lava_plume.json"
       },
       {
@@ -2739,17 +2739,17 @@
       {
         "moveId": "leaf_storm",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/leaf_storm.json"
       },
       {
         "moveId": "leaf_tornado",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/leaf_tornado.json"
       },
       {
@@ -2795,17 +2795,17 @@
       {
         "moveId": "lick",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/lick.json"
       },
       {
         "moveId": "light_of_ruin",
         "battleEngineMethod": "s_recoil",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/light_of_ruin.json"
       },
       {
@@ -2827,9 +2827,9 @@
       {
         "moveId": "liquidation",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/liquidation.json"
       },
       {
@@ -2859,9 +2859,9 @@
       {
         "moveId": "low_sweep",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/low_sweep.json"
       },
       {
@@ -2875,25 +2875,25 @@
       {
         "moveId": "lunar_dance",
         "battleEngineMethod": "s_lunar_dance",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/lunar_dance.json"
       },
       {
         "moveId": "lunge",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/lunge.json"
       },
       {
         "moveId": "luster_purge",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/luster_purge.json"
       },
       {
@@ -2915,9 +2915,9 @@
       {
         "moveId": "magic_room",
         "battleEngineMethod": "s_magic_room",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/magic_room.json"
       },
       {
@@ -2955,9 +2955,9 @@
       {
         "moveId": "magnetic_flux",
         "battleEngineMethod": "s_magnetic_flux",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/magnetic_flux.json"
       },
       {
@@ -3067,9 +3067,9 @@
       {
         "moveId": "metal_claw",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/metal_claw.json"
       },
       {
@@ -3083,9 +3083,9 @@
       {
         "moveId": "meteor_mash",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/meteor_mash.json"
       },
       {
@@ -3115,9 +3115,9 @@
       {
         "moveId": "mind_blown",
         "battleEngineMethod": "s_recoil",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mind_blown.json"
       },
       {
@@ -3163,9 +3163,9 @@
       {
         "moveId": "mirror_shot",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mirror_shot.json"
       },
       {
@@ -3179,9 +3179,9 @@
       {
         "moveId": "mist_ball",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mist_ball.json"
       },
       {
@@ -3195,9 +3195,9 @@
       {
         "moveId": "moonblast",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/moonblast.json"
       },
       {
@@ -3227,25 +3227,25 @@
       {
         "moveId": "mud_bomb",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mud_bomb.json"
       },
       {
         "moveId": "mud_shot",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mud_shot.json"
       },
       {
         "moveId": "mud_slap",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mud_slap.json"
       },
       {
@@ -3259,9 +3259,9 @@
       {
         "moveId": "muddy_water",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/muddy_water.json"
       },
       {
@@ -3275,9 +3275,9 @@
       {
         "moveId": "mystical_fire",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mystical_fire.json"
       },
       {
@@ -3315,9 +3315,9 @@
       {
         "moveId": "needle_arm",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/needle_arm.json"
       },
       {
@@ -3339,9 +3339,9 @@
       {
         "moveId": "night_daze",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/night_daze.json"
       },
       {
@@ -3363,9 +3363,9 @@
       {
         "moveId": "nightmare",
         "battleEngineMethod": "s_nightmare",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/nightmare.json"
       },
       {
@@ -3379,9 +3379,9 @@
       {
         "moveId": "nuzzle",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/nuzzle.json"
       },
       {
@@ -3403,9 +3403,9 @@
       {
         "moveId": "octazooka",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/octazooka.json"
       },
       {
@@ -3419,9 +3419,9 @@
       {
         "moveId": "ominous_wind",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/ominous_wind.json"
       },
       {
@@ -3443,9 +3443,9 @@
       {
         "moveId": "overheat",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/overheat.json"
       },
       {
@@ -3459,9 +3459,9 @@
       {
         "moveId": "parabolic_charge",
         "battleEngineMethod": "s_absorb",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/parabolic_charge.json"
       },
       {
@@ -3499,9 +3499,9 @@
       {
         "moveId": "perish_song",
         "battleEngineMethod": "s_perish_song",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/perish_song.json"
       },
       {
@@ -3563,9 +3563,9 @@
       {
         "moveId": "play_rough",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/play_rough.json"
       },
       {
@@ -3579,9 +3579,9 @@
       {
         "moveId": "poison_fang",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/poison_fang.json"
       },
       {
@@ -3595,9 +3595,9 @@
       {
         "moveId": "poison_jab",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/poison_jab.json"
       },
       {
@@ -3611,17 +3611,17 @@
       {
         "moveId": "poison_sting",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/poison_sting.json"
       },
       {
         "moveId": "poison_tail",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/poison_tail.json"
       },
       {
@@ -3643,17 +3643,17 @@
       {
         "moveId": "powder",
         "battleEngineMethod": "s_powder",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/powder.json"
       },
       {
         "moveId": "powder_snow",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/powder_snow.json"
       },
       {
@@ -3699,9 +3699,9 @@
       {
         "moveId": "power_up_punch",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/power_up_punch.json"
       },
       {
@@ -3747,9 +3747,9 @@
       {
         "moveId": "psybeam",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psybeam.json"
       },
       {
@@ -3763,9 +3763,9 @@
       {
         "moveId": "psychic",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psychic.json"
       },
       {
@@ -3787,9 +3787,9 @@
       {
         "moveId": "psycho_boost",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psycho_boost.json"
       },
       {
@@ -3939,17 +3939,17 @@
       {
         "moveId": "razor_shell",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/razor_shell.json"
       },
       {
         "moveId": "razor_wind",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/razor_wind.json"
       },
       {
@@ -4075,9 +4075,9 @@
       {
         "moveId": "rock_climb",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/rock_climb.json"
       },
       {
@@ -4091,17 +4091,17 @@
       {
         "moveId": "rock_slide",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/rock_slide.json"
       },
       {
         "moveId": "rock_smash",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/rock_smash.json"
       },
       {
@@ -4115,9 +4115,9 @@
       {
         "moveId": "rock_tomb",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/rock_tomb.json"
       },
       {
@@ -4131,17 +4131,17 @@
       {
         "moveId": "role_play",
         "battleEngineMethod": "s_role_play",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/role_play.json"
       },
       {
         "moveId": "rolling_kick",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/rolling_kick.json"
       },
       {
@@ -4163,9 +4163,9 @@
       {
         "moveId": "rototiller",
         "battleEngineMethod": "s_rototiller",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/rototiller.json"
       },
       {
@@ -4187,9 +4187,9 @@
       {
         "moveId": "sacred_fire",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sacred_fire.json"
       },
       {
@@ -4211,9 +4211,9 @@
       {
         "moveId": "sand_attack",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sand_attack.json"
       },
       {
@@ -4251,9 +4251,9 @@
       {
         "moveId": "scald",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/scald.json"
       },
       {
@@ -4283,9 +4283,9 @@
       {
         "moveId": "searing_shot",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/searing_shot.json"
       },
       {
@@ -4323,9 +4323,9 @@
       {
         "moveId": "seed_flare",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/seed_flare.json"
       },
       {
@@ -4347,17 +4347,17 @@
       {
         "moveId": "shadow_ball",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/shadow_ball.json"
       },
       {
         "moveId": "shadow_bone",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/shadow_bone.json"
       },
       {
@@ -4427,9 +4427,9 @@
       {
         "moveId": "shell_smash",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/shell_smash.json"
       },
       {
@@ -4467,25 +4467,25 @@
       {
         "moveId": "signal_beam",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/signal_beam.json"
       },
       {
         "moveId": "silver_wind",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/silver_wind.json"
       },
       {
         "moveId": "simple_beam",
         "battleEngineMethod": "s_simple_beam",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/simple_beam.json"
       },
       {
@@ -4515,25 +4515,25 @@
       {
         "moveId": "skill_swap",
         "battleEngineMethod": "s_skill_swap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/skill_swap.json"
       },
       {
         "moveId": "skull_bash",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/skull_bash.json"
       },
       {
         "moveId": "sky_attack",
         "battleEngineMethod": "s_2turns",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sky_attack.json"
       },
       {
@@ -4595,25 +4595,25 @@
       {
         "moveId": "sludge",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sludge.json"
       },
       {
         "moveId": "sludge_bomb",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sludge_bomb.json"
       },
       {
         "moveId": "sludge_wave",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sludge_wave.json"
       },
       {
@@ -4643,25 +4643,25 @@
       {
         "moveId": "smog",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/smog.json"
       },
       {
         "moveId": "smokescreen",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/smokescreen.json"
       },
       {
         "moveId": "snarl",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/snarl.json"
       },
       {
@@ -4739,9 +4739,9 @@
       {
         "moveId": "spark",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/spark.json"
       },
       {
@@ -4795,9 +4795,9 @@
       {
         "moveId": "spiky_shield",
         "battleEngineMethod": "s_protect",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/spiky_shield.json"
       },
       {
@@ -4867,9 +4867,9 @@
       {
         "moveId": "steam_eruption",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/steam_eruption.json"
       },
       {
@@ -4883,9 +4883,9 @@
       {
         "moveId": "steel_wing",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/steel_wing.json"
       },
       {
@@ -4987,9 +4987,9 @@
       {
         "moveId": "struggle_bug",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/struggle_bug.json"
       },
       {
@@ -5067,17 +5067,17 @@
       {
         "moveId": "superpower",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/superpower.json"
       },
       {
         "moveId": "supersonic",
         "battleEngineMethod": "s_status",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/supersonic.json"
       },
       {
@@ -5107,9 +5107,9 @@
       {
         "moveId": "swagger",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/swagger.json"
       },
       {
@@ -5123,17 +5123,17 @@
       {
         "moveId": "sweet_kiss",
         "battleEngineMethod": "s_status",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sweet_kiss.json"
       },
       {
         "moveId": "sweet_scent",
         "battleEngineMethod": "s_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sweet_scent.json"
       },
       {
@@ -5267,9 +5267,9 @@
       {
         "moveId": "teeter_dance",
         "battleEngineMethod": "s_status",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/teeter_dance.json"
       },
       {
@@ -5347,17 +5347,17 @@
       {
         "moveId": "thunder_punch",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/thunder_punch.json"
       },
       {
         "moveId": "thunder_shock",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/thunder_shock.json"
       },
       {
@@ -5371,9 +5371,9 @@
       {
         "moveId": "thunderbolt",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/thunderbolt.json"
       },
       {
@@ -5475,9 +5475,9 @@
       {
         "moveId": "trop_kick",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/trop_kick.json"
       },
       {
@@ -5515,9 +5515,9 @@
       {
         "moveId": "twister",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/twister.json"
       },
       {
@@ -5539,9 +5539,9 @@
       {
         "moveId": "v_create",
         "battleEngineMethod": "s_self_stat",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/v_create.json"
       },
       {
@@ -5603,9 +5603,9 @@
       {
         "moveId": "volt_tackle",
         "battleEngineMethod": "s_recoil",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/volt_tackle.json"
       },
       {
@@ -5635,9 +5635,9 @@
       {
         "moveId": "water_pulse",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/water_pulse.json"
       },
       {
@@ -5667,9 +5667,9 @@
       {
         "moveId": "waterfall",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/waterfall.json"
       },
       {
@@ -5731,9 +5731,9 @@
       {
         "moveId": "wish",
         "battleEngineMethod": "s_wish",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/wish.json"
       },
       {
@@ -5747,9 +5747,9 @@
       {
         "moveId": "wonder_room",
         "battleEngineMethod": "s_wonder_room",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/wonder_room.json"
       },
       {
@@ -5771,9 +5771,9 @@
       {
         "moveId": "worry_seed",
         "battleEngineMethod": "s_worry_seed",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/worry_seed.json"
       },
       {
@@ -5811,25 +5811,25 @@
       {
         "moveId": "zap_cannon",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/zap_cannon.json"
       },
       {
         "moveId": "zen_headbutt",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/zen_headbutt.json"
       },
       {
         "moveId": "zing_zap",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/zing_zap.json"
       }
     ]
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 272,
-      "partial": 58,
+      "ported": 301,
+      "partial": 29,
       "missing": 0
     },
     "entries": [
@@ -6287,23 +6287,19 @@
         "battleEngineMethod": "s_conversion",
         "rubyClass": "Conversion",
         "rubyPath": "10 Move/2 Definitions/300 Conversion.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_conversion)",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.s_conversion",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_conversion2",
         "rubyClass": "Conversion2",
         "rubyPath": "10 Move/2 Definitions/300 Conversion.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_conversion2)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_conversion2",
+        "status": "ported",
         "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+          "history"
+        ]
       },
       {
         "battleEngineMethod": "s_core_enforcer",
@@ -6448,12 +6444,11 @@
         "battleEngineMethod": "s_dragon_cheer",
         "rubyClass": "DragonCheer",
         "rubyPath": "10 Move/2 Definitions/300 DragonCheer.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_dragon_cheer)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_dragon_cheer",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_dragon_darts",
@@ -6515,13 +6510,11 @@
         "battleEngineMethod": "s_electrify",
         "rubyClass": "Electrify",
         "rubyPath": "10 Move/2 Definitions/300 Electrify.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_electrify)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_electrify",
+        "status": "ported",
         "dependencies": [
-          "effects",
-          "actionOrder"
-        ],
-        "methodBatch": "action_queue_copy_call"
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_electro_ball",
@@ -6543,12 +6536,11 @@
         "battleEngineMethod": "s_embargo",
         "rubyClass": "Embargo",
         "rubyPath": "10 Move/2 Definitions/300 Embargo.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_embargo)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_embargo)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_encore",
@@ -6572,13 +6564,12 @@
         "battleEngineMethod": "s_entrainment",
         "rubyClass": "Entrainment",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_entrainment)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_eruption",
@@ -6751,26 +6742,19 @@
         "battleEngineMethod": "s_flower_shield",
         "rubyClass": "FlowerShield",
         "rubyPath": "10 Move/2 Definitions/300 FlowerShield.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_flower_shield)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_flying_press",
         "rubyClass": "FlyingPress",
         "rubyPath": "10 Move/2 Definitions/300 FlyingPress.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_flying_press)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "StaticBasicMoveRegistry.s_flying_press",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_focus_energy",
@@ -6910,12 +6894,11 @@
         "battleEngineMethod": "s_gear_up",
         "rubyClass": "GearUp",
         "rubyPath": "10 Move/2 Definitions/300 GearUp.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_genies_storm",
@@ -6984,13 +6967,12 @@
         "battleEngineMethod": "s_gravity",
         "rubyClass": "Gravity",
         "rubyPath": "10 Move/2 Definitions/300 Gravity.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_gravity)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_gravity",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_growth",
@@ -7048,13 +7030,12 @@
         "battleEngineMethod": "s_happy_hour",
         "rubyClass": "HappyHour",
         "rubyPath": "10 Move/2 Definitions/300 HappyHour.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_happy_hour)",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_hard_press",
@@ -7129,12 +7110,11 @@
         "battleEngineMethod": "s_healing_wish",
         "rubyClass": "HealingWish",
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_healing_wish",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_heart_swap",
@@ -7163,13 +7143,12 @@
         "battleEngineMethod": "s_helping_hand",
         "rubyClass": "HelpingHand",
         "rubyPath": "10 Move/2 Definitions/300 HelpingHand.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_helping_hand",
+        "status": "ported",
         "dependencies": [
           "effects",
           "targetingMulti"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_hex",
@@ -7288,13 +7267,11 @@
         "battleEngineMethod": "s_ion_deluge",
         "rubyClass": "IonDeluge",
         "rubyPath": "10 Move/2 Definitions/300 Ion Deluge.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)",
+        "status": "ported",
         "dependencies": [
-          "effects",
-          "field"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_ivy_cudgel",
@@ -7446,12 +7423,11 @@
         "battleEngineMethod": "s_lunar_dance",
         "rubyClass": "LunarDance",
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_lunar_dance",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_magic_coat",
@@ -7468,24 +7444,20 @@
         "battleEngineMethod": "s_magic_powder",
         "rubyClass": "MagicPowder",
         "rubyPath": "10 Move/2 Definitions/300 MagicPowder.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.s_magic_powder",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_magic_room",
         "rubyClass": "MagicRoom",
         "rubyPath": "10 Move/2 Definitions/300 MagicRoom.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_magic_room)",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_magnet_rise",
@@ -7502,12 +7474,11 @@
         "battleEngineMethod": "s_magnetic_flux",
         "rubyClass": "MagneticFlux",
         "rubyPath": "10 Move/2 Definitions/300 MagneticFlux.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_magnetic_flux)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_magnitude",
@@ -7684,23 +7655,21 @@
         "battleEngineMethod": "s_nightmare",
         "rubyClass": "Nightmare",
         "rubyPath": "10 Move/2 Definitions/300 Nightmare.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_nightmare)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_no_retreat",
         "rubyClass": "NoRetreat",
         "rubyPath": "10 Move/2 Definitions/300 NoRetreat.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_no_retreat",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_octolock",
@@ -7798,12 +7767,11 @@
         "battleEngineMethod": "s_perish_song",
         "rubyClass": "PerishSong",
         "rubyPath": "10 Move/2 Definitions/300 PerishSong.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_perish_song)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_photon_geyser",
@@ -7878,12 +7846,11 @@
         "battleEngineMethod": "s_powder",
         "rubyClass": "Powder",
         "rubyPath": "10 Move/2 Definitions/300 Powder.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_powder)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_powder)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_power_split",
@@ -8224,13 +8191,12 @@
         "battleEngineMethod": "s_role_play",
         "rubyClass": "RolePlay",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_role_play)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_rollout",
@@ -8259,12 +8225,11 @@
         "battleEngineMethod": "s_rototiller",
         "rubyClass": "Rototiller",
         "rubyPath": "10 Move/2 Definitions/300 Rototiller.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_rototiller)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_round",
@@ -8406,13 +8371,12 @@
         "battleEngineMethod": "s_simple_beam",
         "rubyClass": "SimpleBeam",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_simple_beam)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_sketch",
@@ -8426,13 +8390,12 @@
         "battleEngineMethod": "s_skill_swap",
         "rubyClass": "SkillSwap",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_skill_swap)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_sky_drop",
@@ -9193,39 +9156,36 @@
         "battleEngineMethod": "s_wish",
         "rubyClass": "Wish",
         "rubyPath": "10 Move/2 Definitions/300 Wish.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_wish)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_wish",
+        "status": "ported",
         "dependencies": [
           "effects",
           "endTurn",
           "handlerSwitch"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_wonder_room",
         "rubyClass": "WonderRoom",
         "rubyPath": "10 Move/2 Definitions/300 WonderRoom.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_wonder_room)",
+        "status": "ported",
         "dependencies": [
           "effects",
           "handlerStat",
           "field"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_worry_seed",
         "rubyClass": "WorrySeed",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_worry_seed)",
+        "status": "ported",
         "dependencies": [
           "ability",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_wring_out",
@@ -9251,24 +9211,15 @@
     ],
     "backlogBatches": [
       {
-        "id": "action_queue_copy_call",
-        "label": "Action queue / copy-call residuals",
-        "count": 1,
-        "methods": [
-          "s_electrify"
-        ]
-      },
-      {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 15,
+        "count": 14,
         "methods": [
           "s_aura_wheel",
           "s_beak_blast",
           "s_beat_up",
           "s_core_enforcer",
           "s_dragon_darts",
-          "s_flying_press",
           "s_frustration",
           "s_hidden_power",
           "s_order_up",
@@ -9283,50 +9234,23 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 42,
+        "count": 15,
         "methods": [
           "s_chilly_reception",
-          "s_conversion",
-          "s_conversion2",
           "s_court_change",
           "s_destiny_bond",
           "s_doodle",
-          "s_dragon_cheer",
-          "s_embargo",
-          "s_entrainment",
-          "s_flower_shield",
-          "s_gear_up",
           "s_geomancy",
-          "s_gravity",
           "s_grudge",
-          "s_happy_hour",
-          "s_healing_wish",
-          "s_helping_hand",
-          "s_ion_deluge",
-          "s_lunar_dance",
           "s_magic_coat",
-          "s_magic_powder",
-          "s_magic_room",
-          "s_magnetic_flux",
-          "s_nightmare",
-          "s_no_retreat",
-          "s_perish_song",
-          "s_powder",
           "s_revival_blessing",
-          "s_role_play",
-          "s_rototiller",
           "s_shed_tail",
-          "s_simple_beam",
-          "s_skill_swap",
           "s_snatch",
           "s_spite",
           "s_stuff_cheeks",
           "s_swallow",
           "s_teatime",
-          "s_teleport",
-          "s_wish",
-          "s_wonder_room",
-          "s_worry_seed"
+          "s_teleport"
         ]
       }
     ]
@@ -9334,9 +9258,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 404,
+      "ported": 406,
       "partial": 13,
-      "missing": 65
+      "missing": 63
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9345,9 +9269,9 @@
         "missing": 35
       },
       "move": {
-        "ported": 83,
+        "ported": 85,
         "partial": 8,
-        "missing": 24
+        "missing": 22
       },
       "item": {
         "ported": 81,
@@ -10884,7 +10808,7 @@
       {
         "effectName": "HelpingHand",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb",
         "hookFamilies": []
       },
@@ -11386,7 +11310,7 @@
       {
         "effectName": "Mark",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb",
         "hookFamilies": []
       },

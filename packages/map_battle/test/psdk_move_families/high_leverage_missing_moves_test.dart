@@ -2544,6 +2544,112 @@ void main() {
       expect(effect.scope, isA<BattlerBattleEffectScope>());
     });
 
+    test('s_helping_hand marks the targeted ally for this turn', () {
+      final move = _move(
+        id: 'helping_hand',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_helping_hand',
+        target: PsdkBattleMoveTarget.adjacentAlly,
+      );
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 100,
+                move: move,
+              ),
+            ),
+            allySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+              ),
+            ),
+          },
+        ),
+        target: allySlot,
+      );
+
+      expect(
+        result.state.battlerAt(allySlot).effects.contains('helping_hand_mark'),
+        isTrue,
+      );
+      expect(result.events.whereType<PsdkBattleMoveFailedEvent>(), isEmpty);
+    });
+
+    test('s_helping_hand fails when the target ally is already marked', () {
+      final move = _move(
+        id: 'helping_hand',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_helping_hand',
+        target: PsdkBattleMoveTarget.adjacentAlly,
+      );
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 100,
+                move: move,
+              ),
+            ),
+            allySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+                effects: const PsdkBattleEffectStack.empty().addEffect(
+                  GenericBattleEffect(
+                    id: 'helping_hand_mark',
+                    scope: BattlerBattleEffectScope(allySlot),
+                    remainingTurns: 0,
+                  ),
+                ),
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+              ),
+            ),
+          },
+        ),
+        target: allySlot,
+      );
+
+      expect(
+        result.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        'helping_hand_already_active',
+      );
+    });
+
     test(
         's_dragon_cheer fails when an unstackable critical marker is already active',
         () {

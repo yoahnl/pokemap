@@ -690,6 +690,11 @@ PsdkPortStatus psdkEffectPortStatusFor({
   required String family,
   required String rubyPath,
 }) {
+  if (family == 'move' &&
+      rubyPath.contains('02 Move Effects/001 HelpingHand.rb') &&
+      (effectName == 'HelpingHand' || effectName == 'Mark')) {
+    return PsdkPortStatus.ported;
+  }
   final manifestStatus = _manifestStatusForEffect(
     effectName: effectName,
     family: family,

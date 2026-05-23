@@ -29,17 +29,17 @@ Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-
 | --- | --- | ---: |
 | `psdk-attack-coverage.md` | total attacks | 728 |
 | `psdk-attack-coverage.md` | unique battle engine methods | 258 |
-| `psdk-attack-coverage.md` | fait | 654 |
-| `psdk-attack-coverage.md` | partiel | 74 |
+| `psdk-attack-coverage.md` | fait | 655 |
+| `psdk-attack-coverage.md` | partiel | 73 |
 | `psdk-attack-coverage.md` | pas_fait | 0 |
 | `psdk-attack-coverage.md` | unknown_methods | 0 |
 | `psdk-fight-parity-audit.json` | total attacks | 728 |
-| `psdk-fight-parity-audit.json` | fait | 654 |
-| `psdk-fight-parity-audit.json` | partiel | 74 |
+| `psdk-fight-parity-audit.json` | fait | 655 |
+| `psdk-fight-parity-audit.json` | partiel | 73 |
 | `psdk-fight-parity-audit.json` | pas_fait | 0 |
 | `psdk-fight-parity-audit.json` | unknown methods | 0 |
-| `psdk-move-registry.md` | ported methods | 300 |
-| `psdk-move-registry.md` | partial methods | 30 |
+| `psdk-move-registry.md` | ported methods | 301 |
+| `psdk-move-registry.md` | partial methods | 29 |
 | `psdk-move-registry.md` | missing methods | 0 |
 
 ## Important Interpretation
@@ -74,7 +74,7 @@ These explain why `unknown_methods = 0` does not mean every Studio method is a r
 
 ### Registry Ported, Attack Still Partiel
 
-There are now `39` attacks that use methods marked `ported` in the registry, but the attack-level audit downgrades the attack to `partiel`.
+There are now `38` attacks that use methods marked `ported` in the registry, but the attack-level audit downgrades the attack to `partiel`.
 Representative examples:
 
 | Attack | Method | Registry status | Attack status |
@@ -93,17 +93,17 @@ This is expected if the move method's core local behavior is ported but some att
 | `ported_method_metadata_outside_strict_slice` | 39 |
 | `method_partial` | 35 |
 
-So the remaining `74` partial attacks split into:
+So the remaining `73` partial attacks split into:
 
-- `39` attacks whose method is considered ported, but metadata/riders are outside strict coverage;
+- `38` attacks whose method is considered ported, but metadata/riders are outside strict coverage;
 - `35` attacks whose method itself is still partial.
 
 ## Conclusion
 
 The headline numbers are reliable:
 
-- attack strict parity: `654 / 728 = 89.8%`;
-- method strict parity: `300 / 330 = 90.9%`;
+- attack strict parity: `655 / 728 = 90.0%`;
+- method strict parity: `301 / 330 = 91.2%`;
 - executable coverage: `100%` for known Studio attacks and registered PSDK methods.
 
 But the previous family summary must be read carefully: method parity and attack parity are different layers. The remaining work is mostly strict hook parity, not basic method routing.

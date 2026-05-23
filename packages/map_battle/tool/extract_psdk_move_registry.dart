@@ -86,9 +86,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_helping_hand': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_helping_hand',
+    status: _PsdkPortStatus.ported,
   ),
   's_instruct': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.instruct',

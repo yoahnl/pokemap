@@ -463,6 +463,56 @@ void main() {
       expect(chargedNormal.damageToOpponent, normalBaseline.damageToOpponent);
     });
 
+    test('Helping Hand mark boosts only the marked battler move power', () {
+      final baseline = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+      final helped = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(
+            id: 'helping_hand_mark',
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            remainingTurns: 0,
+          ),
+        ),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+      final helpedOpponent = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(
+            id: 'helping_hand_mark',
+            scope: BattlerBattleEffectScope(psdkOpponentSlot),
+            remainingTurns: 0,
+          ),
+        ),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+
+      expect(helped.damageToOpponent, greaterThan(baseline.damageToOpponent));
+      expect(
+        helpedOpponent.damageToOpponent,
+        baseline.damageToOpponent,
+      );
+    });
+
     test('sport markers halve matching move base power only', () {
       final electricBaseline = _runSinglePlayerMove(
         playerTypes: const PsdkBattleTypes(primary: 'electric'),

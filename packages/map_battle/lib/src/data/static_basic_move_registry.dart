@@ -481,6 +481,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_flying_press',
       resolve: _resolveFlyingPress,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_helping_hand',
+      resolve: _resolveHelpingHand,
+    ),
     for (final method in _partialTargetMarkerMethods.keys)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -817,7 +821,6 @@ const _partialUserBankMarkerMethods = <String, String>{
   's_gear_up': 'gear_up',
   's_dragon_cheer': 'dragon_cheer',
   's_geomancy': 'geomancy',
-  's_helping_hand': 'helping_hand',
   's_lucky_chant': 'lucky_chant',
   's_magnetic_flux': 'magnetic_flux',
   's_mist': 'mist',
@@ -4376,6 +4379,54 @@ BattleMoveBehaviorResolution _resolveFoeBankMarker(
       scope: BankBattleEffectScope(targetBank),
       remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
     ),
+  );
+}
+
+BattleMoveBehaviorResolution _resolveHelpingHand(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  if (targetSlot == context.user ||
+      targetSlot.bank != context.user.bank ||
+      prepared.state.battlerAt(targetSlot).effects.contains(
+            'helping_hand_mark',
+          )) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+          reason: 'helping_hand_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: prepared.state.updateBattler(
+      targetSlot,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          GenericBattleEffect(
+            id: 'helping_hand_mark',
+            scope: BattlerBattleEffectScope(targetSlot),
+            remainingTurns: 0,
+          ),
+        ),
+      ),
+    ),
+    rng: prepared.rng,
+    events: prepared.events,
   );
 }
 

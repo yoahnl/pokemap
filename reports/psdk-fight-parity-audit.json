@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 654,
-    "partiel": 74,
+    "fait": 655,
+    "partiel": 73,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -2291,9 +2291,9 @@
       {
         "moveId": "helping_hand",
         "battleEngineMethod": "s_helping_hand",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/helping_hand.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 300,
-      "partial": 30,
+      "ported": 301,
+      "partial": 29,
       "missing": 0
     },
     "entries": [
@@ -7143,13 +7143,12 @@
         "battleEngineMethod": "s_helping_hand",
         "rubyClass": "HelpingHand",
         "rubyPath": "10 Move/2 Definitions/300 HelpingHand.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_helping_hand",
+        "status": "ported",
         "dependencies": [
           "effects",
           "targetingMulti"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_hex",
@@ -9235,7 +9234,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 16,
+        "count": 15,
         "methods": [
           "s_chilly_reception",
           "s_court_change",
@@ -9243,7 +9242,6 @@
           "s_doodle",
           "s_geomancy",
           "s_grudge",
-          "s_helping_hand",
           "s_magic_coat",
           "s_revival_blessing",
           "s_shed_tail",
@@ -9260,9 +9258,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 404,
+      "ported": 406,
       "partial": 13,
-      "missing": 65
+      "missing": 63
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9271,9 +9269,9 @@
         "missing": 35
       },
       "move": {
-        "ported": 83,
+        "ported": 85,
         "partial": 8,
-        "missing": 24
+        "missing": 22
       },
       "item": {
         "ported": 81,
@@ -10810,7 +10808,7 @@
       {
         "effectName": "HelpingHand",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb",
         "hookFamilies": []
       },
@@ -11312,7 +11310,7 @@
       {
         "effectName": "Mark",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb",
         "hookFamilies": []
       },

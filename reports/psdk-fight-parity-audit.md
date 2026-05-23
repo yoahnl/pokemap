@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 654 |
-| Studio attacks `partiel` | 74 |
+| Studio attacks `fait` | 655 |
+| Studio attacks `partiel` | 73 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -29,7 +29,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_genesis_supernova | 1 |
 | s_grudge | 1 |
 | s_guardian_of_alola | 1 |
-| s_helping_hand | 1 |
 | s_hidden_power | 1 |
 | s_hyperspace_hole | 1 |
 | s_light_that_burns_the_sky | 1 |
@@ -52,8 +51,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 300 |
-| `partial` | 30 |
+| `ported` | 301 |
+| `partial` | 29 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -61,12 +60,11 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 30 |
+| effects | 29 |
 | ability | 14 |
 | handlerDamage | 14 |
 | item | 14 |
 | field | 3 |
-| targetingMulti | 1 |
 
 ### Partial Method Batches
 
@@ -75,15 +73,15 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 16 | `s_chilly_reception`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_geomancy`, `s_grudge`, `s_helping_hand`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
+| Effect hook / manifest final sweep | 15 | `s_chilly_reception`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_geomancy`, `s_grudge`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
 
 ## Effect Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 404 |
+| `ported` | 406 |
 | `partial` | 13 |
-| `missing` | 65 |
+| `missing` | 63 |
 | Total effect classes | 482 |
 
 ### Effects by Family
@@ -94,7 +92,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | field | 15 | 0 | 0 |
 | item | 81 | 0 | 6 |
 | mechanics | 4 | 0 | 0 |
-| move | 83 | 8 | 24 |
+| move | 85 | 8 | 22 |
 | status | 7 | 0 | 0 |
 
 ### Missing Effects by Family
@@ -103,7 +101,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | --- | ---: |
 | ability | 35 |
 | item | 6 |
-| move | 24 |
+| move | 22 |
 
 ## Runtime Bridge
 

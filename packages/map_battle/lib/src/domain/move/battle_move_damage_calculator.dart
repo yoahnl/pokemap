@@ -165,6 +165,9 @@ int _effectivePower(BattleMoveDamageContext context) {
   if (context.user.effects.contains('charge') && moveType == 'electric') {
     power *= 2;
   }
+  if (context.user.effects.contains('helping_hand_mark')) {
+    power = (power * 1.5).floor();
+  }
   if (_hasBattleEffect(context, 'mud_sport') && moveType == 'electric') {
     power ~/= 2;
   }

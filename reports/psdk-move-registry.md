@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 300 |
-| `partial` | 30 |
+| `ported` | 301 |
+| `partial` | 29 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -140,7 +140,7 @@ Total registered methods: 330
 | `s_healing_wish` | `HealingWish` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `StaticBasicMoveRegistry.s_healing_wish` | `ported` | `effects` |
 | `s_heart_swap` | `HeartSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.heartSwap` | `ported` | `handler_stat, effects, ability` |
 | `s_heavy_slam` | `HeavySlam` | `10 Move/2 Definitions/300 HeavySlam.rb` | `WeightPowerMoveBehavior.heavySlam` | `ported` | `effects, ability` |
-| `s_helping_hand` | `HelpingHand` | `10 Move/2 Definitions/300 HelpingHand.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)` | `partial` | `effects, targeting_multi` |
+| `s_helping_hand` | `HelpingHand` | `10 Move/2 Definitions/300 HelpingHand.rb` | `StaticBasicMoveRegistry.s_helping_hand` | `ported` | `effects, targeting_multi` |
 | `s_hex` | `Hex` | `10 Move/2 Definitions/300 Hex.rb` | `VariablePowerMoveBehavior.hex` | `ported` | `ability, handler_status` |
 | `s_hidden_power` | `HiddenPower` | `10 Move/2 Definitions/300 HiddenPower.rb` | `StaticBasicMoveRegistry.partialBasic(s_hidden_power)` | `partial` | `handler_damage, effects, ability, item` |
 | `s_hp_eq_level` | `HPEqLevel` | `10 Move/2 Definitions/300 HPEqLevel.rb` | `FixedDamageMoveBehavior.userLevel` | `ported` | `-` |

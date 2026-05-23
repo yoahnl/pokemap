@@ -1248,9 +1248,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_helping_hand',
     rubyClass: 'HelpingHand',
     rubyPath: '10 Move/2 Definitions/300 HelpingHand.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_helping_hand',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.targetingMulti

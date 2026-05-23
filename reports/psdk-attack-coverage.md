@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 654 |
-| partiel | 74 |
+| fait | 655 |
+| partiel | 73 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -319,7 +319,7 @@ Coverage semantics:
 | fait | heat_crash | s_heavy_slam | ported | WeightPowerMoveBehavior.heavySlam | fire | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heat_crash.json |
 | fait | heat_wave | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | special | 95 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heat_wave.json |
 | fait | heavy_slam | s_heavy_slam | ported | WeightPowerMoveBehavior.heavySlam | steel | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heavy_slam.json |
-| partiel | helping_hand | s_helping_hand | partial | StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand) | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/helping_hand.json |
+| fait | helping_hand | s_helping_hand | ported | StaticBasicMoveRegistry.s_helping_hand | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/helping_hand.json |
 | fait | hex | s_hex | ported | VariablePowerMoveBehavior.hex | ghost | special | 65 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hex.json |
 | partiel | hidden_power | s_hidden_power | partial | StaticBasicMoveRegistry.partialBasic(s_hidden_power) | normal | special | 60 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/hidden_power.json |
 | fait | high_horsepower | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | physical | 95 | 95 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/high_horsepower.json |

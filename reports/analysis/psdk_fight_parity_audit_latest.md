@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 463 |
-| Studio attacks `partiel` | 265 |
+| Studio attacks `fait` | 655 |
+| Studio attacks `partiel` | 73 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -19,73 +19,40 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Battle method | Partial attacks |
 | --- | ---: |
-| s_2turns | 7 |
-| s_absorb | 2 |
-| s_basic | 148 |
+| s_absorb | 1 |
+| s_basic | 37 |
 | s_beak_blast | 1 |
 | s_beat_up | 1 |
-| s_conversion | 1 |
-| s_conversion2 | 1 |
 | s_core_enforcer | 1 |
 | s_destiny_bond | 1 |
-| s_electrify | 1 |
-| s_embargo | 1 |
-| s_entrainment | 1 |
-| s_flower_shield | 1 |
-| s_flying_press | 1 |
 | s_frustration | 1 |
-| s_gear_up | 1 |
 | s_genesis_supernova | 1 |
-| s_gravity | 1 |
 | s_grudge | 1 |
 | s_guardian_of_alola | 1 |
-| s_happy_hour | 1 |
-| s_heal | 1 |
-| s_healing_wish | 1 |
-| s_helping_hand | 1 |
 | s_hidden_power | 1 |
 | s_hyperspace_hole | 1 |
-| s_ion_deluge | 1 |
 | s_light_that_burns_the_sky | 1 |
-| s_lunar_dance | 1 |
 | s_magic_coat | 1 |
-| s_magic_room | 1 |
-| s_magnetic_flux | 1 |
 | s_malicious_moonsault | 1 |
 | s_multi_hit | 1 |
-| s_nightmare | 1 |
 | s_payday | 1 |
-| s_perish_song | 1 |
-| s_powder | 1 |
-| s_protect | 3 |
-| s_recoil | 4 |
 | s_return | 1 |
-| s_role_play | 1 |
-| s_rototiller | 1 |
-| s_self_stat | 27 |
 | s_self_stat_z_move | 2 |
 | s_shell_trap | 1 |
-| s_simple_beam | 1 |
-| s_skill_swap | 1 |
 | s_snatch | 1 |
 | s_spite | 1 |
 | s_splintered_stormshards | 1 |
 | s_split_up | 1 |
-| s_stat | 8 |
-| s_status | 4 |
 | s_swallow | 1 |
 | s_teleport | 1 |
-| s_wish | 1 |
-| s_wonder_room | 1 |
-| s_worry_seed | 1 |
 | s_z_move | 10 |
 
 ## Method Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 272 |
-| `partial` | 58 |
+| `ported` | 301 |
+| `partial` | 29 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -93,16 +60,11 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 58 |
-| ability | 20 |
-| handlerDamage | 15 |
-| item | 15 |
-| field | 8 |
-| actionOrder | 1 |
-| endTurn | 1 |
-| handlerStat | 1 |
-| handlerSwitch | 1 |
-| targetingMulti | 1 |
+| effects | 29 |
+| ability | 14 |
+| handlerDamage | 14 |
+| item | 14 |
+| field | 3 |
 
 ### Partial Method Batches
 
@@ -110,17 +72,16 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Action queue / copy-call residuals | 1 | `s_electrify` |
-| Damage formula / variable power | 15 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_flying_press`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 42 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_embargo`, `s_entrainment`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_nightmare`, `s_no_retreat`, `s_perish_song`, `s_powder`, `s_revival_blessing`, `s_role_play`, `s_rototiller`, `s_shed_tail`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
+| Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
+| Effect hook / manifest final sweep | 15 | `s_chilly_reception`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_geomancy`, `s_grudge`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
 
 ## Effect Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 404 |
+| `ported` | 406 |
 | `partial` | 13 |
-| `missing` | 65 |
+| `missing` | 63 |
 | Total effect classes | 482 |
 
 ### Effects by Family
@@ -131,7 +92,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | field | 15 | 0 | 0 |
 | item | 81 | 0 | 6 |
 | mechanics | 4 | 0 | 0 |
-| move | 83 | 8 | 24 |
+| move | 85 | 8 | 22 |
 | status | 7 | 0 | 0 |
 
 ### Missing Effects by Family
@@ -140,7 +101,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | --- | ---: |
 | ability | 35 |
 | item | 6 |
-| move | 24 |
+| move | 22 |
 
 ## Runtime Bridge
 
