@@ -38,8 +38,8 @@ Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-
 | `psdk-fight-parity-audit.json` | partiel | 70 |
 | `psdk-fight-parity-audit.json` | pas_fait | 0 |
 | `psdk-fight-parity-audit.json` | unknown methods | 0 |
-| `psdk-move-registry.md` | ported methods | 304 |
-| `psdk-move-registry.md` | partial methods | 26 |
+| `psdk-move-registry.md` | ported methods | 306 |
+| `psdk-move-registry.md` | partial methods | 24 |
 | `psdk-move-registry.md` | missing methods | 0 |
 
 ## Important Interpretation
@@ -91,7 +91,7 @@ This is expected if the move method's core local behavior is ported but some att
 | Reason | Count |
 | --- | ---: |
 | `ported_method_metadata_outside_strict_slice` | 39 |
-| `method_partial` | 33 |
+| `method_partial` | 31 |
 
 So the remaining `70` partial attacks split into:
 
@@ -103,7 +103,7 @@ So the remaining `70` partial attacks split into:
 The headline numbers are reliable:
 
 - attack strict parity: `658 / 728 = 90.4%`;
-- method strict parity: `304 / 330 = 92.1%`;
+- method strict parity: `306 / 330 = 92.7%`;
 - executable coverage: `100%` for known Studio attacks and registered PSDK methods.
 
 But the previous family summary must be read carefully: method parity and attack parity are different layers. The remaining work is mostly strict hook parity, not basic method routing.

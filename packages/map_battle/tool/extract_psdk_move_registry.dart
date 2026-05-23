@@ -375,9 +375,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_stuff_cheeks': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_stuff_cheeks)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_stuff_cheeks',
+    status: _PsdkPortStatus.ported,
   ),
   's_super_duper_effective': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_super_duper_effective',
@@ -392,8 +391,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_teatime': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_teatime)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_teatime',
+    status: _PsdkPortStatus.ported,
   ),
   's_terrain_pulse': _KnownDartBehavior(
     dartBehavior: 'TerrainPowerMoveBehavior.terrainPulse',

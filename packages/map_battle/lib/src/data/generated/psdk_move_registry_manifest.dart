@@ -2711,9 +2711,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_stuff_cheeks',
     rubyClass: 'StuffCheeks',
     rubyPath: '10 Move/2 Definitions/300 StuffCheeks.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_stuff_cheeks)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_stuff_cheeks',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2818,8 +2817,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_teatime',
     rubyClass: 'Teatime',
     rubyPath: '10 Move/2 Definitions/300 TeaTime.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_teatime)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_teatime',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.field,
       PsdkMoveDependency.effects

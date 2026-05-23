@@ -2918,6 +2918,123 @@ void main() {
       );
     });
 
+    test('s_stuff_cheeks consumes the user berry, heals and raises defense', () {
+      final result = _runMove(
+        playerCurrentHp: 40,
+        playerHeldItemId: 'oran_berry',
+        playerAbilityId: 'cheek_pouch',
+        playerMove: _move(
+          id: 'stuff_cheeks',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          target: PsdkBattleMoveTarget.self,
+          battleEngineMethod: 's_stuff_cheeks',
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(player.currentHp, 83);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'oran_berry');
+      expect(player.statStages.valueOf('defense'), 2);
+      expect(_healEvents(result, moveId: 'item:oran_berry').single.amount, 10);
+      expect(
+        _healEvents(result, moveId: 'ability:cheek_pouch').single.amount,
+        33,
+      );
+      expect(_itemEvents(result).single.itemId, 'oran_berry');
+    });
+
+    test('s_stuff_cheeks fails when the user has no berry to eat', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'stuff_cheeks',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          target: PsdkBattleMoveTarget.self,
+          battleEngineMethod: 's_stuff_cheeks',
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single,
+        isA<PsdkBattleMoveFailedEvent>()
+            .having((event) => event.moveId, 'moveId', 'stuff_cheeks')
+            .having((event) => event.reason, 'reason', 'unusable_by_user'),
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'), 0);
+      expect(_itemEvents(result), isEmpty);
+    });
+
+    test('s_teatime forces every berry holder on the field to eat it', () {
+      final result = _runMove(
+        playerCurrentHp: 40,
+        opponentCurrentHp: 40,
+        playerHeldItemId: 'oran_berry',
+        opponentHeldItemId: 'sitrus_berry',
+        playerAbilityId: 'cheek_pouch',
+        playerMove: _move(
+          id: 'teatime',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          target: PsdkBattleMoveTarget.allBattlers,
+          battleEngineMethod: 's_teatime',
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(player.currentHp, 83);
+      expect(opponent.currentHp, 65);
+      expect(player.heldItemId, isNull);
+      expect(opponent.heldItemId, isNull);
+      expect(player.consumedItemId, 'oran_berry');
+      expect(opponent.consumedItemId, 'sitrus_berry');
+      expect(
+        _healEvents(result, moveId: 'item:oran_berry').single.target,
+        psdkPlayerSlot,
+      );
+      expect(
+        _healEvents(result, moveId: 'item:sitrus_berry').single.target,
+        psdkOpponentSlot,
+      );
+      expect(
+        _healEvents(result, moveId: 'ability:cheek_pouch').single.target,
+        psdkPlayerSlot,
+      );
+      expect(
+        _itemEvents(result).map((event) => event.itemId),
+        containsAll(<String>['oran_berry', 'sitrus_berry']),
+      );
+    });
+
+    test('s_teatime fails when no battler on the field holds a berry', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'teatime',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          target: PsdkBattleMoveTarget.allBattlers,
+          battleEngineMethod: 's_teatime',
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single,
+        isA<PsdkBattleMoveFailedEvent>()
+            .having((event) => event.moveId, 'moveId', 'teatime')
+            .having((event) => event.reason, 'reason', 'unusable_by_user'),
+      );
+      expect(_itemEvents(result), isEmpty);
+      expect(_healEvents(result, moveId: 'item:oran_berry'), isEmpty);
+      expect(_healEvents(result, moveId: 'item:sitrus_berry'), isEmpty);
+    });
+
     test(
         's_dragon_cheer fails when an unstackable critical marker is already active',
         () {
@@ -3449,22 +3566,10 @@ void main() {
           power: 90,
         ),
         (
-          method: 's_stuff_cheeks',
-          moveId: 'stuff_cheeks',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-        ),
-        (
           method: 's_super_duper_effective',
           moveId: 'sizzly_slide',
           category: PsdkBattleMoveCategory.physical,
           power: 60,
-        ),
-        (
-          method: 's_teatime',
-          moveId: 'teatime',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
         ),
         (
           method: 's_terrain_pulse',
@@ -3719,6 +3824,22 @@ List<PsdkBattleStatusCureEvent> _cureEvents(
   return result.timeline.events
       .whereType<PsdkBattleStatusCureEvent>()
       .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleHealEvent> _healEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.events
+      .whereType<PsdkBattleHealEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleItemEvent> _itemEvents(PsdkBattleTurnResult result) {
+  return result.timeline.events
+      .whereType<PsdkBattleItemEvent>()
       .toList(growable: false);
 }
 

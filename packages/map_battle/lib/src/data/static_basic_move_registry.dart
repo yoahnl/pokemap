@@ -65,7 +65,9 @@ import '../domain/effect/field/delayed_move_effect.dart';
 import '../domain/effect/field/healing_wish_effect.dart';
 import '../domain/effect/field/trick_room_effect.dart';
 import '../domain/effect/field/wish_effect.dart';
+import '../domain/effect/item/berry_item_effect.dart';
 import '../domain/effect/item/item_effect.dart';
+import '../domain/effect/item/item_effect_registry.dart';
 import '../domain/effect/move/ability_suppressed_effect.dart';
 import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
@@ -495,6 +497,14 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_helping_hand',
       resolve: _resolveHelpingHand,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_stuff_cheeks',
+      resolve: _resolveStuffCheeks,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_teatime',
+      resolve: _resolveTeatime,
+    ),
     for (final method in _partialTargetMarkerMethods.keys)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -839,7 +849,6 @@ const _partialUserBankMarkerMethods = <String, String>{
   's_rototiller': 'rototiller',
   's_safe_guard': 'safeguard',
   's_shed_tail': 'shed_tail',
-  's_stuff_cheeks': 'stuff_cheeks',
   's_tailwind': 'tailwind',
 };
 
@@ -870,7 +879,6 @@ const _partialFieldMarkerMethods = <String, String>{
   's_happy_hour': 'happy_hour',
   's_ion_deluge': 'ion_deluge',
   's_magic_room': 'magic_room',
-  's_teatime': 'teatime',
   's_wonder_room': 'wonder_room',
 };
 
@@ -4607,6 +4615,171 @@ BattleMoveBehaviorResolution _resolveHelpingHand(
     rng: prepared.rng,
     events: prepared.events,
   );
+}
+
+BattleMoveBehaviorResolution _resolveStuffCheeks(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final berry = _forceBerryConsumption(
+    state: prepared.state,
+    rng: prepared.rng,
+    turn: context.turn,
+    user: context.user,
+    target: context.user,
+  );
+  if (berry == null) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final boosted = const BattleStatChangeHandler().applyStatChange(
+    context: BattleHandlerContext(
+      state: berry.state,
+      rng: berry.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    stat: 'defense',
+    stages: 2,
+  );
+  return BattleMoveBehaviorResolution(
+    state: boosted.state,
+    rng: boosted.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      ...berry.events,
+      ...boosted.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveTeatime(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context, forceAccuracyBypass: true);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  var state = prepared.state;
+  var rng = prepared.rng;
+  final events = <PsdkBattleEvent>[...prepared.events];
+  var applied = false;
+  for (final target in prepared.psdkTargets) {
+    final berry = _forceBerryConsumption(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+      target: target,
+    );
+    if (berry == null) {
+      continue;
+    }
+    state = berry.state;
+    rng = berry.rng;
+    events.addAll(berry.events);
+    applied = true;
+  }
+
+  if (!applied) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
+    events: events,
+  );
+}
+
+_ForcedBerryConsumptionResult? _forceBerryConsumption({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+}) {
+  final heldItemId = state.battlerAt(target).heldItemId;
+  if (heldItemId == null || !isPsdkBerryItemId(heldItemId)) {
+    return null;
+  }
+
+  final effect = ItemEffectRegistry().create(heldItemId, owner: target);
+  if (effect is! BerryItemEffect) {
+    return null;
+  }
+
+  final forced = effect.forceExecute(
+    state: state,
+    rng: rng,
+    turn: turn,
+    owner: target,
+  );
+  final consumed = const BattleItemChangeHandler().consumeHeldItem(
+    context: BattleHandlerContext(
+      state: forced?.state ?? state,
+      rng: forced?.rng ?? rng,
+      turn: turn,
+      user: user,
+    ),
+    target: target,
+  );
+  if (!consumed.applied) {
+    return null;
+  }
+
+  return _ForcedBerryConsumptionResult(
+    state: consumed.state,
+    rng: consumed.rng,
+    events: <PsdkBattleEvent>[
+      ...?forced?.events,
+      ...consumed.events,
+    ],
+  );
+}
+
+final class _ForcedBerryConsumptionResult {
+  const _ForcedBerryConsumptionResult({
+    required this.state,
+    required this.rng,
+    required this.events,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
 }
 
 BattleMoveBehaviorResolution _unsupportedSupportStatMove(
