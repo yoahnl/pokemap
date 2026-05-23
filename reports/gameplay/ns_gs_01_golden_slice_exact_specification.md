@@ -1005,12 +1005,12 @@ Le Golden Slice est **jouable** si et seulement si :
 
 ### Ambiguïtés de gouvernance
 
-| # | Règle | Décision |
-|---|---|---|
-| AMB-GOV-01 | NS-GS-03 ne doit pas devenir un lot givePokemon. | NS-GS-03 reste **Content Inventory & Fixture Plan** (documentaire). |
-| AMB-GOV-02 | NS-GS-04 ne doit pas devenir directement un lot New Game. | NS-GS-04 reste **Runtime Smoke Strategy** (documentaire / test design). |
-| AMB-GOV-03 | NS-GS-05 New Game Minimal Runtime ne doit pas commencer tant que NS-GS-02 à NS-GS-04 ne sont pas acceptés. | Blocage volontaire jusqu'à review des lots documentaires. |
-| AMB-GOV-04 | Les lots NS-GS-08 à NS-GS-11 ne doivent pas être créés avant les lots runtime/doc préparatoires. | Pas de contenu Selbrume avant cadrage complet. |
+| # | Règle | Impact | Décision |
+|---|---|---|---|
+| AMB-GOV-01 | NS-GS-03 ne doit pas devenir un lot givePokemon. | Risque de coder trop tôt. | NS-GS-03 reste **Content Inventory & Fixture Plan** (documentaire). |
+| AMB-GOV-02 | NS-GS-04 ne doit pas devenir directement un lot New Game. | Risque de remplacer la stratégie de preuve par une implémentation prématurée. | NS-GS-04 reste **Runtime Smoke Strategy** (documentaire / test design). |
+| AMB-GOV-03 | NS-GS-05 New Game Minimal Runtime ne doit pas commencer tant que NS-GS-02, NS-GS-03 et NS-GS-04 ne sont pas acceptés. | Risque de repartir sur une base runtime sans inventaire ni stratégie de preuve. | Blocage volontaire jusqu'à review des lots documentaires. |
+| AMB-GOV-04 | NS-GS-08 à NS-GS-11 ne doivent pas commencer avant cadrage complet. | Risque de créer des contenus Selbrume incohérents ou incomplets. | Pas de contenu Selbrume avant NS-GS-03 et NS-GS-04. |
 
 ---
 
@@ -1018,87 +1018,198 @@ Le Golden Slice est **jouable** si et seulement si :
 
 > [!IMPORTANT]
 > La roadmap NS-GS-02 à NS-GS-12 de ce document **remplace toute roadmap NS-GS divergente**.
-> Les anciens lots SEL-* restent historiques.
-> **Aucun lot de code ne doit commencer avant que NS-GS-02, NS-GS-03 et NS-GS-04 soient acceptés.**
+> Les anciens lots SEL-* restent historiques et ne doivent plus être prolongés.
+> **Aucun lot de code ne doit commencer avant la validation de NS-GS-02, NS-GS-03 et NS-GS-04.**
+> NS-GS-03 ne doit pas devenir un lot givePokemon.
+> NS-GS-04 ne doit pas devenir un lot New Game.
+> NS-GS-05 ne doit pas commencer tant que les lots documentaires de cadrage ne sont pas fermés.
+> Le but de cette gouvernance est d'éviter de reconstruire le Golden Slice dans le désordre.
 
 ### Phase 1 — Spécifier exactement le Golden Slice
 
 | Lot | Titre | Type | Dépendance | Effort | Statut |
 |---|---|---|---|---|---|
-| **NS-GS-01** | Golden Slice Exact Specification | Documentaire | — | M | ✅ Done |
-| **NS-GS-02** | Starter / Initial Party Decision | Décision | NS-GS-01 | XS | TODO |
+| **NS-GS-01** | Golden Slice Exact Specification | Documentaire | — | M | ✅ DONE (avec correction NS-GS-01-bis) |
+| **NS-GS-02** | Starter / Initial Party Decision | Décision | NS-GS-01-bis | XS | TODO |
 | **NS-GS-03** | Content Inventory & Fixture Plan | Documentaire | NS-GS-02 | S | TODO |
-| **NS-GS-04** | Runtime Smoke Strategy | Documentaire / test design | NS-GS-02 | S | TODO |
+| **NS-GS-04** | Runtime Smoke Strategy | Documentaire / test design | NS-GS-01-bis, NS-GS-03 | S | TODO |
 
-**NS-GS-02** — Décider si Maël donne réellement le starter ou si le GameState initial contient déjà un Pokémon. Documentaire / décision uniquement. Aucun code.
+**NS-GS-02 — Starter / Initial Party Decision**
 
-**NS-GS-03** — Lister précisément tous les fichiers/contenus à créer plus tard : maps, NPCs, Yarn, ScenarioAssets, RuntimeCutsceneAssets, trainer, battle fixture, save fixture éventuelle. Documentaire uniquement. Aucun code.
+```text
+Type       : Documentaire / décision
+Objectif   : Décider comment le joueur a son premier Pokémon dans le Golden Slice.
+             - Option A : Maël donne réellement le starter en jeu (nécessite givePokemon).
+             - Option B : Le GameState initial contient déjà un Pokémon (recommandée GS V0).
+             - Option C : Hybride — préchargé + Maël peut donner si party vide.
+Code       : interdit.
+Sortie     : reports/gameplay/ns_gs_02_starter_initial_party_decision.md
+Critère    : On sait si NS-GS-06 sera nécessaire ou reporté.
+```
 
-**NS-GS-04** — Définir comment prouver que le slice fonctionne : smoke tests, tests unitaires, tests runtime, save/load checks. Documentaire / test design uniquement. Aucun code sauf si explicitement décidé dans un lot ultérieur.
+**NS-GS-03 — Content Inventory & Fixture Plan**
+
+```text
+Type       : Documentaire
+Objectif   : Lister précisément tous les fichiers/contenus à créer plus tard :
+             maps, NPCs, entity ids, events, ScenarioAssets, Yarn files,
+             RuntimeCutsceneAssets, trainer Lysa, battle id, facts, steps,
+             world rules, save fixture éventuelle.
+Code       : interdit.
+Sortie     : reports/gameplay/ns_gs_03_content_inventory_fixture_plan.md
+Critère    : On peut écrire NS-GS-08 à NS-GS-11 sans deviner un seul fichier.
+```
+
+**NS-GS-04 — Runtime Smoke Strategy**
+
+```text
+Type       : Documentaire / test design
+Objectif   : Définir comment prouver que le Golden Slice fonctionne :
+             tests unitaires utiles, tests runtime utiles, smoke test host,
+             save/load checks, golden path victory, golden path defeat,
+             validation manuelle éventuelle.
+Code       : interdit, sauf décision explicite plus tard dans un lot dédié.
+Sortie     : reports/gameplay/ns_gs_04_runtime_smoke_strategy.md
+Critère    : On sait exactement comment prouver NS-GS-12.
+```
 
 ### Phase 2 — Socle runtime minimal restant
 
+> [!WARNING]
+> Cette phase ne commence **qu'après NS-GS-02, NS-GS-03 et NS-GS-04 validés**.
+
 | Lot | Titre | Type | Dépendance | Effort | Statut |
 |---|---|---|---|---|---|
-| **NS-GS-05** | New Game Minimal Runtime | Code | NS-GS-04 | S-M | TODO |
+| **NS-GS-05** | New Game Minimal Runtime | Code | NS-GS-02, NS-GS-04 | S-M | TODO |
 | **NS-GS-06** | GivePokemon Minimal | Code (conditionnel) | NS-GS-02 | M | TODO |
 | **NS-GS-07** | Step Completion Direct / GS Needs | Code (conditionnel) | NS-GS-04 | M | TODO |
 
-**NS-GS-05** — Seulement après NS-GS-01 à NS-GS-04. Créer un flow de départ minimal ou une stratégie de fixture initiale selon NS-GS-02/04.
+**NS-GS-05 — New Game Minimal Runtime**
 
-**NS-GS-06** — Seulement si NS-GS-02 décide que Maël donne réellement un starter en jeu. Sinon ce lot peut être reporté.
+```text
+Type       : Code runtime minimal
+Objectif   : Créer un flow de départ minimal ou charger une fixture initiale,
+             selon la décision NS-GS-02 et la stratégie NS-GS-04.
+Condition  : Ne commence qu'après validation de NS-GS-02, NS-GS-03 et NS-GS-04.
+Package    : map_runtime, éventuellement host.
+```
 
-**NS-GS-07** — Seulement si le contournement whenCutsceneEnds ne suffit pas. Sinon ce lot peut être reporté.
+**NS-GS-06 — GivePokemon Minimal**
+
+```text
+Type       : Code gameplay/runtime
+Objectif   : Ajouter une mutation minimale pour donner un Pokémon au joueur.
+Condition  : Seulement si NS-GS-02 choisit "Maël donne le starter en jeu".
+             Si NS-GS-02 choisit le starter préchargé, NS-GS-06 est reporté.
+```
+
+**NS-GS-07 — Step Completion Direct / GS Needs**
+
+```text
+Type       : Code runtime ou décision technique
+Objectif   : Ajouter/valider un moyen de compléter un step autrement que whenCutsceneEnds.
+Condition  : Seulement si NS-GS-04 conclut que le contournement V0 ne suffit pas.
+             Si NS-GS-04 accepte le contournement → NS-GS-07 reporté.
+```
 
 ### Phase 3 — Contenu Golden Slice
 
 | Lot | Titre | Type | Dépendance | Effort | Statut |
 |---|---|---|---|---|---|
-| **NS-GS-08** | Bourg Selbrume / Maël Content | Contenu | NS-GS-05 | M | TODO |
-| **NS-GS-09** | Port Brisants / Lysa Content | Contenu | NS-GS-05 | M | TODO |
+| **NS-GS-08** | Bourg Selbrume / Maël Content | Contenu | NS-GS-03, NS-GS-05 | M | TODO |
+| **NS-GS-09** | Port Brisants / Lysa Content | Contenu | NS-GS-08 | M | TODO |
 | **NS-GS-10** | Storyline Chapter 1 Wiring | Contenu | NS-GS-08, NS-GS-09 | S-M | TODO |
-| **NS-GS-11** | Battle Lysa Authoring Fixture | Contenu | NS-GS-09 | S | TODO |
+| **NS-GS-11** | Battle Lysa Authoring Fixture | Contenu | NS-GS-09, NS-GS-10 | S | TODO |
 | **NS-GS-12** | Golden Slice Smoke Test | Test | NS-GS-10, NS-GS-11 | M | TODO |
 
-**NS-GS-08** — Map minimale Bourg de Selbrume, Maël, dialogue mission.
+**NS-GS-08 — Bourg Selbrume / Maël Content**
 
-**NS-GS-09** — Port des Brisants, Lysa, Soline, dialogue port.
+```text
+Type       : Contenu / fixtures
+Objectif   : map_bourg_selbrume, entity_mael_bourg, entity_exit_to_port,
+             npc_mael, event_mael_intro, scene_mael_intro, yarn_mael_intro,
+             yarn_mael_encouragement, facts mission, steps intro/mission.
+Dépendance : NS-GS-03 + NS-GS-05.
+Code moteur: non.
+```
 
-**NS-GS-10** — Storyline, chapter, steps, flows wiring.
+**NS-GS-09 — Port Brisants / Lysa Content**
 
-**NS-GS-11** — Trainer Lysa + battle id + branches post-combat.
+```text
+Type       : Contenu / fixtures
+Objectif   : map_port_brisants, entity_lysa_port, entity_soline_port,
+             entity_exit_to_bourg, trigger_port_arrival si retenu,
+             npc_lysa, npc_soline, event_rival_meet, yarn_rival_intro,
+             yarn_rival_after_win, yarn_rival_after_loss,
+             cinematic_rival_smiles, cinematic_rival_teases, world rules Lysa.
+Dépendance : NS-GS-08.
+Code moteur: non.
+```
 
-**NS-GS-12** — New Game → Maël → Port → Lysa → Save/Load — smoke test end-to-end.
+**NS-GS-10 — Storyline Chapter 1 Wiring**
+
+```text
+Type       : Contenu narratif / wiring
+Objectif   : story_main_brume_phare, chapter_1_port,
+             step_intro_selbrume, step_mission_received, step_go_to_port,
+             step_rival_battle, conditions d'activation, completedStepIds,
+             world rules connectées, dialogues conditionnels après progression.
+Dépendance : NS-GS-08 + NS-GS-09.
+```
+
+**NS-GS-11 — Battle Lysa Authoring Fixture**
+
+```text
+Type       : Fixture battle/trainer
+Objectif   : trainer_lysa_port, battle_rival_port, team Lysa,
+             niveau exact, moves exacts, textes victory/defeat,
+             wiring startTrainerBattle, branches post-combat.
+Dépendance : NS-GS-09 + NS-GS-10.
+Code moteur: non (Battle from Scene déjà acquis).
+```
+
+**NS-GS-12 — Golden Slice Smoke Test**
+
+```text
+Type       : Test / validation end-to-end
+Objectif   : Prouver que le Golden Slice fonctionne.
+Chemin     : New Game → Maël → mission → port → Lysa → dialogue
+             → combat → victory/defeat → fact posé → step completed
+             → Lysa change de dialogue → save → reload → état cohérent.
+Dépendance : NS-GS-08 à NS-GS-11 + runtime minimal.
+```
 
 ### Chemin critique propre
 
 ```text
-Phase 1 — Spécification (obligatoire avant tout code)
+NS-GS-02
+→ décider starter / party initiale
 
-NS-GS-02 → décider starter / party initiale
-NS-GS-03 → inventorier tous les contenus et fixtures nécessaires
-NS-GS-04 → définir la stratégie de preuve runtime et save/load
+NS-GS-03
+→ inventorier tous les contenus et fixtures nécessaires
 
-Phase 2 — Socle runtime minimal (seulement après Phase 1 acceptée)
+NS-GS-04
+→ définir la stratégie de preuve runtime et save/load
 
-NS-GS-05 → New Game minimal
-NS-GS-06 → givePokemon (conditionnel)
-NS-GS-07 → step completion direct (conditionnel)
+Puis seulement :
 
-Phase 3 — Contenu (seulement après socle runtime)
+NS-GS-05 / NS-GS-06 / NS-GS-07
+→ combler le socle runtime minimal si nécessaire
 
-NS-GS-08/09 → maps + NPCs + dialogues
-NS-GS-10 → storyline wiring
-NS-GS-11 → battle Lysa fixture
+Puis :
 
-Phase finale
+NS-GS-08 / NS-GS-09 / NS-GS-10 / NS-GS-11
+→ créer les contenus Golden Slice
 
-NS-GS-12 → smoke test end-to-end
+Enfin :
+
+NS-GS-12
+→ smoke test Golden Slice end-to-end
 ```
 
 > [!WARNING]
-> Le chemin le plus court techniquement serait NS-GS-02 → NS-GS-05 → NS-GS-08...
-> Mais il est **volontairement refusé** pour éviter de reconstruire dans le désordre.
+> Le chemin techniquement le plus court serait de faire directement NS-GS-02 → NS-GS-05 → NS-GS-08.
+> Ce chemin est **volontairement refusé** pour éviter de reconstruire dans le désordre.
 > Chaque phase doit être complétée et reviewée avant de passer à la suivante.
 
 Estimation chemin critique complet : **Phase 1 (3 lots doc, ~2 sessions) + Phase 2 (1-3 lots code, ~2-3 sessions) + Phase 3 (4 lots contenu, ~3-4 sessions) + Phase finale (1 lot test, ~1 session) ≈ 8-10 sessions de travail**.
@@ -1227,12 +1338,34 @@ Aucun build_runner lancé.
 Aucune opération Git d'écriture effectuée.
 ```
 
-### Git status avant correction NS-GS-01-bis
+---
+
+## Evidence Pack — NS-GS-01-bis
+
+### Git status initial (avant correction NS-GS-01-bis)
 
 ```bash
 $ git status --short --untracked-files=all
-(sortie vide — working tree propre, aucun fichier modifié ni untracked)
+?? "MVP Selbrume/road_map.md"
 ```
+
+Seul fichier untracked : `MVP Selbrume/road_map.md` (document produit utilisateur, pas un fichier du rapport).
+Le rapport NS-GS-01 lui-même est déjà tracké et propre.
+
+### Fichier modifié par NS-GS-01-bis
+
+```text
+reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
+```
+
+### Résumé des corrections
+
+1. **Roadmap canonique restaurée** (§21) — 3 phases distinctes, descriptions détaillées avec deliverables, note de gouvernance enrichie.
+2. **Chemin critique corrigé** (§21) — refus explicite du raccourci NS-GS-02 → NS-GS-05 → NS-GS-08.
+3. **Ambiguïtés de gouvernance enrichies** (§20) — AMB-GOV-01 à AMB-GOV-04 avec colonnes Impact + Décision.
+4. **GAP table alignée** (§18) — lot references mis à jour vers la roadmap canonique.
+5. **Evidence Pack complété** (§23) — git status/diff exacts inclus inline.
+6. **Auto-review ajoutée** — Passe 4 critique documentée.
 
 ### Git status/diff après correction NS-GS-01-bis
 
@@ -1242,44 +1375,41 @@ $ git diff --check -- reports/gameplay/ns_gs_01_golden_slice_exact_specification
 EXIT:0
 
 $ git diff --stat -- reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
- .../ns_gs_01_golden_slice_exact_specification.md   | 177 +++++++++++++++++----
- 1 file changed, 143 insertions(+), 34 deletions(-)
+ .../ns_gs_01_golden_slice_exact_specification.md   | 264 +++++++++++++++------
+ 1 file changed, 190 insertions(+), 74 deletions(-)
 
 $ git diff --name-only
 reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
 
 $ git status --short --untracked-files=all
  M reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
+?? "MVP Selbrume/road_map.md"
 ```
 
----
-
-## Addendum — NS-GS-01-bis Corrections Applied
-
-**Lot** : NS-GS-01-bis — Roadmap & Evidence Alignment Fix
-**Date** : 2026-05-23
-**Type** : Correctif documentaire (aucun code modifié)
-
-Corrections appliquées :
-
-1. **Roadmap canonique restaurée** (§21) — 3 phases distinctes, aucun lot code avant Phase 1 acceptée
-2. **Chemin critique corrigé** (§21) — refus explicite du raccourci NS-GS-02 → NS-GS-05
-3. **Ambiguïtés de gouvernance ajoutées** (§20) — AMB-GOV-01 à AMB-GOV-04
-4. **GAP table alignée** (§18) — lot references mis à jour vers la roadmap canonique
-5. **Evidence Pack complété** (§23) — git status/diff exacts avant et après correction
-
-Fichiers modifiés par NS-GS-01-bis :
+### Confirmations
 
 ```text
-reports/gameplay/ns_gs_01_golden_slice_exact_specification.md (ce fichier)
-```
-
 Aucun fichier de code modifié.
 Aucune fixture modifiée.
 Aucun test modifié.
 Aucun build_runner lancé.
 Aucune opération Git d'écriture effectuée.
+```
 
 ---
 
-*Fin du document NS-GS-01 (corrigé NS-GS-01-bis).*
+## Auto-review — NS-GS-01-bis (Passe 4)
+
+| Question | Réponse |
+|---|---|
+| Le fond métier NS-GS-01 a-t-il été préservé ? | ✅ Oui — sections §1 à §19 et §22 inchangées. |
+| La roadmap canonique est-elle restaurée ? | ✅ Oui — §21 contient 3 phases + 12 lots avec deliverables. |
+| NS-GS-02 à NS-GS-04 restent-ils documentaires ? | ✅ Oui — chaque lot porte la mention "Code : interdit". |
+| Le rapport empêche-t-il explicitement de coder trop tôt ? | ✅ Oui — note IMPORTANT + WARNING + AMB-GOV-01 à AMB-GOV-04. |
+| L'Evidence Pack est-il suffisant ? | ✅ Oui — git status/diff exacts, pas de formulations de renvoi. |
+| Y a-t-il une dette restante ? | ✅ Non — Evidence Pack post-edit rempli, auto-review complète. |
+
+---
+
+*Fin du document NS-GS-01 (corrigé NS-GS-01-bis).
+Référence canonique : MVP Selbrume/road_map.md.*
