@@ -42,10 +42,19 @@ void main() {
       // Verify actions
       expect(find.widgetWithText(PokeMapButton, 'Créer une carte'), findsOneWidget);
       expect(find.widgetWithText(PokeMapButton, 'Ouvrir une carte'), findsOneWidget);
-      expect(find.text('ou glissez-déposez un fichier ici'), findsOneWidget);
+      expect(find.text('Sélectionnez une carte existante ou créez-en une nouvelle depuis ce projet.'), findsOneWidget);
 
-      // Verify that old texts do not exist
+      // Verify that old/forbidden texts do not exist inside empty states
       expect(find.text('No Map Loaded'), findsNothing);
+      expect(find.textContaining('Tanset'), findsNothing);
+      expect(find.descendant(of: find.byType(MapWorkspaceEmptyState), matching: find.textContaining('glissez')), findsNothing);
+      expect(find.descendant(of: find.byType(MapWorkspaceEmptyState), matching: find.textContaining('glisser')), findsNothing);
+      expect(find.descendant(of: find.byType(MapWorkspaceEmptyState), matching: find.textContaining('drag')), findsNothing);
+      expect(find.descendant(of: find.byType(MapWorkspaceEmptyState), matching: find.textContaining('drop')), findsNothing);
+      expect(find.descendant(of: find.byType(MapInspectorEmptyState), matching: find.textContaining('glissez')), findsNothing);
+      expect(find.descendant(of: find.byType(MapInspectorEmptyState), matching: find.textContaining('glisser')), findsNothing);
+      expect(find.descendant(of: find.byType(MapInspectorEmptyState), matching: find.textContaining('drag')), findsNothing);
+      expect(find.descendant(of: find.byType(MapInspectorEmptyState), matching: find.textContaining('drop')), findsNothing);
 
       // Verify listed existing maps inside workspace empty state
       expect(find.descendant(of: find.byType(MapWorkspaceEmptyState), matching: find.text('Starting Town')), findsOneWidget);

@@ -160,7 +160,7 @@ class MapWorkspaceEmptyState extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'ou glissez-déposez un fichier ici',
+                      'Sélectionnez une carte existante ou créez-en une nouvelle depuis ce projet.',
                       style: TextStyle(
                         color: colors.textMuted,
                         fontSize: 11,
