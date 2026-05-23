@@ -53,6 +53,13 @@ const String kScenarioActionStartTrainerBattle = 'startTrainerBattle';
 /// Aucun speciesId n'est hardcodé : l'authoring fournit tout.
 const String kScenarioActionGivePokemon = 'givePokemon';
 
+/// Marque une étape narrative comme complétée.
+///
+/// Le `stepId` est lu depuis `ScenarioNodePayload.params['stepId']`.
+/// L'opération est idempotente et alimente `PlayerProgression.completedStepIds`
+/// pour les predicates `stepCompleted` / `stepNotCompleted`.
+const String kScenarioActionCompleteStep = 'completeStep';
+
 /// Jonction pure graphe après compilation d’un embranchement (Cutscene Studio).
 ///
 /// Ce n’est **pas** une attente temporelle: l’exécuteur avance immédiatement
@@ -1086,6 +1093,45 @@ class ScenarioRuntimeExecutor {
                 );
               }
               currentNodeId = nextAfterGive;
+
+            case kScenarioActionCompleteStep:
+              final stepId =
+                  node.payload.params['stepId']?.trim() ?? '';
+              if (stepId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action completeStep sans stepId dans "${node.id}".',
+                );
+              }
+              // Idempotent: calling completeStep twice is safe.
+              const stepMutations = GameStateMutations();
+              final nextStepState = stepMutations.completeStep(
+                context.gameState,
+                stepId,
+              );
+              context.gameState = nextStepState;
+              context.onGameStateUpdated(nextStepState);
+              final nextAfterStep = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterStep == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Step "$stepId" complétée. Fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterStep;
 
             default:
               return ScenarioRuntimeExecutionResult(

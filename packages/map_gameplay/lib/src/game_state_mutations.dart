@@ -219,6 +219,33 @@ class GameStateMutations {
     );
   }
 
+  /// Marque une étape narrative comme complétée.
+  ///
+  /// L'opération est **idempotente** : compléter deux fois la même step
+  /// ne crée pas de doublon dans [PlayerProgression.completedStepIds].
+  ///
+  /// Si [stepId] est vide ou blanc, retourne le state inchangé (no-op sûr).
+  ///
+  /// Invariant mechanics-first : aucun stepId n'est hardcodé ici.
+  /// L'appelant (scénario, script, éditeur) choisit l'id.
+  GameState completeStep(GameState state, String stepId) {
+    final normalized = stepId.trim();
+    if (normalized.isEmpty) return state;
+
+    final existing = state.progression.completedStepIds;
+    if (existing.contains(normalized)) {
+      // Idempotent : step déjà complétée, pas de doublon.
+      return state;
+    }
+
+    final newStepIds = [...existing, normalized];
+    return state.copyWith(
+      progression: state.progression.copyWith(
+        completedStepIds: newStepIds,
+      ),
+    );
+  }
+
   /// Applique un lot de mutations atomiquement.
   GameState applyAll(
     GameState state,

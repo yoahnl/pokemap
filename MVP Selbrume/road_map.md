@@ -554,10 +554,10 @@ PHASE 1 — Alignement (documentaire)
 PHASE 2 — Socle runtime générique (code)
 ✅ NS-GS-05   — New Game Minimal Runtime
 ✅ NS-GS-06   — GivePokemon Minimal
-🔜 NS-GS-07   — Step Completion / Progression Hooks V0
+✅ NS-GS-07   — Step Completion / Progression Hooks V0
 
 PHASE 3 — Authoring / runtime bridge (code + readiness)
-   NS-GS-08   — NPC Interaction → Scene Authoring Readiness
+🔜 NS-GS-08   — NPC Interaction → Scene Authoring Readiness
    NS-GS-09   — Yarn Outcome → Scene Branch Readiness
    NS-GS-10   — World Rules / Conditional Presence Readiness
    NS-GS-11   — Trainer Battle Authoring Readiness
@@ -579,15 +579,14 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-07 — Step Completion / Progression Hooks V0
+🔜 NS-GS-08 — NPC Interaction → Scene Authoring Readiness
 ```
 
 Périmètre :
 
 ```text
-Mécanique de progression narrative step-by-step.
-Marquage des étapes complétées.
-Hooks de condition pour le scénario.
+Audit et readiness de l'interaction PNJ → scène narrative.
+Bridge NPC entity → ScenarioAsset.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -667,3 +666,18 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. Mutation pure inchangée. |
 | Prochain lot | NS-GS-07 — Step Completion / Progression Hooks V0 |
 | Rapport | `reports/gameplay/ns_gs_06_bis_give_pokemon_runtime_payload_hardening.md` |
+
+---
+
+# Mise à jour NS-GS-07 — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-07 — Step Completion / Progression Hooks V0 |
+| Résultat | Mutation `completeStep` + action `kScenarioActionCompleteStep`. 22 tests passent (14 gameplay + 8 runtime). Predicates `stepCompleted`/`stepNotCompleted` vérifiés. Analyze clean. |
+| Fichiers | `game_state_mutations.dart` (+27), `scenario_runtime_executor.dart` (+46), `map_runtime.dart` (+1 export), 2 fichiers test |
+| Décision | `stepId` via `payload.params`. Idempotent. No-op sur blank. Predicates déjà câblés. |
+| Limites | Pas de validation stepId dans un registre. Pas de validator narratif. whenCutsceneEnds conservé. |
+| Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. createNewGameState inchangé. |
+| Prochain lot | NS-GS-08 — NPC Interaction → Scene Authoring Readiness |
+| Rapport | `reports/gameplay/ns_gs_07_step_completion_progression_hooks.md` |
