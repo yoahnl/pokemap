@@ -26,7 +26,8 @@ class EditorShellPage extends ConsumerStatefulWidget {
   ConsumerState<EditorShellPage> createState() => _EditorShellPageState();
 }
 
-class _EditorShellPageState extends ConsumerState<EditorShellPage> {
+class _EditorShellPageState extends ConsumerState<EditorShellPage>
+    with SingleTickerProviderStateMixin {
   Timer? _toastTimer;
   String? _toastMessage;
   bool _toastIsError = false;
@@ -35,9 +36,27 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   /// When false, the right ResizablePane (map / tileset / narrative inspector) is omitted so the center stage uses full width.
   bool _rightInspectorVisible = true;
 
+  /// When false, the left ResizablePane is collapsed to a narrow toggle strip.
+  bool _leftSidebarVisible = true;
+
+  late AnimationController _sidebarAnimationController;
+
   @override
   void initState() {
     super.initState();
+    _sidebarAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..addListener(() {
+        setState(() {});
+      });
+
+    if (_leftSidebarVisible) {
+      _sidebarAnimationController.value = 1.0;
+    } else {
+      _sidebarAnimationController.value = 0.0;
+    }
+
     // Provider mutations are intentionally deferred after the first frame:
     // auto-restore loads a project (state mutation), and Riverpod disallows
     // mutating providers during build/init lifecycle phases.
@@ -54,6 +73,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
   @override
   void dispose() {
+    _sidebarAnimationController.dispose();
     _toastTimer?.cancel();
     super.dispose();
   }
@@ -106,6 +126,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         true,
       _ => false,
     };
+
+    final double expandedWidth = isNarrativeWorkspace ? 268.0 : 344.0;
+    final double currentSidebarWidth = 52.0 + (expandedWidth - 52.0) * _sidebarAnimationController.value;
 
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
@@ -213,22 +236,84 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         toolBar: buildMapEditorToolbar(context, ref),
                         children: [
                           ResizablePane.noScrollBar(
-                            key: ValueKey<bool>(isNarrativeWorkspace),
+                            key: const ValueKey<String>('left_sidebar_pane'),
                             resizableSide: ResizableSide.right,
-                            minSize: isNarrativeWorkspace ? 200 : 240,
-                            maxSize: isNarrativeWorkspace ? 460 : 520,
-                            startSize: isNarrativeWorkspace ? 268 : 344,
+                            minSize: currentSidebarWidth,
+                            maxSize: currentSidebarWidth,
+                            startSize: currentSidebarWidth,
                             decoration: BoxDecoration(
                               color: context.pokeMapColors.backgroundShell,
                             ),
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                isNarrativeWorkspace ? 12 : 16,
-                                isNarrativeWorkspace ? 16 : 18,
-                                isNarrativeWorkspace ? 10 : 12,
-                                isNarrativeWorkspace ? 16 : 18,
+                            child: OverflowBox(
+                              minWidth: 52,
+                              maxWidth: isNarrativeWorkspace ? 460 : 520,
+                              alignment: Alignment.topLeft,
+                              child: SizedBox(
+                                width: currentSidebarWidth,
+                                child: Stack(
+                                  children: [
+                                    // Expanded content
+                                    Positioned.fill(
+                                      child: AnimatedOpacity(
+                                        duration: const Duration(milliseconds: 180),
+                                        opacity: _leftSidebarVisible ? 1.0 : 0.0,
+                                        child: IgnorePointer(
+                                          ignoring: !_leftSidebarVisible,
+                                          child: Padding(
+                                            padding: EdgeInsets.fromLTRB(
+                                              isNarrativeWorkspace ? 12 : 16,
+                                              isNarrativeWorkspace ? 16 : 18,
+                                              isNarrativeWorkspace ? 10 : 12,
+                                              isNarrativeWorkspace ? 16 : 18,
+                                            ),
+                                            child: ProjectExplorerPanel(
+                                              onCollapse: () {
+                                                _sidebarAnimationController.animateTo(
+                                                  0.0,
+                                                  duration: const Duration(milliseconds: 300),
+                                                  curve: Curves.easeInOutCubic,
+                                                );
+                                                setState(() {
+                                                  _leftSidebarVisible = false;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    // Collapsed content
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      top: 14,
+                                      child: AnimatedOpacity(
+                                        duration: const Duration(milliseconds: 180),
+                                        opacity: !_leftSidebarVisible ? 1.0 : 0.0,
+                                        child: IgnorePointer(
+                                          ignoring: _leftSidebarVisible,
+                                          child: Column(
+                                            children: [
+                                              _CollapsedExpandButton(
+                                                onTap: () {
+                                                  _sidebarAnimationController.animateTo(
+                                                    1.0,
+                                                    duration: const Duration(milliseconds: 300),
+                                                    curve: Curves.easeInOutCubic,
+                                                  );
+                                                  setState(() {
+                                                    _leftSidebarVisible = true;
+                                                  });
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              child: const ProjectExplorerPanel(),
                             ),
                           ),
                           ContentArea(
@@ -722,4 +807,63 @@ class _RedoIntent extends Intent {
 
 class _SaveIntent extends Intent {
   const _SaveIntent();
+}
+
+
+class _CollapsedExpandButton extends StatefulWidget {
+  const _CollapsedExpandButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_CollapsedExpandButton> createState() => _CollapsedExpandButtonState();
+}
+
+class _CollapsedExpandButtonState extends State<_CollapsedExpandButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _hovered
+                  ? colors.brandPrimary.withValues(alpha: 0.8)
+                  : colors.borderStrong.withValues(alpha: 0.6),
+              width: 1.25,
+            ),
+            color: _hovered
+                ? colors.surfaceHover
+                : colors.surfaceBase,
+            boxShadow: _hovered
+                ? [
+                    BoxShadow(
+                      color: colors.brandPrimary.withValues(alpha: 0.15),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    )
+                  ]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            CupertinoIcons.chevron_right,
+            size: 14,
+            color: _hovered ? colors.brandPrimary : colors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
 }

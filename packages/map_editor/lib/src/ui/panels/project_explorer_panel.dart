@@ -18,10 +18,14 @@ import 'narrative_library_panel.dart';
 import 'terrain_editor_panel.dart';
 import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
-import '../shared/inspector_section_card.dart';
 
 class ProjectExplorerPanel extends ConsumerStatefulWidget {
-  const ProjectExplorerPanel({super.key});
+  const ProjectExplorerPanel({
+    super.key,
+    this.onCollapse,
+  });
+
+  final VoidCallback? onCollapse;
 
   @override
   ConsumerState<ProjectExplorerPanel> createState() =>
@@ -86,7 +90,71 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                     ),
                   ),
           ),
+          if (widget.onCollapse != null) ...[
+            const SizedBox(height: 10),
+            _buildCollapseButton(context),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildCollapseButton(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: widget.onCollapse,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: colors.borderSubtle,
+                width: 1.25,
+              ),
+              color: colors.surfaceBase,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: colors.borderStrong.withValues(alpha: 0.5),
+                      width: 1.15,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    CupertinoIcons.chevron_left,
+                    size: 13,
+                    color: colors.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    'Réduire l\'explorateur',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -227,22 +295,20 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hEnvironment = (screenH * 0.22).clamp(180.0, 280.0);
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
-    const explorerTileRadius = 28.0;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Tileset Library',
-          subtitle: 'Folders, imports, and map painting',
+          description: 'Folders, imports, and map painting',
           icon: CupertinoIcons.square_grid_2x2,
-          accentColor: EditorChrome.inspectorJoyBlue,
-          badgeText: '${project.tilesets.length}',
+          accentColor: colors.warning,
+          count: project.tilesets.length,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.tileset,
           expanded: _expandTileLib,
-          onToggle: () => setState(() => _expandTileLib = !_expandTileLib),
+          onExpandToggle: () => setState(() => _expandTileLib = !_expandTileLib),
           expandedHeight: hTileset,
-          headerTrailing: Row(
+          trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               PokeMapIconButton(
@@ -264,42 +330,45 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           ),
           child: _buildTilesetsIsland(context, project, snapshot, notifier),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Catalogues Pokémon',
-          subtitle: 'Pokédex, Moves et Items dans un espace guidé unique',
+          description: 'Pokédex, Moves et Items dans un espace guidé unique',
           icon: CupertinoIcons.book_fill,
-          accentColor: EditorChrome.inspectorJoyAmber,
+          accentColor: colors.fact,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.pokedex,
           expanded: _expandPokedex,
-          onToggle: () => setState(() => _expandPokedex = !_expandPokedex),
+          onExpandToggle: () => setState(() => _expandPokedex = !_expandPokedex),
           expandedHeight: hPokedex,
           child: _buildPokemonCatalogsCard(context, snapshot, notifier),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Narrative Studio',
-          subtitle:
+          description:
               'Global Story, Steps, Cutscenes and outcomes (opens central workspaces)',
           icon: CupertinoIcons.link_circle_fill,
-          accentColor: EditorChrome.inspectorJoyCyan,
-          badgeText: '${project.scenarios.length}',
+          accentColor: colors.narrative,
+          count: project.scenarios.length,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.globalStory ||
+              snapshot.workspaceMode == EditorWorkspaceMode.step ||
+              snapshot.workspaceMode == EditorWorkspaceMode.cutscene ||
+              snapshot.workspaceMode == EditorWorkspaceMode.dialogue,
           expanded: _expandNarrative,
-          onToggle: () => setState(() => _expandNarrative = !_expandNarrative),
+          onExpandToggle: () => setState(() => _expandNarrative = !_expandNarrative),
           expandedHeight: hNarrative,
           child: const NarrativeLibraryPanel(embedded: true),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'World Maps',
-          subtitle:
+          description:
               'Maps jouables et contenu monde (events, entités, warps, triggers)',
           icon: CupertinoIcons.map_fill,
-          accentColor: EditorChrome.inspectorJoyPlum,
-          badgeText: '${project.maps.length}',
+          accentColor: colors.mapAccent,
+          count: project.maps.length,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.map,
           expanded: _expandWorld,
-          onToggle: () => setState(() => _expandWorld = !_expandWorld),
+          onExpandToggle: () => setState(() => _expandWorld = !_expandWorld),
           expandedHeight: hWorld,
-          headerTrailing: Row(
+          trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               PokeMapIconButton(
@@ -311,65 +380,64 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           ),
           child: _buildWorldIslandBody(context, worldChildren),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Terrain Library',
-          subtitle: 'Base ground presets',
+          description: 'Base ground presets',
           icon: CupertinoIcons.map,
-          accentColor: EditorChrome.accentJade,
-          badgeText: '${project.terrainPresets.length}',
+          accentColor: colors.success,
+          count: project.terrainPresets.length,
+          selected: false,
           expanded: _expandTerrains,
-          onToggle: () => setState(() => _expandTerrains = !_expandTerrains),
+          onExpandToggle: () => setState(() => _expandTerrains = !_expandTerrains),
           expandedHeight: hTerrains,
           child: const TerrainLibraryPanel(embedded: true),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Path Library',
-          subtitle: 'Legacy paths and Path Studio recipes',
+          description: 'Legacy paths and Path Studio recipes',
           icon: CupertinoIcons.arrow_branch,
-          accentColor: EditorChrome.accentWarm,
-          badgeText:
-              '${project.pathPresets.length}/${project.pathPatternPresets.length}',
+          accentColor: colors.warning,
+          countLabel: '${project.pathPresets.length}/${project.pathPatternPresets.length}',
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.pathStudio,
           expanded: _expandPaths,
-          onToggle: () => setState(() => _expandPaths = !_expandPaths),
+          onExpandToggle: () => setState(() => _expandPaths = !_expandPaths),
           expandedHeight: hPaths,
           child: _buildPathLibraryCard(context, project, snapshot, notifier),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Environment Studio',
-          subtitle: 'Presets d’environnements réutilisables',
+          description: 'Presets d’environnements réutilisables',
           icon: CupertinoIcons.tree,
-          accentColor: EditorChrome.accentJade,
-          badgeText: '${project.environmentPresets.length}',
+          accentColor: colors.worldRule,
+          count: project.environmentPresets.length,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.environmentStudio,
           expanded: _expandEnvironment,
-          onToggle: () =>
+          onExpandToggle: () =>
               setState(() => _expandEnvironment = !_expandEnvironment),
           expandedHeight: hEnvironment,
           child: _buildEnvironmentStudioCard(context, snapshot, notifier),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Trainer Studio',
-          subtitle: 'Battle rosters and teams (opens the central workspace)',
+          description: 'Battle rosters and teams (opens the central workspace)',
           icon: CupertinoIcons.person_2_fill,
-          accentColor: EditorChrome.accentCoral,
-          badgeText: '${project.trainers.length}',
+          accentColor: colors.combat,
+          count: project.trainers.length,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.trainer,
           expanded: _expandTrainers,
-          onToggle: () => setState(() => _expandTrainers = !_expandTrainers),
+          onExpandToggle: () => setState(() => _expandTrainers = !_expandTrainers),
           expandedHeight: hTrainers,
           child: const TrainerLibraryPanel(embedded: true),
         ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
+        ProjectExplorerModuleCard(
           title: 'Character Library',
-          subtitle: 'Overworld sprites for the player and NPCs',
+          description: 'Overworld sprites for the player and NPCs',
           icon: CupertinoIcons.person_crop_circle,
-          accentColor: EditorChrome.inspectorJoyCyan,
-          badgeText: '${project.characters.length}',
+          accentColor: colors.cinematic,
+          count: project.characters.length,
+          selected: false,
           expanded: _expandCharacters,
-          onToggle: () =>
+          onExpandToggle: () =>
               setState(() => _expandCharacters = !_expandCharacters),
           expandedHeight: hCharacters,
           child: const CharacterLibraryPanel(embedded: true),

@@ -11,3 +11,4 @@ export 'pokemap_panel.dart';
 export 'pokemap_section_header.dart';
 export 'pokemap_sidebar_item.dart';
 export 'pokemap_toolbar_surface.dart';
+export 'pokemap_explorer_module_card.dart';
