@@ -30,6 +30,7 @@ import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
 import '../shared/map_workspace_empty_state.dart';
+import '../../theme/theme.dart';
 
 // Le shell du canvas garde uniquement le widget, l'interaction et la
 // synchronisation des ressources. Le painter et le cache d'images vivent dans
@@ -136,6 +137,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final environmentMaskBrushSize =
@@ -552,26 +554,34 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                       Positioned(
                         left: 12,
                         top: 12,
-                        child: DecoratedBox(
+                        child: Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xCC1F2434),
-                            borderRadius: BorderRadius.circular(8),
+                            color: colors.surfaceRaised.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: const Color(0xFF6ED6B5),
+                              color: colors.brandPrimaryBorder,
                               width: 1,
                             ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x1A000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
                             child: Text(
-                              'Waypoint placement active • Click map to add',
+                              'Placement de waypoint actif • Cliquez sur la carte pour ajouter',
                               style: TextStyle(
-                                color: Color(0xFFEAF5F2),
+                                color: colors.textPrimary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.none,
                               ),
                             ),
                           ),
@@ -582,6 +592,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                         right: 12,
                         top: 12,
                         child: _shadowLightPreviewSelector(
+                          context,
+                          colors,
                           shadowLightPreviewPreset,
                         ),
                       ),
@@ -596,37 +608,48 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   Widget _shadowLightPreviewSelector(
+    BuildContext context,
+    PokeMapColorTokens colors,
     EditorShadowLightPreviewPreset selectedPreset,
   ) {
     final presets = createEditorShadowLightPreviewPresets();
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
-        color: const Color(0xDD1F2434),
-        borderRadius: BorderRadius.circular(8),
+        color: colors.surfaceRaised.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0x665F6C83),
+          color: colors.borderSubtle,
           width: 1,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
               child: Text(
-                'Preview lumiere',
+                'Aperçu lumière',
                 style: TextStyle(
-                  color: Color(0xFFEAF5F2),
+                  color: colors.textSecondary,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ),
             const SizedBox(width: 4),
             for (final preset in presets) ...[
               _shadowLightPreviewPresetButton(
+                colors: colors,
                 preset: preset,
                 selected: preset.id == selectedPreset.id,
               ),
@@ -639,6 +662,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   Widget _shadowLightPreviewPresetButton({
+    required PokeMapColorTokens colors,
     required EditorShadowLightPreviewPreset preset,
     required bool selected,
   }) {
@@ -653,24 +677,24 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           _shadowLightPreviewPresetId = preset.id;
         });
       },
-      child: DecoratedBox(
+      child: Container(
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF6ED6B5) : const Color(0x332C3344),
+          color: selected ? colors.brandPrimary : colors.surfaceSubtle,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: selected ? const Color(0xFFB9F4E5) : const Color(0x555F6C83),
+            color: selected ? colors.brandPrimaryBorder : colors.borderSubtle,
             width: 1,
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Text(
             preset.label,
             style: TextStyle(
-              color:
-                  selected ? const Color(0xFF12211D) : const Color(0xFFEAF5F2),
+              color: selected ? colors.textInverse : colors.textSecondary,
               fontSize: 10,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              decoration: TextDecoration.none,
             ),
           ),
         ),

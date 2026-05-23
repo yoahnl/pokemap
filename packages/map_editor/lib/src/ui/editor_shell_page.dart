@@ -13,6 +13,7 @@ import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
+import 'package:map_editor/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'design_system/design_system.dart';
 import '../theme/theme.dart';
 
@@ -96,6 +97,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
   Widget build(BuildContext context) {
     final shell = ref.watch(editorShellSnapshotProvider);
     final project = ref.watch(editorProjectManifestProvider);
+    final activeMap = ref.watch(editorNotifierProvider.select((s) => s.activeMap));
     final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final supportsRightInspector = switch (workspaceMode) {
@@ -233,6 +235,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
                     ),
                     Builder(
                       builder: (context) {
+                        final colors = context.pokeMapColors;
                         final originalMq = MediaQuery.of(context);
                         // La StatusBar est rendue hors MacosScaffold, donc on réduit la hauteur disponible
                         // du scaffold pour éviter le chevauchement vertical avec les panes.
@@ -388,19 +391,42 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
                                                           : 18,
                                                     ),
                                                     Expanded(
-                                                      child: ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius.circular(26),
-                                                        child: Padding(
-                                                          padding: EdgeInsets.all(
-                                                            isNarrativeWorkspace
-                                                                ? 8
-                                                                : 14,
-                                                          ),
-                                                          child:
-                                                              const EditorCanvasHost(),
-                                                        ),
-                                                      ),
+                                                      child: workspaceMode == EditorWorkspaceMode.map && activeMap != null
+                                                          ? Container(
+                                                              decoration: BoxDecoration(
+                                                                color: colors.backgroundApp,
+                                                                borderRadius: BorderRadius.circular(20),
+                                                                border: Border.all(
+                                                                  color: colors.borderSubtle,
+                                                                  width: 1.5,
+                                                                ),
+                                                                boxShadow: const [
+                                                                  BoxShadow(
+                                                                    color: Color(0x1F000000),
+                                                                    blurRadius: 8,
+                                                                    offset: Offset(0, 4),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              child: ClipRRect(
+                                                                borderRadius: BorderRadius.circular(19),
+                                                                child: Padding(
+                                                                  padding: EdgeInsets.all(
+                                                                    isNarrativeWorkspace ? 8 : 14,
+                                                                  ),
+                                                                  child: const EditorCanvasHost(),
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : ClipRRect(
+                                                              borderRadius: BorderRadius.circular(26),
+                                                              child: Padding(
+                                                                padding: EdgeInsets.all(
+                                                                  isNarrativeWorkspace ? 8 : 14,
+                                                                ),
+                                                                child: const EditorCanvasHost(),
+                                                              ),
+                                                            ),
                                                     ),
                                                   ],
                                                 ),
@@ -573,7 +599,7 @@ class _EditorToastBanner extends StatelessWidget {
   }
 }
 
-class _WorkspaceStageHeader extends StatelessWidget {
+class _WorkspaceStageHeader extends ConsumerWidget {
   const _WorkspaceStageHeader({
     required this.title,
     required this.subtitle,
@@ -591,8 +617,11 @@ class _WorkspaceStageHeader extends StatelessWidget {
   final VoidCallback onToggleRightPanel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.pokeMapColors;
+    final activeMap = ref.watch(editorNotifierProvider.select((s) => s.activeMap));
+    final notifier = ref.read(editorNotifierProvider.notifier);
+
     final chipAccent = switch (workspaceMode) {
       EditorWorkspaceMode.map => colors.brandPrimary,
       EditorWorkspaceMode.tileset => colors.brandCyan,
@@ -630,6 +659,124 @@ class _WorkspaceStageHeader extends StatelessWidget {
       EditorWorkspaceMode.pathStudio => 'Chemins',
       EditorWorkspaceMode.environmentStudio => 'Envs',
     };
+
+    if (workspaceMode == EditorWorkspaceMode.map && activeMap != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: colors.surfaceSubtle,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: colors.borderSubtle,
+                    width: 1,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: MacosIcon(
+                  CupertinoIcons.map,
+                  color: chipAccent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const _PokeMapFavoriteStar(),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 46),
+            child: Text(
+              subtitle,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 46),
+            child: Row(
+              children: [
+                const PokeMapBadge(
+                  label: 'Scène',
+                  variant: PokeMapBadgeVariant.mapAccent,
+                ),
+                const SizedBox(width: 8),
+                if (showRightPanelToggle) ...[
+                  MacosTooltip(
+                    message: rightPanelVisible ? 'Masquer le panneau' : 'Afficher le panneau',
+                    child: MacosIconButton(
+                      semanticLabel: rightPanelVisible ? 'Hide right panel' : 'Show right panel',
+                      icon: MacosIcon(
+                        rightPanelVisible ? Icons.open_in_full : Icons.close_fullscreen,
+                        color: colors.textPrimary.withValues(alpha: 0.85),
+                        size: 14,
+                      ),
+                      backgroundColor: colors.surfaceSubtle,
+                      hoverColor: colors.surfaceHover,
+                      onPressed: onToggleRightPanel,
+                      boxConstraints: const BoxConstraints(
+                        minWidth: 28,
+                        maxWidth: 28,
+                        minHeight: 28,
+                        maxHeight: 28,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                MacosTooltip(
+                  message: 'Options de carte',
+                  child: MacosPulldownButton(
+                    icon: CupertinoIcons.ellipsis,
+                    items: [
+                      MacosPulldownMenuItem(
+                        label: 'Redimensionner la carte',
+                        title: const Text('Redimensionner la carte'),
+                        onTap: () {
+                          showTopToolbarResizeMapDialog(
+                            context,
+                            notifier,
+                            currentWidth: activeMap.size.width,
+                            currentHeight: activeMap.size.height,
+                          );
+                        },
+                      ),
+                      MacosPulldownMenuItem(
+                        label: 'Sauvegarder la carte',
+                        title: const Text('Sauvegarder la carte'),
+                        onTap: notifier.saveActiveMap,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
 
     return Row(
       children: [
@@ -725,6 +872,47 @@ class _WorkspaceStageHeader extends StatelessWidget {
           variant: badgeVariant,
         ),
       ],
+    );
+  }
+}
+
+class _PokeMapFavoriteStar extends StatefulWidget {
+  const _PokeMapFavoriteStar();
+
+  @override
+  State<_PokeMapFavoriteStar> createState() => _PokeMapFavoriteStarState();
+}
+
+class _PokeMapFavoriteStarState extends State<_PokeMapFavoriteStar> {
+  bool _isFavorite = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return MacosTooltip(
+      message: _isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+      child: MacosIconButton(
+        key: const ValueKey('pokemap-favorite-star'),
+        icon: MacosIcon(
+          _isFavorite ? CupertinoIcons.star_fill : CupertinoIcons.star,
+          color: _isFavorite ? colors.warning : colors.textMuted,
+          size: 16,
+        ),
+        backgroundColor: CupertinoColors.transparent,
+        hoverColor: colors.surfaceHover,
+        onPressed: () {
+          setState(() {
+            _isFavorite = !_isFavorite;
+          });
+        },
+        boxConstraints: const BoxConstraints(
+          minWidth: 28,
+          maxWidth: 28,
+          minHeight: 28,
+          maxHeight: 28,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
     );
   }
 }

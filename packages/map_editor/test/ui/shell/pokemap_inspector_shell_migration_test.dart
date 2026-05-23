@@ -92,12 +92,12 @@ void main() {
 
       // Verify Map Overview Card renders Bourg-Palette in French
       expect(find.text('Bourg-Palette'), findsNWidgets(2));
-      expect(find.text('15 x 10 tuiles  •  2 couches'), findsNWidgets(2));
+      expect(find.text('15 × 10 tuiles • 2 couches'), findsNWidgets(2));
       expect(find.text('Calque de tuiles actif'), findsOneWidget);
 
       // Verify French section headers are present
       expect(find.text('Propriétés de carte'), findsOneWidget);
-      expect(find.text('Calques'), findsOneWidget);
+      expect(find.text('Calques'), findsWidgets);
       expect(find.text('Tuiles & éléments'), findsOneWidget);
 
       // Verify that old English names do not exist

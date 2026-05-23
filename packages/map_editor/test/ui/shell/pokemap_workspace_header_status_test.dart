@@ -89,7 +89,7 @@ void main() {
 
       // 1. Verify header updates with map name and French size details
       expect(find.text('Bourg-Palette'), findsWidgets);
-      expect(find.text('32 x 24 tuiles  •  1 couches'), findsWidgets);
+      expect(find.text('32 × 24 tuiles • 1 couches'), findsWidgets);
       expect(find.textContaining(RegExp(r'\btiles\b')), findsNothing);
       expect(find.textContaining(RegExp(r'\blayers\b')), findsNothing);
 

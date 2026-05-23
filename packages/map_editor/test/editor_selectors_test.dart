@@ -32,7 +32,7 @@ void main() {
 
       final shell = container.read(editorShellSnapshotProvider);
       expect(shell.workspaceTitle, 'Starter Town');
-      expect(shell.workspaceSubtitle, contains('12 x 8 tuiles'));
+      expect(shell.workspaceSubtitle, contains('12 × 8 tuiles'));
       expect(shell.canUndoMap, isTrue);
       expect(shell.canSaveMap, isTrue);
     });

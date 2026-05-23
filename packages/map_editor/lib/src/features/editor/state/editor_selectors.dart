@@ -158,7 +158,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
   final workspaceSubtitle = switch (workspaceMode) {
     EditorWorkspaceMode.map => activeMap == null
         ? 'Ouvrez une carte pour commencer à construire votre monde.'
-        : '${activeMap.size.width} x ${activeMap.size.height} tuiles  •  ${activeMap.layers.length} couches',
+        : '${activeMap.size.width} × ${activeMap.size.height} tuiles • ${activeMap.layers.length} couches',
     EditorWorkspaceMode.tileset => selectedTileset == null
         ? 'Select a tileset to browse and curate your library.'
         : 'Visual library editing for tiles, elements and groups.',
