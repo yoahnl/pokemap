@@ -177,6 +177,48 @@ class GameStateMutations {
     return state.copyWith(bag: updatedBag);
   }
 
+  /// Donne un Pokémon au joueur.
+  ///
+  /// Le [PlayerPokemon] doit être construit par l'appelant (authoring, script,
+  /// scénario). Cette mutation ne calcule pas les stats, moves ou HP : elle
+  /// ajoute un Pokémon déjà valide à la party.
+  ///
+  /// Si [preventDuplicateSpecies] est `true`, la mutation est un no-op si la
+  /// party contient déjà un Pokémon du même [PlayerPokemon.speciesId].
+  ///
+  /// Invariant mechanics-first : aucun speciesId n'est hardcodé ici.
+  /// Le Pokémon est fourni par l'appelant, pas décidé par la mutation.
+  GameState givePokemon(
+    GameState state, {
+    required PlayerPokemon pokemon,
+    bool preventDuplicateSpecies = false,
+  }) {
+    final normalizedSpeciesId = pokemon.speciesId.trim();
+    if (normalizedSpeciesId.isEmpty) {
+      // speciesId vide/blank = Pokémon invalide, no-op sûr.
+      return state;
+    }
+
+    if (preventDuplicateSpecies) {
+      final alreadyOwned = state.party.members.any(
+        (m) => m.speciesId.trim() == normalizedSpeciesId,
+      );
+      if (alreadyOwned) {
+        return state;
+      }
+    }
+
+    final normalizedPokemon = pokemon.copyWith(
+      speciesId: normalizedSpeciesId,
+    );
+
+    final newMembers = [...state.party.members, normalizedPokemon];
+
+    return state.copyWith(
+      party: state.party.copyWith(members: newMembers),
+    );
+  }
+
   /// Applique un lot de mutations atomiquement.
   GameState applyAll(
     GameState state,

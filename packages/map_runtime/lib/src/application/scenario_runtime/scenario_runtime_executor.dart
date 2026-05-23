@@ -40,6 +40,19 @@ const String kScenarioActionEmitOutcome = 'emitOutcome';
 /// Voir SEL-A2 §3.5 (Option D) et SEL-B2.
 const String kScenarioActionStartTrainerBattle = 'startTrainerBattle';
 
+/// Action scénario : donne un Pokémon au joueur.
+///
+/// Paramètres lus depuis `ScenarioNodePayload.params` :
+/// - `speciesId` (obligatoire) : identifiant de l'espèce.
+/// - `level` (optionnel, défaut 5) : niveau du Pokémon.
+/// - `natureId` (optionnel, défaut 'hardy') : nature.
+/// - `abilityId` (optionnel, défaut 'unknown') : talent.
+/// - `preventDuplicate` (optionnel, défaut 'false') : empêche le doublon.
+///
+/// La mutation est appliquée via [GameStateMutations.givePokemon].
+/// Aucun speciesId n'est hardcodé : l'authoring fournit tout.
+const String kScenarioActionGivePokemon = 'givePokemon';
+
 /// Jonction pure graphe après compilation d’un embranchement (Cutscene Studio).
 ///
 /// Ce n’est **pas** une attente temporelle: l’exécuteur avance immédiatement
@@ -991,6 +1004,61 @@ class ScenarioRuntimeExecutor {
                 message:
                     'Combat trainer "$trainerId" (battle=$battleId) lancé. Graphe suspendu.',
               );
+            case kScenarioActionGivePokemon:
+              final speciesId =
+                  node.payload.params['speciesId']?.trim() ?? '';
+              if (speciesId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action givePokemon sans speciesId dans "${node.id}".',
+                );
+              }
+              final level = int.tryParse(
+                    node.payload.params['level']?.trim() ?? '',
+                  ) ??
+                  5;
+              final natureId =
+                  node.payload.params['natureId']?.trim() ?? 'hardy';
+              final abilityId =
+                  node.payload.params['abilityId']?.trim() ?? 'unknown';
+              final preventDuplicate =
+                  node.payload.params['preventDuplicate']?.trim() == 'true';
+              final pokemon = PlayerPokemon(
+                speciesId: speciesId,
+                level: level.clamp(1, 100),
+                natureId: natureId,
+                abilityId: abilityId,
+                currentHp: 1,
+              );
+              const mutations = GameStateMutations();
+              final nextGiveState = mutations.givePokemon(
+                context.gameState,
+                pokemon: pokemon,
+                preventDuplicateSpecies: preventDuplicate,
+              );
+              context.gameState = nextGiveState;
+              context.onGameStateUpdated(nextGiveState);
+              final nextAfterGive = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterGive == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Pokémon "$speciesId" (lv$level) donné. Fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterGive;
 
             default:
               return ScenarioRuntimeExecutionResult(

@@ -92,6 +92,7 @@ export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
         kScenarioActionClearFlag,
         kScenarioActionEmitOutcome,
         kScenarioActionStartTrainerBattle,
+        kScenarioActionGivePokemon,
         kScenarioActionFlowMerge,
         kScenarioActionAuthoringPlaceholder,
         scenarioOutcomeFlagName;

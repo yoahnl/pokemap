@@ -553,8 +553,8 @@ PHASE 1 — Alignement (documentaire)
 
 PHASE 2 — Socle runtime générique (code)
 ✅ NS-GS-05   — New Game Minimal Runtime
-🔜 NS-GS-06   — GivePokemon Minimal
-   NS-GS-07   — Step Completion / Progression Hooks V0
+✅ NS-GS-06   — GivePokemon Minimal
+🔜 NS-GS-07   — Step Completion / Progression Hooks V0
 
 PHASE 3 — Authoring / runtime bridge (code + readiness)
    NS-GS-08   — NPC Interaction → Scene Authoring Readiness
@@ -579,16 +579,15 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-06 — GivePokemon Minimal
+🔜 NS-GS-07 — Step Completion / Progression Hooks V0
 ```
 
 Périmètre :
 
 ```text
-Action narrative générique pour donner un Pokémon au joueur.
-Mutation pure dans map_gameplay.
-Pas de Sproutle hardcodé.
-Pas de UI choix starter.
+Mécanique de progression narrative step-by-step.
+Marquage des étapes complétées.
+Hooks de condition pour le scénario.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -638,3 +637,18 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. Party vide. |
 | Prochain lot | NS-GS-06 — GivePokemon Minimal |
 | Rapport | `reports/gameplay/ns_gs_05_new_game_minimal_runtime.md` |
+
+---
+
+# Mise à jour NS-GS-06 — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-06 — GivePokemon Minimal |
+| Résultat | Mutation `givePokemon` + action `kScenarioActionGivePokemon`. 20 tests passent (16 gameplay + 4 runtime). Analyze clean (0 nouveau). |
+| Fichiers | `game_state_mutations.dart` (+42 lignes), `scenario_runtime_executor.dart` (+68 lignes), `map_runtime.dart` (+1 export), 2 fichiers test |
+| Décision | Option A retenue : action native ScenarioRuntimeExecutor. Params via payload.params. |
+| Limites | Limite party 6 non modélisée. currentHp=1 arbitraire. Pas de calcul stats/learnset. |
+| Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. createNewGameState inchangé. |
+| Prochain lot | NS-GS-07 — Step Completion / Progression Hooks V0 |
+| Rapport | `reports/gameplay/ns_gs_06_give_pokemon_minimal.md` |
