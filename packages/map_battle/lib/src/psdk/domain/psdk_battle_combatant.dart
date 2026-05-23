@@ -510,10 +510,17 @@ class PsdkBattleCombatantSetup {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    int form = 0,
     this.abilityId,
     this.gender = PsdkBattleGender.unknown,
     this.dislikedFlavor,
     this.loyalty = 255,
+    int ivHp = 31,
+    int ivAttack = 31,
+    int ivDefense = 31,
+    int ivSpeed = 31,
+    int ivSpecialAttack = 31,
+    int ivSpecialDefense = 31,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -542,6 +549,13 @@ class PsdkBattleCombatantSetup {
           currentWeightKg ?? baseWeightKg,
           'currentWeightKg',
         ),
+        form = _checkNonNegativeInt(form, 'form'),
+        ivHp = _checkIv(ivHp, 'ivHp'),
+        ivAttack = _checkIv(ivAttack, 'ivAttack'),
+        ivDefense = _checkIv(ivDefense, 'ivDefense'),
+        ivSpeed = _checkIv(ivSpeed, 'ivSpeed'),
+        ivSpecialAttack = _checkIv(ivSpecialAttack, 'ivSpecialAttack'),
+        ivSpecialDefense = _checkIv(ivSpecialDefense, 'ivSpecialDefense'),
         temporaryTypes = List<String>.unmodifiable(
           temporaryTypes.map((type) => _requireNonBlank(type, 'type')),
         ),
@@ -556,10 +570,17 @@ class PsdkBattleCombatantSetup {
   final int currentHp;
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
+  final int form;
   final String? abilityId;
   final PsdkBattleGender gender;
   final String? dislikedFlavor;
   final int loyalty;
+  final int ivHp;
+  final int ivAttack;
+  final int ivDefense;
+  final int ivSpeed;
+  final int ivSpecialAttack;
+  final int ivSpecialDefense;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -622,10 +643,17 @@ class PsdkBattleCombatant {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    int form = 0,
     this.abilityId,
     this.gender = PsdkBattleGender.unknown,
     this.dislikedFlavor,
     this.loyalty = 255,
+    int ivHp = 31,
+    int ivAttack = 31,
+    int ivDefense = 31,
+    int ivSpeed = 31,
+    int ivSpecialAttack = 31,
+    int ivSpecialDefense = 31,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -654,6 +682,13 @@ class PsdkBattleCombatant {
           currentWeightKg ?? baseWeightKg,
           'currentWeightKg',
         ),
+        form = _checkNonNegativeInt(form, 'form'),
+        ivHp = _checkIv(ivHp, 'ivHp'),
+        ivAttack = _checkIv(ivAttack, 'ivAttack'),
+        ivDefense = _checkIv(ivDefense, 'ivDefense'),
+        ivSpeed = _checkIv(ivSpeed, 'ivSpeed'),
+        ivSpecialAttack = _checkIv(ivSpecialAttack, 'ivSpecialAttack'),
+        ivSpecialDefense = _checkIv(ivSpecialDefense, 'ivSpecialDefense'),
         statStages = statStages ?? PsdkBattleStatStages.neutral(),
         moveHistory = moveHistory ?? PsdkBattleMoveHistory.empty(),
         damageHistory = damageHistory ?? const PsdkBattleDamageHistory.empty(),
@@ -676,10 +711,17 @@ class PsdkBattleCombatant {
       types: setup.types,
       stats: setup.stats,
       moves: setup.moves,
+      form: setup.form,
       abilityId: setup.abilityId,
       gender: setup.gender,
       dislikedFlavor: setup.dislikedFlavor,
       loyalty: setup.loyalty,
+      ivHp: setup.ivHp,
+      ivAttack: setup.ivAttack,
+      ivDefense: setup.ivDefense,
+      ivSpeed: setup.ivSpeed,
+      ivSpecialAttack: setup.ivSpecialAttack,
+      ivSpecialDefense: setup.ivSpecialDefense,
       heldItemId: setup.heldItemId,
       consumedItemId: setup.consumedItemId,
       itemConsumed: setup.itemConsumed,
@@ -718,10 +760,17 @@ class PsdkBattleCombatant {
   final int currentHp;
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
+  final int form;
   final String? abilityId;
   final PsdkBattleGender gender;
   final String? dislikedFlavor;
   final int loyalty;
+  final int ivHp;
+  final int ivAttack;
+  final int ivDefense;
+  final int ivSpeed;
+  final int ivSpecialAttack;
+  final int ivSpecialDefense;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -812,10 +861,17 @@ class PsdkBattleCombatant {
     PsdkBattleTypes? types,
     PsdkBattleStats? stats,
     int? currentHp,
+    int? form,
     Object? abilityId = _unchanged,
     PsdkBattleGender? gender,
     Object? dislikedFlavor = _unchanged,
     int? loyalty,
+    int? ivHp,
+    int? ivAttack,
+    int? ivDefense,
+    int? ivSpeed,
+    int? ivSpecialAttack,
+    int? ivSpecialDefense,
     Object? heldItemId = _unchanged,
     Object? consumedItemId = _unchanged,
     bool? itemConsumed,
@@ -859,6 +915,7 @@ class PsdkBattleCombatant {
       types: types ?? this.types,
       stats: stats ?? this.stats,
       moves: moves ?? this.moves,
+      form: form ?? this.form,
       abilityId: identical(abilityId, _unchanged)
           ? this.abilityId
           : abilityId as String?,
@@ -867,6 +924,12 @@ class PsdkBattleCombatant {
           ? this.dislikedFlavor
           : dislikedFlavor as String?,
       loyalty: loyalty ?? this.loyalty,
+      ivHp: ivHp ?? this.ivHp,
+      ivAttack: ivAttack ?? this.ivAttack,
+      ivDefense: ivDefense ?? this.ivDefense,
+      ivSpeed: ivSpeed ?? this.ivSpeed,
+      ivSpecialAttack: ivSpecialAttack ?? this.ivSpecialAttack,
+      ivSpecialDefense: ivSpecialDefense ?? this.ivSpecialDefense,
       heldItemId: identical(heldItemId, _unchanged)
           ? this.heldItemId
           : heldItemId as String?,
@@ -996,6 +1059,20 @@ String _requireEffectId(String value) {
 double _requirePositiveWeight(double value, String name) {
   if (!value.isFinite || value <= 0) {
     throw ArgumentError.value(value, name, 'must be a finite positive weight');
+  }
+  return value;
+}
+
+int _checkNonNegativeInt(int value, String name) {
+  if (value < 0) {
+    throw ArgumentError.value(value, name, 'must be >= 0');
+  }
+  return value;
+}
+
+int _checkIv(int value, String name) {
+  if (value < 0 || value > 31) {
+    throw RangeError.range(value, 0, 31, name);
   }
   return value;
 }

@@ -3,13 +3,29 @@ import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_data.dart';
 import '../battle_move_damage_calculator.dart';
+import '../battle_move_prevention.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
-enum _TypeBasedMoveKind { ivyCudgel, judgment, multiAttack, revelationDance }
+enum _TypeBasedMoveKind {
+  auraWheel,
+  hiddenPower,
+  ivyCudgel,
+  judgment,
+  multiAttack,
+  revelationDance,
+}
 
 /// Ports PSDK move families whose effective type is not the catalog type.
-final class TypeBasedMoveBehavior implements BattleMoveBehavior {
+final class TypeBasedMoveBehavior implements BattleMoveUserPreventionBehavior {
+  const TypeBasedMoveBehavior.auraWheel()
+      : battleEngineMethod = 's_aura_wheel',
+        _kind = _TypeBasedMoveKind.auraWheel;
+
+  const TypeBasedMoveBehavior.hiddenPower()
+      : battleEngineMethod = 's_hidden_power',
+        _kind = _TypeBasedMoveKind.hiddenPower;
+
   const TypeBasedMoveBehavior.ivyCudgel()
       : battleEngineMethod = 's_ivy_cudgel',
         _kind = _TypeBasedMoveKind.ivyCudgel;
@@ -31,7 +47,39 @@ final class TypeBasedMoveBehavior implements BattleMoveBehavior {
   final _TypeBasedMoveKind _kind;
 
   @override
+  BattleMoveUserPreventionResult? preventUser(
+    BattleMoveBehaviorContext context,
+  ) {
+    final user = context.state.battlerAt(context.user);
+    return switch (_kind) {
+      _TypeBasedMoveKind.auraWheel => _canUseAuraWheel(user)
+          ? null
+          : const BattleMoveUserPreventionResult(
+              reason: BattleMoveFailureReason.unusableByUser,
+            ),
+      _ => null,
+    };
+  }
+
+  @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    final prevention = preventUser(context);
+    if (prevention != null) {
+      return BattleMoveBehaviorResolution(
+        state: context.state,
+        rng: context.rng,
+        successful: false,
+        events: <PsdkBattleEvent>[
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.target,
+            moveId: context.move.id,
+            reason: prevention.reason.jsonName,
+          ),
+        ],
+      );
+    }
+
     final prepared = prepareBattleMove(context);
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
@@ -98,6 +146,8 @@ final class TypeBasedMoveBehavior implements BattleMoveBehavior {
     return _copyMove(
       move,
       type: switch (_kind) {
+        _TypeBasedMoveKind.auraWheel => _auraWheelType(user),
+        _TypeBasedMoveKind.hiddenPower => _hiddenPowerType(user),
         _TypeBasedMoveKind.ivyCudgel =>
           _typeFromItem(user.heldItemId, _ivyCudgelTable, 'grass'),
         _TypeBasedMoveKind.judgment =>
@@ -107,6 +157,10 @@ final class TypeBasedMoveBehavior implements BattleMoveBehavior {
         _TypeBasedMoveKind.revelationDance => user.types.primary,
       },
     );
+  }
+
+  bool _canUseAuraWheel(PsdkBattleCombatant user) {
+    return user.speciesId == 'morpeko';
   }
 }
 
@@ -164,6 +218,33 @@ String _typeFromItem(
   return table[heldItemId] ?? fallback;
 }
 
+String _auraWheelType(PsdkBattleCombatant user) {
+  if (user.speciesId != 'morpeko') {
+    return 'electric';
+  }
+  return switch (user.form) {
+    1 => 'dark',
+    _ => 'electric',
+  };
+}
+
+String _hiddenPowerType(PsdkBattleCombatant user) {
+  var index = 0;
+  final bits = <int>[
+    user.ivHp & 1,
+    user.ivAttack & 1,
+    user.ivDefense & 1,
+    user.ivSpeed & 1,
+    user.ivSpecialAttack & 1,
+    user.ivSpecialDefense & 1,
+  ];
+  for (var i = 0; i < bits.length; i++) {
+    index += bits[i] << i;
+  }
+  final tableIndex = (index * (_hiddenPowerTypes.length - 1) / 63).floor();
+  return _hiddenPowerTypes[tableIndex];
+}
+
 BattleMoveDefinition _copyMove(
   BattleMoveDefinition move, {
   required String type,
@@ -188,3 +269,22 @@ BattleMoveDefinition _copyMove(
     statuses: move.statuses,
   );
 }
+
+const _hiddenPowerTypes = <String>[
+  'fighting',
+  'flying',
+  'poison',
+  'ground',
+  'rock',
+  'bug',
+  'ghost',
+  'steel',
+  'fire',
+  'water',
+  'grass',
+  'electric',
+  'psychic',
+  'ice',
+  'dragon',
+  'dark',
+];

@@ -2040,6 +2040,72 @@ void main() {
       );
     });
 
+    test('s_hidden_power uses the user IV parity to derive its type', () {
+      final fireTyped = _runMove(
+        playerMove: _move(
+          id: 'hidden_power',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 60,
+          battleEngineMethod: 's_hidden_power',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerIvAttack: 1,
+        playerIvSpecialDefense: 1,
+      );
+      final neutralTyped = _runMove(
+        playerMove: _move(
+          id: 'hidden_power',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 60,
+          battleEngineMethod: 's_hidden_power',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+
+      expect(_damageEvents(fireTyped, moveId: 'hidden_power'), hasLength(1));
+      expect(_damageEvents(neutralTyped, moveId: 'hidden_power'), hasLength(1));
+      expect(
+        _damage(fireTyped, moveId: 'hidden_power'),
+        greaterThan(_damage(neutralTyped, moveId: 'hidden_power')),
+      );
+    });
+
+    test('s_aura_wheel uses Morpeko form to derive its type', () {
+      final electric = _runMove(
+        playerMove: _move(
+          id: 'aura_wheel',
+          type: 'electric',
+          category: PsdkBattleMoveCategory.physical,
+          power: 110,
+          battleEngineMethod: 's_aura_wheel',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        playerSpeciesId: 'morpeko',
+        playerForm: 0,
+      );
+      final dark = _runMove(
+        playerMove: _move(
+          id: 'aura_wheel',
+          type: 'electric',
+          category: PsdkBattleMoveCategory.physical,
+          power: 110,
+          battleEngineMethod: 's_aura_wheel',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        playerSpeciesId: 'morpeko',
+        playerForm: 1,
+      );
+
+      expect(_damageEvents(electric, moveId: 'aura_wheel'), hasLength(1));
+      expect(_damageEvents(dark, moveId: 'aura_wheel'), hasLength(1));
+      expect(
+        _damage(electric, moveId: 'aura_wheel'),
+        greaterThan(_damage(dark, moveId: 'aura_wheel')),
+      );
+    });
+
     test('s_frustration scales damage with low loyalty', () {
       final lowLoyalty = _runMove(
         playerMove: _move(
@@ -3166,7 +3232,6 @@ void main() {
       's_focus_punch',
       's_fusion_bolt',
       's_fusion_flare',
-      's_hidden_power',
       's_judgment',
       's_multi_attack',
       's_payback',
@@ -4029,12 +4094,6 @@ void main() {
         int power,
       })>[
         (
-          method: 's_aura_wheel',
-          moveId: 'aura_wheel',
-          category: PsdkBattleMoveCategory.physical,
-          power: 110,
-        ),
-        (
           method: 's_chilly_reception',
           moveId: 'chilly_reception',
           category: PsdkBattleMoveCategory.status,
@@ -4262,6 +4321,22 @@ PsdkBattleTurnResult _runMove({
   int opponentKoCount = 0,
   int playerLoyalty = 255,
   int opponentLoyalty = 255,
+  String playerSpeciesId = 'player',
+  String opponentSpeciesId = 'opponent',
+  int playerForm = 0,
+  int opponentForm = 0,
+  int playerIvHp = 0,
+  int playerIvAttack = 0,
+  int playerIvDefense = 0,
+  int playerIvSpeed = 0,
+  int playerIvSpecialAttack = 0,
+  int playerIvSpecialDefense = 0,
+  int opponentIvHp = 0,
+  int opponentIvAttack = 0,
+  int opponentIvDefense = 0,
+  int opponentIvSpeed = 0,
+  int opponentIvSpecialAttack = 0,
+  int opponentIvSpecialDefense = 0,
   bool opponentSwitching = false,
   int? opponentLastSentTurn,
   double playerBaseWeightKg = 1,
@@ -4279,6 +4354,7 @@ PsdkBattleTurnResult _runMove({
     setup: PsdkBattleSetup.singles(
       player: _combatant(
         id: 'player',
+        speciesId: playerSpeciesId,
         types: playerTypes,
         speed: playerSpeed,
         currentHp: playerCurrentHp,
@@ -4287,17 +4363,25 @@ PsdkBattleTurnResult _runMove({
         stats: playerStats,
         statStages: playerStages,
         majorStatus: playerMajorStatus,
+        form: playerForm,
         heldItemId: playerHeldItemId,
         abilityId: playerAbilityId,
         effects: playerEffects,
         koCount: playerKoCount,
         loyalty: playerLoyalty,
+        ivHp: playerIvHp,
+        ivAttack: playerIvAttack,
+        ivDefense: playerIvDefense,
+        ivSpeed: playerIvSpeed,
+        ivSpecialAttack: playerIvSpecialAttack,
+        ivSpecialDefense: playerIvSpecialDefense,
         baseWeightKg: playerBaseWeightKg,
         currentWeightKg: playerCurrentWeightKg,
         moveHistory: playerMoveHistory,
       ),
       opponent: _combatant(
         id: 'opponent',
+        speciesId: opponentSpeciesId,
         types: opponentTypes,
         speed: opponentSpeed,
         currentHp: opponentCurrentHp,
@@ -4309,12 +4393,19 @@ PsdkBattleTurnResult _runMove({
             ),
         stats: opponentStats,
         statStages: opponentStages,
+        form: opponentForm,
         heldItemId: opponentHeldItemId,
         abilityId: opponentAbilityId,
         effects: opponentEffects,
         moveHistory: opponentMoveHistory,
         koCount: opponentKoCount,
         loyalty: opponentLoyalty,
+        ivHp: opponentIvHp,
+        ivAttack: opponentIvAttack,
+        ivDefense: opponentIvDefense,
+        ivSpeed: opponentIvSpeed,
+        ivSpecialAttack: opponentIvSpecialAttack,
+        ivSpecialDefense: opponentIvSpecialDefense,
         switching: opponentSwitching,
         lastSentTurn: opponentLastSentTurn,
       ),
@@ -4333,6 +4424,7 @@ PsdkBattleTurnResult _runMove({
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? speciesId,
   required PsdkBattleTypes types,
   required int speed,
   int currentHp = 100,
@@ -4347,6 +4439,13 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleMoveHistory? moveHistory,
   int koCount = 0,
   int loyalty = 255,
+  int form = 0,
+  int ivHp = 0,
+  int ivAttack = 0,
+  int ivDefense = 0,
+  int ivSpeed = 0,
+  int ivSpecialAttack = 0,
+  int ivSpecialDefense = 0,
   bool switching = false,
   int? lastSentTurn,
   double baseWeightKg = 1,
@@ -4354,8 +4453,8 @@ PsdkBattleCombatantSetup _combatant({
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
-    speciesId: id,
-    displayName: id,
+    speciesId: speciesId ?? id,
+    displayName: speciesId ?? id,
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
@@ -4370,6 +4469,7 @@ PsdkBattleCombatantSetup _combatant({
         ),
     statStages: statStages,
     moves: <PsdkBattleMoveData>[move, ...extraMoves],
+    form: form,
     majorStatus: majorStatus,
     heldItemId: heldItemId,
     abilityId: abilityId,
@@ -4377,6 +4477,12 @@ PsdkBattleCombatantSetup _combatant({
     moveHistory: moveHistory,
     koCount: koCount,
     loyalty: loyalty,
+    ivHp: ivHp,
+    ivAttack: ivAttack,
+    ivDefense: ivDefense,
+    ivSpeed: ivSpeed,
+    ivSpecialAttack: ivSpecialAttack,
+    ivSpecialDefense: ivSpecialDefense,
     switching: switching,
     lastSentTurn: lastSentTurn,
     baseWeightKg: baseWeightKg,

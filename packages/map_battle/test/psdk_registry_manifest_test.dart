@@ -935,7 +935,6 @@ void main() {
 
       for (final method in <String>[
         's_beak_blast',
-        's_hidden_power',
         's_shell_trap',
       ]) {
         expect(byMethod[method]!.status, PsdkPortStatus.partial);
@@ -978,6 +977,16 @@ void main() {
       expect(
         byMethod['s_flying_press']!.dartBehavior,
         'StaticBasicMoveRegistry.s_flying_press',
+      );
+      expect(byMethod['s_aura_wheel']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_aura_wheel']!.dartBehavior,
+        'TypeBasedMoveBehavior.auraWheel',
+      );
+      expect(byMethod['s_hidden_power']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_hidden_power']!.dartBehavior,
+        'TypeBasedMoveBehavior.hiddenPower',
       );
       expect(byMethod['s_round']!.status, PsdkPortStatus.ported);
       expect(

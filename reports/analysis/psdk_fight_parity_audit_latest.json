@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 667,
-    "partiel": 61,
+    "fait": 668,
+    "partiel": 60,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -2307,9 +2307,9 @@
       {
         "moveId": "hidden_power",
         "battleEngineMethod": "s_hidden_power",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hidden_power.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 319,
-      "partial": 11,
+      "ported": 321,
+      "partial": 9,
       "missing": 0
     },
     "entries": [
@@ -5999,15 +5999,9 @@
         "battleEngineMethod": "s_aura_wheel",
         "rubyClass": "AuraWheel",
         "rubyPath": "10 Move/2 Definitions/300 AuraWheel.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_aura_wheel)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "TypeBasedMoveBehavior.auraWheel",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_autotomize",
@@ -7146,15 +7140,9 @@
         "battleEngineMethod": "s_hidden_power",
         "rubyClass": "HiddenPower",
         "rubyPath": "10 Move/2 Definitions/300 HiddenPower.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_hidden_power)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "TypeBasedMoveBehavior.hiddenPower",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_hp_eq_level",
@@ -9175,12 +9163,10 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 8,
+        "count": 6,
         "methods": [
-          "s_aura_wheel",
           "s_beak_blast",
           "s_dragon_darts",
-          "s_hidden_power",
           "s_order_up",
           "s_pre_attack_base",
           "s_shell_trap",

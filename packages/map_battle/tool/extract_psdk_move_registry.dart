@@ -188,8 +188,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_aura_wheel': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_aura_wheel)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'TypeBasedMoveBehavior.auraWheel',
+    status: _PsdkPortStatus.ported,
   ),
   's_baddy_bad': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_baddy_bad',
@@ -678,8 +678,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_hidden_power': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_hidden_power)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'TypeBasedMoveBehavior.hiddenPower',
+    status: _PsdkPortStatus.ported,
   ),
   's_hurricane': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.hurricane',

@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 667 |
-| partiel | 61 |
+| fait | 668 |
+| partiel | 60 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -321,7 +321,7 @@ Coverage semantics:
 | fait | heavy_slam | s_heavy_slam | ported | WeightPowerMoveBehavior.heavySlam | steel | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/heavy_slam.json |
 | fait | helping_hand | s_helping_hand | ported | StaticBasicMoveRegistry.s_helping_hand | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/helping_hand.json |
 | fait | hex | s_hex | ported | VariablePowerMoveBehavior.hex | ghost | special | 65 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hex.json |
-| partiel | hidden_power | s_hidden_power | partial | StaticBasicMoveRegistry.partialBasic(s_hidden_power) | normal | special | 60 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/hidden_power.json |
+| fait | hidden_power | s_hidden_power | ported | TypeBasedMoveBehavior.hiddenPower | normal | special | 60 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/hidden_power.json |
 | fait | high_horsepower | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | physical | 95 | 95 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/high_horsepower.json |
 | fait | high_jump_kick | s_jump_kick | ported | StaticBasicMoveRegistry.s_jump_kick | fighting | physical | 130 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/high_jump_kick.json |
 | fait | hold_back | s_false_swipe | ported | BasicDamageSpecializationMoveBehavior.falseSwipe | normal | physical | 40 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/hold_back.json |

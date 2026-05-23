@@ -160,14 +160,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_aura_wheel',
     rubyClass: 'AuraWheel',
     rubyPath: '10 Move/2 Definitions/300 AuraWheel.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_aura_wheel)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'TypeBasedMoveBehavior.auraWheel',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_autotomize',
@@ -1259,14 +1254,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_hidden_power',
     rubyClass: 'HiddenPower',
     rubyPath: '10 Move/2 Definitions/300 HiddenPower.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_hidden_power)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'TypeBasedMoveBehavior.hiddenPower',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_hp_eq_level',
