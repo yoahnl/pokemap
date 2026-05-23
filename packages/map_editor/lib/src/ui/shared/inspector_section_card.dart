@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 import 'cupertino_editor_widgets.dart';
 
@@ -33,29 +34,17 @@ class InspectorSectionCard extends StatelessWidget {
   final Widget? headerTrailing;
   final double borderRadius;
 
-  static const Color _iconHi = Color(0xFFFFFFFF);
-  static const Color _iconLo = Color(0xFF120808);
-
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final badgeText = this.badgeText?.trim();
     final hasBadge = badgeText != null && badgeText.isNotEmpty;
-    final subtle = EditorChrome.subtleLabel(context);
-    final label = EditorChrome.primaryLabel(context);
-    final baseHi = EditorChrome.islandFillElevated(context);
-    final baseLo = EditorChrome.islandFill(context);
 
-    final fillTop = Color.lerp(baseHi, accentColor, 0.46)!;
-    final fillBottom = Color.lerp(baseLo, accentColor, 0.32)!;
+    // Smooth custom tint using accent color mixed with design system neutrals
+    final fillTop = Color.lerp(colors.surfaceBase, accentColor, 0.12)!;
+    final fillBottom = Color.lerp(colors.surfaceSubtle, accentColor, 0.08)!;
 
-    final iconTop = Color.lerp(_iconHi, accentColor, 0.88)!;
-    final iconBottom = Color.lerp(accentColor, _iconLo, 0.42)!;
-
-    final subtitleTinted = Color.lerp(subtle, accentColor, 0.45)!;
-
-    final iconOnAccent = _luminance(accentColor) > 0.62
-        ? const Color(0xFF1A0A08)
-        : CupertinoColors.white;
+    final subtitleColor = Color.lerp(colors.textMuted, accentColor, 0.35)!;
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 180),
@@ -73,7 +62,7 @@ class InspectorSectionCard extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
-            color: accentColor.withValues(alpha: 0.65),
+            color: Color.lerp(colors.borderSubtle, accentColor, 0.3)!,
             width: 1,
           ),
           boxShadow: EditorChrome.inspectorTileHardShadows(context),
@@ -91,6 +80,7 @@ class InspectorSectionCard extends StatelessWidget {
                     onPressed: onToggle,
                     child: Row(
                       children: [
+                        // Colored prefix icon box
                         Container(
                           width: 38,
                           height: 38,
@@ -99,21 +89,21 @@ class InspectorSectionCard extends StatelessWidget {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                iconTop,
-                                iconBottom,
+                                Color.lerp(colors.surfaceRaised, accentColor, 0.3)!,
+                                Color.lerp(colors.surfaceBase, accentColor, 0.15)!,
                               ],
                             ),
                             borderRadius: BorderRadius.circular(11),
                             border: Border.all(
-                              color: accentColor.withValues(alpha: 0.85),
+                              color: Color.lerp(colors.borderSubtle, accentColor, 0.5)!,
                               width: 1.25,
                             ),
                           ),
                           alignment: Alignment.center,
-                          child: MacosIcon(
+                          child: Icon(
                             icon,
                             size: 19,
-                            color: iconOnAccent,
+                            color: Color.lerp(colors.textPrimary, accentColor, 0.8)!,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -126,7 +116,7 @@ class InspectorSectionCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: label,
+                                  color: colors.textPrimary,
                                   letterSpacing: -0.1,
                                 ),
                               ),
@@ -139,7 +129,7 @@ class InspectorSectionCard extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 11.5,
-                                    color: subtitleTinted,
+                                    color: subtitleColor,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -153,28 +143,9 @@ class InspectorSectionCard extends StatelessWidget {
                 ),
                 if (headerTrailing != null) headerTrailing!,
                 if (hasBadge) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Color.lerp(accentColor, _iconLo, 0.28)!,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: accentColor.withValues(alpha: 0.9),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      badgeText,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: CupertinoColors.white,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
+                  PokeMapBadge(
+                    label: badgeText,
+                    variant: PokeMapBadgeVariant.neutral,
                   ),
                   const SizedBox(width: 10),
                 ],
@@ -182,12 +153,12 @@ class InspectorSectionCard extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(4, 12, 12, 12),
                   minimumSize: Size.zero,
                   onPressed: onToggle,
-                  child: MacosIcon(
+                  child: Icon(
                     expanded
                         ? CupertinoIcons.chevron_up
                         : CupertinoIcons.chevron_down,
                     size: 18,
-                    color: subtitleTinted,
+                    color: subtitleColor,
                   ),
                 ),
               ],
@@ -204,13 +175,5 @@ class InspectorSectionCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// Luminance relative 0–1 (sRGB), pour choisir icône claire ou foncée.
-  static double _luminance(Color c) {
-    final r = c.r;
-    final g = c.g;
-    final b = c.b;
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 }

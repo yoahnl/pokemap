@@ -3,13 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import 'project_explorer/dialogs/import_tileset_dialog.dart';
 import 'project_explorer/dialogs/tileset_library_dialogs.dart';
 import 'project_explorer/dialogs/world_group_dialogs.dart';
-import 'project_explorer/widgets/sidebar_header_action.dart';
 import 'project_explorer/widgets/tree/tileset_tree_nodes.dart';
 import 'project_explorer/widgets/tree/world_tree_nodes.dart';
 import 'character_library_panel.dart';
@@ -63,8 +64,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                             child: Text(
                               'Open a project to browse your world, maps and tilesets.',
                               style: TextStyle(
-                                color: CupertinoColors.placeholderText
-                                    .resolveFrom(context),
+                                color: context.pokeMapColors.textMuted,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -92,10 +92,9 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-    final label = EditorChrome.primaryLabel(context);
-    const explorerAccent = EditorChrome.inspectorJoyCyan;
-    const explorerDeep = EditorChrome.inspectorJoyPlum;
+    final colors = context.pokeMapColors;
+    final subtle = colors.textMuted;
+    final label = colors.textPrimary;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       child: Row(
@@ -108,21 +107,21 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color.lerp(CupertinoColors.white, explorerAccent, 0.78)!,
-                  Color.lerp(explorerDeep, const Color(0xFF140818), 0.35)!,
+                  Color.lerp(colors.surfaceRaised, colors.brandPrimary, 0.4)!,
+                  Color.lerp(colors.surfaceBase, colors.brandPrimary, 0.2)!,
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: explorerAccent.withValues(alpha: 0.88),
+                color: Color.lerp(colors.borderSubtle, colors.brandPrimary, 0.5)!,
                 width: 1.15,
               ),
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               CupertinoIcons.square_stack_3d_up,
               size: 18,
-              color: CupertinoColors.white,
+              color: colors.brandPrimary,
             ),
           ),
           const SizedBox(width: 10),
@@ -166,6 +165,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) {
+    final colors = context.pokeMapColors;
     final rootMaps = project.maps.where((m) => m.groupId == null).toList();
     final rootGroups =
         project.groups.where((g) => g.parentGroupId == null).toList();
@@ -200,14 +200,15 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
               Text(
                 'World is empty',
                 style: TextStyle(
-                  color: CupertinoColors.placeholderText.resolveFrom(context),
+                  color: colors.textMuted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 12),
-              PushButton(
-                controlSize: ControlSize.regular,
+              PokeMapButton(
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.medium,
                 onPressed: () => showCreateGroupDialog(context, notifier),
                 child: const Text('Add City or Route'),
               ),
@@ -227,8 +228,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
     const explorerTileRadius = 28.0;
-    final actionIcon = CupertinoColors.white.withValues(alpha: 0.92);
-    final actionHover = CupertinoColors.white.withValues(alpha: 0.16);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -246,26 +245,20 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           headerTrailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SidebarHeaderAction(
-                enabled: true,
-                icon: CupertinoIcons.photo_on_rectangle,
-                tooltip: 'Import tileset',
+              PokeMapIconButton(
                 onPressed: () =>
                     showImportTilesetDialog(context, snapshot, notifier),
-                iconColor: actionIcon,
-                hoverFill: actionHover,
+                icon: const Icon(CupertinoIcons.photo_on_rectangle, size: 16),
+                tooltip: 'Import tileset',
               ),
               const SizedBox(width: 6),
-              SidebarHeaderAction(
-                enabled: true,
-                icon: CupertinoIcons.plus_circle_fill,
-                tooltip: 'New folder',
+              PokeMapIconButton(
                 onPressed: () => promptNewTilesetLibraryFolder(
                   context,
                   notifier,
                 ),
-                iconColor: actionIcon,
-                hoverFill: actionHover,
+                icon: const Icon(CupertinoIcons.plus_circle_fill, size: 16),
+                tooltip: 'New folder',
               ),
             ],
           ),
@@ -309,13 +302,10 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           headerTrailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SidebarHeaderAction(
-                enabled: true,
-                icon: CupertinoIcons.folder_badge_plus,
-                tooltip: 'New root group',
+              PokeMapIconButton(
                 onPressed: () => showCreateGroupDialog(context, notifier),
-                iconColor: actionIcon,
-                hoverFill: actionHover,
+                icon: const Icon(CupertinoIcons.folder_badge_plus, size: 16),
+                tooltip: 'New root group',
               ),
             ],
           ),

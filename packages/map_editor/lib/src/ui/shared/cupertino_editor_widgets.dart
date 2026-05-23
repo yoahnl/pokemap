@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show BoxShadow, Colors, Material;
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import '../../theme/theme.dart';
 import 'editor_visual_tokens.dart';
 
 abstract final class EditorChrome {
@@ -383,17 +384,16 @@ class EditorSidebarSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = MacosTheme.of(context);
-    final base = theme.typography.body;
+    final colors = context.pokeMapColors;
     return Padding(
       padding: EdgeInsets.fromLTRB(12 + leftInset, 12, 12, 6),
       child: Text(
         label,
-        style: base.copyWith(
+        style: TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: (base.fontSize ?? 14.0) * 0.8,
+          fontSize: 11,
           letterSpacing: 0.9,
-          color: EditorChrome.subtleLabel(context),
+          color: colors.textMuted,
         ),
       ),
     );
@@ -433,139 +433,204 @@ class EditorSidebarListRow extends StatefulWidget {
 
 class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
   bool _hovered = false;
+  bool _isFocused = false;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final theme = MacosTheme.of(context);
     final spacing = 10.0 + theme.visualDensity.horizontal;
     final hasSubtitle = widget.subtitle != null;
     // Hauteur cible:
     // - ligne simple compacte pour titre seul;
     // - ligne étendue pour titre + sous-titre.
-    //
-    // Cette distinction corrige une régression où la variante avec sous-titre
-    // gardait la même hauteur que la variante simple, provoquant un overflow
-    // vertical de la Column interne.
     final baseRowHeight = hasSubtitle ? 42.0 : 30.0;
     final minRowHeight = hasSubtitle ? 36.0 : 24.0;
     final maxRowHeight = hasSubtitle ? 56.0 : 44.0;
     final resolvedRowHeight = (baseRowHeight + theme.visualDensity.vertical)
         .clamp(minRowHeight, maxRowHeight)
         .toDouble();
+
     final fill = widget.selected
-        ? editorSidebarSelectionColor(context)
+        ? colors.surfaceSelected
         : (_hovered
-            ? EditorChrome.sidebarHoverFill(context)
+            ? colors.surfaceHover
             : Colors.transparent);
 
-    Widget core = StreamBuilder<bool>(
-      stream: WindowMainStateListener.instance.onChanged,
-      initialData: WindowMainStateListener.instance.isMainWindow,
-      builder: (context, _) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: fill,
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: spacing,
-              vertical: 4 + theme.visualDensity.vertical * 0.5,
-            ),
-            child: SizedBox(
-              height: resolvedRowHeight,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // Fallback compact:
-                  // si la hauteur disponible devient trop basse, on masque le
-                  // sous-titre au lieu de laisser la Column déborder.
-                  final canShowSubtitle =
-                      widget.subtitle != null && constraints.maxHeight >= 36;
+    final fgColor = widget.selected
+        ? colors.brandPrimary
+        : (_hovered ? colors.textPrimary : colors.textSecondary);
 
-                  return Row(
-                    children: [
-                      if (widget.leading != null) ...[
-                        MacosIconTheme.merge(
-                          data: MacosIconThemeData(
-                            color: widget.selected
-                                ? MacosColors.white
-                                : (widget.leadingIconUnselectedColor ??
-                                    theme.primaryColor),
-                            size: 16,
-                          ),
-                          child: widget.leading!,
-                        ),
-                        SizedBox(width: spacing),
-                      ],
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            DefaultTextStyle(
-                              style: theme.typography.body.copyWith(
-                                color:
-                                    widget.selected ? MacosColors.white : null,
-                                fontWeight: widget.selected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                              child: widget.title,
-                            ),
-                            if (canShowSubtitle) ...[
-                              const SizedBox(height: 2),
-                              Flexible(
-                                child: DefaultTextStyle(
-                                  style: theme.typography.caption1.copyWith(
-                                    color: widget.selected
-                                        ? MacosColors.white
-                                            .withValues(alpha: 0.72)
-                                        : CupertinoColors.secondaryLabel
-                                            .resolveFrom(context),
-                                  ),
-                                  child: widget.subtitle!,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (widget.trailing != null) widget.trailing!,
-                    ],
-                  );
-                },
+    final subtitleColor = widget.selected
+        ? colors.brandPrimary.withValues(alpha: 0.8)
+        : colors.textMuted;
+
+    const isDisabled = false;
+
+    Widget core = Row(
+      children: [
+        if (widget.leading != null) ...[
+          IconTheme.merge(
+            data: IconThemeData(
+              color: widget.selected
+                  ? colors.brandPrimary
+                  : (widget.leadingIconUnselectedColor ?? fgColor),
+              size: 16,
+            ),
+            child: MacosIconTheme.merge(
+              data: MacosIconThemeData(
+                color: widget.selected
+                    ? colors.brandPrimary
+                    : (widget.leadingIconUnselectedColor ?? fgColor),
+                size: 16,
               ),
+              child: widget.leading!,
             ),
           ),
-        );
-      },
+          SizedBox(width: spacing),
+        ],
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DefaultTextStyle(
+                style: TextStyle(
+                  color: fgColor,
+                  fontSize: 13,
+                  fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+                child: widget.title,
+              ),
+              if (hasSubtitle) ...[
+                const SizedBox(height: 2),
+                Flexible(
+                  child: DefaultTextStyle(
+                    style: TextStyle(
+                      color: subtitleColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    child: widget.subtitle!,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (widget.trailing != null) ...[
+          const SizedBox(width: 8),
+          DefaultTextStyle(
+            style: TextStyle(
+              color: fgColor,
+              fontSize: 11,
+            ),
+            child: widget.trailing!,
+          ),
+        ],
+      ],
     );
 
-    core = MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: core,
+    core = Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing,
+        vertical: 4 + theme.visualDensity.vertical * 0.5,
+      ),
+      child: SizedBox(
+        height: resolvedRowHeight,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Respect constraints to hide subtitle if height gets too low
+            final showSubtitle = hasSubtitle && constraints.maxHeight >= 36;
+            if (!showSubtitle && hasSubtitle) {
+              return Row(
+                children: [
+                  if (widget.leading != null) ...[
+                    IconTheme.merge(
+                      data: IconThemeData(
+                        color: widget.selected
+                            ? colors.brandPrimary
+                            : (widget.leadingIconUnselectedColor ?? fgColor),
+                        size: 16,
+                      ),
+                      child: MacosIconTheme.merge(
+                        data: MacosIconThemeData(
+                          color: widget.selected
+                              ? colors.brandPrimary
+                              : (widget.leadingIconUnselectedColor ?? fgColor),
+                          size: 16,
+                        ),
+                        child: widget.leading!,
+                      ),
+                    ),
+                    SizedBox(width: spacing),
+                  ],
+                  Expanded(
+                    child: DefaultTextStyle(
+                      style: TextStyle(
+                        color: fgColor,
+                        fontSize: 13,
+                        fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                      child: widget.title,
+                    ),
+                  ),
+                  if (widget.trailing != null) widget.trailing!,
+                ],
+              );
+            }
+            return core;
+          },
+        ),
       ),
     );
 
-    if (widget.onSecondaryTapDown != null) {
-      core = GestureDetector(
-        onSecondaryTapDown: widget.onSecondaryTapDown,
-        behavior: HitTestBehavior.translucent,
-        child: core,
-      );
-    }
+    core = AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(8),
+        border: _isFocused && !isDisabled
+            ? Border.all(color: colors.brandPrimaryBorder, width: 1.2)
+            : null,
+      ),
+      child: core,
+    );
 
     return Padding(
       padding: EdgeInsets.fromLTRB(10 + widget.leftIndent, 2, 10, 2),
-      child: core,
+      child: Semantics(
+        button: true,
+        selected: widget.selected,
+        enabled: true,
+        child: FocusableActionDetector(
+          actions: {
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (intent) {
+                widget.onTap();
+                return null;
+              },
+            ),
+          },
+          onShowHoverHighlight: (val) {
+            setState(() => _hovered = val);
+          },
+          onShowFocusHighlight: (val) {
+            setState(() => _isFocused = val);
+          },
+          child: GestureDetector(
+            onTap: widget.onTap,
+            onSecondaryTapDown: widget.onSecondaryTapDown,
+            behavior: HitTestBehavior.opaque,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: core,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -689,10 +754,14 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
 
   @override
   Widget build(BuildContext context) {
-    final chevronColor = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final macosTheme = MacosTheme.of(context);
+    final colors = context.pokeMapColors;
+    final chevronColor = colors.textMuted;
     final titleMergeStyle = widget.useEditorMacosSidebarDisclosureStyle
-        ? macosTheme.typography.body
+        ? TextStyle(
+            color: _hovered ? colors.textPrimary : colors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          )
         : CupertinoTheme.of(context).textTheme.textStyle;
 
     Widget header = MouseRegion(
@@ -704,9 +773,9 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
         decoration: widget.useEditorMacosSidebarDisclosureStyle
             ? BoxDecoration(
                 color: _hovered
-                    ? EditorChrome.disclosureHoverFill(context)
+                    ? colors.surfaceHover
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               )
             : null,
         child: CupertinoButton(
@@ -717,7 +786,7 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
             children: [
               Transform.rotate(
                 angle: _expanded ? math.pi / 2 : 0,
-                child: MacosIcon(
+                child: Icon(
                   CupertinoIcons.chevron_right,
                   size: 16,
                   color: chevronColor,
@@ -726,12 +795,18 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
               if (widget.leading != null) ...[
                 const SizedBox(width: 6),
                 if (widget.useEditorMacosSidebarDisclosureStyle)
-                  MacosIconTheme.merge(
-                    data: MacosIconThemeData(
-                      color: macosTheme.primaryColor,
+                  IconTheme.merge(
+                    data: IconThemeData(
+                      color: _hovered ? colors.textPrimary : colors.textSecondary,
                       size: 16,
                     ),
-                    child: widget.leading!,
+                    child: MacosIconTheme.merge(
+                      data: MacosIconThemeData(
+                        color: _hovered ? colors.textPrimary : colors.textSecondary,
+                        size: 16,
+                      ),
+                      child: widget.leading!,
+                    ),
                   )
                 else
                   widget.leading!,

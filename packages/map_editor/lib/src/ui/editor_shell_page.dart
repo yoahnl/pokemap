@@ -13,6 +13,7 @@ import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
+import '../theme/theme.dart';
 
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
@@ -217,8 +218,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             minSize: isNarrativeWorkspace ? 200 : 240,
                             maxSize: isNarrativeWorkspace ? 460 : 520,
                             startSize: isNarrativeWorkspace ? 268 : 344,
-                            decoration: const BoxDecoration(
-                              color: MacosColors.transparent,
+                            decoration: BoxDecoration(
+                              color: context.pokeMapColors.backgroundShell,
                             ),
                             child: Padding(
                               padding: EdgeInsets.fromLTRB(
