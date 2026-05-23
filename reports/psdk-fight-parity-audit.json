@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 659,
-    "partiel": 69,
+    "fait": 661,
+    "partiel": 67,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -875,9 +875,9 @@
       {
         "moveId": "core_enforcer",
         "battleEngineMethod": "s_core_enforcer",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/core_enforcer.json"
       },
       {
@@ -4811,9 +4811,9 @@
       {
         "moveId": "spit_up",
         "battleEngineMethod": "s_split_up",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/spit_up.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 308,
-      "partial": 22,
+      "ported": 310,
+      "partial": 20,
       "missing": 0
     },
     "entries": [
@@ -6305,15 +6305,14 @@
         "battleEngineMethod": "s_core_enforcer",
         "rubyClass": "CoreEnforcer",
         "rubyPath": "10 Move/2 Definitions/300 CoreEnforcer.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_core_enforcer)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_core_enforcer",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "effects",
           "ability",
           "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_corrosive_gas",
@@ -8536,15 +8535,14 @@
         "battleEngineMethod": "s_split_up",
         "rubyClass": "SpitUp",
         "rubyPath": "10 Move/2 Definitions/300 SpitUp.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_split_up)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_split_up",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "effects",
           "ability",
           "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        ]
       },
       {
         "battleEngineMethod": "s_stat",
@@ -9206,12 +9204,11 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 14,
+        "count": 12,
         "methods": [
           "s_aura_wheel",
           "s_beak_blast",
           "s_beat_up",
-          "s_core_enforcer",
           "s_dragon_darts",
           "s_frustration",
           "s_hidden_power",
@@ -9220,7 +9217,6 @@
           "s_pre_attack_base",
           "s_return",
           "s_shell_trap",
-          "s_split_up",
           "s_upper_hand"
         ]
       },

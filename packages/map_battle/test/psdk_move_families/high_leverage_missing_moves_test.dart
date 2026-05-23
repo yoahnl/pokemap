@@ -1664,6 +1664,88 @@ void main() {
       );
     });
 
+    test('s_split_up scales damage from stockpile and clears the effect', () {
+      final lowStockpile = _runMove(
+        playerMove: _move(
+          id: 'spit_up',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_split_up',
+        ),
+        playerStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'defense': 1,
+            'specialDefense': 1,
+          },
+        ),
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          StockpileEffect(
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            stockpile: 1,
+            defenseBonus: 1,
+            specialDefenseBonus: 1,
+          ),
+        ),
+      );
+      final highStockpile = _runMove(
+        playerMove: _move(
+          id: 'spit_up',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_split_up',
+        ),
+        playerStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'defense': 3,
+            'specialDefense': 3,
+          },
+        ),
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          StockpileEffect(
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            stockpile: 3,
+            defenseBonus: 3,
+            specialDefenseBonus: 3,
+          ),
+        ),
+      );
+
+      expect(_damage(highStockpile, moveId: 'spit_up'),
+          greaterThan(_damage(lowStockpile, moveId: 'spit_up')));
+      final player = highStockpile.state.battlerAt(psdkPlayerSlot);
+      expect(player.effects.contains('stockpile'), isFalse);
+      expect(player.statStages.valueOf('defense'), 0);
+      expect(player.statStages.valueOf('specialDefense'), 0);
+    });
+
+    test('s_split_up fails without a usable stockpile effect', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'spit_up',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_split_up',
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single,
+        isA<PsdkBattleMoveFailedEvent>()
+            .having((event) => event.moveId, 'moveId', 'spit_up')
+            .having(
+              (event) => event.reason,
+              'reason',
+              BattleMoveFailureReason.unusableByUser.jsonName,
+            ),
+      );
+    });
+
     test('s_geomancy uses the two-turn release boosts on its dedicated method',
         () {
       final engine = PsdkBattleEngine(
@@ -1717,6 +1799,79 @@ void main() {
       expect(player.statStages.valueOf('specialAttack'), 2);
       expect(player.statStages.valueOf('specialDefense'), 2);
       expect(player.statStages.valueOf('speed'), 2);
+    });
+
+    test('s_core_enforcer suppresses abilities after a target already moved',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            types: const PsdkBattleTypes(primary: 'dragon'),
+            speed: 10,
+            move: _move(
+              id: 'core_enforcer',
+              type: 'dragon',
+              category: PsdkBattleMoveCategory.special,
+              power: 100,
+              accuracy: 100,
+              battleEngineMethod: 's_core_enforcer',
+            ),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 100,
+            abilityId: 'levitate',
+            move: _move(
+              id: 'quick_attack',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.physical,
+              power: 40,
+              accuracy: 100,
+            ),
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 0,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_damageEvents(result, moveId: 'core_enforcer'), hasLength(1));
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'ability_suppressed',
+            ),
+        isTrue,
+      );
+    });
+
+    test('s_core_enforcer does not suppress abilities before the target acts',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'core_enforcer',
+          type: 'dragon',
+          category: PsdkBattleMoveCategory.special,
+          power: 100,
+          accuracy: 100,
+          battleEngineMethod: 's_core_enforcer',
+        ),
+        opponentAbilityId: 'levitate',
+      );
+
+      expect(_damageEvents(result, moveId: 'core_enforcer'), hasLength(1));
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'ability_suppressed',
+            ),
+        isFalse,
+      );
     });
 
     for (final entry in <({String method, String moveId})>[
@@ -2697,7 +2852,6 @@ void main() {
       's_assurance',
       's_beak_blast',
       's_brick_break',
-      's_core_enforcer',
       's_flame_burst',
       's_flying_press',
       's_focus_punch',

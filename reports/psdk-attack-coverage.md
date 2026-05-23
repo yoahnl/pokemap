@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 659 |
-| partiel | 69 |
+| fait | 661 |
+| partiel | 67 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -142,7 +142,7 @@ Coverage semantics:
 | fait | conversion | s_conversion | ported | StaticBasicMoveRegistry.s_conversion | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion.json |
 | fait | conversion_2 | s_conversion2 | ported | StaticBasicMoveRegistry.s_conversion2 | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion_2.json |
 | fait | copycat | s_mirror_move | ported | CopyCallMoveBehavior.mirrorMove | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/copycat.json |
-| partiel | core_enforcer | s_core_enforcer | partial | StaticBasicMoveRegistry.partialBasic(s_core_enforcer) | dragon | special | 100 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/core_enforcer.json |
+| fait | core_enforcer | s_core_enforcer | ported | StaticBasicMoveRegistry.s_core_enforcer | dragon | special | 100 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/core_enforcer.json |
 | partiel | corkscrew_crash | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/corkscrew_crash.json |
 | partiel | corkscrew_crash2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/corkscrew_crash2.json |
 | fait | cosmic_power | s_self_stat | ported | StatusStatMoveBehavior.selfStat | psychic | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/cosmic_power.json |
@@ -634,7 +634,7 @@ Coverage semantics:
 | fait | spikes | s_spike | ported | StaticBasicMoveRegistry.s_spike | ground | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/spikes.json |
 | fait | spiky_shield | s_protect | ported | StaticBasicMoveRegistry.s_protect | grass | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spiky_shield.json |
 | fait | spirit_shackle | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | ghost | physical | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spirit_shackle.json |
-| partiel | spit_up | s_split_up | partial | StaticBasicMoveRegistry.partialBasic(s_split_up) | normal | special | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spit_up.json |
+| fait | spit_up | s_split_up | ported | StaticBasicMoveRegistry.s_split_up | normal | special | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spit_up.json |
 | fait | spite | s_spite | ported | StaticBasicMoveRegistry.s_spite | ghost | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spite.json |
 | fait | splash | s_splash | ported | NoEffectMoveBehavior.splash | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/splash.json |
 | partiel | splintered_stormshards | s_splintered_stormshards | partial | StaticBasicMoveRegistry.partialBasic(s_splintered_stormshards) | rock | physical | 190 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/splintered_stormshards.json |

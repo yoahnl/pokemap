@@ -168,8 +168,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_split_up': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_split_up)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_split_up',
+    status: _PsdkPortStatus.ported,
   ),
   's_swallow': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_swallow',
@@ -495,8 +495,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_core_enforcer': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_core_enforcer)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_core_enforcer',
+    status: _PsdkPortStatus.ported,
   ),
   's_follow_me': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_follow_me',

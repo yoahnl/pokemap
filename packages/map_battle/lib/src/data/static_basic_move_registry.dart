@@ -51,6 +51,7 @@ import '../domain/move/battle_move_registry.dart';
 import '../domain/move/battle_move_secondary_effect_resolver.dart';
 import '../domain/move/battle_move_type_processor.dart';
 import '../domain/rng/battle_rng_streams.dart';
+import '../domain/handler/battle_ability_change_handler.dart';
 import '../domain/handler/battle_handler_context.dart';
 import '../domain/handler/battle_heal_handler.dart';
 import '../domain/handler/battle_item_change_handler.dart';
@@ -185,8 +186,16 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveStockpile,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_split_up',
+      resolve: _resolveSplitUp,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_swallow',
       resolve: _resolveSwallow,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_core_enforcer',
+      resolve: _resolveCoreEnforcer,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_geomancy',
@@ -770,7 +779,6 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
 const _partialBasicDescendantMethods = <String>[
   's_beak_blast',
   's_beat_up',
-  's_core_enforcer',
   's_frustration',
   's_genesis_supernova',
   's_guardian_of_alola',
@@ -781,7 +789,6 @@ const _partialBasicDescendantMethods = <String>[
   's_payday',
   's_return',
   's_shell_trap',
-  's_split_up',
   's_splintered_stormshards',
   's_aura_wheel',
   's_dragon_darts',
@@ -2821,6 +2828,10 @@ int? _lastHistoricalMoveIndex(PsdkBattleCombatant battler) {
   final lastMoveId = battler.moveHistory.attempts.last.moveId;
   final moveIndex = battler.moves.indexWhere((move) => move.id == lastMoveId);
   return moveIndex >= 0 ? moveIndex : 0;
+}
+
+bool _targetActedEarlierThisTurn(PsdkBattleCombatant battler, int turn) {
+  return battler.moveHistory.attempts.any((entry) => entry.turn == turn);
 }
 
 BattleMoveBehaviorResolution _resolveLastRespects(
@@ -6238,6 +6249,124 @@ BattleMoveBehaviorResolution _resolveSwallow(
   );
 }
 
+BattleMoveBehaviorResolution _resolveSplitUp(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final user = prepared.state.battlerAt(context.user);
+  final stockpile = _stockpileEffectOf(user);
+  if (stockpile == null || !stockpile.usable) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final basic = _resolveBasic(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.target,
+      move: context.move.copyWith(power: stockpile.stockpile * 100),
+      moveSlot: context.moveSlot,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+      announcedMoveFor: context.announcedMoveFor,
+    ),
+  );
+  final hit = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .any((event) => event.moveId == context.move.id);
+  if (!hit) {
+    return basic;
+  }
+
+  final consumed = _clearStockpile(
+    state: basic.state,
+    rng: basic.rng,
+    turn: context.turn,
+    user: context.user,
+    move: context.move,
+    stockpile: stockpile,
+  );
+  return BattleMoveBehaviorResolution(
+    state: consumed.state,
+    rng: consumed.rng,
+    events: basic.events,
+    successful: basic.successful,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveCoreEnforcer(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hitTargets = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == context.move.id)
+      .map((event) => event.target)
+      .toSet();
+  if (hitTargets.isEmpty) {
+    return basic;
+  }
+
+  var state = basic.state;
+  var rng = basic.rng;
+  final events = <PsdkBattleEvent>[...basic.events];
+  for (final targetSlot in hitTargets) {
+    final target = state.battlerAt(targetSlot);
+    if (target.isFainted ||
+        target.effects.contains('ability_suppressed') ||
+        !_targetActedEarlierThisTurn(target, context.turn) ||
+        !const BattleAbilityChangeHandler().canChangeAbility(
+          state: state,
+          target: targetSlot,
+          launcher: context.user,
+          move: context.move,
+        )) {
+      continue;
+    }
+    final applied = _addTargetEffectAndDispatchVolatile(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      effect: AbilitySuppressedEffect(
+        scope: BattlerBattleEffectScope(targetSlot),
+        origin: context.move.id,
+      ),
+    );
+    state = applied.state;
+    rng = applied.rng;
+    events.addAll(applied.events);
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
+    events: events,
+    successful: basic.successful,
+  );
+}
+
 BattleMoveBehaviorResolution _resolveGeomancy(
   BattleMoveBehaviorContext context,
 ) {
@@ -6264,6 +6393,45 @@ BattleMoveBehaviorResolution _resolveGeomancy(
       moveProcedureHooks: context.moveProcedureHooks,
     ),
   );
+}
+
+({PsdkBattleState state, BattleRngStreams rng}) _clearStockpile({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef user,
+  required BattleMoveDefinition move,
+  required StockpileEffect stockpile,
+}) {
+  var nextState = state;
+  var nextRng = rng;
+  for (final entry in <({String stat, int delta})>[
+    (stat: 'defense', delta: stockpile.defenseBonus),
+    (stat: 'specialDefense', delta: stockpile.specialDefenseBonus),
+  ]) {
+    if (entry.delta == 0) {
+      continue;
+    }
+    final changed = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: nextState,
+        rng: nextRng,
+        turn: turn,
+        user: user,
+      ),
+      target: user,
+      stat: entry.stat,
+      stages: -entry.delta,
+      move: move,
+    );
+    nextState = changed.state;
+    nextRng = changed.rng;
+  }
+  nextState = nextState.updateBattler(
+    user,
+    (battler) => battler.copyWith(effects: battler.effects.remove('stockpile')),
+  );
+  return (state: nextState, rng: nextRng);
 }
 
 BattleMoveBehaviorResolution _resolveForesight(

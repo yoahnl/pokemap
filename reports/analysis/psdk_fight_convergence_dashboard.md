@@ -1,13 +1,13 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-23T13:19:58.600319Z
+Generated: 2026-05-23T14:33:20.249187Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
-| Attacks | 658 / 728 | 90.4% | 70 |
-| Methods | 306 / 330 | 92.7% | 24 |
+| Attacks | 659 / 728 | 90.5% | 69 |
+| Methods | 308 / 330 | 93.3% | 22 |
 | Effects | 406 / 482 | 84.2% | 76 |
 
 ## Effects By Family
@@ -26,7 +26,7 @@ Generated: 2026-05-23T13:19:58.600319Z
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 10 | `s_chilly_reception`, `s_court_change`, `s_doodle`, `s_geomancy`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_swallow`, `s_teleport` |
+| Effect hook / manifest final sweep | 8 | `s_chilly_reception`, `s_court_change`, `s_doodle`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_teleport` |
 
 ## Ability Effect Backlog
 

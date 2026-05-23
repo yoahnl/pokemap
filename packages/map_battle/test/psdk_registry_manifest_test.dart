@@ -920,7 +920,6 @@ void main() {
 
       for (final method in <String>[
         's_beak_blast',
-        's_core_enforcer',
         's_hidden_power',
         's_payday',
         's_shell_trap',
@@ -931,6 +930,16 @@ void main() {
           'StaticBasicMoveRegistry.partialBasic($method)',
         );
       }
+      expect(byMethod['s_core_enforcer']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_core_enforcer']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_core_enforcer',
+      );
+      expect(byMethod['s_split_up']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_split_up']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_split_up',
+      );
       expect(byMethod['s_flame_burst']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_flame_burst']!.dartBehavior,
@@ -1560,7 +1569,8 @@ void main() {
         'StaticBasicMoveRegistry.s_electrify',
       );
       expect(byMethod['s_wish']!.status, PsdkPortStatus.ported);
-      expect(byMethod['s_wish']!.dartBehavior, 'StaticBasicMoveRegistry.s_wish');
+      expect(
+          byMethod['s_wish']!.dartBehavior, 'StaticBasicMoveRegistry.s_wish');
       expect(byMethod['s_dragon_cheer']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_dragon_cheer']!.dartBehavior,

@@ -455,8 +455,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_core_enforcer',
     rubyClass: 'CoreEnforcer',
     rubyPath: '10 Move/2 Definitions/300 CoreEnforcer.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_core_enforcer)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_core_enforcer',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
@@ -2581,8 +2581,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_split_up',
     rubyClass: 'SpitUp',
     rubyPath: '10 Move/2 Definitions/300 SpitUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_split_up)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_split_up',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
