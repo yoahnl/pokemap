@@ -26,10 +26,11 @@ class _CategoryTreeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = accentOverride ?? CupertinoTheme.of(context).primaryColor;
-    final labelColor = CupertinoColors.label.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final accent = accentOverride ?? colors.brandPrimary;
+    final labelColor = colors.textPrimary;
     final background = selected
-        ? accent.withValues(alpha: 0.14)
+        ? colors.surfaceSelected
         : EditorPaintColors.transparent;
     return CupertinoButton(
       padding: EdgeInsets.zero,
@@ -105,19 +106,20 @@ class _ProjectElementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sep = CupertinoColors.separator.resolveFrom(context);
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final labelColor = CupertinoColors.label.resolveFrom(context);
-    final tertiary = CupertinoColors.placeholderText.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final sep = colors.borderSubtle;
+    final secondary = colors.textSecondary;
+    final labelColor = colors.textPrimary;
+    final tertiary = colors.textMuted;
     final baseColor = selected
-        ? selectionAccent.withValues(alpha: 0.1)
+        ? colors.surfaceSelected
         : EditorPaintColors.transparent;
     final collisionCellCount = element.collisionProfile?.cells.length ?? 0;
     final meta2 = [
       groupLabel,
       tilesetGroupLabel,
-      'Type: ${_elementPresetLabel(element.presetKind)}',
-      'Collision: $collisionCellCount',
+      'Type : ${_elementPresetLabel(element.presetKind)}',
+      'Collision : $collisionCellCount',
       if (element.recommendedLayerId != null &&
           element.recommendedLayerId!.isNotEmpty)
         'Calque : ${element.recommendedLayerId}',
@@ -195,10 +197,10 @@ class _ProjectElementCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(7),
                   side: BorderSide(
-                    color: selectionAccent.withValues(alpha: 0.45),
+                    color: colors.borderSubtle,
                   ),
                 ),
-                color: EditorChrome.islandFillElevated(context),
+                color: colors.surfaceRaised,
                 elevation: 3,
                 itemBuilder: (ctx) => [
                   PopupMenuItem<int>(
@@ -232,13 +234,10 @@ class _ProjectElementCard extends StatelessWidget {
                   height: 28,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: EditorChrome.largeIslandSurfaceColor(
-                        context,
-                        tint: selectionAccent.withValues(alpha: 0.12),
-                      ),
+                      color: colors.surfaceBase,
                       borderRadius: BorderRadius.circular(7),
                       border: Border.all(
-                        color: selectionAccent.withValues(alpha: 0.45),
+                        color: colors.borderSubtle,
                       ),
                     ),
                     child: Icon(
@@ -278,8 +277,9 @@ class _PaletteTileCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = CupertinoTheme.of(context).primaryColor;
-    final sep = CupertinoColors.separator.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final accent = colors.brandPrimary;
+    final sep = colors.borderSubtle;
     return CupertinoButton(
       padding: EdgeInsets.zero,
       minimumSize: Size.zero,
@@ -303,16 +303,16 @@ class _PaletteTileCell extends StatelessWidget {
 String _elementPresetLabel(ElementPresetKind kind) {
   switch (kind) {
     case ElementPresetKind.generic:
-      return 'Generic';
+      return 'Générique';
     case ElementPresetKind.tree:
-      return 'Tree';
+      return 'Arbre';
     case ElementPresetKind.building:
-      return 'Building';
+      return 'Bâtiment';
     case ElementPresetKind.rock:
-      return 'Rock';
+      return 'Roche';
     case ElementPresetKind.cliff:
-      return 'Cliff';
+      return 'Falaise';
     case ElementPresetKind.tallDecoration:
-      return 'Tall deco';
+      return 'Grande déco';
   }
 }

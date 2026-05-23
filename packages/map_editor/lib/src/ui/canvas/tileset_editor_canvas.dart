@@ -146,7 +146,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${columns * rows} tiles | ${columns}x$rows',
+                          '${columns * rows} tuiles · $columns × $rows',
                           style: TextStyle(
                             color: subtle,
                             fontSize: 12,
@@ -154,7 +154,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         ),
                         if (metrics.hasTrailingPixels)
                           Text(
-                            'Usable grid: ${metrics.usablePixelWidth}x${metrics.usablePixelHeight}px of ${image.width}x${image.height}px',
+                            'Grille utilisable : ${metrics.usablePixelWidth} × ${metrics.usablePixelHeight} px sur ${image.width} × ${image.height} px',
                             style: TextStyle(
                               color: subtle,
                               fontSize: 12,
@@ -162,8 +162,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                           ),
                         Text(
                           selectionRect == null
-                              ? 'No selection'
-                              : 'Selection ${selectionRect.width}x${selectionRect.height} at (${selectionRect.x}, ${selectionRect.y})',
+                              ? 'Aucune sélection'
+                              : 'Sélection ${selectionRect.width} × ${selectionRect.height} à (${selectionRect.x}, ${selectionRect.y})',
                           style: TextStyle(
                             color: subtle,
                             fontSize: 12,
@@ -178,6 +178,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     color: colors.brandPrimary,
                     disabledColor: colors.brandPrimary.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(6),
                     onPressed: selectionRect == null
                         ? null
                         : () => _showCreateElementDialog(
@@ -193,9 +194,15 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(CupertinoIcons.plus_square, size: 18),
+                        Icon(CupertinoIcons.plus_square, size: 16),
                         SizedBox(width: 6),
-                        Text('Create Element'),
+                        Text(
+                          'Créer un élément',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -301,9 +308,9 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
     if (categories.isEmpty) {
       await showCupertinoEditorAlert(
         context,
-        title: 'Missing Element Category',
+        title: 'Catégorie d’élément manquante',
         message:
-            'Create at least one element category before creating an element.',
+            'Créez au moins une catégorie d’élément avant de pouvoir créer un élément.',
       );
       return;
     }
@@ -372,7 +379,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Create Element',
+                        'Créer un élément',
                         style: editorMacosSheetTitleStyle(ctx),
                       ),
                     ),
@@ -389,7 +396,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Source: ${source.width}x${source.height} at (${source.x}, ${source.y})',
+                      'Source : ${source.width} × ${source.height} à (${source.x}, ${source.y})',
                       style: TextStyle(
                         fontSize: 12,
                         color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
@@ -398,7 +405,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                     const SizedBox(height: 12),
                     _labeledField(
                       ctx,
-                      label: 'Name',
+                      label: 'Nom',
                       controller: nameController,
                     ),
                     const SizedBox(height: 12),
@@ -410,7 +417,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         onPressed: () async {
                           final picked = await showCupertinoListPicker<String>(
                             context: ctx,
-                            title: 'Category',
+                            title: 'Catégorie',
                             items: categories.map((c) => c.id).toList(),
                             labelOf: (id) => _buildCategoryPathLabel(
                               categoriesById: categoriesById,
@@ -424,7 +431,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                           }
                         },
                         child: Text(
-                          'Category: ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId)}',
+                          'Catégorie : ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId)}',
                         ),
                       ),
                     ),
@@ -438,10 +445,10 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                           final picked =
                               await showMacosEditorActionsSheet<String>(
                             context: ctx,
-                            title: const Text('Tileset Group'),
+                            title: const Text('Groupe de tileset'),
                             actions: [
                               const MacosEditorSheetAction(
-                                label: 'None',
+                                label: 'Aucun',
                                 value: '',
                               ),
                               ...sortedTilesetGroups.map(
@@ -461,8 +468,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         },
                         child: Text(
                           selectedTilesetGroupId == null
-                              ? 'Tileset Group: None'
-                              : 'Tileset Group: ${_buildTilesetGroupPathLabel(tilesetGroupById, selectedTilesetGroupId!)}',
+                              ? 'Groupe de tileset : Aucun'
+                              : 'Groupe de tileset : ${_buildTilesetGroupPathLabel(tilesetGroupById, selectedTilesetGroupId!)}',
                         ),
                       ),
                     ),
@@ -476,7 +483,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                           final picked =
                               await showMacosEditorActionsSheet<String>(
                             context: ctx,
-                            title: const Text('World Group Scope'),
+                            title: const Text("Portée du groupe d'éléments"),
                             actions: [
                               const MacosEditorSheetAction(
                                 label: 'Global',
@@ -499,8 +506,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         },
                         child: Text(
                           selectedWorldGroupId == null
-                              ? 'World Group: Global'
-                              : 'World Group: ${_buildWorldGroupPathLabel(worldGroupById, selectedWorldGroupId!)}',
+                              ? "Groupe d'éléments : Global"
+                              : "Groupe d'éléments : ${_buildWorldGroupPathLabel(worldGroupById, selectedWorldGroupId!)}",
                         ),
                       ),
                     ),
@@ -514,10 +521,10 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                           final picked =
                               await showMacosEditorActionsSheet<String>(
                             context: ctx,
-                            title: const Text('Recommended Layer'),
+                            title: const Text('Calque recommandé'),
                             actions: [
                               const MacosEditorSheetAction(
-                                label: 'None',
+                                label: 'Aucun',
                                 value: '',
                               ),
                               ...tileLayers.map(
@@ -535,15 +542,15 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         },
                         child: Text(
                           selectedLayerId == null
-                              ? 'Recommended Layer: None'
-                              : 'Recommended Layer: ${tileLayers.firstWhere((l) => l.id == selectedLayerId).name}',
+                              ? 'Calque recommandé : Aucun'
+                              : 'Calque recommandé : ${tileLayers.firstWhere((l) => l.id == selectedLayerId).name}',
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     _labeledField(
                       ctx,
-                      label: 'Tags (tree,outdoor,oak)',
+                      label: 'Tags (arbre, exterieur, etc.)',
                       controller: tagsController,
                     ),
                   ],
@@ -558,7 +565,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                       controlSize: ControlSize.large,
                       secondary: true,
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
+                      child: const Text('Annuler'),
                     ),
                     const SizedBox(width: 10),
                     PushButton(
@@ -570,7 +577,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                         shouldSave = true;
                         Navigator.pop(ctx);
                       },
-                      child: const Text('Create'),
+                      child: const Text('Créer'),
                     ),
                   ],
                 ),

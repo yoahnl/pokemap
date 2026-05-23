@@ -30,6 +30,7 @@ import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/models/editor_ui_modes.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import 'element_collision_editor_sheet.dart';
+import '../../theme/theme.dart';
 
 part 'tileset_palette/dialogs/element_frame_picker_dialog.dart';
 part 'tileset_palette/widgets/animation/placed_element_animation_widgets.dart';
@@ -324,12 +325,13 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     final project = paletteSnapshot.project;
     final settings = paletteSnapshot.settings;
 
+    final colors = context.pokeMapColors;
     if (project == null) {
       return Center(
         child: Text(
-          'No project loaded',
+          'Aucun projet chargé',
           style: TextStyle(
-            color: CupertinoColors.placeholderText.resolveFrom(context),
+            color: colors.textMuted,
           ),
         ),
       );
@@ -340,9 +342,9 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     if (selectedTileset == null || selectedTilesetPath == null) {
       return Center(
         child: Text(
-          'No tileset selected',
+          'Aucun tileset sélectionné',
           style: TextStyle(
-            color: CupertinoColors.placeholderText.resolveFrom(context),
+            color: colors.textMuted,
           ),
         ),
       );
@@ -429,7 +431,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 children: [
                   if (!widget.embedded)
                     Text(
-                      'ELEMENTS',
+                      'ÉLÉMENTS',
                       style: TextStyle(
                         fontSize: 11,
                         letterSpacing: 1.0,
@@ -460,7 +462,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'No active map: edition mode only',
+                        'Aucune carte active : mode édition uniquement',
                         style: TextStyle(color: secondary, fontSize: 11),
                       ),
                     ),
@@ -907,13 +909,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       for (final group in project.groups) group.id: group,
     };
 
+    final colors = context.pokeMapColors;
     const tilesAccent = EditorChrome.inspectorJoyLilac;
-    final secondaryLabel = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final rim = EditorChrome.editorIslandRim(context);
-    final listSurface = EditorChrome.largeIslandSurfaceColor(
-      context,
-      tint: tilesAccent.withValues(alpha: 0.07),
-    );
+    final secondaryLabel = colors.textSecondary;
+    final rim = colors.borderSubtle;
+    final listSurface = colors.surfaceBase;
     const categoryStripe = EditorChrome.inspectorJoyCyan;
 
     final tilesetGroupActions = <_InspectorPulldownAction>[
@@ -1206,19 +1206,10 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         margin: const EdgeInsets.symmetric(horizontal: 10),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         decoration: BoxDecoration(
-          color: EditorChrome.largeIslandSurfaceColor(
-            context,
-            tint: tilesAccent.withValues(alpha: 0.08),
-          ),
+          color: colors.surfaceBase,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: tilesAccent.withValues(alpha: 0.4)),
-          boxShadow: [
-            BoxShadow(
-              color: tilesAccent.withValues(alpha: 0.1),
-              blurRadius: 0,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          border: Border.all(color: colors.borderSubtle),
+          boxShadow: EditorChrome.sectionCardShadows(context),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1431,16 +1422,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     required int placedCount,
   }) {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.inspectorJoyLilac.withValues(alpha: 0.08),
-        ),
+        color: colors.surfaceBase,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: EditorChrome.inspectorJoyLilac.withValues(alpha: 0.38),
+          color: colors.borderSubtle,
         ),
       ),
       child: Column(
@@ -4064,6 +4053,7 @@ class _PlacedElementBehaviorsSectionState
                   padding: const EdgeInsets.only(top: 6),
                   child: Builder(
                     builder: (context) {
+                      final colors = context.pokeMapColors;
                       final sortedDialogues = _sortedDialogues();
                       final selectedDialogueId =
                           selected.effect.dialogue?.dialogueId.trim() ?? '';
@@ -4126,15 +4116,10 @@ class _PlacedElementBehaviorsSectionState
                                 vertical: 7,
                               ),
                               decoration: BoxDecoration(
-                                color: EditorChrome.largeIslandSurfaceColor(
-                                  context,
-                                  tint: EditorChrome.inspectorJoyLilac
-                                      .withValues(alpha: 0.08),
-                                ),
+                                color: colors.surfaceBase,
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: EditorChrome.inspectorJoyLilac
-                                      .withValues(alpha: 0.35),
+                                  color: colors.borderSubtle,
                                 ),
                               ),
                               child: Row(
@@ -4186,8 +4171,7 @@ class _PlacedElementBehaviorsSectionState
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 side: BorderSide(
-                                  color: EditorChrome.inspectorJoyBlue
-                                      .withValues(alpha: 0.35),
+                                  color: colors.borderSubtle,
                                 ),
                               ),
                               color: EditorChrome.islandFillElevated(context),
@@ -4241,15 +4225,10 @@ class _PlacedElementBehaviorsSectionState
                                   vertical: 7,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: EditorChrome.largeIslandSurfaceColor(
-                                    context,
-                                    tint: EditorChrome.inspectorJoyBlue
-                                        .withValues(alpha: 0.08),
-                                  ),
+                                  color: colors.surfaceBase,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: EditorChrome.inspectorJoyBlue
-                                        .withValues(alpha: 0.35),
+                                    color: colors.borderSubtle,
                                   ),
                                 ),
                                 child: Row(

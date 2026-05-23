@@ -115,19 +115,10 @@ class _PlacedInstancesSection extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 10),
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           decoration: BoxDecoration(
-            color: EditorChrome.largeIslandSurfaceColor(
-              context,
-              tint: accent.withValues(alpha: 0.09),
-            ),
+            color: context.pokeMapColors.surfaceBase,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: accent.withValues(alpha: 0.4)),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: 0.1),
-                blurRadius: 0,
-                offset: const Offset(0, 1),
-              ),
-            ],
+            border: Border.all(color: context.pokeMapColors.borderSubtle),
+            boxShadow: EditorChrome.sectionCardShadows(context),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -233,14 +224,12 @@ class _PlacedInstancesSection extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 10),
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           decoration: BoxDecoration(
-            color: EditorChrome.largeIslandSurfaceColor(
-              context,
-              tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.08),
-            ),
+            color: context.pokeMapColors.surfaceBase,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.35),
+              color: context.pokeMapColors.borderSubtle,
             ),
+            boxShadow: EditorChrome.sectionCardShadows(context),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -553,16 +542,14 @@ class _CollisionToggleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
+    final colors = context.pokeMapColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: Colors.white.withValues(alpha: 0.015),
-        ),
+        color: colors.surfaceRaised,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
+          color: colors.borderSubtle,
         ),
       ),
       child: Row(
@@ -618,16 +605,14 @@ class _OpacitySliderRow extends StatelessWidget {
     final label = CupertinoColors.label.resolveFrom(context);
     final normalized = _normalizeInstanceOpacity(value);
     final percent = (normalized * 100).round();
+    final colors = context.pokeMapColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: Colors.white.withValues(alpha: 0.015),
-        ),
+        color: colors.surfaceRaised,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
+          color: colors.borderSubtle,
         ),
       ),
       child: Column(
