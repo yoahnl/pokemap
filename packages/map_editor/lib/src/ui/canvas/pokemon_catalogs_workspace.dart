@@ -14,13 +14,13 @@ class PokemonCatalogsWorkspace extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final section = ref.watch(editorPokemonCatalogSectionProvider);
 
-    return switch (section) {
-      PokemonCatalogSection.pokedex => const Padding(
-          padding: EdgeInsets.fromLTRB(4, 4, 4, 0),
-          child: PokedexWorkspace(),
-        ),
-      PokemonCatalogSection.moves => const PokemonMovesCatalogWorkspace(),
-      PokemonCatalogSection.items => const PokemonItemsCatalogWorkspace(),
-    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+      child: switch (section) {
+        PokemonCatalogSection.pokedex => const PokedexWorkspace(),
+        PokemonCatalogSection.moves => const PokemonMovesCatalogWorkspace(),
+        PokemonCatalogSection.items => const PokemonItemsCatalogWorkspace(),
+      },
+    );
   }
 }
