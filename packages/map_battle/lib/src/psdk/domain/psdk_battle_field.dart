@@ -11,10 +11,12 @@ class PsdkBattleFieldState {
   const PsdkBattleFieldState({
     this.terrain,
     this.weather,
+    this.additionalMoney = 0,
   });
 
   final PsdkBattleTerrainState? terrain;
   final PsdkBattleWeatherState? weather;
+  final int additionalMoney;
 
   bool get hasTerrain => terrain != null;
   bool get hasWeather => weather != null;
@@ -60,6 +62,7 @@ class PsdkBattleFieldState {
   PsdkBattleFieldState copyWith({
     Object? terrain = _unchanged,
     Object? weather = _unchanged,
+    int? additionalMoney,
   }) {
     return PsdkBattleFieldState(
       terrain: identical(terrain, _unchanged)
@@ -68,6 +71,7 @@ class PsdkBattleFieldState {
       weather: identical(weather, _unchanged)
           ? this.weather
           : weather as PsdkBattleWeatherState?,
+      additionalMoney: additionalMoney ?? this.additionalMoney,
     );
   }
 }

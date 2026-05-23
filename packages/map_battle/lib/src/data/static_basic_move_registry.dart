@@ -375,6 +375,14 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveMagnitude,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_beat_up',
+      resolve: _resolveBeatUp,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_payday',
+      resolve: _resolvePayday,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_present',
       resolve: _resolvePresent,
     ),
@@ -802,7 +810,6 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
 
 const _partialBasicDescendantMethods = <String>[
   's_beak_blast',
-  's_beat_up',
   's_frustration',
   's_genesis_supernova',
   's_guardian_of_alola',
@@ -810,7 +817,6 @@ const _partialBasicDescendantMethods = <String>[
   's_hyperspace_hole',
   's_light_that_burns_the_sky',
   's_malicious_moonsault',
-  's_payday',
   's_return',
   's_shell_trap',
   's_splintered_stormshards',
@@ -1027,6 +1033,119 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     state: state,
     rng: rng,
     events: events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveBeatUp(BattleMoveBehaviorContext context) {
+  final common = prepareBattleMove(context);
+  if (!common.shouldExecuteBehavior) {
+    return common.toResolution();
+  }
+
+  final eligibleParty = context.state.partyForBank(context.user.bank).where((
+    battler,
+  ) {
+    return !battler.isFainted && battler.majorStatus == null;
+  }).toList(growable: false);
+  if (eligibleParty.isEmpty) {
+    return BattleMoveBehaviorResolution(
+      state: context.state,
+      rng: context.rng,
+      successful: false,
+      events: <PsdkBattleEvent>[
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+    );
+  }
+
+  final targetSlot = common.psdkTargets.single;
+  var state = common.state;
+  var rng = common.rng;
+  final events = <PsdkBattleEvent>[...common.events];
+
+  for (var hitIndex = 0; hitIndex < eligibleParty.length; hitIndex += 1) {
+    final striker = eligibleParty[hitIndex];
+    final user = state.battlerAt(context.user);
+    final target = state.battlerAt(targetSlot);
+    if (user.isFainted || target.isFainted) {
+      break;
+    }
+
+    if (hitIndex > 0) {
+      events.add(
+        PsdkBattleAnimationCueEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+        ),
+      );
+    }
+
+    final basePower = ((striker.stats.attack / 10) + 5).ceil().clamp(1, 255);
+    final damageResult = const BattleMoveDamageCalculator().calculate(
+      BattleMoveDamageContext(
+        user: user,
+        target: target,
+        move: context.move,
+        rng: rng,
+        field: state.field,
+        state: state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
+        overrides: BattleMoveDamageOverrides(power: basePower),
+      ),
+    );
+    rng = damageResult.rng;
+    if (damageResult.damage <= 0) {
+      continue;
+    }
+
+    final applied = applyDirectDamage(
+      state: state,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
+      amount: damageResult.damage,
+      moveCategory: context.move.category,
+      move: context.move,
+    );
+    state = applied.state;
+    rng = applied.rng;
+    events.addAll(applied.events);
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
+    events: events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolvePayday(BattleMoveBehaviorContext context) {
+  final basic = _resolveBasic(context);
+  final dealtDamage = basic.events.any(
+    (event) => event is PsdkBattleDamageEvent && event.moveId == context.move.id,
+  );
+  if (!dealtDamage || context.user.bank != psdkPlayerSlot.bank) {
+    return basic;
+  }
+
+  final payout = context.state.battlerAt(context.user).level * 5;
+  return BattleMoveBehaviorResolution(
+    state: basic.state.copyWith(
+      field: basic.state.field.copyWith(
+        additionalMoney: basic.state.field.additionalMoney + payout,
+      ),
+    ),
+    rng: basic.rng,
+    events: basic.events,
   );
 }
 

@@ -1869,9 +1869,145 @@ void main() {
       expect(
         result.state.battlerAt(psdkOpponentSlot).effects.contains(
               'ability_suppressed',
-            ),
+        ),
         isFalse,
       );
+    });
+
+    test('s_beat_up hits once per conscious status-free ally in the party', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'beat_up',
+          category: PsdkBattleMoveCategory.physical,
+          power: 1,
+          battleEngineMethod: 's_beat_up',
+        ),
+        playerReserves: <PsdkBattleCombatantSetup>[
+          _combatant(
+            id: 'reserve-healthy',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 40,
+            currentHp: 100,
+            move: _move(id: 'reserve_move_a', power: 40),
+            stats: const PsdkBattleStats(
+              attack: 255,
+              defense: 50,
+              specialAttack: 50,
+              specialDefense: 50,
+              speed: 40,
+            ),
+          ),
+          _combatant(
+            id: 'reserve-statused',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 30,
+            currentHp: 100,
+            move: _move(id: 'reserve_move_b', power: 40),
+            majorStatus: PsdkBattleMajorStatus.poison,
+            stats: const PsdkBattleStats(
+              attack: 120,
+              defense: 50,
+              specialAttack: 50,
+              specialDefense: 50,
+              speed: 30,
+            ),
+          ),
+          _combatant(
+            id: 'reserve-fainted',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 20,
+            currentHp: 0,
+            move: _move(id: 'reserve_move_c', power: 40),
+            stats: const PsdkBattleStats(
+              attack: 150,
+              defense: 50,
+              specialAttack: 50,
+              specialDefense: 50,
+              speed: 20,
+            ),
+          ),
+        ],
+        playerStats: const PsdkBattleStats(
+          attack: 1,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: 100,
+        ),
+      );
+      final baseline = _runMove(
+        playerMove: _move(
+          id: 'beat_up',
+          category: PsdkBattleMoveCategory.physical,
+          power: 1,
+          battleEngineMethod: 's_beat_up',
+        ),
+        playerReserves: <PsdkBattleCombatantSetup>[
+          _combatant(
+            id: 'reserve-statused',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 30,
+            currentHp: 100,
+            move: _move(id: 'reserve_move_b', power: 40),
+            majorStatus: PsdkBattleMajorStatus.poison,
+            stats: const PsdkBattleStats(
+              attack: 120,
+              defense: 50,
+              specialAttack: 50,
+              specialDefense: 50,
+              speed: 30,
+            ),
+          ),
+          _combatant(
+            id: 'reserve-fainted',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 20,
+            currentHp: 0,
+            move: _move(id: 'reserve_move_c', power: 40),
+            stats: const PsdkBattleStats(
+              attack: 150,
+              defense: 50,
+              specialAttack: 50,
+              specialDefense: 50,
+              speed: 20,
+            ),
+          ),
+        ],
+        playerStats: const PsdkBattleStats(
+          attack: 1,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: 100,
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'beat_up');
+      final baselineHits = _damageEvents(baseline, moveId: 'beat_up');
+
+      expect(hits, hasLength(2));
+      expect(baselineHits, hasLength(1));
+      expect(
+        hits.fold<int>(0, (sum, event) => sum + event.damage),
+        greaterThan(
+          baselineHits.fold<int>(0, (sum, event) => sum + event.damage),
+        ),
+      );
+    });
+
+    test('s_payday credits bonus money after a successful hit', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'pay_day',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.physical,
+          power: 40,
+          battleEngineMethod: 's_payday',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'pay_day'), hasLength(1));
+      expect(result.state.field.additionalMoney, 100);
     });
 
     for (final entry in <({String method, String moveId})>[

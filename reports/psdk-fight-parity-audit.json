@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 663,
-    "partiel": 65,
+    "fait": 665,
+    "partiel": 63,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -355,9 +355,9 @@
       {
         "moveId": "beat_up",
         "battleEngineMethod": "s_beat_up",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/beat_up.json"
       },
       {
@@ -3475,9 +3475,9 @@
       {
         "moveId": "pay_day",
         "battleEngineMethod": "s_payday",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/pay_day.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 315,
-      "partial": 15,
+      "ported": 317,
+      "partial": 13,
       "missing": 0
     },
     "entries": [
@@ -6072,15 +6072,9 @@
         "battleEngineMethod": "s_beat_up",
         "rubyClass": "BeatUp",
         "rubyPath": "10 Move/2 Definitions/300 BeatUp.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_beat_up)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "StaticBasicMoveRegistry.s_beat_up",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_belch",
@@ -7746,15 +7740,9 @@
         "battleEngineMethod": "s_payday",
         "rubyClass": "PayDay",
         "rubyPath": "10 Move/2 Definitions/300 Payday.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_payday)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "StaticBasicMoveRegistry.s_payday",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_perish_song",
@@ -9199,16 +9187,14 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 12,
+        "count": 10,
         "methods": [
           "s_aura_wheel",
           "s_beak_blast",
-          "s_beat_up",
           "s_dragon_darts",
           "s_frustration",
           "s_hidden_power",
           "s_order_up",
-          "s_payday",
           "s_pre_attack_base",
           "s_return",
           "s_shell_trap",

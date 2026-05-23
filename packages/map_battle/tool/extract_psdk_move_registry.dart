@@ -33,8 +33,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_beat_up': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_beat_up)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_beat_up',
+    status: _PsdkPortStatus.ported,
   ),
   's_bestow': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.bestow',
@@ -718,8 +718,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_payday': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_payday)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_payday',
+    status: _PsdkPortStatus.ported,
   ),
   's_photon_geyser': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_photon_geyser',

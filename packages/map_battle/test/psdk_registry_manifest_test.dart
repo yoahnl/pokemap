@@ -683,6 +683,11 @@ void main() {
         byMethod['s_scale_shot']!.dartBehavior,
         'MultiHitMoveBehavior.scaleShot',
       );
+      expect(byMethod['s_beat_up']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_beat_up']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_beat_up',
+      );
     });
 
     test('tracks the Lot 16 variable-power and status-damage slice', () {
@@ -921,7 +926,6 @@ void main() {
       for (final method in <String>[
         's_beak_blast',
         's_hidden_power',
-        's_payday',
         's_shell_trap',
       ]) {
         expect(byMethod[method]!.status, PsdkPortStatus.partial);
@@ -930,6 +934,11 @@ void main() {
           'StaticBasicMoveRegistry.partialBasic($method)',
         );
       }
+      expect(byMethod['s_payday']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_payday']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_payday',
+      );
       expect(byMethod['s_core_enforcer']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_core_enforcer']!.dartBehavior,

@@ -229,14 +229,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_beat_up',
     rubyClass: 'BeatUp',
     rubyPath: '10 Move/2 Definitions/300 BeatUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_beat_up)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_beat_up',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_belch',
@@ -1829,14 +1824,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_payday',
     rubyClass: 'PayDay',
     rubyPath: '10 Move/2 Definitions/300 Payday.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_payday)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_payday',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_perish_song',

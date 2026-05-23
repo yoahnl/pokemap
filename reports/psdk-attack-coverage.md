@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 663 |
-| partiel | 65 |
+| fait | 665 |
+| partiel | 63 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -77,7 +77,7 @@ Coverage semantics:
 | fait | barrier | s_self_stat | ported | StatusStatMoveBehavior.selfStat | psychic | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/barrier.json |
 | fait | baton_pass | s_baton_pass | ported | SwitchEffectMoveBehavior.batonPass | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/baton_pass.json |
 | partiel | beak_blast | s_beak_blast | partial | StaticBasicMoveRegistry.partialBasic(s_beak_blast) | flying | physical | 100 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/beak_blast.json |
-| partiel | beat_up | s_beat_up | partial | StaticBasicMoveRegistry.partialBasic(s_beat_up) | dark | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/beat_up.json |
+| fait | beat_up | s_beat_up | ported | StaticBasicMoveRegistry.s_beat_up | dark | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/beat_up.json |
 | fait | belch | s_belch | ported | ItemDependentMoveBehavior.belch | poison | special | 120 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/belch.json |
 | fait | belly_drum | s_bellydrum | ported | RecoveryStatMoveBehavior.bellyDrum | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/belly_drum.json |
 | fait | bestow | s_bestow | ported | ItemDependentMoveBehavior.bestow | normal | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/bestow.json |
@@ -467,7 +467,7 @@ Coverage semantics:
 | fait | pain_split | s_pain_split | ported | DirectHpMoveBehavior.painSplit | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pain_split.json |
 | fait | parabolic_charge | s_absorb | ported | DrainMoveBehavior.absorb | electric | special | 65 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/parabolic_charge.json |
 | fait | parting_shot | s_parting_shot | ported | StaticBasicMoveRegistry.secondaryOnly(s_parting_shot) | dark | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/parting_shot.json |
-| partiel | pay_day | s_payday | partial | StaticBasicMoveRegistry.partialBasic(s_payday) | normal | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pay_day.json |
+| fait | pay_day | s_payday | ported | StaticBasicMoveRegistry.s_payday | normal | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pay_day.json |
 | fait | payback | s_payback | ported | HistoryPowerMoveBehavior.payback | dark | physical | 50 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/payback.json |
 | fait | peck | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | physical | 35 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/peck.json |
 | fait | perish_song | s_perish_song | ported | StaticBasicMoveRegistry.targetMarker(s_perish_song) | normal | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/perish_song.json |
