@@ -14,8 +14,8 @@ Worktree: `/Users/karim/.config/superpowers/worktrees/pokemonProject/psdk-phase-
 
 | Scope | Strict parity | Executable | Remaining strict work |
 | --- | ---: | ---: | ---: |
-| PSDK methods | 302 / 330 = 91.5% | 330 / 330 = 100% | 28 partial |
-| Studio attacks | 656 / 728 = 90.1% | 728 / 728 = 100% | 72 partial |
+| PSDK methods | 304 / 330 = 92.1% | 330 / 330 = 100% | 26 partial |
+| Studio attacks | 658 / 728 = 90.4% | 728 / 728 = 100% | 70 partial |
 
 ## Strict Parity by Large Family
 
@@ -26,7 +26,7 @@ current audit and should be treated as authoritative.
 | Family | Method parity | Attack parity | Main remaining reason |
 | --- | ---: | ---: | --- |
 | Core basic/status/stat | 5 / 5 = 100.0% | 172 / 324 = 53.1% | Many `s_basic` metadata riders still partial |
-| Effects / volatiles / protections | 50 / 111 = 45.0% | 82 / 134 = 61.2% | Effect lifecycle, Substitute, volatiles |
+| Effects / volatiles / protections | 52 / 111 = 46.8% | 84 / 134 = 62.7% | Effect lifecycle, Substitute, volatiles |
 | Abilities | 39 / 78 = 50.0% | 54 / 106 = 50.9% | Ability hooks and suppression edge cases |
 | Items | 6 / 6 = 100.0% | 14 / 23 = 60.9% | Attack-level item branches still partial |
 | Field / weather / terrain / rooms | 7 / 7 = 100.0% | 3 / 3 = 100.0% | No strict blocker in current grouping |
@@ -42,14 +42,14 @@ current audit and should be treated as authoritative.
 
 These are non-exclusive: one partial method can appear in several rows.
 
-| Blocker | Partial methods affected | Share of remaining 28 partial methods |
+| Blocker | Partial methods affected | Share of remaining 26 partial methods |
 | --- | ---: | ---: |
-| Effects | 28 | 100.0% |
-| Abilities | 14 | 50.0% |
-| Damage handler | 14 | 50.0% |
-| Items | 14 | 50.0% |
-| Field | 3 | 10.7% |
-| Multi-target targeting | 1 | 3.6% |
+| Effects | 26 | 100.0% |
+| Abilities | 14 | 53.8% |
+| Damage handler | 14 | 53.8% |
+| Items | 14 | 53.8% |
+| Field | 3 | 11.5% |
+| Multi-target targeting | 1 | 3.8% |
 
 ## High-Impact Partial Attack Families
 
@@ -61,7 +61,7 @@ These are non-exclusive: one partial method can appear in several rows.
 
 ## Estimate
 
-For true 100% strict parity, remaining work is not 72 isolated lots. It should be grouped into roughly 9 to 13 large lots:
+For true 100% strict parity, remaining work is not 70 isolated lots. It should be grouped into roughly 8 to 12 large lots:
 
 - effects lifecycle first;
 - ability hooks second;

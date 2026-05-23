@@ -801,7 +801,8 @@ void main() {
       expect(effect.remainingTurns, 4);
     });
 
-    test('s_destiny_bond installs a user marker until its hook exists', () {
+    test('s_destiny_bond KOs the attacker when the user faints to a foe move',
+        () {
       final result = _runMove(
         playerMove: _move(
           id: 'destiny_bond',
@@ -811,18 +812,110 @@ void main() {
           battleEngineMethod: 's_destiny_bond',
           target: PsdkBattleMoveTarget.self,
         ),
+        opponentMove: _move(
+          id: 'opponent_tackle',
+          power: 40,
+        ),
+        playerCurrentHp: 1,
       );
 
-      final effect = _effect(
-        result.state.battlerAt(psdkPlayerSlot),
-        'destiny_bond',
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 0);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 0);
+      expect(
+        _damageEvents(result, moveId: 'effect:destiny_bond'),
+        hasLength(1),
       );
-      expect(effect.scope, isA<BattlerBattleEffectScope>());
+    });
+
+    test('s_destiny_bond fails while the effect is already active', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            types: const PsdkBattleTypes(primary: 'ghost'),
+            speed: 100,
+            move: _move(
+              id: 'destiny_bond',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              battleEngineMethod: 's_destiny_bond',
+              target: PsdkBattleMoveTarget.self,
+            ),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 10,
+            move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 0,
+          ),
+        ),
+      );
+
+      engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      final failures = second.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, 'destiny_bond_already_active');
+    });
+
+    test('s_destiny_bond clears on the owner next different move attempt', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            types: const PsdkBattleTypes(primary: 'ghost'),
+            speed: 100,
+            move: _move(
+              id: 'destiny_bond',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              battleEngineMethod: 's_destiny_bond',
+              target: PsdkBattleMoveTarget.self,
+            ),
+            extraMoves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 40),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 10,
+            move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 0,
+          ),
+        ),
+      );
+
+      final first = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      expect(
+        first.state.battlerAt(psdkPlayerSlot).effects.contains('destiny_bond'),
+        isTrue,
+      );
+
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 1));
+      expect(
+        second.state.battlerAt(psdkPlayerSlot).effects.contains('destiny_bond'),
+        isFalse,
+      );
+      expect(_damageEvents(second, moveId: 'tackle'), hasLength(1));
     });
 
     for (final entry in <({String method, String moveId})>[
       (method: 's_electrify', moveId: 'electrify'),
-      (method: 's_grudge', moveId: 'grudge'),
       (method: 's_ion_deluge', moveId: 'ion_deluge'),
       (method: 's_powder', moveId: 'powder'),
       (method: 's_snatch', moveId: 'snatch'),
@@ -849,6 +942,73 @@ void main() {
         );
       });
     }
+
+    test('s_grudge drops the killer move PP to 0 when the user faints', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'grudge',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_grudge',
+          target: PsdkBattleMoveTarget.self,
+        ),
+        opponentMove: _move(
+          id: 'opponent_tackle',
+          power: 40,
+          currentPp: 5,
+        ),
+        playerCurrentHp: 1,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 0);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).moves.single.currentPp,
+        0,
+      );
+    });
+
+    test('s_grudge fails while the effect is already active', () {
+      final move = _move(
+        id: 'grudge',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_grudge',
+        target: PsdkBattleMoveTarget.self,
+      );
+      final result = _resolveMoveOnState(
+        move: move,
+        target: psdkPlayerSlot,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'ghost'),
+                speed: 100,
+                move: move,
+                effects: PsdkBattleEffectStack(
+                  values: const <String>['grudge'],
+                ),
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+              ),
+            ),
+          },
+        ),
+      );
+
+      final failures = result.events.whereType<PsdkBattleMoveFailedEvent>();
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, 'grudge_already_active');
+    });
 
     for (final entry in <({String method, String moveId, String effectId})>[
       (method: 's_spike', moveId: 'spikes', effectId: 'spikes'),

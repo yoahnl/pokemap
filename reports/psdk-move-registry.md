@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 302 |
-| `partial` | 28 |
+| `ported` | 304 |
+| `partial` | 26 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -65,7 +65,7 @@ Total registered methods: 330
 | `s_curse` | `Curse` | `10 Move/2 Definitions/300 Curse.rb` | `AdvancedStatMoveBehavior.curse` | `ported` | `handler_damage, handler_stat, effects, end_turn` |
 | `s_custom_stats_based` | `CustomStatsBased` | `10 Move/2 Definitions/300 CustomStatsBased.rb` | `CustomStatSourceMoveBehavior.customStatsBased` | `ported` | `handler_damage, ability, item` |
 | `s_defog` | `Defog` | `10 Move/2 Definitions/300 Defog.rb` | `StaticBasicMoveRegistry.s_defog` | `ported` | `-` |
-| `s_destiny_bond` | `DestinyBond` | `10 Move/2 Definitions/300 DestinyBond.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)` | `partial` | `effects` |
+| `s_destiny_bond` | `DestinyBond` | `10 Move/2 Definitions/300 DestinyBond.rb` | `StaticBasicMoveRegistry.s_destiny_bond` | `ported` | `effects` |
 | `s_disable` | `Disable` | `10 Move/2 Definitions/300 Disable.rb` | `StaticBasicMoveRegistry.disable` | `ported` | `effects` |
 | `s_do_nothing` | `DoNothing` | `10 Move/2 Definitions/300 Splash.rb` | `NoEffectMoveBehavior.doNothing` | `ported` | `-` |
 | `s_doodle` | `Doodle` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_doodle)` | `partial` | `effects` |
@@ -126,7 +126,7 @@ Total registered methods: 330
 | `s_grav_apple` | `GravApple` | `10 Move/2 Definitions/300 GravApple.rb` | `StaticBasicMoveRegistry.s_grav_apple` | `ported` | `-` |
 | `s_gravity` | `Gravity` | `10 Move/2 Definitions/300 Gravity.rb` | `StaticBasicMoveRegistry.s_gravity` | `ported` | `field, effects` |
 | `s_growth` | `Growth` | `10 Move/2 Definitions/300 Growth.rb` | `AdvancedStatMoveBehavior.growth` | `ported` | `handler_stat, weather, effects, ability` |
-| `s_grudge` | `Grudge` | `10 Move/2 Definitions/300 Grudge.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_grudge)` | `partial` | `effects` |
+| `s_grudge` | `Grudge` | `10 Move/2 Definitions/300 Grudge.rb` | `StaticBasicMoveRegistry.s_grudge` | `ported` | `effects` |
 | `s_guard_split` | `GuardSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `StatSplitMoveBehavior.guard` | `ported` | `-` |
 | `s_guard_swap` | `GuardSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.guardSwap` | `ported` | `handler_stat, effects, ability` |
 | `s_gyro_ball` | `GyroBall` | `10 Move/2 Definitions/300 GyroBall.rb` | `VariablePowerMoveBehavior.gyroBall` | `ported` | `-` |

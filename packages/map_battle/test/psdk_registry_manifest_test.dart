@@ -1530,15 +1530,6 @@ void main() {
       }
       for (final entry in <({String method, String behavior})>[
         (
-          method: 's_destiny_bond',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
-        ),
-        (
-          method: 's_grudge',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
-        ),
-        (
           method: 's_magic_coat',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)',
         ),
@@ -1548,6 +1539,19 @@ void main() {
         ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+      }
+      for (final entry in <({String method, String behavior})>[
+        (
+          method: 's_destiny_bond',
+          behavior: 'StaticBasicMoveRegistry.s_destiny_bond',
+        ),
+        (
+          method: 's_grudge',
+          behavior: 'StaticBasicMoveRegistry.s_grudge',
+        ),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
       expect(byMethod['s_electrify']!.status, PsdkPortStatus.ported);

@@ -536,8 +536,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_destiny_bond',
     rubyClass: 'DestinyBond',
     rubyPath: '10 Move/2 Definitions/300 DestinyBond.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_destiny_bond',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1103,8 +1103,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_grudge',
     rubyClass: 'Grudge',
     rubyPath: '10 Move/2 Definitions/300 Grudge.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_grudge',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(

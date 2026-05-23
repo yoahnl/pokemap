@@ -70,6 +70,7 @@ import '../domain/effect/move/ability_suppressed_effect.dart';
 import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
 import '../domain/effect/move/cant_switch_effect.dart';
+import '../domain/effect/move/destiny_bond_effect.dart';
 import '../domain/effect/move/disable_effect.dart';
 import '../domain/effect/move/drowsiness_effect.dart';
 import '../domain/effect/move/embargo_effect.dart';
@@ -77,6 +78,7 @@ import '../domain/effect/move/encore_effect.dart';
 import '../domain/effect/move/endure_effect.dart';
 import '../domain/effect/move/fairy_lock_effect.dart';
 import '../domain/effect/move/force_next_move_base_effect.dart';
+import '../domain/effect/move/grudge_effect.dart';
 import '../domain/effect/move/heal_block_effect.dart';
 import '../domain/effect/move/imprison_effect.dart';
 import '../domain/effect/move/leech_seed_effect.dart';
@@ -153,6 +155,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_change_type',
       resolve: _resolveChangeType,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_destiny_bond',
+      resolve: _resolveDestinyBond,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_conversion',
@@ -544,6 +550,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveGravity,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_grudge',
+      resolve: _resolveGrudge,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_no_retreat',
       resolve: _resolveNoRetreat,
     ),
@@ -763,11 +773,9 @@ const _partialBasicDescendantMethods = <String>[
 const _partialTargetMarkerMethods = <String, String>{
   's_charge': 'charge',
   's_doodle': 'doodle',
-  's_destiny_bond': 'destiny_bond',
   's_embargo': 'embargo',
   's_focus_energy': 'focus_energy',
   's_gastro_acid': 'ability_suppressed',
-  's_grudge': 'grudge',
   's_laser_focus': 'laser_focus',
   's_magic_coat': 'magic_coat',
   's_magnet_rise': 'magnet_rise',
@@ -3909,6 +3917,56 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
   return _resolveTargetMarkerWithEffect(context, effectId: effectId);
 }
 
+BattleMoveBehaviorResolution _resolveDestinyBond(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.isEmpty
+      ? context.user
+      : prepared.psdkTargets.single;
+  final target = prepared.state.battlerAt(targetSlot);
+  if (target.effects.contains('destiny_bond')) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+          reason: 'destiny_bond_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final installed = _addTargetEffectAndDispatchVolatile(
+    state: prepared.state,
+    rng: prepared.rng,
+    turn: context.turn,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    effect: DestinyBondEffect(
+      scope: BattlerBattleEffectScope(targetSlot),
+    ),
+  );
+  return BattleMoveBehaviorResolution(
+    state: installed.state,
+    rng: installed.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      ...installed.events,
+    ],
+  );
+}
+
 BattleMoveBehaviorResolution _resolveTorment(
   BattleMoveBehaviorContext context,
 ) {
@@ -3931,6 +3989,56 @@ BattleMoveBehaviorResolution _resolveAutotomize(
   BattleMoveBehaviorContext context,
 ) {
   return _resolveTargetMarkerWithEffect(context, effectId: 'autotomize');
+}
+
+BattleMoveBehaviorResolution _resolveGrudge(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.isEmpty
+      ? context.user
+      : prepared.psdkTargets.single;
+  final target = prepared.state.battlerAt(targetSlot);
+  if (target.effects.contains('grudge')) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+          reason: 'grudge_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final installed = _addTargetEffectAndDispatchVolatile(
+    state: prepared.state,
+    rng: prepared.rng,
+    turn: context.turn,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    effect: GrudgeEffect(
+      scope: BattlerBattleEffectScope(targetSlot),
+    ),
+  );
+  return BattleMoveBehaviorResolution(
+    state: installed.state,
+    rng: installed.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      ...installed.events,
+    ],
+  );
 }
 
 BattleMoveBehaviorResolution _resolveTargetMarkerWithEffect(

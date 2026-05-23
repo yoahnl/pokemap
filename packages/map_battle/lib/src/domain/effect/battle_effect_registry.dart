@@ -11,6 +11,7 @@ import 'move/bind_effect.dart';
 import 'move/cant_switch_effect.dart';
 import 'move/confusion_effect.dart';
 import 'move/curse_effect.dart';
+import 'move/destiny_bond_effect.dart';
 import 'move/disable_effect.dart';
 import 'move/drowsiness_effect.dart';
 import 'move/embargo_effect.dart';
@@ -22,6 +23,7 @@ import 'move/force_next_move_base_effect.dart';
 import 'move/focus_punch_effect.dart';
 import 'move/happy_hour_effect.dart';
 import 'move/heal_block_effect.dart';
+import 'move/grudge_effect.dart';
 import 'move/imprison_effect.dart';
 import 'move/ingrain_effect.dart';
 import 'move/item_burnt_effect.dart';
@@ -75,6 +77,8 @@ final class BattleEffectRegistry {
         ),
       'confusion' => const ConfusionEffect(scope: LocalBattleEffectScope()),
       'curse' => const CurseEffect(scope: LocalBattleEffectScope()),
+      'destiny_bond' =>
+        const DestinyBondEffect(scope: LocalBattleEffectScope()),
       'disable' => const DisableEffect(
           scope: LocalBattleEffectScope(),
           disabledMoveId: '',
@@ -96,6 +100,7 @@ final class BattleEffectRegistry {
       'focus_punch' => const FocusPunchEffect(scope: LocalBattleEffectScope()),
       'happy_hour' => const HappyHourEffect(scope: LocalBattleEffectScope()),
       'heal_block' => const HealBlockEffect(scope: LocalBattleEffectScope()),
+      'grudge' => const GrudgeEffect(scope: LocalBattleEffectScope()),
       'imprison' => ImprisonEffect(scope: const LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
       'item_burnt' => const ItemBurntEffect(scope: LocalBattleEffectScope()),

@@ -532,8 +532,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_destiny_bond': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_destiny_bond',
+    status: _PsdkPortStatus.ported,
   ),
   's_disable': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.disable',
@@ -556,8 +556,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_grudge': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_grudge',
+    status: _PsdkPortStatus.ported,
   ),
   's_happy_hour': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_happy_hour)',

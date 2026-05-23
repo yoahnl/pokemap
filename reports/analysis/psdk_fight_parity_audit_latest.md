@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 656 |
-| Studio attacks `partiel` | 72 |
+| Studio attacks `fait` | 658 |
+| Studio attacks `partiel` | 70 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -24,10 +24,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_beak_blast | 1 |
 | s_beat_up | 1 |
 | s_core_enforcer | 1 |
-| s_destiny_bond | 1 |
 | s_frustration | 1 |
 | s_genesis_supernova | 1 |
-| s_grudge | 1 |
 | s_guardian_of_alola | 1 |
 | s_hidden_power | 1 |
 | s_hyperspace_hole | 1 |
@@ -50,8 +48,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 302 |
-| `partial` | 28 |
+| `ported` | 304 |
+| `partial` | 26 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -59,7 +57,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 28 |
+| effects | 26 |
 | ability | 14 |
 | handlerDamage | 14 |
 | item | 14 |
@@ -72,7 +70,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 14 | `s_chilly_reception`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_geomancy`, `s_grudge`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
+| Effect hook / manifest final sweep | 12 | `s_chilly_reception`, `s_court_change`, `s_doodle`, `s_geomancy`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
 
 ## Effect Coverage
 

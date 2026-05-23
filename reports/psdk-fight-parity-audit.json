@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 656,
-    "partiel": 72,
+    "fait": 658,
+    "partiel": 70,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1067,9 +1067,9 @@
       {
         "moveId": "destiny_bond",
         "battleEngineMethod": "s_destiny_bond",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/destiny_bond.json"
       },
       {
@@ -2083,9 +2083,9 @@
       {
         "moveId": "grudge",
         "battleEngineMethod": "s_grudge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/grudge.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 302,
-      "partial": 28,
+      "ported": 304,
+      "partial": 26,
       "missing": 0
     },
     "entries": [
@@ -6390,12 +6390,11 @@
         "battleEngineMethod": "s_destiny_bond",
         "rubyClass": "DestinyBond",
         "rubyPath": "10 Move/2 Definitions/300 DestinyBond.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_destiny_bond",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_disable",
@@ -6991,12 +6990,11 @@
         "battleEngineMethod": "s_grudge",
         "rubyClass": "Grudge",
         "rubyPath": "10 Move/2 Definitions/300 Grudge.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_grudge)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_grudge",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_guard_split",
@@ -9233,14 +9231,12 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 14,
+        "count": 12,
         "methods": [
           "s_chilly_reception",
           "s_court_change",
-          "s_destiny_bond",
           "s_doodle",
           "s_geomancy",
-          "s_grudge",
           "s_magic_coat",
           "s_revival_blessing",
           "s_shed_tail",

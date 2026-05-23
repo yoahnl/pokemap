@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 656 |
-| partiel | 72 |
+| fait | 658 |
+| partiel | 70 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -166,7 +166,7 @@ Coverage semantics:
 | fait | defend_order | s_self_stat | ported | StatusStatMoveBehavior.selfStat | bug | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/defend_order.json |
 | fait | defense_curl | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/defense_curl.json |
 | fait | defog | s_defog | ported | StaticBasicMoveRegistry.s_defog | flying | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/defog.json |
-| partiel | destiny_bond | s_destiny_bond | partial | StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond) | ghost | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/destiny_bond.json |
+| fait | destiny_bond | s_destiny_bond | ported | StaticBasicMoveRegistry.s_destiny_bond | ghost | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/destiny_bond.json |
 | fait | detect | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/detect.json |
 | partiel | devastating_drake | s_basic | ported | StaticBasicMoveRegistry.s_basic | dragon | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/devastating_drake.json |
 | partiel | devastating_drake2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | dragon | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/devastating_drake2.json |
@@ -293,7 +293,7 @@ Coverage semantics:
 | fait | gravity | s_gravity | ported | StaticBasicMoveRegistry.s_gravity | psychic | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/gravity.json |
 | fait | growl | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/growl.json |
 | fait | growth | s_growth | ported | AdvancedStatMoveBehavior.growth | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/growth.json |
-| partiel | grudge | s_grudge | partial | StaticBasicMoveRegistry.partialTargetMarker(s_grudge) | ghost | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/grudge.json |
+| fait | grudge | s_grudge | ported | StaticBasicMoveRegistry.s_grudge | ghost | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/grudge.json |
 | fait | guard_split | s_guard_split | ported | StatSplitMoveBehavior.guard | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/guard_split.json |
 | fait | guard_swap | s_guard_swap | ported | AdvancedStatMoveBehavior.guardSwap | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/guard_swap.json |
 | partiel | guardian_of_alola | s_guardian_of_alola | partial | StaticBasicMoveRegistry.partialBasic(s_guardian_of_alola) | fairy | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/guardian_of_alola.json |
