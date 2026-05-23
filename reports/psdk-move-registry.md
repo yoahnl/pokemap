@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 301 |
-| `partial` | 29 |
+| `ported` | 302 |
+| `partial` | 28 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -276,7 +276,7 @@ Total registered methods: 330
 | `s_spectral_thief` | `SpectralThief` | `10 Move/2 Definitions/300 SpectralThief.rb` | `StaticBasicMoveRegistry.s_spectral_thief` | `ported` | `effects` |
 | `s_speed_swap` | `SpeedSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `SpeedSwapMoveBehavior` | `ported` | `-` |
 | `s_spike` | `Spikes` | `10 Move/2 Definitions/300 Spikes.rb` | `StaticBasicMoveRegistry.s_spike` | `ported` | `effects, handler_switch, grounded` |
-| `s_spite` | `Spite` | `10 Move/2 Definitions/300 Spite.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_spite)` | `partial` | `effects` |
+| `s_spite` | `Spite` | `10 Move/2 Definitions/300 Spite.rb` | `StaticBasicMoveRegistry.s_spite` | `ported` | `history` |
 | `s_splash` | `Splash` | `10 Move/2 Definitions/300 Splash.rb` | `NoEffectMoveBehavior.splash` | `ported` | `-` |
 | `s_split_up` | `SpitUp` | `10 Move/2 Definitions/300 SpitUp.rb` | `StaticBasicMoveRegistry.partialBasic(s_split_up)` | `partial` | `handler_damage, effects, ability, item` |
 | `s_stat` | `StatusStat` | `10 Move/1 Mechanics/102 Status Stat.rb` | `StatusStatMoveBehavior.stat` | `ported` | `-` |

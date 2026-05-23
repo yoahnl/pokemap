@@ -1991,6 +1991,114 @@ void main() {
       expect(targetMove.currentPp, 1);
     });
 
+    test('s_spite removes 4 PP from the target last used move', () {
+      final move = _move(
+        id: 'spite',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 100,
+        battleEngineMethod: 's_spite',
+      );
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'ghost'),
+                speed: 100,
+                move: move,
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(
+                  id: 'opponent_tackle',
+                  power: 40,
+                  currentPp: 5,
+                ),
+                moveHistory: PsdkBattleMoveHistory(
+                  attempts: <PsdkBattleMoveHistoryEntry>[
+                    PsdkBattleMoveHistoryEntry(
+                      moveId: 'opponent_tackle',
+                      turn: 0,
+                      targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          },
+        ),
+      );
+
+      final targetMove = result.state.battlerAt(psdkOpponentSlot).moves.single;
+      expect(
+        result.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isEmpty,
+      );
+      expect(targetMove.currentPp, 1);
+    });
+
+    test('s_spite fails when the target has no usable last move PP', () {
+      final move = _move(
+        id: 'spite',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 100,
+        battleEngineMethod: 's_spite',
+      );
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'ghost'),
+                speed: 100,
+                move: move,
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(
+                  id: 'opponent_tackle',
+                  power: 40,
+                  currentPp: 0,
+                ),
+                moveHistory: PsdkBattleMoveHistory(
+                  attempts: <PsdkBattleMoveHistoryEntry>[
+                    PsdkBattleMoveHistoryEntry(
+                      moveId: 'opponent_tackle',
+                      turn: 0,
+                      targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          },
+        ),
+      );
+
+      final failures = result.events.whereType<PsdkBattleMoveFailedEvent>();
+      expect(failures, hasLength(1));
+      expect(failures.single.moveId, 'spite');
+      expect(
+        failures.single.reason,
+        BattleMoveFailureReason.unusableByUser.jsonName,
+      );
+      expect(result.state.battlerAt(psdkOpponentSlot).moves.single.currentPp, 0);
+    });
+
     test('s_last_respects scales power with local KO count', () {
       final regular = _runMove(
         playerMove: _move(

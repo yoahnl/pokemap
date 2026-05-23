@@ -1,14 +1,14 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-23T11:55:29.728677Z
+Generated: 2026-05-23T12:10:55.781805Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
-| Attacks | 463 / 728 | 63.6% | 265 |
-| Methods | 272 / 330 | 82.4% | 58 |
-| Effects | 404 / 482 | 83.8% | 78 |
+| Attacks | 656 / 728 | 90.1% | 72 |
+| Methods | 302 / 330 | 91.5% | 28 |
+| Effects | 406 / 482 | 84.2% | 76 |
 
 ## Effects By Family
 
@@ -18,16 +18,15 @@ Generated: 2026-05-23T11:55:29.728677Z
 | field | 15 | 0 | 0 | 0 |
 | item | 81 | 0 | 6 | 6 |
 | mechanics | 4 | 0 | 0 | 0 |
-| move | 83 | 8 | 24 | 32 |
+| move | 85 | 8 | 22 | 30 |
 | status | 7 | 0 | 0 | 0 |
 
 ## Method Backlog
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Action queue / copy-call residuals | 1 | `s_electrify` |
-| Damage formula / variable power | 15 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_flying_press`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 42 | `s_chilly_reception`, `s_conversion`, `s_conversion2`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_dragon_cheer`, `s_embargo`, `s_entrainment`, `s_flower_shield`, `s_gear_up`, `s_geomancy`, `s_gravity`, `s_grudge`, `s_happy_hour`, `s_healing_wish`, `s_helping_hand`, `s_ion_deluge`, `s_lunar_dance`, `s_magic_coat`, `s_magic_powder`, `s_magic_room`, `s_magnetic_flux`, `s_nightmare`, `s_no_retreat`, `s_perish_song`, `s_powder`, `s_revival_blessing`, `s_role_play`, `s_rototiller`, `s_shed_tail`, `s_simple_beam`, `s_skill_swap`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport`, `s_wish`, `s_wonder_room`, `s_worry_seed` |
+| Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
+| Effect hook / manifest final sweep | 14 | `s_chilly_reception`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_geomancy`, `s_grudge`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
 
 ## Ability Effect Backlog
 

@@ -1513,6 +1513,10 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.targetMarker(s_perish_song)',
         ),
         (
+          method: 's_spite',
+          behavior: 'StaticBasicMoveRegistry.s_spite',
+        ),
+        (
           method: 's_wonder_room',
           behavior: 'StaticBasicMoveRegistry.fieldMarker(s_wonder_room)',
         ),

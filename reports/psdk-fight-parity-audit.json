@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 655,
-    "partiel": 73,
+    "fait": 656,
+    "partiel": 72,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -4819,9 +4819,9 @@
       {
         "moveId": "spite",
         "battleEngineMethod": "s_spite",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/spite.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 301,
-      "partial": 29,
+      "ported": 302,
+      "partial": 28,
       "missing": 0
     },
     "entries": [
@@ -8521,12 +8521,11 @@
         "battleEngineMethod": "s_spite",
         "rubyClass": "Spite",
         "rubyPath": "10 Move/2 Definitions/300 Spite.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_spite)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_spite",
+        "status": "ported",
         "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+          "history"
+        ]
       },
       {
         "battleEngineMethod": "s_splash",
@@ -9234,7 +9233,7 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 15,
+        "count": 14,
         "methods": [
           "s_chilly_reception",
           "s_court_change",
@@ -9246,7 +9245,6 @@
           "s_revival_blessing",
           "s_shed_tail",
           "s_snatch",
-          "s_spite",
           "s_stuff_cheeks",
           "s_swallow",
           "s_teatime",

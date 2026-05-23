@@ -164,8 +164,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_spite': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_spite)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_spite',
+    status: _PsdkPortStatus.ported,
   ),
   's_split_up': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_split_up)',

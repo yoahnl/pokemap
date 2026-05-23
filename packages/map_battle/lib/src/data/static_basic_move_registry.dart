@@ -300,6 +300,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveEerieSpell,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_spite',
+      resolve: _resolveSpite,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_electro_shot',
       resolve: _resolveElectroShot,
     ),
@@ -775,7 +779,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_powder': 'powder',
   's_revival_blessing': 'revival_blessing',
   's_snatch': 'snatch',
-  's_spite': 'spite',
   's_swallow': 'swallow',
   's_taunt': 'taunt',
   's_telekinesis': 'telekinesis',
@@ -2726,6 +2729,74 @@ BattleMoveBehaviorResolution _resolveEerieSpell(
     successful: basic.successful,
     events: basic.events,
   );
+}
+
+BattleMoveBehaviorResolution _resolveSpite(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  var state = prepared.state;
+  var applied = false;
+  final events = <PsdkBattleEvent>[...prepared.events];
+  for (final targetSlot in prepared.psdkTargets) {
+    final target = state.battlerAt(targetSlot);
+    final moveIndex = _lastHistoricalMoveIndex(target);
+    if (moveIndex == null) {
+      events.add(
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      );
+      continue;
+    }
+
+    final move = target.moves[moveIndex];
+    if (move.currentPp <= 0) {
+      events.add(
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      );
+      continue;
+    }
+
+    final ppLoss = move.currentPp < 4 ? move.currentPp : 4;
+    state = state.updateBattler(
+      targetSlot,
+      (battler) => battler.replaceMoveAt(
+        moveIndex,
+        move.spendPp(ppLoss),
+      ),
+    );
+    applied = true;
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: prepared.rng,
+    events: events,
+    successful: applied,
+  );
+}
+
+int? _lastHistoricalMoveIndex(PsdkBattleCombatant battler) {
+  if (battler.moves.isEmpty || battler.moveHistory.attempts.isEmpty) {
+    return null;
+  }
+
+  final lastMoveId = battler.moveHistory.attempts.last.moveId;
+  final moveIndex = battler.moves.indexWhere((move) => move.id == lastMoveId);
+  return moveIndex >= 0 ? moveIndex : 0;
 }
 
 BattleMoveBehaviorResolution _resolveLastRespects(

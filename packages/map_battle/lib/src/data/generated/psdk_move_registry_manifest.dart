@@ -2565,9 +2565,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_spite',
     rubyClass: 'Spite',
     rubyPath: '10 Move/2 Definitions/300 Spite.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_spite)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    dartBehavior: 'StaticBasicMoveRegistry.s_spite',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.history],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_splash',

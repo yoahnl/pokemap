@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 655 |
-| Studio attacks `partiel` | 73 |
+| Studio attacks `fait` | 656 |
+| Studio attacks `partiel` | 72 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -40,7 +40,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_self_stat_z_move | 2 |
 | s_shell_trap | 1 |
 | s_snatch | 1 |
-| s_spite | 1 |
 | s_splintered_stormshards | 1 |
 | s_split_up | 1 |
 | s_swallow | 1 |
@@ -51,8 +50,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 301 |
-| `partial` | 29 |
+| `ported` | 302 |
+| `partial` | 28 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -60,7 +59,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 29 |
+| effects | 28 |
 | ability | 14 |
 | handlerDamage | 14 |
 | item | 14 |
@@ -73,7 +72,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 14 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_core_enforcer`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_split_up`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 15 | `s_chilly_reception`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_geomancy`, `s_grudge`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_spite`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
+| Effect hook / manifest final sweep | 14 | `s_chilly_reception`, `s_court_change`, `s_destiny_bond`, `s_doodle`, `s_geomancy`, `s_grudge`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_stuff_cheeks`, `s_swallow`, `s_teatime`, `s_teleport` |
 
 ## Effect Coverage
 

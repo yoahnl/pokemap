@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 655 |
-| partiel | 73 |
+| fait | 656 |
+| partiel | 72 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -635,7 +635,7 @@ Coverage semantics:
 | fait | spiky_shield | s_protect | ported | StaticBasicMoveRegistry.s_protect | grass | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spiky_shield.json |
 | fait | spirit_shackle | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | ghost | physical | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spirit_shackle.json |
 | partiel | spit_up | s_split_up | partial | StaticBasicMoveRegistry.partialBasic(s_split_up) | normal | special | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spit_up.json |
-| partiel | spite | s_spite | partial | StaticBasicMoveRegistry.partialTargetMarker(s_spite) | ghost | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spite.json |
+| fait | spite | s_spite | ported | StaticBasicMoveRegistry.s_spite | ghost | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spite.json |
 | fait | splash | s_splash | ported | NoEffectMoveBehavior.splash | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/splash.json |
 | partiel | splintered_stormshards | s_splintered_stormshards | partial | StaticBasicMoveRegistry.partialBasic(s_splintered_stormshards) | rock | physical | 190 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/splintered_stormshards.json |
 | fait | spore | s_status | ported | StatusStatMoveBehavior.status | grass | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/spore.json |
