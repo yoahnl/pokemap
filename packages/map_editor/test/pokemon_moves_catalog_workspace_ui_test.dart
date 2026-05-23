@@ -144,7 +144,7 @@ void main() {
 
     expect(find.byKey(const Key('moves-catalog-preview-sync-button')), findsOneWidget);
     expect(find.byKey(const Key('moves-catalog-run-sync-button')), findsOneWidget);
-    expect(find.text('Preview sync'), findsOneWidget);
+    expect(find.text('Prévisualiser la synchro'), findsOneWidget);
     expect(find.text('Sync depuis Showdown'), findsOneWidget);
   });
 

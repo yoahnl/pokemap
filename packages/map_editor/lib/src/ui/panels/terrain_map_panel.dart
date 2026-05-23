@@ -34,7 +34,7 @@ class TerrainMapPanel extends ConsumerWidget {
     if (map == null) {
       final empty = Center(
         child: Text(
-          'Open a map to edit base ground and paths',
+          'Ouvrez une carte pour éditer le sol de base et les chemins',
           style: TextStyle(
             color: CupertinoColors.placeholderText.resolveFrom(context),
           ),
@@ -87,10 +87,10 @@ class TerrainMapPanel extends ConsumerWidget {
             )
           else ...[
             _LayerSelector<TerrainLayer>(
-              label: 'Active Terrain Layer',
+              label: 'Calque de terrain actif',
               layers: terrainLayers,
               activeLayerId: activeTerrainLayer?.id,
-              emptyLabel: 'No terrain layer yet',
+              emptyLabel: 'Aucun calque de terrain pour l’instant',
               onSelected: notifier.setActiveLayer,
               onCreate: () => notifier.activateFirstTerrainLayer(
                 createIfMissing: true,
@@ -98,8 +98,8 @@ class TerrainMapPanel extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             _PresetPickerRow(
-              label: 'Selected Terrain Preset',
-              hint: 'No terrain preset',
+              label: 'Preset de terrain sélectionné',
+              hint: 'Aucun preset de terrain',
               enabled: terrainPresets.isNotEmpty,
               currentLabel: selectedTerrainPreset == null
                   ? null
@@ -108,7 +108,7 @@ class TerrainMapPanel extends ConsumerWidget {
                 final picked =
                     await showCupertinoListPicker<ProjectTerrainPreset>(
                   context: context,
-                  title: 'Terrain preset',
+                  title: 'Preset de terrain',
                   items: terrainPresets,
                   labelOf: (p) => '${p.name} • ${_terrainLabel(p.terrainType)}',
                 );
@@ -136,7 +136,7 @@ class TerrainMapPanel extends ConsumerWidget {
                     children: [
                       Icon(CupertinoIcons.paintbrush, size: 16),
                       SizedBox(width: 6),
-                      Text('Paint Base'),
+                      Text('Peindre le fond'),
                     ],
                   ),
                 ),
@@ -154,7 +154,7 @@ class TerrainMapPanel extends ConsumerWidget {
                     children: [
                       Icon(CupertinoIcons.drop, size: 16),
                       SizedBox(width: 6),
-                      Text('Fill Base'),
+                      Text('Remplir'),
                     ],
                   ),
                 ),
@@ -163,10 +163,10 @@ class TerrainMapPanel extends ConsumerWidget {
             const SizedBox(height: 10),
             _InfoStrip(
               text: activeTerrainLayer == null
-                  ? 'Select or create a terrain layer to paint the map background.'
+                  ? 'Sélectionnez ou créez un calque de terrain pour peindre l’arrière-plan de la carte.'
                   : selectedTerrainPreset == null
-                      ? 'Create a terrain preset in the library to paint this background layer.'
-                      : 'Active base: ${selectedTerrainPreset.name} on ${activeTerrainLayer.name}',
+                      ? 'Créez un preset de terrain dans la bibliothèque pour peindre ce calque d’arrière-plan.'
+                      : 'Base active : ${selectedTerrainPreset.name} sur ${activeTerrainLayer.name}',
             ),
           ],
         ],
@@ -176,8 +176,8 @@ class TerrainMapPanel extends ConsumerWidget {
         embedded && mode == TerrainMapPanelMode.groundOnly
             ? groundContent
             : _SurfaceSectionCard(
-                title: 'Base Ground',
-                subtitle: 'Terrain layers paint the map background only.',
+                title: 'Sol de base',
+                subtitle: 'Les calques de terrain peignent uniquement l’arrière-plan de la carte.',
                 color: const Color(0xFF2B6F53),
                 icon: CupertinoIcons.tree,
                 child: groundContent,
@@ -209,10 +209,10 @@ class TerrainMapPanel extends ConsumerWidget {
             )
           else ...[
             _LayerSelector<PathLayer>(
-              label: 'Active Path Layer',
+              label: 'Calque de path actif',
               layers: pathLayers,
               activeLayerId: activePathLayer?.id,
-              emptyLabel: 'No path layer yet',
+              emptyLabel: 'Aucun calque de path pour l’instant',
               onSelected: notifier.setActiveLayer,
               onCreate: () => notifier.activateFirstPathLayer(
                 createIfMissing: true,
@@ -220,8 +220,8 @@ class TerrainMapPanel extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             _PresetPickerRow(
-              label: 'Assigned Path Preset',
-              hint: 'No path preset',
+              label: 'Preset de path assigné',
+              hint: 'Aucun preset de path',
               enabled: pathPresets.isNotEmpty,
               currentLabel: _pathPresetLabel(
                 activePathLayer,
@@ -231,7 +231,7 @@ class TerrainMapPanel extends ConsumerWidget {
               onPick: () async {
                 final picked = await showCupertinoListPicker<ProjectPathPreset>(
                   context: context,
-                  title: 'Path preset',
+                  title: 'Preset de path',
                   items: pathPresets,
                   labelOf: (p) =>
                       '${p.name} • ${_pathSurfaceLabel(p.surfaceKind)}',
@@ -261,7 +261,7 @@ class TerrainMapPanel extends ConsumerWidget {
                     children: [
                       Icon(CupertinoIcons.map, size: 16),
                       SizedBox(width: 6),
-                      Text('Paint Path'),
+                      Text('Peindre le path'),
                     ],
                   ),
                 ),
@@ -276,7 +276,7 @@ class TerrainMapPanel extends ConsumerWidget {
                     children: [
                       Icon(CupertinoIcons.delete_left, size: 16),
                       SizedBox(width: 6),
-                      Text('Erase Path'),
+                      Text('Gommer le path'),
                     ],
                   ),
                 ),
@@ -291,7 +291,7 @@ class TerrainMapPanel extends ConsumerWidget {
                     children: [
                       Icon(CupertinoIcons.add_circled, size: 16),
                       SizedBox(width: 6),
-                      Text('New Path Layer'),
+                      Text('Nouveau calque de path'),
                     ],
                   ),
                 ),
@@ -303,10 +303,10 @@ class TerrainMapPanel extends ConsumerWidget {
             const SizedBox(height: 10),
             _InfoStrip(
               text: activePathLayer == null
-                  ? 'Create a path layer for roads, water, tall grass and other path surfaces.'
+                  ? 'Créez un calque de path pour les routes, l’eau, les hautes herbes et autres surfaces de path.'
                   : activePathLayer.presetId.trim().isEmpty
-                      ? 'Assign a path preset to ${activePathLayer.name} before painting.'
-                      : 'Active path layer: ${activePathLayer.name}',
+                      ? 'Assignez un preset de path à ${activePathLayer.name} avant de peindre.'
+                      : 'Calque de path actif : ${activePathLayer.name}',
             ),
           ],
         ],
@@ -316,9 +316,9 @@ class TerrainMapPanel extends ConsumerWidget {
         embedded && mode == TerrainMapPanelMode.surfaceOnly
             ? pathContent
             : _SurfaceSectionCard(
-                title: 'Paths',
+                title: 'Paths (chemins)',
                 subtitle:
-                    'Path layers carry roads, water, tall grass, ice and every specialized path surface.',
+                    'Les calques de path contiennent les routes, l’eau, les hautes herbes, la glace et toutes les surfaces de path spécialisées.',
                 color: const Color(0xFF7A4A1E),
                 icon: CupertinoIcons.map,
                 child: pathContent,
@@ -332,9 +332,9 @@ class TerrainMapPanel extends ConsumerWidget {
         _InfoStrip(
           text: state.activeTool == EditorToolType.terrainPaint
               ? state.terrainSelectionMode == TerrainSelectionMode.path
-                  ? 'Path paint mode enabled.'
-                  : 'Base ground paint mode enabled.'
-              : 'Use the controls above to switch between base ground and path painting.',
+                  ? 'Peinture de path activée.'
+                  : 'Peinture de sol de base activée.'
+              : 'Utilisez les contrôles ci-dessus pour basculer entre la peinture du sol de base et des paths.',
         ),
       );
     }
@@ -364,7 +364,7 @@ class TerrainMapPanel extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'MAP GROUND & PATHS',
+                    'SOL DE BASE & PATHS',
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.0,
@@ -1027,7 +1027,7 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
         child: Text(
           inspectorEmbedded
               ? 'Les propriétés apparaissent quand un calque de path est actif.'
-              : 'Layer properties become available once a path layer is active.',
+              : 'Les propriétés du calque s’affichent lorsqu’un calque de path est actif.',
           style: TextStyle(
             fontSize: 11,
             color: bodySecondary,
@@ -1047,7 +1047,7 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
           Text(
             inspectorEmbedded
                 ? 'Propriétés du calque'
-                : 'Path Layer Properties',
+                : 'Propriétés du calque de path',
             style: TextStyle(
               fontSize: 11,
               color: titleColor,
@@ -1059,7 +1059,7 @@ class _PathLayerPropertiesBlock extends StatelessWidget {
             Text(
               inspectorEmbedded
                   ? 'Aucune propriété personnalisée sur ce calque.'
-                  : 'No custom properties on this path layer.',
+                  : 'Aucune propriété personnalisée sur ce calque de path.',
               style: TextStyle(
                 fontSize: 11,
                 color: bodySecondary,
@@ -1134,36 +1134,36 @@ class _InfoStrip extends StatelessWidget {
 
 String _terrainLabel(TerrainType terrain) {
   return switch (terrain) {
-    TerrainType.none => 'None',
-    TerrainType.grass => 'Grass Base',
-    TerrainType.dirt => 'Dirt Base',
-    TerrainType.sand => 'Sand Base',
-    TerrainType.rock => 'Rock Base',
-    TerrainType.stone => 'Stone Base',
-    TerrainType.indoor => 'Indoor Base',
+    TerrainType.none => 'Aucun',
+    TerrainType.grass => 'Herbe',
+    TerrainType.dirt => 'Terre',
+    TerrainType.sand => 'Sable',
+    TerrainType.rock => 'Roche',
+    TerrainType.stone => 'Pierre',
+    TerrainType.indoor => 'Intérieur',
   };
 }
 
 String _pathSurfaceLabel(PathSurfaceKind kind) {
   if (kind == PathSurfaceKind.water) {
-    return 'Water';
+    return 'Eau';
   }
-  return 'Ground';
+  return 'Sol';
 }
 
 String _pathAnimationModeLabel(PathAnimationMode mode) {
   return switch (mode) {
-    PathAnimationMode.alwaysActive => 'Always active',
-    PathAnimationMode.triggered => 'Triggered',
+    PathAnimationMode.alwaysActive => 'Toujours active',
+    PathAnimationMode.triggered => 'Déclenchée',
   };
 }
 
 String _pathAnimationModeHint(PathAnimationMode mode) {
   return switch (mode) {
     PathAnimationMode.alwaysActive =>
-      'Animation runs continuously without triggers',
+      'L’animation s’exécute en continu sans déclencheur',
     PathAnimationMode.triggered =>
-      'Animation requires specific triggers to activate',
+      'L’animation nécessite des déclencheurs spécifiques pour s’activer',
   };
 }
 
@@ -1194,7 +1194,7 @@ class _PathLayerAnimationTriggersSectionState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Animation Mode',
+          'Mode d’animation',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -1230,7 +1230,7 @@ class _PathLayerAnimationTriggersSectionState
         if (animationMode == PathAnimationMode.triggered) ...[
           const SizedBox(height: 12),
           Text(
-            'Animation Triggers',
+            'Déclencheurs d’animation',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -1240,7 +1240,7 @@ class _PathLayerAnimationTriggersSectionState
           const SizedBox(height: 4),
           if (triggers.isEmpty || triggers.every((t) => !t.enabled))
             Text(
-              'No active triggers configured.',
+              'Aucun déclencheur actif configuré.',
               style: TextStyle(fontSize: 11, color: secondary),
             )
           else
@@ -1273,7 +1273,7 @@ class _PathLayerAnimationTriggersSectionState
                 );
                 setState(() {});
               },
-              child: const Text('Add Trigger'),
+              child: const Text('Ajouter un déclencheur'),
             ),
           ),
         ],
@@ -1338,13 +1338,13 @@ class _PathLayerTriggerEditor extends StatelessWidget {
                   );
                   onChanged();
                 },
-                child: const Text('Delete'),
+                child: const Text('Supprimer'),
               ),
             ],
           ),
           const SizedBox(height: 8),
           _PathTriggerField(
-            label: 'Enabled',
+            label: 'Activé',
             value: rule.enabled.toString(),
             onChanged: (value) {
               final updated =
@@ -1360,7 +1360,7 @@ class _PathLayerTriggerEditor extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
-            label: 'Trigger',
+            label: 'Déclencheur',
             value: rule.trigger.name,
             onChanged: (value) {
               final updated =
@@ -1398,7 +1398,7 @@ class _PathLayerTriggerEditor extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           _PathTriggerField(
-            label: 'Scope',
+            label: 'Portée',
             value: rule.scope.name,
             onChanged: (value) {
               final updated =
@@ -1475,7 +1475,7 @@ class _PathTriggerField extends StatelessWidget {
     final selected = await showCupertinoModalPopup<String>(
       context: context,
       builder: (context) => CupertinoActionSheet(
-        title: Text('Select $label'),
+        title: Text('Sélectionner $label'),
         actions: options
             .map((option) => CupertinoActionSheetAction(
                   onPressed: () => Navigator.pop(context, option),
@@ -1484,7 +1484,7 @@ class _PathTriggerField extends StatelessWidget {
             .toList(),
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: const Text('Annuler'),
         ),
       ),
     );

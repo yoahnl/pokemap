@@ -1978,7 +1978,7 @@ class EditorNotifier extends _$EditorNotifier {
     final selectedTileset = getSelectedTilesetEntry();
     final effectiveTilesetId = tilesetId ?? selectedTileset?.id;
     if (effectiveTilesetId == null) {
-      state = state.copyWith(errorMessage: 'No tileset selected');
+      state = state.copyWith(errorMessage: 'Aucun tileset sélectionné');
       return;
     }
     try {
@@ -2118,12 +2118,12 @@ class EditorNotifier extends _$EditorNotifier {
   }) async {
     final project = state.project;
     if (project == null) {
-      state = state.copyWith(errorMessage: 'No project loaded');
+      state = state.copyWith(errorMessage: 'Aucun projet chargé');
       return null;
     }
     final tilesetPath = getTilesetAbsolutePathById(tilesetId);
     if (tilesetPath == null || tilesetPath.trim().isEmpty) {
-      state = state.copyWith(errorMessage: 'Tileset path not found');
+      state = state.copyWith(errorMessage: 'Chemin de tileset introuvable');
       return null;
     }
     try {
@@ -3579,19 +3579,19 @@ class EditorNotifier extends _$EditorNotifier {
     final sourceMap = state.activeMap;
     final selectedWarpId = state.selectedWarpId;
     if (fs == null) {
-      state = state.copyWith(errorMessage: 'No project filesystem available');
+      state = state.copyWith(errorMessage: 'Aucun système de fichiers de projet disponible');
       return;
     }
     if (project == null) {
-      state = state.copyWith(errorMessage: 'No project loaded');
+      state = state.copyWith(errorMessage: 'Aucun projet chargé');
       return;
     }
     if (sourceMap == null) {
-      state = state.copyWith(errorMessage: 'No active map loaded');
+      state = state.copyWith(errorMessage: 'Aucune carte active chargée');
       return;
     }
     if (selectedWarpId == null) {
-      state = state.copyWith(errorMessage: 'No warp selected');
+      state = state.copyWith(errorMessage: 'Aucun warp sélectionné');
       return;
     }
     try {
@@ -6443,11 +6443,11 @@ class EditorNotifier extends _$EditorNotifier {
         updatedMap: updated,
         preferredActiveLayerId: target.activeLayerId,
         partOfStroke: partOfStroke,
-        statusMessage: 'Environment mask updated',
+        statusMessage: 'Masque d’environnement mis à jour',
       );
     } catch (e) {
       state = state.copyWith(
-        errorMessage: 'Failed to edit environment mask: $e',
+        errorMessage: 'Impossible d’éditer le masque d’environnement : $e',
       );
     }
   }
@@ -6466,10 +6466,10 @@ class EditorNotifier extends _$EditorNotifier {
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: state.activeLayerId,
-        statusMessage: 'Layer renamed',
+        statusMessage: 'Calque renommé',
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to rename layer: $e');
+      state = state.copyWith(errorMessage: 'Impossible de renommer le calque : $e');
     }
   }
 
@@ -6494,13 +6494,13 @@ class EditorNotifier extends _$EditorNotifier {
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: nextActiveLayerId,
-        statusMessage: 'Layer deleted',
+        statusMessage: 'Calque supprimé',
       );
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } on EditorValidationException catch (e) {
       state = state.copyWith(errorMessage: e.message);
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to delete layer: $e');
+      state = state.copyWith(errorMessage: 'Impossible de supprimer le calque : $e');
     }
   }
 
@@ -6515,11 +6515,11 @@ class EditorNotifier extends _$EditorNotifier {
         updatedMap: updated,
         preferredActiveLayerId:
             _editorMapSessionCoordinator.resolveActiveLayerId(updated),
-        statusMessage: 'All layers removed',
+        statusMessage: 'Tous les calques supprimés',
       );
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to remove all layers: $e');
+      state = state.copyWith(errorMessage: 'Impossible de supprimer tous les calques : $e');
     }
   }
 
@@ -6554,13 +6554,13 @@ class EditorNotifier extends _$EditorNotifier {
           previousMap: map,
           updatedMap: updated,
           preferredActiveLayerId: state.activeLayerId,
-          statusMessage: 'Layer reordered',
+          statusMessage: 'Calque réorganisé',
         );
       } else {
         state = state.copyWith(errorMessage: null);
       }
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to reorder layer: $e');
+      state = state.copyWith(errorMessage: 'Impossible de réorganiser le calque : $e');
     }
   }
 
@@ -6579,13 +6579,13 @@ class EditorNotifier extends _$EditorNotifier {
           previousMap: map,
           updatedMap: updated,
           preferredActiveLayerId: state.activeLayerId,
-          statusMessage: 'Layer reordered',
+          statusMessage: 'Calque réorganisé',
         );
       } else {
         state = state.copyWith(errorMessage: null);
       }
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to reorder layer: $e');
+      state = state.copyWith(errorMessage: 'Impossible de réorganiser le calque : $e');
     }
   }
 
@@ -6612,10 +6612,10 @@ class EditorNotifier extends _$EditorNotifier {
         previousMap: map,
         updatedMap: updated,
         preferredActiveLayerId: state.activeLayerId,
-        statusMessage: isVisible ? 'Layer shown' : 'Layer hidden',
+        statusMessage: isVisible ? 'Calque affiché' : 'Calque masqué',
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to update layer: $e');
+      state = state.copyWith(errorMessage: 'Impossible de mettre à jour le calque : $e');
     }
   }
 
@@ -6636,7 +6636,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       state =
-          state.copyWith(errorMessage: 'Failed to update layer opacity: $e');
+          state.copyWith(errorMessage: 'Impossible de mettre à jour l\'opacité du calque : $e');
     }
   }
 
@@ -6671,7 +6671,7 @@ class EditorNotifier extends _$EditorNotifier {
   void selectSurfacePreset(String? presetId) {
     final preset = getSurfacePresetById(presetId);
     if (preset == null) {
-      state = state.copyWith(errorMessage: 'Surface not found');
+      state = state.copyWith(errorMessage: 'Surface introuvable');
       return;
     }
     state = state.copyWith(
@@ -6685,7 +6685,7 @@ class EditorNotifier extends _$EditorNotifier {
   void selectPathPresetForActivePathLayer(String? presetId) {
     final preset = getPathPresetById(presetId);
     if (preset == null) {
-      state = state.copyWith(errorMessage: 'Path preset not found');
+      state = state.copyWith(errorMessage: 'Preset de path introuvable');
       return;
     }
     selectPathPreset(presetId);
@@ -6719,12 +6719,12 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectSurfacePaintMode() {
     if (getSelectedSurfacePreset() == null) {
-      state = state.copyWith(errorMessage: 'Select a surface before painting');
+      state = state.copyWith(errorMessage: 'Sélectionnez une surface avant de peindre');
       return;
     }
     state = state.copyWith(
       activeTool: EditorToolType.surfacePaint,
-      statusMessage: 'Surface paint mode',
+      statusMessage: 'Mode peinture de surface',
       errorMessage: null,
     );
   }
@@ -6759,12 +6759,12 @@ class EditorNotifier extends _$EditorNotifier {
       state = _copyStateWithTerrainPresetSelection(
         state.copyWith(project: updated),
         selection,
-        statusMessage: 'Terrain preset created',
+        statusMessage: 'Preset de terrain créé',
         errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(
-        errorMessage: 'Failed to create terrain preset: $e',
+        errorMessage: 'Impossible de créer le preset de terrain : $e',
       );
     }
   }
@@ -6801,7 +6801,7 @@ class EditorNotifier extends _$EditorNotifier {
       final selectedPreset =
           _terrainPresetResolver.findTerrainPresetById(updated, presetId) ??
               (throw EditorNotFoundException(
-                'Terrain preset not found: $presetId',
+                'Preset de terrain introuvable : $presetId',
               ));
       final selection =
           _terrainPresetSelectionCoordinator.afterTerrainPresetUpdated(
@@ -6812,12 +6812,12 @@ class EditorNotifier extends _$EditorNotifier {
       state = _copyStateWithTerrainPresetSelection(
         state.copyWith(project: updated),
         selection,
-        statusMessage: 'Terrain preset updated',
+        statusMessage: 'Preset de terrain mis à jour',
         errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(
-        errorMessage: 'Failed to update terrain preset: $e',
+        errorMessage: 'Impossible de mettre à jour le preset de terrain : $e',
       );
     }
   }
@@ -6838,12 +6838,12 @@ class EditorNotifier extends _$EditorNotifier {
       state = _copyStateWithTerrainPresetSelection(
         state.copyWith(project: updated),
         selection,
-        statusMessage: 'Terrain preset deleted',
+        statusMessage: 'Preset de terrain supprimé',
         errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(
-        errorMessage: 'Failed to delete terrain preset: $e',
+        errorMessage: 'Impossible de supprimer le preset de terrain : $e',
       );
     }
   }
@@ -6879,11 +6879,11 @@ class EditorNotifier extends _$EditorNotifier {
         state.copyWith(project: updated),
         selection,
         activeTool: EditorToolType.terrainPaint,
-        statusMessage: 'Path preset created',
+        statusMessage: 'Preset de path créé',
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to create path preset: $e');
+      state = state.copyWith(errorMessage: 'Impossible de créer le preset de path : $e');
     }
   }
 
@@ -6919,7 +6919,7 @@ class EditorNotifier extends _$EditorNotifier {
       final selected = updated.pathPresets.firstWhere(
         (preset) => preset.id == presetId,
         orElse: () => throw EditorNotFoundException(
-          'Path preset not found: $presetId',
+          'Preset de path introuvable : $presetId',
         ),
       );
       final selection =
@@ -6931,11 +6931,11 @@ class EditorNotifier extends _$EditorNotifier {
       state = _copyStateWithTerrainPresetSelection(
         state.copyWith(project: updated),
         selection,
-        statusMessage: 'Path preset updated',
+        statusMessage: 'Preset de path mis à jour',
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to update path preset: $e');
+      state = state.copyWith(errorMessage: 'Impossible de mettre à jour le preset de path : $e');
     }
   }
 
@@ -6964,11 +6964,11 @@ class EditorNotifier extends _$EditorNotifier {
         previousMap: map,
         updatedMap: updatedMap,
         preferredActiveLayerId: state.activeLayerId,
-        statusMessage: 'Animation triggers updated',
+        statusMessage: 'Déclencheurs d\'animation mis à jour',
       );
     } catch (e) {
       state = state.copyWith(
-          errorMessage: 'Failed to update animation triggers: $e');
+          errorMessage: 'Impossible de mettre à jour les déclencheurs d\'animation : $e');
     }
   }
 
@@ -6988,11 +6988,11 @@ class EditorNotifier extends _$EditorNotifier {
         previousMap: map,
         updatedMap: updatedMap,
         preferredActiveLayerId: state.activeLayerId,
-        statusMessage: 'Animation mode updated',
+        statusMessage: 'Mode d\'animation mis à jour',
       );
     } catch (e) {
       state =
-          state.copyWith(errorMessage: 'Failed to update animation mode: $e');
+          state.copyWith(errorMessage: 'Impossible de mettre à jour le mode d\'animation : $e');
     }
   }
 
@@ -7012,11 +7012,11 @@ class EditorNotifier extends _$EditorNotifier {
       state = _copyStateWithTerrainPresetSelection(
         state.copyWith(project: updated),
         selection,
-        statusMessage: 'Path preset deleted',
+        statusMessage: 'Preset de path supprimé',
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to delete path preset: $e');
+      state = state.copyWith(errorMessage: 'Impossible de supprimer le preset de path : $e');
     }
   }
 

@@ -15,13 +15,13 @@ class _EncounterReferenceData {
       : speciesEntries = const <PokemonDatabaseIndexEntry>[],
         isSpeciesAvailable = false,
         speciesMessage =
-            'Loading local species data… Raw species IDs are still allowed during this load.';
+            'Chargement des données locales d’espèces… Les IDs d’espèces bruts restent autorisés pendant le chargement.';
 
   const _EncounterReferenceData.unavailable()
       : speciesEntries = const <PokemonDatabaseIndexEntry>[],
         isSpeciesAvailable = false,
         speciesMessage =
-            'No usable Pokémon workspace detected. Raw species IDs are still allowed, but without local assistance.';
+            'Aucun espace de travail Pokémon utilisable détecté. Les IDs d’espèces bruts restent autorisés, mais sans assistance locale.';
 
   final List<PokemonDatabaseIndexEntry> speciesEntries;
   final bool isSpeciesAvailable;
@@ -67,7 +67,7 @@ class _EncounterSpeciesStatus {
 
 String? _validateEncounterTableName(String rawName) {
   if (rawName.trim().isEmpty) {
-    return 'Table name cannot be empty.';
+    return 'Le nom de la table ne peut pas être vide.';
   }
   return null;
 }
@@ -93,7 +93,7 @@ _EncounterSpeciesStatus _resolveEncounterSpeciesStatus({
   if (speciesId.isEmpty) {
     return const _EncounterSpeciesStatus(
       message:
-          'Search by species id, local name or Pokédex number when local data is available.',
+          'Recherchez par ID d’espèce, nom local ou numéro de Pokédex lorsque les données locales sont disponibles.',
       isError: false,
     );
   }
@@ -101,7 +101,7 @@ _EncounterSpeciesStatus _resolveEncounterSpeciesStatus({
   if (!references.isSpeciesAvailable) {
     return const _EncounterSpeciesStatus(
       message:
-          'Unable to verify against local species data. Raw species IDs are still allowed.',
+          'Impossible de vérifier par rapport aux données locales d’espèces. Les IDs bruts restent autorisés.',
       isError: false,
     );
   }
@@ -109,17 +109,17 @@ _EncounterSpeciesStatus _resolveEncounterSpeciesStatus({
   final resolved = _resolveEncounterSpecies(references, speciesId);
   if (resolved == null) {
     return const _EncounterSpeciesStatus(
-      message: 'Species not present in the local Pokédex.',
+      message: 'Espèce non présente dans le Pokédex local.',
       isError: true,
     );
   }
 
   final dexLabel = resolved.nationalDex > 0
       ? '#${resolved.nationalDex.toString().padLeft(4, '0')}'
-      : 'No dex number';
+      : 'Aucun numéro de Pokédex';
   return _EncounterSpeciesStatus(
     message:
-        'Local species match: ${resolved.primaryName} • $dexLabel • ${resolved.id}',
+        'Correspondance d’espèce locale : ${resolved.primaryName} • $dexLabel • ${resolved.id}',
     isError: false,
   );
 }
@@ -169,14 +169,14 @@ String? _formatEncounterShare(double? share) {
 
 String _kindLabel(EncounterKind kind) {
   return switch (kind) {
-    EncounterKind.walk => 'Walk',
-    EncounterKind.surf => 'Surf',
-    EncounterKind.headbutt => 'Headbutt',
-    EncounterKind.oldRod => 'Old Rod',
-    EncounterKind.goodRod => 'Good Rod',
-    EncounterKind.superRod => 'Super Rod',
-    EncounterKind.gift => 'Gift',
-    EncounterKind.special => 'Special',
+    EncounterKind.walk => 'Marcher',
+    EncounterKind.surf => 'Surfer',
+    EncounterKind.headbutt => 'Coup de tête',
+    EncounterKind.oldRod => 'Canne',
+    EncounterKind.goodRod => 'Super Canne',
+    EncounterKind.superRod => 'Méga Canne',
+    EncounterKind.gift => 'Cadeau',
+    EncounterKind.special => 'Spécial',
   };
 }
 
@@ -191,28 +191,28 @@ extension _EncounterTablesPanelSupport on _EncounterTablesPanelState {
 
     String? speciesMessage;
     if (speciesId.isEmpty) {
-      speciesMessage = 'Species ID cannot be empty.';
+      speciesMessage = 'L\'ID de l\'espèce ne peut pas être vide.';
     } else if (references.isSpeciesAvailable &&
         _resolveEncounterSpecies(references, speciesId) == null) {
       speciesMessage =
-          'Species "$speciesId" is not present in the local Pokédex.';
+          'L\'espèce "$speciesId" n\'est pas présente dans le Pokédex local.';
     }
 
     String? minLevelMessage;
     if (minLevel == null || minLevel <= 0) {
-      minLevelMessage = 'Min level must be a positive integer.';
+      minLevelMessage = 'Le niveau min doit être un entier positif.';
     }
 
     String? maxLevelMessage;
     if (maxLevel == null || maxLevel <= 0) {
-      maxLevelMessage = 'Max level must be a positive integer.';
+      maxLevelMessage = 'Le niveau max doit être un entier positif.';
     } else if (minLevel != null && minLevel > 0 && minLevel > maxLevel) {
-      maxLevelMessage = 'Max level must be greater than or equal to min level.';
+      maxLevelMessage = 'Le niveau max doit être supérieur ou égal au niveau min.';
     }
 
     String? weightMessage;
     if (weight == null || weight <= 0) {
-      weightMessage = 'Weight must be a positive integer.';
+      weightMessage = 'Le poids doit être un entier positif.';
     }
 
     return _EncounterEntryDraftValidation(

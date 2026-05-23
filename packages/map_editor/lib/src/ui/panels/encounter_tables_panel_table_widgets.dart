@@ -46,7 +46,7 @@ Widget _buildReferencesBanner(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Local species assist',
+                    'Assistant d\'espèces local',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -203,7 +203,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                 const InspectorEmbeddedSectionLabel('Nouvelle table')
               else
                 Text(
-                  'New Table',
+                  'Nouvelle table',
                   style: TextStyle(
                     fontSize: 12,
                     color: CupertinoColors.secondaryLabel.resolveFrom(context),
@@ -214,7 +214,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
               _labeledField(
                 context,
                 fieldKey: const Key('encounter-tables-create-name-field'),
-                label: 'Name',
+                label: 'Nom',
                 placeholder: 'Grass Patch',
                 controller: _newTableNameController,
                 onChanged: (_) => _runLocalStateMutation(() {
@@ -226,7 +226,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
               if (widget.embedded)
                 InspectorEmbeddedDropdown(
                   accent: accent,
-                  fieldLabel: 'Kind',
+                  fieldLabel: 'Type',
                   valueLabel: _kindLabel(_newTableKind),
                   orderedIds: EncounterKind.values.map((k) => k.name).toList(),
                   selectedMenuValue: _newTableKind.name,
@@ -238,7 +238,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                     _newTableKind =
                         EncounterKind.values.firstWhere((k) => k.name == id);
                   }),
-                  tooltip: 'Encounter kind',
+                  tooltip: 'Type de rencontre',
                 )
               else
                 CupertinoButton(
@@ -247,7 +247,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                   onPressed: () async {
                     final picked = await showCupertinoListPicker<EncounterKind>(
                       context: context,
-                      title: 'Encounter Kind',
+                      title: 'Type de rencontre',
                       items: EncounterKind.values,
                       labelOf: _kindLabel,
                     );
@@ -255,7 +255,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                       _runLocalStateMutation(() => _newTableKind = picked);
                     }
                   },
-                  child: Text('Kind: ${_kindLabel(_newTableKind)}'),
+                  child: Text('Type : ${_kindLabel(_newTableKind)}'),
                 ),
               if (message != null && inlineValidation == null) ...[
                 const SizedBox(height: 8),
@@ -277,7 +277,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                       onPressed: inlineValidation == null
                           ? () => _createTable(notifier)
                           : null,
-                      child: const Text('Create'),
+                      child: const Text('Créer'),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -286,7 +286,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                     onPressed: () => _runLocalStateMutation(
                       _resetCreateTableDraft,
                     ),
-                    child: const Text('Cancel'),
+                    child: const Text('Annuler'),
                   ),
                 ],
               ),
@@ -367,7 +367,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${_kindLabel(table.encounterKind)} · ${table.entries.length} entr${table.entries.length == 1 ? 'y' : 'ies'} · total weight $totalWeight · ${table.id}',
+                          '${_kindLabel(table.encounterKind)} · ${table.entries.length} entrée${table.entries.length == 1 ? '' : 's'} · poids total $totalWeight · ${table.id}',
                           style: TextStyle(fontSize: 11, color: subtle),
                         ),
                       ],
@@ -424,7 +424,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
         _labeledField(
           context,
           fieldKey: Key('encounter-tables-edit-name-field-${table.id}'),
-          label: 'Name',
+          label: 'Nom',
           placeholder: 'Grass Patch',
           controller: _editTableNameController,
           onChanged: (_) => _runLocalStateMutation(() {
@@ -436,7 +436,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
         if (widget.embedded)
           InspectorEmbeddedDropdown(
             accent: accent,
-            fieldLabel: 'Kind',
+            fieldLabel: 'Type',
             valueLabel: _kindLabel(_editTableKind),
             orderedIds: EncounterKind.values.map((k) => k.name).toList(),
             selectedMenuValue: _editTableKind.name,
@@ -448,7 +448,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
               _editTableKind =
                   EncounterKind.values.firstWhere((k) => k.name == id);
             }),
-            tooltip: 'Encounter kind',
+            tooltip: 'Type de rencontre',
           )
         else
           CupertinoButton(
@@ -457,7 +457,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
             onPressed: () async {
               final picked = await showCupertinoListPicker<EncounterKind>(
                 context: context,
-                title: 'Encounter Kind',
+                title: 'Type de rencontre',
                 items: EncounterKind.values,
                 labelOf: _kindLabel,
               );
@@ -465,7 +465,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                 _runLocalStateMutation(() => _editTableKind = picked);
               }
             },
-            child: Text('Kind: ${_kindLabel(_editTableKind)}'),
+            child: Text('Type : ${_kindLabel(_editTableKind)}'),
           ),
         if (_editTableValidationMessage != null &&
             inlineValidation == null) ...[
@@ -486,7 +486,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
                 onPressed: inlineValidation == null
                     ? () => _updateTable(notifier, table.id)
                     : null,
-                child: const Text('Save Table'),
+                child: const Text('Enregistrer la table'),
               ),
             ),
             const SizedBox(width: 8),
@@ -494,7 +494,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
               key: Key('encounter-tables-delete-table-button-${table.id}'),
               padding: const EdgeInsets.symmetric(vertical: 8),
               onPressed: () => _deleteTable(notifier, table.id),
-              child: const Text('Delete Table'),
+              child: const Text('Supprimer la table'),
             ),
           ],
         ),
@@ -505,7 +505,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
           children: [
             Expanded(
               child: Text(
-                'Entries (${table.entries.length})',
+                'Entrées (${table.entries.length})',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -514,7 +514,7 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
               ),
             ),
             Text(
-              'Total weight: $totalWeight',
+              'Poids total : $totalWeight',
               style: TextStyle(fontSize: 11, color: subtle),
             ),
             const SizedBox(width: 8),
@@ -538,14 +538,14 @@ extension _EncounterTablesPanelTableWidgets on _EncounterTablesPanelState {
         ),
         const SizedBox(height: 4),
         Text(
-          'Higher weight means the entry appears more often. Percentages below are derived from the current table.',
+          'Un poids plus élevé augmente la fréquence d’apparition. Les pourcentages ci-dessous sont calculés à partir de la table actuelle.',
           style: TextStyle(fontSize: 11, color: subtle, height: 1.35),
         ),
         if (table.entries.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Text(
-              'No entries yet.',
+              'Aucune entrée pour le moment.',
               style: TextStyle(
                 fontSize: 11,
                 color: CupertinoColors.placeholderText.resolveFrom(context),

@@ -243,7 +243,7 @@ class _PokemonMovesCatalogWorkspaceState
                           projectRootPath,
                           dryRun: true,
                         ),
-                child: const Text('Preview sync'),
+                child: const Text('Prévisualiser la synchro'),
               ),
               const SizedBox(width: 8),
               CupertinoButton(

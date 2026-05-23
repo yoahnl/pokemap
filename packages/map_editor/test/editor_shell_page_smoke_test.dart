@@ -84,7 +84,7 @@ void main() {
       expect(find.text('Indoor'), findsAtLeastNWidgets(1));
       expect(
         find.text(
-          'Visual library editing for tiles, elements and groups.',
+          'Bibliothèque visuelle pour éditer les tuiles, éléments et groupes.',
         ),
         findsOneWidget,
       );
@@ -102,7 +102,7 @@ void main() {
 
       expect(find.text('Trainer Studio'), findsWidgets);
       expect(
-        find.textContaining('battle-ready rosters'),
+        find.textContaining('listes prêtes au combat'),
         findsOneWidget,
       );
       expect(

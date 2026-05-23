@@ -160,20 +160,20 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
         ? 'Ouvrez une carte pour commencer à construire votre monde.'
         : '${activeMap.size.width} × ${activeMap.size.height} tuiles • ${activeMap.layers.length} couches',
     EditorWorkspaceMode.tileset => selectedTileset == null
-        ? 'Select a tileset to browse and curate your library.'
-        : 'Visual library editing for tiles, elements and groups.',
+        ? 'Sélectionnez un tileset pour parcourir et organiser votre bibliothèque.'
+        : 'Bibliothèque visuelle pour éditer les tuiles, éléments et groupes.',
     EditorWorkspaceMode.trainer =>
-      'Create trainers, teams and battle-ready rosters without editing raw JSON.',
+      'Créez des dresseurs, des équipes et des listes prêtes au combat sans éditer de JSON brut.',
     EditorWorkspaceMode.pokedex =>
       'Pokédex, Moves et Items réunis dans un même pôle de catalogues Pokémon.',
     EditorWorkspaceMode.globalStory =>
-      'Macro narrative progression: arcs, milestones and high-level branches.',
+      'Progression narrative macro : arcs, jalons et branches de haut niveau.',
     EditorWorkspaceMode.step =>
-      'Step logic workspace: progression rules, expected outcomes, linked cutscenes.',
+      'Espace logique des étapes : règles de progression, résultats attendus, cinématiques liées.',
     EditorWorkspaceMode.cutscene =>
-      'Scene execution workspace: dialogue, movement, waits, local branching.',
+      'Espace d’exécution de scène : dialogues, mouvements, attentes, embranchements locaux.',
     EditorWorkspaceMode.dialogue =>
-      'Conversation authoring: visual blocks, preview, Yarn export — not a raw script IDE.',
+      'Création de conversations : blocs visuels, prévisualisation, export Yarn — pas un IDE de script brut.',
     EditorWorkspaceMode.pathStudio =>
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>

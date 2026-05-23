@@ -178,7 +178,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
                                   Icon(CupertinoIcons.add_circled, size: 16),
                                   SizedBox(width: 6),
                                   Text(
-                                    'New Table',
+                                    'Nouvelle table',
                                     style: TextStyle(fontSize: 13),
                                   ),
                                 ],
@@ -195,7 +195,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Text(
-                        'No encounter tables. Create one above.',
+                        'Aucune table de rencontres. Créez-en une ci-dessus.',
                         style: TextStyle(
                           color: CupertinoColors.placeholderText
                               .resolveFrom(context),
@@ -233,7 +233,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
               children: [
                 Expanded(
                   child: Text(
-                    'ENCOUNTER TABLES',
+                    'TABLES DE RENCONTRES',
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.0,

@@ -59,15 +59,15 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Weight ${entry.weight}${chanceLabel == null ? '' : ' • $chanceLabel'}',
+                    'Poids ${entry.weight}${chanceLabel == null ? '' : ' • $chanceLabel'}',
                     style: TextStyle(fontSize: 11, color: subtle),
                   ),
                   if (resolvedSpecies == null) ...[
                     const SizedBox(height: 4),
                     Text(
                       references.isSpeciesAvailable
-                          ? 'Species not present in the local Pokédex.'
-                          : 'Local species verification unavailable. The raw species ID is preserved.',
+                          ? 'Espèce non présente dans le Pokédex local.'
+                          : 'Vérification d’espèce locale indisponible. L’ID brut d’espèce est conservé.',
                       style: const TextStyle(
                         color: EditorChrome.inspectorJoyCoral,
                         fontSize: 11,
@@ -82,7 +82,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
             EditorToolbarIconButton(
               onPressed: onDelete,
               icon: CupertinoIcons.trash,
-              tooltip: 'Delete entry',
+              tooltip: 'Supprimer l\'entrée',
               iconSize: 15,
             ),
           ],
@@ -122,7 +122,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isNew ? 'New Entry' : 'Edit Entry',
+              isNew ? 'Nouvelle entrée' : 'Modifier l\'entrée',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -133,7 +133,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
             _labeledField(
               context,
               fieldKey: const Key('encounter-tables-entry-species-field'),
-              label: 'Species ID',
+              label: 'ID de l\'espèce',
               placeholder: 'bulbasaur',
               controller: _entrySpeciesController,
               onChanged: (_) => _runLocalStateMutation(() {
@@ -152,7 +152,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
               if (!references.isSpeciesAvailable)
                 _buildInlineMessage(
                   context,
-                  'Local species suggestions are unavailable right now.',
+                  'Les suggestions locales d\'espèces sont indisponibles pour le moment.',
                   isError: true,
                   key: const Key(
                     'encounter-tables-entry-species-search-unavailable',
@@ -161,7 +161,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
               else if (suggestions.isEmpty)
                 _buildInlineMessage(
                   context,
-                  'No local species suggestion matches this query.',
+                  'Aucune suggestion d\'espèce locale ne correspond.',
                   isError: true,
                   key: const Key(
                     'encounter-tables-entry-species-search-empty',
@@ -225,7 +225,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'Use',
+                                'Utiliser',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -247,7 +247,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
                     context,
                     fieldKey:
                         const Key('encounter-tables-entry-min-level-field'),
-                    label: 'Min Lv',
+                    label: 'Niv min',
                     placeholder: '1',
                     controller: _entryMinLevelController,
                     keyboardType: TextInputType.number,
@@ -266,7 +266,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
                     context,
                     fieldKey:
                         const Key('encounter-tables-entry-max-level-field'),
-                    label: 'Max Lv',
+                    label: 'Niv max',
                     placeholder: '5',
                     controller: _entryMaxLevelController,
                     keyboardType: TextInputType.number,
@@ -284,7 +284,7 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
                   child: _labeledField(
                     context,
                     fieldKey: const Key('encounter-tables-entry-weight-field'),
-                    label: 'Weight',
+                    label: 'Poids',
                     placeholder: '1',
                     controller: _entryWeightController,
                     keyboardType: TextInputType.number,
@@ -303,8 +303,8 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
             _buildInlineMessage(
               context,
               previewShare == null
-                  ? 'Higher weight means the entry appears more often.'
-                  : 'With the current draft, this entry would represent $previewShare of the table.',
+                  ? 'Un poids plus élevé augmente la fréquence d’apparition de l’entrée.'
+                  : 'Avec ce projet, cette entrée représenterait $previewShare de la table.',
               isError: false,
             ),
             if (_entryValidationMessage != null &&
@@ -326,14 +326,14 @@ extension _EncounterTablesPanelEntryWidgets on _EncounterTablesPanelState {
                     onPressed: validation.firstMessage == null
                         ? () => _saveEntry(notifier, table.id, references)
                         : null,
-                    child: Text(isNew ? 'Add' : 'Save'),
+                    child: Text(isNew ? 'Ajouter' : 'Enregistrer'),
                   ),
                 ),
                 const SizedBox(width: 6),
                 CupertinoButton(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   onPressed: () => _runLocalStateMutation(_closeEntryEditor),
-                  child: const Text('Cancel'),
+                  child: const Text('Annuler'),
                 ),
               ],
             ),

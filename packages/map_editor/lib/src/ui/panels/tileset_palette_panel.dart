@@ -610,8 +610,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       Flexible(
                         child: Text(
                           _creationMode
-                              ? 'Exit Element Creation'
-                              : 'Create Element',
+                              ? 'Quitter la création d\'élément'
+                              : 'Créer un élément',
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                         ),
@@ -2283,12 +2283,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Create Element',
+                    'Créer un élément',
                     style: editorMacosSheetTitleStyle(ctx),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Source: ${source.width}x${source.height} at (${source.x}, ${source.y})',
+                    'Source : ${source.width} × ${source.height} à (${source.x}, ${source.y})',
                     style: TextStyle(
                       fontSize: 12,
                       color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
@@ -2298,7 +2298,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   MacosTextField(
                     controller: nameController,
                     autofocus: true,
-                    placeholder: 'Name',
+                    placeholder: 'Nom',
                   ),
                   const SizedBox(height: 12),
                   Align(
@@ -2309,7 +2309,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       onPressed: () async {
                         final picked = await showCupertinoListPicker<String>(
                           context: ctx,
-                          title: 'Category',
+                          title: 'Catégorie',
                           items: categories.map((c) => c.id).toList(),
                           labelOf: (id) => _buildCategoryPathLabel(
                             categoriesById: categoriesById,
@@ -2317,11 +2317,11 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           ),
                         );
                         if (picked != null) {
-                          setStateDialog(() => selectedCategoryId = picked);
+                           setStateDialog(() => selectedCategoryId = picked);
                         }
                       },
                       child: Text(
-                        'Category: ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId!)}',
+                        'Catégorie : ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId!)}',
                       ),
                     ),
                   ),
@@ -2338,7 +2338,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         ];
                         final picked = await showCupertinoListPicker<String>(
                           context: ctx,
-                          title: 'Tileset Group',
+                          title: 'Groupe de tileset',
                           items: items,
                           labelOf: tilesetGroupRowLabel,
                         );
@@ -2350,7 +2350,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         }
                       },
                       child: Text(
-                        'Tileset Group: ${tilesetGroupRowLabel(selectedTilesetGroupId ?? '')}',
+                        'Groupe de tileset : ${tilesetGroupRowLabel(selectedTilesetGroupId ?? '')}',
                       ),
                     ),
                   ),
@@ -2367,7 +2367,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         ];
                         final picked = await showCupertinoListPicker<String>(
                           context: ctx,
-                          title: 'Scope Group',
+                          title: 'Groupe de scope',
                           items: items,
                           labelOf: scopeRowLabel,
                         );
@@ -2379,7 +2379,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         }
                       },
                       child: Text(
-                        'Scope Group: ${scopeRowLabel(selectedGroupId ?? '')}',
+                        'Groupe de scope : ${scopeRowLabel(selectedGroupId ?? '')}',
                       ),
                     ),
                   ),
@@ -2396,7 +2396,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         ];
                         final picked = await showCupertinoListPicker<String>(
                           context: ctx,
-                          title: 'Recommended Layer',
+                          title: 'Calque recommandé',
                           items: items,
                           labelOf: layerRowLabel,
                         );
@@ -2408,14 +2408,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         }
                       },
                       child: Text(
-                        'Recommended Layer: ${layerRowLabel(selectedLayerId ?? '')}',
+                        'Calque recommandé : ${layerRowLabel(selectedLayerId ?? '')}',
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   MacosTextField(
                     controller: tagsController,
-                    placeholder: 'Tags (tree,outdoor,oak)',
+                    placeholder: 'Tags (arbre,exterieur,oak)',
                   ),
                   const SizedBox(height: 12),
                   Align(
@@ -2436,7 +2436,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         }
                       },
                       child: Text(
-                        'Type: ${_elementPresetLabel(selectedPresetKind)}',
+                        'Type : ${_elementPresetLabel(selectedPresetKind)}',
                       ),
                     ),
                   ),
@@ -2483,7 +2483,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                         controlSize: ControlSize.large,
                         secondary: true,
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel'),
+                        child: const Text('Annuler'),
                       ),
                       const SizedBox(width: 10),
                       PushButton(
@@ -2492,14 +2492,14 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                           if (nameController.text.trim().isEmpty) {
                             await showCupertinoEditorAlert(
                               ctx,
-                              message: 'Name is required.',
+                              message: 'Le nom est obligatoire.',
                             );
                             return;
                           }
                           shouldSave = true;
                           Navigator.pop(ctx);
                         },
-                        child: const Text('Create'),
+                        child: const Text('Créer'),
                       ),
                     ],
                   ),

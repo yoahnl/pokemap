@@ -249,7 +249,7 @@ class _PokemonItemsCatalogWorkspaceState
                           dryRun: true,
                           downloadSprites: false,
                         ),
-                child: const Text('Preview sync'),
+                child: const Text('Prévisualiser la synchro'),
               ),
               const SizedBox(width: 8),
               CupertinoButton(
