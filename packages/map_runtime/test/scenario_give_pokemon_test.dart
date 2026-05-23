@@ -74,6 +74,8 @@ void main() {
       expect(state.party.members, hasLength(1));
       expect(state.party.members.first.speciesId, 'test_species');
       expect(state.party.members.first.level, 7);
+      // currentHp defaults to level when not provided.
+      expect(state.party.members.first.currentHp, 7);
     });
 
     test('givePokemon uses defaults for optional params', () {
@@ -131,6 +133,8 @@ void main() {
       expect(pokemon.level, 5); // default level
       expect(pokemon.natureId, 'hardy'); // default nature
       expect(pokemon.abilityId, 'unknown'); // default ability
+      expect(pokemon.knownMoveIds, isEmpty); // default: no moves
+      expect(pokemon.currentHp, 5); // default: equals level
     });
 
     test('givePokemon blocks when speciesId is missing', () {
@@ -253,6 +257,294 @@ void main() {
         ),
       );
       expect(state.party.members, hasLength(1));
+    });
+
+    test('givePokemon accepts knownMoveIds from payload', () {
+      final scenario = ScenarioAsset(
+        id: 'test_moves',
+        name: 'With moves',
+        entryNodeId: 'source',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioSourceEntityInteract,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'test_map',
+              entityId: 'test_npc',
+            ),
+          ),
+          ScenarioNode(
+            id: 'give',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionGivePokemon,
+              params: {
+                'speciesId': 'test_species',
+                'level': '10',
+                'knownMoveIds': 'tackle,growl',
+              },
+            ),
+          ),
+          ScenarioNode(
+            id: 'end',
+            type: ScenarioNodeType.end,
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'give'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'give', toNodeId: 'end'),
+        ],
+      );
+
+      var state = const GameState(saveId: 'test');
+      executor.dispatch(
+        scenarios: [scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'test_map',
+          entityId: 'test_npc',
+        ),
+        context: makeContext(
+          state: state,
+          onUpdate: (next) => state = next,
+        ),
+      );
+
+      expect(state.party.members, hasLength(1));
+      final pokemon = state.party.members.first;
+      expect(pokemon.knownMoveIds, ['tackle', 'growl']);
+    });
+
+    test('givePokemon trims knownMoveIds', () {
+      final scenario = ScenarioAsset(
+        id: 'test_trim_moves',
+        name: 'Trim moves',
+        entryNodeId: 'source',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioSourceEntityInteract,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'test_map',
+              entityId: 'test_npc',
+            ),
+          ),
+          ScenarioNode(
+            id: 'give',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionGivePokemon,
+              params: {
+                'speciesId': 'test_species',
+                'knownMoveIds': ' tackle , growl , ',
+              },
+            ),
+          ),
+          ScenarioNode(
+            id: 'end',
+            type: ScenarioNodeType.end,
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'give'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'give', toNodeId: 'end'),
+        ],
+      );
+
+      var state = const GameState(saveId: 'test');
+      executor.dispatch(
+        scenarios: [scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'test_map',
+          entityId: 'test_npc',
+        ),
+        context: makeContext(
+          state: state,
+          onUpdate: (next) => state = next,
+        ),
+      );
+
+      final pokemon = state.party.members.first;
+      expect(pokemon.knownMoveIds, ['tackle', 'growl']);
+    });
+
+    test('givePokemon accepts currentHp from payload', () {
+      final scenario = ScenarioAsset(
+        id: 'test_hp',
+        name: 'With HP',
+        entryNodeId: 'source',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioSourceEntityInteract,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'test_map',
+              entityId: 'test_npc',
+            ),
+          ),
+          ScenarioNode(
+            id: 'give',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionGivePokemon,
+              params: {
+                'speciesId': 'test_species',
+                'level': '10',
+                'currentHp': '25',
+              },
+            ),
+          ),
+          ScenarioNode(
+            id: 'end',
+            type: ScenarioNodeType.end,
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'give'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'give', toNodeId: 'end'),
+        ],
+      );
+
+      var state = const GameState(saveId: 'test');
+      executor.dispatch(
+        scenarios: [scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'test_map',
+          entityId: 'test_npc',
+        ),
+        context: makeContext(
+          state: state,
+          onUpdate: (next) => state = next,
+        ),
+      );
+
+      final pokemon = state.party.members.first;
+      expect(pokemon.currentHp, 25);
+      expect(pokemon.level, 10);
+    });
+
+    test('givePokemon defaults currentHp to level when absent', () {
+      final scenario = ScenarioAsset(
+        id: 'test_hp_default',
+        name: 'HP defaults to level',
+        entryNodeId: 'source',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioSourceEntityInteract,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'test_map',
+              entityId: 'test_npc',
+            ),
+          ),
+          ScenarioNode(
+            id: 'give',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionGivePokemon,
+              params: {
+                'speciesId': 'test_species',
+                'level': '15',
+              },
+            ),
+          ),
+          ScenarioNode(
+            id: 'end',
+            type: ScenarioNodeType.end,
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'give'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'give', toNodeId: 'end'),
+        ],
+      );
+
+      var state = const GameState(saveId: 'test');
+      executor.dispatch(
+        scenarios: [scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'test_map',
+          entityId: 'test_npc',
+        ),
+        context: makeContext(
+          state: state,
+          onUpdate: (next) => state = next,
+        ),
+      );
+
+      final pokemon = state.party.members.first;
+      expect(pokemon.level, 15);
+      expect(pokemon.currentHp, 15); // fallback = level
+    });
+
+    test('givePokemon handles invalid currentHp safely', () {
+      final scenario = ScenarioAsset(
+        id: 'test_bad_hp',
+        name: 'Bad HP',
+        entryNodeId: 'source',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioSourceEntityInteract,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'test_map',
+              entityId: 'test_npc',
+            ),
+          ),
+          ScenarioNode(
+            id: 'give',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionGivePokemon,
+              params: {
+                'speciesId': 'test_species',
+                'level': '8',
+                'currentHp': 'not_a_number',
+              },
+            ),
+          ),
+          ScenarioNode(
+            id: 'end',
+            type: ScenarioNodeType.end,
+          ),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'give'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'give', toNodeId: 'end'),
+        ],
+      );
+
+      var state = const GameState(saveId: 'test');
+      final result = executor.dispatch(
+        scenarios: [scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'test_map',
+          entityId: 'test_npc',
+        ),
+        context: makeContext(
+          state: state,
+          onUpdate: (next) => state = next,
+        ),
+      );
+
+      expect(result.success, isTrue);
+      final pokemon = state.party.members.first;
+      expect(pokemon.level, 8);
+      expect(pokemon.currentHp, 8); // fallback = level when invalid
     });
   });
 }

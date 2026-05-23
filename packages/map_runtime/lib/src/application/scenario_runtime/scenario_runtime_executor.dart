@@ -1028,12 +1028,39 @@ class ScenarioRuntimeExecutor {
                   node.payload.params['abilityId']?.trim() ?? 'unknown';
               final preventDuplicate =
                   node.payload.params['preventDuplicate']?.trim() == 'true';
+
+              // --- knownMoveIds: comma-separated string → List<String> ---
+              // Convention: "tackle,growl" → ['tackle', 'growl'].
+              // Absent or blank → empty list (authoring decides the moves).
+              final rawMoves =
+                  node.payload.params['knownMoveIds']?.trim() ?? '';
+              final knownMoveIds = rawMoves.isEmpty
+                  ? <String>[]
+                  : rawMoves
+                      .split(',')
+                      .map((m) => m.trim())
+                      .where((m) => m.isNotEmpty)
+                      .toList();
+
+              // --- currentHp: parsed from payload, fallback = level ---
+              // Absent → defaults to the Pokémon's level (simple heuristic,
+              // avoids the arbitrary "1" and doesn't require base stats).
+              // Invalid string → same fallback.
+              final clampedLevel = level.clamp(1, 100);
+              final parsedHp = int.tryParse(
+                node.payload.params['currentHp']?.trim() ?? '',
+              );
+              final currentHp = (parsedHp != null && parsedHp >= 1)
+                  ? parsedHp
+                  : clampedLevel;
+
               final pokemon = PlayerPokemon(
                 speciesId: speciesId,
-                level: level.clamp(1, 100),
+                level: clampedLevel,
                 natureId: natureId,
                 abilityId: abilityId,
-                currentHp: 1,
+                knownMoveIds: knownMoveIds,
+                currentHp: currentHp,
               );
               const mutations = GameStateMutations();
               final nextGiveState = mutations.givePokemon(

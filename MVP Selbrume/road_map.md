@@ -652,3 +652,18 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. createNewGameState inchangé. |
 | Prochain lot | NS-GS-07 — Step Completion / Progression Hooks V0 |
 | Rapport | `reports/gameplay/ns_gs_06_give_pokemon_minimal.md` |
+
+---
+
+# Mise à jour NS-GS-06-bis — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-06-bis — GivePokemon Runtime Payload Hardening |
+| Résultat | `knownMoveIds` (comma-sep) et `currentHp` (fallback=level) ajoutés au payload runtime. 9 tests runtime passent. 16 gameplay repassent. Analyze clean. |
+| Fichiers | `scenario_runtime_executor.dart` (+31 -2), `scenario_give_pokemon_test.dart` (+292), rapport |
+| Décision | `currentHp` fallback = level (pas de base stats). `knownMoveIds` = comma-separated string. |
+| Limites | Limite party 6 non modélisée. Pas de résolution learnset/stats. |
+| Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. Mutation pure inchangée. |
+| Prochain lot | NS-GS-07 — Step Completion / Progression Hooks V0 |
+| Rapport | `reports/gameplay/ns_gs_06_bis_give_pokemon_runtime_payload_hardening.md` |
