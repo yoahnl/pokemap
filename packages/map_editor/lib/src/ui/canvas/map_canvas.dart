@@ -29,6 +29,7 @@ import '../../features/surface_painter/surface_layer_static_preview.dart';
 import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
+import '../shared/map_workspace_empty_state.dart';
 
 // Le shell du canvas garde uniquement le widget, l'interaction et la
 // synchronisation des ressources. Le painter et le cache d'images vivent dans
@@ -172,7 +173,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           _syncEditorEntityAnimationTimer(false);
         }
       });
-      return const Center(child: Text('No Map Loaded'));
+      return const MapWorkspaceEmptyState();
     }
 
     final tileWidth = settings.tileWidth * settings.displayScale;

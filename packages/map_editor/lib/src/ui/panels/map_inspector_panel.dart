@@ -26,6 +26,7 @@ import 'tile_layer_environment_inspector_section.dart';
 import 'tileset_palette_panel.dart';
 import 'trigger_properties_panel.dart';
 import 'warp_properties_panel.dart';
+import 'map_inspector_empty_state.dart';
 
 enum _InspectorSectionId {
   mapProperties,
@@ -69,16 +70,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     final activeLayer = _findActiveLayer(activeMap, state.activeLayerId);
 
     if (activeMap == null) {
-      return Container(
-        alignment: Alignment.center,
-        child: Text(
-          'Open a map to inspect layers and map systems',
-          style: TextStyle(
-            color: EditorChrome.subtleLabel(context),
-          ),
-          textAlign: TextAlign.center,
-        ),
-      );
+      return const MapInspectorEmptyState();
     }
 
     final hasTileLayers = activeMap.layers.any((layer) => layer is TileLayer);
