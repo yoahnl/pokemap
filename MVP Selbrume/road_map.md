@@ -558,8 +558,8 @@ PHASE 2 — Socle runtime générique (code)
 
 PHASE 3 — Authoring / runtime bridge (code + readiness)
 ✅ NS-GS-08   — NPC Interaction → Scene Authoring Readiness
-🔜 NS-GS-09   — Yarn Outcome → Scene Branch Readiness
-   NS-GS-10   — World Rules / Conditional Presence Readiness
+✅ NS-GS-09   — Yarn Outcome → Scene Branch Readiness
+🔜 NS-GS-10   — World Rules / Conditional Presence Readiness
    NS-GS-11   — Trainer Battle Authoring Readiness
 
 PHASE 4 — Validation depuis l’éditeur
@@ -579,14 +579,14 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-09 — Yarn Outcome → Scene Branch Readiness
+🔜 NS-GS-10 — World Rules / Conditional Presence Readiness
 ```
 
 Périmètre :
 
 ```text
-Audit et readiness du branchement scénario via Yarn outcome.
-Outcome → scène conditionnelle.
+Audit et readiness des world rules et conditional presence.
+Visibilité conditionnelle des entités.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -711,3 +711,20 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
 | Prochain lot | NS-GS-09 — Yarn Outcome → Scene Branch Readiness |
 | Rapport | `reports/gameplay/ns_gs_08_npc_interaction_scene_authoring_readiness.md` |
+
+---
+
+# Mise à jour NS-GS-09 — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-09 — Yarn Outcome → Scene Branch Readiness |
+| Résultat | Cas A : flux outcome → branch déjà complet. 9 tests de caractérisation ajoutés. Aucun code de prod modifié. Analyze clean. |
+| Fichiers | `outcome_scene_branch_readiness_test.dart` (9 tests), rapport |
+| Décision | Le pont existe : emitOutcome → flag scenario.outcome.* → condition flagIsSet → trueBranch/falseBranch. |
+| Frontière Event/Scene | ✅ Event non transformé en Scene. Scene reste le lieu du branching narratif. |
+| Garde-fou faux positif | Cas 2 : outcome technique équivalent. Gap honnête : Yarn parser → emitOutcome pas testé au niveau Flame. |
+| Limites | Tests au niveau executor, pas au niveau Dialogue/Yarn complet. World rules hors scope. |
+| Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
+| Prochain lot | NS-GS-10 — World Rules / Conditional Presence Readiness |
+| Rapport | `reports/gameplay/ns_gs_09_yarn_outcome_scene_branch_readiness.md` |
