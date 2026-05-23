@@ -1,0 +1,614 @@
+Oui. Et avec ton recadrage, la roadmap doit être **corrigée en profondeur**.
+
+Le bon cap n’est plus :
+
+```text
+Créer les contenus Selbrume dans le repo.
+```
+
+Le bon cap est :
+
+```text
+Ajouter les mécaniques génériques manquantes
+pour que toi, ensuite, tu puisses créer Selbrume dans l’éditeur.
+```
+
+Selbrume reste notre **scénario de référence / banc d’essai**, parce qu’il force PokeMap à relier map, PNJ, dialogues, scènes, combats, facts, world rules, sauvegarde et validation. Mais on ne cherche pas à produire tout le jeu Selbrume maintenant.
+
+Le vrai problème identifié reste exactement celui-ci : PokeMap a déjà beaucoup de pièces, mais il faut les câbler en **boucle jouable**.
+
+# Roadmap complète corrigée
+
+## État actuel
+
+| Lot                                        |                         Statut | Commentaire                                                                     |
+| ------------------------------------------ | -----------------------------: | ------------------------------------------------------------------------------- |
+| NS-GS-00A — Product Model                  |                         ✅ fait | Vision Narrative Studio                                                         |
+| NS-GS-00B — Readiness Audit corrigé        |                         ✅ fait | Selbrume comme référence                                                        |
+| NS-GS-00C — Glossaire                      |                         ✅ fait | vocabulaire Event / Scene / Fact / Step                                         |
+| NS-GS-00D — Event → Scene → Outcome → Fact |                         ✅ fait | contrat runtime minimal                                                         |
+| NS-GS-00E — Battle from Scene              |                         ✅ fait | combat depuis ScenarioAsset                                                     |
+| NS-GS-00F — giveItem → Bag                 |                         ✅ fait | inventaire corrigé                                                              |
+| NS-GS-01 / 01-bis                          |                         ✅ fait | spec Golden Slice + roadmap corrigée                                            |
+| NS-GS-02 / 02-bis                          |                         ✅ fait | décision : Maël donne réellement le starter                                     |
+| NS-GS-03 / 03-bis                          | ✅ fait mais à recontextualiser | inventaire utile, mais ne doit pas devenir “fixtures créées par agent”          |
+| NS-GS-04                                   | ✅ fait mais à recontextualiser | stratégie de preuve utile, mais à aligner avec “fixtures créées dans l’éditeur” |
+
+Donc je recommande un mini-lot immédiat avant de coder :
+
+```text
+NS-GS-04-bis — Mechanics-First Roadmap Alignment
+```
+
+Pourquoi ? Parce que NS-GS-03 et NS-GS-04 parlent encore beaucoup de fixtures `selbrume_initial_save.json`, contenus Bourg/Port, etc. Le rapport précise même des fixtures de test futures.  Or tu viens de clarifier que **ces fixtures, tu les feras toi-même dans l’éditeur**. Il faut donc verrouiller cette nouvelle règle avant NS-GS-05.
+
+---
+
+# Principe de gouvernance corrigé
+
+## Ce que les agents doivent faire
+
+```text
+ajouter des mécaniques génériques
+ajouter des actions runtime réutilisables
+ajouter les contrats nécessaires
+ajouter les validations nécessaires
+améliorer l’authoring dans l’éditeur si nécessaire
+créer des tests unitaires / intégration minimaux
+créer éventuellement des objets de test in-memory
+```
+
+## Ce que les agents ne doivent pas faire
+
+```text
+créer les maps Selbrume finales
+créer les PNJ Selbrume finaux
+écrire les dialogues finaux
+créer les ScenarioAssets finaux de Selbrume
+créer les trainers/battles finaux de Selbrume
+créer les fixtures projet Selbrume à ta place
+remplir un project.json Selbrume complet
+```
+
+## Exception acceptable
+
+Les agents peuvent créer des **fixtures de test techniques minimales** si elles sont nécessaires à un test automatisé, mais pas du contenu Selbrume auteur. Autrement dit :
+
+```text
+✅ Objet de test in-memory pour vérifier GivePokemon
+✅ Mini ScenarioAsset de test dans un fichier de test
+✅ Fake map minimal pour tester une world rule
+
+❌ map_bourg_selbrume finale
+❌ yarn_mael_intro final
+❌ trainer_lysa_port final
+❌ project Selbrume complet préfabriqué
+```
+
+---
+
+# Phase 1 — Alignement avant code
+
+## NS-GS-04-bis — Mechanics-First Roadmap Alignment
+
+| Champ                     | Détail                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| Type                      | Documentaire correctif                                                                        |
+| Objectif                  | Corriger NS-GS-03/04 pour dire que les fixtures Selbrume seront créées par toi dans l’éditeur |
+| Code                      | ❌ non                                                                                         |
+| Pourquoi                  | Éviter que Codex parte créer Selbrume dans le repo                                            |
+| Sortie                    | rapport ou patch documentaire court                                                           |
+| Prochain après validation | NS-GS-05                                                                                      |
+
+À corriger dans les docs :
+
+```text
+NS-GS-08/09/10/11 ne sont plus “créer contenu Selbrume”
+mais “rendre authorable / exécutable ce type de contenu”.
+```
+
+---
+
+# Phase 2 — Socle runtime générique
+
+## NS-GS-05 — New Game Minimal Runtime
+
+| Champ             | Détail                                               |
+| ----------------- | ---------------------------------------------------- |
+| Type              | Code runtime générique                               |
+| Objectif          | Permettre de démarrer une nouvelle partie proprement |
+| Ne doit pas faire | créer Selbrume                                       |
+| Package probable  | map_runtime + peut-être playable_runtime_host        |
+| Tests             | oui                                                  |
+
+But générique :
+
+```text
+créer un GameState initial propre
+définir une map de départ depuis le projet
+définir une position de départ depuis le projet
+démarrer avec party vide si le projet le demande
+charger ensuite le projet créé dans l’éditeur
+```
+
+Ce lot ne doit pas hardcoder :
+
+```text
+map_bourg_selbrume
+entity_mael_bourg
+sproutle
+Lysa
+```
+
+Il doit plutôt permettre :
+
+```text
+ProjectManifest.startMapId
+ProjectManifest.startSpawnId ou équivalent
+initial party policy
+initial bag policy
+initial flags vides
+```
+
+Résultat attendu :
+
+```text
+PokeMap sait lancer une nouvelle partie générique.
+```
+
+---
+
+## NS-GS-06 — GivePokemon Minimal
+
+| Champ             | Détail                                                 |
+| ----------------- | ------------------------------------------------------ |
+| Type              | Code gameplay/runtime générique                        |
+| Objectif          | Ajouter un Pokémon à la party via une action narrative |
+| Ne doit pas faire | créer Sproutle dans un projet Selbrume                 |
+| Package probable  | map_gameplay + map_runtime + map_core si besoin        |
+| Tests             | obligatoires                                           |
+
+Mécanique générique :
+
+```text
+Action narrative GivePokemon
+→ crée ou reçoit un PlayerPokemon
+→ ajoute à GameState.party
+→ empêche doublons si demandé
+→ compatible save/load
+```
+
+Non-objectifs :
+
+```text
+pas de choix de starter
+pas d’UI starter complète
+pas de PC
+pas de système complet de cadeaux Pokémon
+pas de modèle “tous les jeux commencent par starter”
+```
+
+Ce lot est devenu obligatoire, parce que tu veux que le joueur reçoive réellement le Pokémon en jeu, pas qu’il soit préchargé magiquement.
+
+---
+
+## NS-GS-07 — Step Completion / Progression Hooks V0
+
+| Champ             | Détail                                                                     |
+| ----------------- | -------------------------------------------------------------------------- |
+| Type              | Code runtime générique ou audit+code conditionnel                          |
+| Objectif          | Permettre de compléter une étape d’histoire depuis une action/fact/outcome |
+| Ne doit pas faire | câbler les steps Selbrume finaux                                           |
+| Tests             | oui                                                                        |
+
+À vérifier / ajouter :
+
+```text
+CompleteStep action
+Step completed when fact set
+Step completed when scene outcome emitted
+Step completed after cutscene end
+Step progression persisted in save/load
+```
+
+Pourquoi c’est important : Selbrume demande de passer de “starter reçu” à “mission reçue”, puis “rival battu”, etc. Le document de stratégie rappelle que la progression doit être vérifiée par steps/facts/world rules et que `whenCutsceneEnds` peut ne pas suffire.
+
+---
+
+# Phase 3 — Authoring / runtime bridge générique
+
+Cette phase remplace les anciens lots “Bourg Selbrume / Port Brisants Content”.
+
+## NS-GS-08 — NPC Interaction → Scene Authoring Readiness
+
+| Champ             | Détail                                                          |
+| ----------------- | --------------------------------------------------------------- |
+| Type              | Runtime/editor readiness                                        |
+| Ancien sens       | Bourg Selbrume / Maël Content                                   |
+| Nouveau sens      | Permettre à l’éditeur d’authorer un PNJ qui déclenche une scène |
+| Ne doit pas faire | créer Maël                                                      |
+
+À prouver :
+
+```text
+un NPC créé dans l’éditeur peut référencer une scène
+une interaction joueur → PNJ lance cette scène
+la scène peut déclencher des actions gameplay
+la scène peut poser des facts
+la scène peut émettre des outcomes
+la scène peut être rejouée ou bloquée selon condition
+```
+
+Cas de référence :
+
+```text
+“Maël donne un starter”
+```
+
+Mais l’agent doit implémenter :
+
+```text
+“un PNJ peut donner un Pokémon et poser une mission”
+```
+
+Pas :
+
+```text
+“créer npc_mael dans le repo”
+```
+
+---
+
+## NS-GS-09 — Yarn Outcome → Scene Branch Readiness
+
+| Champ             | Détail                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| Type              | Runtime/editor readiness                                                                |
+| Ancien sens       | Port Brisants / Lysa Content                                                            |
+| Nouveau sens      | Permettre à l’éditeur d’authorer un dialogue Yarn avec outcomes qui branchent une scène |
+| Ne doit pas faire | écrire yarn_rival_intro final                                                           |
+
+À prouver :
+
+```text
+Yarn expose des outcomes déclarés
+Scene peut lire ces outcomes
+Scene peut brancher selon outcome
+Scene peut jouer une cinematic placeholder
+Scene peut continuer vers une action suivante
+```
+
+Cas de référence :
+
+```text
+confident / hesitant / aggressive
+→ cinematic_rival_smiles / cinematic_rival_teases
+```
+
+L’audit mécanique insiste justement sur le besoin d’un vrai Yarn Bridge : Yarn Node → outcomes déclarés → Scene Branch → Scene Outcome → Event/Facts si nécessaire.
+
+---
+
+## NS-GS-10 — World Rules / Conditional Presence Readiness
+
+| Champ             | Détail                                           |
+| ----------------- | ------------------------------------------------ |
+| Type              | Runtime/editor readiness                         |
+| Ancien sens       | Storyline Chapter 1 Wiring                       |
+| Nouveau sens      | Permettre de modifier le monde selon facts/steps |
+| Ne doit pas faire | câbler Lysa finale                               |
+
+À prouver :
+
+```text
+un élément / PNJ peut être visible selon Fact
+un élément / PNJ peut être interactable selon Fact
+un dialogue peut changer selon Fact
+les world rules se recalculent après event
+les world rules se recalculent après save/load
+```
+
+Cas de référence :
+
+```text
+Lysa accessible seulement si :
+fact_starter_received
+AND fact_mission_started
+AND NOT fact_rival_battle_done
+```
+
+C’est un vrai bloc manquant identifié : sans World Rules, les scènes peuvent se déclencher, mais le monde ne change pas vraiment.
+
+---
+
+## NS-GS-11 — Trainer Battle Authoring Readiness
+
+| Champ             | Détail                                                                    |
+| ----------------- | ------------------------------------------------------------------------- |
+| Type              | Runtime/editor readiness                                                  |
+| Ancien sens       | Battle Lysa Authoring Fixture                                             |
+| Nouveau sens      | Permettre à l’éditeur d’authorer un combat trainer lancé depuis une scène |
+| Ne doit pas faire | créer trainer_lysa_port final                                             |
+
+À prouver :
+
+```text
+un trainer créé dans le manifest/editor est résolvable
+un NPC peut référencer ce trainer
+une scène peut lancer startTrainerBattle
+battleId/trainerId/npcEntityId sont cohérents
+victory/defeat posent les bons flags
+la scène reprend après combat
+les branches victory/defeat peuvent poser des facts
+```
+
+Le rapport NS-GS-04 liste déjà `start_trainer_battle_from_scene`, `battle_victory_sets_flags_and_continues` et `battle_defeat_sets_flags_and_continues` comme tests clés.
+
+---
+
+# Phase 4 — Validation globale par projet créé dans l’éditeur
+
+## NS-GS-12 — Editor-authored Golden Slice Validation
+
+| Champ             | Détail                                |
+| ----------------- | ------------------------------------- |
+| Type              | Validation / smoke test               |
+| Ancien sens       | Créer fixtures + smoke test           |
+| Nouveau sens      | Valider un projet créé dans l’éditeur |
+| Ne doit pas faire | créer le projet à ta place            |
+
+Principe :
+
+```text
+Tu crées dans l’éditeur :
+- une map de départ
+- un PNJ mentor
+- une scène qui donne un Pokémon
+- une map port
+- une rivale
+- un combat
+- des world rules
+- une save / lancement
+
+L’agent fournit :
+- check-list de validation
+- smoke harness générique si nécessaire
+- tests sur le runtime générique
+- diagnostics si le projet créé est cassé
+```
+
+À prouver :
+
+```text
+nouvelle partie
+party vide
+PNJ donne Pokémon
+save/load conserve le Pokémon
+world rule débloque PNJ rival
+dialogue outcome branche
+combat trainer démarre
+victory branch fonctionne
+defeat branch fonctionne
+facts/steps/world rules persistent
+```
+
+Donc NS-GS-12 ne doit plus être :
+
+```text
+“voici les fixtures Selbrume générées par Codex”
+```
+
+mais :
+
+```text
+“voici comment valider un Golden Slice créé dans l’éditeur”
+```
+
+---
+
+# Phase 5 — Validator minimal
+
+Je mettrais cette phase juste après ou en parallèle de NS-GS-12, car c’est une mécanique clé pour un outil no-code.
+
+## NS-GS-13 — Narrative Validator Minimal V0
+
+| Champ             | Détail                                                        |
+| ----------------- | ------------------------------------------------------------- |
+| Type              | Validator générique                                           |
+| Objectif          | Détecter les erreurs qui rendent un projet narratif injouable |
+| Ne doit pas faire | validator complet de tout PokeMap                             |
+
+À détecter :
+
+```text
+scene référencée absente
+dialogue Yarn absent
+outcome Yarn non géré
+trainer absent
+battleId absent
+fact utilisé mais jamais produit
+fact produit mais jamais lu
+world rule cible absente
+step impossible à compléter
+NPC référence une scene inexistante
+```
+
+Pourquoi c’est important : l’audit souligne que sans validator, un outil no-code devient vite une machine à fabriquer des projets cassés.
+
+---
+
+# Phase 6 — Extension mécanique après Golden Slice
+
+Une fois la chaîne PNJ → scène → GivePokemon → Yarn outcomes → battle → facts/world rules → save/load validée, on peut ouvrir les autres mécaniques.
+
+## NS-GS-14 — Item Pickup / GiveItem Authoring Readiness
+
+Objectif :
+
+```text
+permettre à l’éditeur de créer un objet ramassable
+poser fact picked_up
+mettre item dans Bag
+empêcher double ramassage
+persist save/load
+```
+
+SEL-B1 a déjà corrigé `giveItem → Bag`, donc ce sera probablement plus court.
+
+---
+
+## NS-GS-15 — Key Item / Door Gate Readiness
+
+Objectif :
+
+```text
+condition HasItem / HasFact
+porte ouverte/fermée
+message si bloqué
+world rule persistante
+```
+
+Cas de référence :
+
+```text
+cabane du phare
+```
+
+Mais mécanique générique :
+
+```text
+clé → porte
+```
+
+---
+
+## NS-GS-16 — Side Quest / Optional Storyline Readiness
+
+Objectif :
+
+```text
+quête annexe disponible sous condition
+steps optionnels
+récompense
+dialogue final
+world rules liées
+```
+
+Cas de référence :
+
+```text
+cristaux de sel
+Goélise
+cabane
+```
+
+Mais mécanique générique :
+
+```text
+optional storyline
+```
+
+---
+
+## NS-GS-17 — Static Encounter / Boss Battle Readiness
+
+Objectif :
+
+```text
+interactable / zone trigger lance combat static
+victory/capture/defeat outcomes
+post-battle facts
+one-shot
+save/load
+```
+
+Cas de référence :
+
+```text
+Pokémon du phare
+```
+
+---
+
+## NS-GS-18 — Reward / Money / XP Bridge Audit
+
+Objectif :
+
+```text
+auditer puis planifier XP
+money rewards
+post-battle rewards
+give item after battle
+```
+
+L’audit mécanique signale clairement que XP, level-up, moves, récompenses, bag runtime complet, shops et centre Pokémon restent de gros trous pour une boucle RPG complète.
+
+---
+
+# Roadmap synthétique finale
+
+```text
+PHASE 1 — Alignement
+✅ NS-GS-01
+✅ NS-GS-01-bis
+✅ NS-GS-02
+✅ NS-GS-02-bis
+✅ NS-GS-03
+✅ NS-GS-03-bis
+✅ NS-GS-04
+🔜 NS-GS-04-bis — Mechanics-First Roadmap Alignment
+
+PHASE 2 — Socle runtime générique
+NS-GS-05 — New Game Minimal Runtime
+NS-GS-06 — GivePokemon Minimal
+NS-GS-07 — Step Completion / Progression Hooks V0
+
+PHASE 3 — Authoring / runtime bridge
+NS-GS-08 — NPC Interaction → Scene Authoring Readiness
+NS-GS-09 — Yarn Outcome → Scene Branch Readiness
+NS-GS-10 — World Rules / Conditional Presence Readiness
+NS-GS-11 — Trainer Battle Authoring Readiness
+
+PHASE 4 — Validation depuis l’éditeur
+NS-GS-12 — Editor-authored Golden Slice Validation
+
+PHASE 5 — Sécurité no-code
+NS-GS-13 — Narrative Validator Minimal V0
+
+PHASE 6 — Extension gameplay
+NS-GS-14 — Item Pickup / GiveItem Authoring Readiness
+NS-GS-15 — Key Item / Door Gate Readiness
+NS-GS-16 — Side Quest / Optional Storyline Readiness
+NS-GS-17 — Static Encounter / Boss Battle Readiness
+NS-GS-18 — Reward / Money / XP Bridge Audit
+```
+
+# Prochain lot exact
+
+Je ferais maintenant :
+
+```text
+NS-GS-04-bis — Mechanics-First Roadmap Alignment
+```
+
+Pas du code tout de suite.
+
+Pourquoi ? Parce qu’on a officiellement changé l’interprétation de la roadmap : **les agents ne créent pas les fixtures Selbrume, ils créent les mécaniques permettant à l’éditeur de les authorer**.
+
+Après ce petit réalignement, on pourra enfin faire :
+
+```text
+NS-GS-05 — New Game Minimal Runtime
+```
+
+Mais cette fois avec le bon périmètre :
+
+```text
+générique
+réutilisable
+pas Selbrume-hardcodé
+pas de fixtures finales
+pas de contenu auteur créé par l’agent
+```
+
+C’est là qu’on évite le boss final du scope creep. Et lui, crois-moi, il a 12 barres de vie.
