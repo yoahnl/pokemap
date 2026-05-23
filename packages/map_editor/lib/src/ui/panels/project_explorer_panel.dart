@@ -533,6 +533,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) {
+    final colors = context.pokeMapColors;
     final selectedTilesetId = snapshot.selectedTilesetEntry?.id;
     final tree = buildTilesetLibraryTree(project);
 
@@ -556,7 +557,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             child: Text(
               'No tilesets yet. Import an image or create folders to organize your library.',
               style: TextStyle(
-                color: CupertinoColors.placeholderText.resolveFrom(context),
+                color: colors.textMuted,
                 fontSize: 12,
               ),
             ),
