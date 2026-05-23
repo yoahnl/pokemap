@@ -56,6 +56,103 @@ void main() {
       );
     });
 
+    test('s_shed_tail pays half HP and marks the user for switch', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'shed_tail',
+              battleEngineMethod: 's_shed_tail',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 50);
+      expect(player.switching, isTrue);
+      expect(player.effects.contains('substitute'), isTrue);
+      expect(player.effects.contains('shed_tail'), isTrue);
+      expect(
+        result.timeline.events.whereType<PsdkBattleDamageEvent>(),
+        hasLength(1),
+      );
+    });
+
+    test('s_shed_tail fails when the user has no replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'shed_tail',
+              battleEngineMethod: 's_shed_tail',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 100);
+      expect(player.switching, isFalse);
+      expect(player.effects.contains('substitute'), isFalse);
+      expect(player.effects.contains('shed_tail'), isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'shed_tail'),
+        hasLength(1),
+      );
+    });
+
+    test('s_shed_tail transfers its substitute to the incoming battler', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'shed_tail',
+              battleEngineMethod: 's_shed_tail',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final turn = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final switched = const BattleSwitchHandler().switchCombatant(
+        context: BattleHandlerContext(
+          state: turn.state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+        partyIndex: 1,
+      );
+      final incoming = switched.state.battlerAt(psdkPlayerSlot);
+      final outgoing = switched.state.partyForBank(0).first;
+      final substitute =
+          incoming.effects.effects.whereType<SubstituteEffect>().single;
+
+      expect(incoming.speciesId, 'player-reserve');
+      expect(incoming.effects.contains('substitute'), isTrue);
+      expect(incoming.effects.contains('shed_tail'), isFalse);
+      expect(substitute.remainingHp, 50);
+      expect(outgoing.currentHp, 50);
+      expect(outgoing.effects.contains('substitute'), isFalse);
+    });
+
     test('s_u_turn damages the target then marks the user for switch', () {
       final engine = PsdkBattleEngine(
         setup: _setup(

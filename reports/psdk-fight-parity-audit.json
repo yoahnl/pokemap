@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 312,
-      "partial": 18,
+      "ported": 313,
+      "partial": 17,
       "missing": 0
     },
     "entries": [
@@ -8318,12 +8318,11 @@
         "battleEngineMethod": "s_shed_tail",
         "rubyClass": "ShedTail",
         "rubyPath": "10 Move/2 Definitions/300 Substitute.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_shed_tail)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_shed_tail",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_shell_side_arm",
@@ -9221,12 +9220,11 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 6,
+        "count": 5,
         "methods": [
           "s_court_change",
           "s_magic_coat",
           "s_revival_blessing",
-          "s_shed_tail",
           "s_snatch",
           "s_teleport"
         ]

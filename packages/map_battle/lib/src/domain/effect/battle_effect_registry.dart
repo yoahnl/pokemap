@@ -38,6 +38,7 @@ import 'move/powder_effect.dart';
 import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
+import 'move/shed_tail_effect.dart';
 import 'move/snatch_effect.dart';
 import 'move/stockpile_effect.dart';
 import 'move/substitute_effect.dart';
@@ -141,6 +142,10 @@ final class BattleEffectRegistry {
         const SpikyShieldEffect(scope: LocalBattleEffectScope()),
       'salt_cure' => const SaltCureEffect(scope: LocalBattleEffectScope()),
       'smack_down' => const SmackDownEffect(scope: LocalBattleEffectScope()),
+      'shed_tail' => const ShedTailEffect(
+          scope: LocalBattleEffectScope(),
+          remainingHp: 1,
+        ),
       'snatch' => const SnatchEffect(scope: LocalBattleEffectScope()),
       'snatched' => const SnatchedEffect(scope: LocalBattleEffectScope()),
       'stockpile' => const StockpileEffect(scope: LocalBattleEffectScope()),

@@ -92,6 +92,7 @@ import '../domain/effect/move/magic_coat_effect.dart';
 import '../domain/effect/move/no_retreat_effect.dart';
 import '../domain/effect/move/octolock_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
+import '../domain/effect/move/shed_tail_effect.dart';
 import '../domain/effect/move/snatch_effect.dart';
 import '../domain/effect/move/stockpile_effect.dart';
 import '../domain/effect/move/substitute_effect.dart';
@@ -153,6 +154,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_substitute',
       resolve: _resolveSubstitute,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_shed_tail',
+      resolve: _resolveShedTail,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_add_type',
@@ -871,7 +876,6 @@ const _partialUserBankMarkerMethods = <String, String>{
   's_no_retreat': 'no_retreat',
   's_rototiller': 'rototiller',
   's_safe_guard': 'safeguard',
-  's_shed_tail': 'shed_tail',
   's_tailwind': 'tailwind',
 };
 
@@ -5928,6 +5932,132 @@ BattleMoveBehaviorResolution _resolveSubstitute(
       scope: BattlerBattleEffectScope(context.user),
       remainingHp: hpCost,
     ),
+  );
+}
+
+BattleMoveBehaviorResolution _resolveShedTail(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final user = prepared.state.battlerAt(context.user);
+  final hpCost = (user.maxHp ~/ 2).clamp(1, user.currentHp).toInt();
+  if (user.maxHp < 2 ||
+      user.currentHp <= hpCost ||
+      user.effects.contains('substitute')) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  const switchHandler = BattleSwitchHandler();
+  if (!switchHandler.hasAvailableReplacement(
+    state: prepared.state,
+    target: context.user,
+  )) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final prevention = switchHandler.resolveSwitchPrevention(
+    context: BattleHandlerContext(
+      state: prepared.state,
+      rng: prepared.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    move: context.move,
+  );
+  if (!prevention.applied) {
+    return BattleMoveBehaviorResolution(
+      state: prevention.state,
+      rng: prevention.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: prevention.reason ??
+              BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final damage = applyDirectDamage(
+    state: prevention.state,
+    user: context.user,
+    target: context.user,
+    moveId: context.move.id,
+    rng: prevention.rng,
+    turn: context.turn,
+    amount: hpCost,
+  );
+  final stagedState = damage.state.updateBattler(
+    context.user,
+    (battler) => battler.copyWith(
+      effects: battler.effects
+          .addEffect(
+            SubstituteEffect(
+              scope: BattlerBattleEffectScope(context.user),
+              remainingHp: hpCost,
+            ),
+          )
+          .addEffect(
+            ShedTailEffect(
+              scope: BattlerBattleEffectScope(context.user),
+              remainingHp: hpCost,
+            ),
+          ),
+    ),
+  );
+  final switching = switchHandler.markSwitching(
+    context: BattleHandlerContext(
+      state: stagedState,
+      rng: damage.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    switching: true,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: switching.state,
+    rng: switching.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (damage.event != null) damage.event!,
+    ],
   );
 }
 

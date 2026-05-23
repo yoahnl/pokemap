@@ -3208,6 +3208,20 @@ void main() {
             power: entry.power,
             battleEngineMethod: entry.method,
           ),
+          playerReserves: entry.method == 's_shed_tail'
+              ? <PsdkBattleCombatantSetup>[
+                  _combatant(
+                    id: 'player-reserve',
+                    types: const PsdkBattleTypes(primary: 'normal'),
+                    speed: 50,
+                    move: _move(
+                      id: 'reserve_wait',
+                      power: 0,
+                      accuracy: 1,
+                    ),
+                  ),
+                ]
+              : const <PsdkBattleCombatantSetup>[],
         );
 
         expect(
@@ -4013,6 +4027,20 @@ void main() {
             power: entry.power,
             battleEngineMethod: entry.method,
           ),
+          playerReserves: entry.method == 's_shed_tail'
+              ? <PsdkBattleCombatantSetup>[
+                  _combatant(
+                    id: 'player-reserve',
+                    types: const PsdkBattleTypes(primary: 'normal'),
+                    speed: 50,
+                    move: _move(
+                      id: 'reserve_wait',
+                      power: 0,
+                      accuracy: 1,
+                    ),
+                  ),
+                ]
+              : const <PsdkBattleCombatantSetup>[],
         );
 
         expect(
@@ -4035,6 +4063,8 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'fire'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   List<PsdkBattleMoveData> playerExtraMoves = const <PsdkBattleMoveData>[],
+  List<PsdkBattleCombatantSetup> playerReserves =
+      const <PsdkBattleCombatantSetup>[],
   PsdkBattleMoveData? opponentMove,
   int genericSeed = 0,
   int moveAccuracySeed = 3,
@@ -4099,6 +4129,7 @@ PsdkBattleTurnResult _runMove({
         switching: opponentSwitching,
         lastSentTurn: opponentLastSentTurn,
       ),
+      playerReserves: playerReserves,
       field: field,
       rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,

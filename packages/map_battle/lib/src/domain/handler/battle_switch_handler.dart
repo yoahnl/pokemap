@@ -12,6 +12,7 @@ import '../effect/battle_effect_scope.dart';
 import '../effect/field/delayed_move_effect.dart';
 import '../effect/field/healing_wish_effect.dart';
 import '../effect/field/wish_effect.dart';
+import '../effect/move/shed_tail_effect.dart';
 import '../effect/side/hazard_effects.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_type_processor.dart';
@@ -505,7 +506,12 @@ PsdkBattleCombatant _switchOutSnapshot(PsdkBattleCombatant active) {
 
 List<BattleEffect> _slotPersistentEffects(PsdkBattleCombatant active) {
   return active.effects.effects
-      .where((effect) => effect is DelayedMoveEffect || effect is WishEffect)
+      .where(
+        (effect) =>
+            effect is DelayedMoveEffect ||
+            effect is WishEffect ||
+            effect is ShedTailEffect,
+      )
       .toList(growable: false);
 }
 

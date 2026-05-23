@@ -2378,8 +2378,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_shed_tail',
     rubyClass: 'ShedTail',
     rubyPath: '10 Move/2 Definitions/300 Substitute.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_shed_tail)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_shed_tail',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(

@@ -362,8 +362,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_shed_tail': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_shed_tail)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_shed_tail',
+    status: _PsdkPortStatus.ported,
   ),
   's_shell_side_arm': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_shell_side_arm',
