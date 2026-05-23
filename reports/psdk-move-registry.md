@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 294 |
-| `partial` | 36 |
+| `ported` | 296 |
+| `partial` | 34 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -55,8 +55,8 @@ Total registered methods: 330
 | `s_chilly_reception` | `ChillyReception` | `10 Move/2 Definitions/300 ChillyReception.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_chilly_reception)` | `partial` | `field, effects` |
 | `s_chloroblast` | `MindBlown` | `10 Move/2 Definitions/300 MindBlown.rb` | `MindBlownMoveBehavior.chloroblast` | `ported` | `-` |
 | `s_clangorous_soul` | `ClangorousSoul` | `10 Move/2 Definitions/300 ClangorousSoul.rb` | `AdvancedStatMoveBehavior.clangorousSoul` | `ported` | `handler_damage, handler_stat, effects, ability` |
-| `s_conversion` | `Conversion` | `10 Move/2 Definitions/300 Conversion.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_conversion)` | `partial` | `effects` |
-| `s_conversion2` | `Conversion2` | `10 Move/2 Definitions/300 Conversion.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_conversion2)` | `partial` | `effects` |
+| `s_conversion` | `Conversion` | `10 Move/2 Definitions/300 Conversion.rb` | `StaticBasicMoveRegistry.s_conversion` | `ported` | `-` |
+| `s_conversion2` | `Conversion2` | `10 Move/2 Definitions/300 Conversion.rb` | `StaticBasicMoveRegistry.s_conversion2` | `ported` | `history` |
 | `s_core_enforcer` | `CoreEnforcer` | `10 Move/2 Definitions/300 CoreEnforcer.rb` | `StaticBasicMoveRegistry.partialBasic(s_core_enforcer)` | `partial` | `handler_damage, effects, ability, item` |
 | `s_corrosive_gas` | `CorrosiveGas` | `10 Move/2 Definitions/300 CorrosiveGas.rb` | `StaticBasicMoveRegistry.s_corrosive_gas` | `ported` | `effects` |
 | `s_counter` | `Counter` | `10 Move/2 Definitions/300 Counter moves.rb` | `CounterDamageMoveBehavior.counter` | `ported` | `-` |

@@ -49,12 +49,12 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_conversion': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_conversion)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_conversion',
+    status: _PsdkPortStatus.ported,
   ),
   's_conversion2': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_conversion2)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_conversion2',
+    status: _PsdkPortStatus.ported,
   ),
   's_counter': _KnownDartBehavior(
     dartBehavior: 'CounterDamageMoveBehavior.counter',

@@ -1271,6 +1271,94 @@ void main() {
       expect(opponent.effects.contains('change_type'), isTrue);
     });
 
+    test('s_conversion rewrites the user visible types to its first move type',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'conversion',
+          type: 'electric',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_conversion',
+          target: PsdkBattleMoveTarget.user,
+        ),
+        playerTypes: const PsdkBattleTypes(
+          primary: 'normal',
+          secondary: 'flying',
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(player.types.primary, 'electric');
+      expect(player.types.secondary, isNull);
+      expect(player.type3, isNull);
+      expect(player.temporaryTypes, isEmpty);
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isEmpty,
+      );
+    });
+
+    test('s_conversion2 rewrites the user to a resistant type', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'conversion_2',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_conversion2',
+          target: PsdkBattleMoveTarget.adjacentFoe,
+        ),
+        playerTypes: const PsdkBattleTypes(
+          primary: 'normal',
+          secondary: 'flying',
+        ),
+        opponentMove: _move(
+          id: 'surf',
+          type: 'water',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+        ),
+        opponentMoveHistory: PsdkBattleMoveHistory(
+          attempts: <PsdkBattleMoveHistoryEntry>[
+            PsdkBattleMoveHistoryEntry(
+              moveId: 'surf',
+              turn: 0,
+              targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+            ),
+          ],
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(<String>['water', 'grass', 'dragon'], contains(player.types.primary));
+      expect(player.types.secondary, isNull);
+      expect(player.type3, isNull);
+      expect(player.temporaryTypes, isEmpty);
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isEmpty,
+      );
+    });
+
+    test('s_conversion2 fails if the target has no eligible move history', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'conversion_2',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_conversion2',
+          target: PsdkBattleMoveTarget.adjacentFoe,
+        ),
+      );
+
+      final failures = result.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, BattleMoveFailureReason.unusableByUser.jsonName);
+    });
+
     test('s_magic_powder replaces the target visible types with Psychic', () {
       final result = _runMove(
         playerMove: _move(

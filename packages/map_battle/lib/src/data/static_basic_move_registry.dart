@@ -92,6 +92,8 @@ import '../domain/effect/move/triple_arrows_effect.dart';
 import '../domain/effect/move/two_turn_charge_effect.dart';
 import '../domain/effect/side/doubles_guard_effects.dart';
 import '../domain/effect/side/hazard_effects.dart';
+import '../battle_type_chart.dart';
+import '../battle_typing.dart';
 import '../psdk/domain/psdk_battle_field.dart';
 import '../psdk/domain/psdk_battle_combatant.dart';
 import '../psdk/domain/psdk_battle_move.dart';
@@ -150,6 +152,14 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_change_type',
       resolve: _resolveChangeType,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_conversion',
+      resolve: _resolveConversion,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_conversion2',
+      resolve: _resolveConversion2,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_magic_powder',
@@ -727,8 +737,6 @@ const _partialBasicDescendantMethods = <String>[
 
 const _partialTargetMarkerMethods = <String, String>{
   's_charge': 'charge',
-  's_conversion': 'conversion',
-  's_conversion2': 'conversion2',
   's_doodle': 'doodle',
   's_destiny_bond': 'destiny_bond',
   's_embargo': 'embargo',
@@ -5236,6 +5244,126 @@ BattleMoveBehaviorResolution _resolveChangeType(
   );
 }
 
+BattleMoveBehaviorResolution _resolveConversion(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final user = prepared.state.battlerAt(context.user);
+  final firstMoveType = user.moves.first.type.trim().toLowerCase();
+  if (firstMoveType.isEmpty || firstMoveType == 'unknown') {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: prepared.psdkTargets.isEmpty
+              ? context.user
+              : prepared.psdkTargets.first,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  var state = prepared.state;
+  for (final targetSlot in prepared.psdkTargets) {
+    state = _rewriteVisibleTypes(
+      state: state,
+      target: targetSlot,
+      primaryType: firstMoveType,
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: prepared.rng,
+    events: prepared.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveConversion2(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final eligibleTargets = prepared.psdkTargets
+      .map(
+        (slot) => (
+          slot: slot,
+          type: _conversion2SourceMoveType(prepared.state.battlerAt(slot)),
+          turn: prepared.state.battlerAt(slot).moveHistory.attempts.isEmpty
+              ? -1
+              : prepared.state.battlerAt(slot).moveHistory.attempts.last.turn,
+        ),
+      )
+      .where((entry) => entry.type != null)
+      .toList(growable: false);
+  if (eligibleTargets.isEmpty) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final latest = eligibleTargets.reduce(
+    (best, current) => current.turn > best.turn ? current : best,
+  );
+  final resistantTypes = _conversion2ResistantTypes(latest.type!);
+  if (resistantTypes.isEmpty) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: latest.slot,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final roll = prepared.rng.generic.nextIntInclusive(
+    min: 0,
+    max: resistantTypes.length - 1,
+  );
+  final nextState = _rewriteVisibleTypes(
+    state: prepared.state,
+    target: context.user,
+    primaryType: resistantTypes[roll.value],
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: nextState,
+    rng: prepared.rng.copyWith(generic: roll.next),
+    events: prepared.events,
+  );
+}
+
 BattleMoveBehaviorResolution _resolveMagicPowder(
   BattleMoveBehaviorContext context,
 ) {
@@ -5261,6 +5389,55 @@ BattleMoveBehaviorResolution _resolveMagicPowder(
     rng: prepared.rng,
     events: prepared.events,
   );
+}
+
+PsdkBattleState _rewriteVisibleTypes({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef target,
+  required String primaryType,
+}) {
+  return state.updateBattler(
+    target,
+    (battler) => battler.copyWith(
+      types: PsdkBattleTypes(primary: primaryType),
+      type3: null,
+      temporaryTypes: const <String>[],
+    ),
+  );
+}
+
+String? _conversion2SourceMoveType(PsdkBattleCombatant battler) {
+  final history = battler.moveHistory.attempts;
+  if (history.isEmpty) {
+    return null;
+  }
+  final lastMoveId = history.last.moveId;
+  if (lastMoveId == 'revelation_dance' || lastMoveId == 'struggle') {
+    return null;
+  }
+  final moveIndex = battler.moves.indexWhere((move) => move.id == lastMoveId);
+  if (moveIndex < 0) {
+    return null;
+  }
+  final move = battler.moves[moveIndex];
+  final type = move.type.trim().toLowerCase();
+  if (type.isEmpty || type == 'unknown') {
+    return null;
+  }
+  return type;
+}
+
+List<String> _conversion2ResistantTypes(String moveType) {
+  final normalized = moveType.trim().toLowerCase();
+  return BattleTypeChart.supportedTypes
+      .where(
+        (type) => BattleTypeChart.resolveEffectivenessMultiplier(
+              moveType: normalized,
+              defenderTyping: BattleTypingSnapshot(primaryType: type),
+            ) <
+            1.0,
+      )
+      .toList(growable: false);
 }
 
 String _addedTypeFor(String dbSymbol) {

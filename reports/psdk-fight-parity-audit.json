@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 648,
-    "partiel": 80,
+    "fait": 650,
+    "partiel": 78,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -851,17 +851,17 @@
       {
         "moveId": "conversion",
         "battleEngineMethod": "s_conversion",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/conversion.json"
       },
       {
         "moveId": "conversion_2",
         "battleEngineMethod": "s_conversion2",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/conversion_2.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 294,
-      "partial": 36,
+      "ported": 296,
+      "partial": 34,
       "missing": 0
     },
     "entries": [
@@ -6287,23 +6287,19 @@
         "battleEngineMethod": "s_conversion",
         "rubyClass": "Conversion",
         "rubyPath": "10 Move/2 Definitions/300 Conversion.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_conversion)",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.s_conversion",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_conversion2",
         "rubyClass": "Conversion2",
         "rubyPath": "10 Move/2 Definitions/300 Conversion.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_conversion2)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_conversion2",
+        "status": "ported",
         "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+          "history"
+        ]
       },
       {
         "battleEngineMethod": "s_core_enforcer",
@@ -9243,11 +9239,9 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 22,
+        "count": 20,
         "methods": [
           "s_chilly_reception",
-          "s_conversion",
-          "s_conversion2",
           "s_court_change",
           "s_destiny_bond",
           "s_doodle",

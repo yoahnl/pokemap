@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 648 |
-| partiel | 80 |
+| fait | 650 |
+| partiel | 78 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -139,8 +139,8 @@ Coverage semantics:
 | fait | constrict | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 10 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/constrict.json |
 | partiel | continental_crush | s_basic | ported | StaticBasicMoveRegistry.s_basic | rock | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/continental_crush.json |
 | partiel | continental_crush2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | rock | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/continental_crush2.json |
-| partiel | conversion | s_conversion | partial | StaticBasicMoveRegistry.partialTargetMarker(s_conversion) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion.json |
-| partiel | conversion_2 | s_conversion2 | partial | StaticBasicMoveRegistry.partialTargetMarker(s_conversion2) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion_2.json |
+| fait | conversion | s_conversion | ported | StaticBasicMoveRegistry.s_conversion | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion.json |
+| fait | conversion_2 | s_conversion2 | ported | StaticBasicMoveRegistry.s_conversion2 | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion_2.json |
 | fait | copycat | s_mirror_move | ported | CopyCallMoveBehavior.mirrorMove | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/copycat.json |
 | partiel | core_enforcer | s_core_enforcer | partial | StaticBasicMoveRegistry.partialBasic(s_core_enforcer) | dragon | special | 100 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/core_enforcer.json |
 | partiel | corkscrew_crash | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/corkscrew_crash.json |
