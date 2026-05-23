@@ -58,6 +58,7 @@ import '../domain/handler/battle_item_change_handler.dart';
 import '../domain/handler/battle_stat_change_handler.dart';
 import '../domain/handler/battle_switch_handler.dart';
 import '../domain/handler/battle_terrain_change_handler.dart';
+import '../domain/handler/battle_weather_change_handler.dart';
 import '../domain/battler/battle_grounding_resolver.dart';
 import '../domain/effect/ability/mental_immunity_ability_effect.dart';
 import '../domain/effect/battle_effect.dart';
@@ -196,6 +197,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_core_enforcer',
       resolve: _resolveCoreEnforcer,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_doodle',
+      resolve: _resolveDoodle,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_geomancy',
@@ -524,6 +529,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_teatime',
       resolve: _resolveTeatime,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_chilly_reception',
+      resolve: _resolveChillyReception,
+    ),
     for (final method in _partialTargetMarkerMethods.keys)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -799,7 +808,6 @@ const _partialBasicDescendantMethods = <String>[
 
 const _partialTargetMarkerMethods = <String, String>{
   's_charge': 'charge',
-  's_doodle': 'doodle',
   's_embargo': 'embargo',
   's_focus_energy': 'focus_energy',
   's_gastro_acid': 'ability_suppressed',
@@ -887,7 +895,6 @@ const _partialFoeBankMarkerMethods = <String, String>{
 };
 
 const _partialFieldMarkerMethods = <String, String>{
-  's_chilly_reception': 'chilly_reception',
   's_court_change': 'court_change',
   's_fairy_lock': 'fairy_lock',
   's_gravity': 'gravity',
@@ -1145,6 +1152,66 @@ BattleMoveBehaviorResolution _resolveAbilityChanging(
   );
 }
 
+BattleMoveBehaviorResolution _resolveDoodle(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = context.target;
+  final target = prepared.state.battlerAt(targetSlot);
+  const handler = BattleAbilityChangeHandler();
+  final sameBankSlots = <PsdkBattleSlotRef>[
+    context.user,
+    ...prepared.state.alliesOf(context.user),
+  ];
+  final affectedSlots = sameBankSlots
+      .where(
+        (slot) =>
+            prepared.state.battlerAt(slot).abilityId != target.abilityId &&
+            handler.canChangeAbility(
+              state: prepared.state,
+              target: slot,
+              launcher: targetSlot,
+              move: context.move,
+            ),
+      )
+      .toList(growable: false);
+  if (affectedSlots.isEmpty) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      successful: false,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+    );
+  }
+
+  var state = prepared.state;
+  for (final slot in affectedSlots) {
+    state = state.updateBattler(
+      slot,
+      (battler) => battler
+          .copyWith(abilityId: target.abilityId)
+          .withAbilityEffect(slot),
+    );
+  }
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: prepared.rng,
+    events: prepared.events,
+  );
+}
+
 BattleMoveBehaviorResolution _resolveCorrosiveGas(
   BattleMoveBehaviorContext context,
 ) {
@@ -1194,6 +1261,88 @@ BattleMoveBehaviorResolution _resolveCorrosiveGas(
     state: state,
     rng: rng,
     events: prepared.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveChillyReception(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final weather = const BattleWeatherChangeHandler().changeWeather(
+    context: BattleHandlerContext(
+      state: prepared.state,
+      rng: prepared.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    weather: PsdkBattleWeatherId.hail,
+    remainingTurns: _weatherDurationFromItems(
+      dbSymbol: 'hail',
+      itemEffects: prepared.state.activeItemEffectsAt(context.user),
+    ),
+  );
+  var state = weather.state;
+  var rng = weather.rng;
+  final events = <PsdkBattleEvent>[
+    ...prepared.events,
+    ...weather.events,
+  ];
+  var successful = weather.applied;
+
+  const switchHandler = BattleSwitchHandler();
+  if (!switchHandler.hasAvailableReplacement(
+    state: state,
+    target: context.user,
+  )) {
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+      successful: successful,
+    );
+  }
+
+  final prevention = switchHandler.resolveSwitchPrevention(
+    context: BattleHandlerContext(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    move: context.move,
+  );
+  state = prevention.state;
+  rng = prevention.rng;
+  if (!prevention.applied) {
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+      successful: successful,
+    );
+  }
+
+  final switching = switchHandler.markSwitching(
+    context: BattleHandlerContext(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    switching: true,
+  );
+  successful = true;
+  return BattleMoveBehaviorResolution(
+    state: switching.state,
+    rng: switching.rng,
+    events: events,
+    successful: successful,
   );
 }
 
@@ -5064,6 +5213,19 @@ BattleEffect _fieldMarkerEffect({
         remainingTurns: remainingTurns,
       ),
   };
+}
+
+int _weatherDurationFromItems({
+  required String dbSymbol,
+  required Iterable<BattleItemEffect> itemEffects,
+}) {
+  for (final effect in itemEffects) {
+    final duration = effect.weatherDuration(dbSymbol);
+    if (duration != null) {
+      return duration;
+    }
+  }
+  return 5;
 }
 
 int? _markerTurnCount(String battleEngineMethod) {

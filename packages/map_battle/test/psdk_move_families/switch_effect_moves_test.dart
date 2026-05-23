@@ -223,6 +223,59 @@ void main() {
       }
     });
 
+    test('s_chilly_reception applies hail and marks the user for switch', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerHeldItemId: 'icy_rock',
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'chilly_reception',
+              battleEngineMethod: 's_chilly_reception',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.field.weather?.id, PsdkBattleWeatherId.hail);
+      expect(result.state.field.weather?.remainingTurns, 7);
+      expect(
+        result.timeline.events.whereType<PsdkBattleWeatherChangedEvent>().single
+            .remainingTurns,
+        8,
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isTrue);
+    });
+
+    test(
+        's_chilly_reception still applies hail when no replacement is available',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'chilly_reception',
+              battleEngineMethod: 's_chilly_reception',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.field.weather?.id, PsdkBattleWeatherId.hail);
+      expect(result.state.field.weather?.remainingTurns, 4);
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events.whereType<PsdkBattleWeatherChangedEvent>(),
+        hasLength(1),
+      );
+    });
+
     test('s_parting_shot marks the user for switch after offensive drops', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -356,6 +409,7 @@ PsdkBattleSetup _setup({
   PsdkBattleStatStages? opponentStatStages,
   String? playerAbilityId,
   String? opponentAbilityId,
+  String? playerHeldItemId,
   bool includePlayerReserve = true,
   bool includeOpponentReserve = true,
 }) {
@@ -365,6 +419,7 @@ PsdkBattleSetup _setup({
       speed: 100,
       moves: playerMoves,
       abilityId: playerAbilityId,
+      heldItemId: playerHeldItemId,
     ),
     opponent: _combatant(
       id: 'opponent',
@@ -424,6 +479,7 @@ PsdkBattleCombatantSetup _combatant({
   required List<PsdkBattleMoveData> moves,
   PsdkBattleStatStages? statStages,
   String? abilityId,
+  String? heldItemId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -442,6 +498,7 @@ PsdkBattleCombatantSetup _combatant({
     ),
     statStages: statStages ?? PsdkBattleStatStages.neutral(),
     abilityId: abilityId,
+    heldItemId: heldItemId,
     moves: moves,
   );
 }

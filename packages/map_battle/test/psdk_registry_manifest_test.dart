@@ -1494,6 +1494,14 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.delayedMove(s_future_sight)',
         ),
         (
+          method: 's_chilly_reception',
+          behavior: 'StaticBasicMoveRegistry.s_chilly_reception',
+        ),
+        (
+          method: 's_doodle',
+          behavior: 'StaticBasicMoveRegistry.s_doodle',
+        ),
+        (
           method: 's_magic_room',
           behavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
         ),

@@ -2034,6 +2034,119 @@ void main() {
       expect(result.state.battlerAt(psdkOpponentSlot).abilityId, 'blaze');
     });
 
+    test('s_doodle copies the target ability onto every same-bank battler', () {
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final result = _resolveMoveOnState(
+        move: _move(
+          id: 'doodle',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_doodle',
+        ),
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 100,
+                move: _move(
+                  id: 'doodle',
+                  category: PsdkBattleMoveCategory.status,
+                  power: 0,
+                  accuracy: 100,
+                  battleEngineMethod: 's_doodle',
+                ),
+                abilityId: 'blaze',
+              ),
+            ),
+            allySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+                abilityId: 'torrent',
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+                abilityId: 'levitate',
+              ),
+            ),
+          },
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).abilityId, 'levitate');
+      expect(result.state.battlerAt(allySlot).abilityId, 'levitate');
+      expect(result.state.battlerAt(psdkOpponentSlot).abilityId, 'levitate');
+      expect(result.events.whereType<PsdkBattleMoveFailedEvent>(), isEmpty);
+    });
+
+    test('s_doodle fails when no same-bank battler can copy the target ability',
+        () {
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final result = _resolveMoveOnState(
+        move: _move(
+          id: 'doodle',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_doodle',
+        ),
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 100,
+                move: _move(
+                  id: 'doodle',
+                  category: PsdkBattleMoveCategory.status,
+                  power: 0,
+                  accuracy: 100,
+                  battleEngineMethod: 's_doodle',
+                ),
+                abilityId: 'levitate',
+              ),
+            ),
+            allySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+                abilityId: 'levitate',
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+                abilityId: 'levitate',
+              ),
+            ),
+          },
+        ),
+      );
+
+      expect(
+        result.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        BattleMoveFailureReason.unusableByUser.jsonName,
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).abilityId, 'levitate');
+      expect(result.state.battlerAt(allySlot).abilityId, 'levitate');
+    });
+
     test('s_memento applies imported offensive drops then knocks out user', () {
       final result = _runMove(
         playerMove: _move(
@@ -3731,12 +3844,6 @@ void main() {
         (
           method: 's_court_change',
           moveId: 'court_change',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-        ),
-        (
-          method: 's_doodle',
-          moveId: 'doodle',
           category: PsdkBattleMoveCategory.status,
           power: 0,
         ),

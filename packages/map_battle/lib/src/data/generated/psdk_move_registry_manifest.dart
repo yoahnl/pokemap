@@ -406,9 +406,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_chilly_reception',
     rubyClass: 'ChillyReception',
     rubyPath: '10 Move/2 Definitions/300 ChillyReception.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialFieldMarker(s_chilly_reception)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_chilly_reception',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.field,
       PsdkMoveDependency.effects
@@ -560,8 +559,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_doodle',
     rubyClass: 'Doodle',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_doodle)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_doodle',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(

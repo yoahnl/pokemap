@@ -200,9 +200,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_chilly_reception': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialFieldMarker(s_chilly_reception)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_chilly_reception',
+    status: _PsdkPortStatus.ported,
   ),
   's_corrosive_gas': _KnownDartBehavior(
     dartBehavior:
@@ -214,8 +213,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_doodle': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_doodle)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_doodle',
+    status: _PsdkPortStatus.ported,
   ),
   's_double_iron_bash': _KnownDartBehavior(
     dartBehavior: 'MultiHitMoveBehavior.doubleIronBash',

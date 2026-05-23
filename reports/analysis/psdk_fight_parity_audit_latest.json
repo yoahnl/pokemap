@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 310,
-      "partial": 20,
+      "ported": 312,
+      "partial": 18,
       "missing": 0
     },
     "entries": [
@@ -6254,13 +6254,12 @@
         "battleEngineMethod": "s_chilly_reception",
         "rubyClass": "ChillyReception",
         "rubyPath": "10 Move/2 Definitions/300 ChillyReception.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_chilly_reception)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_chilly_reception",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_chloroblast",
@@ -6417,12 +6416,11 @@
         "battleEngineMethod": "s_doodle",
         "rubyClass": "Doodle",
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_doodle)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_doodle",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_double_iron_bash",
@@ -9223,11 +9221,9 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 8,
+        "count": 6,
         "methods": [
-          "s_chilly_reception",
           "s_court_change",
-          "s_doodle",
           "s_magic_coat",
           "s_revival_blessing",
           "s_shed_tail",
