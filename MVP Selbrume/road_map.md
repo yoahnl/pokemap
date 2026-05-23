@@ -557,8 +557,8 @@ PHASE 2 — Socle runtime générique (code)
 ✅ NS-GS-07   — Step Completion / Progression Hooks V0
 
 PHASE 3 — Authoring / runtime bridge (code + readiness)
-🔜 NS-GS-08   — NPC Interaction → Scene Authoring Readiness
-   NS-GS-09   — Yarn Outcome → Scene Branch Readiness
+✅ NS-GS-08   — NPC Interaction → Scene Authoring Readiness
+🔜 NS-GS-09   — Yarn Outcome → Scene Branch Readiness
    NS-GS-10   — World Rules / Conditional Presence Readiness
    NS-GS-11   — Trainer Battle Authoring Readiness
 
@@ -579,14 +579,14 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-08 — NPC Interaction → Scene Authoring Readiness
+🔜 NS-GS-09 — Yarn Outcome → Scene Branch Readiness
 ```
 
 Périmètre :
 
 ```text
-Audit et readiness de l'interaction PNJ → scène narrative.
-Bridge NPC entity → ScenarioAsset.
+Audit et readiness du branchement scénario via Yarn outcome.
+Outcome → scène conditionnelle.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -696,3 +696,18 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
 | Prochain lot | NS-GS-08 — NPC Interaction → Scene Authoring Readiness |
 | Rapport | `reports/gameplay/ns_gs_07_bis_analyzer_cleanup_step_completion_tests.md` |
+
+---
+
+# Mise à jour NS-GS-08 — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-08 — NPC Interaction → Scene Authoring Readiness |
+| Résultat | Cas A : pont PNJ → scène déjà complet. 7 tests de caractérisation ajoutés. Aucun code de prod modifié. Analyze clean. |
+| Fichiers | `npc_interaction_scene_readiness_test.dart` (7 tests), rapport |
+| Décision | Le pont existe : PlayableMapGame → ScenarioRuntimeExecutor via entityInteract. Fallback dialogue NPC si aucun scénario ne matche. |
+| Limites | Tests au niveau executor, pas au niveau Flame complet. Yarn outcome et world rules hors scope. |
+| Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
+| Prochain lot | NS-GS-09 — Yarn Outcome → Scene Branch Readiness |
+| Rapport | `reports/gameplay/ns_gs_08_npc_interaction_scene_authoring_readiness.md` |
