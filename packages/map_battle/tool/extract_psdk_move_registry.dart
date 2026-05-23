@@ -70,16 +70,16 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_flower_shield': _KnownDartBehavior(
     dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)',
-    status: _PsdkPortStatus.partial,
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_flower_shield)',
+    status: _PsdkPortStatus.ported,
   ),
   's_frustration': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_frustration)',
     status: _PsdkPortStatus.partial,
   ),
   's_gear_up': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)',
+    status: _PsdkPortStatus.ported,
   ),
   's_healing_wish': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_healing_wish',
@@ -100,8 +100,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_magnetic_flux': _KnownDartBehavior(
     dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)',
-    status: _PsdkPortStatus.partial,
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_magnetic_flux)',
+    status: _PsdkPortStatus.ported,
   ),
   's_magnitude': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_magnitude',
@@ -152,8 +152,9 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_rototiller': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior:
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_rototiller)',
+    status: _PsdkPortStatus.ported,
   ),
   's_sketch': _KnownDartBehavior(
     dartBehavior: 'CopyCallMoveBehavior.sketch',

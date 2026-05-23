@@ -56,6 +56,7 @@ import '../domain/handler/battle_item_change_handler.dart';
 import '../domain/handler/battle_stat_change_handler.dart';
 import '../domain/handler/battle_switch_handler.dart';
 import '../domain/handler/battle_terrain_change_handler.dart';
+import '../domain/battler/battle_grounding_resolver.dart';
 import '../domain/effect/ability/mental_immunity_ability_effect.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_hooks.dart';
@@ -500,6 +501,22 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
         battleEngineMethod: method,
         resolve: _resolveFieldMarker,
       ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_flower_shield',
+      resolve: _resolveSupportStatMove,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_gear_up',
+      resolve: _resolveSupportStatMove,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_magnetic_flux',
+      resolve: _resolveSupportStatMove,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_rototiller',
+      resolve: _resolveSupportStatMove,
+    ),
     for (final method in _partialSecondaryOnlyMethods)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -817,6 +834,11 @@ const _singleActiveUserBankMarkerEffectIds = <String>{
   'mist',
   'safeguard',
   'tailwind',
+};
+
+const _plusMinusAbilityIds = <String>{
+  'plus',
+  'minus',
 };
 
 const _partialFoeBankMarkerMethods = <String, String>{
@@ -4046,7 +4068,8 @@ BattleMoveBehaviorResolution _resolveWish(
     events: prepared.events,
     effect: WishEffect(
       scope: BattlerBattleEffectScope(context.user),
-      healAmount: (activeUser.maxHp / 2).floor().clamp(1, activeUser.maxHp).toInt(),
+      healAmount:
+          (activeUser.maxHp / 2).floor().clamp(1, activeUser.maxHp).toInt(),
       remainingTurns: _markerTurnCount(context.move.battleEngineMethod) ?? 2,
     ),
   );
@@ -4218,6 +4241,86 @@ BattleMoveBehaviorResolution _resolveUserBankMarker(
   );
 }
 
+BattleMoveBehaviorResolution _resolveSupportStatMove(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.target,
+      move: BattleMoveDefinition.fromPsdk(
+        context.move.psdkMove.copyWith(target: PsdkBattleMoveTarget.self),
+      ),
+      moveSlot: context.moveSlot,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+    ),
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targets = _supportStatTargets(
+    state: prepared.state,
+    user: context.user,
+    battleEngineMethod: context.move.battleEngineMethod,
+  );
+  if (targets.isEmpty) {
+    return _unsupportedSupportStatMove(prepared, context);
+  }
+
+  var state = prepared.state;
+  var rng = prepared.rng;
+  final events = <PsdkBattleEvent>[...prepared.events];
+  var applied = false;
+
+  for (final target in targets) {
+    for (final change in _supportStatChanges(context.move.battleEngineMethod)) {
+      final changed = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: state,
+          rng: rng,
+          turn: context.turn,
+          user: context.user,
+        ),
+        target: target,
+        stat: change.$1,
+        stages: change.$2,
+        move: context.move,
+      );
+      state = changed.state;
+      rng = changed.rng;
+      if (changed.applied) {
+        applied = true;
+        events.addAll(changed.events);
+      }
+    }
+  }
+
+  if (!applied) {
+    return _unsupportedSupportStatMove(
+      PreparedBattleMove(
+        state: state,
+        rng: rng,
+        events: events,
+        targets: prepared.targets,
+        failureReason: null,
+        shouldExecuteBehavior: true,
+      ),
+      context,
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
+    events: events,
+  );
+}
+
 BattleMoveBehaviorResolution _resolveFoeBankMarker(
   BattleMoveBehaviorContext context,
 ) {
@@ -4274,6 +4377,69 @@ BattleMoveBehaviorResolution _resolveFoeBankMarker(
       remainingTurns: _markerTurnCount(context.move.battleEngineMethod),
     ),
   );
+}
+
+BattleMoveBehaviorResolution _unsupportedSupportStatMove(
+  PreparedBattleMove prepared,
+  BattleMoveBehaviorContext context,
+) {
+  return BattleMoveBehaviorResolution(
+    state: prepared.state,
+    rng: prepared.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      PsdkBattleMoveFailedEvent(
+        user: context.user,
+        target: context.user,
+        moveId: context.move.id,
+        reason: BattleMoveFailureReason.unusableByUser.jsonName,
+      ),
+    ],
+    successful: false,
+  );
+}
+
+List<PsdkBattleSlotRef> _supportStatTargets({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required String battleEngineMethod,
+}) {
+  return switch (battleEngineMethod) {
+    's_flower_shield' => state.aliveSlots().where((slot) {
+        return state.battlerAt(slot).hasType('grass');
+      }).toList(growable: false),
+    's_gear_up' || 's_magnetic_flux' => state.aliveSlots().where((slot) {
+        return slot.bank == user.bank &&
+            _plusMinusAbilityIds.contains(
+              _normalizedId(state.battlerAt(slot).abilityId),
+            );
+      }).toList(growable: false),
+    's_rototiller' => state.aliveSlots().where((slot) {
+        final battler = state.battlerAt(slot);
+        return battler.hasType('grass') &&
+            const BattleGroundingResolver().isGrounded(battler);
+      }).toList(growable: false),
+    _ => const <PsdkBattleSlotRef>[],
+  };
+}
+
+List<(String, int)> _supportStatChanges(String battleEngineMethod) {
+  return switch (battleEngineMethod) {
+    's_flower_shield' => const <(String, int)>[('defense', 1)],
+    's_gear_up' => const <(String, int)>[
+        ('attack', 1),
+        ('specialAttack', 1),
+      ],
+    's_magnetic_flux' => const <(String, int)>[
+        ('defense', 1),
+        ('specialDefense', 1),
+      ],
+    's_rototiller' => const <(String, int)>[
+        ('attack', 1),
+        ('specialAttack', 1),
+      ],
+    _ => const <(String, int)>[],
+  };
 }
 
 BattleEffect? _hazardEffectFor(
@@ -5431,7 +5597,8 @@ List<String> _conversion2ResistantTypes(String moveType) {
   final normalized = moveType.trim().toLowerCase();
   return BattleTypeChart.supportedTypes
       .where(
-        (type) => BattleTypeChart.resolveEffectivenessMultiplier(
+        (type) =>
+            BattleTypeChart.resolveEffectivenessMultiplier(
               moveType: normalized,
               defenderTyping: BattleTypingSnapshot(primaryType: type),
             ) <
@@ -5731,7 +5898,8 @@ BattleMoveBehaviorResolution _resolveNoRetreat(
       successful: false,
     );
   }
-  if (user.hasType('ghost') || user.effects.contains(PsdkBattleEffectIds.cantSwitch)) {
+  if (user.hasType('ghost') ||
+      user.effects.contains(PsdkBattleEffectIds.cantSwitch)) {
     return BattleMoveBehaviorResolution(
       state: prepared.state,
       rng: prepared.rng,

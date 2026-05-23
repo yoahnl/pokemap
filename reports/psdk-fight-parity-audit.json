@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 650,
-    "partiel": 78,
+    "fait": 654,
+    "partiel": 74,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1763,9 +1763,9 @@
       {
         "moveId": "flower_shield",
         "battleEngineMethod": "s_flower_shield",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/flower_shield.json"
       },
       {
@@ -1955,9 +1955,9 @@
       {
         "moveId": "gear_up",
         "battleEngineMethod": "s_gear_up",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gear_up.json"
       },
       {
@@ -2955,9 +2955,9 @@
       {
         "moveId": "magnetic_flux",
         "battleEngineMethod": "s_magnetic_flux",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/magnetic_flux.json"
       },
       {
@@ -4163,9 +4163,9 @@
       {
         "moveId": "rototiller",
         "battleEngineMethod": "s_rototiller",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/rototiller.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 296,
-      "partial": 34,
+      "ported": 300,
+      "partial": 30,
       "missing": 0
     },
     "entries": [
@@ -6742,12 +6742,11 @@
         "battleEngineMethod": "s_flower_shield",
         "rubyClass": "FlowerShield",
         "rubyPath": "10 Move/2 Definitions/300 FlowerShield.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_flower_shield)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_flying_press",
@@ -6895,12 +6894,11 @@
         "battleEngineMethod": "s_gear_up",
         "rubyClass": "GearUp",
         "rubyPath": "10 Move/2 Definitions/300 GearUp.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_genies_storm",
@@ -7477,12 +7475,11 @@
         "battleEngineMethod": "s_magnetic_flux",
         "rubyClass": "MagneticFlux",
         "rubyPath": "10 Move/2 Definitions/300 MagneticFlux.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_magnetic_flux)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_magnitude",
@@ -8229,12 +8226,11 @@
         "battleEngineMethod": "s_rototiller",
         "rubyClass": "Rototiller",
         "rubyPath": "10 Move/2 Definitions/300 Rototiller.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_rototiller)",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_round",
@@ -9239,21 +9235,17 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 20,
+        "count": 16,
         "methods": [
           "s_chilly_reception",
           "s_court_change",
           "s_destiny_bond",
           "s_doodle",
-          "s_flower_shield",
-          "s_gear_up",
           "s_geomancy",
           "s_grudge",
           "s_helping_hand",
           "s_magic_coat",
-          "s_magnetic_flux",
           "s_revival_blessing",
-          "s_rototiller",
           "s_shed_tail",
           "s_snatch",
           "s_spite",

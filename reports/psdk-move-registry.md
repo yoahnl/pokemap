@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 296 |
-| `partial` | 34 |
+| `ported` | 300 |
+| `partial` | 30 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -101,7 +101,7 @@ Total registered methods: 330
 | `s_flame_burst` | `FlameBurst` | `10 Move/2 Definitions/300 FlameBurst.rb` | `StaticBasicMoveRegistry.s_flame_burst` | `ported` | `-` |
 | `s_fling` | `Fling` | `10 Move/2 Definitions/300 Fling.rb` | `ItemDependentMoveBehavior.fling` | `ported` | `item, ability, effects` |
 | `s_floral_healing` | `FloralHealing` | `10 Move/2 Definitions/300 FloralHealing.rb` | `HealMoveBehavior.floralHealing` | `ported` | `handler_damage, terrain, effects, ability` |
-| `s_flower_shield` | `FlowerShield` | `10 Move/2 Definitions/300 FlowerShield.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)` | `partial` | `effects` |
+| `s_flower_shield` | `FlowerShield` | `10 Move/2 Definitions/300 FlowerShield.rb` | `StaticBasicMoveRegistry.resolveSupportStatMove(s_flower_shield)` | `ported` | `effects` |
 | `s_flying_press` | `FlyingPress` | `10 Move/2 Definitions/300 FlyingPress.rb` | `StaticBasicMoveRegistry.s_flying_press` | `ported` | `none` |
 | `s_focus_energy` | `FocusEnergy` | `10 Move/2 Definitions/300 FocusEnergy.rb` | `StaticBasicMoveRegistry.s_focus_energy` | `ported` | `effects` |
 | `s_focus_punch` | `FocusPunch` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `ActionGatedMoveBehavior.focusPunch` | `ported` | `-` |
@@ -116,7 +116,7 @@ Total registered methods: 330
 | `s_fusion_flare` | `FusionFlare` | `10 Move/2 Definitions/300 FusionFlareBolt.rb` | `StaticBasicMoveRegistry.s_fusion_flare` | `ported` | `effects` |
 | `s_future_sight` | `FutureSight` | `10 Move/2 Definitions/300 FutureSight.rb` | `StaticBasicMoveRegistry.delayedMove(s_future_sight)` | `ported` | `effects, end_turn, handler_damage, handler_switch` |
 | `s_gastro_acid` | `GastroAcid` | `10 Move/2 Definitions/300 GastroAcid.rb` | `StaticBasicMoveRegistry.s_gastro_acid` | `ported` | `effects, ability` |
-| `s_gear_up` | `GearUp` | `10 Move/2 Definitions/300 GearUp.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)` | `partial` | `effects` |
+| `s_gear_up` | `GearUp` | `10 Move/2 Definitions/300 GearUp.rb` | `StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)` | `ported` | `effects` |
 | `s_genies_storm` | `GeniesStorm` | `10 Move/2 Definitions/300 GeniesStorm.rb` | `WeatherPowerMoveBehavior.geniesStorm` | `ported` | `-` |
 | `s_geomancy` | `Geomancy` | `10 Move/2 Definitions/300 Geomancy.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)` | `partial` | `effects` |
 | `s_gigaton_hammer` | `GigatonHammer` | `10 Move/2 Definitions/300 GigatonHammer.rb` | `ForcedActionMoveBehavior.gigatonHammer` | `ported` | `-` |
@@ -173,7 +173,7 @@ Total registered methods: 330
 | `s_magic_powder` | `MagicPowder` | `10 Move/2 Definitions/300 MagicPowder.rb` | `StaticBasicMoveRegistry.s_magic_powder` | `ported` | `-` |
 | `s_magic_room` | `MagicRoom` | `10 Move/2 Definitions/300 MagicRoom.rb` | `StaticBasicMoveRegistry.fieldMarker(s_magic_room)` | `ported` | `field, effects` |
 | `s_magnet_rise` | `MagnetRise` | `10 Move/2 Definitions/300 MagnetRise.rb` | `StaticBasicMoveRegistry.s_magnet_rise` | `ported` | `effects, grounded` |
-| `s_magnetic_flux` | `MagneticFlux` | `10 Move/2 Definitions/300 MagneticFlux.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)` | `partial` | `effects` |
+| `s_magnetic_flux` | `MagneticFlux` | `10 Move/2 Definitions/300 MagneticFlux.rb` | `StaticBasicMoveRegistry.resolveSupportStatMove(s_magnetic_flux)` | `ported` | `effects` |
 | `s_magnitude` | `Magnitude` | `10 Move/2 Definitions/300 Magnitude.rb` | `StaticBasicMoveRegistry.s_magnitude` | `ported` | `effects` |
 | `s_make_it_rain` | `MakeItRain` | `10 Move/2 Definitions/300 MakeItRain.rb` | `StaticBasicMoveRegistry.s_make_it_rain` | `ported` | `effects` |
 | `s_me_first` | `MeFirst` | `10 Move/2 Definitions/300 Me First.rb` | `CopyCallMoveBehavior.meFirst` | `ported` | `-` |
@@ -247,7 +247,7 @@ Total registered methods: 330
 | `s_role_play` | `RolePlay` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_role_play)` | `ported` | `ability, effects` |
 | `s_rollout` | `Rollout` | `10 Move/2 Definitions/300 Rollout.rb` | `ConsecutivePowerMoveBehavior.rollout` | `ported` | `effects, history, accuracy` |
 | `s_roost` | `Roost` | `10 Move/2 Definitions/300 Roost.rb` | `HealMoveBehavior.roost` | `ported` | `handler_damage, effects` |
-| `s_rototiller` | `Rototiller` | `10 Move/2 Definitions/300 Rototiller.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)` | `partial` | `effects` |
+| `s_rototiller` | `Rototiller` | `10 Move/2 Definitions/300 Rototiller.rb` | `StaticBasicMoveRegistry.resolveSupportStatMove(s_rototiller)` | `ported` | `effects` |
 | `s_round` | `Round` | `10 Move/2 Definitions/300 Round.rb` | `ConsecutivePowerMoveBehavior.round` | `ported` | `action_order, history, targeting_multi` |
 | `s_sacred_sword` | `SacredSword` | `10 Move/2 Definitions/300 SacredSword.rb` | `CustomStatSourceMoveBehavior.sacredSword` | `ported` | `handler_damage, effects` |
 | `s_safe_guard` | `Safeguard` | `10 Move/2 Definitions/300 Safeguard.rb` | `StaticBasicMoveRegistry.s_safe_guard` | `ported` | `-` |

@@ -1332,7 +1332,8 @@ void main() {
       );
 
       final player = result.state.battlerAt(psdkPlayerSlot);
-      expect(<String>['water', 'grass', 'dragon'], contains(player.types.primary));
+      expect(
+          <String>['water', 'grass', 'dragon'], contains(player.types.primary));
       expect(player.types.secondary, isNull);
       expect(player.type3, isNull);
       expect(player.temporaryTypes, isEmpty);
@@ -1354,9 +1355,11 @@ void main() {
         ),
       );
 
-      final failures = result.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+      final failures =
+          result.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
       expect(failures, hasLength(1));
-      expect(failures.single.reason, BattleMoveFailureReason.unusableByUser.jsonName);
+      expect(failures.single.reason,
+          BattleMoveFailureReason.unusableByUser.jsonName);
     });
 
     test('s_magic_powder replaces the target visible types with Psychic', () {
@@ -1663,7 +1666,10 @@ void main() {
       );
 
       expect(
-        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single
+            .reason,
         'gravity_already_active',
       );
     });
@@ -2503,11 +2509,11 @@ void main() {
         ),
       ];
 
-    for (final entry in entries) {
-      final result = _runMove(
-        playerMove: _move(
-          id: entry.moveId,
-          category: entry.category,
+      for (final entry in entries) {
+        final result = _runMove(
+          playerMove: _move(
+            id: entry.moveId,
+            category: entry.category,
             power: entry.power,
             battleEngineMethod: entry.method,
           ),
@@ -2559,8 +2565,316 @@ void main() {
       );
 
       expect(
-        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single
+            .reason,
         'dragon_cheer_already_active',
+      );
+    });
+
+    test('s_flower_shield boosts every Grass battler on the field', () {
+      final move = _move(
+        id: 'flower_shield',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_flower_shield',
+        target: PsdkBattleMoveTarget.allBattlers,
+      );
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'grass'),
+                speed: 100,
+                move: move,
+              ),
+            ),
+            const PsdkBattleSlotRef(bank: 0, position: 1):
+                PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'fire'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'grass'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+              ),
+            ),
+            const PsdkBattleSlotRef(bank: 1, position: 1):
+                PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent_ally',
+                types: const PsdkBattleTypes(primary: 'water'),
+                speed: 5,
+                move: _move(id: 'opponent_ally_wait', power: 0, accuracy: 1),
+              ),
+            ),
+          },
+        ),
+      );
+
+      expect(
+          result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+          1);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('defense'),
+        1,
+      );
+      expect(
+        result.state
+            .battlerAt(const PsdkBattleSlotRef(bank: 0, position: 1))
+            .statStages
+            .valueOf('defense'),
+        0,
+      );
+      expect(
+        result.state
+            .battlerAt(const PsdkBattleSlotRef(bank: 1, position: 1))
+            .statStages
+            .valueOf('defense'),
+        0,
+      );
+      expect(result.events.whereType<PsdkBattleMoveFailedEvent>(), isEmpty);
+    });
+
+    test('s_gear_up boosts Plus and Minus allies on the user bank', () {
+      final move = _move(
+        id: 'gear_up',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_gear_up',
+      );
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'steel'),
+                speed: 100,
+                move: move,
+                abilityId: 'plus',
+              ),
+            ),
+            allySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'electric'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+                abilityId: 'minus',
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+                abilityId: 'plus',
+              ),
+            ),
+          },
+        ),
+      );
+
+      for (final slot in <PsdkBattleSlotRef>[psdkPlayerSlot, allySlot]) {
+        expect(result.state.battlerAt(slot).statStages.valueOf('attack'), 1);
+        expect(
+          result.state.battlerAt(slot).statStages.valueOf('specialAttack'),
+          1,
+        );
+      }
+      expect(
+          result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+          0);
+      expect(
+        result.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialAttack'),
+        0,
+      );
+    });
+
+    test('s_gear_up fails when no Plus or Minus ally can be affected', () {
+      final move = _move(
+        id: 'gear_up',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_gear_up',
+      );
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'steel'),
+                speed: 100,
+                move: move,
+                abilityId: 'clear_body',
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+              ),
+            ),
+          },
+        ),
+      );
+
+      expect(
+        result.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        BattleMoveFailureReason.unusableByUser.jsonName,
+      );
+    });
+
+    test(
+        's_magnetic_flux boosts Defense and Special Defense for Plus/Minus allies',
+        () {
+      final move = _move(
+        id: 'magnetic_flux',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_magnetic_flux',
+      );
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'electric'),
+                speed: 100,
+                move: move,
+                abilityId: 'plus',
+              ),
+            ),
+            allySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'electric'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+                abilityId: 'minus',
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+              ),
+            ),
+          },
+        ),
+      );
+
+      for (final slot in <PsdkBattleSlotRef>[psdkPlayerSlot, allySlot]) {
+        expect(result.state.battlerAt(slot).statStages.valueOf('defense'), 1);
+        expect(
+          result.state.battlerAt(slot).statStages.valueOf('specialDefense'),
+          1,
+        );
+      }
+      expect(
+          result.state
+              .battlerAt(psdkOpponentSlot)
+              .statStages
+              .valueOf('defense'),
+          0);
+      expect(
+        result.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialDefense'),
+        0,
+      );
+    });
+
+    test('s_rototiller boosts only grounded Grass battlers', () {
+      final move = _move(
+        id: 'rototiller',
+        type: 'ground',
+        category: PsdkBattleMoveCategory.status,
+        power: 0,
+        accuracy: 0,
+        battleEngineMethod: 's_rototiller',
+        target: PsdkBattleMoveTarget.allBattlers,
+      );
+      final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'grass'),
+                speed: 100,
+                move: move,
+              ),
+            ),
+            allySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(
+                    primary: 'grass', secondary: 'flying'),
+                speed: 90,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 1),
+              ),
+            ),
+            psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'grass'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 1),
+              ),
+            ),
+          },
+        ),
+      );
+
+      for (final slot in <PsdkBattleSlotRef>[
+        psdkPlayerSlot,
+        psdkOpponentSlot
+      ]) {
+        expect(result.state.battlerAt(slot).statStages.valueOf('attack'), 1);
+        expect(
+          result.state.battlerAt(slot).statStages.valueOf('specialAttack'),
+          1,
+        );
+      }
+      expect(result.state.battlerAt(allySlot).statStages.valueOf('attack'), 0);
+      expect(
+        result.state.battlerAt(allySlot).statStages.valueOf('specialAttack'),
+        0,
       );
     });
 
@@ -2579,7 +2893,10 @@ void main() {
       );
 
       expect(
-        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single.reason,
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single
+            .reason,
         'no_retreat_failed',
       );
       expect(
@@ -3033,4 +3350,29 @@ List<PsdkBattleStatusCureEvent> _cureEvents(
 
 BattleEffect _effect(PsdkBattleCombatant battler, String effectId) {
   return battler.effects.effects.singleWhere((effect) => effect.id == effectId);
+}
+
+BattleMoveBehaviorResolution _resolveMoveOnState({
+  required PsdkBattleMoveData move,
+  required PsdkBattleState state,
+  PsdkBattleSlotRef user = psdkPlayerSlot,
+  PsdkBattleSlotRef target = psdkOpponentSlot,
+}) {
+  return createStaticBasicMoveRegistry()
+      .resolve(move.battleEngineMethod)
+      .resolve(
+        BattleMoveBehaviorContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 2,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: user,
+          target: target,
+          move: BattleMoveDefinition.fromPsdk(move),
+        ),
+      );
 }

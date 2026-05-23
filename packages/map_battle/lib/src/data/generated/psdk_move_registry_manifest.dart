@@ -870,8 +870,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FlowerShield',
     rubyPath: '10 Move/2 Definitions/300 FlowerShield.rb',
     dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)',
-    status: PsdkPortStatus.partial,
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_flower_shield)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1011,8 +1011,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_gear_up',
     rubyClass: 'GearUp',
     rubyPath: '10 Move/2 Definitions/300 GearUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1567,8 +1567,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MagneticFlux',
     rubyPath: '10 Move/2 Definitions/300 MagneticFlux.rb',
     dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)',
-    status: PsdkPortStatus.partial,
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_magnetic_flux)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2282,8 +2282,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_rototiller',
     rubyClass: 'Rototiller',
     rubyPath: '10 Move/2 Definitions/300 Rototiller.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)',
-    status: PsdkPortStatus.partial,
+    dartBehavior:
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_rototiller)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
