@@ -43,7 +43,10 @@ class PokeMapMacosCompatibilityBridge extends StatelessWidget {
 
     return MacosTheme(
       data: macosThemeData,
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: child,
+      ),
     );
   }
 }
