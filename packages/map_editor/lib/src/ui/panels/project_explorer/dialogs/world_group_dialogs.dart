@@ -28,17 +28,17 @@ void showCreateGroupDialog(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            parentId == null ? 'New Root Group' : 'New Sub-Group',
+            parentId == null ? 'Nouveau groupe racine' : 'Nouveau sous-groupe',
             style: editorMacosSheetTitleStyle(ctx),
           ),
           const SizedBox(height: 12),
           MacosTextField(
             controller: nameController,
             autofocus: true,
-            placeholder: 'Group Name',
+            placeholder: 'Nom du groupe',
           ),
           const SizedBox(height: 12),
-          Text('Group type', style: editorMacosFormLabelStyle(ctx)),
+          Text('Type de groupe', style: editorMacosFormLabelStyle(ctx)),
           const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
@@ -64,7 +64,7 @@ void showCreateGroupDialog(
                 controlSize: ControlSize.large,
                 secondary: true,
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: const Text('Annuler'),
               ),
               const SizedBox(width: 10),
               PushButton(
@@ -78,7 +78,7 @@ void showCreateGroupDialog(
                   );
                   Navigator.pop(ctx);
                 },
-                child: const Text('Create'),
+                child: const Text('Créer'),
               ),
             ],
           ),
@@ -106,14 +106,14 @@ Future<void> showCreateMapInGroupDialog(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'New Map in Group',
+            'Nouvelle carte dans le groupe',
             style: editorMacosSheetTitleStyle(ctx),
           ),
           const SizedBox(height: 12),
           MacosTextField(
             controller: controller,
             autofocus: true,
-            placeholder: 'Map ID',
+            placeholder: 'ID de la carte',
           ),
           const SizedBox(height: 12),
           Align(
@@ -124,13 +124,13 @@ Future<void> showCreateMapInGroupDialog(
               onPressed: () async {
                 final picked = await showCupertinoListPicker<MapRole>(
                   context: ctx,
-                  title: 'Map Role',
+                  title: 'Rôle de la carte',
                   items: MapRole.values,
                   labelOf: (role) => role.name.toUpperCase(),
                 );
                 if (picked != null) setState(() => selectedRole = picked);
               },
-              child: Text('Role: ${selectedRole.name.toUpperCase()}'),
+              child: Text('Rôle : ${selectedRole.name.toUpperCase()}'),
             ),
           ),
           const SizedBox(height: 16),
@@ -141,7 +141,7 @@ Future<void> showCreateMapInGroupDialog(
                 controlSize: ControlSize.large,
                 secondary: true,
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: const Text('Annuler'),
               ),
               const SizedBox(width: 10),
               PushButton(
@@ -157,7 +157,7 @@ Future<void> showCreateMapInGroupDialog(
                   );
                   Navigator.pop(ctx);
                 },
-                child: const Text('Create'),
+                child: const Text('Créer'),
               ),
             ],
           ),
@@ -183,17 +183,17 @@ void showCreateSubGroupDialog(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'New Sub-Group',
+            'Nouveau sous-groupe',
             style: editorMacosSheetTitleStyle(ctx),
           ),
           const SizedBox(height: 12),
           MacosTextField(
             controller: nameController,
             autofocus: true,
-            placeholder: 'Group Name',
+            placeholder: 'Nom du groupe',
           ),
           const SizedBox(height: 12),
-          Text('Group type', style: editorMacosFormLabelStyle(ctx)),
+          Text('Type de groupe', style: editorMacosFormLabelStyle(ctx)),
           const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
@@ -219,7 +219,7 @@ void showCreateSubGroupDialog(
                 controlSize: ControlSize.large,
                 secondary: true,
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: const Text('Annuler'),
               ),
               const SizedBox(width: 10),
               PushButton(
@@ -233,7 +233,7 @@ void showCreateSubGroupDialog(
                   );
                   Navigator.pop(ctx);
                 },
-                child: const Text('Create'),
+                child: const Text('Créer'),
               ),
             ],
           ),
@@ -251,9 +251,9 @@ Future<void> showRenameGroupDialog(
   final controller = TextEditingController(text: group.name);
   final ok = await showMacosEditorPromptSheet(
     context,
-    title: 'Rename Group',
+    title: 'Renommer le groupe',
     controller: controller,
-    confirmLabel: 'Rename',
+    confirmLabel: 'Renommer',
   );
   if (!ok || !context.mounted) return;
   notifier.renameGroup(group.id, controller.text.trim());
@@ -267,9 +267,9 @@ Future<void> showRenameMapDialog(
   final controller = TextEditingController(text: mapEntry.id);
   final ok = await showMacosEditorPromptSheet(
     context,
-    title: 'Rename Map',
+    title: 'Renommer la carte',
     controller: controller,
-    confirmLabel: 'Rename',
+    confirmLabel: 'Renommer',
   );
   if (!ok || !context.mounted) return;
   notifier.renameMap(mapEntry.id, controller.text.trim());

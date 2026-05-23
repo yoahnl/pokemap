@@ -66,7 +66,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                           child: Padding(
                             padding: const EdgeInsets.all(24),
                             child: Text(
-                              'Open a project to browse your world, maps and tilesets.',
+                              'Ouvrez un projet pour parcourir votre monde, vos cartes et vos jeux de tuiles.',
                               style: TextStyle(
                                 color: context.pokeMapColors.textMuted,
                               ),
@@ -249,7 +249,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
       ),
       if (rootMaps.isNotEmpty) ...[
-        const EditorSidebarSectionTitle('UNGROUPED MAPS', leftInset: 6),
+        const EditorSidebarSectionTitle('CARTES NON GROUPÉES', leftInset: 6),
         ...rootMaps.map(
           (m) => MapNode(
             map: m,
@@ -266,7 +266,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'World is empty',
+                'Le monde est vide',
                 style: TextStyle(
                   color: colors.textMuted,
                   fontSize: 12,
@@ -278,7 +278,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 variant: PokeMapButtonVariant.secondary,
                 size: PokeMapButtonSize.medium,
                 onPressed: () => showCreateGroupDialog(context, notifier),
-                child: const Text('Add City or Route'),
+                child: const Text('Ajouter une ville ou une route'),
               ),
             ],
           ),
@@ -300,7 +300,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
       children: [
         ProjectExplorerModuleCard(
           title: 'Tileset Library',
-          description: 'Folders, imports, and map painting',
+          description: 'Dossiers, imports et peinture de carte',
           icon: CupertinoIcons.square_grid_2x2,
           accentColor: colors.warning,
           count: project.tilesets.length,
@@ -332,7 +332,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         ProjectExplorerModuleCard(
           title: 'Catalogues Pokémon',
-          description: 'Pokédex, Moves et Items dans un espace guidé unique',
+          description: 'Pokédex, capacités et objets dans un espace guidé unique',
           icon: CupertinoIcons.book_fill,
           accentColor: colors.fact,
           selected: snapshot.workspaceMode == EditorWorkspaceMode.pokedex,
@@ -344,7 +344,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ProjectExplorerModuleCard(
           title: 'Narrative Studio',
           description:
-              'Global Story, Steps, Cutscenes and outcomes (opens central workspaces)',
+              'Histoire globale, étapes, cinématiques et résultats (ouvre les espaces centraux)',
           icon: CupertinoIcons.link_circle_fill,
           accentColor: colors.narrative,
           count: project.scenarios.length,
@@ -360,7 +360,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ProjectExplorerModuleCard(
           title: 'World Maps',
           description:
-              'Maps jouables et contenu monde (events, entités, warps, triggers)',
+              'Maps jouables et contenu monde (événements, entités, téléportations, déclencheurs)',
           icon: CupertinoIcons.map_fill,
           accentColor: colors.mapAccent,
           count: project.maps.length,
@@ -382,7 +382,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         ProjectExplorerModuleCard(
           title: 'Terrain Library',
-          description: 'Base ground presets',
+          description: 'Presets de terrain de base',
           icon: CupertinoIcons.map,
           accentColor: colors.success,
           count: project.terrainPresets.length,
@@ -394,7 +394,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         ProjectExplorerModuleCard(
           title: 'Path Library',
-          description: 'Legacy paths and Path Studio recipes',
+          description: 'Chemins hérités et recettes Path Studio',
           icon: CupertinoIcons.arrow_branch,
           accentColor: colors.warning,
           countLabel: '${project.pathPresets.length}/${project.pathPatternPresets.length}',
@@ -419,7 +419,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         ProjectExplorerModuleCard(
           title: 'Trainer Studio',
-          description: 'Battle rosters and teams (opens the central workspace)',
+          description: 'Équipes et dresseurs de combat (ouvre l\'espace de travail central)',
           icon: CupertinoIcons.person_2_fill,
           accentColor: colors.combat,
           count: project.trainers.length,
@@ -431,7 +431,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         ProjectExplorerModuleCard(
           title: 'Character Library',
-          description: 'Overworld sprites for the player and NPCs',
+          description: 'Sprites de monde pour le joueur et les PNJ',
           icon: CupertinoIcons.person_crop_circle,
           accentColor: colors.cinematic,
           count: project.characters.length,
@@ -623,7 +623,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
             child: Text(
-              'No tilesets yet. Import an image or create folders to organize your library.',
+              'Aucun jeu de tuiles pour le moment. Importez une image ou créez des dossiers pour organiser votre bibliothèque.',
               style: TextStyle(
                 color: colors.textMuted,
                 fontSize: 12,

@@ -28,10 +28,10 @@ Future<void> promptNewTilesetLibraryFolder(
   final controller = TextEditingController();
   final ok = await showMacosEditorPromptSheet(
     context,
-    title: parentFolderId == null ? 'New folder' : 'New subfolder',
+    title: parentFolderId == null ? 'Nouveau dossier' : 'Nouveau sous-dossier',
     controller: controller,
-    placeholder: 'Name',
-    confirmLabel: 'Create',
+    placeholder: 'Nom',
+    confirmLabel: 'Créer',
     compact: true,
   );
   if (!ok || !context.mounted) return;
@@ -51,10 +51,10 @@ Future<void> promptRenameTilesetLibraryFolder(
   final controller = TextEditingController(text: folder.name);
   final ok = await showMacosEditorPromptSheet(
     context,
-    title: 'Rename folder',
+    title: 'Renommer le dossier',
     controller: controller,
-    placeholder: 'Name',
-    confirmLabel: 'Rename',
+    placeholder: 'Nom',
+    confirmLabel: 'Renommer',
     compact: true,
   );
   if (!ok || !context.mounted) return;
@@ -77,11 +77,11 @@ Future<void> openTilesetLibraryFolderContextMenu(
     context: context,
     globalPosition: anchorGlobal,
     actions: const [
-      MacosEditorSheetAction(label: 'Rename', value: 'rename'),
-      MacosEditorSheetAction(label: 'New subfolder', value: 'sub'),
-      MacosEditorSheetAction(label: 'Move to…', value: 'move'),
+      MacosEditorSheetAction(label: 'Renommer', value: 'rename'),
+      MacosEditorSheetAction(label: 'Nouveau sous-dossier', value: 'sub'),
+      MacosEditorSheetAction(label: 'Déplacer vers…', value: 'move'),
       MacosEditorSheetAction(
-        label: 'Delete folder',
+        label: 'Supprimer le dossier',
         value: 'delete',
         isDestructive: true,
       ),
@@ -117,7 +117,7 @@ Future<void> pickMoveTilesetLibraryFolderTarget(
 ) async {
   final blocked = tilesetFolderSubtreeIds(project, folderId);
   final options = <TilesetFolderMoveOption>[
-    const TilesetFolderMoveOption('Library root', null),
+    const TilesetFolderMoveOption('Racine de la bibliothèque', null),
   ];
   for (final row in flattenTilesetFoldersForPicker(project)) {
     if (row.id == folderId) continue;
@@ -126,7 +126,7 @@ Future<void> pickMoveTilesetLibraryFolderTarget(
   }
   final picked = await showCupertinoListPicker<TilesetFolderMoveOption>(
     context: context,
-    title: 'Move folder into',
+    title: 'Déplacer le dossier dans',
     items: options,
     labelOf: (option) => option.label,
   );
@@ -144,13 +144,13 @@ Future<void> openAssignTilesetLibraryFolderSheet(
   required ProjectTilesetEntry tileset,
 }) async {
   final options = <ImportLibraryDestination>[
-    const ImportLibraryDestination('Library root', null),
+    const ImportLibraryDestination('Racine de la bibliothèque', null),
     ...flattenTilesetFoldersForPicker(project)
         .map((row) => ImportLibraryDestination(row.label, row.id)),
   ];
   final picked = await showCupertinoListPicker<ImportLibraryDestination>(
     context: context,
-    title: 'Move tileset to folder',
+    title: 'Déplacer le tileset dans le dossier',
     items: options,
     labelOf: (option) => option.label,
   );

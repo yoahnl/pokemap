@@ -298,6 +298,8 @@ void main() {
       expect(find.text('Tileset Library'), findsOneWidget);
       expect(find.text('Catalogues Pokémon'), findsOneWidget);
       expect(find.text('World Maps'), findsOneWidget);
+    });
+
     testWidgets('EditorSidebarListRow hides text when constraints are very narrow (collapsed)', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

@@ -4,7 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../../features/editor/state/editor_notifier.dart';
 import '../../../../shared/cupertino_editor_widgets.dart';
-import '../../../../shared/editor_paint_palette.dart';
+import '../../../../../theme/theme.dart';
 import '../../dialogs/tileset_library_dialogs.dart';
 import '../../dnd/tileset_library_drag_drop.dart';
 
@@ -20,7 +20,8 @@ class TilesetLibraryRootDropStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
+    final colors = context.pokeMapColors;
+    final subtle = colors.textMuted;
     return DragTarget<TilesetLibraryDragData>(
       onWillAcceptWithDetails: (details) =>
           tilesetLibraryCanDropOnRoot(project, details.data),
@@ -37,17 +38,13 @@ class TilesetLibraryRootDropStrip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: hovering
-                  ? EditorChrome.accentWarm.withValues(alpha: 0.12)
-                  : CupertinoColors.systemFill.resolveFrom(context).withValues(
-                        alpha: 0.35,
-                      ),
+                  ? colors.warning.withValues(alpha: 0.12)
+                  : colors.surfaceSubtle,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: hovering
-                    ? EditorChrome.accentWarm.withValues(alpha: 0.75)
-                    : CupertinoColors.separator
-                        .resolveFrom(context)
-                        .withValues(alpha: 0.5),
+                    ? colors.warning.withValues(alpha: 0.75)
+                    : colors.borderSubtle,
               ),
             ),
             child: Row(
@@ -55,19 +52,19 @@ class TilesetLibraryRootDropStrip extends StatelessWidget {
                 MacosIcon(
                   CupertinoIcons.square_stack_3d_up,
                   size: 14,
-                  color: hovering ? EditorChrome.accentWarm : subtle,
+                  color: hovering ? colors.warning : subtle,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     hovering
-                        ? 'Release to move to library root'
-                        : 'Library root — drop here to ungroup',
+                        ? 'Relâcher pour déplacer à la racine'
+                        : 'Déposer ici pour sortir du dossier',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: hovering
-                          ? EditorChrome.primaryLabel(context)
+                          ? colors.textPrimary
                           : subtle,
                     ),
                   ),
@@ -125,7 +122,7 @@ class TilesetLibraryFolderNode extends StatelessWidget {
       trailing: Builder(
         builder: (buttonContext) => EditorToolbarIconButton(
           icon: CupertinoIcons.ellipsis_vertical,
-          tooltip: 'Folder actions',
+          tooltip: 'Actions du dossier',
           iconSize: 16,
           onPressed: () => openTilesetLibraryFolderContextMenu(
             context,
@@ -188,6 +185,7 @@ class TilesetNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final row = EditorSidebarListRow(
       selected: selected,
       onTap: () => notifier.selectTilesetWorkspace(tileset.id),
@@ -195,7 +193,7 @@ class TilesetNode extends StatelessWidget {
           _showTilesetMenu(context, anchorGlobal: details.globalPosition),
       leftIndent: leftIndent,
       leadingIconUnselectedColor:
-          tileset.isWorldTileset ? EditorPaintColors.amberAccent : null,
+          tileset.isWorldTileset ? colors.warning : null,
       leading: MacosIcon(
         tileset.isWorldTileset
             ? CupertinoIcons.globe
@@ -209,7 +207,7 @@ class TilesetNode extends StatelessWidget {
       trailing: Builder(
         builder: (buttonContext) => EditorToolbarIconButton(
           icon: CupertinoIcons.ellipsis_vertical,
-          tooltip: 'Tileset actions',
+          tooltip: 'Actions du tileset',
           iconSize: 16,
           color: selected ? MacosColors.white : null,
           onPressed: () => _showTilesetMenu(
@@ -239,35 +237,35 @@ class TilesetNode extends StatelessWidget {
       context: context,
       globalPosition: anchorGlobal,
       actions: [
-        const MacosEditorSheetAction(label: 'Rename', value: 'rename'),
-        const MacosEditorSheetAction(label: 'Move Up', value: 'move_up'),
-        const MacosEditorSheetAction(label: 'Move Down', value: 'move_down'),
+        const MacosEditorSheetAction(label: 'Renommer', value: 'rename'),
+        const MacosEditorSheetAction(label: 'Déplacer vers le haut', value: 'move_up'),
+        const MacosEditorSheetAction(label: 'Déplacer vers le bas', value: 'move_down'),
         const MacosEditorSheetAction(
-          label: 'Set as Global',
+          label: 'Définir comme global',
           value: 'make_global',
         ),
         const MacosEditorSheetAction(
-          label: 'Attach to Group',
+          label: 'Lier à un groupe',
           value: 'assign_group',
         ),
         const MacosEditorSheetAction(
-          label: 'Move to folder…',
+          label: 'Déplacer dans un dossier…',
           value: 'library_folder',
         ),
         if (tileset.folderId != null && tileset.folderId!.trim().isNotEmpty)
           const MacosEditorSheetAction(
-            label: 'Move to library root',
+            label: 'Déplacer à la racine',
             value: 'library_root',
           ),
         if (tileset.scope == TilesetScope.global)
           MacosEditorSheetAction(
             label: tileset.isWorldTileset
-                ? 'Unset World Tileset'
-                : 'Set as World Tileset',
+                ? 'Retirer comme tileset mondial'
+                : 'Définir comme tileset mondial',
             value: 'toggle_world',
           ),
         const MacosEditorSheetAction(
-          label: 'Delete Tileset',
+          label: 'Supprimer le tileset',
           value: 'delete',
           isDestructive: true,
         ),
@@ -441,10 +439,10 @@ class _TilesetFolderHeaderDnD extends StatelessWidget {
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: EditorChrome.accentCyan.withValues(alpha: 0.85),
+                      color: context.pokeMapColors.brandPrimaryBorder.withValues(alpha: 0.85),
                       width: 1.5,
                     ),
-                    color: EditorChrome.accentCyan.withValues(alpha: 0.08),
+                    color: context.pokeMapColors.brandPrimarySoft.withValues(alpha: 0.08),
                   )
                 : null,
             child: header,

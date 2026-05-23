@@ -41,11 +41,11 @@ Future<void> showImportTilesetDialog(
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setState) {
         String libraryFolderButtonLabel() {
-          if (importLibraryFolderId == null) return 'Library root';
+          if (importLibraryFolderId == null) return 'Racine de la bibliothèque';
           for (final row in flattenTilesetFoldersForPicker(project)) {
             if (row.id == importLibraryFolderId) return row.label;
           }
-          return 'Library root';
+          return 'Racine de la bibliothèque';
         }
 
         return Column(
@@ -53,7 +53,7 @@ Future<void> showImportTilesetDialog(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Import Tileset',
+              'Importer un jeu de tuiles',
               style: editorMacosSheetTitleStyle(ctx),
             ),
             const SizedBox(height: 12),
@@ -66,11 +66,11 @@ Future<void> showImportTilesetDialog(
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 10),
-            Text('Tileset Name', style: editorMacosFormLabelStyle(ctx)),
+            Text('Nom du jeu de tuiles', style: editorMacosFormLabelStyle(ctx)),
             const SizedBox(height: 6),
             MacosTextField(controller: nameController),
             const SizedBox(height: 10),
-            Text('Library folder', style: editorMacosFormLabelStyle(ctx)),
+            Text('Dossier de destination', style: editorMacosFormLabelStyle(ctx)),
             const SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
@@ -79,7 +79,7 @@ Future<void> showImportTilesetDialog(
                 secondary: true,
                 onPressed: () async {
                   final options = <ImportLibraryDestination>[
-                    const ImportLibraryDestination('Library root', null),
+                    const ImportLibraryDestination('Racine de la bibliothèque', null),
                     ...flattenTilesetFoldersForPicker(project).map(
                       (row) => ImportLibraryDestination(row.label, row.id),
                     ),
@@ -87,7 +87,7 @@ Future<void> showImportTilesetDialog(
                   final pickedDestination =
                       await showCupertinoListPicker<ImportLibraryDestination>(
                     context: ctx,
-                    title: 'Library folder',
+                    title: 'Dossier de destination',
                     items: options,
                     labelOf: (option) => option.label,
                   );
@@ -110,15 +110,15 @@ Future<void> showImportTilesetDialog(
                   final pickedScope =
                       await showCupertinoListPicker<TilesetScope>(
                     context: ctx,
-                    title: 'Scope',
+                    title: 'Portée',
                     items: TilesetScope.values,
                     labelOf: (value) =>
-                        value == TilesetScope.global ? 'Global' : 'Group',
+                        value == TilesetScope.global ? 'Global' : 'Groupe',
                   );
                   if (pickedScope != null) setState(() => scope = pickedScope);
                 },
                 child: Text(
-                  'Scope: ${scope == TilesetScope.global ? 'Global' : 'Group'}',
+                  'Portée : ${scope == TilesetScope.global ? 'Global' : 'Groupe'}',
                 ),
               ),
             ),
@@ -133,7 +133,7 @@ Future<void> showImportTilesetDialog(
                     final pickedGroup =
                         await showCupertinoListPicker<ProjectMapGroup>(
                       context: ctx,
-                      title: 'Group',
+                      title: 'Groupe',
                       items: project.groups,
                       labelOf: (group) => group.name,
                     );
@@ -142,7 +142,7 @@ Future<void> showImportTilesetDialog(
                     }
                   },
                   child: Text(
-                    'Group: ${project.groups.firstWhere((group) => group.id == selectedGroupId, orElse: () => project.groups.first).name}',
+                    'Groupe : ${project.groups.firstWhere((group) => group.id == selectedGroupId, orElse: () => project.groups.first).name}',
                   ),
                 ),
               ),
@@ -157,7 +157,7 @@ Future<void> showImportTilesetDialog(
                   ),
                   const SizedBox(width: 8),
                   const Expanded(
-                    child: Text('Mark as world tileset'),
+                    child: Text('Définir comme tileset mondial'),
                   ),
                 ],
               ),
@@ -170,7 +170,7 @@ Future<void> showImportTilesetDialog(
                   controlSize: ControlSize.large,
                   secondary: true,
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: const Text('Annuler'),
                 ),
                 const SizedBox(width: 10),
                 PushButton(
@@ -184,7 +184,7 @@ Future<void> showImportTilesetDialog(
                     shouldImport = true;
                     Navigator.pop(ctx);
                   },
-                  child: const Text('Import'),
+                  child: const Text('Importer'),
                 ),
               ],
             ),

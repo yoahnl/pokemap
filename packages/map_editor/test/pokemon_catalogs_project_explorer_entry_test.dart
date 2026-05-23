@@ -54,7 +54,7 @@ void main() {
 
     expect(find.text('Catalogues Pokémon'), findsOneWidget);
     expect(
-      find.text('Pokédex, Moves et Items dans un espace guidé unique'),
+      find.text('Pokédex, capacités et objets dans un espace guidé unique'),
       findsOneWidget,
     );
     expect(find.byKey(const Key('pokemon-catalog-entry-pokedex')),

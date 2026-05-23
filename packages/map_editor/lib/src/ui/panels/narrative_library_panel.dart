@@ -8,6 +8,7 @@ import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import '../../theme/theme.dart';
 
 /// Navigateur narratif dans la colonne gauche.
 ///
@@ -35,9 +36,9 @@ class NarrativeLibraryPanel extends ConsumerWidget {
     if (projection == null) {
       return Center(
         child: Text(
-          'No project loaded',
+          'Aucun projet chargé',
           style: TextStyle(
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            color: context.pokeMapColors.textMuted,
           ),
         ),
       );
@@ -79,7 +80,7 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           onDialogue: notifier.selectDialogueWorkspace,
         ),
         const SizedBox(height: 10),
-        const EditorSidebarSectionTitle('GLOBAL STORY (UNIQUE)', leftInset: 2),
+        const EditorSidebarSectionTitle('HISTOIRE GLOBALE (UNIQUE)', leftInset: 2),
         if (primaryGlobalStory == null)
           EditorSidebarListRow(
             selected: false,
@@ -109,14 +110,14 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           ),
         if (additionalGlobalStories > 0) ...[
           const SizedBox(height: 6),
-          const InspectorEmbeddedFootnote(
+          InspectorEmbeddedFootnote(
             text:
                 'Plusieurs scénarios globaux détectés. L’éditeur fonctionne avec le premier pour respecter la règle métier "un seul Global Story".',
-            accent: EditorChrome.inspectorJoyCoral,
+            accent: context.pokeMapColors.warning,
           ),
         ],
         const SizedBox(height: 8),
-        const EditorSidebarSectionTitle('STEPS', leftInset: 2),
+        const EditorSidebarSectionTitle('ÉTAPES', leftInset: 2),
         ...projection.steps.map(
           (step) => EditorSidebarListRow(
             selected: narrative.selectedStepId == step.id &&
@@ -139,7 +140,7 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const EditorSidebarSectionTitle('CUTSCENES', leftInset: 2),
+        const EditorSidebarSectionTitle('CINÉMATIQUES', leftInset: 2),
         ...projection.localEventFlows.map(
           (scenario) => EditorSidebarListRow(
             selected: narrative.selectedCutsceneId == scenario.id &&
@@ -161,7 +162,7 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const EditorSidebarSectionTitle('OUTCOMES', leftInset: 2),
+        const EditorSidebarSectionTitle('RÉSULTATS', leftInset: 2),
         ...projection.outcomes.map(
           (outcome) => EditorSidebarListRow(
             selected: narrative.selectedOutcomeId == outcome.id,
@@ -202,17 +203,17 @@ class _WorkspaceQuickActions extends StatelessWidget {
       runSpacing: 6,
       children: [
         _ActionChip(
-          label: 'Global Story',
+          label: 'Histoire globale',
           selected: editor.workspaceMode == EditorWorkspaceMode.globalStory,
           onTap: onGlobal,
         ),
         _ActionChip(
-          label: 'Step',
+          label: 'Étape',
           selected: editor.workspaceMode == EditorWorkspaceMode.step,
           onTap: onStep,
         ),
         _ActionChip(
-          label: 'Cutscene',
+          label: 'Cinématique',
           selected: editor.workspaceMode == EditorWorkspaceMode.cutscene,
           onTap: onCutscene,
         ),
@@ -239,9 +240,10 @@ class _ActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final color = selected
-        ? EditorChrome.inspectorJoyMint
-        : EditorChrome.subtleLabel(context);
+        ? colors.brandPrimary
+        : colors.textSecondary;
     return CupertinoButton(
       minimumSize: const Size(28, 28),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -252,11 +254,8 @@ class _ActionChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: color.withValues(alpha: 0.75)),
           color: selected
-              ? EditorChrome.largeIslandSurfaceColor(
-                  context,
-                  tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.12),
-                )
-              : EditorChrome.sidebarHoverFill(context),
+              ? colors.surfaceSelected
+              : colors.surfaceSubtle,
         ),
         child: Text(
           label,

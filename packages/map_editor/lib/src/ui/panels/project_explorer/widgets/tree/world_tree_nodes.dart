@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../../../../../features/editor/state/editor_notifier.dart';
 import '../../../../../features/editor/state/editor_selectors.dart';
 import '../../../../shared/cupertino_editor_widgets.dart';
+import '../../../../../theme/theme.dart';
 import '../../dialogs/world_group_dialogs.dart';
 
 class GroupNode extends StatelessWidget {
@@ -25,6 +26,7 @@ class GroupNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final childrenGroups = project.groups
         .where((candidate) => candidate.parentGroupId == group.id)
         .toList();
@@ -48,10 +50,10 @@ class GroupNode extends StatelessWidget {
             ),
           ),
           Text(
-            group.type.name.toUpperCase(),
+            _translateGroupType(group.type).toUpperCase(),
             style: TextStyle(
               fontSize: 9,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              color: colors.textMuted,
             ),
           ),
         ],
@@ -59,7 +61,7 @@ class GroupNode extends StatelessWidget {
       trailing: Builder(
         builder: (buttonContext) => EditorToolbarIconButton(
           icon: CupertinoIcons.ellipsis_vertical,
-          tooltip: 'Group actions',
+          tooltip: 'Actions du groupe',
           iconSize: 16,
           onPressed: () => _showGroupContextMenu(
             context,
@@ -113,6 +115,20 @@ class GroupNode extends StatelessWidget {
     };
   }
 
+  String _translateGroupType(MapGroupType type) {
+    return switch (type) {
+      MapGroupType.city => 'Ville',
+      MapGroupType.village => 'Village',
+      MapGroupType.route => 'Route',
+      MapGroupType.dungeon => 'Donjon',
+      MapGroupType.cave => 'Grotte',
+      MapGroupType.forest => 'Forêt',
+      MapGroupType.tower => 'Tour',
+      MapGroupType.facility => 'Installation',
+      MapGroupType.special => 'Spécial',
+    };
+  }
+
   Future<void> _showGroupContextMenu(
     BuildContext context,
     ProjectMapGroup group,
@@ -124,11 +140,11 @@ class GroupNode extends StatelessWidget {
       context: context,
       globalPosition: anchorGlobal,
       actions: const [
-        MacosEditorSheetAction(label: 'Add Map', value: 'add_map'),
-        MacosEditorSheetAction(label: 'Add Sub-Group', value: 'add_subgroup'),
-        MacosEditorSheetAction(label: 'Rename Group', value: 'rename'),
+        MacosEditorSheetAction(label: 'Ajouter une carte', value: 'add_map'),
+        MacosEditorSheetAction(label: 'Ajouter un sous-groupe', value: 'add_subgroup'),
+        MacosEditorSheetAction(label: 'Renommer le groupe', value: 'rename'),
         MacosEditorSheetAction(
-          label: 'Delete Group',
+          label: 'Supprimer le groupe',
           value: 'delete',
           isDestructive: true,
         ),
@@ -179,10 +195,10 @@ class MapNode extends StatelessWidget {
       leading: MacosIcon(_roleIcon(map.role), size: 16),
       title: Text(map.name),
       trailing: isSelected
-          ? const MacosIcon(
+          ? MacosIcon(
               CupertinoIcons.pencil,
               size: 14,
-              color: MacosColors.white,
+              color: context.pokeMapColors.brandPrimary,
             )
           : null,
     );
@@ -212,10 +228,10 @@ class MapNode extends StatelessWidget {
       context: context,
       globalPosition: position,
       actions: const [
-        MacosEditorSheetAction(label: 'Rename Map', value: 'rename'),
-        MacosEditorSheetAction(label: 'Duplicate Map', value: 'duplicate'),
+        MacosEditorSheetAction(label: 'Renommer la carte', value: 'rename'),
+        MacosEditorSheetAction(label: 'Dupliquer la carte', value: 'duplicate'),
         MacosEditorSheetAction(
-          label: 'Delete Map',
+          label: 'Supprimer la carte',
           value: 'delete',
           isDestructive: true,
         ),
