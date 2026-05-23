@@ -31,7 +31,7 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/tmp/project',
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
           name: 'trainer_partial_update_test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -107,7 +107,7 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/tmp/project',
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
           name: 'trainer_pokemon_partial_update_test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

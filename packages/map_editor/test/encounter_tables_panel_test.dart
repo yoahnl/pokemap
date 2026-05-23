@@ -64,7 +64,7 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -170,7 +170,7 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -264,7 +264,7 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -333,7 +333,7 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -439,7 +439,7 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

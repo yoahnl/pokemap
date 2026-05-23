@@ -6,7 +6,7 @@ void main() {
   group('SurfaceCatalogAvailability', () {
     test('empty catalog explains missing paintable surface data', () {
       final availability = SurfaceCatalogAvailability.fromCatalog(
-        ProjectSurfaceCatalog(),
+        const ProjectSurfaceCatalog.empty(),
       );
 
       expect(availability.atlasCount, 0);

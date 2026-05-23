@@ -540,7 +540,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
 
 @JsonSerializable(explicitToJson: true)
 class _$ProjectManifestImpl implements _ProjectManifest {
-  _$ProjectManifestImpl(
+  const _$ProjectManifestImpl(
       {required this.name,
       this.version = ProjectVersion.v1,
       required final List<ProjectMapEntry> maps,
@@ -577,7 +577,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
           name: 'surfaceCatalog',
           fromJson: _projectSurfaceCatalogFromJson,
           toJson: _projectSurfaceCatalogToJson)
-      required this.surfaceCatalog,
+      this.surfaceCatalog = const ProjectSurfaceCatalog.empty(),
       @ProjectShadowCatalogJsonConverter()
       this.shadowCatalog = const ProjectShadowCatalog.empty(),
       @JsonKey(
@@ -938,7 +938,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 }
 
 abstract class _ProjectManifest implements ProjectManifest {
-  factory _ProjectManifest(
+  const factory _ProjectManifest(
       {required final String name,
       final ProjectVersion version,
       required final List<ProjectMapEntry> maps,
@@ -975,7 +975,7 @@ abstract class _ProjectManifest implements ProjectManifest {
           name: 'surfaceCatalog',
           fromJson: _projectSurfaceCatalogFromJson,
           toJson: _projectSurfaceCatalogToJson)
-      required final ProjectSurfaceCatalog surfaceCatalog,
+      final ProjectSurfaceCatalog surfaceCatalog,
       @ProjectShadowCatalogJsonConverter()
       final ProjectShadowCatalog shadowCatalog,
       @JsonKey(

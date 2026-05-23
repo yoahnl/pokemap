@@ -248,7 +248,7 @@ ProjectManifest _project({
         sortOrder: 9,
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

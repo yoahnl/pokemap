@@ -10,7 +10,7 @@ import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_
 import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace.dart';
 
 void main() {
-  const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+  const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
     name: 'Moves Catalog UI Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

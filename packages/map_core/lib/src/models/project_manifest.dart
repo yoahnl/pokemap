@@ -133,7 +133,7 @@ const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
 @freezed
 class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
-  factory ProjectManifest({
+  const factory ProjectManifest({
     required String name,
     @Default(ProjectVersion.v1) ProjectVersion version,
     required List<ProjectMapEntry> maps,
@@ -170,12 +170,13 @@ class ProjectManifest with _$ProjectManifest {
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
     @Default({}) Map<String, dynamic> globalProperties,
+    @Default(ProjectSurfaceCatalog.empty())
     @JsonKey(
       name: 'surfaceCatalog',
       fromJson: _projectSurfaceCatalogFromJson,
       toJson: _projectSurfaceCatalogToJson,
     )
-    required ProjectSurfaceCatalog surfaceCatalog,
+    ProjectSurfaceCatalog surfaceCatalog,
     @Default(ProjectShadowCatalog.empty())
     @ProjectShadowCatalogJsonConverter()
     ProjectShadowCatalog shadowCatalog,

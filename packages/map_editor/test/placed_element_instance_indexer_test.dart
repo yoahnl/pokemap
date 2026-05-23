@@ -60,7 +60,7 @@ void main() {
             relativePath: 'tilesets/nature.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const [
           ProjectElementEntry(
             id: 'tree',

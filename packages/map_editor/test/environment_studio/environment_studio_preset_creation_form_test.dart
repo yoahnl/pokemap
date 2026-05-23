@@ -484,7 +484,7 @@ ProjectManifest _manifest({
     environmentPresets: environmentPresets,
     elements: elements,
     settings: settings,
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

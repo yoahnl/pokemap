@@ -15,7 +15,7 @@ void main() {
     testWidgets(
       'defers initial step selection callback after frame (provider-safe)',
       (tester) async {
-        const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
           name: 'test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -190,7 +190,7 @@ void main() {
           ],
         );
 
-        final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
@@ -303,7 +303,7 @@ void main() {
           ],
         );
 
-        final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],

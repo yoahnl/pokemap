@@ -27,7 +27,7 @@ void main() {
           name: 'Project',
           maps: const [],
           tilesets: const [],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
       );
 

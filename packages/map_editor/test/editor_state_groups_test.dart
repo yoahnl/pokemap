@@ -24,7 +24,7 @@ void main() {
           name: 'Demo',
           maps: [],
           tilesets: [],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         workspaceMode: EditorWorkspaceMode.dialogue,
         activeMap: map,

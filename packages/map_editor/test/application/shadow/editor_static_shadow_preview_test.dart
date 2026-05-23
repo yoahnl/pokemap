@@ -964,7 +964,7 @@ ProjectManifest _manifest({
         ProjectShadowCatalog(
           profiles: [profile ?? _profile('base_shadow')],
         ),
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     projectedBuildingShadowCatalog: includeProjectedPreset
         ? ProjectBuildingShadowPresetCatalog(
             presets: [projectedPreset ?? _projectedPreset()],

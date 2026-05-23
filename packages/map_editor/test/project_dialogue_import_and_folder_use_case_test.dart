@@ -104,7 +104,7 @@ void main() {
 }
 
 ProjectManifest _emptyManifest() {
-  return const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+  return const ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
     name: 'testproj',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

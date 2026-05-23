@@ -15,7 +15,7 @@ void main() {
         _wrap(
           SurfacePalettePanel(
             availability: SurfaceCatalogAvailability.fromCatalog(
-              ProjectSurfaceCatalog(),
+              const ProjectSurfaceCatalog.empty(),
             ),
             presets: const [],
             selectedSurfacePresetId: null,

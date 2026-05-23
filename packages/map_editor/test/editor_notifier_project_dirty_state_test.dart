@@ -346,7 +346,7 @@ ProjectManifest _manifest({String name = 'Demo'}) {
     tilesets: const [],
     pathPresets: const [],
     pathPatternPresets: const [],
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 
@@ -363,7 +363,7 @@ ProjectManifest _manifestWithMap({String name = 'Demo'}) {
     tilesets: const [],
     pathPresets: const [],
     pathPatternPresets: const [],
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

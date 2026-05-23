@@ -73,7 +73,7 @@ void main() {
             shadow: elementShadow,
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       ),
       activeMap: const MapData(
         id: 'map',

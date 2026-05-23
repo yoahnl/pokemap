@@ -49,7 +49,7 @@ ProjectManifest buildShellChromeProject({
     pathPatternPresets: pathPatternPresets,
     environmentPresets: environmentPresets,
     elements: elements,
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

@@ -2497,7 +2497,7 @@ ProjectManifest _manifest({
     tilesets: tilesets,
     pathPresets: pathPresets,
     pathPatternPresets: pathPatternPresets,
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

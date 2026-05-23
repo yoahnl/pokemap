@@ -53,7 +53,7 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         activeMap: const MapData(
           id: 'town',
@@ -118,7 +118,7 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         activeMap: const MapData(
           id: 'town',
@@ -145,7 +145,7 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -167,7 +167,7 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -187,7 +187,7 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -216,7 +216,7 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         selectedTerrainType: TerrainType.grass,
         selectedTerrainPresetId: 'terrain.grass',
@@ -247,7 +247,7 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         activeMap: const MapData(
           id: 'town',

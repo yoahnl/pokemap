@@ -106,7 +106,9 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
               json['pokemon'] as Map<String, dynamic>),
       globalProperties:
           json['globalProperties'] as Map<String, dynamic>? ?? const {},
-      surfaceCatalog: _projectSurfaceCatalogFromJson(json['surfaceCatalog']),
+      surfaceCatalog: json['surfaceCatalog'] == null
+          ? const ProjectSurfaceCatalog.empty()
+          : _projectSurfaceCatalogFromJson(json['surfaceCatalog']),
       shadowCatalog: json['shadowCatalog'] == null
           ? const ProjectShadowCatalog.empty()
           : const ProjectShadowCatalogJsonConverter()

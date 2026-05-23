@@ -200,6 +200,6 @@ ProjectManifest _buildManifest() {
         ),
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }

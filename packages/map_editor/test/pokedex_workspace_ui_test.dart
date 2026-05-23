@@ -35,7 +35,7 @@ import 'package:map_editor/src/ui/canvas/pokedex_workspace_loader.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 
 void main() {
-  const sampleProject = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+  const sampleProject = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
     name: 'pokedex_ui_test',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

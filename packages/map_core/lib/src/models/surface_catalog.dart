@@ -83,35 +83,34 @@ final class ProjectSurfaceCatalog {
     List<ProjectSurfaceAtlas> atlases = const [],
     List<ProjectSurfaceAnimation> animations = const [],
     List<ProjectSurfacePreset> presets = const [],
-  }) {
-    final atl = List<ProjectSurfaceAtlas>.from(atlases);
-    final anim = List<ProjectSurfaceAnimation>.from(animations);
-    final pre = List<ProjectSurfacePreset>.from(presets);
-
+  })  : _atlases = List<ProjectSurfaceAtlas>.unmodifiable(atlases),
+        _animations = List<ProjectSurfaceAnimation>.unmodifiable(animations),
+        _presets = List<ProjectSurfacePreset>.unmodifiable(presets) {
     _rejectDuplicateIds<ProjectSurfaceAtlas>(
-      atl,
+      _atlases,
       (a) => a.id,
       'ProjectSurfaceCatalog.atlases must not contain duplicate ProjectSurfaceAtlas.id',
     );
     _rejectDuplicateIds<ProjectSurfaceAnimation>(
-      anim,
+      _animations,
       (a) => a.id,
       'ProjectSurfaceCatalog.animations must not contain duplicate ProjectSurfaceAnimation.id',
     );
     _rejectDuplicateIds<ProjectSurfacePreset>(
-      pre,
+      _presets,
       (a) => a.id,
       'ProjectSurfaceCatalog.presets must not contain duplicate ProjectSurfacePreset.id',
     );
-
-    _atlases = List<ProjectSurfaceAtlas>.unmodifiable(atl);
-    _animations = List<ProjectSurfaceAnimation>.unmodifiable(anim);
-    _presets = List<ProjectSurfacePreset>.unmodifiable(pre);
   }
 
-  late final List<ProjectSurfaceAtlas> _atlases;
-  late final List<ProjectSurfaceAnimation> _animations;
-  late final List<ProjectSurfacePreset> _presets;
+  const ProjectSurfaceCatalog.empty()
+      : _atlases = const [],
+        _animations = const [],
+        _presets = const [];
+
+  final List<ProjectSurfaceAtlas> _atlases;
+  final List<ProjectSurfaceAnimation> _animations;
+  final List<ProjectSurfacePreset> _presets;
 
   /// Atlasses (ordre d’insertion, liste **non modifiable**).
   List<ProjectSurfaceAtlas> get atlases => _atlases;

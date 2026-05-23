@@ -71,7 +71,7 @@ void main() {
     }
 
     ProjectManifest buildSampleProject() {
-      return const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      return const ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'ui_smoke_project',
         maps: <ProjectMapEntry>[
           ProjectMapEntry(

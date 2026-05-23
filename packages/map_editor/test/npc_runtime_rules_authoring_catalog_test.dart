@@ -5,7 +5,7 @@ import 'package:map_editor/src/features/map_entities/application/npc_runtime_rul
 
 void main() {
   test('knownStoryFlagIds dans globalProperties enrichit le catalogue flags', () {
-    final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+    final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
       name: 'p',
       maps: const [],
       tilesets: const [],

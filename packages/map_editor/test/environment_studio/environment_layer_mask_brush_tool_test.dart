@@ -549,7 +549,7 @@ void main() {
           name: 'p',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         activeMap: map,
         activeLayerId: 'env1',
@@ -617,7 +617,7 @@ void main() {
           name: 'p',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         activeMap: map,
         activeLayerId: 'env1',
@@ -702,7 +702,7 @@ void main() {
         name: 'p',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const [
           ProjectElementEntry(
             id: 'tree',
@@ -797,7 +797,7 @@ void main() {
         name: 'p',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const [
           ProjectElementEntry(
             id: 'tree',

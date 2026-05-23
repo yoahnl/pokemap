@@ -43,7 +43,7 @@ void main() {
         name: 'editor',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'table',
@@ -295,7 +295,7 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
@@ -396,7 +396,7 @@ void main() {
         name: 'editor',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         shadowCatalog: ProjectShadowCatalog(
           profiles: [
             ProjectShadowProfile(
@@ -527,7 +527,7 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         projectedBuildingShadowCatalog: ProjectBuildingShadowPresetCatalog(
           presets: [_projectedBuildingShadowPreset()],
         ),
@@ -646,7 +646,7 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
@@ -730,7 +730,7 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
@@ -813,7 +813,7 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree_large',
@@ -1009,7 +1009,7 @@ void main() {
             ),
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       );
       final tilesetImage = await _testPathPatternTilesetImage();
       final recorder = ui.PictureRecorder();

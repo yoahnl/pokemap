@@ -943,7 +943,7 @@ ProjectManifest _manifest({
     tilesets: const [],
     environmentPresets: presets,
     elements: elements,
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

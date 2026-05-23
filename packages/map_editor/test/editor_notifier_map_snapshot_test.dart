@@ -31,7 +31,7 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/project',
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
           name: 'demo',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(
@@ -76,7 +76,7 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/project',
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
           name: 'demo',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(

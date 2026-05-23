@@ -765,7 +765,7 @@ ProjectManifest _manifest({
     ],
     environmentPresets: environmentPresets,
     elements: elements,
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

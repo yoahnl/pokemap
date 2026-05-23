@@ -155,7 +155,7 @@ ProjectManifest _project({
     ],
     elements: elements,
     shadowCatalog: shadowCatalog,
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

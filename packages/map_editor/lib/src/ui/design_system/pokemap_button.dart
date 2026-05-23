@@ -217,13 +217,17 @@ class _PokeMapButtonState extends State<PokeMapButton> {
                     const SizedBox(width: 8),
                   ],
                 ],
-                DefaultTextStyle(
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: DefaultTextStyle(
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    child: widget.child,
                   ),
-                  child: widget.child,
                 ),
                 if (widget.trailing != null && !widget.isLoading) ...[
                   const SizedBox(width: 8),

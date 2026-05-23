@@ -467,7 +467,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
 
     const isDisabled = false;
 
-    Widget core = Row(
+    final rowContent = Row(
       children: [
         if (widget.leading != null) ...[
           IconTheme.merge(
@@ -532,7 +532,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
       ],
     );
 
-    core = Padding(
+    Widget core = Padding(
       padding: EdgeInsets.symmetric(
         horizontal: spacing,
         vertical: 4 + theme.visualDensity.vertical * 0.5,
@@ -580,7 +580,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
                 ],
               );
             }
-            return core;
+            return rowContent;
           },
         ),
       ),

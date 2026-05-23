@@ -12,7 +12,7 @@ void main() {
       final workspace = _FakeWorkspace();
       final useCase = CreateProjectScenarioUseCase(repo);
 
-      const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'demo',
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
@@ -70,7 +70,7 @@ void main() {
           ScenarioNode(id: 'start', type: ScenarioNodeType.start),
         ],
       );
-      const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -114,7 +114,7 @@ void main() {
           ScenarioNode(id: 'start', type: ScenarioNodeType.start),
         ],
       );
-      const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

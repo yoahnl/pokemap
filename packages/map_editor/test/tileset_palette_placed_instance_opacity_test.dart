@@ -115,7 +115,7 @@ ProjectManifest _project() {
       ),
     ],
     settings: const ProjectSettings(tileWidth: 1, tileHeight: 1),
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

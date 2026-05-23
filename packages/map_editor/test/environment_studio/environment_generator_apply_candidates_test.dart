@@ -611,7 +611,7 @@ void main() {
             ],
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         environmentPresets: [
           EnvironmentPreset(
             id: 'preset1',
@@ -750,7 +750,7 @@ _HappyContext _happyContext({
         ],
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     environmentPresets: [
       EnvironmentPreset(
         id: 'preset1',

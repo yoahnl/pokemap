@@ -306,7 +306,7 @@ ProjectManifest _project({
     ],
     pathPresets: pathPresets,
     pathPatternPresets: pathPatterns,
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

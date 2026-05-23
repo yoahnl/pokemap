@@ -31,7 +31,7 @@ void main() {
       );
 
       final updated = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog(),
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'Demo',
         maps: [],
         tilesets: [],
@@ -136,7 +136,7 @@ void main() {
       );
       final state = EditorState(
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -154,7 +154,7 @@ void main() {
       final next = controller.afterMapRenamed(
         current: state,
         updatedProject: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -182,7 +182,7 @@ void main() {
       );
       final state = EditorState(
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -204,7 +204,7 @@ void main() {
       final next = controller.afterMapDeleted(
         current: state,
         updatedProject: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog(),
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],

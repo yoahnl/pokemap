@@ -548,7 +548,7 @@ ProjectManifest _project({ProjectShadowCatalog? catalog}) {
             _profile('wide_shadow', name: 'Wide shadow'),
           ],
         ),
-    surfaceCatalog: ProjectSurfaceCatalog(),
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 
