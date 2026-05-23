@@ -943,18 +943,18 @@ reprendre au reload. Acceptable pour le GS V0.
 
 ## 18. Écarts / Gaps confirmés
 
-| # | Gap | Impact GS | Contournement V0 | Lot à créer |
+| # | Gap | Impact GS | Contournement V0 | Lot canonique |
 |---|---|---|---|---|
-| GAP-01 | Pas de New Game flow | P0 | Fixture GameState JSON | NS-GS-02 |
-| GAP-02 | Pas de givePokemon | P1 | Starter pré-chargé dans fixture | NS-GS-03 |
-| GAP-03 | Step completion uniquement whenCutsceneEnds | P1 | Fusionner steps dans cutscenes | NS-GS-04 |
-| GAP-04 | Pas de contenu Selbrume (maps, NPCs, dialogues) | P0 | Créer fixtures minimales | NS-GS-05 |
-| GAP-05 | Pas de trigger_port_arrival (zone trigger → setFlag) | P1 | Utiliser trigger zone existant | NS-GS-05 |
-| GAP-06 | Tone branching (outcome Yarn → condition dans graphe) | P1 | Le runtime supporte la condition ; l'authoring doit poser le flag Yarn | NS-GS-05 |
-| GAP-07 | Trainer Lysa pas définie dans le manifest | P0 | Créer la fixture trainer | NS-GS-05 |
+| GAP-01 | Pas de New Game flow | P0 | Fixture GameState JSON | NS-GS-05 (New Game Minimal Runtime) |
+| GAP-02 | Pas de givePokemon | P1 | Starter pré-chargé dans fixture | NS-GS-06 (GivePokemon Minimal — si D1=A) |
+| GAP-03 | Step completion uniquement whenCutsceneEnds | P1 | Fusionner steps dans cutscenes | NS-GS-07 (Step Completion Direct — si nécessaire) |
+| GAP-04 | Pas de contenu Selbrume (maps, NPCs, dialogues) | P0 | Créer fixtures minimales | NS-GS-08/09/10/11 (Phase 3 — Contenu) |
+| GAP-05 | Pas de trigger_port_arrival (zone trigger → setFlag) | P1 | Utiliser trigger zone existant | NS-GS-09 (Port Brisants Content) |
+| GAP-06 | Tone branching (outcome Yarn → condition dans graphe) | P1 | Le runtime supporte la condition ; l'authoring doit poser le flag Yarn | NS-GS-09 (Port Brisants Content) |
+| GAP-07 | Trainer Lysa pas définie dans le manifest | P0 | Créer la fixture trainer | NS-GS-11 (Battle Lysa Authoring Fixture) |
 | GAP-08 | Pas de healParty | P2 | Le joueur peut se battre avec les PV restants | Hors GS V0 |
-| GAP-09 | Pas de static encounter / boss battle | Hors GS | N/A | NS-GS-08 |
-| GAP-10 | Cinematic emote step à vérifier | P2 | Utiliser showMessage + wait | NS-GS-05 |
+| GAP-09 | Pas de static encounter / boss battle | Hors GS | N/A | Hors GS V0 |
+| GAP-10 | Cinematic emote step à vérifier | P2 | Utiliser showMessage + wait | NS-GS-08/09 (contenu) |
 
 ---
 
@@ -1003,35 +1003,105 @@ Le Golden Slice est **jouable** si et seulement si :
 | AMB-07 | Le step_go_to_port est-il complété par un trigger zone ou par l'arrivée sur la map ? | Impact le mécanisme de completion | Technique → NS-GS-04/05 |
 | AMB-08 | Faut-il une alerte port (foule paniquée) comme cutscene séparée ou intégrée dans scene_rival_meet ? | selbrume.md mentionne scene_port_alert, mais le GS minimal peut s'en passer | Utilisateur |
 
+### Ambiguïtés de gouvernance
+
+| # | Règle | Décision |
+|---|---|---|
+| AMB-GOV-01 | NS-GS-03 ne doit pas devenir un lot givePokemon. | NS-GS-03 reste **Content Inventory & Fixture Plan** (documentaire). |
+| AMB-GOV-02 | NS-GS-04 ne doit pas devenir directement un lot New Game. | NS-GS-04 reste **Runtime Smoke Strategy** (documentaire / test design). |
+| AMB-GOV-03 | NS-GS-05 New Game Minimal Runtime ne doit pas commencer tant que NS-GS-02 à NS-GS-04 ne sont pas acceptés. | Blocage volontaire jusqu'à review des lots documentaires. |
+| AMB-GOV-04 | Les lots NS-GS-08 à NS-GS-11 ne doivent pas être créés avant les lots runtime/doc préparatoires. | Pas de contenu Selbrume avant cadrage complet. |
+
 ---
 
-## 21. Roadmap NS-GS-02 à NS-GS-12
+## 21. Roadmap NS-GS-02 à NS-GS-12 (canonique)
 
-| Lot | Titre | Type | Dépendance | Effort |
-|---|---|---|---|---|
-| **NS-GS-02** | Starter / Initial Party Decision | Décision | — | XS |
-| **NS-GS-03** | givePokemon mutation + scenario action (si D1 = Option A) | Code | NS-GS-02 | M |
-| **NS-GS-04** | New Game Flow V0 (fixture GameState ou overlay minimal) | Code | NS-GS-02 | S-M |
-| **NS-GS-05** | Contenu Golden Slice (maps, NPCs, dialogues Yarn, ScenarioAssets, trainer, cinématiques) | Contenu | NS-GS-02, NS-GS-04 | L |
-| **NS-GS-06** | Zone Trigger → setFlag pour step_go_to_port | Code | — | S |
-| **NS-GS-07** | Step completion modes additionnels (whenFlagSet, whenOutcomeEmitted) — si non contourné | Code | — | M |
-| **NS-GS-08** | Static encounter / boss battle trigger (Pokémon du phare — hors GS V0) | Code | SEL-B2 | M |
-| **NS-GS-09** | healParty mutation + cutscene step ou overlay (hors GS V0) | Code | — | S |
-| **NS-GS-10** | Integration test end-to-end du Golden Slice | Test | NS-GS-05 | M |
-| **NS-GS-11** | Validator reachability pour ScenarioAsset | Code | — | M |
-| **NS-GS-12** | Golden Slice V1 — scene_port_alert + givePokemon runtime + full Chapitre 1 | Contenu+Code | NS-GS-03, NS-GS-07 | L |
+> [!IMPORTANT]
+> La roadmap NS-GS-02 à NS-GS-12 de ce document **remplace toute roadmap NS-GS divergente**.
+> Les anciens lots SEL-* restent historiques.
+> **Aucun lot de code ne doit commencer avant que NS-GS-02, NS-GS-03 et NS-GS-04 soient acceptés.**
 
-### Chemin critique pour le GS V0 jouable
+### Phase 1 — Spécifier exactement le Golden Slice
+
+| Lot | Titre | Type | Dépendance | Effort | Statut |
+|---|---|---|---|---|---|
+| **NS-GS-01** | Golden Slice Exact Specification | Documentaire | — | M | ✅ Done |
+| **NS-GS-02** | Starter / Initial Party Decision | Décision | NS-GS-01 | XS | TODO |
+| **NS-GS-03** | Content Inventory & Fixture Plan | Documentaire | NS-GS-02 | S | TODO |
+| **NS-GS-04** | Runtime Smoke Strategy | Documentaire / test design | NS-GS-02 | S | TODO |
+
+**NS-GS-02** — Décider si Maël donne réellement le starter ou si le GameState initial contient déjà un Pokémon. Documentaire / décision uniquement. Aucun code.
+
+**NS-GS-03** — Lister précisément tous les fichiers/contenus à créer plus tard : maps, NPCs, Yarn, ScenarioAssets, RuntimeCutsceneAssets, trainer, battle fixture, save fixture éventuelle. Documentaire uniquement. Aucun code.
+
+**NS-GS-04** — Définir comment prouver que le slice fonctionne : smoke tests, tests unitaires, tests runtime, save/load checks. Documentaire / test design uniquement. Aucun code sauf si explicitement décidé dans un lot ultérieur.
+
+### Phase 2 — Socle runtime minimal restant
+
+| Lot | Titre | Type | Dépendance | Effort | Statut |
+|---|---|---|---|---|---|
+| **NS-GS-05** | New Game Minimal Runtime | Code | NS-GS-04 | S-M | TODO |
+| **NS-GS-06** | GivePokemon Minimal | Code (conditionnel) | NS-GS-02 | M | TODO |
+| **NS-GS-07** | Step Completion Direct / GS Needs | Code (conditionnel) | NS-GS-04 | M | TODO |
+
+**NS-GS-05** — Seulement après NS-GS-01 à NS-GS-04. Créer un flow de départ minimal ou une stratégie de fixture initiale selon NS-GS-02/04.
+
+**NS-GS-06** — Seulement si NS-GS-02 décide que Maël donne réellement un starter en jeu. Sinon ce lot peut être reporté.
+
+**NS-GS-07** — Seulement si le contournement whenCutsceneEnds ne suffit pas. Sinon ce lot peut être reporté.
+
+### Phase 3 — Contenu Golden Slice
+
+| Lot | Titre | Type | Dépendance | Effort | Statut |
+|---|---|---|---|---|---|
+| **NS-GS-08** | Bourg Selbrume / Maël Content | Contenu | NS-GS-05 | M | TODO |
+| **NS-GS-09** | Port Brisants / Lysa Content | Contenu | NS-GS-05 | M | TODO |
+| **NS-GS-10** | Storyline Chapter 1 Wiring | Contenu | NS-GS-08, NS-GS-09 | S-M | TODO |
+| **NS-GS-11** | Battle Lysa Authoring Fixture | Contenu | NS-GS-09 | S | TODO |
+| **NS-GS-12** | Golden Slice Smoke Test | Test | NS-GS-10, NS-GS-11 | M | TODO |
+
+**NS-GS-08** — Map minimale Bourg de Selbrume, Maël, dialogue mission.
+
+**NS-GS-09** — Port des Brisants, Lysa, Soline, dialogue port.
+
+**NS-GS-10** — Storyline, chapter, steps, flows wiring.
+
+**NS-GS-11** — Trainer Lysa + battle id + branches post-combat.
+
+**NS-GS-12** — New Game → Maël → Port → Lysa → Save/Load — smoke test end-to-end.
+
+### Chemin critique propre
 
 ```text
-NS-GS-02 (décision starter)
-→ NS-GS-04 (New Game flow / fixture)
-→ NS-GS-05 (contenu — maps, NPCs, Yarn, ScenarioAssets, trainer)
-→ NS-GS-06 (trigger zone si nécessaire)
-→ NS-GS-10 (test end-to-end)
+Phase 1 — Spécification (obligatoire avant tout code)
+
+NS-GS-02 → décider starter / party initiale
+NS-GS-03 → inventorier tous les contenus et fixtures nécessaires
+NS-GS-04 → définir la stratégie de preuve runtime et save/load
+
+Phase 2 — Socle runtime minimal (seulement après Phase 1 acceptée)
+
+NS-GS-05 → New Game minimal
+NS-GS-06 → givePokemon (conditionnel)
+NS-GS-07 → step completion direct (conditionnel)
+
+Phase 3 — Contenu (seulement après socle runtime)
+
+NS-GS-08/09 → maps + NPCs + dialogues
+NS-GS-10 → storyline wiring
+NS-GS-11 → battle Lysa fixture
+
+Phase finale
+
+NS-GS-12 → smoke test end-to-end
 ```
 
-Estimation chemin critique : **S + S-M + L + S + M ≈ 3-5 sessions de travail**.
+> [!WARNING]
+> Le chemin le plus court techniquement serait NS-GS-02 → NS-GS-05 → NS-GS-08...
+> Mais il est **volontairement refusé** pour éviter de reconstruire dans le désordre.
+> Chaque phase doit être complétée et reviewée avant de passer à la suivante.
+
+Estimation chemin critique complet : **Phase 1 (3 lots doc, ~2 sessions) + Phase 2 (1-3 lots code, ~2-3 sessions) + Phase 3 (4 lots contenu, ~3-4 sessions) + Phase finale (1 lot test, ~1 session) ≈ 8-10 sessions de travail**.
 
 ---
 
@@ -1147,7 +1217,7 @@ cutsceneCompleted
 cutsceneNotCompleted
 ```
 
-### Fichiers non modifiés par ce lot
+### Fichiers non modifiés par NS-GS-01
 
 ```text
 Aucun fichier de code modifié.
@@ -1157,6 +1227,59 @@ Aucun build_runner lancé.
 Aucune opération Git d'écriture effectuée.
 ```
 
+### Git status avant correction NS-GS-01-bis
+
+```bash
+$ git status --short --untracked-files=all
+(sortie vide — working tree propre, aucun fichier modifié ni untracked)
+```
+
+### Git status/diff après correction NS-GS-01-bis
+
+```bash
+$ git diff --check -- reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
+(sortie vide — pas de whitespace errors)
+EXIT:0
+
+$ git diff --stat -- reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
+ .../ns_gs_01_golden_slice_exact_specification.md   | 177 +++++++++++++++++----
+ 1 file changed, 143 insertions(+), 34 deletions(-)
+
+$ git diff --name-only
+reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
+
+$ git status --short --untracked-files=all
+ M reports/gameplay/ns_gs_01_golden_slice_exact_specification.md
+```
+
 ---
 
-*Fin du document NS-GS-01.*
+## Addendum — NS-GS-01-bis Corrections Applied
+
+**Lot** : NS-GS-01-bis — Roadmap & Evidence Alignment Fix
+**Date** : 2026-05-23
+**Type** : Correctif documentaire (aucun code modifié)
+
+Corrections appliquées :
+
+1. **Roadmap canonique restaurée** (§21) — 3 phases distinctes, aucun lot code avant Phase 1 acceptée
+2. **Chemin critique corrigé** (§21) — refus explicite du raccourci NS-GS-02 → NS-GS-05
+3. **Ambiguïtés de gouvernance ajoutées** (§20) — AMB-GOV-01 à AMB-GOV-04
+4. **GAP table alignée** (§18) — lot references mis à jour vers la roadmap canonique
+5. **Evidence Pack complété** (§23) — git status/diff exacts avant et après correction
+
+Fichiers modifiés par NS-GS-01-bis :
+
+```text
+reports/gameplay/ns_gs_01_golden_slice_exact_specification.md (ce fichier)
+```
+
+Aucun fichier de code modifié.
+Aucune fixture modifiée.
+Aucun test modifié.
+Aucun build_runner lancé.
+Aucune opération Git d'écriture effectuée.
+
+---
+
+*Fin du document NS-GS-01 (corrigé NS-GS-01-bis).*
