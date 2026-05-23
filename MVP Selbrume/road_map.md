@@ -32,15 +32,8 @@ Le vrai problème identifié reste exactement celui-ci : PokeMap a déjà beauco
 | NS-GS-01 / 01-bis                          |                         ✅ fait | spec Golden Slice + roadmap corrigée                                            |
 | NS-GS-02 / 02-bis                          |                         ✅ fait | décision : Maël donne réellement le starter                                     |
 | NS-GS-03 / 03-bis                          | ✅ fait mais à recontextualiser | inventaire utile, mais ne doit pas devenir “fixtures créées par agent”          |
-| NS-GS-04                                   | ✅ fait mais à recontextualiser | stratégie de preuve utile, mais à aligner avec “fixtures créées dans l’éditeur” |
-
-Donc je recommande un mini-lot immédiat avant de coder :
-
-```text
-NS-GS-04-bis — Mechanics-First Roadmap Alignment
-```
-
-Pourquoi ? Parce que NS-GS-03 et NS-GS-04 parlent encore beaucoup de fixtures `selbrume_initial_save.json`, contenus Bourg/Port, etc. Le rapport précise même des fixtures de test futures.  Or tu viens de clarifier que **ces fixtures, tu les feras toi-même dans l’éditeur**. Il faut donc verrouiller cette nouvelle règle avant NS-GS-05.
+| NS-GS-04                                   |      ✅ fait (recontextualisé) | stratégie de preuve utile ; à lire comme preuves de mécaniques, pas comme fixtures à créer |
+| NS-GS-04-bis                               |                        ✅ fait | roadmap realignée mechanics-first, règle permanente inscrite, rapport livré     |
 
 ---
 
@@ -541,74 +534,93 @@ post-battle rewards
 give item after battle
 ```
 
-L’audit mécanique signale clairement que XP, level-up, moves, récompenses, bag runtime complet, shops et centre Pokémon restent de gros trous pour une boucle RPG complète.
+L'audit mécanique signale clairement que XP, level-up, moves, récompenses, bag runtime complet, shops et centre Pokémon restent de gros trous pour une boucle RPG complète.
 
 ---
 
 # Roadmap synthétique finale
 
 ```text
-PHASE 1 — Alignement
-✅ NS-GS-01
-✅ NS-GS-01-bis
-✅ NS-GS-02
-✅ NS-GS-02-bis
-✅ NS-GS-03
-✅ NS-GS-03-bis
-✅ NS-GS-04
-🔜 NS-GS-04-bis — Mechanics-First Roadmap Alignment
+PHASE 1 — Alignement (documentaire)
+✅ NS-GS-01    — Golden Slice Exact Specification
+✅ NS-GS-01-bis — Roadmap & Evidence Alignment Fix
+✅ NS-GS-02    — Starter / Initial Party Decision
+✅ NS-GS-02-bis — Starter Decision Alignment Fix
+✅ NS-GS-03    — Content Inventory & Fixture Plan
+✅ NS-GS-03-bis — Rival Outcome & World Rule Alignment Fix
+✅ NS-GS-04    — Runtime Smoke Strategy
+✅ NS-GS-04-bis — Mechanics-First Roadmap Alignment
 
-PHASE 2 — Socle runtime générique
-NS-GS-05 — New Game Minimal Runtime
-NS-GS-06 — GivePokemon Minimal
-NS-GS-07 — Step Completion / Progression Hooks V0
+PHASE 2 — Socle runtime générique (code)
+🔜 NS-GS-05   — New Game Minimal Runtime
+   NS-GS-06   — GivePokemon Minimal
+   NS-GS-07   — Step Completion / Progression Hooks V0
 
-PHASE 3 — Authoring / runtime bridge
-NS-GS-08 — NPC Interaction → Scene Authoring Readiness
-NS-GS-09 — Yarn Outcome → Scene Branch Readiness
-NS-GS-10 — World Rules / Conditional Presence Readiness
-NS-GS-11 — Trainer Battle Authoring Readiness
+PHASE 3 — Authoring / runtime bridge (code + readiness)
+   NS-GS-08   — NPC Interaction → Scene Authoring Readiness
+   NS-GS-09   — Yarn Outcome → Scene Branch Readiness
+   NS-GS-10   — World Rules / Conditional Presence Readiness
+   NS-GS-11   — Trainer Battle Authoring Readiness
 
 PHASE 4 — Validation depuis l’éditeur
-NS-GS-12 — Editor-authored Golden Slice Validation
+   NS-GS-12   — Editor-authored Golden Slice Validation
 
 PHASE 5 — Sécurité no-code
-NS-GS-13 — Narrative Validator Minimal V0
+   NS-GS-13   — Narrative Validator Minimal V0
 
 PHASE 6 — Extension gameplay
-NS-GS-14 — Item Pickup / GiveItem Authoring Readiness
-NS-GS-15 — Key Item / Door Gate Readiness
-NS-GS-16 — Side Quest / Optional Storyline Readiness
-NS-GS-17 — Static Encounter / Boss Battle Readiness
-NS-GS-18 — Reward / Money / XP Bridge Audit
+   NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
+   NS-GS-15   — Key Item / Door Gate Readiness
+   NS-GS-16   — Side Quest / Optional Storyline Readiness
+   NS-GS-17   — Static Encounter / Boss Battle Readiness
+   NS-GS-18   — Reward / Money / XP Bridge Audit
 ```
 
 # Prochain lot exact
 
-Je ferais maintenant :
-
 ```text
-NS-GS-04-bis — Mechanics-First Roadmap Alignment
+🔜 NS-GS-05 — New Game Minimal Runtime
 ```
 
-Pas du code tout de suite.
-
-Pourquoi ? Parce qu’on a officiellement changé l’interprétation de la roadmap : **les agents ne créent pas les fixtures Selbrume, ils créent les mécaniques permettant à l’éditeur de les authorer**.
-
-Après ce petit réalignement, on pourra enfin faire :
+Périmètre :
 
 ```text
-NS-GS-05 — New Game Minimal Runtime
+Mécanique générique de nouvelle partie.
+Pas hardcodée Selbrume.
+Pas de fixtures Selbrume finales.
+Compatible projet authoré dans l'éditeur.
+ProjectManifest.startMapId / startSpawnId.
+Initial party vide si le projet le demande.
+Tests unitaires obligatoires.
+Mettre à jour MVP Selbrume/road_map.md.
 ```
 
-Mais cette fois avec le bon périmètre :
+---
 
-```text
-générique
-réutilisable
-pas Selbrume-hardcodé
-pas de fixtures finales
-pas de contenu auteur créé par l’agent
-```
+# Règle permanente de maintenance de la roadmap
 
-C’est là qu’on évite le boss final du scope creep. Et lui, crois-moi, il a 12 barres de vie.
+À chaque lot NS-GS / NS-SB / Narrative Studio lié à ce chantier, l'agent doit :
+
+1. **Lire** ce fichier (`MVP Selbrume/road_map.md`) avant toute modification.
+2. **Respecter** la roadmap canonique courante.
+3. **Mettre à jour le statut** du lot exécuté.
+4. **Ajouter un résumé court** du résultat.
+5. **Mettre à jour** la section « Prochain lot recommandé ».
+6. **Signaler** les décisions utilisateur nouvelles.
+7. **Signaler** les changements de périmètre.
+8. **Ne jamais transformer** un lot de mécanique générique en création de contenu Selbrume.
+9. **Ne jamais créer** de fixtures Selbrume finales sauf demande explicite de l'utilisateur.
+10. **Conserver** un Evidence Pack dans le rapport du lot.
+
+---
+
+# Mise à jour NS-GS-04-bis — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-04-bis — Mechanics-First Roadmap Alignment |
+| Résultat | Roadmap realignée mechanics-first. Règle permanente inscrite. Rapport livré. |
+| Décision intégrée | Les agents ne créent pas les fixtures Selbrume finales. L'utilisateur les crée dans l'éditeur. |
+| NS-GS-03/04 | Restent utiles comme référence, pas comme commande de création. |
+| Prochain lot | NS-GS-05 — New Game Minimal Runtime (mécanique générique) |
+| Rapport | `reports/gameplay/ns_gs_04_bis_mechanics_first_roadmap_alignment.md` |
