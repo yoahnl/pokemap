@@ -338,12 +338,10 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildHeader(context, label, subtle, n),
-              const SizedBox(height: 12),
               _buildInfoBanner(context),
               const SizedBox(height: 14),
               if (_panelMode == EnvironmentStudioPanelMode.browser && n == 0)
@@ -372,11 +370,12 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                 Expanded(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: EditorChrome.chipFill(context),
-                      borderRadius: BorderRadius.circular(12),
+                      color: EditorChrome.islandFillElevated(context),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: CupertinoColors.separator.resolveFrom(context),
+                        color: EditorChrome.accentJade.withValues(alpha: 0.22),
                       ),
+                      boxShadow: EditorChrome.sectionCardShadows(context),
                     ),
                     child: EnvironmentPresetCreationWizard(
                       key: ValueKey<int>(_draftFormEpoch),
@@ -398,11 +397,12 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                 Expanded(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: EditorChrome.chipFill(context),
-                      borderRadius: BorderRadius.circular(12),
+                      color: EditorChrome.islandFillElevated(context),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: CupertinoColors.separator.resolveFrom(context),
+                        color: EditorChrome.accentJade.withValues(alpha: 0.22),
                       ),
+                      boxShadow: EditorChrome.sectionCardShadows(context),
                     ),
                     child: EnvironmentPresetDraftForm(
                       key: ValueKey<int>(_draftFormEpoch),
@@ -614,27 +614,53 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                 child: DecoratedBox(
                   key: const Key('environment-studio-preset-column'),
                   decoration: BoxDecoration(
-                    color: EditorChrome.chipFill(context),
-                    borderRadius: BorderRadius.circular(12),
+                    color: EditorChrome.islandFillElevated(context),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: CupertinoColors.separator.resolveFrom(context),
+                      color: EditorChrome.accentJade.withValues(alpha: 0.22),
                     ),
+                    boxShadow: EditorChrome.sectionCardShadows(context),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                'Presets',
-                                style: TextStyle(
-                                  color: label,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                              child: Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    'Presets',
+                                    style: TextStyle(
+                                      color: label,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    key: const Key('environment-studio-preset-count'),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: EditorChrome.badgeFill(context),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: EditorChrome.accentWarm.withValues(alpha: 0.25),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      presets.length == 1 ? '1 preset' : '${presets.length} presets',
+                                      style: TextStyle(
+                                        color: label,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             _newPresetButton(),
@@ -663,11 +689,12 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                 child: DecoratedBox(
                   key: const Key('environment-studio-editor-panel'),
                   decoration: BoxDecoration(
-                    color: EditorChrome.chipFill(context),
-                    borderRadius: BorderRadius.circular(12),
+                    color: EditorChrome.islandFillElevated(context),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: CupertinoColors.separator.resolveFrom(context),
+                      color: EditorChrome.accentJade.withValues(alpha: 0.22),
                     ),
+                    boxShadow: EditorChrome.sectionCardShadows(context),
                   ),
                   child: selected == null
                       ? Center(

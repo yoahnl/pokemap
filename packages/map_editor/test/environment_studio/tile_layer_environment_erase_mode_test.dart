@@ -94,7 +94,7 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = EditorState(
         project: _manifest(),
-        activeMap: _mapWithAttachedArea(),
+        activeMap: _mapWithTwoAttachedAreas(),
         activeLayerId: 'tiles',
       );
 
@@ -123,6 +123,37 @@ void main() {
       expect(state.errorMessage, contains('introuvable'));
     });
   });
+}
+
+MapData _mapWithTwoAttachedAreas() {
+  final map = _mapWithAttachedArea();
+  final env = map.layers.whereType<EnvironmentLayer>().single;
+  final first = env.content.areas.single;
+  final updatedEnv = env.copyWith(
+    content: EnvironmentLayerContent(
+      targetTileLayerId: env.content.targetTileLayerId,
+      areas: [
+        first,
+        EnvironmentArea(
+          id: 'area_meadow',
+          name: 'Prairie',
+          presetId: 'forest',
+          mask: EnvironmentAreaMask(
+            width: 3,
+            height: 3,
+            cells: List<bool>.filled(9, false),
+          ),
+          seed: 1,
+        ),
+      ],
+    ),
+  );
+  return map.copyWith(
+    layers: [
+      for (final layer in map.layers)
+        if (layer.id == env.id) updatedEnv else layer,
+    ],
+  );
 }
 
 MapData _mapWithAttachedArea() {

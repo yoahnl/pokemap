@@ -37,7 +37,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
           leading: const MacosIcon(CupertinoIcons.person_3_fill),
           title: const Text('Trainer Studio'),
           subtitle: const Text(
-            'Open the main workspace to create trainers, teams and battle rosters.',
+            'Ouvrez le workspace central pour créer des dresseurs et des équipes de combat.',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -57,7 +57,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${project.trainers.length} trainers • $totalTeamPokemon team Pokémon',
+                  '${project.trainers.length} dresseurs • $totalTeamPokemon Pokémon d’équipe',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -66,8 +66,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
                 const SizedBox(height: 6),
                 Text(
                   selectedTrainer == null
-                      ? 'No trainer selected yet. Open Trainer Studio to create your first roster.'
-                      : 'Current focus: ${selectedTrainer.name} • ${selectedTrainer.trainerClass}\n'
+                      ? 'Aucun dresseur sélectionné pour le moment. Ouvrez le Trainer Studio pour créer votre premier dresseur.'
+                      : 'Sélection actuelle : ${selectedTrainer.name} • ${selectedTrainer.trainerClass}\n'
                           '${_buildRosterPreview(selectedTrainer, references)}',
                   style: TextStyle(
                     color: subtle,
@@ -85,11 +85,11 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
           key: const Key('trainer-library-open-studio-button'),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           onPressed: openStudio,
-          child: const Text('Open Trainer Studio'),
+          child: const Text('Ouvrir le Trainer Studio'),
         ),
         const SizedBox(height: 8),
         Text(
-          'Detailed editing now lives in the center workspace so trainers, team cards and guided selectors all stay visible together.',
+          'L’édition détaillée se fait désormais dans l’espace central afin que les dresseurs, les fiches d’équipe et les sélecteurs guidés restent visibles ensemble.',
           style: TextStyle(
             color: subtle,
             fontSize: 11,
@@ -130,7 +130,6 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _TrainerStudioHeaderCard(
-                onNewTrainer: _openCreateTrainerForm,
                 referencesBanner: _TrainerReferencesBanner(
                   references: references,
                   onRefresh: () => _refreshReferenceData(state),
@@ -272,22 +271,52 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     required _TrainerReferenceData references,
     required ProjectTrainerEntry? visibleTrainer,
   }) {
+    final subtle = EditorChrome.subtleLabel(context);
     return _TrainerStudioPane(
       key: const Key('trainer-library-roster-pane'),
-      title: 'Trainer Roster',
-      subtitle: 'Search, browse and pick the trainer you want to author.',
+      title: 'Roster de dresseurs',
+      subtitle: 'Recherchez, parcourez et sélectionnez le dresseur à éditer.',
+      headerAction: CupertinoButton(
+        key: const Key('trainer-library-new-trainer-button'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        minimumSize: const Size(1, 28),
+        onPressed: _openCreateTrainerForm,
+        child: const Text('Nouveau dresseur', style: TextStyle(fontSize: 12)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CupertinoTextField(
-            key: const Key(
-              'trainer-library-roster-search-field',
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: EditorChrome.islandFill(context),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: EditorChrome.accentCoral.withValues(alpha: 0.28),
+                width: 1,
+              ),
             ),
-            controller: _trainerSearchController,
-            placeholder: 'Search by name, class, id or tag',
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.search,
+                    color: subtle,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: CupertinoTextField.borderless(
+                      key: const Key(
+                        'trainer-library-roster-search-field',
+                      ),
+                      controller: _trainerSearchController,
+                      placeholder: 'Rechercher par nom, classe, ID ou tag',
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -314,8 +343,8 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
   }) {
     return _TrainerStudioPane(
       key: const Key('trainer-library-detail-pane'),
-      title: 'Trainer Detail',
-      subtitle: 'Identity, optional refs and the current battle team.',
+      title: 'Détail du dresseur',
+      subtitle: 'Identité, références optionnelles et équipe de combat.',
       child: _buildTrainerDetailPane(
         context: context,
         project: project,
@@ -335,9 +364,9 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
   }) {
     return _TrainerStudioPane(
       key: const Key('trainer-library-editor-pane'),
-      title: 'Guided Pokémon Editor',
+      title: 'Éditeur Pokémon guidé',
       subtitle:
-          'Pick species, moves, forms and items with local search when available.',
+          'Sélectionnez l’espèce, les capacités, les formes et les objets.',
       child: _buildPokemonEditorPane(
         context: context,
         workspace: workspace,
@@ -366,7 +395,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     if (project.trainers.isEmpty) {
       return Center(
         child: Text(
-          'No trainers yet.\nUse the button above to create your first roster.',
+          'Aucun dresseur pour le moment.\nUtilisez le bouton ci-dessus pour créer votre premier dresseur.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: subtle,
@@ -381,7 +410,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     if (filtered.isEmpty) {
       return Center(
         child: Text(
-          'No trainer matches this search.',
+          'Aucun dresseur ne correspond à cette recherche.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: subtle,
@@ -415,7 +444,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     _TrainerReferenceData references,
   ) {
     if (trainer.team.isEmpty) {
-      return 'No Pokémon assigned yet';
+      return 'Aucun Pokémon assigné pour le moment';
     }
     final preview = trainer.team.take(3).map((pokemon) {
       final species = _speciesLookupService.findById(
@@ -476,10 +505,10 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
 
     if (visibleTrainer == null) {
       return _TrainerStudioEmptyState(
-        title: 'No trainer selected',
+        title: 'Aucun dresseur sélectionné',
         body:
-            'Pick a trainer from the roster or create a new one to start authoring a full battle team.',
-        actionLabel: 'Create Trainer',
+            'Sélectionnez un dresseur dans le roster ou créez-en un nouveau pour commencer à composer une équipe de combat.',
+        actionLabel: 'Créer un dresseur',
         onAction: _openCreateTrainerForm,
       );
     }
@@ -539,7 +568,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
           children: [
             Expanded(
               child: Text(
-                'TEAM (${visibleTrainer.team.length})',
+                'ÉQUIPE (${visibleTrainer.team.length})',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -560,7 +589,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
                 }
               },
               child: Text(
-                isAddingPokemon ? 'Cancel' : 'Add Pokémon',
+                isAddingPokemon ? 'Annuler' : 'Ajouter un Pokémon',
                 style: const TextStyle(fontSize: 12),
               ),
             ),
@@ -569,7 +598,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
         const SizedBox(height: 8),
         if (visibleTrainer.team.isEmpty)
           Text(
-            'This trainer has no team yet. You can save the trainer now and add battle Pokémon right after.',
+            'Ce dresseur n\'a pas encore d\'équipe. Vous pouvez l\'enregistrer maintenant et ajouter des Pokémon de combat juste après.',
             style: TextStyle(
               color: subtle,
               fontSize: 11,
@@ -614,7 +643,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     if (workspace == null) {
       return Center(
         child: Text(
-          'Trainer saves need a valid project workspace.\nNo workspace is currently available.',
+          'L’enregistrement des dresseurs nécessite un espace de travail projet valide.\nAucun espace n’est disponible actuellement.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: subtle,
@@ -629,7 +658,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     if (visibleTrainer == null) {
       return Center(
         child: Text(
-          'Select a trainer first.\nThe guided Pokémon editor will appear here.',
+          'Sélectionnez d’abord un dresseur.\nL’éditeur Pokémon guidé apparaîtra ici.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: subtle,
@@ -643,14 +672,14 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
 
     if (_activePokemonTrainerId != visibleTrainer.id) {
       return const _TrainerStudioEmptyState(
-        title: 'No Pokémon selected',
+        title: 'Aucun Pokémon sélectionné',
         body:
-            'Choose “Add Pokémon” or edit one of the trainer team cards to open the guided editor here.',
+            'Choisissez « Ajouter un Pokémon » ou modifiez une fiche d’équipe pour ouvrir l’éditeur guidé ici.',
       );
     }
 
     final editorTitle =
-        _editingPokemonIndex == null ? 'NEW TEAM POKÉMON' : 'EDIT TEAM POKÉMON';
+        _editingPokemonIndex == null ? 'NOUVEAU POKÉMON D’ÉQUIPE' : 'MODIFIER LE POKÉMON D’ÉQUIPE';
 
     return ListView(
       key: const Key('trainer-library-editor-scroll'),
@@ -697,12 +726,10 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
 
 class _TrainerStudioHeaderCard extends StatelessWidget {
   const _TrainerStudioHeaderCard({
-    required this.onNewTrainer,
     required this.referencesBanner,
     required this.operationBanner,
   });
 
-  final VoidCallback onNewTrainer;
   final Widget referencesBanner;
   final Widget? operationBanner;
 
@@ -720,53 +747,18 @@ class _TrainerStudioHeaderCard extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Visibility(
-                        visible: false,
-                        maintainState: true,
-                        child: Text(
-                          'Trainer Studio',
-                          style: TextStyle(
-                            color: EditorChrome.primaryLabel(context),
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'Create and edit project trainers in one readable workspace: roster on the left, team detail in the middle, guided Pokémon editing on the right.',
-                        style: TextStyle(
-                          color: EditorChrome.primaryLabel(context),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                CupertinoButton.filled(
-                  key: const Key('trainer-library-new-trainer-button'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  minimumSize: const Size(1, 34),
-                  onPressed: onNewTrainer,
-                  child: const Text('New Trainer'),
-                ),
-              ],
+            Text(
+              "Créez et modifiez les dresseurs du projet dans un espace de travail clair : le roster à gauche, le détail de l'équipe au milieu et l'éditeur Pokémon guidé à droite.",
+              style: TextStyle(
+                color: EditorChrome.primaryLabel(context),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
             ),
             const SizedBox(height: 14),
             referencesBanner,
@@ -787,11 +779,13 @@ class _TrainerStudioPane extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.child,
+    this.headerAction,
   });
 
   final String title;
   final String subtitle;
   final Widget child;
+  final Widget? headerAction;
 
   @override
   Widget build(BuildContext context) {
@@ -799,35 +793,50 @@ class _TrainerStudioPane extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(context),
-        borderRadius: BorderRadius.circular(24),
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
+          color: EditorChrome.accentCoral.withValues(alpha: 0.22),
+          width: 1,
         ),
+        boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: EditorChrome.primaryLabel(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: subtle,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (headerAction != null) headerAction!,
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: subtle,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Expanded(child: child),
           ],
         ),
@@ -1022,7 +1031,7 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
                   ),
                   minimumSize: const Size(1, 32),
                   onPressed: onEdit,
-                  child: const Text('Edit'),
+                  child: const Text('Modifier'),
                 ),
                 const SizedBox(width: 6),
                 CupertinoButton(
@@ -1033,7 +1042,7 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
                   minimumSize: const Size(1, 32),
                   onPressed: onDelete,
                   child: const Text(
-                    'Delete',
+                    'Supprimer',
                     style: TextStyle(color: CupertinoColors.destructiveRed),
                   ),
                 ),

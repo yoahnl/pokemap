@@ -19,9 +19,6 @@ void main() {
       );
 
       expect(find.byKey(const Key('environment-studio-shell')), findsOneWidget);
-      expect(find.text('Environment Studio'), findsOneWidget);
-      expect(
-          find.text('Presets d’environnements réutilisables'), findsOneWidget);
       expect(
         find.text(
           'Les presets se préparent ici. La peinture et la génération se font dans l’éditeur de carte.',

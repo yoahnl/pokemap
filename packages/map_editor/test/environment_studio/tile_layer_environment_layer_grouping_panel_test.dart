@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/panels/layers_panel.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_icon_button.dart';
 
 void main() {
   group('TileLayer environment grouping LayersPanel', () {
@@ -94,7 +95,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('delete-layer-decor')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Delete Layer'), findsNothing);
+      expect(find.text('Supprimer le calque'), findsNothing);
       expect(
         container
             .read(editorNotifierProvider)
@@ -118,7 +119,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('delete-layer-env_missing')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Supprimer'));
       await tester.pumpAndSettle();
 
       expect(
@@ -237,11 +238,8 @@ EnvironmentLayer _environmentLayer({
   ) as EnvironmentLayer;
 }
 
-CupertinoButton _deleteLayerButton(WidgetTester tester, String layerId) {
-  return tester.widget<CupertinoButton>(
-    find.descendant(
-      of: find.byKey(ValueKey('delete-layer-$layerId')),
-      matching: find.byType(CupertinoButton),
-    ),
+PokeMapIconButton _deleteLayerButton(WidgetTester tester, String layerId) {
+  return tester.widget<PokeMapIconButton>(
+    find.byKey(ValueKey('delete-layer-$layerId')),
   );
 }

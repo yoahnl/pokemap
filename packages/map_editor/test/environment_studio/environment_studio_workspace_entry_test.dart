@@ -19,8 +19,7 @@ void main() {
         ),
       );
 
-      expect(find.byKey(const Key('environment-studio-title')), findsOneWidget);
-      expect(find.text('Environment Studio'), findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-shell')), findsOneWidget);
     });
 
     testWidgets('affiche le message projet absent sans manifest',

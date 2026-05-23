@@ -53,13 +53,13 @@ void main() {
 
       await tester.tap(
         find.byWidgetPredicate(
-          (widget) => widget is MacosTooltip && widget.message == 'Add Layer',
+          (widget) => widget is Tooltip && widget.message == 'Ajouter un calque',
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Type: Tile Layer'));
+      await tester.tap(find.text('Type : Couche de tuiles (Tile)'));
       await tester.pumpAndSettle();
-      expect(find.text('Environment Layer'), findsOneWidget);
+      expect(find.text('Couche d\'environnement'), findsOneWidget);
     });
 
     testWidgets(
@@ -103,19 +103,19 @@ void main() {
 
       await tester.tap(
         find.byWidgetPredicate(
-          (widget) => widget is MacosTooltip && widget.message == 'Add Layer',
+          (widget) => widget is Tooltip && widget.message == 'Ajouter un calque',
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Type: Tile Layer'));
+      await tester.tap(find.text('Type : Couche de tuiles (Tile)'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Environment Layer'));
+      await tester.tap(find.text('Couche d\'environnement'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const Key('layers-panel-add-environment-description')),
         findsOneWidget,
       );
-      await tester.tap(find.text('Add'));
+      await tester.tap(find.text('Ajouter'));
       await tester.pumpAndSettle();
 
       final state = container.read(editorNotifierProvider);

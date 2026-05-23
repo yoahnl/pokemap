@@ -29,12 +29,13 @@ class _TrainerReferencesBanner extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: EditorChrome.chipFill(context),
+        color: EditorChrome.islandFillElevated(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: EditorChrome.accentWarm.withValues(alpha: 0.18),
+          color: EditorChrome.accentCoral.withValues(alpha: 0.18),
           width: 1,
         ),
+        boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -45,7 +46,7 @@ class _TrainerReferencesBanner extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Trainer Studio references · $speciesState · $moveState · $itemState',
+                    'Références Trainer Studio · $speciesState · $moveState · $itemState',
                     style: TextStyle(
                       color: label,
                       fontSize: 12,
@@ -62,7 +63,7 @@ class _TrainerReferencesBanner extends StatelessWidget {
                   minimumSize: const Size(1, 28),
                   onPressed: onRefresh,
                   child: const Text(
-                    'Refresh',
+                    'Actualiser',
                     style: TextStyle(fontSize: 12),
                   ),
                 ),
@@ -83,9 +84,9 @@ class _TrainerReferencesBanner extends StatelessWidget {
               references.movesCatalogView.isAvailable
                   ? references.movesCatalogView.description
                   : _buildAuthorFacingCatalogUnavailableMessage(
-                      subjectLabel: 'move data',
+                      subjectLabel: 'des capacités',
                       fallbackMessage:
-                          'Guided move suggestions stay unavailable until the local catalog can be read.',
+                          'Les suggestions guidées de capacités restent indisponibles tant que le catalogue local ne peut pas être lu.',
                       technicalMessage: references.movesCatalogView.message,
                     ),
               style: TextStyle(
@@ -100,9 +101,9 @@ class _TrainerReferencesBanner extends StatelessWidget {
               references.itemsCatalogView.isAvailable
                   ? references.itemsCatalogView.description
                   : _buildAuthorFacingCatalogUnavailableMessage(
-                      subjectLabel: 'item data',
+                      subjectLabel: 'des objets',
                       fallbackMessage:
-                          'Raw item IDs stay possible while the local catalog is unavailable.',
+                          'Les ID bruts d’objets restent possibles alors que le catalogue local est indisponible.',
                       technicalMessage: references.itemsCatalogView.message,
                     ),
               style: TextStyle(
@@ -230,189 +231,245 @@ class _TrainerEditorCard extends StatelessWidget {
     final battleBackgroundExists =
         battleBackgroundFile != null && battleBackgroundFile.existsSync();
 
-    return Container(
-      padding: const EdgeInsets.all(10),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: accent.withValues(alpha: 0.06),
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.22),
+          width: 1,
         ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: accent.withValues(alpha: 0.35)),
+        boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          InspectorEmbeddedSectionLabel(title),
-          const SizedBox(height: 6),
-          CupertinoTextField(
-            key: Key(
-              createMode
-                  ? 'trainer-library-create-name-field'
-                  : 'trainer-library-edit-name-field',
-            ),
-            controller: nameController,
-            placeholder: 'Name (e.g. Ash)',
-          ),
-          const SizedBox(height: 6),
-          CupertinoTextField(
-            key: Key(
-              createMode
-                  ? 'trainer-library-create-class-field'
-                  : 'trainer-library-edit-class-field',
-            ),
-            controller: classController,
-            placeholder: 'Class (e.g. Pokémon Trainer)',
-          ),
-          const SizedBox(height: 6),
-          _TrainerCharacterPicker(
-            characters: characters,
-            selectedCharacterId: selectedCharacterId,
-            onSelected: onSelectCharacter,
-          ),
-          const SizedBox(height: 10),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: EditorChrome.islandFillElevated(context),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: accent.withValues(alpha: 0.18),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InspectorEmbeddedSectionLabel(title),
+            const SizedBox(height: 10),
+            CupertinoTextField(
+              key: Key(
+                createMode
+                    ? 'trainer-library-create-name-field'
+                    : 'trainer-library-edit-name-field',
               ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          battleDifficulty == null
-                              ? 'Battle difficulty · legacy fallback'
-                              : 'Battle difficulty · ${battleDifficulty!}/10',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      CupertinoButton(
-                        key: Key(
-                          createMode
-                              ? 'trainer-library-create-difficulty-clear-button'
-                              : 'trainer-library-edit-difficulty-clear-button',
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: const Size(1, 24),
-                        onPressed: battleDifficulty == null
-                            ? null
-                            : onClearBattleDifficulty,
-                        child: Text(
-                          battleDifficulty == null
-                              ? 'Fallback active'
-                              : 'Use fallback',
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                      ),
-                    ],
-                  ),
-                  CupertinoSlider(
-                    key: Key(
-                      createMode
-                          ? 'trainer-library-create-difficulty-slider'
-                          : 'trainer-library-edit-difficulty-slider',
-                    ),
-                    value: displayedBattleDifficulty,
-                    min: 1,
-                    max: 10,
-                    divisions: 9,
-                    onChanged: onBattleDifficultyChanged,
-                  ),
-                  Text(
-                    battleDifficulty == null
-                        ? 'No explicit difficulty is stored yet. Moving the slider authors a real 1..10 value for runtime routing.'
-                        : 'Trainer difficulty stays authored in project data and is later routed to a small internal opponent profile set.',
-                    style: TextStyle(
-                      color: subtle,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
+              controller: nameController,
+              placeholder: 'Nom (ex : Sacha)',
+              decoration: BoxDecoration(
+                color: EditorChrome.islandFill(context),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.28),
+                  width: 1,
+                ),
               ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
-          ),
-          const SizedBox(height: 8),
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(1, 24),
-            alignment: Alignment.centerLeft,
-            onPressed: onToggleAdvanced,
-            child: Text(
-              showAdvanced
-                  ? 'Hide optional references'
-                  : 'Show optional references',
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          if (showAdvanced) ...[
             const SizedBox(height: 8),
             CupertinoTextField(
               key: Key(
                 createMode
-                    ? 'trainer-library-create-portrait-field'
-                    : 'trainer-library-edit-portrait-field',
+                    ? 'trainer-library-create-class-field'
+                    : 'trainer-library-edit-class-field',
               ),
-              controller: portraitController,
-              placeholder: 'Raw portrait element ID (optional)',
-            ),
-            if (!portraitIsKnown)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text(
-                  'Portrait element ID is not present in the project elements.',
-                  style: TextStyle(
-                    color: EditorChrome.inspectorJoyCoral,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
+              controller: classController,
+              placeholder: 'Classe (ex : Dresseur Pokémon)',
+              decoration: BoxDecoration(
+                color: EditorChrome.islandFill(context),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.28),
+                  width: 1,
                 ),
               ),
-            const SizedBox(height: 6),
-            CupertinoTextField(
-              key: Key(
-                createMode
-                    ? 'trainer-library-create-battle-theme-field'
-                    : 'trainer-library-edit-battle-theme-field',
-              ),
-              controller: battleThemeController,
-              placeholder: 'Raw battle theme ID (optional)',
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
-            const SizedBox(height: 6),
-            CupertinoTextField(
-              key: Key(
-                createMode
-                    ? 'trainer-library-create-victory-theme-field'
-                    : 'trainer-library-edit-victory-theme-field',
-              ),
-              controller: victoryThemeController,
-              placeholder: 'Raw victory theme ID (optional)',
+            const SizedBox(height: 8),
+            _TrainerCharacterPicker(
+              characters: characters,
+              selectedCharacterId: selectedCharacterId,
+              onSelected: onSelectCharacter,
             ),
-            const SizedBox(height: 6),
-            CupertinoTextField(
-              key: Key(
-                createMode
-                    ? 'trainer-library-create-tags-field'
-                    : 'trainer-library-edit-tags-field',
+            const SizedBox(height: 12),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: EditorChrome.islandFillElevated(context),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.18),
+                ),
               ),
-              controller: tagsController,
-              placeholder: 'Tags (comma separated, optional)',
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            battleDifficulty == null
+                                ? 'Difficulté de combat · valeur par défaut'
+                                : 'Difficulté de combat · ${battleDifficulty!}/10',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        CupertinoButton(
+                          key: Key(
+                            createMode
+                                ? 'trainer-library-create-difficulty-clear-button'
+                                : 'trainer-library-edit-difficulty-clear-button',
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          minimumSize: const Size(1, 24),
+                          onPressed: battleDifficulty == null
+                              ? null
+                              : onClearBattleDifficulty,
+                          child: Text(
+                            battleDifficulty == null
+                                ? 'Défaut actif'
+                                : 'Utiliser le défaut',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                    CupertinoSlider(
+                      key: Key(
+                        createMode
+                            ? 'trainer-library-create-difficulty-slider'
+                            : 'trainer-library-edit-difficulty-slider',
+                      ),
+                      value: displayedBattleDifficulty,
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      onChanged: onBattleDifficultyChanged,
+                    ),
+                    Text(
+                      battleDifficulty == null
+                          ? 'Aucune difficulté explicite n’est enregistrée. Déplacez le curseur pour définir une valeur de 1 à 10.'
+                          : 'La difficulté du dresseur est enregistrée dans les données du projet pour le combat.',
+                      style: TextStyle(
+                        color: subtle,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+            const SizedBox(height: 8),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(1, 24),
+              alignment: Alignment.centerLeft,
+              onPressed: onToggleAdvanced,
+              child: Text(
+                showAdvanced
+                    ? 'Masquer les références optionnelles'
+                    : 'Afficher les références optionnelles',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
+            if (showAdvanced) ...[
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                key: Key(
+                  createMode
+                      ? 'trainer-library-create-portrait-field'
+                      : 'trainer-library-edit-portrait-field',
+                ),
+                controller: portraitController,
+                placeholder: 'ID d’élément de portrait brut (optionnel)',
+                decoration: BoxDecoration(
+                  color: EditorChrome.islandFill(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.28),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              if (!portraitIsKnown)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text(
+                    'L’ID de l’élément de portrait n’est pas présent dans les éléments du projet.',
+                    style: TextStyle(
+                      color: EditorChrome.inspectorJoyCoral,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 6),
+              CupertinoTextField(
+                key: Key(
+                  createMode
+                      ? 'trainer-library-create-battle-theme-field'
+                      : 'trainer-library-edit-battle-theme-field',
+                ),
+                controller: battleThemeController,
+                placeholder: 'ID de thème de combat brut (optionnel)',
+                decoration: BoxDecoration(
+                  color: EditorChrome.islandFill(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.28),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              const SizedBox(height: 6),
+              CupertinoTextField(
+                key: Key(
+                  createMode
+                      ? 'trainer-library-create-victory-theme-field'
+                      : 'trainer-library-edit-victory-theme-field',
+                ),
+                controller: victoryThemeController,
+                placeholder: 'ID de thème de victoire brut (optionnel)',
+                decoration: BoxDecoration(
+                  color: EditorChrome.islandFill(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.28),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              const SizedBox(height: 6),
+              CupertinoTextField(
+                key: Key(
+                  createMode
+                      ? 'trainer-library-create-tags-field'
+                      : 'trainer-library-edit-tags-field',
+                ),
+                controller: tagsController,
+                placeholder: 'Tags (séparés par des virgules, optionnel)',
+                decoration: BoxDecoration(
+                  color: EditorChrome.islandFill(context),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.28),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
             const SizedBox(height: 6),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -428,7 +485,7 @@ class _TrainerEditorCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      'Battle background image (optional)',
+                      'Image de fond de combat (optionnelle)',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -438,7 +495,7 @@ class _TrainerEditorCard extends StatelessWidget {
                     Text(
                       hasExplicitBattleBackground
                           ? battleBackgroundRelativePath!.trim()
-                          : 'No explicit trainer background selected.',
+                          : 'Aucun fond spécifique sélectionné.',
                       style: TextStyle(
                         color: hasExplicitBattleBackground
                             ? EditorChrome.primaryLabel(context)
@@ -504,9 +561,9 @@ class _TrainerEditorCard extends StatelessWidget {
                                       Text(
                                         hasExplicitBattleBackground
                                             ? (battleBackgroundExists
-                                                ? 'Project image linked'
-                                                : 'Linked file missing')
-                                            : 'No explicit image linked',
+                                                ? 'Image projet liée'
+                                                : 'Fichier lié manquant')
+                                            : 'Aucune image liée',
                                         style: TextStyle(
                                           color: EditorChrome.primaryLabel(
                                             context,
@@ -519,9 +576,9 @@ class _TrainerEditorCard extends StatelessWidget {
                                       Text(
                                         hasExplicitBattleBackground
                                             ? (battleBackgroundExists
-                                                ? 'Runtime will try this trainer-specific image before the contextual background.'
-                                                : 'Runtime will ignore this missing file and fall back honestly to the contextual background.')
-                                            : 'Choose a project-local image to override the contextual battle background for this trainer.',
+                                                ? 'Le runtime tentera d’utiliser cette image spécifique avant le fond contextuel.'
+                                                : 'Le runtime ignorera ce fichier manquant et se rabattra sur le fond contextuel.')
+                                            : 'Choisissez une image locale du projet pour remplacer le fond de combat contextuel.',
                                         style: TextStyle(
                                           color: subtle,
                                           fontSize: 11,
@@ -554,7 +611,7 @@ class _TrainerEditorCard extends StatelessWidget {
                           minimumSize: const Size(1, 28),
                           onPressed: onPickBattleBackground,
                           child: const Text(
-                            'Choose image',
+                            'Choisir une image',
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -572,7 +629,7 @@ class _TrainerEditorCard extends StatelessWidget {
                           minimumSize: const Size(1, 28),
                           onPressed: onClearBattleBackground,
                           child: const Text(
-                            'Clear',
+                            'Effacer',
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -580,7 +637,7 @@ class _TrainerEditorCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'This lot links a project-local image by relative path. If the file disappears later, runtime falls back honestly instead of faking support.',
+                      'Cette option lie une image locale du projet par chemin relatif. Si le fichier disparaît, le runtime se rabattra sur le fond par défaut.',
                       style: TextStyle(
                         color: subtle,
                         fontSize: 11,
@@ -624,7 +681,7 @@ class _TrainerEditorCard extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 minimumSize: const Size(1, 28),
                 onPressed: onCancel,
-                child: const Text('Cancel', style: TextStyle(fontSize: 13)),
+                child: const Text('Annuler', style: TextStyle(fontSize: 13)),
               ),
               const SizedBox(width: 6),
               CupertinoButton.filled(
@@ -633,7 +690,7 @@ class _TrainerEditorCard extends StatelessWidget {
                 minimumSize: const Size(1, 28),
                 onPressed: onSubmit,
                 child: Text(
-                  createMode ? 'Create' : 'Save',
+                  createMode ? 'Créer' : 'Enregistrer',
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
@@ -641,7 +698,8 @@ class _TrainerEditorCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -665,7 +723,7 @@ class _TrainerCharacterPicker extends StatelessWidget {
         break;
       }
     }
-    final label = selected?.name ?? 'None';
+    final label = selected?.name ?? 'Aucun';
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -675,13 +733,13 @@ class _TrainerCharacterPicker extends StatelessWidget {
         onPressed: () async {
           final picked = await showCupertinoListPicker<ProjectCharacterEntry?>(
             context: context,
-            title: 'Trainer Character',
+            title: 'Personnage du dresseur',
             items: [null, ...characters],
-            labelOf: (value) => value?.name ?? 'None',
+            labelOf: (value) => value?.name ?? 'Aucun',
           );
           onSelected(picked?.id);
         },
-        child: Text('Character: $label'),
+        child: Text('Personnage : $label'),
       ),
     );
   }

@@ -242,7 +242,7 @@ void main() {
       find.byKey(const Key('trainer-library-create-class-field')),
       'Gym Leader',
     );
-    await tester.tap(find.text('Show optional references'));
+    await tester.tap(find.text('Afficher les références optionnelles'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('trainer-library-create-battle-theme-field')),
@@ -257,7 +257,7 @@ void main() {
       ' rival, gym ',
     );
 
-    await tester.tap(find.text('Create'));
+    await tester.tap(find.text('Créer'));
     await tester.pumpAndSettle();
 
     final trainer =
@@ -398,7 +398,7 @@ void main() {
     );
     await settleTrainerUi(tester);
 
-    expect(find.text('Battle difficulty · legacy fallback'), findsOneWidget);
+    expect(find.text('Difficulté de combat · valeur par défaut'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('trainer-library-create-name-field')),
@@ -409,13 +409,13 @@ void main() {
       'Gym Leader',
     );
 
-    await tester.tap(find.text('Create'));
+    await tester.tap(find.text('Créer'));
     await tester.pumpAndSettle();
 
     var trainer = container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.battleDifficulty, isNull);
 
-    await tester.tap(find.text('Edit').first);
+    await tester.tap(find.text('Modifier').first);
     await settleTrainerUi(tester);
 
     final slider = tester.widget<CupertinoSlider>(
@@ -423,19 +423,19 @@ void main() {
     );
     slider.onChanged!(7);
     await settleTrainerUi(tester);
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
 
     trainer = container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.battleDifficulty, 7);
 
-    await tester.tap(find.text('Edit').first);
+    await tester.tap(find.text('Modifier').first);
     await settleTrainerUi(tester);
     await tester.tap(
       find.byKey(const Key('trainer-library-edit-difficulty-clear-button')),
     );
     await settleTrainerUi(tester);
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
 
     trainer = container.read(editorNotifierProvider).project!.trainers.single;
@@ -474,7 +474,7 @@ void main() {
 
     expect(find.textContaining('AI 6'), findsOneWidget);
 
-    await tester.tap(find.text('Edit').first);
+    await tester.tap(find.text('Modifier').first);
     await settleTrainerUi(tester);
 
     expect(
@@ -482,7 +482,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Show optional references'));
+    await tester.tap(find.text('Afficher les références optionnelles'));
     await settleTrainerUi(tester);
 
     expect(
@@ -498,7 +498,7 @@ void main() {
     );
     await settleTrainerUi(tester);
     expect(
-      find.text('No explicit trainer background selected.'),
+      find.text('Aucun fond spécifique sélectionné.'),
       findsOneWidget,
     );
   });
@@ -600,7 +600,7 @@ void main() {
       find.byKey(const Key('trainer-library-pokemon-selected-species-status')),
       findsOneWidget,
     );
-    expect(find.textContaining('Selected species: Caterpie'), findsOneWidget);
+    expect(find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(
@@ -623,10 +623,10 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('No local species match this search.'),
+      find.text('Aucune espèce locale ne correspond.'),
       findsOneWidget,
     );
-    expect(find.textContaining('Selected species: Caterpie'), findsOneWidget);
+    expect(find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
 
     await tester.tap(
       find.byKey(
@@ -634,7 +634,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('Selected species: Caterpie'), findsOneWidget);
+    expect(find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
 
     await tester.tap(
       find.byKey(
@@ -642,13 +642,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('No species selected yet.'), findsOneWidget);
+    expect(find.text('Aucune espèce sélectionnée pour le moment.'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(
           const Key('trainer-library-pokemon-species-dropdown-button'),
         ),
-        matching: find.text('Select a Pokémon species'),
+        matching: find.text('Sélectionnez une espèce de Pokémon'),
       ),
       findsOneWidget,
     );
@@ -739,7 +739,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.textContaining('Lv.7'), findsWidgets);
+    expect(find.textContaining('Niv. 7'), findsWidgets);
 
     await filterTrainerDropdown(
       tester,
@@ -1073,7 +1073,7 @@ void main() {
 
     await tester.scrollUntilVisible(
       find.text(
-        'No local form suggestion is available for this species. The raw fallback remains available.',
+        'Aucune suggestion de forme locale disponible pour cette espèce. Saisie brute disponible.',
       ),
       200,
       scrollable: find
@@ -1087,7 +1087,7 @@ void main() {
 
     expect(
       find.text(
-        'No local form suggestion is available for this species. The raw fallback remains available.',
+        'Aucune suggestion de forme locale disponible pour cette espèce. Saisie brute disponible.',
       ),
       findsOneWidget,
     );
@@ -1184,7 +1184,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.text('This species is genderless in the local Pokédex.'),
+      find.text('Cette espèce est asexuée dans le Pokédex local.'),
       findsOneWidget,
     );
   });
@@ -1279,7 +1279,7 @@ void main() {
     await selectTrainerLevel(tester, 10);
     await tester.scrollUntilVisible(
       find.text(
-        'Unable to verify local forms for this species right now. The raw fallback remains available.',
+        'Impossible de vérifier les formes locales pour cette espèce. Saisie brute disponible.',
       ),
       200,
       scrollable: find
@@ -1293,7 +1293,7 @@ void main() {
 
     expect(
       find.text(
-        'Unable to verify local forms for this species right now. The raw fallback remains available.',
+        'Impossible de vérifier les formes locales pour cette espèce. Saisie brute disponible.',
       ),
       findsOneWidget,
     );
@@ -1311,7 +1311,7 @@ void main() {
 
     await tester.scrollUntilVisible(
       find.text(
-        'Local species index unavailable. The raw value is kept as-is.',
+        'Index d’espèces local indisponible. La valeur brute est conservée telle quelle.',
       ),
       200,
       scrollable: find
@@ -1325,7 +1325,7 @@ void main() {
 
     expect(
       find.text(
-        'Local species index unavailable. The raw value is kept as-is.',
+        'Index d’espèces local indisponible. La valeur brute est conservée telle quelle.',
       ),
       findsOneWidget,
     );
@@ -1386,13 +1386,13 @@ void main() {
 
     expect(
       find.textContaining(
-        'Unable to load the local move data for this project.',
+        'Impossible de charger le catalogue local (des capacités) pour ce projet. ',
       ),
       findsOneWidget,
     );
     expect(
       find.textContaining(
-        'Unable to load the local item data for this project.',
+        'Impossible de charger le catalogue local (des objets) pour ce projet. ',
       ),
       findsOneWidget,
     );
@@ -1532,7 +1532,7 @@ void main() {
 
     expect(
       find.text(
-        'No local learnset is available for this species. Guided move suggestions are unavailable, but raw IDs stay possible.',
+        'Aucun learnset local n’est disponible pour cette espèce. Les suggestions sont indisponibles, mais les ID bruts restent possibles.',
       ),
       findsWidgets,
     );

@@ -19,10 +19,6 @@ void main() {
 
       await _pumpPanel(tester, manifest);
 
-      expect(find.byKey(const Key('environment-studio-title')), findsOneWidget);
-      expect(find.text('Environment Studio'), findsOneWidget);
-      expect(
-          find.text('Presets d’environnements réutilisables'), findsOneWidget);
       expect(
         find.byKey(const Key('environment-studio-info-banner')),
         findsOneWidget,
@@ -38,8 +34,6 @@ void main() {
           findsNothing);
       expect(find.byKey(const Key('environment-studio-empty-presets')),
           findsOneWidget);
-      expect(find.text('0 presets'), findsOneWidget);
-      expect(find.text(expectedDiag), findsOneWidget);
       expect(find.byKey(const Key('environment-studio-soon-bullets')),
           findsNothing);
       expect(find.byKey(const Key('environment-studio-open-draft')),

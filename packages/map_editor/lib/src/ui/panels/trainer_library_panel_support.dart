@@ -197,7 +197,7 @@ String _buildAuthorFacingCatalogUnavailableMessage({
   // first. Raw file paths or manifest jargon belong in logs/tests, not in the
   // primary UI copy that blocks someone from finishing a trainer.
   if (trimmedTechnicalMessage.isEmpty) {
-    return 'Unable to load the local $subjectLabel for this project. '
+    return 'Impossible de charger le catalogue local ($subjectLabel) pour ce projet. '
         '$fallbackMessage';
   }
 
@@ -206,13 +206,13 @@ String _buildAuthorFacingCatalogUnavailableMessage({
       normalizedTechnicalMessage.contains('catalog') ||
       normalizedTechnicalMessage.contains('not found') ||
       normalizedTechnicalMessage.contains('workspace')) {
-    return 'Unable to load the local $subjectLabel for this project. '
+    return 'Impossible de charger le catalogue local ($subjectLabel) pour ce projet. '
         '$fallbackMessage';
   }
 
   final firstLine = trimmedTechnicalMessage.split('\n').first.trim();
   return firstLine.isEmpty
-      ? 'Unable to load the local $subjectLabel for this project. '
+      ? 'Impossible de charger le catalogue local ($subjectLabel) pour ce projet. '
           '$fallbackMessage'
       : '$firstLine $fallbackMessage';
 }
@@ -229,44 +229,44 @@ _TrainerGuidedMoveSuggestions _buildTrainerGuidedMoveSuggestions({
   if (speciesId.isEmpty) {
     return const _TrainerGuidedMoveSuggestions(
       description:
-          'Choose a species first. Guided move suggestions depend on the selected Pokémon and its current level.',
-      disabledPlaceholder: 'Choose a species first',
+          'Choisissez d’abord une espèce. Les suggestions de capacités dépendent du Pokémon sélectionné et de son niveau actuel.',
+      disabledPlaceholder: 'Choisissez d’abord une espèce',
     );
   }
 
   if (level == null || level <= 0) {
     return const _TrainerGuidedMoveSuggestions(
       description:
-          'Enter a valid level first. Guided move suggestions only show attacks already available at the current level.',
-      disabledPlaceholder: 'Enter a valid level first',
+          'Saisissez d’abord un niveau valide. Les suggestions de capacités ne montrent que les attaques disponibles à ce niveau.',
+      disabledPlaceholder: 'Saisissez d’abord un niveau valide',
     );
   }
 
   if (!movesCatalogView.isAvailable) {
     return _TrainerGuidedMoveSuggestions(
       description: _buildAuthorFacingCatalogUnavailableMessage(
-        subjectLabel: 'move data',
+        subjectLabel: 'des capacités',
         fallbackMessage:
-            'Guided suggestions are unavailable, but raw move IDs stay possible below.',
+            'Les suggestions guidées sont indisponibles, mais vous pouvez saisir l’ID brut de la capacité ci-dessous.',
         technicalMessage: movesCatalogView.message,
       ),
-      disabledPlaceholder: 'Guided move suggestions unavailable',
+      disabledPlaceholder: 'Suggestions guidées indisponibles',
     );
   }
 
   if (resolvedSpecies == null && isSpeciesCatalogAvailable) {
     return const _TrainerGuidedMoveSuggestions(
       description:
-          'The selected species is not present in the local Pokédex. Guided move suggestions are unavailable for this entry.',
-      disabledPlaceholder: 'Unknown local species',
+          'L’espèce sélectionnée n’est pas présente dans le Pokédex local. Les suggestions guidées de capacités sont indisponibles.',
+      disabledPlaceholder: 'Espèce locale inconnue',
     );
   }
 
   if (speciesDetail == null) {
     return const _TrainerGuidedMoveSuggestions(
       description:
-          'No local species detail is available for this Pokémon right now. Guided move suggestions are unavailable, but raw IDs stay possible.',
-      disabledPlaceholder: 'Species detail unavailable',
+          'Aucun détail local n’est disponible pour ce Pokémon actuellement. Les suggestions sont indisponibles, mais les ID bruts restent possibles.',
+      disabledPlaceholder: 'Détail de l’espèce indisponible',
     );
   }
 
@@ -274,8 +274,8 @@ _TrainerGuidedMoveSuggestions _buildTrainerGuidedMoveSuggestions({
   if (learnset == null) {
     return const _TrainerGuidedMoveSuggestions(
       description:
-          'No local learnset is available for this species. Guided move suggestions are unavailable, but raw IDs stay possible.',
-      disabledPlaceholder: 'No local learnset',
+          'Aucun learnset local n’est disponible pour cette espèce. Les suggestions sont indisponibles, mais les ID bruts restent possibles.',
+      disabledPlaceholder: 'Aucun learnset local',
     );
   }
 
@@ -296,22 +296,22 @@ _TrainerGuidedMoveSuggestions _buildTrainerGuidedMoveSuggestions({
   }
 
   for (final moveId in learnset.startingMoves) {
-    addSource(moveId, 'Start');
+    addSource(moveId, 'Départ');
   }
   for (final moveId in learnset.relearnMoves) {
-    addSource(moveId, 'Relearn');
+    addSource(moveId, 'Réapp.');
   }
   for (final entry in learnset.levelUp) {
     if (entry.level <= level) {
-      addSource(entry.moveId, 'Lv.${entry.level}');
+      addSource(entry.moveId, 'Niv. ${entry.level}');
     }
   }
 
   if (sourceLabelsByMoveId.isEmpty) {
     return _TrainerGuidedMoveSuggestions(
       description:
-          'No starting, relearn or level-up moves are available locally for this species at Lv.$level.',
-      disabledPlaceholder: 'No guided move available',
+          'Aucune capacité de départ, de réapprentissage ou de niveau n’est disponible localement pour cette espèce au Niv. $level.',
+      disabledPlaceholder: 'Aucune capacité guidée disponible',
     );
   }
 
@@ -331,21 +331,21 @@ _TrainerGuidedMoveSuggestions _buildTrainerGuidedMoveSuggestions({
 
   final missingSuffix = missingCatalogMoveIds.isEmpty
       ? ''
-      : ' Some learnset moves are missing from the local move catalog: ${missingCatalogMoveIds.join(', ')}.';
+      : ' Certaines capacités du learnset manquent dans le catalogue de capacités local : ${missingCatalogMoveIds.join(', ')}.';
 
   if (resolvedEntries.isEmpty) {
     return _TrainerGuidedMoveSuggestions(
       description:
-          'The local learnset for this species does not resolve to any move present in the local move catalog.$missingSuffix Raw IDs stay possible.',
-      disabledPlaceholder: 'No guided move available',
+          'Le learnset local pour cette espèce ne correspond à aucune capacité du catalogue local.$missingSuffix Les ID bruts restent possibles.',
+      disabledPlaceholder: 'Aucune capacité guidée disponible',
       missingCatalogMoveIds: missingCatalogMoveIds,
     );
   }
 
   return _TrainerGuidedMoveSuggestions(
     description:
-        'Showing moves available from starting, relearn and level-up data up to Lv.$level.$missingSuffix',
-    disabledPlaceholder: 'Search the moves available now',
+        'Affichage des capacités disponibles au départ, par réapprentissage et par montée de niveau jusqu’au Niv. $level.$missingSuffix',
+    disabledPlaceholder: 'Rechercher parmi les capacités disponibles',
     entries: resolvedEntries,
     sourceLabelsByMoveId: sourceLabelsByMoveId,
     missingCatalogMoveIds: missingCatalogMoveIds,

@@ -814,6 +814,11 @@ class _WorkspaceStageHeader extends ConsumerWidget {
             children: [
               Text(
                 title,
+                key: workspaceMode == EditorWorkspaceMode.environmentStudio
+                    ? const Key('environment-studio-title')
+                    : (workspaceMode == EditorWorkspaceMode.trainer
+                        ? const Key('trainer-studio-title')
+                        : null),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

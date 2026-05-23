@@ -110,8 +110,8 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     isSpeciesCatalogAvailable
-                        ? 'Species absent from the local Pokédex.'
-                        : 'Local species index unavailable. The raw value is kept as-is.',
+                        ? 'Espèce absente du Pokédex local.'
+                        : 'Index d’espèces local indisponible. La valeur brute est conservée telle quelle.',
                     style: const TextStyle(
                       color: EditorChrome.inspectorJoyCoral,
                       fontSize: 11,
@@ -137,14 +137,14 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
                   resolvedItemLabel.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
-                  'Item: $resolvedItemLabel',
+                  'Objet : $resolvedItemLabel',
                   style: TextStyle(fontSize: 11, color: subtle),
                 ),
               ],
               if ((pokemon.formId ?? '').trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Form: ${pokemon.formId!.trim()}',
+                  'Forme : ${pokemon.formId!.trim()}',
                   style: TextStyle(fontSize: 11, color: subtle),
                 ),
               ],
@@ -154,7 +154,7 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
                 Text(
                   [
                     if ((pokemon.gender ?? '').trim().isNotEmpty)
-                      'Gender: ${pokemon.gender!.trim()}',
+                      'Genre : ${_trainerGenderLabel(pokemon.gender!.trim())}',
                     if (pokemon.shiny) 'Shiny',
                   ].join(' • '),
                   style: TextStyle(fontSize: 11, color: subtle),
@@ -309,13 +309,11 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.accentWarm.withValues(alpha: 0.04),
-        ),
+        color: EditorChrome.islandFillElevated(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: EditorChrome.accentWarm.withValues(alpha: 0.18),
+          color: EditorChrome.accentCoral.withValues(alpha: 0.18),
+          width: 1,
         ),
       ),
       child: Padding(
@@ -327,7 +325,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
               children: [
                 const Expanded(
                   child: Text(
-                    'Advanced raw IDs',
+                    'ID bruts avancés',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -342,14 +340,14 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                   secondary: _showRawFallbacks,
                   onPressed: _toggleRawFallbacks,
                   child: Text(
-                    _showRawFallbacks ? 'Hide raw fields' : 'Show raw fields',
+                    _showRawFallbacks ? 'Masquer les champs bruts' : 'Afficher les champs bruts',
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             Text(
-              'Use these manual IDs only when the guided dropdowns cannot express the exact value you need.',
+              'Utilisez ces identifiants manuels uniquement si les sélecteurs guidés ne conviennent pas.',
               style: TextStyle(
                 color: subtle,
                 fontSize: 11,
@@ -360,7 +358,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
             if (_showRawFallbacks) ...[
               const SizedBox(height: 10),
               _TrainerInlineField(
-                label: 'Raw species ID (fallback)',
+                label: 'ID d’espèce brut (secours)',
                 fieldKey: const Key('trainer-library-pokemon-species-field'),
                 controller: widget.speciesController,
                 placeholder: 'pikachu',
@@ -368,7 +366,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
               const SizedBox(height: 10),
               for (var i = 0; i < widget.moveControllers.length; i++) ...[
                 _TrainerInlineField(
-                  label: 'Raw move ID ${i + 1} (fallback)',
+                  label: 'ID de capacité brut ${i + 1} (secours)',
                   fieldKey: Key('trainer-library-pokemon-move-$i-field'),
                   controller: widget.moveControllers[i],
                   placeholder: 'move id',
@@ -378,14 +376,14 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
               ],
               const SizedBox(height: 10),
               _TrainerInlineField(
-                label: 'Raw held item ID (fallback)',
+                label: 'ID d’objet brut (secours)',
                 fieldKey: const Key('trainer-library-pokemon-item-field'),
                 controller: widget.itemController,
                 placeholder: 'oran_berry',
               ),
               const SizedBox(height: 10),
               _TrainerInlineField(
-                label: 'Raw form ID (fallback)',
+                label: 'ID de forme brut (secours)',
                 fieldKey: const Key('trainer-library-pokemon-form-field'),
                 controller: widget.formController,
                 placeholder: 'base / alternate form id',
@@ -421,17 +419,16 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.accentWarm.withValues(alpha: 0.06),
-        ),
-        borderRadius: BorderRadius.circular(10),
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: EditorChrome.accentWarm.withValues(alpha: 0.35),
+          color: EditorChrome.accentCoral.withValues(alpha: 0.22),
+          width: 1,
         ),
+        boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -439,29 +436,29 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
             const SizedBox(height: 8),
             _TrainerSearchableDropdown<PokemonDatabaseIndexEntry>(
               keyPrefix: 'trainer-library-pokemon-species',
-              label: 'Species',
+              label: 'Espèce',
               description: speciesCatalogReady
-                  ? 'Search the local Pokédex to choose a Pokémon.'
+                  ? 'Recherchez dans le Pokédex local pour choisir un Pokémon.'
                   : widget.references.speciesMessage,
               entries: widget.references.speciesEntries,
               lookupService: _speciesLookupService,
               enabled: speciesCatalogReady,
-              disabledLabel: 'Local Pokédex unavailable',
-              emptySelectionLabel: 'Select a Pokémon species',
-              searchPlaceholder: 'Filter local species',
+              disabledLabel: 'Pokédex local indisponible',
+              emptySelectionLabel: 'Sélectionnez une espèce de Pokémon',
+              searchPlaceholder: 'Filtrer les espèces locales',
               selectedLabel: resolvedSpecies?.primaryName ?? speciesId,
               selectedSubtitle: resolvedSpecies == null
                   ? (speciesId.isEmpty
                       ? null
                       : speciesCatalogReady
-                          ? 'Raw species ID not resolved locally'
-                          : 'Raw species ID kept as-is')
+                          ? 'ID d’espèce brut non résolu localement'
+                          : 'ID d’espèce brut conservé tel quel')
                   : [
                       '#${resolvedSpecies.nationalDex.toString().padLeft(4, '0')}',
                       resolvedSpecies.types.join('/'),
                       resolvedSpecies.id,
                     ].join(' • '),
-              emptyResultsLabel: 'No local species match this search.',
+              emptyResultsLabel: 'Aucune espèce locale ne correspond.',
               subtitleBuilder: (entry) => [
                 '#${entry.nationalDex.toString().padLeft(4, '0')}',
                 entry.types.join('/'),
@@ -481,12 +478,12 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
             const SizedBox(height: 6),
             Text(
               speciesId.isEmpty
-                  ? 'No species selected yet.'
+                  ? 'Aucune espèce sélectionnée pour le moment.'
                   : resolvedSpecies == null
                       ? speciesCatalogReady
-                          ? 'Selected species ID not present in the local Pokédex: $speciesId'
-                          : 'Local species verification unavailable. Raw species ID is kept as-is: $speciesId'
-                      : 'Selected species: ${resolvedSpecies.primaryName} • #${resolvedSpecies.nationalDex.toString().padLeft(4, '0')} • ${resolvedSpecies.id}',
+                          ? 'L’ID d’espèce sélectionné n’est pas présent dans le Pokédex local : $speciesId'
+                          : 'Vérification d’espèce locale indisponible. L’ID d’espèce brut est conservé tel quel : $speciesId'
+                      : 'Espèce sélectionnée : ${resolvedSpecies.primaryName} • #${resolvedSpecies.nationalDex.toString().padLeft(4, '0')} • ${resolvedSpecies.id}',
               key: const Key(
                 'trainer-library-pokemon-selected-species-status',
               ),
@@ -509,8 +506,8 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                         speciesId.isNotEmpty
                     ? const _TrainerGuidedMoveSuggestions(
                         description:
-                            'Loading the local learnset for this species… Guided move suggestions will appear when the data is ready.',
-                        disabledPlaceholder: 'Loading local learnset…',
+                            'Chargement du learnset local pour cette espèce… Les suggestions guidées de capacités apparaîtront dès que les données seront prêtes.',
+                        disabledPlaceholder: 'Chargement du learnset local…',
                       )
                     : _buildTrainerGuidedMoveSuggestions(
                         rawSpeciesId: speciesId,
@@ -530,17 +527,17 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                             ? _trainerFallbackGenderValues
                             : _buildTrainerGenderSuggestions(detail.species);
                 final itemStatus = heldItemId.isEmpty
-                    ? 'No held item selected.'
+                    ? 'Aucun objet tenu sélectionné.'
                     : resolvedItem == null
                         ? widget.references.itemsCatalogView.isAvailable
-                            ? 'The current held item value is not resolved in the local item catalog.'
-                            : 'Local item catalog unavailable. The raw value is kept as-is.'
-                        : 'Selected item: ${resolvedItem.name} • ${resolvedItem.id}';
+                            ? 'La valeur actuelle de l’objet tenu n’est pas résolue dans le catalogue d’objets local.'
+                            : 'Catalogue d’objets local indisponible. La valeur brute est conservée telle quelle.'
+                        : 'Objet sélectionné : ${resolvedItem.name} • ${resolvedItem.id}';
                 final formStatus = formId.isEmpty
-                    ? 'No form override selected.'
+                    ? 'Aucune forme spécifique sélectionnée.'
                     : availableForms.contains(formId)
-                        ? 'Selected form: $formId'
-                        : 'Current raw form override: $formId';
+                        ? 'Forme sélectionnée : $formId'
+                        : 'Forme brute actuelle : $formId';
                 final currentGender = widget.genderController.text.trim();
 
                 return Column(
@@ -571,7 +568,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                         !availableGenders.contains(currentGender)) ...[
                       const SizedBox(height: 6),
                       const Text(
-                        'The current gender override does not match the selected species.',
+                        'Le genre sélectionné ne correspond pas à cette espèce.',
                         style: TextStyle(
                           color: EditorChrome.inspectorJoyCoral,
                           fontSize: 11,
@@ -630,7 +627,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                     if (guidedMoves.missingCatalogMoveIds.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text(
-                        'Some locally available learnset moves are missing from the local move catalog: ${guidedMoves.missingCatalogMoveIds.join(', ')}.',
+                        'Certaines capacités du learnset local manquent dans le catalogue de capacités : ${guidedMoves.missingCatalogMoveIds.join(', ')}.',
                         style: const TextStyle(
                           color: EditorChrome.inspectorJoyCoral,
                           fontSize: 11,
@@ -644,32 +641,32 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                     const SizedBox(height: 8),
                     _TrainerSearchableDropdown<PokemonItemCatalogEntryView>(
                       keyPrefix: 'trainer-library-pokemon-item',
-                      label: 'Held item',
+                      label: 'Objet tenu',
                       description: widget
                               .references.itemsCatalogView.isAvailable
-                          ? 'Search the local item catalog to choose a held item.'
+                          ? 'Recherchez dans le catalogue d’objets local pour choisir un objet tenu.'
                           : _buildAuthorFacingCatalogUnavailableMessage(
-                              subjectLabel: 'item data',
+                              subjectLabel: 'des objets',
                               fallbackMessage:
-                                  'You can use the advanced raw item ID if needed.',
+                                  'Vous pouvez utiliser l’ID brut de l’objet si nécessaire.',
                               technicalMessage:
                                   widget.references.itemsCatalogView.message,
                             ),
                       entries: widget.references.itemsCatalogView.entries,
                       lookupService: _itemsLookupService,
                       enabled: widget.references.itemsCatalogView.isAvailable,
-                      disabledLabel: 'Local item catalog unavailable',
-                      emptySelectionLabel: 'Select a held item',
-                      searchPlaceholder: 'Filter local items',
+                      disabledLabel: 'Catalogue d’objets local indisponible',
+                      emptySelectionLabel: 'Sélectionnez un objet tenu',
+                      searchPlaceholder: 'Filtrer les objets locaux',
                       selectedLabel: resolvedItem?.name ?? heldItemId,
                       selectedSubtitle: resolvedItem == null
                           ? (heldItemId.isEmpty
                               ? null
                               : widget.references.itemsCatalogView.isAvailable
-                                  ? 'Raw item ID not resolved locally'
-                                  : 'Raw item ID kept as-is')
+                                  ? 'ID d’objet brut non résolu localement'
+                                  : 'ID d’objet brut conservé tel quel')
                           : resolvedItem.id,
-                      emptyResultsLabel: 'No local item matches this search.',
+                      emptyResultsLabel: 'Aucun objet local ne correspond.',
                       subtitleBuilder: (entry) => entry.id,
                       onSelected: (entry) {
                         widget.itemController.text = entry.id;
@@ -696,14 +693,14 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                     Text(
                       snapshot.connectionState == ConnectionState.waiting &&
                               speciesId.isNotEmpty
-                          ? 'Loading local forms for this species…'
+                          ? 'Chargement des formes locales pour cette espèce…'
                           : speciesId.isEmpty
-                              ? 'Choose a species to check local form suggestions.'
+                              ? 'Choisissez une espèce pour voir les suggestions de formes locales.'
                               : detail == null
-                                  ? 'Unable to verify local forms for this species right now. The raw fallback remains available.'
+                                  ? 'Impossible de vérifier les formes locales pour cette espèce. Saisie brute disponible.'
                                   : availableForms.isEmpty
-                                      ? 'No local form suggestion is available for this species. The raw fallback remains available.'
-                                      : 'Local form suggestions:',
+                                      ? 'Aucune suggestion de forme locale disponible pour cette espèce. Saisie brute disponible.'
+                                      : 'Suggestions de formes locales :',
                       style: TextStyle(
                         color: subtle,
                         fontSize: 11,
@@ -754,7 +751,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                             onPressed: () {
                               widget.formController.clear();
                             },
-                            child: const Text('Clear form'),
+                            child: const Text('Effacer la forme'),
                           ),
                         ],
                       ),
@@ -778,17 +775,18 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
               ),
             ],
             const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 6,
+              runSpacing: 6,
               children: [
                 CupertinoButton(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   minimumSize: const Size(1, 28),
                   onPressed: widget.onCancel,
-                  child: const Text('Cancel', style: TextStyle(fontSize: 13)),
+                  child: const Text('Annuler', style: TextStyle(fontSize: 13)),
                 ),
-                const SizedBox(width: 6),
                 CupertinoButton.filled(
                   key: const Key('trainer-library-pokemon-save-button'),
                   padding:
@@ -796,7 +794,7 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                   minimumSize: const Size(1, 28),
                   onPressed: widget.onSave,
                   child: const Text(
-                    'Save Pokémon',
+                    'Enregistrer le Pokémon',
                     style: TextStyle(fontSize: 13),
                   ),
                 ),
@@ -831,7 +829,7 @@ class _TrainerLevelSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Level',
+          'Niveau',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -847,7 +845,7 @@ class _TrainerLevelSelector extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             child: SizedBox(
               width: double.infinity,
               child: MacosPopupButton<int>(
@@ -865,8 +863,8 @@ class _TrainerLevelSelector extends StatelessWidget {
                       value: level,
                       child: Text(
                         level >= 1 && level <= 100
-                            ? 'Lv.$level'
-                            : 'Lv.$level (current value)',
+                            ? 'Niv. $level'
+                            : 'Niv. $level (valeur actuelle)',
                       ),
                     ),
                 ],
@@ -877,10 +875,10 @@ class _TrainerLevelSelector extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           parsedLevel == null
-              ? 'Choose a level between Lv.1 and Lv.100.'
+              ? 'Choisissez un niveau entre Niv. 1 et Niv. 100.'
               : parsedLevel >= 1 && parsedLevel <= 100
-                  ? 'Trainer Pokémon levels are selected from Lv.1 to Lv.100.'
-                  : 'The current saved level is outside Lv.1 to Lv.100. Choose a valid level before saving.',
+                  ? 'Les niveaux des Pokémon de dresseurs sont compris entre Niv. 1 et Niv. 100.'
+                  : 'Le niveau actuel est en dehors de la plage 1-100. Saisissez un niveau valide.',
           style: TextStyle(
             color: parsedLevel != null && (parsedLevel < 1 || parsedLevel > 100)
                 ? EditorChrome.inspectorJoyCoral
@@ -920,23 +918,23 @@ class _TrainerGenderSelector extends StatelessWidget {
 
     final description = connectionState == ConnectionState.waiting &&
             speciesId.isNotEmpty
-        ? 'Loading local gender data for this species… Generic options stay available for now.'
+        ? 'Chargement des données de genre locales pour cette espèce… Les options génériques restent disponibles.'
         : speciesId.isEmpty
-            ? 'Choose a species to tailor the available gender options.'
+            ? 'Choisissez une espèce pour adapter les options de genre disponibles.'
             : speciesDetail == null
-                ? 'Unable to verify local gender data for this species. Generic options stay available.'
+                ? 'Impossible de vérifier les données locales pour cette espèce. Les options génériques restent disponibles.'
                 : availableOptions.length == 1 &&
                         availableOptions.single == 'genderless'
-                    ? 'This species is genderless in the local Pokédex.'
+                    ? 'Cette espèce est asexuée dans le Pokédex local.'
                     : availableOptions.length == 1
-                        ? 'This species only supports ${_trainerGenderLabel(availableOptions.single)}.'
-                        : 'Choose one of the locally valid gender options for this species.';
+                        ? 'Cette espèce ne supporte que ${_trainerGenderLabel(availableOptions.single)}.'
+                        : 'Choisissez l’une des options de genre valides pour cette espèce.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Gender',
+          'Genre',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -964,7 +962,7 @@ class _TrainerGenderSelector extends StatelessWidget {
               onPressed: () {
                 controller.clear();
               },
-              child: const Text('Clear gender'),
+              child: const Text('Effacer le genre'),
             ),
           ],
         ),
@@ -972,7 +970,7 @@ class _TrainerGenderSelector extends StatelessWidget {
         Text(
           currentGender.isEmpty
               ? description
-              : 'Selected gender: ${_trainerGenderLabel(currentGender)}',
+              : 'Genre sélectionné : ${_trainerGenderLabel(currentGender)}',
           style: TextStyle(
             color: currentGender.isNotEmpty &&
                     speciesDetail != null &&
