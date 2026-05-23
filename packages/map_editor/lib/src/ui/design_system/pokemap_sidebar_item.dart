@@ -63,69 +63,84 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
       fg = colors.textPrimary;
     }
 
-    return FocusableActionDetector(
-      onShowHoverHighlight: (val) {
-        if (!isDisabled) setState(() => _isHovered = val);
-      },
-      onShowFocusHighlight: (val) {
-        if (!isDisabled) setState(() => _isFocused = val);
-      },
-      child: GestureDetector(
-        onTap: isDisabled ? null : widget.onTap,
-        behavior: HitTestBehavior.opaque,
-        child: MouseRegion(
-          cursor: isDisabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(8), // Standard radius: 8
-              border: _isFocused && !isDisabled
-                  ? Border.all(color: colors.brandPrimaryBorder, width: 1.2)
-                  : null,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (widget.icon != null) ...[
-                  IconTheme.merge(
-                    data: IconThemeData(
-                      color: fg,
-                      size: 16,
+    return Semantics(
+      button: true,
+      selected: isActive,
+      enabled: !isDisabled,
+      child: FocusableActionDetector(
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (intent) {
+              if (!isDisabled) {
+                widget.onTap?.call();
+              }
+              return null;
+            },
+          ),
+        },
+        onShowHoverHighlight: (val) {
+          if (!isDisabled) setState(() => _isHovered = val);
+        },
+        onShowFocusHighlight: (val) {
+          if (!isDisabled) setState(() => _isFocused = val);
+        },
+        child: GestureDetector(
+          onTap: isDisabled ? null : widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: MouseRegion(
+            cursor: isDisabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(8), // Standard radius: 8
+                border: _isFocused && !isDisabled
+                    ? Border.all(color: colors.brandPrimaryBorder, width: 1.2)
+                    : null,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (widget.icon != null) ...[
+                    IconTheme.merge(
+                      data: IconThemeData(
+                        color: fg,
+                        size: 16,
+                      ),
+                      child: widget.icon!,
                     ),
-                    child: widget.icon!,
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: fg,
-                      fontSize: 13,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    ),
-                  ),
-                ),
-                if (widget.trailing != null) ...[
-                  const SizedBox(width: 8),
-                  Opacity(
-                    opacity: isDisabled ? 0.4 : 1.0,
-                    child: DefaultTextStyle(
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: fg,
-                        fontSize: 11,
-                        fontWeight: FontWeight.normal,
+                        fontSize: 13,
+                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                       ),
-                      child: widget.trailing!,
                     ),
                   ),
+                  if (widget.trailing != null) ...[
+                    const SizedBox(width: 8),
+                    Opacity(
+                      opacity: isDisabled ? 0.4 : 1.0,
+                      child: DefaultTextStyle(
+                        style: TextStyle(
+                          color: fg,
+                          fontSize: 11,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        child: widget.trailing!,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

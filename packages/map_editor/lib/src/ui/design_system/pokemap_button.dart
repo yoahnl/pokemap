@@ -153,73 +153,87 @@ class _PokeMapButtonState extends State<PokeMapButton> {
       }
     }
 
-    return FocusableActionDetector(
-      onShowHoverHighlight: (val) {
-        if (!isDisabled) setState(() => _isHovered = val);
-      },
-      onShowFocusHighlight: (val) {
-        if (!isDisabled) setState(() => _isFocused = val);
-      },
-      child: GestureDetector(
-        onTap: isDisabled ? null : widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          height: height,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(8), // standard border radius: 8
-            border: border,
-            boxShadow: _isFocused && !isDisabled
-                ? [
-                    BoxShadow(
-                      color: colors.brandPrimary.withValues(alpha: 0.24),
-                      blurRadius: 0,
-                      spreadRadius: 3,
-                    )
-                  ]
-                : null,
+    return Semantics(
+      button: true,
+      enabled: !isDisabled,
+      child: FocusableActionDetector(
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (intent) {
+              if (!isDisabled) {
+                widget.onPressed?.call();
+              }
+              return null;
+            },
           ),
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (widget.isLoading) ...[
-                SizedBox(
-                  width: iconSize,
-                  height: iconSize,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(fg),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ] else ...[
-                if (widget.leading != null) ...[
-                  IconTheme.merge(
-                    data: IconThemeData(color: fg, size: iconSize),
-                    child: widget.leading!,
+        },
+        onShowHoverHighlight: (val) {
+          if (!isDisabled) setState(() => _isHovered = val);
+        },
+        onShowFocusHighlight: (val) {
+          if (!isDisabled) setState(() => _isFocused = val);
+        },
+        child: GestureDetector(
+          onTap: isDisabled ? null : widget.onPressed,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            height: height,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(8), // standard border radius: 8
+              border: border,
+              boxShadow: _isFocused && !isDisabled
+                  ? [
+                      BoxShadow(
+                        color: colors.brandPrimary.withValues(alpha: 0.24),
+                        blurRadius: 0,
+                        spreadRadius: 3,
+                      )
+                    ]
+                  : null,
+            ),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (widget.isLoading) ...[
+                  SizedBox(
+                    width: iconSize,
+                    height: iconSize,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(fg),
+                    ),
                   ),
                   const SizedBox(width: 8),
+                ] else ...[
+                  if (widget.leading != null) ...[
+                    IconTheme.merge(
+                      data: IconThemeData(color: fg, size: iconSize),
+                      child: widget.leading!,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ],
+                DefaultTextStyle(
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  child: widget.child,
+                ),
+                if (widget.trailing != null && !widget.isLoading) ...[
+                  const SizedBox(width: 8),
+                  IconTheme.merge(
+                    data: IconThemeData(color: fg, size: iconSize),
+                    child: widget.trailing!,
+                  ),
                 ],
               ],
-              DefaultTextStyle(
-                style: TextStyle(
-                  color: fg,
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-                child: widget.child,
-              ),
-              if (widget.trailing != null && !widget.isLoading) ...[
-                const SizedBox(width: 8),
-                IconTheme.merge(
-                  data: IconThemeData(color: fg, size: iconSize),
-                  child: widget.trailing!,
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

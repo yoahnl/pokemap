@@ -55,6 +55,50 @@ void main() {
       expect(find.text('Footer'), findsOneWidget);
     });
 
+    testWidgets('PokeMapPanel layout constraints and expandChild configurations', (tester) async {
+      // 1. Default (expandChild = false) renders fine in unbounded height (Column)
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: const Scaffold(
+            body: Column(
+              children: [
+                PokeMapPanel(
+                  header: Text('Header Title'),
+                  child: Text('Unbounded height test child'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Unbounded height test child'), findsOneWidget);
+
+      // 2. expandChild = true works in a bounded context (within an Expanded column)
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: const Scaffold(
+            body: SizedBox(
+              height: 500,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: PokeMapPanel(
+                      expandChild: true,
+                      header: Text('Header Title'),
+                      child: Text('Bounded height test child'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.text('Bounded height test child'), findsOneWidget);
+    });
+
     testWidgets('PokeMapCard border changes when selected', (tester) async {
       late BuildContext capturedContext;
       

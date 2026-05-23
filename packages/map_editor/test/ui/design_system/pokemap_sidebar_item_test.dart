@@ -96,5 +96,26 @@ void main() {
       await tester.pump();
       expect(tapped, isFalse);
     });
+
+    testWidgets('PokeMapSidebarItem provides Semantics information', (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.light(),
+          child: PokeMapSidebarItem(
+            label: 'Home Tab',
+            selected: true,
+            onTap: () {},
+          ),
+        ),
+      );
+
+      final semanticsFinder = find.byWidgetPredicate(
+        (widget) => widget is Semantics &&
+                    widget.properties.button == true &&
+                    widget.properties.selected == true &&
+                    widget.properties.enabled == true
+      );
+      expect(semanticsFinder, findsOneWidget);
+    });
   });
 }

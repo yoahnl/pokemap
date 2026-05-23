@@ -121,5 +121,39 @@ void main() {
       await tester.tap(iconFinder);
       await tester.pump();
     });
+
+    testWidgets('PokeMapButton and PokeMapIconButton provide Semantics information', (tester) async {
+      // 1. PokeMapButton
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.light(),
+          child: PokeMapButton(
+            onPressed: () {},
+            child: const Text('Semantics Button'),
+          ),
+        ),
+      );
+
+      final buttonSemanticsFinder = find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.button == true && widget.properties.enabled == true
+      );
+      expect(buttonSemanticsFinder, findsOneWidget);
+
+      // 2. PokeMapIconButton
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.light(),
+          child: PokeMapIconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.add),
+          ),
+        ),
+      );
+
+      final iconSemanticsFinder = find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.button == true && widget.properties.enabled == true
+      );
+      expect(iconSemanticsFinder, findsOneWidget);
+    });
   });
 }

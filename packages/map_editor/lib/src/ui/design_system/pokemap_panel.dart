@@ -12,12 +12,13 @@ class PokeMapPanel extends StatelessWidget {
     required this.child,
     this.footer,
     this.padding,
+    this.expandChild = false,
   });
 
   /// Optional widget displayed at the top of the panel (e.g., section title or actions toolbar).
   final Widget? header;
 
-  /// Main content child widget. Wraps automatically inside an Expanded container.
+  /// Main content child widget.
   final Widget child;
 
   /// Optional widget displayed at the bottom of the panel (e.g., status flags or confirmation buttons).
@@ -26,9 +27,17 @@ class PokeMapPanel extends StatelessWidget {
   /// Inner padding around the [child] widget. Defaults to 16.
   final EdgeInsetsGeometry? padding;
 
+  /// If true, wraps the child in an [Expanded] container. Defaults to false.
+  final bool expandChild;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+
+    final childWidget = Padding(
+      padding: padding ?? const EdgeInsets.all(16),
+      child: child,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -40,6 +49,7 @@ class PokeMapPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(11), // Inset clip to prevent background spill
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: expandChild ? MainAxisSize.max : MainAxisSize.min,
           children: [
             if (header != null) ...[
               header!,
@@ -48,12 +58,10 @@ class PokeMapPanel extends StatelessWidget {
                 color: colors.divider,
               ),
             ],
-            Expanded(
-              child: Padding(
-                padding: padding ?? const EdgeInsets.all(16),
-                child: child,
-              ),
-            ),
+            if (expandChild)
+              Expanded(child: childWidget)
+            else
+              childWidget,
             if (footer != null) ...[
               Container(
                 height: 1,

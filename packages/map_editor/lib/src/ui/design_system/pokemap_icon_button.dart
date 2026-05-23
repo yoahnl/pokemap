@@ -91,37 +91,51 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
       }
     }
 
-    Widget content = FocusableActionDetector(
-      onShowHoverHighlight: (val) {
-        if (!isDisabled) setState(() => _isHovered = val);
-      },
-      onShowFocusHighlight: (val) {
-        if (!isDisabled) setState(() => _isFocused = val);
-      },
-      child: GestureDetector(
-        onTap: isDisabled ? null : widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(6), // Standard small radius: 6 or 8
-            border: border,
-            boxShadow: _isFocused && !isDisabled
-                ? [
-                    BoxShadow(
-                      color: colors.brandPrimary.withValues(alpha: 0.2),
-                      blurRadius: 0,
-                      spreadRadius: 2.5,
-                    )
-                  ]
-                : null,
+    Widget content = Semantics(
+      button: true,
+      enabled: !isDisabled,
+      child: FocusableActionDetector(
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (intent) {
+              if (!isDisabled) {
+                widget.onPressed?.call();
+              }
+              return null;
+            },
           ),
-          child: Center(
-            child: IconTheme.merge(
-              data: IconThemeData(color: fg, size: 16),
-              child: widget.icon,
+        },
+        onShowHoverHighlight: (val) {
+          if (!isDisabled) setState(() => _isHovered = val);
+        },
+        onShowFocusHighlight: (val) {
+          if (!isDisabled) setState(() => _isFocused = val);
+        },
+        child: GestureDetector(
+          onTap: isDisabled ? null : widget.onPressed,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(6), // Standard small radius: 6 or 8
+              border: border,
+              boxShadow: _isFocused && !isDisabled
+                  ? [
+                      BoxShadow(
+                        color: colors.brandPrimary.withValues(alpha: 0.2),
+                        blurRadius: 0,
+                        spreadRadius: 2.5,
+                      )
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: IconTheme.merge(
+                data: IconThemeData(color: fg, size: 16),
+                child: widget.icon,
+              ),
             ),
           ),
         ),
