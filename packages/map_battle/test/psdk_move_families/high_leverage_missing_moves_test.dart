@@ -3208,7 +3208,8 @@ void main() {
             power: entry.power,
             battleEngineMethod: entry.method,
           ),
-          playerReserves: entry.method == 's_shed_tail'
+          playerReserves:
+              entry.method == 's_shed_tail' || entry.method == 's_teleport'
               ? <PsdkBattleCombatantSetup>[
                   _combatant(
                     id: 'player-reserve',

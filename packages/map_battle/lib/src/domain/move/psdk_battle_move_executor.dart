@@ -33,6 +33,7 @@ final class PsdkBattleMoveExecutor {
         user: request.user,
         target: request.target,
         move: move,
+        canFlee: request.canFlee,
         moveSlot: request.moveSlot,
         isLastActionOfTurn: request.isLastActionOfTurn,
         moveProcedureHooks: request.moveProcedureHooks,

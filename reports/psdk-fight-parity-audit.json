@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 662,
-    "partiel": 66,
+    "fait": 663,
+    "partiel": 65,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5283,9 +5283,9 @@
       {
         "moveId": "teleport",
         "battleEngineMethod": "s_teleport",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/teleport.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 314,
-      "partial": 16,
+      "ported": 315,
+      "partial": 15,
       "missing": 0
     },
     "entries": [
@@ -8811,12 +8811,11 @@
         "battleEngineMethod": "s_teleport",
         "rubyClass": "Teleport",
         "rubyPath": "10 Move/2 Definitions/300 Teleport.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_teleport)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_teleport",
+        "status": "ported",
         "dependencies": [
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_terrain",
@@ -9219,12 +9218,11 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 4,
+        "count": 3,
         "methods": [
           "s_magic_coat",
           "s_revival_blessing",
-          "s_snatch",
-          "s_teleport"
+          "s_snatch"
         ]
       }
     ]

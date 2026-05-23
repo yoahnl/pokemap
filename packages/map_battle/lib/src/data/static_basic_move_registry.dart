@@ -60,6 +60,7 @@ import '../domain/handler/battle_switch_handler.dart';
 import '../domain/handler/battle_terrain_change_handler.dart';
 import '../domain/handler/battle_weather_change_handler.dart';
 import '../domain/battler/battle_grounding_resolver.dart';
+import '../domain/effect/ability/ability_effect.dart';
 import '../domain/effect/ability/mental_immunity_ability_effect.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_hooks.dart';
@@ -107,6 +108,7 @@ import '../battle_typing.dart';
 import '../psdk/domain/psdk_battle_field.dart';
 import '../psdk/domain/psdk_battle_combatant.dart';
 import '../psdk/domain/psdk_battle_move.dart';
+import '../psdk/domain/psdk_battle_outcome.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
 import '../psdk/domain/psdk_battle_state.dart';
 import '../psdk/domain/psdk_battle_timeline.dart';
@@ -539,6 +541,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveChillyReception,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_teleport',
+      resolve: _resolveTeleport,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_court_change',
       resolve: _resolveCourtChange,
     ),
@@ -833,7 +839,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_snatch': 'snatch',
   's_taunt': 'taunt',
   's_telekinesis': 'telekinesis',
-  's_teleport': 'teleport',
   's_yawn': 'drowsiness',
 };
 
@@ -1351,6 +1356,117 @@ BattleMoveBehaviorResolution _resolveChillyReception(
     events: events,
     successful: successful,
   );
+}
+
+BattleMoveBehaviorResolution _resolveTeleport(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  if (context.canFlee) {
+    const outcome = PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled);
+    return BattleMoveBehaviorResolution(
+      state: prepared.state.copyWith(outcome: outcome),
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleEndedEvent(outcome: outcome),
+      ],
+    );
+  }
+
+  const switchHandler = BattleSwitchHandler();
+  if (!switchHandler.hasAvailableReplacement(
+    state: prepared.state,
+    target: context.user,
+  )) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'no_replacement',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final state = prepared.state;
+  final rng = prepared.rng;
+  if (!_hasTeleportEscapePassthrough(state: state, user: context.user)) {
+    final prevention = switchHandler.resolveSwitchPrevention(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: context.user,
+      move: context.move,
+    );
+    if (!prevention.applied) {
+      return BattleMoveBehaviorResolution(
+        state: prevention.state,
+        rng: prevention.rng,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.user,
+            moveId: context.move.id,
+            reason: prevention.reason ??
+                BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+  }
+
+  final switching = switchHandler.markSwitching(
+    context: BattleHandlerContext(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    switching: true,
+  );
+  return BattleMoveBehaviorResolution(
+    state: switching.state,
+    rng: switching.rng,
+    events: prepared.events,
+  );
+}
+
+bool _hasTeleportEscapePassthrough({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+}) {
+  final battler = state.battlerAt(user);
+  if (battler.isFainted) {
+    return false;
+  }
+  for (final effect in battler.effects.effects.whereType<BattleAbilityEffect>()) {
+    if (effect.fleePassthrough(state: state, user: user)) {
+      return true;
+    }
+  }
+  for (final effect in state.activeItemEffectsAt(user)) {
+    if (effect.fleePassthrough(state: state, user: user)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 BattleMoveBehaviorResolution _resolveRapidSpin(

@@ -1541,6 +1541,10 @@ void main() {
           method: 's_worry_seed',
           behavior: 'StaticBasicMoveRegistry.abilityChanging(s_worry_seed)',
         ),
+        (
+          method: 's_teleport',
+          behavior: 'StaticBasicMoveRegistry.s_teleport',
+        ),
       ]) {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);

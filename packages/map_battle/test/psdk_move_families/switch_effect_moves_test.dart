@@ -373,6 +373,108 @@ void main() {
       );
     });
 
+    test('s_teleport marks the user for switch in trainer-style battles', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isTrue);
+      expect(result.outcome, isNull);
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isEmpty,
+      );
+    });
+
+    test('s_teleport fails in trainer-style battles without replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'teleport')
+            .single
+            .reason,
+        'no_replacement',
+      );
+    });
+
+    test('s_teleport fails in trainer-style battles when the user is trapped',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          opponentAbilityId: 'shadow_tag',
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'teleport'),
+        hasLength(1),
+      );
+    });
+
+    test('s_teleport ends flee-enabled battles with a fled outcome', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          canFlee: true,
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.outcome?.kind, PsdkBattleOutcomeKind.fled);
+      expect(result.state.outcome?.kind, PsdkBattleOutcomeKind.fled);
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events.whereType<PsdkBattleEndedEvent>().single.outcome,
+        const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled),
+      );
+    });
+
     test('s_parting_shot marks the user for switch after offensive drops', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -507,6 +609,7 @@ PsdkBattleSetup _setup({
   String? playerAbilityId,
   String? opponentAbilityId,
   String? playerHeldItemId,
+  bool canFlee = false,
   bool includePlayerReserve = true,
   bool includeOpponentReserve = true,
 }) {
@@ -567,6 +670,7 @@ PsdkBattleSetup _setup({
       moveAccuracy: 3,
       generic: 4,
     ),
+    canFlee: canFlee,
   );
 }
 

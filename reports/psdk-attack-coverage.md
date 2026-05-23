@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 662 |
-| partiel | 66 |
+| fait | 663 |
+| partiel | 65 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -693,7 +693,7 @@ Coverage semantics:
 | partiel | tectonic_rage2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | ground | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/tectonic_rage2.json |
 | fait | teeter_dance | s_status | ported | StatusStatMoveBehavior.status | normal | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/teeter_dance.json |
 | fait | telekinesis | s_telekinesis | ported | StaticBasicMoveRegistry.s_telekinesis | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/telekinesis.json |
-| partiel | teleport | s_teleport | partial | StaticBasicMoveRegistry.partialTargetMarker(s_teleport) | psychic | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/teleport.json |
+| fait | teleport | s_teleport | ported | StaticBasicMoveRegistry.s_teleport | psychic | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/teleport.json |
 | fait | thief | s_thief | ported | ItemDependentMoveBehavior.thief | dark | physical | 60 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/thief.json |
 | fait | thousand_arrows | s_smack_down | ported | GroundingMoveBehavior.smackDown | ground | physical | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/thousand_arrows.json |
 | fait | thousand_waves | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | ground | physical | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/thousand_waves.json |

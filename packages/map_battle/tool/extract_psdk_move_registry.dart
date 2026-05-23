@@ -176,8 +176,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_teleport': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_teleport)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_teleport',
+    status: _PsdkPortStatus.ported,
   ),
   's_venom_drench': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_venom_drench)',

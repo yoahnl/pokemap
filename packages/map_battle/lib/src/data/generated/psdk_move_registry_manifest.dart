@@ -2846,8 +2846,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_teleport',
     rubyClass: 'Teleport',
     rubyPath: '10 Move/2 Definitions/300 Teleport.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_teleport)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_teleport',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(

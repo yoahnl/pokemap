@@ -17,6 +17,7 @@ class PsdkBattleMoveContext {
     required this.user,
     required this.target,
     required this.move,
+    this.canFlee = false,
     this.moveSlot,
     this.isLastActionOfTurn = false,
     this.moveProcedureHooks = BattleMoveProcedureHooks.none,
@@ -29,6 +30,7 @@ class PsdkBattleMoveContext {
   final PsdkBattleSlotRef user;
   final PsdkBattleSlotRef target;
   final PsdkBattleMoveData move;
+  final bool canFlee;
   final int? moveSlot;
   final bool isLastActionOfTurn;
   final BattleMoveProcedureHooks moveProcedureHooks;
@@ -89,6 +91,7 @@ class PsdkBattleMoveBehaviorRegistry {
         user: context.user,
         target: context.target,
         move: BattleMoveDefinition.fromPsdk(context.move),
+        canFlee: context.canFlee,
         moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
@@ -119,6 +122,7 @@ class PsdkBattleMoveBehaviorRegistry {
         user: context.user,
         target: context.target,
         move: BattleMoveDefinition.fromPsdk(context.move),
+        canFlee: context.canFlee,
         moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
@@ -167,6 +171,7 @@ final class _PsdkCallbackMoveBehavior implements BattleMoveBehavior {
         user: context.user,
         target: context.target,
         move: context.move.psdkMove,
+        canFlee: context.canFlee,
         moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
