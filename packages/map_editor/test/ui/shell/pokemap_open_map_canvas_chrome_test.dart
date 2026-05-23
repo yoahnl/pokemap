@@ -58,12 +58,9 @@ void main() {
       );
       expect(sceneBadgeFinder, findsOneWidget);
 
-      // 2. Verify Favorite Star interactive button
-      final starFinder = find.byKey(const ValueKey('pokemap-favorite-star'));
-      expect(starFinder, findsOneWidget);
-      // Tap the star button to verify interaction
-      await tester.tap(starFinder);
-      await tester.pumpAndSettle();
+      // 2. Verify Favorite Star interactive button does not exist
+      expect(find.byKey(const ValueKey('pokemap-favorite-star')), findsNothing);
+      expect(find.textContaining('favoris'), findsNothing);
 
       // 3. Verify Options Ellipsis button exists
       expect(find.byType(MacosPulldownButton), findsWidgets);

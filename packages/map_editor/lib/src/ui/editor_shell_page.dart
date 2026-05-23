@@ -695,8 +695,6 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                   decoration: TextDecoration.none,
                 ),
               ),
-              const SizedBox(width: 8),
-              const _PokeMapFavoriteStar(),
             ],
           ),
           const SizedBox(height: 4),
@@ -876,46 +874,6 @@ class _WorkspaceStageHeader extends ConsumerWidget {
   }
 }
 
-class _PokeMapFavoriteStar extends StatefulWidget {
-  const _PokeMapFavoriteStar();
-
-  @override
-  State<_PokeMapFavoriteStar> createState() => _PokeMapFavoriteStarState();
-}
-
-class _PokeMapFavoriteStarState extends State<_PokeMapFavoriteStar> {
-  bool _isFavorite = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return MacosTooltip(
-      message: _isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
-      child: MacosIconButton(
-        key: const ValueKey('pokemap-favorite-star'),
-        icon: MacosIcon(
-          _isFavorite ? CupertinoIcons.star_fill : CupertinoIcons.star,
-          color: _isFavorite ? colors.warning : colors.textMuted,
-          size: 16,
-        ),
-        backgroundColor: CupertinoColors.transparent,
-        hoverColor: colors.surfaceHover,
-        onPressed: () {
-          setState(() {
-            _isFavorite = !_isFavorite;
-          });
-        },
-        boxConstraints: const BoxConstraints(
-          minWidth: 28,
-          maxWidth: 28,
-          minHeight: 28,
-          maxHeight: 28,
-        ),
-        borderRadius: BorderRadius.circular(6),
-      ),
-    );
-  }
-}
 
 class _AmbientGlow extends StatelessWidget {
   const _AmbientGlow({
