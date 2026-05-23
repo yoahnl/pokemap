@@ -234,10 +234,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
                     Builder(
                       builder: (context) {
                         final originalMq = MediaQuery.of(context);
+                        // La StatusBar est rendue hors MacosScaffold, donc on réduit la hauteur disponible
+                        // du scaffold pour éviter le chevauchement vertical avec les panes.
                         final adjustedMq = originalMq.copyWith(
                           size: Size(
                             originalMq.size.width,
-                            originalMq.size.height - 48,
+                            originalMq.size.height - StatusBar.defaultHeight,
                           ),
                         );
                         return MediaQuery(

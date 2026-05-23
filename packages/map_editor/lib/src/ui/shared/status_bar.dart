@@ -9,6 +9,9 @@ import '../../theme/theme.dart';
 class StatusBar extends ConsumerStatefulWidget {
   const StatusBar({super.key});
 
+  /// The standard height of the status bar.
+  static const double defaultHeight = 48.0;
+
   @override
   ConsumerState<StatusBar> createState() => _StatusBarState();
 }
@@ -98,7 +101,7 @@ class _StatusBarState extends ConsumerState<StatusBar> {
         final isWide = constraints.maxWidth >= 1100;
 
         return Container(
-          height: 48,
+          height: StatusBar.defaultHeight,
           decoration: BoxDecoration(
             color: colors.backgroundShell,
             border: Border(
