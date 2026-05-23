@@ -47,6 +47,7 @@ import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
+import '../../application/scenario_runtime/scenario_battle_outcome_flags.dart';
 import '../../application/scenario_runtime_completion_gate.dart';
 import '../../application/script_runtime_controller.dart';
 import '../../application/script_runtime_state.dart';
@@ -274,6 +275,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   _EncounterCheckMarker? _lastEncounterCheckMarker;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   void Function()? _pendingPostDialogueAction;
+
+  /// [SEL-B2] Continuation scénario pendante pour un combat lancé depuis un
+  /// node action `startTrainerBattle`. Format identique à `_runtimeSourceId`
+  /// de l'executor : `scenario:<scenarioId>:<sourceNodeId>:<nodeId>`.
+  ///
+  /// V0 : un seul combat scénario pending à la fois, non persisté.
+  String? _pendingScenarioBattleSourceId;
+
+  /// [SEL-B2] Identifiant stable du combat scénario pending (pour nommer les
+  /// flags d'outcome `battle:<battleId>:victory/defeat/...`).
+  String? _pendingScenarioBattleId;
   bool _awaitingSurfConfirmation = false;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
@@ -2131,6 +2143,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint(
       '[scenario_runtime] source=${sourceEvent.type.name} map=${sourceEvent.mapId} trigger=${sourceEvent.triggerId ?? '-'} entity=${sourceEvent.entityId ?? '-'} status=${result.status.name} scenario=${result.scenarioId ?? '-'} sourceNode=${result.sourceNodeId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
     );
+
+    // [SEL-B2] Si l'effet est un combat, on lance le battle handoff et on
+    // suspend le graphe. La reprise viendra de _onBattleFinished.
+    if (result.effect.type == ScenarioRuntimeEffectType.battle) {
+      _handleScenarioBattleEffect(result);
+    }
+
     return result;
   }
 
@@ -2436,6 +2455,89 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     debugPrint(
       '[scenario_runtime] continuation source=$runtimeSourceId status=${result.status.name} scenario=${result.scenarioId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
+    );
+  }
+
+  /// [SEL-B2] Gère un effet `ScenarioRuntimeEffectType.battle` retourné par
+  /// l'exécuteur de graphe scénario.
+  ///
+  /// Réutilise le pattern `_pendingBattleRequest` existant : le combat sera
+  /// lancé par `update()` au prochain tick, exactement comme un combat LoS ou
+  /// wild. La continuation scénario est stockée dans
+  /// `_pendingScenarioBattleSourceId` / `_pendingScenarioBattleId` et sera
+  /// consommée par `_onBattleFinished`.
+  void _handleScenarioBattleEffect(ScenarioRuntimeExecutionResult result) {
+    final effect = result.effect;
+    final trainerId = effect.trainerId ?? '';
+    final npcEntityId = effect.npcEntityId ?? '';
+    final battleId = effect.battleId ?? trainerId;
+    if (trainerId.isEmpty || npcEntityId.isEmpty) {
+      debugPrint(
+        '[scenario_runtime] battle effect incomplete: trainerId=$trainerId npcEntityId=$npcEntityId',
+      );
+      return;
+    }
+
+    // Construire le runtimeSourceId pour la continuation post-combat.
+    // Format attendu : 'scenario:<scenarioId>:<sourceNodeId>:<stopNodeId>'
+    // Si l'un des composants est null, on ne peut pas construire le sourceId
+    // et donc pas programmer de continuation → abort proprement.
+    final scenarioId = result.scenarioId;
+    final sourceNodeId = result.sourceNodeId;
+    final stopNodeId = result.stopNodeId;
+    if (scenarioId == null || sourceNodeId == null || stopNodeId == null) {
+      debugPrint(
+        '[scenario_runtime] battle effect: cannot build runtimeSourceId '
+        '(scenarioId=$scenarioId sourceNodeId=$sourceNodeId stopNodeId=$stopNodeId)',
+      );
+      return;
+    }
+    final runtimeSourceId = 'scenario:$scenarioId:$sourceNodeId:$stopNodeId';
+
+    // Chercher l'entité NPC sur la map courante.
+    final entity = _world.map.entities
+        .cast<MapEntity?>()
+        .firstWhere((e) => e?.id == npcEntityId, orElse: () => null);
+    if (entity == null) {
+      debugPrint(
+        '[scenario_runtime] battle effect: npc entity "$npcEntityId" not found on current map',
+      );
+      return;
+    }
+
+    final request = buildTrainerBattleRequestFromNpc(
+      entity: entity,
+      manifest: _bundle.manifest,
+      world: _world,
+    );
+    if (request == null) {
+      debugPrint(
+        '[scenario_runtime] battle effect: could not build TrainerBattleStartRequest for trainerId=$trainerId npcEntityId=$npcEntityId',
+      );
+      return;
+    }
+
+    // [SEL-B2-bis] V0 : un seul combat scénario pending à la fois.
+    // Si un pending existait déjà (ne devrait pas arriver en V0), on le
+    // remplace silencieusement mais on log un warning.
+    if (_pendingScenarioBattleSourceId != null) {
+      debugPrint(
+        '[scenario_runtime] WARNING: overwriting previous pending scenario battle '
+        '(previous=$_pendingScenarioBattleSourceId)',
+      );
+    }
+
+    // Mémoriser la continuation scénario.
+    // Les deux champs sont posés atomiquement (ni l'un sans l'autre).
+    _pendingScenarioBattleSourceId = runtimeSourceId;
+    _pendingScenarioBattleId = battleId;
+
+    // Enqueue la battle request comme un combat trainer normal.
+    _triggeredTrainerBattles.add(entity.id);
+    _pendingBattleRequest = request;
+
+    debugPrint(
+      '[scenario_runtime] battle handoff enqueued: battleId=$battleId trainerId=$trainerId npcEntityId=$npcEntityId runtimeSourceId=$runtimeSourceId',
     );
   }
 
@@ -4487,6 +4589,54 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     //
     // Et même si le lock est encore actif, le trainer ne sera pas re-déclenché
     // car il est marqué defeated dans storyFlags (guard dans _checkTrainerLineOfSight).
+
+    // [SEL-B2] Si ce combat a été lancé depuis un node scénario
+    // startTrainerBattle, on pose le flag d'outcome déterministe et on
+    // reprend le graphe après le node battle.
+    final scenarioBattleSourceId = _pendingScenarioBattleSourceId;
+    final scenarioBattleId = _pendingScenarioBattleId;
+    if (scenarioBattleSourceId != null && scenarioBattleId != null) {
+      // 1. Poser le flag d'outcome déterministe.
+      final String outcomeSuffix;
+      switch (outcome.type) {
+        case BattleOutcomeType.victory:
+          outcomeSuffix = kBattleOutcomeSuffixVictory;
+        case BattleOutcomeType.defeat:
+          outcomeSuffix = kBattleOutcomeSuffixDefeat;
+        case BattleOutcomeType.runaway:
+          outcomeSuffix = kBattleOutcomeSuffixFlee;
+        case BattleOutcomeType.captured:
+          outcomeSuffix = kBattleOutcomeSuffixCaptured;
+      }
+      final flagName = scenarioBattleOutcomeFlagName(
+        scenarioBattleId,
+        outcomeSuffix,
+      );
+      final nextState = _storyFlags.set(_gameState, flagName);
+      _gameState = nextState;
+      debugPrint(
+        '[scenario_runtime] battle outcome flag set: $flagName',
+      );
+
+      // 2. Nettoyer le pending avant de reprendre le graphe.
+      _pendingScenarioBattleSourceId = null;
+      _pendingScenarioBattleId = null;
+
+      // 3. Reprendre le graphe scénario après le node battle.
+      // On remet d'abord en overworld pour que la continuation puisse
+      // redispatcher sans être bloquée par le flow phase guard.
+      _flowPhase = _RuntimeFlowPhase.overworld;
+      _clearPressedMovementControls();
+      _prewarmActiveMapBattleData();
+      _refreshWorldNpcPresence();
+
+      _resumeScenarioAfterRuntimeSource(scenarioBattleSourceId);
+
+      debugPrint(
+        '[scenario_runtime] battle from scene completed: battleId=$scenarioBattleId outcome=${outcome.type.name}',
+      );
+      return;
+    }
 
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();

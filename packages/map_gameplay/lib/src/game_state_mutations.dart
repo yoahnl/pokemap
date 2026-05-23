@@ -132,23 +132,49 @@ class GameStateMutations {
 
   /// Donne un item au joueur.
   ///
-  /// Note : Cette mutation est basique.
-  /// Un système d'inventaire complet serait à implémenter séparément.
+  /// L'item est ajouté dans [GameState.bag]. Si l'item existe déjà,
+  /// la quantité est additionnée.
   GameState giveItem(
     GameState state,
     String itemId,
     int quantity,
   ) {
-    // Pour l'instant, on utilise les metadata comme storage basique.
-    // Un vrai système d'inventaire serait dans un futur lot.
-    final key = 'item_$itemId';
-    final currentQty = state.metadata[key];
-    final newQty = (currentQty != null ? int.parse(currentQty) : 0) + quantity;
+    final normalizedItemId = itemId.trim();
+    if (normalizedItemId.isEmpty || quantity <= 0) {
+      return state;
+    }
 
-    final newMetadata = Map<String, String>.from(state.metadata)
-      ..[key] = newQty.toString();
+    String categoryId = 'items';
+    bool found = false;
+    for (final entry in state.bag.entries) {
+      if (entry.itemId.trim() == normalizedItemId) {
+        categoryId = entry.categoryId;
+        found = true;
+        break;
+      }
+    }
 
-    return state.copyWith(metadata: newMetadata);
+    if (!found) {
+      final lower = normalizedItemId.toLowerCase();
+      if (lower == 'potion' ||
+          lower == 'super-potion' ||
+          lower == 'hyper-potion' ||
+          lower == 'max-potion' ||
+          lower == 'antidote') {
+        categoryId = 'medicine';
+      }
+    }
+
+    final newEntry = BagEntry(
+      itemId: normalizedItemId,
+      categoryId: categoryId,
+      quantity: quantity,
+    );
+
+    final newEntries = [...state.bag.entries, newEntry];
+    final updatedBag = Bag(entries: newEntries).normalized();
+
+    return state.copyWith(bag: updatedBag);
   }
 
   /// Applique un lot de mutations atomiquement.

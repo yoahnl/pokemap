@@ -86,6 +86,13 @@ enum ScenarioRuntimeEffectType {
   dialogue,
   script,
   message,
+
+  /// Le graphe scénario demande un combat trainer.
+  ///
+  /// Le runtime suspend le traversal et lance le battle handoff existant.
+  /// Après `BattleOutcome`, un flag d'outcome déterministe est posé et le
+  /// graphe reprend via `dispatchContinuation`.
+  battle,
   none,
 }
 
@@ -96,6 +103,9 @@ class ScenarioRuntimeEffect {
     this.dialogueId,
     this.scriptId,
     this.message,
+    this.battleId,
+    this.trainerId,
+    this.npcEntityId,
   });
 
   const ScenarioRuntimeEffect.none()
@@ -105,6 +115,16 @@ class ScenarioRuntimeEffect {
   final String? dialogueId;
   final String? scriptId;
   final String? message;
+
+  /// Identifiant stable du combat (utilisé pour nommer les flags d'outcome).
+  /// Exemple : `battle_rival_port`.
+  final String? battleId;
+
+  /// Identifiant du trainer dans le ProjectManifest.
+  final String? trainerId;
+
+  /// Identifiant de l'entité NPC sur la map.
+  final String? npcEntityId;
 }
 
 /// Statut global d'exécution d'un déclenchement scénario.

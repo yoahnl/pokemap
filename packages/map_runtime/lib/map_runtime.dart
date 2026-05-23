@@ -91,9 +91,18 @@ export 'src/application/scenario_runtime/scenario_runtime_executor.dart'
         kScenarioActionSetFlag,
         kScenarioActionClearFlag,
         kScenarioActionEmitOutcome,
+        kScenarioActionStartTrainerBattle,
         kScenarioActionFlowMerge,
         kScenarioActionAuthoringPlaceholder,
         scenarioOutcomeFlagName;
+export 'src/application/scenario_runtime/scenario_battle_outcome_flags.dart'
+    show
+        kBattleOutcomeFlagPrefix,
+        kBattleOutcomeSuffixVictory,
+        kBattleOutcomeSuffixDefeat,
+        kBattleOutcomeSuffixFlee,
+        kBattleOutcomeSuffixCaptured,
+        scenarioBattleOutcomeFlagName;
 export 'src/application/scripted_entity_movement_models.dart'
     show
         ScriptedEntityMovementState,

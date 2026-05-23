@@ -26,6 +26,20 @@ const String kScenarioActionSetFlag = 'setFlag';
 const String kScenarioActionClearFlag = 'clearFlag';
 const String kScenarioActionEmitOutcome = 'emitOutcome';
 
+/// Action kind : lance un combat trainer depuis le graphe scénario.
+///
+/// Le traversal s'arrête sur ce node. Le runtime (PlayableMapGame) lance le
+/// battle handoff existant. Après `BattleOutcome`, un flag déterministe est
+/// posé et le graphe reprend via `dispatchContinuation`.
+///
+/// Params attendus dans `ScenarioNodeBinding` / `ScenarioNodePayload.params` :
+/// - `binding.trainerId` : identifiant du trainer dans le manifest
+/// - `binding.entityId` : identifiant de l'entité NPC sur la map
+/// - `payload.params['battleId']` : identifiant stable pour les flags d'outcome
+///
+/// Voir SEL-A2 §3.5 (Option D) et SEL-B2.
+const String kScenarioActionStartTrainerBattle = 'startTrainerBattle';
+
 /// Jonction pure graphe après compilation d’un embranchement (Cutscene Studio).
 ///
 /// Ce n’est **pas** une attente temporelle: l’exécuteur avance immédiatement
@@ -935,6 +949,48 @@ class ScenarioRuntimeExecutor {
                 );
               }
               currentNodeId = nextAfterPlaceholder;
+
+            case kScenarioActionStartTrainerBattle:
+              final trainerId = node.binding.trainerId?.trim() ?? '';
+              final npcEntityId = node.binding.entityId?.trim() ?? '';
+              final battleId =
+                  node.payload.params['battleId']?.trim() ?? trainerId;
+              if (trainerId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action startTrainerBattle sans trainerId dans "${node.id}".',
+                );
+              }
+              if (npcEntityId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action startTrainerBattle sans npcEntityId dans "${node.id}".',
+                );
+              }
+              return ScenarioRuntimeExecutionResult(
+                status: ScenarioRuntimeExecutionStatus.executedEffect,
+                effect: ScenarioRuntimeEffect(
+                  type: ScenarioRuntimeEffectType.battle,
+                  battleId: battleId,
+                  trainerId: trainerId,
+                  npcEntityId: npcEntityId,
+                ),
+                scenarioId: scenario.id,
+                sourceNodeId: sourceId,
+                stopNodeId: node.id,
+                message:
+                    'Combat trainer "$trainerId" (battle=$battleId) lancé. Graphe suspendu.',
+              );
 
             default:
               return ScenarioRuntimeExecutionResult(
