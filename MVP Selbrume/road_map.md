@@ -552,8 +552,8 @@ PHASE 1 — Alignement (documentaire)
 ✅ NS-GS-04-bis — Mechanics-First Roadmap Alignment
 
 PHASE 2 — Socle runtime générique (code)
-🔜 NS-GS-05   — New Game Minimal Runtime
-   NS-GS-06   — GivePokemon Minimal
+✅ NS-GS-05   — New Game Minimal Runtime
+🔜 NS-GS-06   — GivePokemon Minimal
    NS-GS-07   — Step Completion / Progression Hooks V0
 
 PHASE 3 — Authoring / runtime bridge (code + readiness)
@@ -579,19 +579,18 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-05 — New Game Minimal Runtime
+🔜 NS-GS-06 — GivePokemon Minimal
 ```
 
 Périmètre :
 
 ```text
-Mécanique générique de nouvelle partie.
-Pas hardcodée Selbrume.
+Action narrative générique pour donner un Pokémon au joueur.
+Mutation pure dans map_gameplay.
+Pas de Sproutle hardcodé.
+Pas de UI choix starter.
 Pas de fixtures Selbrume finales.
-Compatible projet authoré dans l'éditeur.
-ProjectManifest.startMapId / startSpawnId.
-Initial party vide si le projet le demande.
-Tests unitaires obligatoires.
+Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
 ```
 
@@ -624,3 +623,18 @@ Mettre à jour MVP Selbrume/road_map.md.
 | NS-GS-03/04 | Restent utiles comme référence, pas comme commande de création. |
 | Prochain lot | NS-GS-05 — New Game Minimal Runtime (mécanique générique) |
 | Rapport | `reports/gameplay/ns_gs_04_bis_mechanics_first_roadmap_alignment.md` |
+
+---
+
+# Mise à jour NS-GS-05 — 2026-05-23
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-05 — New Game Minimal Runtime |
+| Résultat | `createNewGameState` ajouté dans map_gameplay. 33 tests passent. Analyze clean (0 nouveau). |
+| Fichiers | `new_game_state_builder.dart` (lib + test), `map_gameplay.dart` (+1 export) |
+| Décision | Pas de modification ProjectManifest (évite build_runner). startMapId fourni par l'appelant. |
+| Limites | Pas de startMapId persisté dans le manifest. Pas de spawn resolution intégrée. |
+| Mechanics-first | ✅ Aucun id Selbrume. Aucune fixture finale. Party vide. |
+| Prochain lot | NS-GS-06 — GivePokemon Minimal |
+| Rapport | `reports/gameplay/ns_gs_05_new_game_minimal_runtime.md` |
