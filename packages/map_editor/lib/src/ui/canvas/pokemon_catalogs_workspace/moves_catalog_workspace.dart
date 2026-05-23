@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../theme/theme.dart';
 import '../../../app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import '../../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../../features/editor/state/editor_selectors.dart';
@@ -260,9 +261,10 @@ class _PokemonMovesCatalogWorkspaceState
       return null;
     }
 
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final fill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final fill = colors.surfaceSubtle;
+    final subtle = colors.textMuted;
     final statusText = _buildSyncStatusText();
 
     return Container(
@@ -428,9 +430,10 @@ class _MovesWorkspaceScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final panelFill = CupertinoColors.systemBackground.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final panelFill = colors.surfaceBase;
+    final subtle = colors.textMuted;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
@@ -477,9 +480,10 @@ class _MovesWorkspaceNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final panelFill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final panelFill = colors.surfaceSubtle;
+    final subtle = colors.textMuted;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -529,9 +533,10 @@ class _MovesCatalogListPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final panelFill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final panelFill = colors.surfaceSubtle;
+    final subtle = colors.textMuted;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -608,12 +613,12 @@ class _MovesCatalogListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final selectedFill = CupertinoColors.systemBlue.withValues(alpha: 0.12);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final subtle = colors.textMuted;
     final background = selected
-        ? selectedFill
-        : CupertinoColors.systemBackground.resolveFrom(context);
+        ? colors.surfaceSelected
+        : colors.surfaceBase;
 
     return GestureDetector(
       key: Key('moves-catalog-entry-${entry.id}'),
@@ -671,9 +676,10 @@ class _MovesCatalogDetailPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final panelFill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final panelFill = colors.surfaceSubtle;
+    final subtle = colors.textMuted;
 
     if (entry == null) {
       return Container(
@@ -773,7 +779,7 @@ class _MovesCatalogDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final subtle = context.pokeMapColors.textMuted;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(

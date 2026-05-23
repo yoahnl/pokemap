@@ -554,7 +554,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('env-layer-inspector-add-area')));
+      final addAreaBtn = find.byKey(const Key('env-layer-inspector-add-area'));
+      await tester.ensureVisible(addAreaBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(addAreaBtn);
       await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Un — preset_one').last);
       await tester.pumpAndSettle();

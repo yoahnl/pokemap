@@ -195,7 +195,7 @@ void main() {
         tester,
         harness: harness,
         manifest: _project(_defaultCatalog()),
-        element: _element(width: 1, height: 4),
+        element: _element(width: 4, height: 4),
       );
 
       final toggle = tester.widget<CupertinoSwitch>(
@@ -206,10 +206,10 @@ void main() {
 
       expect(harness.shadow, isNotNull);
       expect(harness.shadow!.castsShadow, isTrue);
-      expect(harness.shadow!.shadowProfileId, 'default-ground-contact-blob');
-      expect(harness.shadow!.footprint!.footprintWidthRatio, 0.18);
-      expect(harness.shadow!.footprint!.footprintHeightRatio, 0.07);
-      expect(harness.shadow!.opacity, 0.28);
+      expect(harness.shadow!.shadowProfileId, 'default-ground-wide-ellipse');
+      expect(harness.shadow!.footprint!.footprintWidthRatio, 0.60);
+      expect(harness.shadow!.footprint!.footprintHeightRatio, 0.06);
+      expect(harness.shadow!.opacity, 0.32);
     });
 
     testWidgets(
@@ -246,7 +246,7 @@ void main() {
         tester,
         harness: harness,
         manifest: _project(_defaultCatalog()),
-        element: _element(width: 1, height: 4),
+        element: _element(width: 4, height: 4),
       );
 
       expect(find.text('Calculer automatiquement'), findsOneWidget);
@@ -274,7 +274,7 @@ void main() {
         tester,
         harness: harness,
         manifest: _project(_defaultCatalog()),
-        element: _element(width: 4, height: 3),
+        element: _element(width: 4, height: 4),
       );
 
       await tester.tap(
@@ -286,11 +286,11 @@ void main() {
       expect(harness.shadow!.shadowProfileId, 'default-ground-wide-ellipse');
       expect(harness.shadow!.offsetX, 0);
       expect(harness.shadow!.offsetY, 0);
-      expect(harness.shadow!.scaleX, 1);
-      expect(harness.shadow!.scaleY, 0.85);
-      expect(harness.shadow!.opacity, 0.30);
-      expect(harness.shadow!.footprint!.anchorYRatio, 0.92);
-      expect(harness.shadow!.footprint!.footprintWidthRatio, 0.82);
+      expect(harness.shadow!.scaleX, 0.72);
+      expect(harness.shadow!.scaleY, 0.48);
+      expect(harness.shadow!.opacity, 0.32);
+      expect(harness.shadow!.footprint!.anchorYRatio, 0.98);
+      expect(harness.shadow!.footprint!.footprintWidthRatio, 0.60);
       expect(find.text('Ombre automatique : grand bâtiment.'), findsOneWidget);
     });
 

@@ -13,7 +13,7 @@ void main() {
       final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
       final project = _project(
         elements: [
-          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          _element(id: 'lamp', name: 'Lamp', width: 4, height: 4),
         ],
         shadowCatalog: _defaultCatalog(),
       );
@@ -107,7 +107,7 @@ void main() {
       final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
       final project = _project(
         elements: [
-          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          _element(id: 'lamp', name: 'Lamp', width: 4, height: 4),
           _element(
             id: 'disabled',
             name: 'Disabled',

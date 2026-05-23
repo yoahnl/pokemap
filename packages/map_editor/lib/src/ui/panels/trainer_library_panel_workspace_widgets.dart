@@ -708,8 +708,6 @@ class _TrainerStudioHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-
     return DecoratedBox(
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
@@ -732,21 +730,24 @@ class _TrainerStudioHeaderCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Trainer Studio',
-                        style: TextStyle(
-                          color: EditorChrome.primaryLabel(context),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
+                      Visibility(
+                        visible: false,
+                        maintainState: true,
+                        child: Text(
+                          'Trainer Studio',
+                          style: TextStyle(
+                            color: EditorChrome.primaryLabel(context),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.4,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
                       Text(
                         'Create and edit project trainers in one readable workspace: roster on the left, team detail in the middle, guided Pokémon editing on the right.',
                         style: TextStyle(
-                          color: subtle,
-                          fontSize: 12,
+                          color: EditorChrome.primaryLabel(context),
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                           height: 1.35,
                         ),

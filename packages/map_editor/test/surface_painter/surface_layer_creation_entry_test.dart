@@ -44,23 +44,23 @@ void main() {
 
       await tester.tap(
         find.byWidgetPredicate(
-          (widget) => widget is MacosTooltip && widget.message == 'Add Layer',
+          (widget) => widget is Tooltip && widget.message == 'Ajouter un calque',
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Add Layer'), findsOneWidget);
+      expect(find.text('Ajouter un calque'), findsOneWidget);
 
-      await tester.tap(find.text('Type: Tile Layer'));
+      await tester.tap(find.text('Type : Couche de tuiles (Tile)'));
       await tester.pumpAndSettle();
-      expect(find.text('Layer type'), findsOneWidget);
-      expect(find.text('Surface Layer'), findsOneWidget);
+      expect(find.text('Type de calque'), findsOneWidget);
+      expect(find.text('Couche de surface'), findsOneWidget);
 
-      await tester.tap(find.text('Surface Layer'));
+      await tester.tap(find.text('Couche de surface'));
       await tester.pumpAndSettle();
-      expect(find.text('Type: Surface Layer'), findsOneWidget);
+      expect(find.text('Type : Couche de surface'), findsOneWidget);
       expect(find.text('Surfaces'), findsOneWidget);
 
-      await tester.tap(find.text('Add'));
+      await tester.tap(find.text('Ajouter'));
       await tester.pumpAndSettle();
 
       final state = container.read(editorNotifierProvider);

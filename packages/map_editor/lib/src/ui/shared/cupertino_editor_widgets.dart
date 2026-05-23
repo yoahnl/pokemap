@@ -127,26 +127,26 @@ abstract final class EditorChrome {
       appBackgroundGradient(context);
 
   static Color separator(BuildContext context) => _isDark(context)
-      ? const Color(0x08FFFFFF)
+      ? context.pokeMapColors.divider
       : CupertinoColors.separator.resolveFrom(context);
 
   static Color subtleSeparator(BuildContext context) =>
-      _isDark(context) ? const Color(0x06FFFFFF) : const Color(0x14000000);
+      _isDark(context) ? context.pokeMapColors.borderSubtle : const Color(0x14000000);
 
   static Color subtleLabel(BuildContext context) =>
-      CupertinoColors.placeholderText.resolveFrom(context);
+      context.pokeMapColors.textMuted;
 
   static Color primaryLabel(BuildContext context) =>
-      CupertinoColors.label.resolveFrom(context);
+      context.pokeMapColors.textPrimary;
 
   static Color activeAccent(BuildContext context) =>
-      CupertinoTheme.of(context).primaryColor;
+      context.pokeMapColors.brandPrimary;
 
   static Color statusTint(BuildContext context) =>
-      _isDark(context) ? const Color(0xFF3A3A52) : const Color(0xFFF2EBE6);
+      _isDark(context) ? context.pokeMapColors.infoSoft : const Color(0xFFF2EBE6);
 
   static Color errorTint(BuildContext context) =>
-      _isDark(context) ? const Color(0xFF32242A) : const Color(0xFFF8E8EA);
+      _isDark(context) ? context.pokeMapColors.errorSoft : const Color(0xFFF8E8EA);
 
   /// Remplissage discret, **opaque** (pas de translucidité type verre).
   static Color chipFill(BuildContext context) => _isDark(context)

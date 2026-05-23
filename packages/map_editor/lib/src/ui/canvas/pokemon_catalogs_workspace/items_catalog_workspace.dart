@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../theme/theme.dart';
 import '../../../app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import '../../../application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import '../../../application/use_cases/sync_pokemon_items_catalog_use_case.dart';
@@ -271,9 +272,10 @@ class _PokemonItemsCatalogWorkspaceState
       return null;
     }
 
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final fill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final fill = colors.surfaceSubtle;
+    final subtle = colors.textMuted;
     final statusText = _buildSyncStatusText();
 
     return Container(
@@ -445,9 +447,10 @@ class _ItemsWorkspaceScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final panelFill = CupertinoColors.systemBackground.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final panelFill = colors.surfaceBase;
+    final subtle = colors.textMuted;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
@@ -494,9 +497,10 @@ class _ItemsWorkspaceNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final mutedFill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final mutedFill = colors.surfaceSubtle;
+    final subtle = colors.textMuted;
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -546,10 +550,11 @@ class _ItemsCatalogListPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final panelFill = CupertinoColors.systemBackground.resolveFrom(context);
-    final mutedFill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final panelFill = colors.surfaceSubtle;
+    final mutedFill = colors.surfaceBase;
+    final subtle = colors.textMuted;
 
     return Container(
       key: const Key('items-catalog-list'),
@@ -632,12 +637,13 @@ class _ItemsCatalogListEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
     final fill = isSelected
-        ? CupertinoColors.systemBlue.resolveFrom(context).withValues(alpha: 0.12)
-        : CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final label = CupertinoColors.label.resolveFrom(context);
+        ? colors.surfaceSelected
+        : colors.surfaceBase;
+    final subtle = colors.textMuted;
+    final label = colors.textPrimary;
 
     return CupertinoButton(
       key: Key('items-catalog-entry-${entry.id}'),
@@ -699,9 +705,10 @@ class _ItemsCatalogDetailPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final panelFill = CupertinoColors.systemBackground.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final panelFill = colors.surfaceSubtle;
+    final subtle = colors.textMuted;
 
     if (entry == null) {
       return Container(
@@ -827,9 +834,10 @@ class PokemonItemsCatalogSpritePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final mutedFill = CupertinoColors.systemGrey6.resolveFrom(context);
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
+    final border = colors.borderSubtle;
+    final mutedFill = colors.surfaceBase;
+    final subtle = colors.textMuted;
     final hasLocalSprite = hasPokemonItemsLocalSpriteAsset(
       projectRootPath: projectRootPath,
       localSpritePath: localSpritePath,
@@ -851,7 +859,7 @@ class PokemonItemsCatalogSpritePreview extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: CupertinoColors.white,
+                color: colors.surfaceHover,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: border),
               ),
@@ -920,7 +928,7 @@ class _ItemsDetailField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final subtle = context.pokeMapColors.textMuted;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),

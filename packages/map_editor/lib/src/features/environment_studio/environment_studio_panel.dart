@@ -461,23 +461,27 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Environment Studio',
-                key: const Key('environment-studio-title'),
-                style: TextStyle(
-                  color: label,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0,
+              Visibility(
+                visible: false,
+                maintainState: true,
+                child: Text(
+                  'Environment Studio',
+                  key: const Key('environment-studio-title'),
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0,
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 'Presets d’environnements réutilisables',
                 style: TextStyle(
-                  color: subtle,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  color: label,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],

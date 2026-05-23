@@ -8,6 +8,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../theme/theme.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import 'tileset_grid_metrics.dart';
@@ -119,7 +120,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                 .toList(growable: false) ??
             const <TileLayer>[];
 
-        final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+        final colors = context.pokeMapColors;
+        final subtle = colors.textMuted;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +138,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                           tileset.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
+                            color: colors.textPrimary,
                             fontWeight: FontWeight.w700,
                             fontSize: 15,
                           ),
@@ -170,9 +173,11 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  CupertinoButton.filled(
+                  CupertinoButton(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    color: colors.brandPrimary,
+                    disabledColor: colors.brandPrimary.withValues(alpha: 0.35),
                     onPressed: selectionRect == null
                         ? null
                         : () => _showCreateElementDialog(
