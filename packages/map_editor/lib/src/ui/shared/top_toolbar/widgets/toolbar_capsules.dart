@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../cupertino_editor_widgets.dart';
+import '../../../../theme/theme.dart';
 
 /// Groupe visuel de boutons/cibles de toolbar.
 ///
@@ -17,19 +17,19 @@ class ToolbarCapsuleGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final visibleChildren =
         children.whereType<Widget>().toList(growable: false);
     return SizedBox(
       height: 40,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: EditorChrome.toolbarCapsuleFill(context),
+          color: colors.surfaceSubtle,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFF524A64),
+            color: colors.borderSubtle,
             width: 1,
           ),
-          boxShadow: EditorChrome.toolbarCapsuleShadows(context),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -77,13 +77,12 @@ class _ToolbarCapsuleButtonState extends State<ToolbarCapsuleButton> {
 
   @override
   Widget build(BuildContext context) {
-    const accent = EditorChrome.accentPrimary;
+    final colors = context.pokeMapColors;
     final enabled = widget.onPressed != null;
-    final capsule = EditorChrome.toolbarCapsuleFill(context);
-    final selectedFill = Color.lerp(capsule, accent, 0.26)!;
+    final selectedFill = colors.surfaceSelected;
     final iconColor = !enabled
-        ? CupertinoColors.inactiveGray.resolveFrom(context)
-        : (widget.selected ? accent : EditorChrome.primaryLabel(context));
+        ? colors.textDisabled
+        : (widget.selected ? colors.brandPrimary : colors.textSecondary);
     final content = AnimatedContainer(
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOutCubic,
@@ -92,7 +91,7 @@ class _ToolbarCapsuleButtonState extends State<ToolbarCapsuleButton> {
       decoration: BoxDecoration(
         color: widget.selected
             ? selectedFill
-            : (_hovered ? EditorChrome.toolbarMutedHoverFill(context) : null),
+            : (_hovered ? colors.surfaceHover : null),
         borderRadius: BorderRadius.circular(9),
       ),
       alignment: Alignment.center,
@@ -132,13 +131,18 @@ class ToolbarCapsulePulldown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelColor = EditorChrome.primaryLabel(context);
+    final colors = context.pokeMapColors;
+    final labelColor = colors.textPrimary;
     return Container(
       constraints: const BoxConstraints(minWidth: 120),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: EditorChrome.toolbarPulldownTrackFill(context),
+        color: colors.surfaceSubtle,
         borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+          color: colors.borderSubtle,
+          width: 1,
+        ),
       ),
       child: SizedBox(
         height: 32,

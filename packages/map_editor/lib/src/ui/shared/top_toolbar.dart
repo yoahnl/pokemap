@@ -10,7 +10,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
-import 'cupertino_editor_widgets.dart';
+import '../../theme/theme.dart';
 import 'top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'top_toolbar/widgets/toolbar_brand.dart';
 import 'top_toolbar/widgets/toolbar_capsules.dart';
@@ -57,10 +57,10 @@ class TopToolbar extends ConsumerWidget {
   }
 
   static ToolBar buildToolBar(BuildContext context, WidgetRef ref) {
+    final colors = context.pokeMapColors;
     final toolbar = ref.watch(editorToolbarSnapshotProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final settings = toolbar.settings;
-    final subtle = EditorChrome.subtleLabel(context);
 
     final map = toolbar.activeMap;
     final isMapWorkspace = toolbar.workspaceMode == EditorWorkspaceMode.map;
@@ -440,17 +440,17 @@ class TopToolbar extends ConsumerWidget {
             margin: const EdgeInsets.only(left: 6),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Color.lerp(
-                EditorChrome.badgeFill(context),
-                EditorChrome.chipFill(context),
-                0.45,
-              ),
+              color: colors.brandPrimarySoft,
               borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: colors.brandPrimaryBorder,
+                width: 1,
+              ),
             ),
             child: Text(
               toolbar.statusMessage!,
               style: TextStyle(
-                color: subtle,
+                color: colors.brandPrimary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -484,9 +484,15 @@ class TopToolbar extends ConsumerWidget {
       automaticallyImplyLeading: false,
       centerTitle: false,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      dividerColor: MacosColors.transparent,
+      dividerColor: colors.divider,
       decoration: BoxDecoration(
-        color: EditorChrome.toolbarBarFill(context),
+        color: colors.backgroundShell,
+        border: Border(
+          bottom: BorderSide(
+            color: colors.divider,
+            width: 1,
+          ),
+        ),
       ),
       actions: actions,
     );

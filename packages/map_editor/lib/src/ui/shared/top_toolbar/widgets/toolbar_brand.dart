@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 
-import '../../cupertino_editor_widgets.dart';
+import '../../../../theme/theme.dart';
 
 /// Bloc visuel de marque utilisé dans la toolbar native.
 ///
@@ -20,10 +20,9 @@ class TopToolbarBrand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-    final label = EditorChrome.primaryLabel(context);
-    const honey = EditorChrome.inspectorJoyHoney;
-    const cyan = EditorChrome.inspectorJoyCyan;
+    final colors = context.pokeMapColors;
+    final subtle = colors.textSecondary;
+    final label = colors.textPrimary;
 
     return SizedBox(
       height: 40,
@@ -37,20 +36,20 @@ class TopToolbarBrand extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color.lerp(CupertinoColors.white, honey, 0.75)!,
-                  Color.lerp(cyan, const Color(0xFF102828), 0.4)!,
+                  Color.lerp(colors.textInverse, colors.brandPrimary, 0.75)!,
+                  Color.lerp(colors.brandCyan, const Color(0xFF10202F), 0.4)!,
                 ],
               ),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: honey.withValues(alpha: 0.9),
+                color: colors.brandPrimaryBorder,
                 width: 1.25,
               ),
             ),
             alignment: Alignment.center,
-            child: const MacosIcon(
+            child: MacosIcon(
               CupertinoIcons.square_stack_3d_up_fill,
-              color: CupertinoColors.white,
+              color: colors.textInverse,
               size: 17,
             ),
           ),
