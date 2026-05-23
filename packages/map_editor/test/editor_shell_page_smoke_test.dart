@@ -27,12 +27,12 @@ void main() {
         ),
       );
 
-      expect(find.text('Map Workspace'), findsOneWidget);
+      expect(find.text('Espace carte'), findsOneWidget);
       expect(
-        find.text('Open a map to start building your world.'),
+        find.text('Ouvrez une carte pour commencer à construire votre monde.'),
         findsOneWidget,
       );
-      expect(find.text('Ready'), findsOneWidget);
+      expect(find.text('Prêt'), findsOneWidget);
       expect(
         find.byWidgetPredicate(
           (widget) =>

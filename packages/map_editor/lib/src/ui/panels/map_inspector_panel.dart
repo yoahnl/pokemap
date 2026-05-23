@@ -824,7 +824,7 @@ class _InspectorOverviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${map.size.width} x ${map.size.height} tiles  •  ${map.layers.length} layers',
+                  '${map.size.width} x ${map.size.height} tuiles  •  ${map.layers.length} couches',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

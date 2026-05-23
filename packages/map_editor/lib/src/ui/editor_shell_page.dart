@@ -13,6 +13,7 @@ import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
+import 'design_system/design_system.dart';
 import '../theme/theme.dart';
 
 import '../features/editor/state/editor_notifier.dart';
@@ -571,52 +572,56 @@ class _WorkspaceStageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-    final label = EditorChrome.primaryLabel(context);
-    final chipFill = EditorChrome.chipFill(context);
+    final colors = context.pokeMapColors;
     final chipAccent = switch (workspaceMode) {
-      EditorWorkspaceMode.map => EditorChrome.inspectorJoyHoney,
-      EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyLilac,
-      EditorWorkspaceMode.trainer => EditorChrome.accentCoral,
-      EditorWorkspaceMode.pokedex => EditorChrome.inspectorJoyAmber,
-      EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyCyan,
-      EditorWorkspaceMode.step => EditorChrome.inspectorJoyMint,
-      EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
-      EditorWorkspaceMode.dialogue => EditorChrome.inspectorJoyBlue,
-      EditorWorkspaceMode.pathStudio => EditorChrome.accentPrimary,
-      EditorWorkspaceMode.environmentStudio => EditorChrome.accentJade,
+      EditorWorkspaceMode.map => colors.brandPrimary,
+      EditorWorkspaceMode.tileset => colors.brandCyan,
+      EditorWorkspaceMode.trainer => colors.combat,
+      EditorWorkspaceMode.pokedex => colors.reward,
+      EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.step ||
+      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.dialogue => colors.narrative,
+      EditorWorkspaceMode.pathStudio => colors.brandPrimary,
+      EditorWorkspaceMode.environmentStudio => colors.mapAccent,
     };
-    final chipAccent2 = switch (workspaceMode) {
-      EditorWorkspaceMode.map => EditorChrome.inspectorJoyApricot,
-      EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyPlum,
-      EditorWorkspaceMode.trainer => EditorChrome.inspectorJoyCoral,
-      EditorWorkspaceMode.pokedex => EditorChrome.accentWarm,
-      EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyBlue,
-      EditorWorkspaceMode.step => EditorChrome.accentJade,
-      EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
-      EditorWorkspaceMode.dialogue => EditorChrome.inspectorJoyCyan,
-      EditorWorkspaceMode.pathStudio => EditorChrome.inspectorJoyCyan,
-      EditorWorkspaceMode.environmentStudio => EditorChrome.inspectorJoyMint,
+
+    final badgeVariant = switch (workspaceMode) {
+      EditorWorkspaceMode.map => PokeMapBadgeVariant.mapAccent,
+      EditorWorkspaceMode.tileset => PokeMapBadgeVariant.neutral,
+      EditorWorkspaceMode.trainer => PokeMapBadgeVariant.combat,
+      EditorWorkspaceMode.pokedex => PokeMapBadgeVariant.info,
+      EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.step ||
+      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.dialogue => PokeMapBadgeVariant.narrative,
+      _ => PokeMapBadgeVariant.neutral,
+    };
+
+    final badgeLabel = switch (workspaceMode) {
+      EditorWorkspaceMode.map => 'Scène',
+      EditorWorkspaceMode.tileset => 'Bibliothèque',
+      EditorWorkspaceMode.trainer => 'Dresseurs',
+      EditorWorkspaceMode.pokedex => 'Catalogues',
+      EditorWorkspaceMode.globalStory => 'Macro-Récit',
+      EditorWorkspaceMode.step => 'Étapes',
+      EditorWorkspaceMode.cutscene => 'Cinématiques',
+      EditorWorkspaceMode.dialogue => 'Dialogue',
+      EditorWorkspaceMode.pathStudio => 'Chemins',
+      EditorWorkspaceMode.environmentStudio => 'Envs',
     };
 
     return Row(
       children: [
         Container(
-          width: 42,
-          height: 42,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.lerp(CupertinoColors.white, chipAccent, 0.72)!,
-                Color.lerp(chipAccent2, const Color(0xFF1A0A08), 0.38)!,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(14),
+            color: colors.surfaceSubtle,
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: chipAccent.withValues(alpha: 0.88),
-              width: 1.2,
+              color: colors.borderSubtle,
+              width: 1,
             ),
           ),
           alignment: Alignment.center,
@@ -633,8 +638,8 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
               EditorWorkspaceMode.environmentStudio => CupertinoIcons.tree,
             },
-            color: CupertinoColors.white,
-            size: 22,
+            color: chipAccent,
+            size: 20,
           ),
         ),
         const SizedBox(width: 14),
@@ -647,21 +652,23 @@ class _WorkspaceStageHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: label,
-                  fontSize: 20,
+                  color: colors.textPrimary,
+                  fontSize: 18,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
+                  decoration: TextDecoration.none,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               Text(
                 subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: subtle,
+                  color: colors.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ],
@@ -670,59 +677,32 @@ class _WorkspaceStageHeader extends StatelessWidget {
         if (showRightPanelToggle) ...[
           MacosTooltip(
             message:
-                rightPanelVisible ? 'Hide right panel' : 'Show right panel',
+                rightPanelVisible ? 'Masquer le panneau' : 'Afficher le panneau',
             child: MacosIconButton(
               semanticLabel:
                   rightPanelVisible ? 'Hide right panel' : 'Show right panel',
               icon: MacosIcon(
                 rightPanelVisible ? Icons.open_in_full : Icons.close_fullscreen,
-                color: label.withValues(alpha: 0.85),
-                size: 18,
+                color: colors.textPrimary.withValues(alpha: 0.85),
+                size: 16,
               ),
               backgroundColor: CupertinoColors.transparent,
-              hoverColor: chipAccent.withValues(alpha: 0.12),
+              hoverColor: colors.surfaceHover,
               onPressed: onToggleRightPanel,
               boxConstraints: const BoxConstraints(
-                minWidth: 34,
-                maxWidth: 34,
-                minHeight: 34,
-                maxHeight: 34,
+                minWidth: 32,
+                maxWidth: 32,
+                minHeight: 32,
+                maxHeight: 32,
               ),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
           const SizedBox(width: 8),
         ],
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: Color.lerp(chipFill, chipAccent, 0.22),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: chipAccent.withValues(alpha: 0.65),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            switch (workspaceMode) {
-              EditorWorkspaceMode.map => 'Scene',
-              EditorWorkspaceMode.tileset => 'Library',
-              EditorWorkspaceMode.trainer => 'Trainer',
-              EditorWorkspaceMode.pokedex => 'Catalogues',
-              EditorWorkspaceMode.globalStory => 'Global',
-              EditorWorkspaceMode.step => 'Step',
-              EditorWorkspaceMode.cutscene => 'Cutscene',
-              EditorWorkspaceMode.dialogue => 'Dialogue',
-              EditorWorkspaceMode.pathStudio => 'Path',
-              EditorWorkspaceMode.environmentStudio => 'Env',
-            },
-            style: TextStyle(
-              color: chipAccent,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
-            ),
-          ),
+        PokeMapBadge(
+          label: badgeLabel,
+          variant: badgeVariant,
         ),
       ],
     );

@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
-import 'cupertino_editor_widgets.dart';
+import '../../theme/theme.dart';
 
 class StatusBar extends ConsumerWidget {
   const StatusBar({super.key});
@@ -11,6 +12,7 @@ class StatusBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorNotifierProvider);
+    final colors = context.pokeMapColors;
     final activeMap = state.activeMap;
     const pendingProjectSaveMessage =
         'Projet modifié en mémoire — sauvegardez le projet avec la disquette.';
@@ -19,24 +21,31 @@ class StatusBar extends ConsumerWidget {
         ? state.errorMessage!
         : state.isProjectDirty
             ? pendingProjectSaveMessage
-            : state.statusMessage ?? 'Ready';
-    final labelColor =
-        hasError ? const Color(0xFFF3C5CB) : EditorChrome.subtleLabel(context);
-    final tint = hasError
-        ? EditorChrome.errorTint(context)
-        : EditorChrome.islandCoolTint;
-    final leadingTint = hasError
-        ? EditorChrome.inspectorJoyCoral
-        : EditorChrome.inspectorJoyCyan;
+            : state.statusMessage ?? 'Prêt';
+
+    final leadingTint = hasError ? colors.error : colors.brandPrimary;
     final icon = hasError
         ? CupertinoIcons.exclamationmark_triangle_fill
         : CupertinoIcons.sparkles;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(22, 2, 22, 18),
-      child: EditorPaneSurface(
-        radius: 22,
-        tint: tint,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surfaceBase,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: colors.borderSubtle,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
@@ -45,25 +54,18 @@ class StatusBar extends ConsumerWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color.lerp(CupertinoColors.white, leadingTint, 0.82)!,
-                      Color.lerp(leadingTint, const Color(0xFF1A0A08), 0.42)!,
-                    ],
-                  ),
+                  color: hasError ? colors.errorSoft : colors.brandPrimarySoft,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: leadingTint.withValues(alpha: 0.88),
+                    color: hasError ? colors.errorBorder : colors.brandPrimaryBorder,
                     width: 1.1,
                   ),
                 ),
                 alignment: Alignment.center,
                 child: MacosIcon(
                   icon,
-                  size: 15,
-                  color: CupertinoColors.white,
+                  size: 14,
+                  color: leadingTint,
                 ),
               ),
               const SizedBox(width: 10),
@@ -72,8 +74,9 @@ class StatusBar extends ConsumerWidget {
                   primaryMessage,
                   style: TextStyle(
                     fontSize: 12,
-                    color: hasError ? leadingTint : const Color(0xFFF2F2F4),
+                    color: hasError ? colors.error : colors.textPrimary,
                     fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -81,16 +84,16 @@ class StatusBar extends ConsumerWidget {
               if (activeMap != null) ...[
                 _statusChip(
                   context,
-                  'Map ${activeMap.id}',
+                  'Carte ${activeMap.id}',
                   CupertinoIcons.map,
-                  labelColor,
+                  colors,
                 ),
                 const SizedBox(width: 8),
                 _statusChip(
                   context,
                   '${activeMap.size.width} x ${activeMap.size.height}',
                   CupertinoIcons.rectangle_grid_2x2,
-                  labelColor,
+                  colors,
                 ),
                 const SizedBox(width: 8),
               ],
@@ -99,16 +102,17 @@ class StatusBar extends ConsumerWidget {
                   context,
                   'Projet non sauvegardé',
                   CupertinoIcons.floppy_disk,
-                  labelColor,
+                  colors,
                   key: const Key('status-bar-project-dirty-chip'),
                 ),
                 const SizedBox(width: 8),
               ],
               _statusChip(
                 context,
-                'Zoom ${(state.zoom * 100).toInt()}%',
+                'Zoom ${(state.zoom * 100).toInt()} %',
                 CupertinoIcons.search,
-                labelColor,
+                colors,
+                isZoom: true,
               ),
             ],
           ),
@@ -118,20 +122,19 @@ class StatusBar extends ConsumerWidget {
   }
 
   static Widget _statusChip(
-      BuildContext context, String label, IconData icon, Color textColor,
-      {Key? key}) {
+      BuildContext context, String label, IconData icon, PokeMapColorTokens colors,
+      {Key? key, bool isZoom = false}) {
     return Container(
       key: key,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: EdgeInsets.symmetric(
+        horizontal: isZoom ? 8 : 10,
+        vertical: isZoom ? 5 : 7,
+      ),
       decoration: BoxDecoration(
-        color: Color.lerp(
-          EditorChrome.chipFill(context),
-          EditorChrome.inspectorJoyHoney,
-          0.18,
-        ),
+        color: isZoom ? colors.surfaceSubtle.withValues(alpha: 0.5) : colors.surfaceSubtle,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: EditorChrome.inspectorJoyApricot.withValues(alpha: 0.45),
+          color: colors.borderSubtle.withValues(alpha: isZoom ? 0.5 : 1.0),
           width: 1,
         ),
       ),
@@ -140,16 +143,17 @@ class StatusBar extends ConsumerWidget {
         children: [
           MacosIcon(
             icon,
-            size: 12,
-            color: textColor,
+            size: isZoom ? 11 : 12,
+            color: isZoom ? colors.textMuted : colors.textSecondary,
           ),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              color: textColor,
-              fontWeight: FontWeight.w600,
+              fontSize: isZoom ? 10 : 11,
+              color: isZoom ? colors.textMuted : colors.textSecondary,
+              fontWeight: isZoom ? FontWeight.w500 : FontWeight.w600,
+              decoration: TextDecoration.none,
             ),
           ),
         ],

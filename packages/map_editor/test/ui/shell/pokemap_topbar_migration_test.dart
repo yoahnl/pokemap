@@ -50,16 +50,16 @@ void main() {
           projectRootPath: '/tmp/topbar_status_test',
           project: buildShellChromeProject(name: 'Status Test'),
           workspaceMode: EditorWorkspaceMode.map,
-          statusMessage: 'Ready',
+          statusMessage: 'Prêt',
         ),
       );
 
       // Verify status message text
-      expect(find.text('Ready'), findsOneWidget);
+      expect(find.text('Prêt'), findsOneWidget);
 
       // Verify status message is wrapped in themed Container
       final statusContainerFinder = find.ancestor(
-        of: find.text('Ready'),
+        of: find.text('Prêt'),
         matching: find.byType(Container),
       ).first;
       final Container statusContainer = tester.widget<Container>(statusContainerFinder);

@@ -253,14 +253,14 @@ class EditorNotifier extends _$EditorNotifier {
           project: manifest,
           presetSelection: _terrainPresetSelectionCoordinator.initial(manifest),
         ),
-        statusMessage: 'Project "$name" created successfully',
+        statusMessage: 'Projet "$name" créé avec succès',
       );
       await _rememberLastOpenedProjectManifest(
         p.join(directory, 'project.json'),
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error creating project: $e');
-      state = state.copyWith(errorMessage: 'Failed to create project: $e');
+      state = state.copyWith(errorMessage: 'Impossible de créer le projet : $e');
     }
   }
 
@@ -285,7 +285,7 @@ class EditorNotifier extends _$EditorNotifier {
           project: manifest,
           presetSelection: _terrainPresetSelectionCoordinator.initial(manifest),
         ),
-        statusMessage: 'Project "${manifest.name}" loaded',
+        statusMessage: 'Projet « ${manifest.name} » chargé',
       );
       if (rememberAsRecent) {
         await _rememberLastOpenedProjectManifest(manifestPath);
@@ -303,7 +303,7 @@ class EditorNotifier extends _$EditorNotifier {
               'Impossible de rouvrir automatiquement le dernier projet. Ouvrez-le manuellement une fois pour réautoriser l’accès.',
         );
       } else {
-        state = state.copyWith(errorMessage: 'Failed to load project: $e');
+        state = state.copyWith(errorMessage: 'Impossible de charger le projet : $e');
       }
     }
   }
@@ -552,13 +552,13 @@ class EditorNotifier extends _$EditorNotifier {
       state = _projectSessionController.markMapSaved(
         current: state,
         map: map,
-        statusMessage: 'Map "${map.id}" saved',
+        statusMessage: 'Carte « ${map.id} » enregistrée',
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error saving map: $e');
       state = _projectSessionController.markMapSaveFailed(
         current: state,
-        errorMessage: 'Failed to save map: $e',
+        errorMessage: 'Impossible d’enregistrer la carte : $e',
       );
     }
   }
@@ -600,12 +600,12 @@ class EditorNotifier extends _$EditorNotifier {
             map,
           ),
         ),
-        statusMessage: 'Map "$id" created successfully',
+        statusMessage: 'Carte « $id » créée avec succès',
       );
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
       debugPrint('EditorNotifier: Error creating map: $e');
-      state = state.copyWith(errorMessage: 'Failed to create map: $e');
+      state = state.copyWith(errorMessage: 'Impossible de créer la carte : $e');
     }
   }
 
@@ -650,12 +650,12 @@ class EditorNotifier extends _$EditorNotifier {
           presetSelection: presetSelection,
           selectedTilesetEditorId: nextSelectedTilesetEditorId,
         ),
-        statusMessage: 'Map "${map.id}" loaded',
+        statusMessage: 'Carte « ${map.id} » chargée',
       );
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
       debugPrint('EditorNotifier: Error loading map: $e');
-      state = state.copyWith(errorMessage: 'Failed to load map: $e');
+      state = state.copyWith(errorMessage: 'Impossible de charger la carte : $e');
     }
   }
 
@@ -730,7 +730,7 @@ class EditorNotifier extends _$EditorNotifier {
 
       if (committed == map) {
         state = state.copyWith(
-          statusMessage: 'Map "${map.id}" is already ${width}x$height',
+          statusMessage: 'La carte « ${map.id} » est déjà de taille ${width}x$height',
           errorMessage: null,
         );
         return;
@@ -750,11 +750,11 @@ class EditorNotifier extends _$EditorNotifier {
         preferredActiveLayerId: state.activeLayerId,
         hoveredTile: nextHovered,
         updateHoveredTile: true,
-        statusMessage: 'Map "${map.id}" resized to ${width}x$height',
+        statusMessage: 'Carte « ${map.id} » redimensionnée en ${width}x$height',
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error resizing map: $e');
-      state = state.copyWith(errorMessage: 'Failed to resize map: $e');
+      state = state.copyWith(errorMessage: 'Impossible de redimensionner la carte : $e');
     }
   }
 
@@ -800,11 +800,11 @@ class EditorNotifier extends _$EditorNotifier {
         oldId: oldId,
         newId: newId,
         newPath: fs.getMapPath(newId),
-        statusMessage: 'Map renamed to "$newId"',
+        statusMessage: 'Carte renommée en « $newId »',
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error renaming map: $e');
-      state = state.copyWith(errorMessage: 'Failed to rename map: $e');
+      state = state.copyWith(errorMessage: 'Impossible de renommer la carte : $e');
     }
   }
 
@@ -821,11 +821,11 @@ class EditorNotifier extends _$EditorNotifier {
         current: state,
         updatedProject: updatedProject,
         deletedMapId: mapId,
-        statusMessage: 'Map "$mapId" deleted',
+        statusMessage: 'Carte « $mapId » supprimée',
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error deleting map: $e');
-      state = state.copyWith(errorMessage: 'Failed to delete map: $e');
+      state = state.copyWith(errorMessage: 'Impossible de supprimer la carte : $e');
     }
   }
 
@@ -841,12 +841,12 @@ class EditorNotifier extends _$EditorNotifier {
 
       state = state.copyWith(
         project: updatedProject,
-        statusMessage: 'Map "$sourceId" duplicated',
+        statusMessage: 'Carte « $sourceId » dupliquée',
         errorMessage: null,
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error duplicating map: $e');
-      state = state.copyWith(errorMessage: 'Failed to duplicate map: $e');
+      state = state.copyWith(errorMessage: 'Impossible de dupliquer la carte : $e');
     }
   }
 

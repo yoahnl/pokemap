@@ -13,8 +13,8 @@ void main() {
         initialState: const EditorState(),
       );
 
-      expect(find.text('Ready'), findsOneWidget);
-      expect(find.text('Zoom 100%'), findsOneWidget);
+      expect(find.text('Prêt'), findsOneWidget);
+      expect(find.text('Zoom 100 %'), findsOneWidget);
       expect(find.textContaining('Map '), findsNothing);
     });
 
@@ -27,9 +27,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Map route_1'), findsOneWidget);
+      expect(find.text('Carte route_1'), findsOneWidget);
       expect(find.text('20 x 15'), findsOneWidget);
-      expect(find.text('Zoom 150%'), findsOneWidget);
+      expect(find.text('Zoom 150 %'), findsOneWidget);
     });
 
     testWidgets('prioritizes error text over status text', (tester) async {

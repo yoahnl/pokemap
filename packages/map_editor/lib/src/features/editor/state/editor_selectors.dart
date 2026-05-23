@@ -143,7 +143,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
   );
 
   final workspaceTitle = switch (workspaceMode) {
-    EditorWorkspaceMode.map => activeMap?.name ?? 'Map Workspace',
+    EditorWorkspaceMode.map => activeMap?.name ?? 'Espace carte',
     EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
     EditorWorkspaceMode.trainer => 'Trainer Studio',
     EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
@@ -157,8 +157,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
 
   final workspaceSubtitle = switch (workspaceMode) {
     EditorWorkspaceMode.map => activeMap == null
-        ? 'Open a map to start building your world.'
-        : '${activeMap.size.width} x ${activeMap.size.height} tiles  •  ${activeMap.layers.length} layers',
+        ? 'Ouvrez une carte pour commencer à construire votre monde.'
+        : '${activeMap.size.width} x ${activeMap.size.height} tuiles  •  ${activeMap.layers.length} couches',
     EditorWorkspaceMode.tileset => selectedTileset == null
         ? 'Select a tileset to browse and curate your library.'
         : 'Visual library editing for tiles, elements and groups.',
