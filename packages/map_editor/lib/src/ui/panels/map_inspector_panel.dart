@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+
+import '../../theme/theme.dart';
 
 import '../../application/models/tile_layer_environment_attachment_read_model.dart';
 import '../../application/models/terrain_selection_mode.dart';
@@ -250,10 +251,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 child: const MapPropertiesPanel(embedded: true),
               ),
               InspectorSectionCard(
-                title: 'Layers',
+                title: 'Calques',
                 subtitle: activeLayer == null
-                    ? 'Select the active layer for this map'
-                    : 'Active: ${_layerLabel(activeLayer)}',
+                    ? 'Sélectionnez le calque actif pour cette carte'
+                    : 'Actif : ${_layerLabel(activeLayer)}',
                 icon: CupertinoIcons.layers,
                 badgeText: '${activeMap.layers.length}',
                 accentColor: EditorChrome.inspectorJoyBlue,
@@ -267,7 +268,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
               ),
               if (tileLayerEnvironmentReadModel != null)
                 InspectorSectionCard(
-                  title: 'Environnement du layer',
+                  title: 'Environnement du calque',
                   subtitle: tileLayerEnvironmentReadModel.emptyStateTitle,
                   icon: CupertinoIcons.tree,
                   accentColor: EditorChrome.inspectorJoyMint,
@@ -400,7 +401,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showEnvironmentLayerSection)
                 InspectorSectionCard(
-                  title: 'Environment Layer',
+                  title: 'Calque d\'environnement',
                   subtitle: null,
                   icon: CupertinoIcons.cloud,
                   accentColor: EditorChrome.inspectorJoyMint,
@@ -421,7 +422,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showTilesSection)
                 InspectorSectionCard(
-                  title: 'Tiles & Elements',
+                  title: 'Tuiles & éléments',
                   subtitle:
                       'Palette de placement et gestion des instances posées sur le layer actif.',
                   icon: CupertinoIcons.square_grid_2x2,
@@ -441,8 +442,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showGroundSection)
                 InspectorSectionCard(
-                  title: 'Base Ground',
-                  subtitle: 'Terrain-only editing for the map background.',
+                  title: 'Terrain de base',
+                  subtitle: 'Modification du terrain uniquement pour le fond de la carte.',
                   icon: CupertinoIcons.tree,
                   accentColor: EditorChrome.inspectorJoyMint,
                   expanded: _isExpanded(
@@ -481,9 +482,9 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showSurfaceSection)
                 InspectorSectionCard(
-                  title: 'Paths',
+                  title: 'Chemins',
                   subtitle:
-                      'Edit the active path layer for roads and specialized surfaces.',
+                      'Modifier le calque de chemin actif pour les routes et surfaces spécialisées.',
                   icon: CupertinoIcons.map,
                   accentColor: EditorChrome.inspectorJoyAmber,
                   expanded: _isExpanded(
@@ -502,10 +503,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showEntitySection)
                 InspectorSectionCard(
-                  title: 'Map Entities',
+                  title: 'Entités de carte',
                   subtitle: state.selectedEntityId != null
-                      ? 'Selected entity ready for editing.'
-                      : 'Visible world content such as NPCs, signs, items and spawn points.',
+                      ? 'Entité sélectionnée prête pour édition.'
+                      : 'Contenu du monde visible tel que les PNJ, panneaux, objets et points d\'apparition.',
                   icon: CupertinoIcons.sparkles,
                   badgeText: '${activeMap.entities.length}',
                   accentColor: EditorChrome.inspectorJoyCyan,
@@ -525,10 +526,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showEventSection)
                 InspectorSectionCard(
-                  title: 'Map Events',
+                  title: 'Événements de carte',
                   subtitle: state.selectedMapEventId != null
-                      ? 'Selected event ready for editing.'
-                      : 'Conditional event pages and script/message authoring.',
+                      ? 'Événement sélectionné prêt pour édition.'
+                      : 'Pages d\'événements conditionnels et création de scripts/messages.',
                   icon: CupertinoIcons.flag,
                   badgeText: '${activeMap.events.length}',
                   accentColor: EditorChrome.inspectorJoyCyan,
@@ -548,8 +549,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showConnectionsSection)
                 InspectorSectionCard(
-                  title: 'Connections',
-                  subtitle: 'Link the current map to adjacent world maps.',
+                  title: 'Connexions',
+                  subtitle: 'Lier la carte actuelle aux cartes du monde adjacentes.',
                   icon: CupertinoIcons.arrow_branch,
                   badgeText: '${activeMap.connections.length}',
                   accentColor: EditorChrome.inspectorJoyPlum,
@@ -563,10 +564,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showTriggerSection)
                 InspectorSectionCard(
-                  title: 'Triggers',
+                  title: 'Déclencheurs',
                   subtitle: state.selectedTriggerId != null
-                      ? 'Selected trigger ready for editing.'
-                      : 'Gameplay zones and editable trigger areas.',
+                      ? 'Déclencheur sélectionné prêt pour édition.'
+                      : 'Zones de gameplay et zones de déclencheurs éditables.',
                   icon: CupertinoIcons.square,
                   badgeText: '${activeMap.triggers.length}',
                   accentColor: EditorChrome.inspectorJoyCoral,
@@ -588,8 +589,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 InspectorSectionCard(
                   title: 'Warps',
                   subtitle: state.selectedWarpId != null
-                      ? 'Selected warp ready for editing.'
-                      : 'Map transitions such as doors, stairs and exits.',
+                      ? 'Warp sélectionné prêt pour édition.'
+                      : 'Transitions de carte telles que les portes, escaliers et sorties.',
                   icon: CupertinoIcons.arrow_down_circle,
                   badgeText: '${activeMap.warps.length}',
                   accentColor: EditorChrome.inspectorJoyOrchid,
@@ -609,10 +610,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showGameplayZoneSection)
                 InspectorSectionCard(
-                  title: 'Gameplay Zones',
+                  title: 'Zones de gameplay',
                   subtitle: state.selectedGameplayZoneId != null
-                      ? 'Selected zone ready for editing.'
-                      : 'Encounter areas, movement constraints and special zones.',
+                      ? 'Zone sélectionnée prête pour édition.'
+                      : 'Zones de rencontre, contraintes de mouvement et zones spéciales.',
                   icon: CupertinoIcons.leaf_arrow_circlepath,
                   badgeText: '${activeMap.gameplayZones.length}',
                   accentColor: EditorChrome.inspectorJoyMint,
@@ -632,8 +633,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
               if (showEncounterTablesSection)
                 InspectorSectionCard(
-                  title: 'Encounter Tables',
-                  subtitle: 'Project-level encounter tables for wild Pokémon.',
+                  title: 'Tables de rencontres',
+                  subtitle: 'Tables de rencontres au niveau du projet pour les Pokémon sauvages.',
                   icon: CupertinoIcons.list_bullet,
                   badgeText: '${state.project?.encounterTables.length ?? 0}',
                   accentColor: EditorChrome.inspectorJoyCyan,
@@ -683,13 +684,13 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
 
   String _layerLabel(MapLayer layer) {
     return switch (layer) {
-      TileLayer _ => 'Tile Layer',
-      CollisionLayer _ => 'Collision Layer',
-      TerrainLayer _ => 'Terrain Layer',
-      PathLayer _ => 'Path Layer',
-      SurfaceLayer _ => 'Surface Layer',
-      ObjectLayer _ => 'Object Layer',
-      EnvironmentLayer _ => 'Environment Layer',
+      TileLayer _ => 'Calque de tuiles',
+      CollisionLayer _ => 'Calque de collision',
+      TerrainLayer _ => 'Calque de terrain',
+      PathLayer _ => 'Calque de chemin',
+      SurfaceLayer _ => 'Calque de surface',
+      ObjectLayer _ => 'Calque d\'objets',
+      EnvironmentLayer _ => 'Calque d\'environnement',
     };
   }
 
@@ -742,42 +743,29 @@ class _InspectorOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-    final label = EditorChrome.primaryLabel(context);
-    const accentA = EditorChrome.inspectorJoyHoney;
-    const accentB = EditorChrome.inspectorJoyApricot;
+    final colors = context.pokeMapColors;
     final activeLayerText = activeLayer == null
-        ? 'No active layer'
+        ? 'Aucun calque actif'
         : switch (activeLayer!) {
-            TileLayer _ => 'Tile layer active',
-            TerrainLayer _ => 'Ground layer active',
-            PathLayer _ => 'Surface layer active',
-            SurfaceLayer _ => 'Surface placement layer active',
-            CollisionLayer _ => 'Collision layer active',
-            ObjectLayer _ => 'Object layer active',
-            EnvironmentLayer _ => 'Environment layer active',
+            TileLayer _ => 'Calque de tuiles actif',
+            TerrainLayer _ => 'Calque de terrain actif',
+            PathLayer _ => 'Calque de chemin actif',
+            SurfaceLayer _ => 'Calque de placement de surface actif',
+            CollisionLayer _ => 'Calque de collision actif',
+            ObjectLayer _ => 'Calque d\'objets actif',
+            EnvironmentLayer _ => 'Calque d\'environnement actif',
           };
 
-    final hi = EditorChrome.islandFillElevated(context);
-    final lo = EditorChrome.islandFill(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(10, 2, 10, 12),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.lerp(hi, accentA, 0.44)!,
-            Color.lerp(lo, accentB, 0.38)!,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: colors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Color.lerp(accentA, accentB, 0.5)!.withValues(alpha: 0.75),
+          color: colors.borderSubtle,
           width: 1,
         ),
-        boxShadow: EditorChrome.inspectorTileHardShadows(context),
       ),
       child: Row(
         children: [
@@ -785,24 +773,17 @@ class _InspectorOverviewCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.lerp(CupertinoColors.white, accentA, 0.78)!,
-                  Color.lerp(accentB, const Color(0xFF1A0804), 0.35)!,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
+              color: colors.surfaceBase,
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: accentA.withValues(alpha: 0.9),
-                width: 1.25,
+                color: colors.borderSubtle,
+                width: 1,
               ),
             ),
             alignment: Alignment.center,
-            child: const MacosIcon(
+            child: Icon(
               CupertinoIcons.slider_horizontal_3,
-              color: CupertinoColors.white,
+              color: colors.textSecondary,
               size: 20,
             ),
           ),
@@ -816,8 +797,8 @@ class _InspectorOverviewCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: label,
-                    fontSize: 15,
+                    color: colors.textPrimary,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.2,
                   ),
@@ -828,7 +809,7 @@ class _InspectorOverviewCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: subtle,
+                    color: colors.textSecondary,
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                   ),
@@ -839,7 +820,7 @@ class _InspectorOverviewCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: subtle,
+                    color: colors.textMuted,
                     fontSize: 11,
                   ),
                 ),

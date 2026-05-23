@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import 'layers_panel_presentation.dart';
 
@@ -29,13 +31,13 @@ class LayersPanel extends ConsumerWidget {
 
   static String _kindLabel(_LayerCreationKind k) {
     return switch (k) {
-      _LayerCreationKind.tile => 'Tile Layer',
-      _LayerCreationKind.collision => 'Collision Layer',
-      _LayerCreationKind.terrain => 'Terrain Layer',
-      _LayerCreationKind.path => 'Path Layer',
-      _LayerCreationKind.surface => 'Surface Layer',
-      _LayerCreationKind.object => 'Object Layer',
-      _LayerCreationKind.environment => 'Environment Layer',
+      _LayerCreationKind.tile => 'Couche de tuiles (Tile)',
+      _LayerCreationKind.collision => 'Couche de collision',
+      _LayerCreationKind.terrain => 'Couche de terrain',
+      _LayerCreationKind.path => 'Couche de chemin (Path)',
+      _LayerCreationKind.surface => 'Couche de surface',
+      _LayerCreationKind.object => 'Couche d\'objets',
+      _LayerCreationKind.environment => 'Couche d\'environnement',
     };
   }
 
@@ -45,9 +47,6 @@ class LayersPanel extends ConsumerWidget {
       _LayerCreationKind.collision => MapLayerKind.collision,
       _LayerCreationKind.terrain => MapLayerKind.terrain,
       _LayerCreationKind.path => MapLayerKind.path,
-      // SurfaceLayer is deliberately kept as an editor creation option instead
-      // of expanding MapLayerKind here; map_core already models the layer, but
-      // the editor routes surface creation through addSurfaceLayer().
       _LayerCreationKind.surface => null,
       _LayerCreationKind.object => MapLayerKind.object,
       _LayerCreationKind.environment => MapLayerKind.environment,
@@ -59,12 +58,13 @@ class LayersPanel extends ConsumerWidget {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
-    final subtle = EditorChrome.subtleLabel(context);
+    final colors = context.pokeMapColors;
+    
     final content = map == null
         ? Center(
             child: Text(
-              'No map loaded',
-              style: TextStyle(color: subtle),
+              'Aucune carte chargée',
+              style: TextStyle(color: colors.textMuted),
             ),
           )
         : _LayerList(
@@ -73,15 +73,12 @@ class LayersPanel extends ConsumerWidget {
             notifier: notifier,
           );
 
-    const layerAccent = EditorChrome.inspectorJoyBlue;
-
     if (embedded) {
       return Column(
         children: [
           _LayerActionsRow(
             map: map,
             notifier: notifier,
-            accent: layerAccent,
             onAddLayer: () => _showAddLayerDialog(context, notifier),
             onDeleteAllLayers: () =>
                 _showDeleteAllLayersDialog(context, notifier),
@@ -95,14 +92,13 @@ class LayersPanel extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: EditorChrome.islandFill(context),
+        color: colors.backgroundShell,
       ),
       child: Column(
         children: [
           _LayerActionsRow(
             map: map,
             notifier: notifier,
-            accent: layerAccent,
             onAddLayer: () => _showAddLayerDialog(context, notifier),
             onDeleteAllLayers: () =>
                 _showDeleteAllLayersDialog(context, notifier),
@@ -130,7 +126,7 @@ class LayersPanel extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Add Layer',
+              'Ajouter un calque',
               style: editorMacosSheetTitleStyle(ctx),
             ),
             const SizedBox(height: 16),
@@ -143,7 +139,7 @@ class LayersPanel extends ConsumerWidget {
                   final picked =
                       await showCupertinoListPicker<_LayerCreationKind>(
                     context: ctx,
-                    title: 'Layer type',
+                    title: 'Type de calque',
                     items: _LayerCreationKind.values,
                     labelOf: _kindLabel,
                   );
@@ -156,19 +152,19 @@ class LayersPanel extends ConsumerWidget {
                       }
                       if (picked == _LayerCreationKind.environment &&
                           nameController.text.trim().isEmpty) {
-                        nameController.text = 'Environment';
+                        nameController.text = 'Environnement';
                       }
                     });
                   }
                 },
-                child: Text('Type: ${_kindLabel(selectedType)}'),
+                child: Text('Type : ${_kindLabel(selectedType)}'),
               ),
             ),
             const SizedBox(height: 8),
             MacosTextField(
               controller: nameController,
               autofocus: true,
-              placeholder: 'Name',
+              placeholder: 'Nom',
             ),
             if (selectedType == _LayerCreationKind.environment) ...[
               const SizedBox(height: 10),
@@ -177,7 +173,7 @@ class LayersPanel extends ConsumerWidget {
                 'prairies, côtes rocheuses.',
                 key: const Key('layers-panel-add-environment-description'),
                 style: TextStyle(
-                  color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                  color: ctx.pokeMapColors.textSecondary,
                   fontSize: 11.5,
                   height: 1.35,
                 ),
@@ -191,7 +187,7 @@ class LayersPanel extends ConsumerWidget {
                   controlSize: ControlSize.large,
                   secondary: true,
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
+                  child: const Text('Annuler'),
                 ),
                 const SizedBox(width: 10),
                 PushButton(
@@ -201,7 +197,7 @@ class LayersPanel extends ConsumerWidget {
                     shouldSave = true;
                     Navigator.pop(ctx);
                   },
-                  child: const Text('Add'),
+                  child: const Text('Ajouter'),
                 ),
               ],
             ),
@@ -227,10 +223,10 @@ class LayersPanel extends ConsumerWidget {
   ) async {
     final shouldDelete = await showMacosEditorTwoChoiceAlert(
       context,
-      title: 'Remove All Layers',
+      title: 'Supprimer tous les calques',
       message:
-          'All current layers will be removed. The map can stay with zero layers.',
-      primaryLabel: 'Remove All',
+          'Tous les calques actuels seront supprimés. La carte peut rester sans aucun calque.',
+      primaryLabel: 'Supprimer tout',
       primaryIsDestructive: true,
     );
     if (!shouldDelete) return;
@@ -242,7 +238,6 @@ class _LayerActionsRow extends StatelessWidget {
   const _LayerActionsRow({
     required this.map,
     required this.notifier,
-    required this.accent,
     required this.onAddLayer,
     required this.onDeleteAllLayers,
     this.compact = false,
@@ -250,15 +245,13 @@ class _LayerActionsRow extends StatelessWidget {
 
   final MapData? map;
   final EditorNotifier notifier;
-  final Color accent;
   final VoidCallback onAddLayer;
   final VoidCallback onDeleteAllLayers;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final muted = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final labelColor = Color.lerp(muted, accent, 0.42)!;
+    final colors = context.pokeMapColors;
     return Padding(
       padding: compact
           ? const EdgeInsets.fromLTRB(8, 8, 8, 6)
@@ -267,29 +260,25 @@ class _LayerActionsRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              compact ? 'Layer Actions' : 'LAYERS',
+              compact ? 'Actions du calque' : 'CALQUES',
               style: TextStyle(
                 fontSize: compact ? 10 : 11,
                 letterSpacing: compact ? 0.4 : 1.0,
                 fontWeight: FontWeight.bold,
-                color: labelColor,
+                color: colors.textSecondary,
               ),
             ),
           ),
-          _LayersAccentIconButton(
-            accent: accent,
+          PokeMapIconButton(
             onPressed: map == null ? null : onAddLayer,
-            icon: CupertinoIcons.add,
-            tooltip: 'Add Layer',
-            iconSize: 17,
+            icon: const Icon(CupertinoIcons.add),
+            tooltip: 'Ajouter un calque',
           ),
           const SizedBox(width: 6),
-          _LayersAccentIconButton(
-            accent: accent,
+          PokeMapIconButton(
             onPressed: map == null ? null : onDeleteAllLayers,
-            icon: CupertinoIcons.trash_slash,
-            tooltip: 'Remove All Layers',
-            iconSize: 17,
+            icon: const Icon(CupertinoIcons.trash_slash),
+            tooltip: 'Supprimer tous les calques',
           ),
         ],
       ),
@@ -310,16 +299,13 @@ class _LayerList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-    const layerAccent = EditorChrome.inspectorJoyBlue;
-    final label = CupertinoColors.label.resolveFrom(context);
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final colors = context.pokeMapColors;
 
     if (map.layers.isEmpty) {
       return Center(
         child: Text(
-          'No layers in this map',
-          style: TextStyle(color: subtle),
+          'Aucun calque sur cette carte',
+          style: TextStyle(color: colors.textMuted),
         ),
       );
     }
@@ -356,8 +342,8 @@ class _LayerList extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
                         color: hovering
-                            ? layerAccent.withValues(alpha: 0.85)
-                            : subtle.withValues(alpha: 0.35),
+                            ? colors.brandPrimary
+                            : colors.textMuted.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -374,19 +360,6 @@ class _LayerList extends StatelessWidget {
         final canMoveUp = row.layerIndex > 0;
         final canMoveDown = row.layerIndex < map.layers.length - 1;
         final canDeleteLayer = !row.isDeleteProtectedByEnvironmentAttachment;
-
-        final inactiveFill = Color.lerp(
-          EditorChrome.islandFillElevated(context),
-          layerAccent,
-          0.16,
-        )!;
-        final inactiveBorder = Color.lerp(
-          EditorChrome.editorIslandRim(context),
-          layerAccent,
-          0.45,
-        )!;
-        final metaColor =
-            Color.lerp(secondary, layerAccent, isActive ? 0.28 : 0.22)!;
 
         return DragTarget<String>(
           onWillAcceptWithDetails: (_) => true,
@@ -405,7 +378,7 @@ class _LayerList extends StatelessWidget {
                     ? BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: layerAccent.withValues(alpha: 0.9),
+                          color: colors.brandPrimary,
                           width: 2,
                         ),
                       )
@@ -424,8 +397,6 @@ class _LayerList extends StatelessWidget {
                         child: _dragFeedback(
                           context,
                           layer,
-                          layerAccent,
-                          label,
                         ),
                       ),
                       childWhenDragging: Opacity(
@@ -435,10 +406,10 @@ class _LayerList extends StatelessWidget {
                           child: SizedBox(
                             width: 22,
                             height: 22,
-                            child: MacosIcon(
+                            child: Icon(
                               CupertinoIcons.line_horizontal_3,
                               size: 16,
-                              color: metaColor,
+                              color: colors.textMuted,
                             ),
                           ),
                         ),
@@ -446,17 +417,17 @@ class _LayerList extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(0, 10, 6, 0),
                         child: MacosTooltip(
-                          message: 'Glisser pour réordonner',
+                          message: 'Faites glisser pour réordonner',
                           child: MouseRegion(
                             cursor: SystemMouseCursors.grab,
                             child: SizedBox(
                               width: 28,
                               height: 28,
                               child: Center(
-                                child: MacosIcon(
+                                child: Icon(
                                   CupertinoIcons.line_horizontal_3,
                                   size: 16,
-                                  color: metaColor,
+                                  color: colors.textMuted,
                                 ),
                               ),
                             ),
@@ -468,17 +439,13 @@ class _LayerList extends StatelessWidget {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: isActive
-                              ? Color.lerp(
-                                  EditorChrome.islandFillElevated(context),
-                                  layerAccent,
-                                  0.36,
-                                )!
-                              : inactiveFill,
-                          borderRadius: BorderRadius.circular(12),
+                              ? colors.surfaceSelected
+                              : colors.surfaceSubtle,
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isActive
-                                ? layerAccent.withValues(alpha: 0.82)
-                                : inactiveBorder,
+                                ? colors.brandPrimaryBorder
+                                : colors.borderSubtle,
                             width: 1,
                           ),
                           boxShadow:
@@ -496,16 +463,12 @@ class _LayerList extends StatelessWidget {
                                 child: ClipRect(
                                   child: Row(
                                     children: [
-                                      MacosIcon(
+                                      Icon(
                                         _iconForLayer(layer),
                                         size: 16,
                                         color: isActive
-                                            ? layerAccent
-                                            : Color.lerp(
-                                                secondary,
-                                                layerAccent,
-                                                0.55,
-                                              )!,
+                                            ? colors.brandPrimary
+                                            : colors.textSecondary,
                                       ),
                                       const SizedBox(width: 7),
                                       Expanded(
@@ -522,13 +485,7 @@ class _LayerList extends StatelessWidget {
                                                 fontWeight: isActive
                                                     ? FontWeight.w600
                                                     : FontWeight.w500,
-                                                color: isActive
-                                                    ? layerAccent
-                                                    : Color.lerp(
-                                                        label,
-                                                        layerAccent,
-                                                        0.12,
-                                                      )!,
+                                                color: colors.textPrimary,
                                               ),
                                             ),
                                             const SizedBox(height: 2),
@@ -538,7 +495,7 @@ class _LayerList extends StatelessWidget {
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
                                                 fontSize: 10,
-                                                color: metaColor,
+                                                color: colors.textMuted,
                                               ),
                                             ),
                                             if (row.environmentAttachmentLabel !=
@@ -546,7 +503,7 @@ class _LayerList extends StatelessWidget {
                                               const SizedBox(height: 4),
                                               _LayerStatusText(
                                                 row.environmentAttachmentLabel!,
-                                                color: metaColor,
+                                                color: colors.textSecondary,
                                               ),
                                             ],
                                             if (row.technicalEnvironmentSelectionLabel !=
@@ -554,7 +511,7 @@ class _LayerList extends StatelessWidget {
                                               const SizedBox(height: 3),
                                               _LayerStatusText(
                                                 row.technicalEnvironmentSelectionLabel!,
-                                                color: metaColor,
+                                                color: colors.textSecondary,
                                               ),
                                             ],
                                             if (row.environmentWarningLabel !=
@@ -562,70 +519,63 @@ class _LayerList extends StatelessWidget {
                                               const SizedBox(height: 3),
                                               _LayerStatusText(
                                                 row.environmentWarningLabel!,
-                                                color: CupertinoColors
-                                                    .systemOrange
-                                                    .resolveFrom(context),
+                                                color: colors.warning,
                                               ),
                                             ],
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      _LayersAccentIconButton(
-                                        accent: layerAccent,
+                                      const SizedBox(width: 4),
+                                      PokeMapIconButton(
                                         onPressed: () =>
                                             notifier.setMapLayerVisibility(
                                           layer.id,
                                           !layer.isVisible,
                                         ),
-                                        icon: layer.isVisible
+                                        icon: Icon(layer.isVisible
                                             ? CupertinoIcons.eye
-                                            : CupertinoIcons.eye_slash,
+                                            : CupertinoIcons.eye_slash),
                                         tooltip: layer.isVisible
-                                            ? 'Hide layer'
-                                            : 'Show layer',
-                                        iconSize: 15,
+                                            ? 'Masquer le calque'
+                                            : 'Afficher le calque',
+                                        size: 26.0,
                                       ),
-                                      const SizedBox(width: 4),
-                                      _LayersAccentIconButton(
-                                        accent: layerAccent,
+                                      const SizedBox(width: 2),
+                                      PokeMapIconButton(
                                         onPressed: canMoveUp
                                             ? () => notifier
                                                 .moveMapLayerUp(layer.id)
                                             : null,
-                                        icon: CupertinoIcons.arrow_up,
-                                        tooltip: 'Move up',
-                                        iconSize: 15,
+                                        icon: const Icon(CupertinoIcons.arrow_up),
+                                        tooltip: 'Monter le calque',
+                                        size: 26.0,
                                       ),
-                                      const SizedBox(width: 4),
-                                      _LayersAccentIconButton(
-                                        accent: layerAccent,
+                                      const SizedBox(width: 2),
+                                      PokeMapIconButton(
                                         onPressed: canMoveDown
                                             ? () => notifier
                                                 .moveMapLayerDown(layer.id)
                                             : null,
-                                        icon: CupertinoIcons.arrow_down,
-                                        tooltip: 'Move down',
-                                        iconSize: 15,
+                                        icon: const Icon(CupertinoIcons.arrow_down),
+                                        tooltip: 'Descendre le calque',
+                                        size: 26.0,
                                       ),
-                                      const SizedBox(width: 4),
-                                      _LayersAccentIconButton(
-                                        accent: layerAccent,
+                                      const SizedBox(width: 2),
+                                      PokeMapIconButton(
                                         onPressed: () => _showRenameLayerDialog(
                                           context,
                                           notifier,
                                           layer,
                                         ),
-                                        icon: CupertinoIcons.pencil,
-                                        tooltip: 'Rename layer',
-                                        iconSize: 15,
+                                        icon: const Icon(CupertinoIcons.pencil),
+                                        tooltip: 'Renommer le calque',
+                                        size: 26.0,
                                       ),
-                                      const SizedBox(width: 4),
-                                      _LayersAccentIconButton(
+                                      const SizedBox(width: 2),
+                                      PokeMapIconButton(
                                         key: ValueKey(
                                           'delete-layer-${layer.id}',
                                         ),
-                                        accent: layerAccent,
                                         onPressed: canDeleteLayer
                                             ? () => _showDeleteLayerDialog(
                                                   context,
@@ -633,11 +583,12 @@ class _LayerList extends StatelessWidget {
                                                   layer,
                                                 )
                                             : null,
-                                        icon: CupertinoIcons.trash,
+                                        icon: const Icon(CupertinoIcons.trash),
                                         tooltip: canDeleteLayer
-                                            ? 'Delete layer'
+                                            ? 'Supprimer le calque'
                                             : 'Suppression protégée : environnement attaché',
-                                        iconSize: 15,
+                                        variant: PokeMapIconButtonVariant.danger,
+                                        size: 26.0,
                                       ),
                                     ],
                                   ),
@@ -661,28 +612,28 @@ class _LayerList extends StatelessWidget {
   Widget _dragFeedback(
     BuildContext context,
     MapLayer layer,
-    Color layerAccent,
-    Color label,
   ) {
+    final colors = context.pokeMapColors;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 280),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: EditorChrome.islandFillElevated(context),
-          borderRadius: BorderRadius.circular(10),
+          color: colors.surfaceRaised,
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: layerAccent.withValues(alpha: 0.82),
+            color: colors.brandPrimaryBorder,
+            width: 1,
           ),
           boxShadow: EditorChrome.inspectorTileHardShadows(context),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            MacosIcon(
+            Icon(
               _iconForLayer(layer),
               size: 16,
-              color: layerAccent,
+              color: colors.brandPrimary,
             ),
             const SizedBox(width: 8),
             Flexible(
@@ -693,7 +644,7 @@ class _LayerList extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: label,
+                  color: colors.textPrimary,
                 ),
               ),
             ),
@@ -709,8 +660,6 @@ class _LayerList extends StatelessWidget {
       collision: (_) => CupertinoIcons.shield,
       terrain: (_) => CupertinoIcons.tree,
       path: (_) => CupertinoIcons.map,
-      // Surface painting/rendering is a later lot; the editor lists it
-      // neutrally so maps containing SurfaceLayer do not break the panel.
       surface: (_) => CupertinoIcons.map,
       object: (_) => CupertinoIcons.square_stack_3d_up,
       environment: (_) => CupertinoIcons.cloud,
@@ -719,14 +668,14 @@ class _LayerList extends StatelessWidget {
 
   String _labelForLayer(MapLayer layer) {
     return layer.map(
-      tile: (_) => 'tile',
+      tile: (_) => 'tuiles',
       collision: (_) => 'collision',
       terrain: (_) => 'terrain',
-      path: (_) => 'path',
+      path: (_) => 'chemin',
       surface: (surfaceLayer) =>
           'surface · ${surfaceLayer.placements.length} placement(s)',
-      object: (_) => 'object',
-      environment: (el) => 'environment · ${el.content.areaCount} area(s)',
+      object: (_) => 'objets',
+      environment: (el) => 'environnement · ${el.content.areaCount} zone(s)',
     );
   }
 
@@ -738,10 +687,10 @@ class _LayerList extends StatelessWidget {
     final controller = TextEditingController(text: layer.name);
     final ok = await showMacosEditorPromptSheet(
       context,
-      title: 'Rename Layer',
+      title: 'Renommer le calque',
       controller: controller,
-      placeholder: 'Name',
-      confirmLabel: 'Save',
+      placeholder: 'Nom',
+      confirmLabel: 'Enregistrer',
     );
     if (!ok) return;
     notifier.renameMapLayer(layer.id, controller.text.trim());
@@ -754,9 +703,9 @@ class _LayerList extends StatelessWidget {
   ) async {
     final shouldDelete = await showMacosEditorTwoChoiceAlert(
       context,
-      title: 'Delete Layer',
-      message: 'Delete "${layer.name}"?',
-      primaryLabel: 'Delete',
+      title: 'Supprimer le calque',
+      message: 'Supprimer le calque « ${layer.name} » ?',
+      primaryLabel: 'Supprimer',
       primaryIsDestructive: true,
     );
     if (!shouldDelete) return;
@@ -785,82 +734,5 @@ class _LayerStatusText extends StatelessWidget {
         color: color,
       ),
     );
-  }
-}
-
-/// Pastilles icônes chaudes / acides, cohérentes avec la tuile « Layers ».
-class _LayersAccentIconButton extends StatefulWidget {
-  const _LayersAccentIconButton({
-    super.key,
-    required this.accent,
-    required this.onPressed,
-    required this.icon,
-    this.tooltip,
-    this.iconSize = 15,
-  });
-
-  final Color accent;
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final String? tooltip;
-  final double iconSize;
-
-  @override
-  State<_LayersAccentIconButton> createState() =>
-      _LayersAccentIconButtonState();
-}
-
-class _LayersAccentIconButtonState extends State<_LayersAccentIconButton> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = widget.onPressed != null;
-    final a = widget.accent;
-    final bg = !enabled
-        ? a.withValues(alpha: 0.08)
-        : _hovered
-            ? Color.lerp(a, const Color(0xFFFFF2E6), 0.4)!
-            : Color.lerp(a, const Color(0xFF1A0C04), 0.52)!;
-    final iconColor = enabled
-        ? CupertinoColors.white
-        : CupertinoColors.inactiveGray.resolveFrom(context);
-
-    Widget core = MouseRegion(
-      onEnter: enabled ? (_) => setState(() => _hovered = true) : null,
-      onExit: enabled ? (_) => setState(() => _hovered = false) : null,
-      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: CupertinoButton(
-        padding: EdgeInsets.zero,
-        minimumSize: Size.zero,
-        onPressed: widget.onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 110),
-          curve: Curves.easeOutCubic,
-          width: 30,
-          height: 30,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: a.withValues(alpha: enabled ? 0.75 : 0.22),
-              width: 1,
-            ),
-          ),
-          child: MacosIcon(
-            widget.icon,
-            size: widget.iconSize,
-            color: iconColor,
-          ),
-        ),
-      ),
-    );
-
-    final tip = widget.tooltip;
-    if (tip != null && tip.isNotEmpty) {
-      return MacosTooltip(message: tip, child: core);
-    }
-    return core;
   }
 }

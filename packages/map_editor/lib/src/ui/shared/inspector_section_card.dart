@@ -18,8 +18,8 @@ class InspectorSectionCard extends StatelessWidget {
     this.accentColor = EditorChrome.accentPrimary,
     /// Boutons ou actions entre le titre et le badge (n’ouvrent pas / ne ferment pas la section).
     this.headerTrailing,
-    /// Rayon des coins ; défaut 20 (inspecteur), ~28 pour tuiles type « pilule ».
-    this.borderRadius = 20,
+    /// Rayon des coins ; défaut 12 (inspecteur).
+    this.borderRadius = 12,
   });
 
   final String title;
@@ -40,11 +40,9 @@ class InspectorSectionCard extends StatelessWidget {
     final badgeText = this.badgeText?.trim();
     final hasBadge = badgeText != null && badgeText.isNotEmpty;
 
-    // Smooth custom tint using accent color mixed with design system neutrals
-    final fillTop = Color.lerp(colors.surfaceBase, accentColor, 0.12)!;
-    final fillBottom = Color.lerp(colors.surfaceSubtle, accentColor, 0.08)!;
-
-    final subtitleColor = Color.lerp(colors.textMuted, accentColor, 0.35)!;
+    // Smooth soft tint using accent color mixed with design system neutrals
+    final fillBg = expanded ? colors.surfaceBase : colors.surfaceSubtle;
+    final subtitleColor = colors.textMuted;
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 180),
@@ -52,17 +50,10 @@ class InspectorSectionCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.fromLTRB(10, 3, 10, 11),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              fillTop,
-              fillBottom,
-            ],
-          ),
+          color: fillBg,
           borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
-            color: Color.lerp(colors.borderSubtle, accentColor, 0.3)!,
+            color: colors.borderSubtle,
             width: 1,
           ),
           boxShadow: EditorChrome.inspectorTileHardShadows(context),
@@ -82,28 +73,21 @@ class InspectorSectionCard extends StatelessWidget {
                       children: [
                         // Colored prefix icon box
                         Container(
-                          width: 38,
-                          height: 38,
+                          width: 32,
+                          height: 32,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color.lerp(colors.surfaceRaised, accentColor, 0.3)!,
-                                Color.lerp(colors.surfaceBase, accentColor, 0.15)!,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(11),
+                            color: Color.lerp(colors.surfaceSubtle, accentColor, 0.12)!,
+                            borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Color.lerp(colors.borderSubtle, accentColor, 0.5)!,
-                              width: 1.25,
+                              color: Color.lerp(colors.borderSubtle, accentColor, 0.25)!,
+                              width: 1,
                             ),
                           ),
                           alignment: Alignment.center,
                           child: Icon(
                             icon,
-                            size: 19,
-                            color: Color.lerp(colors.textPrimary, accentColor, 0.8)!,
+                            size: 16,
+                            color: Color.lerp(colors.textSecondary, accentColor, 0.6)!,
                           ),
                         ),
                         const SizedBox(width: 12),

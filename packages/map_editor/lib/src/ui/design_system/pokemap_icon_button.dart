@@ -25,6 +25,7 @@ class PokeMapIconButton extends StatefulWidget {
     this.tooltip,
     this.variant = PokeMapIconButtonVariant.ghost,
     this.isSelected = false,
+    this.size = 32.0,
   });
 
   /// Action callback. If null, renders in a disabled state.
@@ -41,6 +42,9 @@ class PokeMapIconButton extends StatefulWidget {
 
   /// If true, applies active selection styling cues.
   final bool isSelected;
+
+  /// Custom size for the button width/height. Defaults to 32.0.
+  final double size;
 
   @override
   State<PokeMapIconButton> createState() => _PokeMapIconButtonState();
@@ -115,11 +119,11 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
           onTap: isDisabled ? null : widget.onPressed,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 100),
-            width: 32,
-            height: 32,
+            width: widget.size,
+            height: widget.size,
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(6), // Standard small radius: 6 or 8
+              borderRadius: BorderRadius.circular(widget.size >= 32 ? 6 : 4), // Standard small radius
               border: border,
               boxShadow: _isFocused && !isDisabled
                   ? [

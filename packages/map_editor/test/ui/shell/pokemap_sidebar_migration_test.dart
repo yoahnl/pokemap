@@ -298,6 +298,33 @@ void main() {
       expect(find.text('Tileset Library'), findsOneWidget);
       expect(find.text('Catalogues Pokémon'), findsOneWidget);
       expect(find.text('World Maps'), findsOneWidget);
+    testWidgets('EditorSidebarListRow hides text when constraints are very narrow (collapsed)', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.dark(),
+          builder: (context, innerChild) {
+            return PokeMapMacosCompatibilityBridge(
+              child: innerChild ?? const SizedBox.shrink(),
+            );
+          },
+          home: Scaffold(
+            body: SizedBox(
+              width: 40,
+              child: EditorSidebarListRow(
+                selected: false,
+                onTap: () {},
+                leading: const Icon(CupertinoIcons.map_fill),
+                title: const Text('Bourg-Palette'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Title text should be hidden to avoid vertical wrap overflow
+      expect(find.text('Bourg-Palette'), findsNothing);
+      expect(find.byIcon(CupertinoIcons.map_fill), findsOneWidget);
     });
   });
 }

@@ -541,6 +541,31 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
         height: resolvedRowHeight,
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final showText = constraints.maxWidth > 64.0;
+            if (!showText) {
+              return Center(
+                child: widget.leading != null
+                    ? IconTheme.merge(
+                        data: IconThemeData(
+                          color: widget.selected
+                              ? colors.brandPrimary
+                              : (widget.leadingIconUnselectedColor ?? fgColor),
+                          size: 16,
+                        ),
+                        child: MacosIconTheme.merge(
+                          data: MacosIconThemeData(
+                            color: widget.selected
+                                ? colors.brandPrimary
+                                : (widget.leadingIconUnselectedColor ?? fgColor),
+                            size: 16,
+                          ),
+                          child: widget.leading!,
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              );
+            }
+
             // Respect constraints to hide subtitle if height gets too low
             final showSubtitle = hasSubtitle && constraints.maxHeight >= 36;
             if (!showSubtitle && hasSubtitle) {
