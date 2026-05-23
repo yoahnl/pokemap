@@ -209,8 +209,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_court_change': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_court_change)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_court_change',
+    status: _PsdkPortStatus.ported,
   ),
   's_doodle': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_doodle',

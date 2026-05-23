@@ -19,7 +19,7 @@ Coverage semantics:
 - `s_2turns` is counted as `fait` for charged damage moves, supported release-turn status riders, Skull Bash charge boost, Geomancy release boosts and supported spread release targets; unsupported weather or custom charge variants remain `partiel`.
 - `s_reload` is counted as `fait` only for plain damage moves that require a recharge turn after a successful hit.
 - `s_recoil` is counted as `fait` only for plain recoil damage moves; implemented status riders and Studio Mind Blown self-crash are supported, while other special self-crash or multi-target variants remain `partiel`.
-- `s_absorb` is counted as `fait` for plain drain moves, including implemented adjacent spread drain; unusual target variants remain `partiel`.
+- `s_absorb` is counted as `fait` for plain drain moves, including implemented adjacent spread drain plus the explicit `oblivion_wing` Studio alias; unusual target variants remain `partiel`.
 - Heal/recovery methods are counted as `fait` only for status-only self recovery moves plus Heal Pulse with Substitute and Mega Launcher branches; mixed riders remain `partiel`.
 - `s_protect` is counted as `fait` for Protect, Detect, Endure, Wide Guard, Quick Guard, Mat Block and implemented contact-punish variants.
 
@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 661 |
-| partiel | 67 |
+| fait | 662 |
+| partiel | 66 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -456,7 +456,7 @@ Coverage semantics:
 | fait | nightmare | s_nightmare | ported | StaticBasicMoveRegistry.targetMarker(s_nightmare) | ghost | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/nightmare.json |
 | fait | noble_roar | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/noble_roar.json |
 | fait | nuzzle | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | physical | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/nuzzle.json |
-| partiel | oblivion_wing | s_absorb | ported | DrainMoveBehavior.absorb | flying | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/oblivion_wing.json |
+| fait | oblivion_wing | s_absorb | ported | DrainMoveBehavior.absorb | flying | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/oblivion_wing.json |
 | partiel | oceanic_operetta | s_z_move | partial | StaticBasicMoveRegistry.s_z_move | water | special | 195 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/oceanic_operetta.json |
 | fait | octazooka | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | special | 65 | 85 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/octazooka.json |
 | fait | odor_sleuth | s_foresight | ported | StaticBasicMoveRegistry.s_foresight | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/odor_sleuth.json |

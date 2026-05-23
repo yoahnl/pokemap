@@ -455,6 +455,11 @@ final class PsdkStudioMoveCoverageEntry {
       return false;
     }
     final normalizedTarget = target.trim().toLowerCase();
+    if (dbSymbol == 'oblivion_wing' && normalizedTarget == 'all_ally') {
+      return battleStageModCount == 0 &&
+          moveStatusCount == 0 &&
+          effectChance == 0;
+    }
     if (normalizedTarget.isNotEmpty &&
         !_strictAbsorbDrainTargets.contains(normalizedTarget)) {
       return false;
@@ -673,8 +678,8 @@ String generatePsdkAttackCoverageReport({
     )
     ..writeln(
       '- `s_absorb` is counted as `fait` for plain drain moves, including '
-      'implemented adjacent spread drain; unusual target variants remain '
-      '`partiel`.',
+      'implemented adjacent spread drain plus the explicit `oblivion_wing` '
+      'Studio alias; unusual target variants remain `partiel`.',
     )
     ..writeln(
       '- Heal/recovery methods are counted as `fait` only for status-only '

@@ -483,8 +483,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_court_change',
     rubyClass: 'CourtChange',
     rubyPath: '10 Move/2 Definitions/300 CourtChange.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_court_change)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_court_change',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.field,
       PsdkMoveDependency.effects

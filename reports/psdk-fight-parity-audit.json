@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 661,
-    "partiel": 67,
+    "fait": 662,
+    "partiel": 66,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -3387,9 +3387,9 @@
       {
         "moveId": "oblivion_wing",
         "battleEngineMethod": "s_absorb",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/oblivion_wing.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 313,
-      "partial": 17,
+      "ported": 314,
+      "partial": 16,
       "missing": 0
     },
     "entries": [
@@ -6335,13 +6335,12 @@
         "battleEngineMethod": "s_court_change",
         "rubyClass": "CourtChange",
         "rubyPath": "10 Move/2 Definitions/300 CourtChange.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_court_change)",
-        "status": "partial",
+        "dartBehavior": "StaticBasicMoveRegistry.s_court_change",
+        "status": "ported",
         "dependencies": [
           "field",
           "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        ]
       },
       {
         "battleEngineMethod": "s_crafty_shield",
@@ -9220,9 +9219,8 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 5,
+        "count": 4,
         "methods": [
-          "s_court_change",
           "s_magic_coat",
           "s_revival_blessing",
           "s_snatch",

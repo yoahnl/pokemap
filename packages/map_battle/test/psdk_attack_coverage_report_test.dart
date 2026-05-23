@@ -1201,8 +1201,8 @@ void main() {
         sourceDescription: 's_absorb test moves',
       );
 
-      expect(report, contains('| fait | 2 |'));
-      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | 3 |'));
+      expect(report, contains('| partiel | 1 |'));
       expect(report, contains('| fait | giga_drain | s_absorb | ported |'));
       expect(
         report,
@@ -1210,7 +1210,7 @@ void main() {
       );
       expect(
         report,
-        contains('| partiel | oblivion_wing | s_absorb | ported |'),
+        contains('| fait | oblivion_wing | s_absorb | ported |'),
       );
       expect(
         report,

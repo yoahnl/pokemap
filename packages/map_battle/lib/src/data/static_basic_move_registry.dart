@@ -538,6 +538,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_chilly_reception',
       resolve: _resolveChillyReception,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_court_change',
+      resolve: _resolveCourtChange,
+    ),
     for (final method in _partialTargetMarkerMethods.keys)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -899,7 +903,6 @@ const _partialFoeBankMarkerMethods = <String, String>{
 };
 
 const _partialFieldMarkerMethods = <String, String>{
-  's_court_change': 'court_change',
   's_fairy_lock': 'fairy_lock',
   's_gravity': 'gravity',
   's_happy_hour': 'happy_hour',
@@ -5167,6 +5170,153 @@ BattleMoveBehaviorResolution _resolveFieldMarker(
   );
 }
 
+BattleMoveBehaviorResolution _resolveCourtChange(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final foeBank = prepared.psdkTargets.isEmpty
+      ? psdkSinglesFoeOf(context.user).bank
+      : prepared.psdkTargets.first.bank;
+  return BattleMoveBehaviorResolution(
+    state: _swapCourtChangeBankEffects(
+      prepared.state,
+      bank1: context.user.bank,
+      bank2: foeBank,
+    ),
+    rng: prepared.rng,
+    events: prepared.events,
+  );
+}
+
+PsdkBattleState _swapCourtChangeBankEffects(
+  PsdkBattleState state, {
+  required int bank1,
+  required int bank2,
+}) {
+  final nextEffects = <PsdkBattleSlotRef, List<BattleEffect>>{
+    for (final slot in state.combatants.keys) slot: <BattleEffect>[],
+  };
+
+  for (final entry in state.combatants.entries) {
+    for (final effect in entry.value.effects.effects) {
+      if (!_isCourtChangeSwappable(effect)) {
+        nextEffects[entry.key]!.add(effect);
+        continue;
+      }
+      final effectBank = _courtChangeEffectBank(effect);
+      if (effectBank != bank1 && effectBank != bank2) {
+        nextEffects[entry.key]!.add(effect);
+        continue;
+      }
+      final swappedBank = effectBank == bank1 ? bank2 : bank1;
+      final targetOwner = _courtChangeTargetOwner(
+        state,
+        owner: entry.key,
+        targetBank: swappedBank,
+      );
+      nextEffects[targetOwner]!.add(
+        _courtChangeRelocatedEffect(
+          effect,
+          bank: swappedBank,
+          owner: targetOwner,
+        ),
+      );
+    }
+  }
+
+  var nextState = state;
+  for (final entry in nextEffects.entries) {
+    nextState = nextState.updateBattler(
+      entry.key,
+      (battler) => battler.copyWith(
+        effects: PsdkBattleEffectStack(effects: entry.value),
+      ),
+    );
+  }
+  return nextState;
+}
+
+bool _isCourtChangeSwappable(BattleEffect effect) {
+  return effect.scope is BankBattleEffectScope ||
+      (effect.scope is BattlerBattleEffectScope &&
+          _courtChangeBattlerScopedBankEffectIds.contains(effect.id));
+}
+
+int _courtChangeEffectBank(BattleEffect effect) {
+  final scope = effect.scope;
+  if (scope case BankBattleEffectScope(:final bank)) {
+    return bank;
+  }
+  if (scope case BattlerBattleEffectScope(:final slot)) {
+    return slot.bank;
+  }
+  throw StateError('Court Change cannot infer bank for effect ${effect.id}.');
+}
+
+PsdkBattleSlotRef _courtChangeTargetOwner(
+  PsdkBattleState state, {
+  required PsdkBattleSlotRef owner,
+  required int targetBank,
+}) {
+  final preferred = PsdkBattleSlotRef(
+    bank: targetBank,
+    position: owner.position,
+  );
+  if (state.combatants.containsKey(preferred)) {
+    return preferred;
+  }
+  return state.combatants.keys.firstWhere(
+    (slot) => slot.bank == targetBank,
+    orElse: () => owner,
+  );
+}
+
+BattleEffect _courtChangeRelocatedEffect(
+  BattleEffect effect, {
+  required int bank,
+  required PsdkBattleSlotRef owner,
+}) {
+  switch (effect) {
+    case SpikesEffect(:final layers):
+      return SpikesEffect(bank: bank, layers: layers);
+    case ToxicSpikesEffect(:final layers):
+      return ToxicSpikesEffect(bank: bank, layers: layers);
+    case StealthRockEffect():
+      return StealthRockEffect(bank: bank);
+    case StickyWebEffect(:final origin):
+      return StickyWebEffect(bank: bank, origin: origin);
+    default:
+      break;
+  }
+
+  final turns = effect.remainingTurns;
+  final scope = effect.scope;
+  if (scope is BankBattleEffectScope) {
+    final nextScope = BankBattleEffectScope(bank);
+    return switch (effect.id) {
+      'crafty_shield' => CraftyShieldEffect(scope: nextScope),
+      'mat_block' => MatBlockEffect(scope: nextScope),
+      'quick_guard' => QuickGuardEffect(scope: nextScope),
+      'wide_guard' => WideGuardEffect(scope: nextScope),
+      _ => GenericBattleEffect(
+          id: effect.id,
+          scope: nextScope,
+          remainingTurns: turns,
+        ),
+    };
+  }
+
+  return GenericBattleEffect(
+    id: effect.id,
+    scope: BattlerBattleEffectScope(owner),
+    remainingTurns: turns,
+  );
+}
+
 BattleMoveBehaviorResolution _resolveGravity(
   BattleMoveBehaviorContext context,
 ) {
@@ -6996,6 +7146,16 @@ const _defogOpposingScreenEffectIds = <String>{
   'mist',
   'reflect',
   'safeguard',
+};
+
+const _courtChangeBattlerScopedBankEffectIds = <String>{
+  'aurora_veil',
+  'light_screen',
+  'lucky_chant',
+  'mist',
+  'reflect',
+  'safeguard',
+  'tailwind',
 };
 
 PsdkBattleState _clearRapidSpinAffectedEffects({

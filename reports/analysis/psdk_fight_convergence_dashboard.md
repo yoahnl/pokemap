@@ -1,13 +1,13 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-23T15:20:58.975384Z
+Generated: 2026-05-23T15:44:51.935034Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
 | Attacks | 661 / 728 | 90.8% | 67 |
-| Methods | 312 / 330 | 94.5% | 18 |
+| Methods | 313 / 330 | 94.8% | 17 |
 | Effects | 406 / 482 | 84.2% | 76 |
 
 ## Effects By Family
@@ -26,7 +26,7 @@ Generated: 2026-05-23T15:20:58.975384Z
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Damage formula / variable power | 12 | `s_aura_wheel`, `s_beak_blast`, `s_beat_up`, `s_dragon_darts`, `s_frustration`, `s_hidden_power`, `s_order_up`, `s_payday`, `s_pre_attack_base`, `s_return`, `s_shell_trap`, `s_upper_hand` |
-| Effect hook / manifest final sweep | 6 | `s_court_change`, `s_magic_coat`, `s_revival_blessing`, `s_shed_tail`, `s_snatch`, `s_teleport` |
+| Effect hook / manifest final sweep | 5 | `s_court_change`, `s_magic_coat`, `s_revival_blessing`, `s_snatch`, `s_teleport` |
 
 ## Ability Effect Backlog
 
