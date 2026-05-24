@@ -6,9 +6,9 @@ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 
 Statut : 🔜 En préparation
 
-Lot courant : P1-05 — Selbrume Reference Grammar Mapping
+Lot courant : P1-06 — No-code Workflow Specification
 
-Prochain lot exact après P1-05 : P1-06 — No-code Workflow Specification
+Prochain lot exact après P1-06 : P1-07 — Phase 2 Domain Contract Proposal
 
 Suivi des lots :
 
@@ -18,8 +18,8 @@ Suivi des lots :
 - ✅ P1-03 — Fact & World Rule Product Grammar
 - ✅ P1-04 — Storyline / Chapter / Story Step Structure
 - ✅ P1-05 — Selbrume Reference Grammar Mapping
-- 🔜 P1-06 — No-code Workflow Specification
-- P1-07 — Phase 2 Domain Contract Proposal
+- ✅ P1-06 — No-code Workflow Specification
+- 🔜 P1-07 — Phase 2 Domain Contract Proposal
 - P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 P1-00 : ✅ terminé
@@ -34,7 +34,9 @@ P1-04 : ✅ terminé
 
 P1-05 : ✅ terminé
 
-P1-06 : 🔜 prochain lot exact
+P1-06 : ✅ terminé
+
+P1-07 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 1
 
@@ -310,7 +312,7 @@ Critères de validation :
 - les gaps de grammaire sont listés ;
 - les décisions à reporter en Phase 2 sont explicites.
 
-### 🔜 P1-06 — No-code Workflow Specification
+### ✅ P1-06 — No-code Workflow Specification
 
 Objectif :
 Décrire les workflows auteur minimaux sans UI finale :
@@ -339,7 +341,7 @@ Critères de validation :
 - le validator est placé dans le flux auteur ;
 - les dépendances Phase 2 / Phase 4 sont séparées.
 
-### P1-07 — Phase 2 Domain Contract Proposal
+### 🔜 P1-07 — Phase 2 Domain Contract Proposal
 
 Objectif :
 Transformer les décisions Phase 1 en proposition de lots Phase 2.
@@ -398,14 +400,14 @@ Critères de validation :
 
 ## 10. Prochain lot exact
 
-P1-06 — No-code Workflow Specification
+P1-07 — Phase 2 Domain Contract Proposal
 
 Objectif du prochain lot :
-Décrire les workflows auteur minimaux sans UI finale : créer Event, Scene,
-Fact, World Rule, battle ref, Yarn outcome et validator flow.
+Transformer les décisions Phase 1 en proposition de lots Phase 2 et lister les
+contrats domaine à créer, adapter ou reporter.
 
-P1-06 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
-Selbrume finales ou de `project.json`.
+P1-07 ne doit pas créer de code, de modèles `map_core`, de schemas JSON, de
+fixtures Selbrume finales ou de `project.json`.
 
 ## 11. Critères de sortie de Phase 1
 
@@ -536,3 +538,15 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
   Décisions utilisateur nouvelles : aucune.
   Changements de périmètre : aucun.
   Prochain lot exact fixé à P1-06 — No-code Workflow Specification.
+- 2026-05-24 — P1-06 — No-code Workflow Specification terminé.
+  Résultat : workflows auteur no-code minimaux décrits de bout en bout, avec
+  pickers, validations immédiates, diagnostics Validator attendus et séparation
+  Phase 2 / Phase 4 / Phase 7.
+  Fichiers créés : `reports/roadmap/phase_1/p1_06_no_code_workflow_specification.md`.
+  Fichiers modifiés : `MVP Selbrume/road_map_phase_1.md`.
+  Commandes exécutées : lectures Markdown ciblées, `find`, `rg`, `wc -l`,
+  `git status --short --untracked-files=all`, `git diff --check`,
+  `git diff --stat`, `git diff --name-only`, `git diff --no-index --check`.
+  Décisions utilisateur nouvelles : aucune.
+  Changements de périmètre : aucun.
+  Prochain lot exact fixé à P1-07 — Phase 2 Domain Contract Proposal.
