@@ -6,16 +6,16 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-02 — Story Step Descriptor / Storyline Metadata Decision
+Lot courant : P2-03 — Event Authoring Source Contract
 
-Prochain lot exact : P2-02 — Story Step Descriptor / Storyline Metadata Decision
+Prochain lot exact : P2-03 — Event Authoring Source Contract
 
 Suivi des lots :
 
 - ✅ P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 - ✅ P2-01 — Existing Narrative Domain Inventory
-- 🔜 P2-02 — Story Step Descriptor / Storyline Metadata Decision
-- P2-03 — Event Authoring Source Contract
+- ✅ P2-02 — Story Step Descriptor / Storyline Metadata Decision
+- 🔜 P2-03 — Event Authoring Source Contract
 - P2-04 — Scene / ScenarioAsset Adapter Contract
 - P2-05 — Outcome Reference Contracts
 - P2-06 — Battle Reference / Outcome Contract
@@ -29,7 +29,9 @@ P2-00 : ✅ terminé
 
 P2-01 : ✅ terminé
 
-P2-02 : 🔜 prochain lot exact
+P2-02 : ✅ terminé
+
+P2-03 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -251,11 +253,63 @@ Pas de nouveau modèle persistant.
 Dépendances :
 P2-00.
 
-### P2-02 — Story Step Descriptor / Storyline Metadata Decision
+### ✅ P2-02 — Story Step Descriptor / Storyline Metadata Decision
 
 Objectif :
 Décider si Storyline / Chapter / Story Step démarrent comme descriptors,
 metadata légère, adapter, ou report partiel.
+
+Résultat :
+P2-02 recommande une trajectoire adapter/read model non persistant pour
+Storyline / Chapter / Story Step. Les metadata Step Studio / Global Story
+Studio restent la source authoring actuelle, `completedStepIds` reste la source
+de completion, et les descriptors persistants / migrations `ProjectManifest`
+sont refusés pour l'instant. P2-02 prépare P2-03 sans créer de modèle, contrat,
+JSON, adapter, read model ni diagnostic implémenté.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_02_story_step_descriptor_storyline_metadata_decision.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `find .. -name AGENTS.md -print`
+- `sed -n '1,260p' "MVP Selbrume/road_map_global.md"`
+- `sed -n '1,260p' "MVP Selbrume/road_map_phase_2.md"`
+- `sed -n '1,180p' "MVP Selbrume/road_map_phase_1.md"`
+- `sed -n '1,260p' reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md`
+- `sed -n '261,620p' reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md`
+- `sed -n '621,1040p' reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md`
+- `sed -n '1041,1380p' reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md`
+- `sed -n '1,240p' reports/roadmap/phase_2/p2_00_phase_2_roadmap_bootstrap_domain_contract_audit.md`
+- `rg -n "Storyline|Chapter|Story Step|Descriptor|metadata|adapter|read model|completedStepIds|ProjectManifest|P2-02|Fact|World Rule|Validator|picker|persistence|migration" reports/roadmap/phase_1/p1_checkpoint_01_canonical_product_model_closure.md reports/roadmap/phase_1/p1_07_phase_2_domain_contract_proposal.md reports/roadmap/phase_1/p1_06_no_code_workflow_specification.md reports/roadmap/phase_1/p1_04_storyline_chapter_story_step_structure.md reports/roadmap/phase_1/p1_03_fact_world_rule_product_grammar.md reports/roadmap/phase_1/p1_01_canonical_narrative_product_model_v1.md`
+- `sed -n '1,220p' packages/map_core/lib/src/models/scenario_asset.dart`
+- `sed -n '1,180p' packages/map_core/lib/src/models/game_state.dart`
+- `rg -n "storyFlags|completedStepIds|completedCutsceneIds|normalizeLoadedGameState|gameStateFromSaveData|saveDataFromGameState|PlayerProgression|StoryFlags" packages/map_core/lib/src/models/save_data.dart`
+- `sed -n '1,220p' packages/map_runtime/lib/src/application/global_story_chapter_runtime.dart`
+- `sed -n '1,260p' packages/map_runtime/lib/src/application/step_studio_world_presence_runtime.dart`
+- `sed -n '1,260p' packages/map_editor/lib/src/features/narrative/application/narrative_workspace_projection.dart`
+- `sed -n '1,260p' packages/map_editor/lib/src/features/narrative/application/step_studio_authoring.dart`
+- `sed -n '1,320p' packages/map_editor/lib/src/features/narrative/application/global_story_studio_authoring.dart`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short`
+
+Décisions utilisateur nouvelles :
+La trajectoire recommandée est adapter/read model non persistant avant toute
+persistence. Les décisions restant à valider portent sur le moment exact où ce
+read model sera implémenté, et sur les seuils qui justifieraient plus tard une
+migration `ProjectManifest`.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-02 confirme que Phase 2 reste audit-first et
+contractuelle, sans Selbrume final, sans UI et sans modèle persistant prématuré.
 
 Risque :
 Dupliquer `completedStepIds` ou transformer Story Step en flag technique brut.
@@ -483,5 +537,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-02 — Story Step Descriptor / Storyline Metadata Decision
+P2-03 — Event Authoring Source Contract
 ```
