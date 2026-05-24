@@ -590,6 +590,51 @@ void main() {
       );
     });
 
+    test('effect parity reconciles implemented move effect hooks', () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'ChangeType',
+        'DestinyBond',
+        'FutureSight',
+        'Grudge',
+        'HealingWish',
+        'Instruct',
+        'IonDeluge',
+        'LunarDance',
+        'Mark',
+        'ShedTail',
+        'SleepPrevention',
+      ]) {
+        expect(
+          byFamilyAndName['move:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+
+      for (final effectName in <String>[
+        'Bestow',
+        'Bide',
+        'EchoedVoice',
+        'FuryCutter',
+        'Rollout',
+        'Roost',
+      ]) {
+        expect(
+          byFamilyAndName['move:$effectName']?.status,
+          PsdkPortStatus.partial,
+          reason: effectName,
+        );
+      }
+    });
+
     test('effect parity promotes Lot 95 field weather terrain and side effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(

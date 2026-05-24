@@ -1,12 +1,15 @@
-import '../../../domain/effect/battle_effect.dart';
 import '../../../domain/effect/ability/mental_immunity_ability_effect.dart';
 import '../../../domain/effect/battle_effect_scope.dart';
 import '../../../domain/effect/move/confusion_effect.dart';
 import '../../../domain/effect/move/force_next_move_base_effect.dart';
+import '../../../domain/effect/move/uproar_effect.dart';
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_status_change_handler.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -130,6 +133,7 @@ final class ForcedActionMoveBehavior
     final forcedAction = _applyForcedActionEffect(
       state: secondary.state,
       rng: secondary.rng,
+      turn: context.turn,
       user: context.user,
       moveId: context.move.id,
     );
@@ -141,6 +145,7 @@ final class ForcedActionMoveBehavior
         ...prepared.events,
         if (applied.event != null) applied.event!,
         ...secondary.events,
+        ...forcedAction.events,
       ],
     );
   }
@@ -148,6 +153,7 @@ final class ForcedActionMoveBehavior
   _ForcedActionEffectResult _applyForcedActionEffect({
     required PsdkBattleState state,
     required BattleRngStreams rng,
+    required int turn,
     required PsdkBattleSlotRef user,
     required String moveId,
   }) {
@@ -158,22 +164,61 @@ final class ForcedActionMoveBehavior
       _ForcedActionMoveKind.outrage =>
         _applyRepeatedMoveLock(
             state: state, rng: rng, user: user, moveId: moveId),
-      _ForcedActionMoveKind.uproar => _ForcedActionEffectResult(
-          state: state.updateBattler(
-            user,
-            (battler) => battler.copyWith(
-              effects: battler.effects.addEffect(
-                GenericBattleEffect(
-                  id: 'uproar',
-                  scope: BattlerBattleEffectScope(user),
-                  remainingTurns: 3,
-                ),
-              ),
-            ),
-          ),
+      _ForcedActionMoveKind.uproar => _applyUproarEffect(
+          state: state,
           rng: rng,
+          turn: turn,
+          user: user,
+          moveId: moveId,
         ),
     };
+  }
+
+  _ForcedActionEffectResult _applyUproarEffect({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef user,
+    required String moveId,
+  }) {
+    var nextState = state.updateBattler(
+      user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          UproarEffect(scope: BattlerBattleEffectScope(user)),
+        ),
+      ),
+    );
+    var nextRng = rng;
+    final events = <PsdkBattleEvent>[];
+
+    for (final slot in nextState.aliveSlots()) {
+      if (nextState.battlerAt(slot).majorStatus !=
+          PsdkBattleMajorStatus.sleep) {
+        continue;
+      }
+      final cured = const BattleStatusChangeHandler().cureMajorStatus(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: turn,
+          user: user,
+        ),
+        target: slot,
+        moveId: moveId,
+      );
+      nextState = cured.state;
+      nextRng = cured.rng;
+      if (cured.applied) {
+        events.addAll(cured.events);
+      }
+    }
+
+    return _ForcedActionEffectResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
   }
 
   _ForcedActionEffectResult _applyRepeatedMoveLock({
@@ -265,8 +310,10 @@ final class _ForcedActionEffectResult {
   const _ForcedActionEffectResult({
     required this.state,
     required this.rng,
+    this.events = const <PsdkBattleEvent>[],
   });
 
   final PsdkBattleState state;
   final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
 }

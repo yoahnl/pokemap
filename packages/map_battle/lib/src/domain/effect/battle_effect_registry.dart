@@ -51,6 +51,7 @@ import 'move/throat_chop_effect.dart';
 import 'move/torment_effect.dart';
 import 'move/triple_arrows_effect.dart';
 import 'move/two_turn_charge_effect.dart';
+import 'move/uproar_effect.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
 /// Small id-to-effect factory used by compatibility constructors.
@@ -169,6 +170,7 @@ final class BattleEffectRegistry {
           chargedMoveId: '',
           chargedTarget: psdkOpponentSlot,
         ),
+      'uproar' => const UproarEffect(scope: LocalBattleEffectScope()),
       'wish' => const WishEffect(
           scope: LocalBattleEffectScope(),
           healAmount: 1,

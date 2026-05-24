@@ -140,6 +140,78 @@ void main() {
       expect(player.effects.contains('uproar'), isTrue);
     });
 
+    test('s_uproar wakes sleeping battlers when the effect starts', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'uproar',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+          battleEngineMethod: 's_uproar',
+        ),
+        opponentMajorStatus: PsdkBattleMajorStatus.sleep,
+        opponentSleepTurns: 1,
+      );
+
+      expect(_damage(result, moveId: 'uproar'), greaterThan(0));
+      expect(result.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleStatusCureEvent>()
+            .where((event) => event.moveId == 'uproar'),
+        hasLength(1),
+      );
+    });
+
+    test('active Uproar prevents sleep from being applied', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              speed: 100,
+              effects: PsdkBattleEffectStack(
+                values: const <String>['uproar'],
+              ),
+              moves: <PsdkBattleMoveData>[
+                _move(id: 'uproar', power: 90),
+              ],
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'opponent',
+              speed: 1,
+              moves: <PsdkBattleMoveData>[
+                _move(id: 'opponent_wait', power: 0),
+              ],
+            ),
+          ),
+        },
+      );
+
+      final result = const BattleStatusChangeHandler().applyMajorStatus(
+        context: BattleHandlerContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 2,
+            moveAccuracySeed: 3,
+            genericSeed: 7,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'spore',
+        status: PsdkBattleMajorStatus.sleep,
+      );
+
+      expect(result.applied, isFalse);
+      expect(result.reason, 'uproar_prevents_sleep');
+      expect(result.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
+    });
+
     test('s_reload spends the recharge turn without duplicating history', () {
       final engine = _engine(
         playerMoves: <PsdkBattleMoveData>[
@@ -509,11 +581,15 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleMoveHistory? playerMoveHistory,
   String? playerAbilityId,
+  PsdkBattleMajorStatus? opponentMajorStatus,
+  int opponentSleepTurns = 0,
 }) {
   return _engine(
     playerMoves: <PsdkBattleMoveData>[playerMove],
     playerMoveHistory: playerMoveHistory,
     playerAbilityId: playerAbilityId,
+    opponentMajorStatus: opponentMajorStatus,
+    opponentSleepTurns: opponentSleepTurns,
   ).submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
@@ -522,7 +598,9 @@ PsdkBattleEngine _engine({
   PsdkBattleMoveHistory? playerMoveHistory,
   String? playerAbilityId,
   PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleMajorStatus? opponentMajorStatus,
   int playerSleepTurns = 0,
+  int opponentSleepTurns = 0,
   PsdkBattleEffectStack? playerEffects,
   String? playerHeldItemId,
   int genericSeed = 4,
@@ -543,6 +621,8 @@ PsdkBattleEngine _engine({
       opponent: _combatant(
         id: 'opponent',
         speed: 1,
+        majorStatus: opponentMajorStatus,
+        sleepTurns: opponentSleepTurns,
         moves: <PsdkBattleMoveData>[
           _move(
             id: 'opponent_wait',

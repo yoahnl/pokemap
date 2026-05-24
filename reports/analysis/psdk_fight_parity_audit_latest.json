@@ -9116,9 +9116,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 431,
-      "partial": 13,
-      "missing": 38
+      "ported": 442,
+      "partial": 19,
+      "missing": 21
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9127,9 +9127,9 @@
         "missing": 18
       },
       "move": {
-        "ported": 87,
-        "partial": 8,
-        "missing": 20
+        "ported": 98,
+        "partial": 14,
+        "missing": 3
       },
       "item": {
         "ported": 87,
@@ -9477,14 +9477,14 @@
       {
         "effectName": "Bestow",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 Bestow.rb",
         "hookFamilies": []
       },
       {
         "effectName": "Bide",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb",
         "hookFamilies": [
           "post_damage"
@@ -9608,7 +9608,7 @@
       {
         "effectName": "ChangeType",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 ChangeType.rb",
         "hookFamilies": [
           "transform"
@@ -9939,7 +9939,7 @@
       {
         "effectName": "DestinyBond",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 DestinyBond.rb",
         "hookFamilies": [
           "move_prevention",
@@ -10037,7 +10037,7 @@
       {
         "effectName": "EchoedVoice",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 EchoedVoice.rb",
         "hookFamilies": [
           "end_turn"
@@ -10416,14 +10416,14 @@
       {
         "effectName": "FuryCutter",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 FuryCutter.rb",
         "hookFamilies": []
       },
       {
         "effectName": "FutureSight",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 FutureSight.rb",
         "hookFamilies": [
           "lifecycle"
@@ -10533,7 +10533,7 @@
       {
         "effectName": "Grudge",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Grudge.rb",
         "hookFamilies": [
           "end_turn",
@@ -10650,7 +10650,7 @@
       {
         "effectName": "HealingWish",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 HealingWish.rb",
         "hookFamilies": [
           "switch"
@@ -10816,7 +10816,7 @@
       {
         "effectName": "Instruct",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Instruct.rb",
         "hookFamilies": [
           "action_order"
@@ -10843,7 +10843,7 @@
       {
         "effectName": "IonDeluge",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Ion Deluge.rb",
         "hookFamilies": [
           "move_type_change"
@@ -11103,7 +11103,7 @@
       {
         "effectName": "LunarDance",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LunarDance.rb",
         "hookFamilies": [
           "switch"
@@ -11175,7 +11175,7 @@
       {
         "effectName": "Mark",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LeechSeed.rb",
         "hookFamilies": [
           "end_turn"
@@ -11963,14 +11963,14 @@
       {
         "effectName": "Rollout",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb",
         "hookFamilies": []
       },
       {
         "effectName": "Roost",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 Roost.rb",
         "hookFamilies": []
       },
@@ -12168,7 +12168,7 @@
       {
         "effectName": "ShedTail",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 ShedTail.rb",
         "hookFamilies": [
           "switch"
@@ -12254,7 +12254,7 @@
       {
         "effectName": "SleepPrevention",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 UpRoar.rb",
         "hookFamilies": [
           "status_prevention"
