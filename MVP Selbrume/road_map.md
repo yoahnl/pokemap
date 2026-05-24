@@ -570,8 +570,8 @@ PHASE 5 — Sécurité no-code
 
 PHASE 6 — Extension gameplay
 ✅ NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
-🔜 NS-GS-15   — Key Item / Door Gate Readiness
-   NS-GS-16   — Side Quest / Optional Storyline Readiness
+✅ NS-GS-15   — Key Item / Door Gate Readiness
+🔜 NS-GS-16   — Side Quest / Optional Storyline Readiness
    NS-GS-17   — Static Encounter / Boss Battle Readiness
    NS-GS-18   — Reward / Money / XP Bridge Audit
 ```
@@ -579,15 +579,15 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-15 — Key Item / Door Gate Readiness
+🔜 NS-GS-16 — Side Quest / Optional Storyline Readiness
 ```
 
 Périmètre :
 
 ```text
-Caractériser ou ajouter le flux générique Key Item / Door Gate :
-condition hasItem/hasFact, porte ou interaction bloquée/débloquée,
-message si bloqué, world rule persistante et preuves runtime/application.
+Caractériser ou ajouter le flux générique Side Quest / Optional Storyline :
+quête annexe conditionnelle, steps optionnels, récompense simple,
+dialogue final, world rules liées et preuves runtime/application.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -820,3 +820,21 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Brique générique authorable. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
 | Prochain lot | NS-GS-15 — Key Item / Door Gate Readiness |
 | Rapport | `reports/gameplay/ns_gs_14_item_pickup_give_item_authoring_readiness.md` |
+
+---
+
+# Mise à jour NS-GS-15 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-15 — Key Item / Door Gate Readiness |
+| Résultat | Flux générique Key Item / Door Gate validé sans nouveau code de production : key pickup `giveItem` → fact dérivé → condition de scène gate → branche bloquée avec message ou branche débloquée avec fact/step → save/load → projection world rule. |
+| Décision | Cas B : le gate est possible via facts/steps existants, mais aucune condition directe `hasItem` / `bagContains` n'existe dans `ScriptConditionType`. Le pattern recommandé est de dériver un fact narratif lors du pickup de l'item clé. |
+| Fichiers | `packages/map_runtime/test/key_item_door_gate_readiness_test.dart`, rapport NS-GS-15, `MVP Selbrume/road_map.md` |
+| Tests exécutés | `cd packages/map_runtime && flutter test test/key_item_door_gate_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/item_pickup_give_item_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/world_rules_conditional_presence_readiness_test.dart` |
+| Analyzer | `cd packages/map_runtime && flutter analyze` → 352 diagnostics `info` préexistants au niveau package ; analyze ciblé du test NS-GS-15 → No issues found. |
+| git diff --check | À reporter dans `reports/gameplay/ns_gs_15_key_item_door_gate_readiness.md` Evidence Pack final. |
+| Limites | Pas de condition directe `hasItem`; pas de Door Engine ; pas de collision/pathfinding ; pas de warp conditionnel ; pas de UI ; pas de validator item ajouté. Les gates V0 sont représentés par scène + condition fact/step + proxy world rule. |
+| Mechanics-first | ✅ Brique générique authorable. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
+| Prochain lot | NS-GS-16 — Side Quest / Optional Storyline Readiness |
+| Rapport | `reports/gameplay/ns_gs_15_key_item_door_gate_readiness.md` |
