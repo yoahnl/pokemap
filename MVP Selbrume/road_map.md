@@ -762,3 +762,4 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. Ids génériques test_*. |
 | Prochain lot | NS-GS-12 — Editor-authored Golden Slice Validation |
 | Rapport | `reports/gameplay/ns_gs_11_trainer_battle_authoring_readiness.md` |
+| Fermeture documentaire | NS-GS-11-bis — Evidence Pack Fix Only. Rapport : `reports/gameplay/ns_gs_11_bis_evidence_pack_fix.md` |
