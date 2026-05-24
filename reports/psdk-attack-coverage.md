@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 668 |
-| partiel | 60 |
+| fait | 669 |
+| partiel | 59 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -76,7 +76,7 @@ Coverage semantics:
 | fait | barrage | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | normal | physical | 15 | 85 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/barrage.json |
 | fait | barrier | s_self_stat | ported | StatusStatMoveBehavior.selfStat | psychic | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/barrier.json |
 | fait | baton_pass | s_baton_pass | ported | SwitchEffectMoveBehavior.batonPass | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/baton_pass.json |
-| partiel | beak_blast | s_beak_blast | partial | StaticBasicMoveRegistry.partialBasic(s_beak_blast) | flying | physical | 100 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/beak_blast.json |
+| fait | beak_blast | s_beak_blast | ported | PreAttackMoveBehavior.beakBlast | flying | physical | 100 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/beak_blast.json |
 | fait | beat_up | s_beat_up | ported | StaticBasicMoveRegistry.s_beat_up | dark | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/beat_up.json |
 | fait | belch | s_belch | ported | ItemDependentMoveBehavior.belch | poison | special | 120 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/belch.json |
 | fait | belly_drum | s_bellydrum | ported | RecoveryStatMoveBehavior.bellyDrum | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/belly_drum.json |
@@ -587,7 +587,7 @@ Coverage semantics:
 | partiel | shattered_psyche2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/shattered_psyche2.json |
 | fait | sheer_cold | s_ohko | ported | OhkoMoveBehavior | ice | special | 0 | 30 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sheer_cold.json |
 | fait | shell_smash | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/shell_smash.json |
-| partiel | shell_trap | s_shell_trap | partial | StaticBasicMoveRegistry.partialBasic(s_shell_trap) | fire | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/shell_trap.json |
+| partiel | shell_trap | s_shell_trap | partial | PreAttackMoveBehavior.shellTrap | fire | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/shell_trap.json |
 | fait | shift_gear | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/shift_gear.json |
 | fait | shock_wave | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 60 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/shock_wave.json |
 | fait | shore_up | s_shore_up | ported | HealMoveBehavior.shoreUp | ground | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/shore_up.json |

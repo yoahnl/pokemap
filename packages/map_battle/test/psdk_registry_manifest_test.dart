@@ -571,6 +571,25 @@ void main() {
       }
     });
 
+    test('effect parity promotes pre-attack preparation effects', () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      expect(
+        byFamilyAndName['move:BeakBlast']?.status,
+        PsdkPortStatus.ported,
+      );
+      expect(
+        byFamilyAndName['move:ShellTrap']?.status,
+        PsdkPortStatus.partial,
+      );
+    });
+
     test('effect parity promotes Lot 95 field weather terrain and side effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
@@ -927,22 +946,27 @@ void main() {
       );
     });
 
-    test('tracks the partial Basic-descendant move wave', () {
+    test('tracks the pre-attack move wave', () {
       final byMethod = {
         for (final entry in psdkMoveRegistryManifest)
           entry.battleEngineMethod: entry,
       };
 
-      for (final method in <String>[
-        's_beak_blast',
-        's_shell_trap',
-      ]) {
-        expect(byMethod[method]!.status, PsdkPortStatus.partial);
-        expect(
-          byMethod[method]!.dartBehavior,
-          'StaticBasicMoveRegistry.partialBasic($method)',
-        );
-      }
+      expect(byMethod['s_beak_blast']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_beak_blast']!.dartBehavior,
+        'PreAttackMoveBehavior.beakBlast',
+      );
+      expect(byMethod['s_pre_attack_base']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_pre_attack_base']!.dartBehavior,
+        'PreAttackMoveBehavior.base',
+      );
+      expect(byMethod['s_shell_trap']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_shell_trap']!.dartBehavior,
+        'PreAttackMoveBehavior.shellTrap',
+      );
       expect(byMethod['s_payday']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_payday']!.dartBehavior,

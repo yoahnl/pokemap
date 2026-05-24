@@ -71,6 +71,7 @@ final class BattleMoveDefinition {
       target: move.target,
       heal: move.heal,
       flags: BattleMoveFlags(
+        contact: move.contact,
         protectable: move.protectable,
         sound: move.sound,
         bite: move.bite,
@@ -186,6 +187,7 @@ final class BattleMoveDefinition {
       effectChance: effectChance,
       battleEngineMethod: battleEngineMethod,
       target: target,
+      contact: flags.contact,
       protectable: flags.protectable,
       sound: flags.sound,
       bite: flags.bite,

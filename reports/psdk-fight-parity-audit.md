@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 668 |
-| Studio attacks `partiel` | 60 |
+| Studio attacks `fait` | 669 |
+| Studio attacks `partiel` | 59 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -20,7 +20,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Battle method | Partial attacks |
 | --- | ---: |
 | s_basic | 37 |
-| s_beak_blast | 1 |
 | s_genesis_supernova | 1 |
 | s_guardian_of_alola | 1 |
 | s_hyperspace_hole | 1 |
@@ -38,8 +37,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 324 |
-| `partial` | 6 |
+| `ported` | 326 |
+| `partial` | 4 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -47,10 +46,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 6 |
-| ability | 3 |
-| handlerDamage | 3 |
-| item | 3 |
+| effects | 3 |
+| ability | 1 |
+| actionOrder | 1 |
 
 ### Partial Method Batches
 
@@ -58,16 +56,16 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Damage formula / variable power | 3 | `s_beak_blast`, `s_pre_attack_base`, `s_shell_trap` |
+| Action queue / copy-call residuals | 1 | `s_shell_trap` |
 | Effect hook / manifest final sweep | 3 | `s_magic_coat`, `s_revival_blessing`, `s_snatch` |
 
 ## Effect Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 406 |
-| `partial` | 13 |
-| `missing` | 63 |
+| `ported` | 407 |
+| `partial` | 14 |
+| `missing` | 61 |
 | Total effect classes | 482 |
 
 ### Effects by Family
@@ -78,7 +76,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | field | 15 | 0 | 0 |
 | item | 81 | 0 | 6 |
 | mechanics | 4 | 0 | 0 |
-| move | 85 | 8 | 22 |
+| move | 86 | 9 | 20 |
 | status | 7 | 0 | 0 |
 
 ### Missing Effects by Family
@@ -87,7 +85,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | --- | ---: |
 | ability | 35 |
 | item | 6 |
-| move | 22 |
+| move | 20 |
 
 ## Runtime Bridge
 

@@ -4,6 +4,7 @@ import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
+import '../../effect/battle_effect_scope.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_handler_context.dart';
@@ -144,6 +145,58 @@ BattlePositionRef battlePositionFromPsdkSlot(PsdkBattleSlotRef slot) {
 
 PsdkBattleSlotRef psdkSlotFromBattlePosition(BattlePositionRef slot) {
   return PsdkBattleSlotRef(bank: slot.bank, position: slot.position);
+}
+
+int screenAdjustedDamage({
+  required PsdkBattleState state,
+  required PsdkBattleCombatant user,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition move,
+  required int damage,
+  required bool isCritical,
+}) {
+  if (damage <= 1 ||
+      isCritical ||
+      _normalizedId(user.abilityId) == 'infiltrator') {
+    return damage;
+  }
+  final screenId = switch (move.category) {
+    PsdkBattleMoveCategory.physical => 'reflect',
+    PsdkBattleMoveCategory.special => 'light_screen',
+    PsdkBattleMoveCategory.status => null,
+  };
+  if (screenId == null) {
+    return damage;
+  }
+  final hasScreen = _bankHasEffect(state, target.bank, screenId) ||
+      _bankHasEffect(state, target.bank, 'aurora_veil');
+  if (!hasScreen) {
+    return damage;
+  }
+  final reduced = damage ~/ 2;
+  return reduced < 1 ? 1 : reduced;
+}
+
+bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
+  return state.combatants.values.any(
+    (combatant) => combatant.effects.effects.any((effect) {
+      if (effect.id != effectId) {
+        return false;
+      }
+      final scope = effect.scope;
+      if (scope is BankBattleEffectScope) {
+        return scope.bank == bank;
+      }
+      if (scope is BattlerBattleEffectScope) {
+        return scope.slot.bank == bank;
+      }
+      return false;
+    }),
+  );
+}
+
+String _normalizedId(String? id) {
+  return id?.trim().toLowerCase().replaceAll('-', '_') ?? '';
 }
 
 final class PreparedBattleMove {

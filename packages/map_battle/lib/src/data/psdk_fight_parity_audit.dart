@@ -733,6 +733,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Autotomize',
     'AuroraVeil',
     'BanefulBunker',
+    'BeakBlast',
     'Bind',
     'Burn',
     'BurnUp',
@@ -848,6 +849,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Confusion',
     'Flinch',
     'Rainbow',
+    'ShellTrap',
     'SmackDown',
     'WonderRoom',
   };

@@ -211,14 +211,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_beak_blast',
     rubyClass: 'BeakBlast',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_beak_blast)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'PreAttackMoveBehavior.beakBlast',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_beat_up',
@@ -1917,14 +1912,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_pre_attack_base',
     rubyClass: 'PreAttackBase',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_pre_attack_base)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'PreAttackMoveBehavior.base',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_present',
@@ -2353,13 +2343,11 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_shell_trap',
     rubyClass: 'ShellTrap',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_shell_trap)',
+    dartBehavior: 'PreAttackMoveBehavior.shellTrap',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
+      PsdkMoveDependency.actionOrder,
+      PsdkMoveDependency.ability
     ],
   ),
   PsdkMoveRegistryManifestEntry(

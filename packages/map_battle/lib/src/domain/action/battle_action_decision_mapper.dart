@@ -181,6 +181,7 @@ PsdkBattleMoveData _copyMoveWithPriority(
     effectChance: move.effectChance,
     battleEngineMethod: move.battleEngineMethod,
     target: move.target,
+    contact: move.contact,
     protectable: move.protectable,
     sound: move.sound,
     bite: move.bite,

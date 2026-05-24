@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 668,
-    "partiel": 60,
+    "fait": 669,
+    "partiel": 59,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -347,9 +347,9 @@
       {
         "moveId": "beak_blast",
         "battleEngineMethod": "s_beak_blast",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/beak_blast.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 324,
-      "partial": 6,
+      "ported": 326,
+      "partial": 4,
       "missing": 0
     },
     "entries": [
@@ -6052,15 +6052,9 @@
         "battleEngineMethod": "s_beak_blast",
         "rubyClass": "BeakBlast",
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_beak_blast)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "PreAttackMoveBehavior.beakBlast",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_beat_up",
@@ -7835,15 +7829,9 @@
         "battleEngineMethod": "s_pre_attack_base",
         "rubyClass": "PreAttackBase",
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_pre_attack_base)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "PreAttackMoveBehavior.base",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_present",
@@ -8289,15 +8277,13 @@
         "battleEngineMethod": "s_shell_trap",
         "rubyClass": "ShellTrap",
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_shell_trap)",
+        "dartBehavior": "PreAttackMoveBehavior.shellTrap",
         "status": "partial",
         "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
+          "actionOrder",
+          "ability"
         ],
-        "methodBatch": "damage_formula_variable_power"
+        "methodBatch": "action_queue_copy_call"
       },
       {
         "battleEngineMethod": "s_shore_up",
@@ -9143,12 +9129,10 @@
     ],
     "backlogBatches": [
       {
-        "id": "damage_formula_variable_power",
-        "label": "Damage formula / variable power",
-        "count": 3,
+        "id": "action_queue_copy_call",
+        "label": "Action queue / copy-call residuals",
+        "count": 1,
         "methods": [
-          "s_beak_blast",
-          "s_pre_attack_base",
           "s_shell_trap"
         ]
       },
@@ -9167,9 +9151,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 406,
-      "partial": 13,
-      "missing": 63
+      "ported": 407,
+      "partial": 14,
+      "missing": 61
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9178,9 +9162,9 @@
         "missing": 35
       },
       "move": {
-        "ported": 85,
-        "partial": 8,
-        "missing": 22
+        "ported": 86,
+        "partial": 9,
+        "missing": 20
       },
       "item": {
         "ported": 81,
@@ -9478,7 +9462,7 @@
       {
         "effectName": "BeakBlast",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 BeakBlast.rb",
         "hookFamilies": [
           "post_damage"
@@ -12247,7 +12231,7 @@
       {
         "effectName": "ShellTrap",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 ShellTrap.rb",
         "hookFamilies": [
           "post_damage"

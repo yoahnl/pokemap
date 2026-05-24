@@ -329,8 +329,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_pre_attack_base': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_pre_attack_base)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'PreAttackMoveBehavior.base',
+    status: _PsdkPortStatus.ported,
   ),
   's_rage_fist': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.rageFist',
@@ -446,8 +446,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_beak_blast': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_beak_blast)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'PreAttackMoveBehavior.beakBlast',
+    status: _PsdkPortStatus.ported,
   ),
   's_belch': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.belch',
@@ -806,7 +806,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_shell_trap': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_shell_trap)',
+    dartBehavior: 'PreAttackMoveBehavior.shellTrap',
     status: _PsdkPortStatus.partial,
   ),
   's_simple_beam': _KnownDartBehavior(
@@ -1377,9 +1377,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
 };
 
 const _remainingPartialMoveMethods = <String>{
-  's_beak_blast',
   's_magic_coat',
-  's_pre_attack_base',
   's_revival_blessing',
   's_shell_trap',
   's_snatch',
@@ -1575,6 +1573,10 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.field,
     _PsdkMoveDependency.handlerStatus,
     _PsdkMoveDependency.handlerStat,
+  },
+  's_shell_trap': {
+    _PsdkMoveDependency.actionOrder,
+    _PsdkMoveDependency.ability,
   },
   's_simple_beam': {
     _PsdkMoveDependency.ability,

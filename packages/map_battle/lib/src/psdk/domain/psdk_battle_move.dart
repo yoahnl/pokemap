@@ -124,6 +124,7 @@ class PsdkBattleMoveData {
     this.effectChance,
     required String battleEngineMethod,
     required this.target,
+    this.contact = false,
     this.protectable = true,
     this.sound = false,
     this.bite = false,
@@ -180,6 +181,7 @@ class PsdkBattleMoveData {
   final int? effectChance;
   final String battleEngineMethod;
   final PsdkBattleMoveTarget target;
+  final bool contact;
   final bool protectable;
   final bool sound;
   final bool bite;
@@ -229,6 +231,7 @@ class PsdkBattleMoveData {
     int? effectChance,
     String? battleEngineMethod,
     PsdkBattleMoveTarget? target,
+    bool? contact,
     bool? protectable,
     bool? sound,
     bool? bite,
@@ -257,6 +260,7 @@ class PsdkBattleMoveData {
       effectChance: effectChance ?? this.effectChance,
       battleEngineMethod: battleEngineMethod ?? this.battleEngineMethod,
       target: target ?? this.target,
+      contact: contact ?? this.contact,
       protectable: protectable ?? this.protectable,
       sound: sound ?? this.sound,
       bite: bite ?? this.bite,

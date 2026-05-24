@@ -3587,7 +3587,6 @@ void main() {
     for (final method in <String>[
       's_avalanche',
       's_assurance',
-      's_beak_blast',
       's_brick_break',
       's_flame_burst',
       's_flying_press',
@@ -3604,7 +3603,6 @@ void main() {
       's_revenge',
       's_revelation_dance',
       's_round',
-      's_shell_trap',
       's_stomping_tantrum',
     ]) {
       test('$method executes its Basic hit while extra PSDK effects stay open',

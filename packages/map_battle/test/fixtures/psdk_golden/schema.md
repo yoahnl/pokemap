@@ -44,7 +44,7 @@ Move objects contain:
 - `priority`, optional `criticalRate`, optional `effectChance`.
 - `battleEngineMethod`: Pokemon SDK method symbol such as `s_basic`.
 - `target`: a `PsdkBattleMoveTarget` enum name such as `adjacentFoe`.
-- Optional booleans: `protectable`, `sound`.
+- Optional booleans: `contact`, `protectable`, `sound`.
 
 Actions currently support:
 

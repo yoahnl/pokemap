@@ -7,6 +7,7 @@ import 'move/ability_suppressed_effect.dart';
 import 'move/aqua_ring_effect.dart';
 import 'move/attract_effect.dart';
 import 'move/baton_pass_effect.dart';
+import 'move/beak_blast_effect.dart';
 import 'move/bind_effect.dart';
 import 'move/cant_switch_effect.dart';
 import 'move/confusion_effect.dart';
@@ -39,6 +40,7 @@ import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
 import 'move/shed_tail_effect.dart';
+import 'move/shell_trap_effect.dart';
 import 'move/snatch_effect.dart';
 import 'move/stockpile_effect.dart';
 import 'move/substitute_effect.dart';
@@ -69,6 +71,7 @@ final class BattleEffectRegistry {
       'aqua_ring' => const AquaRingEffect(scope: LocalBattleEffectScope()),
       'attract' => const AttractEffect(scope: LocalBattleEffectScope()),
       'baton_pass' => const BatonPassEffect(scope: LocalBattleEffectScope()),
+      'beak_blast' => const BeakBlastEffect(scope: LocalBattleEffectScope()),
       'bind' => const BindEffect(
           scope: LocalBattleEffectScope(),
           origin: psdkOpponentSlot,
@@ -146,6 +149,7 @@ final class BattleEffectRegistry {
           scope: LocalBattleEffectScope(),
           remainingHp: 1,
         ),
+      'shell_trap' => const ShellTrapEffect(scope: LocalBattleEffectScope()),
       'snatch' => const SnatchEffect(scope: LocalBattleEffectScope()),
       'snatched' => const SnatchedEffect(scope: LocalBattleEffectScope()),
       'stockpile' => const StockpileEffect(scope: LocalBattleEffectScope()),

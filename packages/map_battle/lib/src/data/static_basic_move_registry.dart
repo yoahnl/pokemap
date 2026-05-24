@@ -23,6 +23,7 @@ import '../domain/move/behaviors/no_effect_move_behavior.dart';
 import '../domain/move/behaviors/ohko_move_behavior.dart';
 import '../domain/move/behaviors/persistent_effect_move_behavior.dart';
 import '../domain/move/behaviors/power_trick_move_behavior.dart';
+import '../domain/move/behaviors/pre_attack_move_behavior.dart';
 import '../domain/move/behaviors/psycho_shift_move_behavior.dart';
 import '../domain/move/behaviors/purify_move_behavior.dart';
 import '../domain/move/behaviors/recovery_stat_move_behavior.dart';
@@ -671,6 +672,9 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const MultiHitMoveBehavior.waterShuriken(),
     const MultiHitMoveBehavior.scaleShot(),
     const DragonDartsMoveBehavior(),
+    const PreAttackMoveBehavior.base(),
+    const PreAttackMoveBehavior.beakBlast(),
+    const PreAttackMoveBehavior.shellTrap(),
     const BasicDamageSpecializationMoveBehavior.fangs(),
     const BasicDamageSpecializationMoveBehavior.falseSwipe(),
     const BasicDamageSpecializationMoveBehavior.fullCrit(),
@@ -820,15 +824,12 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
 }
 
 const _partialBasicDescendantMethods = <String>[
-  's_beak_blast',
   's_genesis_supernova',
   's_guardian_of_alola',
   's_hyperspace_hole',
   's_light_that_burns_the_sky',
   's_malicious_moonsault',
-  's_shell_trap',
   's_splintered_stormshards',
-  's_pre_attack_base',
 ];
 
 const _partialTargetMarkerMethods = <String, String>{

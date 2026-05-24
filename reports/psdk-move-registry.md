@@ -33,7 +33,7 @@ Total registered methods: 330
 | `s_baddy_bad` | `BaddyBad` | `10 Move/2 Definitions/300 GlitzyGlow.rb` | `StaticBasicMoveRegistry.s_baddy_bad` | `ported` | `-` |
 | `s_basic` | `Basic` | `10 Move/1 Mechanics/100 Basic.rb` | `StaticBasicMoveRegistry.s_basic` | `ported` | `-` |
 | `s_baton_pass` | `BatonPass` | `10 Move/2 Definitions/300 BatonPass.rb` | `SwitchEffectMoveBehavior.batonPass` | `ported` | `handler_switch`, `effects` |
-| `s_beak_blast` | `BeakBlast` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `StaticBasicMoveRegistry.partialBasic(s_beak_blast)` | `partial` | `handler_damage`, `effects`, `ability`, `item` |
+| `s_beak_blast` | `BeakBlast` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `PreAttackMoveBehavior.beakBlast` | `ported` | `-` |
 | `s_beat_up` | `BeatUp` | `10 Move/2 Definitions/300 BeatUp.rb` | `StaticBasicMoveRegistry.s_beat_up` | `ported` | `-` |
 | `s_belch` | `Belch` | `10 Move/2 Definitions/300 Belch.rb` | `ItemDependentMoveBehavior.belch` | `ported` | `-` |
 | `s_bellydrum` | `BellyDrum` | `10 Move/2 Definitions/300 BellyDrum.rb` | `RecoveryStatMoveBehavior.bellyDrum` | `ported` | `handler_damage`, `handler_stat`, `ability`, `effects` |
@@ -215,7 +215,7 @@ Total registered methods: 330
 | `s_power_split` | `PowerSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `StatSplitMoveBehavior.power` | `ported` | `-` |
 | `s_power_swap` | `PowerSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.powerSwap` | `ported` | `handler_stat`, `effects`, `ability` |
 | `s_power_trick` | `PowerTrick` | `10 Move/2 Definitions/300 PowerTrick.rb` | `PowerTrickMoveBehavior` | `ported` | `-` |
-| `s_pre_attack_base` | `PreAttackBase` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `StaticBasicMoveRegistry.partialBasic(s_pre_attack_base)` | `partial` | `handler_damage`, `effects`, `ability`, `item` |
+| `s_pre_attack_base` | `PreAttackBase` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `PreAttackMoveBehavior.base` | `ported` | `-` |
 | `s_present` | `Present` | `10 Move/2 Definitions/300 Present.rb` | `StaticBasicMoveRegistry.s_present` | `ported` | `-` |
 | `s_protect` | `Protect` | `10 Move/2 Definitions/300 Protect.rb` | `StaticBasicMoveRegistry.s_protect` | `ported` | `-` |
 | `s_psych_up` | `PsychUp` | `10 Move/2 Definitions/300 PsychUp.rb` | `AdvancedStatMoveBehavior.psychUp` | `ported` | `handler_stat`, `effects`, `ability` |
@@ -259,7 +259,7 @@ Total registered methods: 330
 | `s_self_status` | `SelfStatus` | `10 Move/1 Mechanics/101 Self.rb` | `StatusStatMoveBehavior.selfStatus` | `ported` | `-` |
 | `s_shed_tail` | `ShedTail` | `10 Move/2 Definitions/300 Substitute.rb` | `StaticBasicMoveRegistry.s_shed_tail` | `ported` | `-` |
 | `s_shell_side_arm` | `ShellSideArm` | `10 Move/2 Definitions/300 ShellSideArm.rb` | `StaticBasicMoveRegistry.s_shell_side_arm` | `ported` | `effects` |
-| `s_shell_trap` | `ShellTrap` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `StaticBasicMoveRegistry.partialBasic(s_shell_trap)` | `partial` | `handler_damage`, `effects`, `ability`, `item` |
+| `s_shell_trap` | `ShellTrap` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `PreAttackMoveBehavior.shellTrap` | `partial` | `action_order`, `ability` |
 | `s_shore_up` | `ShoreUp` | `10 Move/2 Definitions/300 Shore Up.rb` | `HealMoveBehavior.shoreUp` | `ported` | `weather`, `handler_damage`, `effects` |
 | `s_simple_beam` | `SimpleBeam` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_simple_beam)` | `ported` | `ability`, `effects` |
 | `s_sketch` | `Sketch` | `10 Move/2 Definitions/300 Sketch.rb` | `CopyCallMoveBehavior.sketch` | `ported` | `-` |

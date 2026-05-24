@@ -10,8 +10,11 @@ import '../domain/action/battle_shift_action_handler.dart';
 import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
+import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/battle_effect_hooks.dart';
+import '../domain/effect/move/beak_blast_effect.dart';
+import '../domain/effect/move/shell_trap_effect.dart';
 import '../domain/effect/item/item_effect.dart';
 import '../domain/effect/status/status_effect_registry.dart';
 import '../domain/handler/battle_end_turn_handler.dart';
@@ -27,6 +30,7 @@ import '../domain/timeline/battle_timeline.dart';
 import '../domain/timeline/battle_timeline_builder.dart';
 import '../domain/timeline/battle_timeline_event.dart';
 import '../psdk/application/psdk_battle_move_behavior.dart';
+import '../psdk/domain/psdk_battle_move.dart';
 import '../psdk/domain/psdk_battle_outcome.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
 import '../psdk/domain/psdk_battle_state.dart';
@@ -104,8 +108,16 @@ final class BattleTurnRunner {
     _context.beginTurn();
     final timeline = BattleTimelineBuilder()
       ..add(BattleTurnStartedTimelineEvent(turn: _context.turnNumber));
-
     try {
+      final preAttack = _resolvePreAttackActions(actions);
+      if (preAttack.applied) {
+        _context.applyStateAndRng(
+          nextState: preAttack.state,
+          nextRng: preAttack.rng,
+        );
+        timeline.addPsdkAll(preAttack.events);
+      }
+
       for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
         final action = actions[actionIndex];
         if (action is PsdkBattleItemAction) {
@@ -474,6 +486,48 @@ final class BattleTurnRunner {
       user: psdkOpponentSlot,
       target: psdkPlayerSlot,
     );
+  }
+
+  BattleHandlerResult _resolvePreAttackActions(List<PsdkBattleAction> actions) {
+    var state = _context.state;
+    var applied = false;
+
+    for (final action in actions.whereType<PsdkBattleFightAction>()) {
+      final effect = _preAttackEffectFor(action);
+      if (effect == null) {
+        continue;
+      }
+
+      final user = state.battlerAt(action.user);
+      if (user.isFainted ||
+          user.majorStatus == PsdkBattleMajorStatus.sleep ||
+          user.majorStatus == PsdkBattleMajorStatus.freeze) {
+        continue;
+      }
+
+      state = state.updateBattler(
+        action.user,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(effect),
+        ),
+      );
+      applied = true;
+    }
+
+    return BattleHandlerResult(
+      state: state,
+      rng: _context.rng,
+      applied: applied,
+    );
+  }
+
+  BattleEffect? _preAttackEffectFor(PsdkBattleFightAction action) {
+    final scope = BattlerBattleEffectScope(action.user);
+    return switch (action.move.battleEngineMethod) {
+      's_beak_blast' => BeakBlastEffect(scope: scope),
+      's_shell_trap' => ShellTrapEffect(scope: scope),
+      _ => null,
+    };
   }
 
   BattleHandlerResult _resolveEndTurn() {
