@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 724,
-    "partiel": 4,
+    "fait": 726,
+    "partiel": 2,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -2907,9 +2907,9 @@
       {
         "moveId": "magic_coat",
         "battleEngineMethod": "s_magic_coat",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/magic_coat.json"
       },
       {
@@ -4667,9 +4667,9 @@
       {
         "moveId": "snatch",
         "battleEngineMethod": "s_snatch",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/snatch.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 326,
-      "partial": 4,
+      "ported": 328,
+      "partial": 2,
       "missing": 0
     },
     "entries": [
@@ -6007,7 +6007,7 @@
         "battleEngineMethod": "s_autotomize",
         "rubyClass": "Autotomize",
         "rubyPath": "10 Move/2 Definitions/300 Autotomize.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)",
+        "dartBehavior": "StaticBasicMoveRegistry.s_autotomize",
         "status": "ported",
         "dependencies": [
           "effects"
@@ -6238,7 +6238,10 @@
         "rubyPath": "10 Move/2 Definitions/300 ChillyReception.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_chilly_reception",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_chloroblast",
@@ -6275,7 +6278,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Conversion.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_conversion2",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "history"
+        ]
       },
       {
         "battleEngineMethod": "s_core_enforcer",
@@ -6283,13 +6288,18 @@
         "rubyPath": "10 Move/2 Definitions/300 CoreEnforcer.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_core_enforcer",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_corrosive_gas",
         "rubyClass": "CorrosiveGas",
         "rubyPath": "10 Move/2 Definitions/300 CorrosiveGas.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_corrosive_gas)",
+        "dartBehavior": "StaticBasicMoveRegistry.s_corrosive_gas",
         "status": "ported",
         "dependencies": [
           "effects"
@@ -6309,7 +6319,10 @@
         "rubyPath": "10 Move/2 Definitions/300 CourtChange.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_court_change",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_crafty_shield",
@@ -6358,7 +6371,9 @@
         "rubyPath": "10 Move/2 Definitions/300 DestinyBond.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_destiny_bond",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_disable",
@@ -6384,7 +6399,9 @@
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_doodle",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_double_iron_bash",
@@ -6406,7 +6423,9 @@
         "rubyPath": "10 Move/2 Definitions/300 DragonCheer.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_dragon_cheer",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_dragon_darts",
@@ -6462,11 +6481,10 @@
         "battleEngineMethod": "s_electrify",
         "rubyClass": "Electrify",
         "rubyPath": "10 Move/2 Definitions/300 Electrify.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_electrify)",
+        "dartBehavior": "StaticBasicMoveRegistry.s_electrify",
         "status": "ported",
         "dependencies": [
-          "effects",
-          "actionOrder"
+          "effects"
         ]
       },
       {
@@ -6491,7 +6509,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Embargo.rb",
         "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_embargo)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_encore",
@@ -6517,7 +6537,10 @@
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
         "dartBehavior": "StaticBasicMoveRegistry.abilityChanging(s_entrainment)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "ability",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_eruption",
@@ -6692,20 +6715,17 @@
         "rubyPath": "10 Move/2 Definitions/300 FlowerShield.rb",
         "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_flower_shield)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_flying_press",
         "rubyClass": "FlyingPress",
         "rubyPath": "10 Move/2 Definitions/300 FlyingPress.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_flying_press)",
+        "dartBehavior": "StaticBasicMoveRegistry.s_flying_press",
         "status": "ported",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ]
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_focus_energy",
@@ -6841,7 +6861,9 @@
         "rubyPath": "10 Move/2 Definitions/300 GearUp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_genies_storm",
@@ -6857,7 +6879,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Geomancy.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_geomancy",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_gigaton_hammer",
@@ -6909,7 +6933,10 @@
         "rubyPath": "10 Move/2 Definitions/300 Gravity.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_gravity",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_growth",
@@ -6930,7 +6957,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Grudge.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_grudge",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_guard_split",
@@ -6966,7 +6995,10 @@
         "rubyPath": "10 Move/2 Definitions/300 HappyHour.rb",
         "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_happy_hour)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_hard_press",
@@ -7043,7 +7075,9 @@
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_healing_wish",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_heart_swap",
@@ -7193,8 +7227,7 @@
         "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)",
         "status": "ported",
         "dependencies": [
-          "effects",
-          "field"
+          "effects"
         ]
       },
       {
@@ -7349,18 +7382,17 @@
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_lunar_dance",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magic_coat",
         "rubyClass": "MagicCoat",
         "rubyPath": "10 Move/2 Definitions/300 MagicCoat.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.s_magic_coat",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_magic_powder",
@@ -7376,7 +7408,10 @@
         "rubyPath": "10 Move/2 Definitions/300 MagicRoom.rb",
         "dartBehavior": "StaticBasicMoveRegistry.fieldMarker(s_magic_room)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magnet_rise",
@@ -7395,7 +7430,9 @@
         "rubyPath": "10 Move/2 Definitions/300 MagneticFlux.rb",
         "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_magnetic_flux)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magnitude",
@@ -7574,7 +7611,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Nightmare.rb",
         "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_nightmare)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_no_retreat",
@@ -7582,7 +7621,9 @@
         "rubyPath": "10 Move/2 Definitions/300 NoRetreat.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_no_retreat",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_octolock",
@@ -7670,7 +7711,9 @@
         "rubyPath": "10 Move/2 Definitions/300 PerishSong.rb",
         "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_perish_song)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_photon_geyser",
@@ -7747,7 +7790,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Powder.rb",
         "dartBehavior": "StaticBasicMoveRegistry.targetMarker(s_powder)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_power_split",
@@ -8112,7 +8157,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Rototiller.rb",
         "dartBehavior": "StaticBasicMoveRegistry.resolveSupportStatMove(s_rototiller)",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_round",
@@ -8209,7 +8256,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Substitute.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_shed_tail",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_shell_side_arm",
@@ -8315,12 +8364,9 @@
         "battleEngineMethod": "s_snatch",
         "rubyClass": "Snatch",
         "rubyPath": "10 Move/2 Definitions/300 Snatch.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_snatch)",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ],
-        "methodBatch": "effect_hook_manifest_sweep"
+        "dartBehavior": "StaticBasicMoveRegistry.s_snatch",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_snore",
@@ -8401,7 +8447,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Spite.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_spite",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "history"
+        ]
       },
       {
         "battleEngineMethod": "s_splash",
@@ -8417,7 +8465,12 @@
         "rubyPath": "10 Move/2 Definitions/300 SpitUp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_split_up",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_stat",
@@ -8548,7 +8601,9 @@
         "rubyPath": "10 Move/2 Definitions/300 StuffCheeks.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_stuff_cheeks",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_substitute",
@@ -8590,7 +8645,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Swallow.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_swallow",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_synchronoise",
@@ -8658,7 +8715,10 @@
         "rubyPath": "10 Move/2 Definitions/300 TeaTime.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_teatime",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_techno_blast",
@@ -8685,7 +8745,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Teleport.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_teleport",
         "status": "ported",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_terrain",
@@ -8799,7 +8861,7 @@
         "battleEngineMethod": "s_torment",
         "rubyClass": "Torment",
         "rubyPath": "10 Move/2 Definitions/300 Torment.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_torment)",
+        "dartBehavior": "StaticBasicMoveRegistry.s_torment",
         "status": "ported",
         "dependencies": [
           "effects",
@@ -9071,11 +9133,9 @@
       {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
-        "count": 3,
+        "count": 1,
         "methods": [
-          "s_magic_coat",
-          "s_revival_blessing",
-          "s_snatch"
+          "s_revival_blessing"
         ]
       }
     ]

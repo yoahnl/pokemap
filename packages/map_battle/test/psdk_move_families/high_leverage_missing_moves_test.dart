@@ -2511,7 +2511,6 @@ void main() {
 
     for (final entry in <({String method, String moveId})>[
       (method: 's_after_you', moveId: 'after_you'),
-      (method: 's_magic_coat', moveId: 'magic_coat'),
     ]) {
       test('${entry.method} executes as a turn-scoped battler marker slice',
           () {
@@ -2534,6 +2533,119 @@ void main() {
         );
       });
     }
+
+    test('s_magic_coat fails when the user would act last', () {
+      final result = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        playerMove: _move(
+          id: 'magic_coat',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_magic_coat',
+          target: PsdkBattleMoveTarget.self,
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().where(
+              (event) => event.moveId == 'magic_coat',
+            ),
+        hasLength(1),
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('magic_coat'),
+        isFalse,
+      );
+    });
+
+    test('s_magic_coat reflects marked status moves back to the launcher', () {
+      final result = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        playerMove: _move(
+          id: 'magic_coat',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          priority: 4,
+          battleEngineMethod: 's_magic_coat',
+          target: PsdkBattleMoveTarget.self,
+        ),
+        opponentMove: _move(
+          id: 'growl',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_stat',
+          target: PsdkBattleMoveTarget.adjacentFoe,
+          magicCoatAffected: true,
+          effectChance: 100,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(stat: 'attack', stages: -1),
+          ],
+        ),
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        0,
+      );
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        -1,
+      );
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleStatStageEvent>()
+            .single
+            .target,
+        psdkOpponentSlot,
+      );
+    });
+
+    test('s_snatch steals a later snatchable self-stat move', () {
+      final result = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        playerMove: _move(
+          id: 'snatch',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          priority: 4,
+          battleEngineMethod: 's_snatch',
+          target: PsdkBattleMoveTarget.self,
+        ),
+        opponentMove: _move(
+          id: 'swords_dance',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_self_stat',
+          target: PsdkBattleMoveTarget.self,
+          snatchable: true,
+          effectChance: 100,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(stat: 'attack', stages: 2),
+          ],
+        ),
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        2,
+      );
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        0,
+      );
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleEffectEvent>()
+            .where((event) => event.effectId == 'snatched'),
+        hasLength(1),
+      );
+    });
 
     test('s_crafty_shield executes as a turn-scoped user-bank marker slice',
         () {
@@ -4860,6 +4972,8 @@ PsdkBattleMoveData _move({
   int? effectChance,
   String battleEngineMethod = 's_basic',
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
+  bool snatchable = false,
+  bool magicCoatAffected = false,
   List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
   List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
 }) {
@@ -4878,6 +4992,8 @@ PsdkBattleMoveData _move({
     effectChance: effectChance,
     battleEngineMethod: battleEngineMethod,
     target: target,
+    snatchable: snatchable,
+    magicCoatAffected: magicCoatAffected,
     statuses: statuses,
     stageMods: stageMods,
   );

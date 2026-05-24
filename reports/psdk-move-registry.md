@@ -1,13 +1,13 @@
 # PSDK Move Porting Matrix
 
-Source: `../../pokemonsdk-development/scripts/5 Battle`
+Source: `/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
 
 Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 324 |
-| `partial` | 6 |
+| `ported` | 328 |
+| `partial` | 2 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -169,7 +169,7 @@ Total registered methods: 330
 | `s_low_kick` | `LowKick` | `10 Move/2 Definitions/300 LowKick.rb` | `WeightPowerMoveBehavior.lowKick` | `ported` | `effects`, `ability`, `grounded` |
 | `s_lucky_chant` | `LuckyChant` | `10 Move/2 Definitions/300 LuckyChant.rb` | `StaticBasicMoveRegistry.s_lucky_chant` | `ported` | `-` |
 | `s_lunar_dance` | `LunarDance` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `StaticBasicMoveRegistry.s_lunar_dance` | `ported` | `-` |
-| `s_magic_coat` | `MagicCoat` | `10 Move/2 Definitions/300 MagicCoat.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)` | `partial` | `effects` |
+| `s_magic_coat` | `MagicCoat` | `10 Move/2 Definitions/300 MagicCoat.rb` | `StaticBasicMoveRegistry.s_magic_coat` | `ported` | `-` |
 | `s_magic_powder` | `MagicPowder` | `10 Move/2 Definitions/300 MagicPowder.rb` | `StaticBasicMoveRegistry.s_magic_powder` | `ported` | `-` |
 | `s_magic_room` | `MagicRoom` | `10 Move/2 Definitions/300 MagicRoom.rb` | `StaticBasicMoveRegistry.fieldMarker(s_magic_room)` | `ported` | `-` |
 | `s_magnet_rise` | `MagnetRise` | `10 Move/2 Definitions/300 MagnetRise.rb` | `StaticBasicMoveRegistry.s_magnet_rise` | `ported` | `effects`, `grounded` |
@@ -268,7 +268,7 @@ Total registered methods: 330
 | `s_sleep_talk` | `SleepTalk` | `10 Move/2 Definitions/300 SleepTalk.rb` | `CopyCallMoveBehavior.sleepTalk` | `ported` | `-` |
 | `s_smack_down` | `SmackDown` | `10 Move/2 Definitions/300 SmackDown.rb` | `GroundingMoveBehavior.smackDown` | `ported` | `effects`, `grounded`, `targeting_multi` |
 | `s_smelling_salt` | `SmellingSalts` | `10 Move/2 Definitions/300 HitThenCureStatus.rb` | `HitThenCureStatusMoveBehavior.smellingSalt` | `ported` | `-` |
-| `s_snatch` | `Snatch` | `10 Move/2 Definitions/300 Snatch.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_snatch)` | `partial` | `effects` |
+| `s_snatch` | `Snatch` | `10 Move/2 Definitions/300 Snatch.rb` | `StaticBasicMoveRegistry.s_snatch` | `ported` | `-` |
 | `s_snore` | `Snore` | `10 Move/2 Definitions/300 Snore.rb` | `ActionGatedMoveBehavior.snore` | `ported` | `handler_status`, `ability` |
 | `s_solar_beam` | `SolarBeam` | `10 Move/2 Definitions/300 SolarBeam.rb` | `WeatherPowerMoveBehavior.solarBeam` | `ported` | `weather`, `effects` |
 | `s_sparkling_aria` | `SparklingAria` | `10 Move/2 Definitions/300 SparklingAria.rb` | `HitThenCureStatusMoveBehavior.sparklingAria` | `ported` | `-` |

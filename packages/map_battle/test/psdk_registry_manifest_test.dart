@@ -1612,21 +1612,16 @@ void main() {
           method: 's_teleport',
           behavior: 'StaticBasicMoveRegistry.s_teleport',
         ),
-      ]) {
-        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
-        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
-      }
-      for (final entry in <({String method, String behavior})>[
         (
           method: 's_magic_coat',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)',
+          behavior: 'StaticBasicMoveRegistry.s_magic_coat',
         ),
         (
           method: 's_snatch',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
+          behavior: 'StaticBasicMoveRegistry.s_snatch',
         ),
       ]) {
-        expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
       for (final entry in <({String method, String behavior})>[

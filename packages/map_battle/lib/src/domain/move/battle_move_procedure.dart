@@ -2,6 +2,7 @@ import '../battle/battle_slot.dart';
 import '../rng/battle_rng_streams.dart';
 import '../timeline/battle_timeline_event.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import 'battle_accuracy_resolver.dart';
 import 'battle_move_execution.dart';
 import 'battle_move_prevention.dart';
@@ -12,7 +13,7 @@ final class BattleMoveProcedure {
   const BattleMoveProcedure({
     BattleTargetResolver targetResolver = const BattleTargetResolver(),
     BattleAccuracyResolver accuracyResolver = const BattleAccuracyResolver(),
-    BattleMoveRemapper remapper = const NoopBattleMoveRemapper(),
+    BattleMoveRemapper remapper = const PsdkEffectBattleMoveRemapper(),
     BattleMoveTargetPrecheck? targetPrecheck,
     BattleMoveProcedureHooks hooks = BattleMoveProcedureHooks.none,
     bool traceStages = false,
@@ -140,6 +141,7 @@ final class BattleMoveProcedure {
         ),
       );
       return BattleMoveProcedureResult.ready(
+        state: execution.actualState,
         rng: execution.context.rng,
         targets: targets,
       );
@@ -184,7 +186,7 @@ final class BattleMoveProcedure {
     _trace(execution, BattleMoveProcedureStage.remap);
     final remapped = _remapper.remap(
       BattleMoveRemapContext(
-        state: execution.context.state,
+        state: execution.actualState,
         turn: execution.turn,
         user: execution.user,
         targets: actualTargets,
@@ -192,7 +194,9 @@ final class BattleMoveProcedure {
       ),
     );
     execution.actualUser = remapped.user;
+    execution.actualState = remapped.state;
     actualTargets = remapped.targets;
+    execution.timeline.addPsdkAll(remapped.events);
 
     _trace(execution, BattleMoveProcedureStage.immunity);
     final targetPrecheck = _targetPrecheck;
@@ -217,7 +221,7 @@ final class BattleMoveProcedure {
     _trace(execution, BattleMoveProcedureStage.postAccuracy);
     _hooks.notifyPostAccuracy(
       BattleMoveAccuracyHookContext(
-        state: execution.context.state,
+        state: execution.actualState,
         rng: accuracy.rng,
         turn: execution.turn,
         user: execution.actualUser,
@@ -229,7 +233,7 @@ final class BattleMoveProcedure {
     _trace(execution, BattleMoveProcedureStage.postAccuracyMove);
     _hooks.notifyPostAccuracyMove(
       BattleMoveAccuracyHookContext(
-        state: execution.context.state,
+        state: execution.actualState,
         rng: accuracy.rng,
         turn: execution.turn,
         user: execution.actualUser,
@@ -250,6 +254,7 @@ final class BattleMoveProcedure {
     );
 
     return BattleMoveProcedureResult.ready(
+      state: execution.actualState,
       rng: accuracy.rng,
       targets: actualTargets,
     );
@@ -309,16 +314,19 @@ final class BattleMoveTargetPrecheckResult {
 
 final class BattleMoveProcedureResult {
   BattleMoveProcedureResult._({
+    required this.state,
     required this.rng,
     required List<BattlePositionRef> targets,
     required this.reason,
   }) : targets = List<BattlePositionRef>.unmodifiable(targets);
 
   factory BattleMoveProcedureResult.ready({
+    required PsdkBattleState state,
     required BattleRngStreams rng,
     required List<BattlePositionRef> targets,
   }) {
     return BattleMoveProcedureResult._(
+      state: state,
       rng: rng,
       targets: targets,
       reason: null,
@@ -326,16 +334,19 @@ final class BattleMoveProcedureResult {
   }
 
   factory BattleMoveProcedureResult.failed({
+    PsdkBattleState? state,
     required BattleRngStreams rng,
     required BattleMoveFailureReason reason,
   }) {
     return BattleMoveProcedureResult._(
+      state: state,
       rng: rng,
       targets: const <BattlePositionRef>[],
       reason: reason,
     );
   }
 
+  final PsdkBattleState? state;
   final BattleRngStreams rng;
   final List<BattlePositionRef> targets;
   final BattleMoveFailureReason? reason;

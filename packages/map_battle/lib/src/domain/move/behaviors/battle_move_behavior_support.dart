@@ -42,9 +42,10 @@ PreparedBattleMove prepareBattleMove(
     forceAccuracyBypass: forceAccuracyBypass,
   ).prepare(execution);
   return PreparedBattleMove(
-    state: context.state,
+    state: result.state ?? context.state,
     rng: result.rng,
     events: timeline.build().psdkTimeline.events,
+    user: execution.psdkActualUser,
     targets: result.targets,
     failureReason: result.reason,
     shouldExecuteBehavior: result.shouldExecuteBehavior,
@@ -204,6 +205,7 @@ final class PreparedBattleMove {
     required this.state,
     required this.rng,
     required this.events,
+    required this.user,
     required this.targets,
     required this.failureReason,
     required this.shouldExecuteBehavior,
@@ -212,9 +214,12 @@ final class PreparedBattleMove {
   final PsdkBattleState state;
   final BattleRngStreams rng;
   final List<PsdkBattleEvent> events;
+  final PsdkBattleSlotRef user;
   final List<BattlePositionRef> targets;
   final BattleMoveFailureReason? failureReason;
   final bool shouldExecuteBehavior;
+
+  PsdkBattleSlotRef get psdkUser => user;
 
   List<PsdkBattleSlotRef> get psdkTargets {
     return targets.map(psdkSlotFromBattlePosition).toList(growable: false);

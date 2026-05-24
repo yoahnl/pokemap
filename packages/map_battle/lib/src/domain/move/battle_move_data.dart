@@ -25,6 +25,8 @@ final class BattleMoveDefinition {
     this.charge = false,
     this.recharge = false,
     this.mirrorMoveAffected = true,
+    this.snatchable = false,
+    this.magicCoatAffected = false,
     List<BattleStageMod> stageMods = const <BattleStageMod>[],
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -82,6 +84,8 @@ final class BattleMoveDefinition {
       charge: move.charge,
       recharge: move.recharge,
       mirrorMoveAffected: move.mirrorMoveAffected,
+      snatchable: move.snatchable,
+      magicCoatAffected: move.magicCoatAffected,
       stageMods: move.stageMods
           .map(
             (mod) => BattleStageMod(
@@ -114,6 +118,8 @@ final class BattleMoveDefinition {
   final bool charge;
   final bool recharge;
   final bool mirrorMoveAffected;
+  final bool snatchable;
+  final bool magicCoatAffected;
   final List<BattleStageMod> _stageMods;
   final List<PsdkBattleMoveStatus> _statuses;
 
@@ -143,6 +149,8 @@ final class BattleMoveDefinition {
     bool? charge,
     bool? recharge,
     bool? mirrorMoveAffected,
+    bool? snatchable,
+    bool? magicCoatAffected,
     List<BattleStageMod>? stageMods,
     List<PsdkBattleMoveStatus>? statuses,
   }) {
@@ -166,6 +174,8 @@ final class BattleMoveDefinition {
       charge: charge ?? this.charge,
       recharge: recharge ?? this.recharge,
       mirrorMoveAffected: mirrorMoveAffected ?? this.mirrorMoveAffected,
+      snatchable: snatchable ?? this.snatchable,
+      magicCoatAffected: magicCoatAffected ?? this.magicCoatAffected,
       stageMods: stageMods ?? this.stageMods,
       statuses: statuses ?? this.statuses,
     );
@@ -198,6 +208,8 @@ final class BattleMoveDefinition {
       charge: charge,
       recharge: recharge,
       mirrorMoveAffected: mirrorMoveAffected,
+      snatchable: snatchable,
+      magicCoatAffected: magicCoatAffected,
       stageMods: stageMods
           .map(
             (mod) => PsdkBattleMoveStageMod(

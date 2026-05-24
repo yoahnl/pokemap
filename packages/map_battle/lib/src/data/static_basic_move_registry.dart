@@ -144,6 +144,87 @@ final class _SignatureZMoveCallbackBehavior
   }
 }
 
+final class _MagicCoatMoveBehavior implements BattleMoveUserPreventionBehavior {
+  const _MagicCoatMoveBehavior();
+
+  @override
+  String get battleEngineMethod => 's_magic_coat';
+
+  @override
+  BattleMoveUserPreventionResult? preventUser(
+    BattleMoveBehaviorContext context,
+  ) {
+    if (!context.isLastActionOfTurn) {
+      return null;
+    }
+    return const BattleMoveUserPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    final prevention = preventUser(context);
+    if (prevention != null) {
+      return BattleMoveBehaviorResolution(
+        state: context.state,
+        rng: context.rng,
+        events: <PsdkBattleEvent>[
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.user,
+            moveId: context.move.id,
+            reason: prevention.reason.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+    return _resolveTargetMarkerWithEffect(context, effectId: 'magic_coat');
+  }
+}
+
+final class _SnatchMoveBehavior implements BattleMoveUserPreventionBehavior {
+  const _SnatchMoveBehavior();
+
+  @override
+  String get battleEngineMethod => 's_snatch';
+
+  @override
+  BattleMoveUserPreventionResult? preventUser(
+    BattleMoveBehaviorContext context,
+  ) {
+    final target = context.state.battlerAt(context.target);
+    if (!target.effects.contains('snatch')) {
+      return null;
+    }
+    return const BattleMoveUserPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    final prevention = preventUser(context);
+    if (prevention != null) {
+      return BattleMoveBehaviorResolution(
+        state: context.state,
+        rng: context.rng,
+        events: <PsdkBattleEvent>[
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.target,
+            moveId: context.move.id,
+            reason: prevention.reason.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+    return _resolveTargetMarkerWithEffect(context, effectId: 'snatch');
+  }
+}
+
 BattleMoveRegistry createStaticBasicMoveRegistry() {
   late final BattleMoveRegistry registry;
 
@@ -875,6 +956,8 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const TypeBasedMoveBehavior.judgment(),
     const TypeBasedMoveBehavior.multiAttack(),
     const TypeBasedMoveBehavior.revelationDance(),
+    const _MagicCoatMoveBehavior(),
+    const _SnatchMoveBehavior(),
   ]);
   return registry;
 }
@@ -887,7 +970,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_focus_energy': 'focus_energy',
   's_gastro_acid': 'ability_suppressed',
   's_laser_focus': 'laser_focus',
-  's_magic_coat': 'magic_coat',
   's_magnet_rise': 'magnet_rise',
   's_minimize': 'minimize',
   's_miracle_eye': 'miracle_eye',
@@ -896,7 +978,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_perish_song': 'perish_song',
   's_powder': 'powder',
   's_revival_blessing': 'revival_blessing',
-  's_snatch': 'snatch',
   's_taunt': 'taunt',
   's_telekinesis': 'telekinesis',
   's_yawn': 'drowsiness',
@@ -5272,6 +5353,7 @@ BattleMoveBehaviorResolution _resolveSupportStatMove(
         state: state,
         rng: rng,
         events: events,
+        user: prepared.psdkUser,
         targets: prepared.targets,
         failureReason: null,
         shouldExecuteBehavior: true,

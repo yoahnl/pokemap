@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 724 |
-| Studio attacks `partiel` | 4 |
+| Studio attacks `fait` | 726 |
+| Studio attacks `partiel` | 2 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -19,17 +19,15 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Battle method | Partial attacks |
 | --- | ---: |
-| s_magic_coat | 1 |
 | s_multi_hit | 1 |
 | s_shell_trap | 1 |
-| s_snatch | 1 |
 
 ## Method Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 326 |
-| `partial` | 4 |
+| `ported` | 328 |
+| `partial` | 2 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -37,9 +35,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 3 |
 | ability | 1 |
 | actionOrder | 1 |
+| effects | 1 |
 
 ### Partial Method Batches
 
@@ -48,7 +46,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
 | Action queue / copy-call residuals | 1 | `s_shell_trap` |
-| Effect hook / manifest final sweep | 3 | `s_magic_coat`, `s_revival_blessing`, `s_snatch` |
+| Effect hook / manifest final sweep | 1 | `s_revival_blessing` |
 
 ## Effect Coverage
 

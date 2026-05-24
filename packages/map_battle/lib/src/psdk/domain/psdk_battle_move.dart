@@ -135,6 +135,8 @@ class PsdkBattleMoveData {
     this.charge = false,
     this.recharge = false,
     this.mirrorMoveAffected = true,
+    this.snatchable = false,
+    this.magicCoatAffected = false,
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
     List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -192,6 +194,8 @@ class PsdkBattleMoveData {
   final bool charge;
   final bool recharge;
   final bool mirrorMoveAffected;
+  final bool snatchable;
+  final bool magicCoatAffected;
   final List<PsdkBattleMoveStatus> _statuses;
   final List<PsdkBattleMoveStageMod> _stageMods;
 
@@ -242,6 +246,8 @@ class PsdkBattleMoveData {
     bool? charge,
     bool? recharge,
     bool? mirrorMoveAffected,
+    bool? snatchable,
+    bool? magicCoatAffected,
     List<PsdkBattleMoveStatus>? statuses,
     List<PsdkBattleMoveStageMod>? stageMods,
   }) {
@@ -271,6 +277,8 @@ class PsdkBattleMoveData {
       charge: charge ?? this.charge,
       recharge: recharge ?? this.recharge,
       mirrorMoveAffected: mirrorMoveAffected ?? this.mirrorMoveAffected,
+      snatchable: snatchable ?? this.snatchable,
+      magicCoatAffected: magicCoatAffected ?? this.magicCoatAffected,
       statuses: statuses ?? this.statuses,
       stageMods: stageMods ?? this.stageMods,
     );

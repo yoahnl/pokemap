@@ -586,8 +586,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_magic_coat': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_magic_coat',
+    status: _PsdkPortStatus.ported,
   ),
   's_magic_room': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
@@ -814,8 +814,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_snatch': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_snatch',
+    status: _PsdkPortStatus.ported,
   ),
   's_skill_swap': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_skill_swap)',
@@ -1377,10 +1377,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
 };
 
 const _remainingPartialMoveMethods = <String>{
-  's_magic_coat',
   's_revival_blessing',
   's_shell_trap',
-  's_snatch',
 };
 
 const _manualDependencies = <String, Set<_PsdkMoveDependency>>{

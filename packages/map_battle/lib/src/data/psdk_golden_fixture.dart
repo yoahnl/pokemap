@@ -498,6 +498,12 @@ PsdkBattleMoveData _moveFromJson(Map<String, Object?> json) {
         _optionalBool(json, 'isKingRockUtility') ??
         false,
     heal: _optionalBool(json, 'heal') ?? _optionalBool(json, 'isHeal') ?? false,
+    snatchable: _optionalBool(json, 'snatchable') ??
+        _optionalBool(json, 'isSnatchable') ??
+        false,
+    magicCoatAffected: _optionalBool(json, 'magicCoatAffected') ??
+        _optionalBool(json, 'isMagicCoatAffected') ??
+        false,
   );
 }
 
