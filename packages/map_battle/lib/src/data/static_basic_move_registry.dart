@@ -206,6 +206,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveCoreEnforcer,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_order_up',
+      resolve: _resolveOrderUp,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_doodle',
       resolve: _resolveDoodle,
     ),
@@ -496,6 +500,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     ),
     const ActionGatedMoveBehavior.snore(),
     const ActionGatedMoveBehavior.suckerPunch(),
+    const ActionGatedMoveBehavior.upperHand(),
     const ActionGatedMoveBehavior.fakeOut(),
     const ActionGatedMoveBehavior.focusPunch(),
     const FieldLocationMoveBehavior.camouflage(),
@@ -822,9 +827,7 @@ const _partialBasicDescendantMethods = <String>[
   's_shell_trap',
   's_splintered_stormshards',
   's_dragon_darts',
-  's_order_up',
   's_pre_attack_base',
-  's_upper_hand',
 ];
 
 const _partialTargetMarkerMethods = <String, String>{
@@ -1131,7 +1134,8 @@ BattleMoveBehaviorResolution _resolveBeatUp(BattleMoveBehaviorContext context) {
 BattleMoveBehaviorResolution _resolvePayday(BattleMoveBehaviorContext context) {
   final basic = _resolveBasic(context);
   final dealtDamage = basic.events.any(
-    (event) => event is PsdkBattleDamageEvent && event.moveId == context.move.id,
+    (event) =>
+        event is PsdkBattleDamageEvent && event.moveId == context.move.id,
   );
   if (!dealtDamage || context.user.bank != psdkPlayerSlot.bank) {
     return basic;
@@ -1331,9 +1335,8 @@ BattleMoveBehaviorResolution _resolveDoodle(
   for (final slot in affectedSlots) {
     state = state.updateBattler(
       slot,
-      (battler) => battler
-          .copyWith(abilityId: target.abilityId)
-          .withAbilityEffect(slot),
+      (battler) =>
+          battler.copyWith(abilityId: target.abilityId).withAbilityEffect(slot),
     );
   }
   return BattleMoveBehaviorResolution(
@@ -1575,7 +1578,8 @@ bool _hasTeleportEscapePassthrough({
   if (battler.isFainted) {
     return false;
   }
-  for (final effect in battler.effects.effects.whereType<BattleAbilityEffect>()) {
+  for (final effect
+      in battler.effects.effects.whereType<BattleAbilityEffect>()) {
     if (effect.fleePassthrough(state: state, user: user)) {
       return true;
     }
@@ -7040,6 +7044,70 @@ BattleMoveBehaviorResolution _resolveCoreEnforcer(
     state: state,
     rng: rng,
     events: events,
+    successful: basic.successful,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveOrderUp(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hitTargets = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == context.move.id)
+      .map((event) => event.target)
+      .toSet();
+  if (hitTargets.isEmpty) {
+    return basic;
+  }
+
+  final user = basic.state.battlerAt(context.user);
+  if (!user.effects.contains('commanded')) {
+    return basic;
+  }
+
+  PsdkBattleCombatant? commandingAlly;
+  for (final allySlot in basic.state.alliesOf(context.user)) {
+    final ally = basic.state.battlerAt(allySlot);
+    if (ally.effects.contains('commanding') && ally.speciesId == 'tatsugiri') {
+      commandingAlly = ally;
+      break;
+    }
+  }
+  if (commandingAlly == null) {
+    return basic;
+  }
+
+  final boostedStat = switch (commandingAlly.form) {
+    0 => 'attack',
+    1 => 'defense',
+    2 => 'speed',
+    _ => null,
+  };
+  if (boostedStat == null) {
+    return basic;
+  }
+
+  final boosted = const BattleStatChangeHandler().applyStatChange(
+    context: BattleHandlerContext(
+      state: basic.state,
+      rng: basic.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    stat: boostedStat,
+    stages: 1,
+    move: context.move,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: boosted.state,
+    rng: boosted.rng,
+    events: <PsdkBattleEvent>[
+      ...basic.events,
+      ...boosted.events,
+    ],
     successful: basic.successful,
   );
 }

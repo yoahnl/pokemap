@@ -1869,7 +1869,7 @@ void main() {
       expect(
         result.state.battlerAt(psdkOpponentSlot).effects.contains(
               'ability_suppressed',
-        ),
+            ),
         isFalse,
       );
     });
@@ -2103,6 +2103,191 @@ void main() {
       expect(
         _damage(electric, moveId: 'aura_wheel'),
         greaterThan(_damage(dark, moveId: 'aura_wheel')),
+      );
+    });
+
+    test('s_upper_hand succeeds against an announced damaging priority move',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'upper_hand',
+          type: 'fighting',
+          category: PsdkBattleMoveCategory.physical,
+          power: 65,
+          battleEngineMethod: 's_upper_hand',
+          priority: 3,
+        ),
+        opponentMove: _move(
+          id: 'quick_attack',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.physical,
+          power: 40,
+          battleEngineMethod: 's_basic',
+          priority: 1,
+        ),
+        playerSpeed: 100,
+        opponentSpeed: 10,
+      );
+
+      expect(_damageEvents(result, moveId: 'upper_hand'), hasLength(1));
+      expect(
+        result.timeline.events.whereType<PsdkBattleEffectEvent>().where(
+              (event) =>
+                  event.action == 'added' &&
+                  event.effectId == 'flinch' &&
+                  event.target == psdkOpponentSlot,
+            ),
+        isNotEmpty,
+      );
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'upper_hand'),
+        isEmpty,
+      );
+    });
+
+    test('s_upper_hand fails when the target is not using a priority attack',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'upper_hand',
+          type: 'fighting',
+          category: PsdkBattleMoveCategory.physical,
+          power: 65,
+          battleEngineMethod: 's_upper_hand',
+          priority: 3,
+        ),
+        opponentMove: _move(
+          id: 'tackle',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.physical,
+          power: 40,
+          battleEngineMethod: 's_basic',
+        ),
+        playerSpeed: 100,
+        opponentSpeed: 10,
+      );
+
+      expect(_damageEvents(result, moveId: 'upper_hand'), isEmpty);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .singleWhere((event) => event.moveId == 'upper_hand')
+            .reason,
+        'unusable_by_user',
+      );
+    });
+
+    test('s_order_up boosts the user with its commanding Tatsugiri ally form',
+        () {
+      final move = _move(
+        id: 'order_up',
+        type: 'dragon',
+        category: PsdkBattleMoveCategory.physical,
+        power: 80,
+        battleEngineMethod: 's_order_up',
+      );
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              types: const PsdkBattleTypes(primary: 'water'),
+              speed: 100,
+              move: move,
+              speciesId: 'dondozo',
+              effects: PsdkBattleEffectStack.empty().addEffect(
+                GenericBattleEffect(
+                  id: 'commanded',
+                  scope: const BattlerBattleEffectScope(psdkPlayerSlot),
+                ),
+              ),
+            ),
+          ),
+          const PsdkBattleSlotRef(bank: 0, position: 1):
+              PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'ally',
+              types: const PsdkBattleTypes(primary: 'dragon'),
+              speed: 50,
+              move: _move(id: 'ally_wait', power: 0, accuracy: 0),
+              speciesId: 'tatsugiri',
+              form: 2,
+              effects: PsdkBattleEffectStack.empty().addEffect(
+                GenericBattleEffect(
+                  id: 'commanding',
+                  scope: const BattlerBattleEffectScope(
+                    PsdkBattleSlotRef(bank: 0, position: 1),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'opponent',
+              types: const PsdkBattleTypes(primary: 'normal'),
+              speed: 10,
+              move: _move(id: 'opponent_wait', power: 0, accuracy: 0),
+            ),
+          ),
+        },
+        parties: <int, List<PsdkBattleCombatant>>{
+          0: <PsdkBattleCombatant>[
+            PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'player',
+                types: const PsdkBattleTypes(primary: 'water'),
+                speed: 100,
+                move: move,
+                speciesId: 'dondozo',
+                effects: PsdkBattleEffectStack.empty().addEffect(
+                  GenericBattleEffect(
+                    id: 'commanded',
+                    scope: const BattlerBattleEffectScope(psdkPlayerSlot),
+                  ),
+                ),
+              ),
+            ),
+            PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'ally',
+                types: const PsdkBattleTypes(primary: 'dragon'),
+                speed: 50,
+                move: _move(id: 'ally_wait', power: 0, accuracy: 0),
+                speciesId: 'tatsugiri',
+                form: 2,
+                effects: PsdkBattleEffectStack.empty().addEffect(
+                  GenericBattleEffect(
+                    id: 'commanding',
+                    scope: const BattlerBattleEffectScope(
+                      PsdkBattleSlotRef(bank: 0, position: 1),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          1: <PsdkBattleCombatant>[
+            PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent',
+                types: const PsdkBattleTypes(primary: 'normal'),
+                speed: 10,
+                move: _move(id: 'opponent_wait', power: 0, accuracy: 0),
+              ),
+            ),
+          ],
+        },
+      );
+
+      final result = _resolveMoveOnState(move: move, state: state);
+
+      expect(_damageEventsFrom(result, moveId: 'order_up'), hasLength(1));
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+        1,
       );
     });
 
@@ -3459,19 +3644,19 @@ void main() {
           ),
           playerReserves:
               entry.method == 's_shed_tail' || entry.method == 's_teleport'
-              ? <PsdkBattleCombatantSetup>[
-                  _combatant(
-                    id: 'player-reserve',
-                    types: const PsdkBattleTypes(primary: 'normal'),
-                    speed: 50,
-                    move: _move(
-                      id: 'reserve_wait',
-                      power: 0,
-                      accuracy: 1,
-                    ),
-                  ),
-                ]
-              : const <PsdkBattleCombatantSetup>[],
+                  ? <PsdkBattleCombatantSetup>[
+                      _combatant(
+                        id: 'player-reserve',
+                        types: const PsdkBattleTypes(primary: 'normal'),
+                        speed: 50,
+                        move: _move(
+                          id: 'reserve_wait',
+                          power: 0,
+                          accuracy: 1,
+                        ),
+                      ),
+                    ]
+                  : const <PsdkBattleCombatantSetup>[],
         );
 
         expect(
@@ -4196,12 +4381,6 @@ void main() {
           power: 0,
         ),
         (
-          method: 's_order_up',
-          moveId: 'order_up',
-          category: PsdkBattleMoveCategory.physical,
-          power: 80,
-        ),
-        (
           method: 's_pre_attack_base',
           moveId: 'beak_blast_base',
           category: PsdkBattleMoveCategory.physical,
@@ -4254,12 +4433,6 @@ void main() {
           moveId: 'tidy_up',
           category: PsdkBattleMoveCategory.status,
           power: 0,
-        ),
-        (
-          method: 's_upper_hand',
-          moveId: 'upper_hand',
-          category: PsdkBattleMoveCategory.physical,
-          power: 65,
         ),
       ];
 
@@ -4496,6 +4669,7 @@ PsdkBattleMoveData _move({
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   required int power,
   int accuracy = 100,
+  int priority = 0,
   int? currentPp,
   int? effectChance,
   String battleEngineMethod = 's_basic',
@@ -4513,7 +4687,7 @@ PsdkBattleMoveData _move({
     accuracy: accuracy,
     pp: 35,
     currentPp: currentPp,
-    priority: 0,
+    priority: priority,
     criticalRate: 1,
     effectChance: effectChance,
     battleEngineMethod: battleEngineMethod,
@@ -4537,6 +4711,16 @@ List<PsdkBattleDamageEvent> _damageEvents(
   required String moveId,
 }) {
   return result.timeline.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleDamageEvent> _damageEventsFrom(
+  BattleMoveBehaviorResolution result, {
+  required String moveId,
+}) {
+  return result.events
       .whereType<PsdkBattleDamageEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);

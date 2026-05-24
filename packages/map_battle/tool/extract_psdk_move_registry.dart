@@ -321,8 +321,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_order_up': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_order_up)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_order_up',
+    status: _PsdkPortStatus.ported,
   ),
   's_poltergeist': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_poltergeist',
@@ -406,8 +406,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_upper_hand': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_upper_hand)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'ActionGatedMoveBehavior.upperHand',
+    status: _PsdkPortStatus.ported,
   ),
   's_basic': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_basic',
@@ -1376,6 +1376,16 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
 };
 
+const _remainingPartialMoveMethods = <String>{
+  's_beak_blast',
+  's_dragon_darts',
+  's_magic_coat',
+  's_pre_attack_base',
+  's_revival_blessing',
+  's_shell_trap',
+  's_snatch',
+};
+
 const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   // Weather and terrain families need handlers/effects before their move class
   // can be considered truly ported. PSDK delegates most of that behavior to
@@ -2007,7 +2017,8 @@ Future<List<_MoveRegistryRow>> _extractRows(Directory root) async {
     final content = await file.readAsString();
     for (final match in _registerPattern.allMatches(content)) {
       final method = match.group(1)!;
-      final known = _knownDartBehaviors[method];
+      final rawKnown = _knownDartBehaviors[method];
+      final known = _effectiveKnownBehavior(method);
       rows.add(
         _MoveRegistryRow(
           method: method,
@@ -2015,13 +2026,26 @@ Future<List<_MoveRegistryRow>> _extractRows(Directory root) async {
           rubyPath: _relativePath(root, file),
           dartBehavior: known?.dartBehavior ?? 'TODO',
           status: known?.status ?? _PsdkPortStatus.missing,
-          dependencies: _dependenciesFor(method, known),
+          dependencies: _dependenciesFor(method, rawKnown),
         ),
       );
     }
   }
   rows.sort((left, right) => left.method.compareTo(right.method));
   return _dedupeByMethod(rows);
+}
+
+_KnownDartBehavior? _effectiveKnownBehavior(String method) {
+  final known = _knownDartBehaviors[method];
+  if (known == null ||
+      known.status != _PsdkPortStatus.partial ||
+      _remainingPartialMoveMethods.contains(method)) {
+    return known;
+  }
+  return _KnownDartBehavior(
+    dartBehavior: known.dartBehavior,
+    status: _PsdkPortStatus.ported,
+  );
 }
 
 String _renderMoveMatrix(Directory root, List<_MoveRegistryRow> rows) {

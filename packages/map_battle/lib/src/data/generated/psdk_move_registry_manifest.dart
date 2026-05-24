@@ -1752,14 +1752,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_order_up',
     rubyClass: 'OrderUp',
     rubyPath: '10 Move/2 Definitions/300 OrderUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_order_up)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_order_up',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_outrage',
@@ -3050,14 +3045,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_upper_hand',
     rubyClass: 'UpperHand',
     rubyPath: '10 Move/2 Definitions/300 UpperHand.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_upper_hand)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'ActionGatedMoveBehavior.upperHand',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_uproar',

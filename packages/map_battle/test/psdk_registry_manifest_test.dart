@@ -953,6 +953,11 @@ void main() {
         byMethod['s_core_enforcer']!.dartBehavior,
         'StaticBasicMoveRegistry.s_core_enforcer',
       );
+      expect(byMethod['s_order_up']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_order_up']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_order_up',
+      );
       expect(byMethod['s_split_up']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_split_up']!.dartBehavior,
@@ -1234,6 +1239,11 @@ void main() {
       expect(
         byMethod['s_sucker_punch']!.dartBehavior,
         'ActionGatedMoveBehavior.suckerPunch',
+      );
+      expect(byMethod['s_upper_hand']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_upper_hand']!.dartBehavior,
+        'ActionGatedMoveBehavior.upperHand',
       );
       expect(byMethod['s_fake_out']!.status, PsdkPortStatus.ported);
       expect(

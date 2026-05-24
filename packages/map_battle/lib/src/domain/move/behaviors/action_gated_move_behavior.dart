@@ -14,6 +14,7 @@ enum _ActionGatedKind {
   focusPunch,
   snore,
   suckerPunch,
+  upperHand,
 }
 
 /// Ports small PSDK move-specific user gates that are checked before PP.
@@ -37,6 +38,10 @@ final class ActionGatedMoveBehavior
   const ActionGatedMoveBehavior.suckerPunch()
       : battleEngineMethod = 's_sucker_punch',
         _kind = _ActionGatedKind.suckerPunch;
+
+  const ActionGatedMoveBehavior.upperHand()
+      : battleEngineMethod = 's_upper_hand',
+        _kind = _ActionGatedKind.upperHand;
 
   @override
   final String battleEngineMethod;
@@ -70,6 +75,13 @@ final class ActionGatedMoveBehavior
       _ActionGatedKind.suckerPunch => _canUseSuckerPunch(
           target: target,
           turn: context.turn,
+        )
+            ? null
+            : const BattleMoveUserPreventionResult(
+                reason: BattleMoveFailureReason.unusableByUser,
+              ),
+      _ActionGatedKind.upperHand => _canUseUpperHand(
+          context.announcedMoveFor?.call(context.target),
         )
             ? null
             : const BattleMoveUserPreventionResult(
@@ -142,7 +154,8 @@ final class ActionGatedMoveBehavior
       move: context.move,
       turn: context.turn,
     );
-    final shouldFlinch = _kind == _ActionGatedKind.fakeOut &&
+    final shouldFlinch = (_kind == _ActionGatedKind.fakeOut ||
+            _kind == _ActionGatedKind.upperHand) &&
         !battleMentalAbilityBlocksEffect(
           state: secondary.state,
           user: context.user,
@@ -199,5 +212,13 @@ final class ActionGatedMoveBehavior
       return false;
     }
     return target.moves.first.category != PsdkBattleMoveCategory.status;
+  }
+
+  bool _canUseUpperHand(BattleAnnouncedMove? announcedMove) {
+    if (announcedMove == null) {
+      return false;
+    }
+    final move = announcedMove.move;
+    return move.category != PsdkBattleMoveCategory.status && move.priority >= 1;
   }
 }

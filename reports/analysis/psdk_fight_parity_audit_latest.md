@@ -38,8 +38,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 321 |
-| `partial` | 9 |
+| `ported` | 323 |
+| `partial` | 7 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -47,10 +47,10 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 9 |
-| ability | 6 |
-| handlerDamage | 6 |
-| item | 6 |
+| effects | 7 |
+| ability | 4 |
+| handlerDamage | 4 |
+| item | 4 |
 
 ### Partial Method Batches
 
@@ -58,7 +58,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Damage formula / variable power | 6 | `s_beak_blast`, `s_dragon_darts`, `s_order_up`, `s_pre_attack_base`, `s_shell_trap`, `s_upper_hand` |
+| Damage formula / variable power | 4 | `s_beak_blast`, `s_dragon_darts`, `s_pre_attack_base`, `s_shell_trap` |
 | Effect hook / manifest final sweep | 3 | `s_magic_coat`, `s_revival_blessing`, `s_snatch` |
 
 ## Effect Coverage

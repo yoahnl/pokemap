@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 321,
-      "partial": 9,
+      "ported": 323,
+      "partial": 7,
       "missing": 0
     },
     "entries": [
@@ -7664,15 +7664,9 @@
         "battleEngineMethod": "s_order_up",
         "rubyClass": "OrderUp",
         "rubyPath": "10 Move/2 Definitions/300 OrderUp.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_order_up)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "StaticBasicMoveRegistry.s_order_up",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_outrage",
@@ -9015,15 +9009,9 @@
         "battleEngineMethod": "s_upper_hand",
         "rubyClass": "UpperHand",
         "rubyPath": "10 Move/2 Definitions/300 UpperHand.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_upper_hand)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "ActionGatedMoveBehavior.upperHand",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_uproar",
@@ -9163,14 +9151,12 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 6,
+        "count": 4,
         "methods": [
           "s_beak_blast",
           "s_dragon_darts",
-          "s_order_up",
           "s_pre_attack_base",
-          "s_shell_trap",
-          "s_upper_hand"
+          "s_shell_trap"
         ]
       },
       {
