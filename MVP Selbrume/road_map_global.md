@@ -6,18 +6,20 @@ Roadmap globale : active
 
 Bloc NS-GS-01 → NS-GS-18 : ✅ terminé comme bloc mechanics-first Level 2 Application
 
-Phase courante : Phase 1 — Canonical Product Model / Narrative Studio Foundations
+Phase courante : Phase 2 — Domain Model & Contracts
 
-Roadmap de phase courante : `MVP Selbrume/road_map_phase_1.md`
+Roadmap de phase courante : `MVP Selbrume/road_map_phase_2.md`
 
-Lot courant : ROADMAP-GLOBAL-00 — Global Phase Roadmap Bootstrap
+Lot courant : P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 
-Prochain lot exact après ROADMAP-GLOBAL-00 : P1-01 — Canonical Narrative Product Model V1
+Prochain lot exact : P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 
 Suivi global :
 
 - ROADMAP-GLOBAL-00 : ✅ terminé
-- P1-01 : 🔜 prochain lot exact
+- Phase 1 — Canonical Product Model / Narrative Studio Foundations : ✅ clôturée avec réserves mineures
+- Phase 2 — Domain Model & Contracts : 🔜 phase courante
+- P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit : 🔜 prochain lot exact
 
 ## 2. Objectif final de PokeMap
 
@@ -100,8 +102,8 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 ## 5. Synthèse des phases
 
 - ✅ Phase 0 — Audit global & roadmap reset
-- 🔜 Phase 1 — Canonical Product Model / Narrative Studio Foundations
-- Phase 2 — Domain Model & Contracts
+- ✅ Phase 1 — Canonical Product Model / Narrative Studio Foundations
+- 🔜 Phase 2 — Domain Model & Contracts
 - Phase 3 — Runtime / Application / Flame / Disk Validation
 - Phase 4 — Authoring Workflows Minimal
 - Phase 5 — Gameplay Gaps Prioritaires
@@ -223,14 +225,30 @@ Checkpoint final :
 - P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 Statut :
-🔜 phase courante.
+✅ clôturée avec réserves mineures.
+
+Résultat checkpoint :
+
+```text
+Phase 1 a figé la grammaire produit du Narrative Studio :
+Storyline, Chapter, Story Step, Event, Scene, Cinematic, Dialogue Yarn, Fact,
+World Rule, Validator, mapping Selbrume, workflows no-code et proposition
+Phase 2.
+```
+
+Réserves :
+
+- Phase 1 reste documentaire, pas runtime ;
+- les preuves Level 3 Flame et Level 4 projet disque restent reportées ;
+- les contrats domaine, JSON, migrations, authoring minimal et UI restent à
+  traiter dans les phases suivantes.
 
 ## 8. Phase 2 — Domain Model & Contracts
 
 Objectif :
-Définir ou stabiliser dans `map_core` les contrats nécessaires : Storyline,
-Chapter, StoryStep, Event, SceneGraph, FactRegistry, WorldRuleRegistry,
-Cinematic metadata et diagnostics.
+Définir ou stabiliser les contrats, descriptors, adapters, read models et
+diagnostics nécessaires au Narrative Studio, en partant de l’existant avant de
+créer de nouveaux modèles.
 
 Pourquoi :
 Les concepts Phase 1 devront devenir des contrats stables, testables et
@@ -244,10 +262,12 @@ Préconditions :
 
 Périmètre :
 
-- modèles pure Dart si nécessaires ;
+- audit de l’existant narratif ;
+- contrats pure Dart si nécessaires ;
+- adapters/read models lorsque le stockage existe déjà ;
 - diagnostics et validators associés ;
 - compatibilité avec `ScenarioAsset` existant ;
-- tests JSON / validation ciblés.
+- stratégie persistence / JSON / migration explicite.
 
 Non-objectifs :
 
@@ -258,8 +278,8 @@ Non-objectifs :
 
 Livrables :
 
-- roadmap vivante Phase 2 ;
-- contrats domaine validés ou explicitement reportés ;
+- `MVP Selbrume/road_map_phase_2.md` ;
+- contrats domaine validés, adaptés ou explicitement reportés ;
 - tests ciblés ;
 - rapport checkpoint Phase 2.
 
@@ -274,7 +294,7 @@ Checkpoint final :
 - P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
 Statut :
-future.
+🔜 phase courante.
 
 ## 9. Phase 3 — Runtime / Application / Flame / Disk Validation
 
@@ -537,26 +557,29 @@ future tardive.
 ## 14. Phase courante
 
 Phase courante :
-Phase 1 — Canonical Product Model / Narrative Studio Foundations
+Phase 2 — Domain Model & Contracts
 
 Roadmap de phase :
-`MVP Selbrume/road_map_phase_1.md`
+`MVP Selbrume/road_map_phase_2.md`
 
 Prochain lot de la phase :
-P1-01 — Canonical Narrative Product Model V1
+P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 
 Note :
-ROADMAP-GLOBAL-00 a créé la présente roadmap globale. Il ne démarre pas P1-01.
+P1-CHECKPOINT-01 a clôturé Phase 1 et créé la roadmap vivante Phase 2. Il ne
+démarre pas P2-00.
 
 ## 15. Prochain lot exact
 
-P1-01 — Canonical Narrative Product Model V1
+P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 
-P1-01 doit rester documentaire/design-first et définir Storyline, Chapter,
-Story Step, Event, Scene, Cinematic, Dialogue Yarn, Fact, World Rule et Validator.
+P2-00 doit rester audit-first et documentaire / cadrage domaine. Il doit
+inventorier précisément les modèles, metadata, validators, runtime source events,
+authoring projections et conventions existantes avant toute création de contrat.
 
-P1-01 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
-Selbrume finales ou de `project.json`.
+P2-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l’UI
+premium, et ne doit pas modifier le runtime Flame sauf si un lot dédié ultérieur
+le demande explicitement.
 
 ## 16. Critères de changement de phase
 
@@ -620,10 +643,11 @@ ou si l’utilisateur le demande explicitement.
 - Level 3 Flame / PlayableMapGame Golden Slice complet : non entièrement prouvé.
 - Level 4 projet disque / vrai projet créé dans l’éditeur : non prouvé pour le
   Golden Slice narratif complet.
-- Storyline / Chapter / Story Step model canonique : Phase 1 puis Phase 2.
-- Event model canonique : Phase 1 puis Phase 2.
-- Scene vs Cinematic boundary : Phase 1.
-- FactRegistry / WorldRuleRegistry : Phase 1 puis Phase 2.
+- Storyline / Chapter / Story Step contract ou descriptor : Phase 2.
+- Event authoring source contract : Phase 2.
+- Scene / ScenarioAsset adapter : Phase 2.
+- FactDescriptor / Fact Presentation Layer : Phase 2.
+- World Rule Predicate Adapter : Phase 2.
 - Validator UI et intégration authoring : Phase 4 puis Phase 7.
 - Reward Model, money, XP, level-up : Phase 5.
 - Static wild encounter authorable réel : Phase 5.
@@ -636,3 +660,11 @@ ou si l’utilisateur le demande explicitement.
   courante fixée à Phase 1 — Canonical Product Model / Narrative Studio
   Foundations. Prochain lot exact fixé à P1-01 — Canonical Narrative Product
   Model V1.
+- 2026-05-24 — P1-CHECKPOINT-01 — Phase 1 clôturée avec réserves mineures.
+  La grammaire produit du Narrative Studio est figée : Storyline, Chapter,
+  Story Step, Event, Scene, Cinematic, Dialogue Yarn, Fact, World Rule,
+  Validator, mapping Selbrume, workflows no-code et proposition Phase 2.
+  Phase courante mise à jour vers Phase 2 — Domain Model & Contracts.
+  Roadmap de phase courante fixée à `MVP Selbrume/road_map_phase_2.md`.
+  Prochain lot exact fixé à P2-00 — Phase 2 Roadmap Bootstrap / Domain
+  Contract Audit.

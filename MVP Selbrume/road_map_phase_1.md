@@ -4,11 +4,11 @@
 
 Phase 1 — Canonical Product Model / Narrative Studio Foundations
 
-Statut : 🔜 En préparation
+Statut : ✅ Clôturée avec réserves mineures
 
-Lot courant : P1-07 — Phase 2 Domain Contract Proposal
+Lot courant : P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
-Prochain lot exact après P1-07 : P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
+Prochain lot exact après P1-CHECKPOINT-01 : P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 
 Suivi des lots :
 
@@ -20,7 +20,7 @@ Suivi des lots :
 - ✅ P1-05 — Selbrume Reference Grammar Mapping
 - ✅ P1-06 — No-code Workflow Specification
 - ✅ P1-07 — Phase 2 Domain Contract Proposal
-- 🔜 P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
+- ✅ P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 P1-00 : ✅ terminé
 
@@ -38,7 +38,7 @@ P1-06 : ✅ terminé
 
 P1-07 : ✅ terminé
 
-P1-CHECKPOINT-01 : 🔜 prochain lot exact
+P1-CHECKPOINT-01 : ✅ terminé
 
 ## 2. Objectif de la Phase 1
 
@@ -371,7 +371,7 @@ Critères de validation :
 - les risques de migration sont listés ;
 - les modèles à reporter sont explicitement justifiés.
 
-### 🔜 P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
+### ✅ P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 Objectif :
 Vérifier que Phase 1 a fermé les ambiguïtés et recommander la roadmap détaillée
@@ -402,20 +402,23 @@ Critères de validation :
 
 ## 10. Prochain lot exact
 
-P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
+P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 
 Objectif du prochain lot :
-Auditer tous les livrables Phase 1, vérifier les ambiguïtés restantes,
-décider la transition vers Phase 2 et recommander ou préparer la roadmap de
-phase suivante.
+Auditer les modèles, metadata, validators, conventions et contrats narratifs
+existants avant de créer ou modifier des contrats Phase 2.
 
-P1-CHECKPOINT-01 est le seul lot Phase 1 autorisé à décider la transition de
-phase. Il ne doit pas démarrer Phase 2 ni créer de contenu Selbrume final sans
-validation utilisateur.
+P2-00 doit rester audit-first. Il peut préparer la Phase 2, mais ne doit pas
+créer de modèle `map_core`, de schéma JSON, de migration, d’UI ou de contenu
+Selbrume final sans lot explicite.
+
+Roadmap de phase courante après clôture :
+
+- `MVP Selbrume/road_map_phase_2.md`
 
 ## 11. Critères de sortie de Phase 1
 
-La Phase 1 pourra être fermée uniquement si :
+La Phase 1 est clôturée avec réserves mineures si :
 
 - les concepts Storyline, Chapter, Story Step, Event, Scene, Cinematic, Dialogue
   Yarn, Fact, World Rule et Validator sont définis ;
@@ -428,6 +431,19 @@ La Phase 1 pourra être fermée uniquement si :
 - les besoins Phase 2 sont transformés en proposition de contrats domaine ;
 - les non-objectifs Phase 1 sont respectés ;
 - P1-CHECKPOINT-01 recommande explicitement la suite.
+
+Verdict checkpoint :
+
+```text
+✅ Phase 1 clôturable avec réserves mineures.
+```
+
+Réserves principales :
+
+- Phase 1 reste documentaire et conceptuelle ;
+- les preuves Level 3 Flame et Level 4 projet disque restent hors Phase 1 ;
+- les contrats `map_core`, JSON, migrations et UI sont reportés ;
+- la roadmap Phase 2 doit commencer par audit avant création de modèles.
 
 ## 12. Règle permanente de maintenance de cette roadmap
 
@@ -467,7 +483,8 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
 
 - Modèles `map_core` Storyline / Chapter / Story Step / Event : reportés à la
   Phase 2 si validés par la Phase 1.
-- FactRegistry et WorldRuleRegistry : reportés à la Phase 2.
+- FactDescriptor / Fact Presentation Layer et World Rule Predicate Adapter :
+  reportés à la Phase 2, sans présumer un registre lourd.
 - Validation Flame Level 3 et projet disque Level 4 : reportés à une phase de
   validation runtime / disk.
 - Reward Model, money, XP et level-up : reportés à une sous-roadmap gameplay
@@ -568,3 +585,19 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
   Décisions utilisateur nouvelles : aucune.
   Changements de périmètre : aucun.
   Prochain lot exact fixé à P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision.
+- 2026-05-24 — P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision terminé.
+  Résultat : Phase 1 clôturée avec réserves mineures ; concepts et frontières
+  Narrative Studio figés ; gaps Phase 2+ classés ; roadmap globale mise à jour
+  vers Phase 2 ; roadmap vivante Phase 2 créée sans exécuter P2-00.
+  Fichiers créés : `reports/roadmap/phase_1/p1_checkpoint_01_canonical_product_model_closure.md`,
+  `MVP Selbrume/road_map_phase_2.md`.
+  Fichiers modifiés : `MVP Selbrume/road_map_phase_1.md`,
+  `MVP Selbrume/road_map_global.md`.
+  Commandes exécutées : lectures Markdown ciblées, `rg`, `sed`, `wc -l`,
+  `git status --short --untracked-files=all`, `git diff --check`,
+  `git diff --stat`, `git diff --name-only`, `git diff --no-index --check`.
+  Décisions utilisateur nouvelles : validation de la roadmap Phase 2 et des
+  décisions ouvertes à effectuer avant ou pendant P2-00.
+  Changements de périmètre : création documentaire de
+  `MVP Selbrume/road_map_phase_2.md` justifiée par la clôture Phase 1.
+  Prochain lot exact fixé à P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit.
