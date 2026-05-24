@@ -571,23 +571,23 @@ PHASE 5 — Sécurité no-code
 PHASE 6 — Extension gameplay
 ✅ NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
 ✅ NS-GS-15   — Key Item / Door Gate Readiness
-🔜 NS-GS-16   — Side Quest / Optional Storyline Readiness
-   NS-GS-17   — Static Encounter / Boss Battle Readiness
+✅ NS-GS-16   — Side Quest / Optional Storyline Readiness
+🔜 NS-GS-17   — Static Encounter / Boss Battle Readiness
    NS-GS-18   — Reward / Money / XP Bridge Audit
 ```
 
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-16 — Side Quest / Optional Storyline Readiness
+🔜 NS-GS-17 — Static Encounter / Boss Battle Readiness
 ```
 
 Périmètre :
 
 ```text
-Caractériser ou ajouter le flux générique Side Quest / Optional Storyline :
-quête annexe conditionnelle, steps optionnels, récompense simple,
-dialogue final, world rules liées et preuves runtime/application.
+Caractériser ou ajouter le flux générique Static Encounter / Boss Battle :
+interactable ou trigger lance un combat static/boss, outcomes victory/defeat/capture,
+post-battle facts, one-shot, save/load et world rules liées.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -838,3 +838,21 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Brique générique authorable. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
 | Prochain lot | NS-GS-16 — Side Quest / Optional Storyline Readiness |
 | Rapport | `reports/gameplay/ns_gs_15_key_item_door_gate_readiness.md` |
+
+---
+
+# Mise à jour NS-GS-16 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-16 — Side Quest / Optional Storyline Readiness |
+| Résultat | Flux générique Side Quest / Optional Storyline validé sans nouveau code de production : disponibilité conditionnelle → start fact/step → objective step optionnelle → final scene bloquée ou résolue → giveItem reward simple → completion fact/step → save/load → world rule dialogue/visibilité. |
+| Décision | Cas A : le pattern existe déjà via `ScenarioAsset`, `ScenarioRuntimeExecutor`, facts, `completeStep`, `giveItem`, save/load et `MapEntityRuntimePredicateEvaluator`. Aucun Quest Engine, Quest Studio, Quest UI ou reward engine n'a été ajouté. |
+| Fichiers | `packages/map_runtime/test/side_quest_optional_storyline_readiness_test.dart`, rapport NS-GS-16, `MVP Selbrume/road_map.md` |
+| Tests exécutés | `cd packages/map_runtime && flutter test test/side_quest_optional_storyline_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/key_item_door_gate_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/item_pickup_give_item_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/world_rules_conditional_presence_readiness_test.dart` |
+| Analyzer | `cd packages/map_runtime && flutter analyze` → 352 diagnostics `info` préexistants au niveau package ; analyze ciblé du test NS-GS-16 → No issues found. |
+| git diff --check | À reporter dans `reports/gameplay/ns_gs_16_side_quest_optional_storyline_readiness.md` Evidence Pack final. |
+| Limites | Pas de modèle Quest dédié ; pas de Quest Journal/UI ; pas de reward engine ; pas de XP/money. Les conditions de scénario lisent des facts, donc l'objectif optionnel est représenté par step + fact miroir pour brancher la scène finale. |
+| Mechanics-first | ✅ Brique générique authorable. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
+| Prochain lot | NS-GS-17 — Static Encounter / Boss Battle Readiness |
+| Rapport | `reports/gameplay/ns_gs_16_side_quest_optional_storyline_readiness.md` |
