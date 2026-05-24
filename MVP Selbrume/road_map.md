@@ -560,10 +560,10 @@ PHASE 3 — Authoring / runtime bridge (code + readiness)
 ✅ NS-GS-08   — NPC Interaction → Scene Authoring Readiness
 ✅ NS-GS-09   — Yarn Outcome → Scene Branch Readiness
 ✅ NS-GS-10   — World Rules / Conditional Presence Readiness
-🔜 NS-GS-11   — Trainer Battle Authoring Readiness
+✅ NS-GS-11   — Trainer Battle Authoring Readiness
 
 PHASE 4 — Validation depuis l’éditeur
-   NS-GS-12   — Editor-authored Golden Slice Validation
+🔜 NS-GS-12   — Editor-authored Golden Slice Validation
 
 PHASE 5 — Sécurité no-code
    NS-GS-13   — Narrative Validator Minimal V0
@@ -579,14 +579,14 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-11 — Trainer Battle Authoring Readiness
+🔜 NS-GS-12 — Editor-authored Golden Slice Validation
 ```
 
 Périmètre :
 
 ```text
-Audit et readiness de l'authoring de combats trainer.
-Pipeline trainer battle depuis le scénario.
+Validation depuis l'éditeur du Golden Slice.
+Intégration Flame complète des briques audités NS-GS-08 à NS-GS-11.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -745,3 +745,20 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
 | Prochain lot | NS-GS-11 — Trainer Battle Authoring Readiness |
 | Rapport | `reports/gameplay/ns_gs_10_world_rules_conditional_presence_readiness.md` |
+
+---
+
+# Mise à jour NS-GS-11 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-11 — Trainer Battle Authoring Readiness |
+| Résultat | Cas A : flux Scene → Trainer Battle → Outcome → Continuation déjà complet. 13 tests de caractérisation ajoutés. Aucun code de prod modifié. Analyze clean. |
+| Fichiers | `trainer_battle_authoring_readiness_test.dart` (13 tests), rapport |
+| Décision | Le pont existe : startTrainerBattle → ScenarioRuntimeEffectType.battle → _handleScenarioBattleEffect → _onBattleFinished → scenarioBattleOutcomeFlagName → dispatchContinuation → branch victory/defeat. |
+| Frontière Scene/Battle/World Rule | ✅ Battle non transformé en Scene. Scene reste responsable de la progression post-combat. Outcome battle revient à la Scene. |
+| Garde-fou faux positif | Cas 1 : flux complet dispatch → battle effect → outcome → continuation → branch testé. Gap honnête : Flame-level _handleScenarioBattleEffect et _onBattleFinished non testés au niveau widget test (NS-GS-12). |
+| Limites | Tests au niveau ScenarioRuntimeExecutor, pas au niveau Flame complet. buildTrainerBattleRequestFromNpc et applyRuntimeBattleOutcomeToGameState testés séparément dans leurs fichiers respectifs. |
+| Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. Ids génériques test_*. |
+| Prochain lot | NS-GS-12 — Editor-authored Golden Slice Validation |
+| Rapport | `reports/gameplay/ns_gs_11_trainer_battle_authoring_readiness.md` |
