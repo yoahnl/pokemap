@@ -573,20 +573,21 @@ PHASE 6 — Extension gameplay
 ✅ NS-GS-15   — Key Item / Door Gate Readiness
 ✅ NS-GS-16   — Side Quest / Optional Storyline Readiness
 ✅ NS-GS-17   — Static Encounter / Boss Battle Readiness
-🔜 NS-GS-18   — Reward / Money / XP Bridge Audit
+✅ NS-GS-18   — Reward / Money / XP Bridge Audit
+🔜 NS-GS-19   — Reward Model Minimal Design
 ```
 
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-18 — Reward / Money / XP Bridge Audit
+🔜 NS-GS-19 — Reward Model Minimal Design
 ```
 
 Périmètre :
 
 ```text
-Auditer le pont rewards post-combat :
-XP, money rewards, post-battle rewards, give item after battle,
+Stabiliser le modèle minimal des rewards avant implémentation :
+item reward, money, XP/level-up, ownership scène/runtime,
 sans créer de reward engine complet.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
@@ -874,3 +875,21 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Brique générique authorable caractérisée. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
 | Prochain lot | NS-GS-18 — Reward / Money / XP Bridge Audit |
 | Rapport | `reports/gameplay/ns_gs_17_static_encounter_boss_battle_readiness.md` |
+
+---
+
+# Mise à jour NS-GS-18 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-18 — Reward / Money / XP Bridge Audit |
+| Résultat | Audit rewards/money/XP livré. Le pont item reward post-battle est prouvé au niveau application via battle outcome flag → `dispatchContinuation` → `giveItem` → fact/step → save/load. |
+| Décision | Cas B/C : item reward post-battle possible via scène ; money existe seulement comme état persistant ; XP/level-up/learn-move post-battle absents ; trainer/static rewards sans contrat data. Aucun reward engine ajouté. |
+| Fichiers | `packages/map_runtime/test/reward_bridge_readiness_test.dart`, rapport NS-GS-18, `MVP Selbrume/road_map.md` |
+| Tests exécutés | `cd packages/map_runtime && flutter test test/reward_bridge_readiness_test.dart` ; régressions `trainer_battle_authoring_readiness_test.dart`, `item_pickup_give_item_readiness_test.dart`, `static_encounter_boss_battle_readiness_test.dart` |
+| Analyzer | `cd packages/map_runtime && flutter analyze test/reward_bridge_readiness_test.dart` → No issues found. |
+| git diff --check | Passé ; sortie vide. |
+| Limites | Pas de modèle `Reward`; pas de `giveMoney`; pas de `kScenarioActionGiveMoney`; pas de champs trainer reward ; pas de XP field ; pas de level-up / learn-move post-battle ; pas de validator reward. |
+| Mechanics-first | ✅ Audit + test générique uniquement. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
+| Prochain lot | NS-GS-19 — Reward Model Minimal Design |
+| Rapport | `reports/gameplay/ns_gs_18_reward_money_xp_bridge_audit.md` |
