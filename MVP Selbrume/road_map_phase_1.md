@@ -52,6 +52,8 @@ conséquences et faits du monde.
 
 - La roadmap globale par phases existe dans
   `reports/roadmap/pokemap_full_product_phased_roadmap_v1.md`.
+- La roadmap globale vivante existe dans
+  `MVP Selbrume/road_map_global.md`.
 - Le bloc NS-GS-01 → NS-GS-18 est considéré comme terminé au niveau
   mechanics-first, principalement au Level 2 Application.
 - Les limites Level 3 Flame et Level 4 projet disque restent documentées comme
@@ -416,20 +418,24 @@ La Phase 1 pourra être fermée uniquement si :
 À chaque lot de Phase 1, l’agent doit :
 
 1. Lire `MVP Selbrume/road_map_phase_1.md` avant toute modification.
-2. Lire `reports/roadmap/pokemap_full_product_phased_roadmap_v1.md`.
-3. Respecter le lot courant et le prochain lot exact.
-4. Ne jamais démarrer un autre lot que celui demandé.
-5. Mettre à jour le statut du lot exécuté.
-6. Ajouter un résumé court du résultat.
-7. Ajouter les fichiers créés ou modifiés.
-8. Ajouter les commandes exécutées si applicable.
-9. Ajouter les décisions utilisateur nouvelles.
-10. Ajouter les changements de périmètre.
-11. Mettre à jour la section “Prochain lot exact”.
-12. Conserver un Evidence Pack dans le rapport du lot.
-13. Ne jamais créer de contenu Selbrume final.
-14. Ne jamais créer de project.json Selbrume.
-15. Ne jamais implémenter de code pendant Phase 1 sauf demande explicite.
+2. Lire `MVP Selbrume/road_map_global.md`.
+3. Lire `reports/roadmap/pokemap_full_product_phased_roadmap_v1.md`.
+4. Respecter le lot courant et le prochain lot exact.
+5. Ne jamais démarrer un autre lot que celui demandé.
+6. Mettre à jour le statut du lot exécuté.
+7. Ajouter un résumé court du résultat.
+8. Ajouter les fichiers créés ou modifiés.
+9. Ajouter les commandes exécutées si applicable.
+10. Ajouter les décisions utilisateur nouvelles.
+11. Ajouter les changements de périmètre.
+12. Mettre à jour la section “Prochain lot exact”.
+13. Conserver un Evidence Pack dans le rapport du lot.
+14. Ne jamais créer de contenu Selbrume final.
+15. Ne jamais créer de project.json Selbrume.
+16. Ne jamais implémenter de code pendant Phase 1 sauf demande explicite.
+
+P1-CHECKPOINT-01 devra aussi mettre à jour
+`MVP Selbrume/road_map_global.md` avant toute transition vers la Phase 2.
 
 ## 13. Décisions utilisateur intégrées
 
