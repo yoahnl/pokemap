@@ -579,14 +579,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_dragon_darts',
     rubyClass: 'DragonDarts',
     rubyPath: '10 Move/2 Definitions/300 DragonDarts.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_dragon_darts)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    dartBehavior: 'DragonDartsMoveBehavior',
+    status: PsdkPortStatus.ported,
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_dragon_tail',

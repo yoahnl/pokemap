@@ -172,11 +172,14 @@ final class BattleTurnRunner {
 
         final user = _context.state.battlerAt(action.user);
         final target = _context.state.battlerAt(action.target);
-        if (user.isFainted || target.isFainted) {
+        final moveBeforePp = user.moves[action.moveSlot];
+        final moveAllowsFaintedOriginalTarget =
+            moveBeforePp.battleEngineMethod == 's_dragon_darts';
+        if (user.isFainted ||
+            (target.isFainted && !moveAllowsFaintedOriginalTarget)) {
           continue;
         }
 
-        final moveBeforePp = user.moves[action.moveSlot];
         final historyTargets = <PsdkBattleSlotRef>[action.target];
         final cleanMoveBeforePp = BattleMoveDefinition.fromPsdk(moveBeforePp);
         final statusPrevention = _resolveStatusUserPrevention(

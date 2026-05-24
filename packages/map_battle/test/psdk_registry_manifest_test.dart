@@ -953,6 +953,11 @@ void main() {
         byMethod['s_core_enforcer']!.dartBehavior,
         'StaticBasicMoveRegistry.s_core_enforcer',
       );
+      expect(byMethod['s_dragon_darts']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_dragon_darts']!.dartBehavior,
+        'DragonDartsMoveBehavior',
+      );
       expect(byMethod['s_order_up']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_order_up']!.dartBehavior,

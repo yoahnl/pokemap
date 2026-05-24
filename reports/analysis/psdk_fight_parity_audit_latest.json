@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 323,
-      "partial": 7,
+      "ported": 324,
+      "partial": 6,
       "missing": 0
     },
     "entries": [
@@ -6437,15 +6437,9 @@
         "battleEngineMethod": "s_dragon_darts",
         "rubyClass": "DragonDarts",
         "rubyPath": "10 Move/2 Definitions/300 DragonDarts.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_dragon_darts)",
-        "status": "partial",
-        "dependencies": [
-          "handlerDamage",
-          "effects",
-          "ability",
-          "item"
-        ],
-        "methodBatch": "damage_formula_variable_power"
+        "dartBehavior": "DragonDartsMoveBehavior",
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_dragon_tail",
@@ -9151,10 +9145,9 @@
       {
         "id": "damage_formula_variable_power",
         "label": "Damage formula / variable power",
-        "count": 4,
+        "count": 3,
         "methods": [
           "s_beak_blast",
-          "s_dragon_darts",
           "s_pre_attack_base",
           "s_shell_trap"
         ]

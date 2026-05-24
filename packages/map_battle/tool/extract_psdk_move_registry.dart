@@ -225,8 +225,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_dragon_darts': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_dragon_darts)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'DragonDartsMoveBehavior',
+    status: _PsdkPortStatus.ported,
   ),
   's_eerie_spell': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_eerie_spell',
@@ -1378,7 +1378,6 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
 
 const _remainingPartialMoveMethods = <String>{
   's_beak_blast',
-  's_dragon_darts',
   's_magic_coat',
   's_pre_attack_base',
   's_revival_blessing',

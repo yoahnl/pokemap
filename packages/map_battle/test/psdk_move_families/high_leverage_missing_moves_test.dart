@@ -2291,6 +2291,183 @@ void main() {
       );
     });
 
+    test('s_dragon_darts hits the same target twice in singles', () {
+      final move = _dragonDartsMove();
+      final result = _resolveMoveOnState(
+        move: move,
+        state: _dragonDartsState(move: move),
+      );
+
+      expect(
+        _damageEventsFrom(result, moveId: 'dragon_darts')
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[
+          psdkOpponentSlot,
+          psdkOpponentSlot,
+        ],
+      );
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, lessThan(100));
+    });
+
+    test('s_dragon_darts splits darts across the selected foe and one ally',
+        () {
+      final move = _dragonDartsMove();
+      const opponentAlly = PsdkBattleSlotRef(bank: 1, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: _dragonDartsState(
+          move: move,
+          opponentAllySlots: const <PsdkBattleSlotRef>[opponentAlly],
+        ),
+      );
+
+      expect(
+        _damageEventsFrom(result, moveId: 'dragon_darts')
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[
+          psdkOpponentSlot,
+          opponentAlly,
+        ],
+      );
+    });
+
+    test('s_dragon_darts samples one foe ally deterministically', () {
+      final move = _dragonDartsMove();
+      const firstAlly = PsdkBattleSlotRef(bank: 1, position: 1);
+      const secondAlly = PsdkBattleSlotRef(bank: 1, position: 2);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: _dragonDartsState(
+          move: move,
+          opponentAllySlots: const <PsdkBattleSlotRef>[
+            firstAlly,
+            secondAlly,
+          ],
+        ),
+      );
+
+      expect(
+        _damageEventsFrom(result, moveId: 'dragon_darts')
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[
+          psdkOpponentSlot,
+          firstAlly,
+        ],
+      );
+      expect(result.state.battlerAt(secondAlly).currentHp, 100);
+    });
+
+    test('s_dragon_darts keeps both darts on center-of-attention targets', () {
+      final move = _dragonDartsMove();
+      const opponentAlly = PsdkBattleSlotRef(bank: 1, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: _dragonDartsState(
+          move: move,
+          opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+            GenericBattleEffect(
+              id: PsdkBattleEffectIds.centerOfAttention,
+              scope: BattlerBattleEffectScope(psdkOpponentSlot),
+            ),
+          ),
+          opponentAllySlots: const <PsdkBattleSlotRef>[opponentAlly],
+        ),
+      );
+
+      expect(
+        _damageEventsFrom(result, moveId: 'dragon_darts')
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[
+          psdkOpponentSlot,
+          psdkOpponentSlot,
+        ],
+      );
+      expect(result.state.battlerAt(opponentAlly).currentHp, 100);
+    });
+
+    test('s_dragon_darts falls back to an ally of an invalid foe target', () {
+      final move = _dragonDartsMove();
+      const opponentAlly = PsdkBattleSlotRef(bank: 1, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: _dragonDartsState(
+          move: move,
+          opponentHp: 0,
+          opponentAllySlots: const <PsdkBattleSlotRef>[opponentAlly],
+        ),
+      );
+
+      expect(
+        _damageEventsFrom(result, moveId: 'dragon_darts')
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[
+          opponentAlly,
+          opponentAlly,
+        ],
+      );
+    });
+
+    test('s_dragon_darts prechecks Protect before the split ally dart', () {
+      final move = _dragonDartsMove();
+      const opponentAlly = PsdkBattleSlotRef(bank: 1, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        state: _dragonDartsState(
+          move: move,
+          opponentAllyEffects: <PsdkBattleSlotRef, PsdkBattleEffectStack>{
+            opponentAlly: PsdkBattleEffectStack.empty().addEffect(
+              const ProtectEffect(
+                scope: BattlerBattleEffectScope(opponentAlly),
+              ),
+            ),
+          },
+          opponentAllySlots: const <PsdkBattleSlotRef>[opponentAlly],
+        ),
+      );
+
+      expect(
+        _damageEventsFrom(result, moveId: 'dragon_darts')
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[psdkOpponentSlot],
+      );
+      expect(result.state.battlerAt(opponentAlly).currentHp, 100);
+      final failures = result.events.whereType<PsdkBattleMoveFailedEvent>();
+      expect(failures, hasLength(1));
+      expect(failures.single.target, opponentAlly);
+      expect(
+          failures.single.reason, BattleMoveFailureReason.protected.jsonName);
+    });
+
+    test('s_dragon_darts can fallback after the selected foe is missed', () {
+      final move = _dragonDartsMove().copyWith(accuracy: 50);
+      const opponentAlly = PsdkBattleSlotRef(bank: 1, position: 1);
+      final result = _resolveMoveOnState(
+        move: move,
+        moveAccuracySeed: 53,
+        state: _dragonDartsState(
+          move: move,
+          opponentAllySlots: const <PsdkBattleSlotRef>[opponentAlly],
+        ),
+      );
+
+      expect(
+        _damageEventsFrom(result, moveId: 'dragon_darts')
+            .map((event) => event.target),
+        <PsdkBattleSlotRef>[opponentAlly, psdkOpponentSlot],
+      );
+    });
+
+    test('s_dragon_darts skips the second dart when the target is fainted', () {
+      final move = _dragonDartsMove();
+      final result = _resolveMoveOnState(
+        move: move,
+        state: _dragonDartsState(move: move, opponentHp: 1),
+      );
+
+      expect(_damageEventsFrom(result, moveId: 'dragon_darts'), hasLength(1));
+      expect(result.state.battlerAt(psdkOpponentSlot).isFainted, isTrue);
+    });
+
     test('s_frustration scales damage with low loyalty', () {
       final lowLoyalty = _runMove(
         playerMove: _move(
@@ -4697,6 +4874,58 @@ PsdkBattleMoveData _move({
   );
 }
 
+PsdkBattleMoveData _dragonDartsMove() {
+  return _move(
+    id: 'dragon_darts',
+    type: 'dragon',
+    category: PsdkBattleMoveCategory.physical,
+    power: 50,
+    battleEngineMethod: 's_dragon_darts',
+  );
+}
+
+PsdkBattleState _dragonDartsState({
+  required PsdkBattleMoveData move,
+  int opponentHp = 100,
+  PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
+  Map<PsdkBattleSlotRef, PsdkBattleEffectStack> opponentAllyEffects =
+      const <PsdkBattleSlotRef, PsdkBattleEffectStack>{},
+  List<PsdkBattleSlotRef> opponentAllySlots = const <PsdkBattleSlotRef>[],
+}) {
+  return PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          types: const PsdkBattleTypes(primary: 'dragon'),
+          speed: 100,
+          move: move,
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          types: const PsdkBattleTypes(primary: 'normal'),
+          speed: 10,
+          currentHp: opponentHp,
+          move: _move(id: 'opponent_wait', power: 0, accuracy: 0),
+          effects: opponentEffects,
+        ),
+      ),
+      for (final slot in opponentAllySlots)
+        slot: PsdkBattleCombatant.fromSetup(
+          _combatant(
+            id: 'opponent_ally_${slot.position}',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 5,
+            move: _move(id: 'opponent_ally_wait_${slot.position}', power: 0),
+            effects: opponentAllyEffects[slot],
+          ),
+        ),
+    },
+  );
+}
+
 List<PsdkBattleEvent> _eventsFor(
   PsdkBattleTurnResult result, {
   required String moveId,
@@ -4778,6 +5007,7 @@ BattleMoveBehaviorResolution _resolveMoveOnState({
   required PsdkBattleState state,
   PsdkBattleSlotRef user = psdkPlayerSlot,
   PsdkBattleSlotRef target = psdkOpponentSlot,
+  int moveAccuracySeed = 3,
 }) {
   return createStaticBasicMoveRegistry()
       .resolve(move.battleEngineMethod)
@@ -4787,7 +5017,7 @@ BattleMoveBehaviorResolution _resolveMoveOnState({
           rng: BattleRngStreams.fromSeeds(
             moveDamageSeed: 1,
             moveCriticalSeed: 2,
-            moveAccuracySeed: 3,
+            moveAccuracySeed: moveAccuracySeed,
             genericSeed: 4,
           ),
           turn: 1,

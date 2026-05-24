@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 323 |
-| `partial` | 7 |
+| `ported` | 324 |
+| `partial` | 6 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -71,7 +71,7 @@ Total registered methods: 330
 | `s_doodle` | `Doodle` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.s_doodle` | `ported` | `-` |
 | `s_double_iron_bash` | `DoubleIronBash` | `10 Move/2 Definitions/300 DoubleIronBash.rb` | `MultiHitMoveBehavior.doubleIronBash` | `ported` | `targeting_multi`, `history`, `accuracy`, `ability`, `item` |
 | `s_dragon_cheer` | `DragonCheer` | `10 Move/2 Definitions/300 DragonCheer.rb` | `StaticBasicMoveRegistry.s_dragon_cheer` | `ported` | `-` |
-| `s_dragon_darts` | `DragonDarts` | `10 Move/2 Definitions/300 DragonDarts.rb` | `StaticBasicMoveRegistry.partialBasic(s_dragon_darts)` | `partial` | `handler_damage`, `effects`, `ability`, `item` |
+| `s_dragon_darts` | `DragonDarts` | `10 Move/2 Definitions/300 DragonDarts.rb` | `DragonDartsMoveBehavior` | `ported` | `-` |
 | `s_dragon_tail` | `ForceSwitch` | `10 Move/2 Definitions/300 ForceSwitch.rb` | `StaticBasicMoveRegistry.forceSwitch(s_dragon_tail)` | `ported` | `handler_switch`, `effects`, `ability` |
 | `s_dream_eater` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `DrainMoveBehavior.dreamEater` | `ported` | `handler_damage`, `handler_status`, `effects`, `item`, `ability` |
 | `s_echo` | `EchoedVoice` | `10 Move/2 Definitions/300 EchoedVoice.rb` | `ConsecutivePowerMoveBehavior.echoedVoice` | `ported` | `-` |

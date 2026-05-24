@@ -8,6 +8,7 @@ import '../domain/move/behaviors/copy_call_move_behavior.dart';
 import '../domain/move/behaviors/custom_stat_source_move_behavior.dart';
 import '../domain/move/behaviors/direct_hp_move_behavior.dart';
 import '../domain/move/behaviors/drain_move_behavior.dart';
+import '../domain/move/behaviors/dragon_darts_move_behavior.dart';
 import '../domain/move/behaviors/field_location_move_behavior.dart';
 import '../domain/move/behaviors/fixed_damage_move_behavior.dart';
 import '../domain/move/behaviors/forced_action_move_behavior.dart';
@@ -669,6 +670,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const MultiHitMoveBehavior.populationBomb(),
     const MultiHitMoveBehavior.waterShuriken(),
     const MultiHitMoveBehavior.scaleShot(),
+    const DragonDartsMoveBehavior(),
     const BasicDamageSpecializationMoveBehavior.fangs(),
     const BasicDamageSpecializationMoveBehavior.falseSwipe(),
     const BasicDamageSpecializationMoveBehavior.fullCrit(),
@@ -826,7 +828,6 @@ const _partialBasicDescendantMethods = <String>[
   's_malicious_moonsault',
   's_shell_trap',
   's_splintered_stormshards',
-  's_dragon_darts',
   's_pre_attack_base',
 ];
 
