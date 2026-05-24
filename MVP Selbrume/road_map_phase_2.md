@@ -6,9 +6,9 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-04 — Scene / ScenarioAsset Adapter Contract
+Lot courant : P2-05 — Outcome Reference Contracts
 
-Prochain lot exact : P2-04 — Scene / ScenarioAsset Adapter Contract
+Prochain lot exact : P2-05 — Outcome Reference Contracts
 
 Suivi des lots :
 
@@ -16,8 +16,8 @@ Suivi des lots :
 - ✅ P2-01 — Existing Narrative Domain Inventory
 - ✅ P2-02 — Story Step Descriptor / Storyline Metadata Decision
 - ✅ P2-03 — Event Authoring Source Contract
-- 🔜 P2-04 — Scene / ScenarioAsset Adapter Contract
-- P2-05 — Outcome Reference Contracts
+- ✅ P2-04 — Scene / ScenarioAsset Adapter Contract
+- 🔜 P2-05 — Outcome Reference Contracts
 - P2-06 — Battle Reference / Outcome Contract
 - P2-07 — Fact Descriptor / Presentation Layer
 - P2-08 — World Rule Predicate Adapter Contract
@@ -33,7 +33,9 @@ P2-02 : ✅ terminé
 
 P2-03 : ✅ terminé
 
-P2-04 : 🔜 prochain lot exact
+P2-04 : ✅ terminé
+
+P2-05 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -396,11 +398,88 @@ Pas de runtime Flame.
 Dépendances :
 P2-01.
 
-### P2-04 — Scene / ScenarioAsset Adapter Contract
+### ✅ P2-04 — Scene / ScenarioAsset Adapter Contract
 
 Objectif :
 Décider si Scene est le nom produit de `ScenarioAsset`, un wrapper, ou un
 adapter/read model.
+
+Résultat :
+P2-04 reste design-only. Le lot décide que `ScenarioAsset` demeure le substrat
+technique persistant et exécutable, tandis que Scene est la vue produit
+d'orchestration à dériver de ce substrat. La trajectoire recommandée est un
+futur `SceneReadModel` / `SceneScenarioAdapter` non persistant, attendu après
+P2-05/P2-09/P2-10 si les outcomes, diagnostics et picker sources le justifient.
+Aucun wrapper Scene persistant, aucune migration `ProjectManifest`, aucun code
+et aucun Scene Builder ne sont créés.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_04_scene_scenario_asset_adapter_contract.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `sed -n '1,260p' "MVP Selbrume/road_map_global.md"`
+- `sed -n '1,420p' "MVP Selbrume/road_map_phase_2.md"`
+- `sed -n '1,180p' "MVP Selbrume/road_map_phase_1.md"`
+- `sed -n '1,260p' reports/roadmap/phase_2/p2_04_scene_scenario_asset_adapter_contract.md`
+- `sed -n '1,260p' reports/roadmap/phase_2/p2_00_phase_2_roadmap_bootstrap_domain_contract_audit.md`
+- `sed -n '1,380p' reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md`
+- `sed -n '1,320p' reports/roadmap/phase_2/p2_02_story_step_descriptor_storyline_metadata_decision.md`
+- `sed -n '1,360p' reports/roadmap/phase_2/p2_03_event_authoring_source_contract.md`
+- `sed -n '1,320p' reports/roadmap/phase_1/p1_checkpoint_01_canonical_product_model_closure.md`
+- `sed -n '1,320p' reports/roadmap/phase_1/p1_07_phase_2_domain_contract_proposal.md`
+- `sed -n '1,260p' reports/roadmap/phase_1/p1_06_no_code_workflow_specification.md`
+- `sed -n '1,220p' reports/roadmap/phase_1/p1_02_event_scene_cinematic_boundary_contract.md`
+- `sed -n '1,220p' reports/roadmap/phase_1/p1_01_canonical_narrative_product_model_v1.md`
+- `sed -n '1,320p' packages/map_core/lib/src/models/scenario_asset.dart`
+- `sed -n '1,260p' packages/map_core/lib/src/models/project_manifest.dart`
+- `sed -n '1,320p' packages/map_core/lib/src/operations/narrative_validator.dart`
+- `sed -n '1,320p' packages/map_core/lib/src/validation/validators.dart`
+- `sed -n '321,760p' packages/map_core/lib/src/operations/narrative_validator.dart`
+- `sed -n '321,760p' packages/map_core/lib/src/validation/validators.dart`
+- `sed -n '1,360p' packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_models.dart`
+- `sed -n '1,420p' packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart`
+- `sed -n '421,920p' packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart`
+- `rg -n "_validateScenarios|declaredOutcomes|activationCondition|entryNodeId|sourceMapEnter|sourceTriggerEnter|sourceEntityInteract|sourceOutcome|emitOutcome|openDialogue|startTrainerBattle|flowMerge|authoringPlaceholder" packages/map_core/lib/src/validation/validators.dart`
+- `sed -n '760,1180p' packages/map_core/lib/src/validation/validators.dart`
+- `sed -n '760,980p' packages/map_core/lib/src/operations/narrative_validator.dart`
+- `sed -n '920,1260p' packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart`
+- `sed -n '1,360p' packages/map_editor/lib/src/application/use_cases/project_scenario_use_cases.dart`
+- `sed -n '1,420p' packages/map_editor/lib/src/features/narrative/application/narrative_workspace_projection.dart`
+- `sed -n '1,360p' packages/map_editor/lib/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart`
+- `sed -n '1260,1480p' packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart`
+- `sed -n '360,780p' packages/map_editor/lib/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart`
+- `sed -n '1,420p' packages/map_editor/lib/src/features/narrative/application/cutscene_studio/cutscene_studio_compiler.dart`
+- `rg -n "ScenarioAsset|ScenarioScope|globalStory|localEventFlow|ScenarioNode|ScenarioNodeType|ScenarioEdge|ScenarioNodePayload|ScenarioNodeBinding|declaredOutcomes|activationCondition|entryNodeId|ProjectValidator|NarrativeValidator|ScenarioRuntimeExecutor|ScenarioRuntimeEffect|ScenarioRuntimeEffectType|openDialogue|runScript|showMessage|startTrainerBattle|completeStep|emitOutcome|authoringPlaceholder|flowMerge" packages/map_core/lib/src packages/map_runtime/lib/src/application/scenario_runtime packages/map_editor/lib/src/application/use_cases/project_scenario_use_cases.dart packages/map_editor/lib/src/features/narrative/application/narrative_workspace_projection.dart packages/map_editor/lib/src/features/narrative/application/cutscene_studio`
+- `sed -n '420,860p' packages/map_editor/lib/src/features/narrative/application/cutscene_studio/cutscene_studio_compiler.dart`
+- `sed -n '780,1180p' packages/map_editor/lib/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart`
+- `sed -n '1,220p' AGENTS.md`
+- `sed -n '1,220p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/verification-before-completion/SKILL.md`
+- `sed -n '1,360p' "MVP Selbrume/road_map_phase_2.md"`
+- `sed -n '360,760p' "MVP Selbrume/road_map_phase_2.md"`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_04_scene_scenario_asset_adapter_contract.md || true`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle examples/playable_runtime_host`
+- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short`
+
+Décisions utilisateur nouvelles :
+La décision recommandée est de ne pas créer de contrat Dart maintenant. Scene
+devient la vue produit d'orchestration dérivée de `ScenarioAsset`, sans
+persistence dédiée. Les décisions restant à valider portent sur le moment exact
+où le read model sera implémenté et sur les champs stabilisés par P2-05/P2-09/P2-10.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-04 confirme l'approche adapter avant
+persistence, sans code, sans JSON, sans UI et sans Selbrume final.
 
 Risque :
 Casser `ScenarioAsset` ou créer un modèle parallèle inutile.
@@ -412,7 +491,7 @@ Non-objectifs :
 Pas de Scene Builder complet.
 
 Dépendances :
-P2-01.
+P2-01, P2-03.
 
 ### P2-05 — Outcome Reference Contracts
 
@@ -591,5 +670,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-04 — Scene / ScenarioAsset Adapter Contract
+P2-05 — Outcome Reference Contracts
 ```
