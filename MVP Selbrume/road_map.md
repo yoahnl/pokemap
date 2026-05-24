@@ -801,3 +801,4 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Brique générique pure Dart. Aucun code runtime/editor modifié. Aucun contenu Selbrume final. Aucun `project.json` généré. |
 | Prochain lot | NS-GS-14 — Item Pickup / GiveItem Authoring Readiness |
 | Rapport | `reports/gameplay/ns_gs_13_narrative_validator_minimal_v0.md` |
+| Fermeture documentaire | NS-GS-13-bis — Evidence Pack Closure Only. Rapport : `reports/gameplay/ns_gs_13_bis_evidence_pack_closure.md` |
