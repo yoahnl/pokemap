@@ -53,6 +53,16 @@ const String kScenarioActionStartTrainerBattle = 'startTrainerBattle';
 /// Aucun speciesId n'est hardcodé : l'authoring fournit tout.
 const String kScenarioActionGivePokemon = 'givePokemon';
 
+/// Action scénario : donne un item au joueur.
+///
+/// Paramètres lus depuis `ScenarioNodePayload.params` :
+/// - `itemId` (obligatoire) : identifiant de l'item.
+/// - `quantity` (optionnel, défaut 1) : quantité à ajouter au Bag.
+///
+/// La mutation est appliquée via [GameStateMutations.giveItem].
+/// L'anti double pickup reste porté par un flag/condition/world rule.
+const String kScenarioActionGiveItem = 'giveItem';
+
 /// Marque une étape narrative comme complétée.
 ///
 /// Le `stepId` est lu depuis `ScenarioNodePayload.params['stepId']`.
@@ -1012,8 +1022,7 @@ class ScenarioRuntimeExecutor {
                     'Combat trainer "$trainerId" (battle=$battleId) lancé. Graphe suspendu.',
               );
             case kScenarioActionGivePokemon:
-              final speciesId =
-                  node.payload.params['speciesId']?.trim() ?? '';
+              final speciesId = node.payload.params['speciesId']?.trim() ?? '';
               if (speciesId.isEmpty) {
                 return ScenarioRuntimeExecutionResult(
                   status: ScenarioRuntimeExecutionStatus.blocked,
@@ -1057,9 +1066,8 @@ class ScenarioRuntimeExecutor {
               final parsedHp = int.tryParse(
                 node.payload.params['currentHp']?.trim() ?? '',
               );
-              final currentHp = (parsedHp != null && parsedHp >= 1)
-                  ? parsedHp
-                  : clampedLevel;
+              final currentHp =
+                  (parsedHp != null && parsedHp >= 1) ? parsedHp : clampedLevel;
 
               final pokemon = PlayerPokemon(
                 speciesId: speciesId,
@@ -1094,10 +1102,23 @@ class ScenarioRuntimeExecutor {
               }
               currentNodeId = nextAfterGive;
 
-            case kScenarioActionCompleteStep:
-              final stepId =
-                  node.payload.params['stepId']?.trim() ?? '';
-              if (stepId.isEmpty) {
+            case kScenarioActionGiveItem:
+              final itemId = node.payload.params['itemId']?.trim() ?? '';
+              if (itemId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'Action giveItem sans itemId dans "${node.id}".',
+                );
+              }
+              final quantity = int.tryParse(
+                    node.payload.params['quantity']?.trim() ?? '',
+                  ) ??
+                  1;
+              if (quantity <= 0) {
                 return ScenarioRuntimeExecutionResult(
                   status: ScenarioRuntimeExecutionStatus.blocked,
                   effect: const ScenarioRuntimeEffect.none(),
@@ -1105,7 +1126,44 @@ class ScenarioRuntimeExecutor {
                   sourceNodeId: sourceId,
                   stopNodeId: node.id,
                   message:
-                      'Action completeStep sans stepId dans "${node.id}".',
+                      'Action giveItem avec quantity non positive dans "${node.id}".',
+                );
+              }
+
+              const itemMutations = GameStateMutations();
+              final nextItemState = itemMutations.giveItem(
+                context.gameState,
+                itemId,
+                quantity,
+              );
+              context.gameState = nextItemState;
+              context.onGameStateUpdated(nextItemState);
+              final nextAfterItem = _pickLinearNextNodeId(
+                nodeId: node.id,
+                edges: scenario.edges,
+              );
+              if (nextAfterItem == null) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'Item "$itemId" x$quantity donné. Fin du flow.',
+                );
+              }
+              currentNodeId = nextAfterItem;
+
+            case kScenarioActionCompleteStep:
+              final stepId = node.payload.params['stepId']?.trim() ?? '';
+              if (stepId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message: 'Action completeStep sans stepId dans "${node.id}".',
                 );
               }
               // Idempotent: calling completeStep twice is safe.
@@ -1127,8 +1185,7 @@ class ScenarioRuntimeExecutor {
                   scenarioId: scenario.id,
                   sourceNodeId: sourceId,
                   stopNodeId: node.id,
-                  message:
-                      'Step "$stepId" complétée. Fin du flow.',
+                  message: 'Step "$stepId" complétée. Fin du flow.',
                 );
               }
               currentNodeId = nextAfterStep;

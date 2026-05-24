@@ -4754,7 +4754,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
       case ItemInteracted(:final entity):
         debugPrint('[interact] Item: ${entity.id}');
-        _showNotification(entity.inspectorHeadline);
+        scenarioHandledEntityInteraction =
+            _tryDispatchScenarioEntityInteraction(
+          entity.id,
+        );
+        if (!scenarioHandledEntityInteraction) {
+          _showNotification(entity.inspectorHeadline);
+        }
       case EntityInteracted(:final entity):
         debugPrint('[interact] Entity: ${entity.id}');
         scenarioHandledEntityInteraction =

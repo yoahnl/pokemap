@@ -569,8 +569,8 @@ PHASE 5 — Sécurité no-code
 ✅ NS-GS-13   — Narrative Validator Minimal V0
 
 PHASE 6 — Extension gameplay
-🔜 NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
-   NS-GS-15   — Key Item / Door Gate Readiness
+✅ NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
+🔜 NS-GS-15   — Key Item / Door Gate Readiness
    NS-GS-16   — Side Quest / Optional Storyline Readiness
    NS-GS-17   — Static Encounter / Boss Battle Readiness
    NS-GS-18   — Reward / Money / XP Bridge Audit
@@ -579,15 +579,15 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-14 — Item Pickup / GiveItem Authoring Readiness
+🔜 NS-GS-15 — Key Item / Door Gate Readiness
 ```
 
 Périmètre :
 
 ```text
-Caractériser ou ajouter le flux générique Item Pickup / GiveItem :
-ramassage d'objet, ajout inventaire, idempotence si nécessaire,
-authoring readiness et preuves runtime/application.
+Caractériser ou ajouter le flux générique Key Item / Door Gate :
+condition hasItem/hasFact, porte ou interaction bloquée/débloquée,
+message si bloqué, world rule persistante et preuves runtime/application.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -802,3 +802,21 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Prochain lot | NS-GS-14 — Item Pickup / GiveItem Authoring Readiness |
 | Rapport | `reports/gameplay/ns_gs_13_narrative_validator_minimal_v0.md` |
 | Fermeture documentaire | NS-GS-13-bis — Evidence Pack Closure Only. Rapport : `reports/gameplay/ns_gs_13_bis_evidence_pack_closure.md` |
+
+---
+
+# Mise à jour NS-GS-14 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-14 — Item Pickup / GiveItem Authoring Readiness |
+| Résultat | Flux générique Item Pickup / GiveItem validé : interaction item → scénario `entityInteract` → action `giveItem` → Bag → fact/step → save/load → anti double pickup par condition, avec pattern world rule documenté. |
+| Décision | Cas B : `GameStateMutations.giveItem` et le Bag existaient déjà, mais l'action scénario authorable et le dispatch item → scène manquaient. Ajout minimal côté `map_runtime`. |
+| Fichiers | `packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart`, `packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`, `packages/map_runtime/lib/map_runtime.dart`, `packages/map_runtime/test/item_pickup_give_item_readiness_test.dart`, rapport NS-GS-14 |
+| Tests exécutés | `cd packages/map_runtime && flutter test test/item_pickup_give_item_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/scenario_complete_step_test.dart` ; `cd packages/map_runtime && flutter test test/world_rules_conditional_presence_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/scenario_give_pokemon_test.dart` ; `cd packages/map_gameplay && dart test test/game_state_mutations_test.dart` |
+| Analyzer | `cd packages/map_runtime && flutter analyze` → 352 diagnostics `info` préexistants au niveau package ; analyze ciblé des fichiers NS-GS-14 → No issues found. |
+| git diff --check | À reporter dans `reports/gameplay/ns_gs_14_item_pickup_give_item_authoring_readiness.md` Evidence Pack final. |
+| Limites | Pas d'Item Catalogue, pas de Bag UI, pas de shop, pas d'item effects, pas de key item / door gate. Les world rules de visibilité restent centrées NPC ; l'anti double pickup réel est prouvé par condition de scénario, avec proxy world rule documenté. |
+| Mechanics-first | ✅ Brique générique authorable. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
+| Prochain lot | NS-GS-15 — Key Item / Door Gate Readiness |
+| Rapport | `reports/gameplay/ns_gs_14_item_pickup_give_item_authoring_readiness.md` |
