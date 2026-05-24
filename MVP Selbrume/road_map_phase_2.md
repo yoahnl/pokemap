@@ -6,17 +6,17 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-03 — Event Authoring Source Contract
+Lot courant : P2-04 — Scene / ScenarioAsset Adapter Contract
 
-Prochain lot exact : P2-03 — Event Authoring Source Contract
+Prochain lot exact : P2-04 — Scene / ScenarioAsset Adapter Contract
 
 Suivi des lots :
 
 - ✅ P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
 - ✅ P2-01 — Existing Narrative Domain Inventory
 - ✅ P2-02 — Story Step Descriptor / Storyline Metadata Decision
-- 🔜 P2-03 — Event Authoring Source Contract
-- P2-04 — Scene / ScenarioAsset Adapter Contract
+- ✅ P2-03 — Event Authoring Source Contract
+- 🔜 P2-04 — Scene / ScenarioAsset Adapter Contract
 - P2-05 — Outcome Reference Contracts
 - P2-06 — Battle Reference / Outcome Contract
 - P2-07 — Fact Descriptor / Presentation Layer
@@ -31,7 +31,9 @@ P2-01 : ✅ terminé
 
 P2-02 : ✅ terminé
 
-P2-03 : 🔜 prochain lot exact
+P2-03 : ✅ terminé
+
+P2-04 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -324,11 +326,63 @@ Pas de Quest Engine, pas de Quest Journal.
 Dépendances :
 P2-01.
 
-### P2-03 — Event Authoring Source Contract
+### ✅ P2-03 — Event Authoring Source Contract
 
 Objectif :
 Formaliser les sources auteur d’Event sans dupliquer inutilement les runtime
 source events.
+
+Résultat :
+P2-03 reste design-only. Le lot audite `ScenarioRuntimeSourceEvent`, les nodes
+`sourceMapEnter`, `sourceTriggerEnter`, `sourceEntityInteract` et
+`sourceOutcome`, puis refuse tout modèle persistant, toute migration
+`ProjectManifest` et toute modification runtime. La trajectoire recommandée est
+un `EventAuthoringSourceReadModel` non persistant futur, dérivé de
+`ScenarioAsset` et de ses source nodes existants. Event reste un déclencheur :
+source + condition + target, sans orchestration.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_03_event_authoring_source_contract.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `sed -n '1,260p' "MVP Selbrume/road_map_global.md"`
+- `sed -n '1,360p' "MVP Selbrume/road_map_phase_2.md"`
+- `sed -n '1,180p' "MVP Selbrume/road_map_phase_1.md"`
+- `sed -n '1,260p' reports/roadmap/phase_2/p2_03_event_authoring_source_contract.md`
+- `sed -n '1,260p' reports/roadmap/phase_2/p2_00_phase_2_roadmap_bootstrap_domain_contract_audit.md`
+- `sed -n '1,320p' reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md`
+- `sed -n '1,260p' reports/roadmap/phase_2/p2_02_story_step_descriptor_storyline_metadata_decision.md`
+- `rg -n "Event|ScenarioRuntimeSourceEvent|ScenarioRuntimeSourceType|sourceMapEnter|sourceTriggerEnter|sourceEntityInteract|sourceOutcome|ScenarioNodeBinding|activationCondition|Validator|authoring source|P2-03" reports/roadmap/phase_1/p1_checkpoint_01_canonical_product_model_closure.md reports/roadmap/phase_1/p1_07_phase_2_domain_contract_proposal.md reports/roadmap/phase_1/p1_06_no_code_workflow_specification.md reports/roadmap/phase_1/p1_02_event_scene_cinematic_boundary_contract.md reports/roadmap/phase_1/p1_01_canonical_narrative_product_model_v1.md`
+- `sed -n '1,260p' packages/map_core/lib/src/models/scenario_asset.dart`
+- `sed -n '1,260p' packages/map_core/lib/src/models/script_conditions.dart`
+- `sed -n '1,260p' packages/map_core/lib/src/models/project_manifest.dart`
+- `sed -n '1,320p' packages/map_core/lib/src/operations/narrative_validator.dart`
+- `sed -n '1,260p' packages/map_core/lib/src/validation/validators.dart`
+- `sed -n '1,320p' packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_models.dart`
+- `sed -n '1,360p' packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart`
+- `sed -n '1,320p' packages/map_editor/lib/src/application/use_cases/project_scenario_use_cases.dart`
+- `sed -n '1,360p' packages/map_editor/lib/src/features/narrative/application/narrative_workspace_projection.dart`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short`
+
+Décisions utilisateur nouvelles :
+La décision recommandée est de ne pas créer de contrat Dart maintenant. Le
+contrat conceptuel `EventAuthoringSourceReadModel` est reporté jusqu'à ce que
+P2-04 stabilise la relation Scene / `ScenarioAsset`, puis P2-09/P2-10 précisent
+diagnostics et picker read models.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-03 confirme que l'authoring source adapte
+l'existant et que le runtime reste runtime.
 
 Risque :
 Transformer Event en mini-Scene.
@@ -537,5 +591,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-03 — Event Authoring Source Contract
+P2-04 — Scene / ScenarioAsset Adapter Contract
 ```
