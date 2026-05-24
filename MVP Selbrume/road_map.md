@@ -572,22 +572,22 @@ PHASE 6 — Extension gameplay
 ✅ NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
 ✅ NS-GS-15   — Key Item / Door Gate Readiness
 ✅ NS-GS-16   — Side Quest / Optional Storyline Readiness
-🔜 NS-GS-17   — Static Encounter / Boss Battle Readiness
-   NS-GS-18   — Reward / Money / XP Bridge Audit
+✅ NS-GS-17   — Static Encounter / Boss Battle Readiness
+🔜 NS-GS-18   — Reward / Money / XP Bridge Audit
 ```
 
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-17 — Static Encounter / Boss Battle Readiness
+🔜 NS-GS-18 — Reward / Money / XP Bridge Audit
 ```
 
 Périmètre :
 
 ```text
-Caractériser ou ajouter le flux générique Static Encounter / Boss Battle :
-interactable ou trigger lance un combat static/boss, outcomes victory/defeat/capture,
-post-battle facts, one-shot, save/load et world rules liées.
+Auditer le pont rewards post-combat :
+XP, money rewards, post-battle rewards, give item after battle,
+sans créer de reward engine complet.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -856,3 +856,21 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Brique générique authorable. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
 | Prochain lot | NS-GS-17 — Static Encounter / Boss Battle Readiness |
 | Rapport | `reports/gameplay/ns_gs_16_side_quest_optional_storyline_readiness.md` |
+
+---
+
+# Mise à jour NS-GS-17 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-17 — Static Encounter / Boss Battle Readiness |
+| Résultat | Flux générique de boss trainer-like authorable validé sans nouveau code de production : entité interactable → scénario `entityInteract` → `startTrainerBattle` → battle effect → continuation via flags `battle:<battleId>:...` → facts/steps post-battle → one-shot victory/captured → save/load → world rule dialogue/visibilité. |
+| Décision | Cas A partiel et honnête : le repo supporte déjà les wild battles de zones et les outcomes battle, mais aucune action scénario `startWildBattle` / `startStaticEncounter` n'existe. NS-GS-17 prouve donc un static/boss trainer-like, pas un vrai static wild authorable. |
+| Fichiers | `packages/map_runtime/test/static_encounter_boss_battle_readiness_test.dart`, rapport NS-GS-17, `MVP Selbrume/road_map.md` |
+| Tests exécutés | `cd packages/map_runtime && flutter test test/static_encounter_boss_battle_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/trainer_battle_authoring_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/side_quest_optional_storyline_readiness_test.dart` ; `cd packages/map_runtime && flutter test test/world_rules_conditional_presence_readiness_test.dart` |
+| Analyzer | `cd packages/map_runtime && flutter analyze` → 352 diagnostics `info` préexistants au niveau package ; `cd packages/map_runtime && flutter analyze test/static_encounter_boss_battle_readiness_test.dart` → No issues found. |
+| git diff --check | À reporter dans `reports/gameplay/ns_gs_17_static_encounter_boss_battle_readiness.md` Evidence Pack final. |
+| Limites | Static wild authorable non prouvé ; pas de `startStaticEncounter`; pas de Boss Engine ; pas de capture engine complet ; pas de rewards XP/money. `captured` et `flee` sont classés via convention d'outcome, mais le flow authorable prouvé reste trainer-like. |
+| Mechanics-first | ✅ Brique générique authorable caractérisée. Aucun contenu Selbrume final. Aucune fixture Selbrume finale. Aucun `project.json` Selbrume généré. |
+| Prochain lot | NS-GS-18 — Reward / Money / XP Bridge Audit |
+| Rapport | `reports/gameplay/ns_gs_17_static_encounter_boss_battle_readiness.md` |
