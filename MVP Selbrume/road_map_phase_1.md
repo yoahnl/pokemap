@@ -6,15 +6,15 @@ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 
 Statut : 🔜 En préparation
 
-Lot courant : P1-00 — Phase 1 Roadmap Bootstrap
+Lot courant : P1-01 — Canonical Narrative Product Model V1
 
-Prochain lot exact après P1-00 : P1-01 — Canonical Narrative Product Model V1
+Prochain lot exact après P1-01 : P1-02 — Event / Scene / Cinematic Boundary Contract
 
 Suivi des lots :
 
 - ✅ P1-00 — Phase 1 Roadmap Bootstrap
-- 🔜 P1-01 — Canonical Narrative Product Model V1
-- P1-02 — Event / Scene / Cinematic Boundary Contract
+- ✅ P1-01 — Canonical Narrative Product Model V1
+- 🔜 P1-02 — Event / Scene / Cinematic Boundary Contract
 - P1-03 — Fact & World Rule Product Grammar
 - P1-04 — Storyline / Chapter / Story Step Structure
 - P1-05 — Selbrume Reference Grammar Mapping
@@ -24,7 +24,9 @@ Suivi des lots :
 
 P1-00 : ✅ terminé
 
-P1-01 : 🔜 prochain lot exact
+P1-01 : ✅ terminé
+
+P1-02 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 1
 
@@ -160,7 +162,7 @@ Critères de validation :
 - la règle permanente de maintenance est inscrite ;
 - l’Evidence Pack P1-00 est complet.
 
-### 🔜 P1-01 — Canonical Narrative Product Model V1
+### ✅ P1-01 — Canonical Narrative Product Model V1
 
 Objectif :
 Définir Storyline, Chapter, Story Step, Event, Scene, Cinematic,
@@ -189,7 +191,7 @@ Critères de validation :
 - le vocabulaire reste no-code et créateur-friendly ;
 - les impacts Phase 2 sont listés sans implémentation.
 
-### P1-02 — Event / Scene / Cinematic Boundary Contract
+### 🔜 P1-02 — Event / Scene / Cinematic Boundary Contract
 
 Objectif :
 Figer les frontières Event déclenche / Scene orchestre / Cinematic linéaire.
@@ -388,13 +390,12 @@ Critères de validation :
 
 ## 10. Prochain lot exact
 
-P1-01 — Canonical Narrative Product Model V1
+P1-02 — Event / Scene / Cinematic Boundary Contract
 
 Objectif du prochain lot :
-Définir Storyline, Chapter, Story Step, Event, Scene, Cinematic,
-Dialogue Yarn, Fact, World Rule et Validator.
+Figer les frontières Event déclenche / Scene orchestre / Cinematic linéaire.
 
-P1-01 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
+P1-02 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
 Selbrume finales ou de `project.json`.
 
 ## 11. Critères de sortie de Phase 1
@@ -465,3 +466,13 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
 
 - 2026-05-24 — P1-00 — Roadmap Phase 1 créée. P1-00 marqué terminé. Prochain
   lot exact fixé à P1-01 — Canonical Narrative Product Model V1.
+- 2026-05-24 — P1-01 — Canonical Narrative Product Model V1 terminé.
+  Résultat : définition canonique produit de Storyline, Chapter, Story Step,
+  Event, Scene, Cinematic, Dialogue Yarn, Fact, World Rule et Validator.
+  Fichiers créés : `reports/roadmap/phase_1/p1_01_canonical_narrative_product_model_v1.md`.
+  Fichiers modifiés : `MVP Selbrume/road_map_phase_1.md`.
+  Commandes exécutées : lectures Markdown ciblées, `find`, `git status --short --untracked-files=all`,
+  `git diff --check`, `git diff --stat`, `git diff --name-only`.
+  Décisions utilisateur nouvelles : aucune.
+  Changements de périmètre : aucun.
+  Prochain lot exact fixé à P1-02 — Event / Scene / Cinematic Boundary Contract.
