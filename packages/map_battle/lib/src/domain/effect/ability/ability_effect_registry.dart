@@ -424,6 +424,7 @@ final class AbilityEffectRegistry {
           scope: scope,
           multiplier: 0.5,
         ),
+    'tera_shell': ({required scope}) => TeraShellEffect(scope: scope),
     'levitate': ({required scope}) => LevitateEffect(scope: scope),
     'no_guard': ({required scope}) => NoGuardEffect(scope: scope),
     'reckless': ({required scope}) => RecklessEffect(scope: scope),
@@ -950,9 +951,14 @@ final class AbilityEffectRegistry {
     'supersweet_syrup': ({required scope}) =>
         SupersweetSyrupEffect(scope: scope),
     'hospitality': ({required scope}) => HospitalityEffect(scope: scope),
+    'embody_aspect': ({required scope}) => EmbodyAspectEffect(scope: scope),
+    'supreme_overlord': ({required scope}) =>
+        SupremeOverlordEffect(scope: scope),
     'orichalcum_pulse': ({required scope}) =>
         OrichalcumPulseEffect(scope: scope),
     'hadron_engine': ({required scope}) => HadronEngineEffect(scope: scope),
+    'forecast': ({required scope}) => ForecastEffect(scope: scope),
+    'teraform_zero': ({required scope}) => TeraformZeroEffect(scope: scope),
     'mimicry': ({required scope}) => MimicryEffect(scope: scope),
     'desolate_land': ({required scope}) => PrimalWeatherAbilityEffect(
           abilityId: 'desolate_land',

@@ -382,8 +382,16 @@ void main() {
           audit.toMarkdown(), contains('| Unexplained rejected moves | 0 |'));
     });
 
-    test('treats PSDK base item abstractions as ported Dart infrastructure',
+    test('treats PSDK base effect abstractions as ported Dart infrastructure',
         () {
+      expect(
+        psdkEffectPortStatusFor(
+          effectName: 'Ability',
+          family: 'ability',
+          rubyPath: '06 Effects/04 Ability Effects/001 AbilityBase.rb',
+        ),
+        PsdkPortStatus.ported,
+      );
       expect(
         psdkEffectPortStatusFor(
           effectName: 'Item',

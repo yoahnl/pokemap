@@ -238,6 +238,246 @@ final class HadronEngineEffect extends BattleAbilityEffect {
   }
 }
 
+final class ForecastEffect extends BattleAbilityEffect {
+  const ForecastEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'forecast', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ForecastEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    final result = _applyForecastForm(
+      context.state,
+      context.replacement,
+      context.state.field,
+    );
+    if (identical(result, context.state)) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: result,
+      rng: context.rng,
+    );
+  }
+
+  @override
+  BattleEffectFieldChangeResult? onPostWeatherChange(
+    BattleEffectWeatherChangeContext context,
+  ) {
+    if (context.weather == context.lastWeather) {
+      return null;
+    }
+    final result = _applyForecastForm(
+      context.state,
+      context.owner,
+      context.state.field,
+    );
+    if (identical(result, context.state)) {
+      return null;
+    }
+    return BattleEffectFieldChangeResult(
+      state: result,
+      rng: context.rng,
+    );
+  }
+}
+
+final class TeraformZeroEffect extends BattleAbilityEffect {
+  const TeraformZeroEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'teraform_zero', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return TeraformZeroEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+    if (nextState.field.weather != null) {
+      final weatherResult = const BattleWeatherChangeHandler().clearWeather(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: context.replacement,
+        ),
+        reason: 'ability:teraform_zero',
+      );
+      nextState = weatherResult.state;
+      nextRng = weatherResult.rng;
+      events.addAll(weatherResult.events);
+      changed =
+          changed || weatherResult.applied || weatherResult.events.isNotEmpty;
+    }
+    if (nextState.field.terrain != null) {
+      final terrainResult = const BattleTerrainChangeHandler().clearTerrain(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: context.replacement,
+        ),
+        reason: 'ability:teraform_zero',
+      );
+      nextState = terrainResult.state;
+      nextRng = terrainResult.rng;
+      events.addAll(terrainResult.events);
+      changed =
+          changed || terrainResult.applied || terrainResult.events.isNotEmpty;
+    }
+    if (!changed) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
+  }
+}
+
+final class EmbodyAspectEffect extends BattleAbilityEffect {
+  const EmbodyAspectEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'embody_aspect', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return EmbodyAspectEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    final battler = context.state.battlerAt(context.replacement);
+    if (battler.speciesId != 'ogerpon') {
+      return null;
+    }
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.replacement,
+      ),
+      target: context.replacement,
+      stat: _embodyAspectStatFor(battler.heldItemId),
+      stages: 1,
+      sourceAbilityId: abilityId,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
+final class SupremeOverlordEffect extends BattleAbilityEffect {
+  const SupremeOverlordEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'supreme_overlord', scope: scope);
+
+  static const String _bonusPrefix = 'supreme_overlord_bonus_';
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SupremeOverlordEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+    final party = context.state.partyForBank(context.replacement.bank);
+    if (party.every((battler) => battler.currentHp > 0)) {
+      return null;
+    }
+    final partyBonus = party
+        .fold<int>(
+          0,
+          (sum, battler) => sum + battler.koCount,
+        )
+        .clamp(0, 5)
+        .toInt();
+    final bonus =
+        (_bonusLevel(context.state.battlerAt(context.replacement)) + partyBonus)
+            .clamp(0, 5)
+            .toInt();
+    return BattleEffectSwitchEventResult(
+      state: context.state.updateBattler(
+        context.replacement,
+        (battler) {
+          var effects = battler.effects;
+          for (var level = 0; level <= 5; level += 1) {
+            effects = effects.remove('$_bonusPrefix$level');
+          }
+          return battler.copyWith(
+            effects: effects.addEffect(
+              GenericBattleEffect(
+                id: '$_bonusPrefix$bonus',
+                scope: BattlerBattleEffectScope(context.replacement),
+              ),
+            ),
+          );
+        },
+      ),
+      rng: context.rng,
+    );
+  }
+
+  @override
+  double damageBasePowerMultiplier(BattleAbilityDamageContext context) {
+    if (context.user.abilityId != abilityId) {
+      return 1;
+    }
+    return 1 + _bonusLevel(context.user) / 10;
+  }
+
+  int _bonusLevel(PsdkBattleCombatant battler) {
+    for (final effectId in battler.effects.values) {
+      if (!effectId.startsWith(_bonusPrefix)) {
+        continue;
+      }
+      final level = int.tryParse(effectId.substring(_bonusPrefix.length));
+      if (level != null) {
+        return level.clamp(0, 5).toInt();
+      }
+    }
+    return 0;
+  }
+}
+
 final class HospitalityEffect extends BattleAbilityEffect {
   const HospitalityEffect({
     required BattleEffectScope scope,
@@ -1170,6 +1410,53 @@ final class ImposterEffect extends BattleAbilityEffect {
 
 bool _isEnteringOwner(BattleEffectSwitchEventContext context) {
   return context.owner == context.replacement;
+}
+
+PsdkBattleState _applyForecastForm(
+  PsdkBattleState state,
+  PsdkBattleSlotRef slot,
+  PsdkBattleFieldState field,
+) {
+  final battler = state.battlerAt(slot);
+  if (battler.speciesId != 'castform') {
+    return state;
+  }
+  final form = _forecastFormFor(field.weather?.id);
+  final types = PsdkBattleTypes(primary: form.type);
+  if (battler.form == form.number && battler.types == types) {
+    return state;
+  }
+  return state.updateBattler(
+    slot,
+    (current) => current.copyWith(form: form.number, types: types),
+  );
+}
+
+({int number, String type}) _forecastFormFor(PsdkBattleWeatherId? weather) {
+  return switch (weather) {
+    PsdkBattleWeatherId.sunny || PsdkBattleWeatherId.hardsun => (
+        number: 2,
+        type: 'fire',
+      ),
+    PsdkBattleWeatherId.rain || PsdkBattleWeatherId.hardrain => (
+        number: 3,
+        type: 'water',
+      ),
+    PsdkBattleWeatherId.hail || PsdkBattleWeatherId.snow => (
+        number: 6,
+        type: 'ice',
+      ),
+    _ => (number: 0, type: 'normal'),
+  };
+}
+
+String _embodyAspectStatFor(String? heldItemId) {
+  return switch (heldItemId) {
+    'hearthflame_mask' => 'attack',
+    'wellspring_mask' => 'specialDefense',
+    'cornerstone_mask' => 'defense',
+    _ => 'speed',
+  };
 }
 
 int _weatherDuration(

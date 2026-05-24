@@ -55,6 +55,27 @@ final class AbilityFinalDamageModifierEffect extends BattleAbilityEffect {
   }
 }
 
+final class TeraShellEffect extends BattleAbilityEffect {
+  const TeraShellEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'tera_shell', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return TeraShellEffect(scope: scope);
+  }
+
+  @override
+  double finalDamageMultiplier(BattleAbilityDamageContext context) {
+    if (context.target.abilityId != abilityId ||
+        context.target.currentHp != context.target.maxHp ||
+        context.typeEffectivenessMultiplier <= 0) {
+      return 1;
+    }
+    return 0.5 / context.typeEffectivenessMultiplier;
+  }
+}
+
 enum AbilityBasePowerCondition {
   lowHpUser,
   fluffyIncoming,

@@ -725,6 +725,7 @@ PsdkPortStatus? _manifestStatusForEffect({
 
 PsdkPortStatus _explicitEffectStatusFor(String effectName) {
   const portedEffects = <String>{
+    'Ability',
     'AbilitySuppressed',
     'Asleep',
     'AttackMultiplier',

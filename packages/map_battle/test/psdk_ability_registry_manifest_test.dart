@@ -373,5 +373,25 @@ void main() {
         );
       }
     });
+
+    test('Lot 119 weather form and high-value tera abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'forecast',
+        'embody_aspect',
+        'supreme_overlord',
+        'tera_shell',
+        'teraform_zero',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
+    });
   });
 }

@@ -213,6 +213,53 @@ void main() {
       }
     });
 
+    test('Forecast follows weather and resets when the ability is lost', () {
+      final switchIn = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'forecast',
+        playerSpeciesId: 'castform',
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sunny,
+            remainingTurns: null,
+          ),
+        ),
+      );
+
+      var castform = switchIn.state.battlerAt(psdkPlayerSlot);
+      expect(castform.form, 2);
+      expect(castform.types.primary, 'fire');
+      expect(castform.types.secondary, isNull);
+
+      final rain = const BattleWeatherChangeHandler().changeWeather(
+        context: BattleHandlerContext(
+          state: switchIn.state,
+          rng: switchIn.rng,
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        weather: PsdkBattleWeatherId.rain,
+      );
+      castform = rain.state.battlerAt(psdkPlayerSlot);
+      expect(castform.form, 3);
+      expect(castform.types.primary, 'water');
+      expect(castform.types.secondary, isNull);
+
+      final lostAbility = const BattleAbilityChangeHandler().changeAbility(
+        context: BattleHandlerContext(
+          state: rain.state,
+          rng: rain.rng,
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        abilityId: null,
+      );
+      castform = lostAbility.state.battlerAt(psdkPlayerSlot);
+      expect(castform.form, 0);
+      expect(castform.types.primary, 'normal');
+      expect(castform.types.secondary, isNull);
+    });
+
     test('Psychic Surge sets terrain on switch-in with Terrain Extender', () {
       final result = _dispatchAbilitySwitchIn(
         playerAbilityId: 'psychic_surge',
@@ -2340,6 +2387,33 @@ void main() {
       expect(grass.state.field.terrain?.remainingTurns, 4);
     });
 
+    test('Teraform Zero clears active weather and terrain on switch-in', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'teraform_zero',
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 3,
+          ),
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.grassyTerrain,
+            remainingTurns: 4,
+          ),
+        ),
+      );
+
+      expect(result.state.field.weather, isNull);
+      expect(result.state.field.terrain, isNull);
+      expect(
+        result.events.whereType<PsdkBattleWeatherChangedEvent>().single.weather,
+        isNull,
+      );
+      expect(
+        result.events.whereType<PsdkBattleTerrainChangedEvent>().single.terrain,
+        isNull,
+      );
+    });
+
     test('Innards Out damages the attacker by the fainted HP amount', () {
       final result = _runMove(
         opponentAbilityId: 'innards_out',
@@ -2381,6 +2455,59 @@ void main() {
       expect(
         result.events.whereType<PsdkBattleHealEvent>().single.moveId,
         'ability:hospitality',
+      );
+    });
+
+    test('Embody Aspect boosts Ogerpon stats from the held mask', () {
+      for (final entry in <String?, String>{
+        null: 'speed',
+        'hearthflame_mask': 'attack',
+        'wellspring_mask': 'specialDefense',
+        'cornerstone_mask': 'defense',
+      }.entries) {
+        final result = _dispatchAbilitySwitchIn(
+          playerAbilityId: 'embody_aspect',
+          playerSpeciesId: 'ogerpon',
+          playerHeldItemId: entry.key,
+        );
+
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+                entry.value,
+              ),
+          1,
+          reason: '${entry.key} boosts ${entry.value}',
+        );
+      }
+    });
+
+    test('Supreme Overlord boosts move power from fainted party KO counts', () {
+      final switchIn = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'supreme_overlord',
+        playerReserves: <PsdkBattleCombatantSetup>[
+          _combatant(
+            id: 'fallen_one',
+            currentHp: 0,
+            koCount: 2,
+            move: _move(id: 'wait_one', power: 0),
+          ),
+          _combatant(
+            id: 'fallen_two',
+            currentHp: 0,
+            koCount: 4,
+            move: _move(id: 'wait_two', power: 0),
+          ),
+        ],
+      );
+
+      final baseline = _calculatedDamage();
+      final boosted = _calculatedDamageFromState(switchIn.state);
+
+      expect(boosted, greaterThan(baseline));
+      expect(
+        boosted,
+        _calculatedDamageWithPower(90),
+        reason: '60 base power capped at a 1.5 Supreme Overlord multiplier',
       );
     });
 
@@ -3200,6 +3327,29 @@ void main() {
         expect(fullHp, lessThan(baseline), reason: abilityId);
         expect(damaged, baseline, reason: abilityId);
       }
+    });
+
+    test('Tera Shell overwrites full-HP type effectiveness to resistance', () {
+      final fireNeutral = _calculatedDamage(moveType: 'fire');
+      final superEffectiveBaseline = _calculatedDamage(
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final teraShellFullHp = _calculatedDamage(
+        opponentAbilityId: 'tera_shell',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final teraShellDamaged = _calculatedDamage(
+        opponentAbilityId: 'tera_shell',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        opponentCurrentHp: 99,
+      );
+
+      expect(superEffectiveBaseline, greaterThan(fireNeutral));
+      expect(teraShellFullHp, lessThan(fireNeutral));
+      expect(teraShellDamaged, superEffectiveBaseline);
     });
 
     test('PSDK weather and status damage ability modifiers match their gates',
@@ -5290,10 +5440,13 @@ BattleHandlerResult _switchPreventionFor({
 
 BattleHandlerResult _dispatchAbilitySwitchIn({
   required String playerAbilityId,
+  String? playerSpeciesId,
   String? playerHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleEffectStack? playerEffects,
+  List<PsdkBattleCombatantSetup> playerReserves =
+      const <PsdkBattleCombatantSetup>[],
   String? opponentAbilityId,
   String? opponentHeldItemId,
   String opponentSpeciesId = 'opponent',
@@ -5313,6 +5466,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
     BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        speciesId: playerSpeciesId,
         abilityId: playerAbilityId,
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,
@@ -5342,6 +5496,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         generic: 4,
       ).psdkSeeds,
       field: field,
+      playerReserves: playerReserves,
     ).psdkSetup,
   );
 
@@ -5741,6 +5896,7 @@ PsdkBattleCombatantSetup _combatant({
   String? heldItemId,
   PsdkBattleGender gender = PsdkBattleGender.unknown,
   int currentHp = 100,
+  int form = 0,
   int battleTurnCount = 0,
   bool switching = false,
   int speed = 50,
@@ -5750,6 +5906,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleTransformState transformState = const PsdkBattleTransformState(),
   PsdkBattleMajorStatus? majorStatus,
   double currentWeightKg = 1,
+  int koCount = 0,
   PsdkBattleEffectStack? effects,
   List<PsdkBattleMoveData>? moves,
   required PsdkBattleMoveData move,
@@ -5761,6 +5918,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
+    form: form,
     battleTurnCount: battleTurnCount,
     types: types,
     stats: stats ??
@@ -5779,6 +5937,7 @@ PsdkBattleCombatantSetup _combatant({
     majorStatus: majorStatus,
     baseWeightKg: currentWeightKg,
     currentWeightKg: currentWeightKg,
+    koCount: koCount,
     switching: switching,
     effects: effects,
     moves: moves ?? <PsdkBattleMoveData>[move],
@@ -5954,6 +6113,58 @@ int _calculatedDamage({
           rng: _rng(),
           field: field,
           isLastActionOfTurn: isLastActionOfTurn,
+        ),
+      )
+      .damage;
+}
+
+int _calculatedDamageFromState(PsdkBattleState state) {
+  return const BattleMoveDamageCalculator()
+      .calculate(
+        BattleMoveDamageContext(
+          user: state.battlerAt(psdkPlayerSlot),
+          target: state.battlerAt(psdkOpponentSlot),
+          move: _definition(id: 'shape_test', power: 60),
+          rng: _rng(),
+          field: state.field,
+          state: state,
+          userSlot: psdkPlayerSlot,
+          targetSlot: psdkOpponentSlot,
+        ),
+      )
+      .damage;
+}
+
+int _calculatedDamageWithPower(int power) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        move: _move(id: 'shape_test', power: power),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+  return const BattleMoveDamageCalculator()
+      .calculate(
+        BattleMoveDamageContext(
+          user: state.battlerAt(psdkPlayerSlot),
+          target: state.battlerAt(psdkOpponentSlot),
+          move: _definition(id: 'shape_test', power: power),
+          rng: _rng(),
+          field: state.field,
+          state: state,
+          userSlot: psdkPlayerSlot,
+          targetSlot: psdkOpponentSlot,
         ),
       )
       .damage;

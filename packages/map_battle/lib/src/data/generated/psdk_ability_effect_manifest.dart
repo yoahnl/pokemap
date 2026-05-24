@@ -415,7 +415,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'embody_aspect',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Embody Aspect.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'EmbodyAspectEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'emergency_exit',
@@ -483,7 +484,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'forecast',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Forecast.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ForecastEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'forewarn',
@@ -1565,7 +1567,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'supreme_overlord',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 SupremeOverlord.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SupremeOverlordEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'surge_surfer',
@@ -1654,7 +1657,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'tera_shell',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TeraShell.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'TeraShellEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'tera_shift',
@@ -1666,7 +1670,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'teraform_zero',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Teraform Zero.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'TeraformZeroEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'teravolt',

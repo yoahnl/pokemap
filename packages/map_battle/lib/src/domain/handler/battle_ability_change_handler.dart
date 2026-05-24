@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/battle_effect_hooks.dart';
@@ -26,7 +27,10 @@ final class BattleAbilityChangeHandler {
       );
     }
 
-    var nextState = context.state.updateBattler(
+    final baseState = currentAbilityId == 'forecast'
+        ? _resetForecastForm(context.state, target)
+        : context.state;
+    var nextState = baseState.updateBattler(
       target,
       (battler) => battler
           .copyWith(
@@ -153,3 +157,16 @@ const _skillBlockingAbilities = <String, Set<String>>{
   'simple_beam': <String>{'simple', 'truant'},
   'worry_seed': <String>{'insomnia', 'truant'},
 };
+
+PsdkBattleState _resetForecastForm(
+  PsdkBattleState state,
+  PsdkBattleSlotRef target,
+) {
+  return state.updateBattler(
+    target,
+    (battler) => battler.copyWith(
+      form: 0,
+      types: const PsdkBattleTypes(primary: 'normal'),
+    ),
+  );
+}
