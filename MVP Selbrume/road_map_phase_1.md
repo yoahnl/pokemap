@@ -6,9 +6,9 @@ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 
 Statut : 🔜 En préparation
 
-Lot courant : P1-03 — Fact & World Rule Product Grammar
+Lot courant : P1-04 — Storyline / Chapter / Story Step Structure
 
-Prochain lot exact après P1-03 : P1-04 — Storyline / Chapter / Story Step Structure
+Prochain lot exact après P1-04 : P1-05 — Selbrume Reference Grammar Mapping
 
 Suivi des lots :
 
@@ -16,8 +16,8 @@ Suivi des lots :
 - ✅ P1-01 — Canonical Narrative Product Model V1
 - ✅ P1-02 — Event / Scene / Cinematic Boundary Contract
 - ✅ P1-03 — Fact & World Rule Product Grammar
-- 🔜 P1-04 — Storyline / Chapter / Story Step Structure
-- P1-05 — Selbrume Reference Grammar Mapping
+- ✅ P1-04 — Storyline / Chapter / Story Step Structure
+- 🔜 P1-05 — Selbrume Reference Grammar Mapping
 - P1-06 — No-code Workflow Specification
 - P1-07 — Phase 2 Domain Contract Proposal
 - P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
@@ -30,7 +30,9 @@ P1-02 : ✅ terminé
 
 P1-03 : ✅ terminé
 
-P1-04 : 🔜 prochain lot exact
+P1-04 : ✅ terminé
+
+P1-05 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 1
 
@@ -250,7 +252,7 @@ Critères de validation :
 - les erreurs World Rule ≠ Event et Fact ≠ flag technique sont traitées ;
 - les besoins de validation future sont listés.
 
-### 🔜 P1-04 — Storyline / Chapter / Story Step Structure
+### ✅ P1-04 — Storyline / Chapter / Story Step Structure
 
 Objectif :
 Définir la structure Storyline / Chapter / Story Step et le statut des side quests.
@@ -278,7 +280,7 @@ Critères de validation :
 - la progression principale et optionnelle sont séparables ;
 - les besoins Phase 2 sont prêts à être transformés en contrats.
 
-### P1-05 — Selbrume Reference Grammar Mapping
+### 🔜 P1-05 — Selbrume Reference Grammar Mapping
 
 Objectif :
 Mapper le Golden Slice Selbrume “Lysa au port” sur la grammaire canonique.
@@ -394,13 +396,12 @@ Critères de validation :
 
 ## 10. Prochain lot exact
 
-P1-04 — Storyline / Chapter / Story Step Structure
+P1-05 — Selbrume Reference Grammar Mapping
 
 Objectif du prochain lot :
-Définir la structure Storyline / Chapter / Story Step et le statut des side
-quests.
+Mapper le Golden Slice Selbrume “Lysa au port” sur la grammaire canonique.
 
-P1-04 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
+P1-05 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
 Selbrume finales ou de `project.json`.
 
 ## 11. Critères de sortie de Phase 1
@@ -507,3 +508,15 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
   Décisions utilisateur nouvelles : aucune.
   Changements de périmètre : aucun.
   Prochain lot exact fixé à P1-04 — Storyline / Chapter / Story Step Structure.
+- 2026-05-24 — P1-04 — Storyline / Chapter / Story Step Structure terminé.
+  Résultat : structure narrative produit stricte Storyline = ligne narrative /
+  Chapter = section / Story Step = jalon, avec side quest positionnée comme
+  Storyline secondaire sans Quest Engine ni Quest Journal.
+  Fichiers créés : `reports/roadmap/phase_1/p1_04_storyline_chapter_story_step_structure.md`.
+  Fichiers modifiés : `MVP Selbrume/road_map_phase_1.md`.
+  Commandes exécutées : lectures Markdown ciblées, `rg`, `wc -l`,
+  `git status --short --untracked-files=all`, `git diff --check`,
+  `git diff --stat`, `git diff --name-only`, `git diff --no-index --check`.
+  Décisions utilisateur nouvelles : aucune.
+  Changements de périmètre : aucun.
+  Prochain lot exact fixé à P1-05 — Selbrume Reference Grammar Mapping.
