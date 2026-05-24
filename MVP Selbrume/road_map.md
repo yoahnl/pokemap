@@ -559,8 +559,8 @@ PHASE 2 — Socle runtime générique (code)
 PHASE 3 — Authoring / runtime bridge (code + readiness)
 ✅ NS-GS-08   — NPC Interaction → Scene Authoring Readiness
 ✅ NS-GS-09   — Yarn Outcome → Scene Branch Readiness
-🔜 NS-GS-10   — World Rules / Conditional Presence Readiness
-   NS-GS-11   — Trainer Battle Authoring Readiness
+✅ NS-GS-10   — World Rules / Conditional Presence Readiness
+🔜 NS-GS-11   — Trainer Battle Authoring Readiness
 
 PHASE 4 — Validation depuis l’éditeur
    NS-GS-12   — Editor-authored Golden Slice Validation
@@ -579,14 +579,14 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-10 — World Rules / Conditional Presence Readiness
+🔜 NS-GS-11 — Trainer Battle Authoring Readiness
 ```
 
 Périmètre :
 
 ```text
-Audit et readiness des world rules et conditional presence.
-Visibilité conditionnelle des entités.
+Audit et readiness de l'authoring de combats trainer.
+Pipeline trainer battle depuis le scénario.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -728,3 +728,20 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
 | Prochain lot | NS-GS-10 — World Rules / Conditional Presence Readiness |
 | Rapport | `reports/gameplay/ns_gs_09_yarn_outcome_scene_branch_readiness.md` |
+
+---
+
+# Mise à jour NS-GS-10 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-10 — World Rules / Conditional Presence Readiness |
+| Résultat | Cas A : flux GameState → World Rule → monde déjà complet. 31 tests de caractérisation ajoutés. Aucun code de prod modifié. Analyze clean. |
+| Fichiers | `world_rules_conditional_presence_readiness_test.dart` (31 tests), rapport |
+| Décision | Le pont existe : MapEntityRuntimePredicateEvaluator → isNpcPresentOnMap → resolveNpcDialogue. 8 predicate kinds couverts. |
+| Frontière Event/Scene/World Rule | ✅ Event non transformé en World Rule. World Rule non transformée en Scene. Trois concepts séparés. |
+| Garde-fou faux positif | Cas 2 : predicate + resolver utilisé en production. Gap honnête : refresh Flame complet non testé (NS-GS-12). |
+| Limites | Tests au niveau evaluator, pas au niveau Flame complet. Refresh PlayableMapGame hors scope. |
+| Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. |
+| Prochain lot | NS-GS-11 — Trainer Battle Authoring Readiness |
+| Rapport | `reports/gameplay/ns_gs_10_world_rules_conditional_presence_readiness.md` |
