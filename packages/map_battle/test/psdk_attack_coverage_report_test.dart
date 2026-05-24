@@ -1381,12 +1381,12 @@ void main() {
         sourceDescription: 's_multi_hit test moves',
       );
 
-      expect(report, contains('| fait | 1 |'));
-      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | 2 |'));
+      expect(report, contains('| partiel | 1 |'));
       expect(report, contains('| fait | double_slap | s_multi_hit | ported |'));
       expect(
         report,
-        contains('| partiel | water_shuriken | s_multi_hit | ported |'),
+        contains('| fait | water_shuriken | s_multi_hit | ported |'),
       );
       expect(
         report,

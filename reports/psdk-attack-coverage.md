@@ -18,7 +18,7 @@ Coverage semantics:
 - `s_stat` is counted as `fait` only for status stage-only moves on supported stats and single-target foe/ally/self targets, optionally with one supported status rider; other riders remain `partiel`.
 - `s_status` is counted as `fait` only for single major-status or Confusion moves on supported single or adjacent spread targets; mixed payloads remain `partiel`.
 - `s_self_status` is counted as `fait` only for single self-applied major-status or Confusion moves without damage/stat riders.
-- `s_multi_hit` is counted as `fait` only for plain random 2-5 hit moves; Water Shuriken and metadata riders remain `partiel`.
+- `s_multi_hit` is counted as `fait` for plain random 2-5 hit moves and Water Shuriken, including its PSDK Ash-Greninja override; metadata riders remain `partiel`.
 - `s_2turns` is counted as `fait` for charged damage moves, supported release-turn status riders, Skull Bash charge boost, Geomancy release boosts and supported spread release targets; unsupported weather or custom charge variants remain `partiel`.
 - `s_reload` is counted as `fait` only for plain damage moves that require a recharge turn after a successful hit.
 - `s_recoil` is counted as `fait` only for plain recoil damage moves; implemented status riders and Studio Mind Blown self-crash are supported, while other special self-crash or multi-target variants remain `partiel`.
@@ -30,8 +30,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 727 |
-| partiel | 1 |
+| fait | 728 |
+| partiel | 0 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -741,7 +741,7 @@ Coverage semantics:
 | fait | water_gun | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | special | 40 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_gun.json |
 | fait | water_pledge | s_pledge | ported | FieldLocationMoveBehavior.pledge | water | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_pledge.json |
 | fait | water_pulse | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | special | 60 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_pulse.json |
-| partiel | water_shuriken | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | water | special | 15 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_shuriken.json |
+| fait | water_shuriken | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | water | special | 15 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_shuriken.json |
 | fait | water_sport | s_thing_sport | ported | StaticBasicMoveRegistry.s_thing_sport | water | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_sport.json |
 | fait | water_spout | s_eruption | ported | VariablePowerMoveBehavior.eruption | water | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_spout.json |
 | fait | waterfall | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/waterfall.json |

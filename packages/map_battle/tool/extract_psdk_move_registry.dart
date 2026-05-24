@@ -1011,7 +1011,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_water_shuriken': _KnownDartBehavior(
     dartBehavior: 'MultiHitMoveBehavior.waterShuriken',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // False Swipe mirrors Ruby's anti-KO clamp and Substitute exception. Full
   // Crit only overrides Ruby critical_rate to 100.
@@ -1718,10 +1718,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.history,
   },
   's_population_bomb': {
-    _PsdkMoveDependency.ability,
-    _PsdkMoveDependency.item,
-  },
-  's_water_shuriken': {
     _PsdkMoveDependency.ability,
     _PsdkMoveDependency.item,
   },

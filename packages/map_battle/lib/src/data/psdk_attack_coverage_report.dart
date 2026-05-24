@@ -460,9 +460,6 @@ final class PsdkStudioMoveCoverageEntry {
     if (battleEngineMethod != 's_multi_hit') {
       return false;
     }
-    if (dbSymbol == 'water_shuriken') {
-      return false;
-    }
     if (power <= 0) {
       return false;
     }
@@ -848,8 +845,9 @@ String generatePsdkAttackCoverageReport({
       'major-status or Confusion moves without damage/stat riders.',
     )
     ..writeln(
-      '- `s_multi_hit` is counted as `fait` only for plain random 2-5 hit '
-      'moves; Water Shuriken and metadata riders remain `partiel`.',
+      '- `s_multi_hit` is counted as `fait` for plain random 2-5 hit moves '
+      'and Water Shuriken, including its PSDK Ash-Greninja override; metadata '
+      'riders remain `partiel`.',
     )
     ..writeln(
       '- `s_2turns` is counted as `fait` for charged damage moves, supported '

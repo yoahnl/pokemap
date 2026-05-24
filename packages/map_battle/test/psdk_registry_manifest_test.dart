@@ -697,6 +697,7 @@ void main() {
         byMethod['s_water_shuriken']!.dartBehavior,
         'MultiHitMoveBehavior.waterShuriken',
       );
+      expect(byMethod['s_water_shuriken']!.dependencies, isEmpty);
       expect(byMethod['s_scale_shot']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_scale_shot']!.dartBehavior,

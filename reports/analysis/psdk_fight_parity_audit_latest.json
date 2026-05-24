@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 727,
-    "partiel": 1,
+    "fait": 728,
+    "partiel": 0,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5643,9 +5643,9 @@
       {
         "moveId": "water_shuriken",
         "battleEngineMethod": "s_multi_hit",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/water_shuriken.json"
       },
       {
@@ -9031,10 +9031,7 @@
         "rubyPath": "10 Move/1 Mechanics/103 TwoHit MultiHit.rb",
         "dartBehavior": "MultiHitMoveBehavior.waterShuriken",
         "status": "ported",
-        "dependencies": [
-          "ability",
-          "item"
-        ]
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_weather",

@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../effect/ability/ability_effect.dart';
@@ -18,6 +19,7 @@ enum _MultiHitKind {
   doubleIronBash,
   tripleKick,
   populationBomb,
+  waterShuriken,
   scaleShot,
 }
 
@@ -26,7 +28,8 @@ enum _MultiHitKind {
 /// This covers the Ruby `TwoHit`, `ThreeHit`, base `MultiHit`, Triple Kick and
 /// Population Bomb classes. The strict `s_multi_hit` slice includes PSDK's
 /// random 2-5 distribution plus local Skill Link and Loaded Dice hit-count
-/// hooks. Form-specific Water Shuriken remains outside that strict slice.
+/// hooks. Water Shuriken also accepts the Studio `s_multi_hit` import row while
+/// preserving Pokemon SDK's Ash-Greninja override.
 final class MultiHitMoveBehavior implements BattleMoveBehavior {
   const MultiHitMoveBehavior.fixed({
     required this.battleEngineMethod,
@@ -52,7 +55,7 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
   const MultiHitMoveBehavior.waterShuriken()
       : battleEngineMethod = 's_water_shuriken',
         _hitCount = null,
-        _kind = _MultiHitKind.psdkRandomTwoToFive;
+        _kind = _MultiHitKind.waterShuriken;
 
   const MultiHitMoveBehavior.doubleIronBash()
       : battleEngineMethod = 's_double_iron_bash',
@@ -143,6 +146,8 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
           targetSlot: target,
           overrides: BattleMoveDamageOverrides(
             power: _powerForHit(
+              user: user,
+              move: context.move,
               movePower: context.move.power,
               hitIndex: hitIndex,
               targetIsMinimized: targetIsMinimized,
@@ -205,6 +210,13 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
       state: prepared.state,
       target: target,
     );
+    if (_usesAshGreninjaWaterShuriken(
+      kind: _kind,
+      move: context.move,
+      user: prepared.state.battlerAt(context.user),
+    )) {
+      return _ResolvedHitCount(hitCount: 3, rng: prepared.rng);
+    }
     if (forced != null) {
       return _ResolvedHitCount(hitCount: forced, rng: prepared.rng);
     }
@@ -214,6 +226,7 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
           rng: prepared.rng,
         ),
       _MultiHitKind.psdkRandomTwoToFive ||
+      _MultiHitKind.waterShuriken ||
       _MultiHitKind.scaleShot =>
         _resolvePsdkRandomHitCount(
           context: context,
@@ -254,10 +267,19 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
   }
 
   int _powerForHit({
+    required PsdkBattleCombatant user,
+    required BattleMoveDefinition move,
     required int movePower,
     required int hitIndex,
     required bool targetIsMinimized,
   }) {
+    if (_usesAshGreninjaWaterShuriken(
+      kind: _kind,
+      move: move,
+      user: user,
+    )) {
+      return 20;
+    }
     return switch (_kind) {
       _MultiHitKind.doubleIronBash when targetIsMinimized => movePower * 2,
       _MultiHitKind.tripleKick => movePower * (hitIndex + 1),
@@ -347,4 +369,25 @@ final class _ExtraHitAccuracy {
 
   final bool didHit;
   final BattleRngStreams rng;
+}
+
+bool _usesAshGreninjaWaterShuriken({
+  required _MultiHitKind kind,
+  required BattleMoveDefinition move,
+  required PsdkBattleCombatant user,
+}) {
+  if (!_isWaterShuriken(kind: kind, move: move)) {
+    return false;
+  }
+  // Pokemon SDK has BATTLE_BOND_GEN_NINE set to false in the referenced
+  // script, so form 1 keeps the pre-gen-9 fixed 3-hit, 20-power behavior.
+  return user.speciesId.trim().toLowerCase() == 'greninja' && user.form == 1;
+}
+
+bool _isWaterShuriken({
+  required _MultiHitKind kind,
+  required BattleMoveDefinition move,
+}) {
+  return kind == _MultiHitKind.waterShuriken ||
+      move.dbSymbol.trim().toLowerCase() == 'water_shuriken';
 }

@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 727 |
-| Studio attacks `partiel` | 1 |
+| Studio attacks `fait` | 728 |
+| Studio attacks `partiel` | 0 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -19,7 +19,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Battle method | Partial attacks |
 | --- | ---: |
-| s_multi_hit | 1 |
 
 ## Method Coverage
 
