@@ -79,7 +79,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'as_one',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/101 AsOne.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AsOneEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'aura_break',
@@ -1081,9 +1082,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'power_of_alchemy',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect:
-        'ReceiverPowerOfAlchemyEffect.powerOfAlchemy.partialNoAbilityChangePreventionHooks',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ReceiverPowerOfAlchemyEffect.powerOfAlchemy',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'power_spot',
@@ -1137,7 +1137,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'protosynthesis',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Protosynthesis.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ParadoxStatBoostAbilityEffect.protosynthesis',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'psychic_surge',
@@ -1171,7 +1172,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'quark_drive',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 QuarkDrive.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ParadoxStatBoostAbilityEffect.quarkDrive',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'queenly_majesty',
@@ -1205,9 +1207,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'receiver',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect:
-        'ReceiverPowerOfAlchemyEffect.receiver.partialNoAbilityChangePreventionHooks',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ReceiverPowerOfAlchemyEffect.receiver',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'reckless',

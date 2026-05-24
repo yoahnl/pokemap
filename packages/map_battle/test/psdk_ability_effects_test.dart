@@ -1751,6 +1751,257 @@ void main() {
       expect(sunnyDamage, greaterThan(normalDamage));
     });
 
+    test('Protosynthesis tracks sun and Booster Energy stat boosts', () {
+      const attackBiasedStats = PsdkBattleStats(
+        attack: 90,
+        defense: 70,
+        specialAttack: 80,
+        specialDefense: 60,
+        speed: 50,
+      );
+      const sunnyField = PsdkBattleFieldState(
+        weather: PsdkBattleWeatherState(
+          id: PsdkBattleWeatherId.sunny,
+          remainingTurns: 5,
+        ),
+      );
+      final sunny = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'protosynthesis',
+        playerHeldItemId: 'booster_energy',
+        playerStats: attackBiasedStats,
+        field: sunnyField,
+      );
+      final baseline = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'overgrow',
+        playerStats: attackBiasedStats,
+        field: sunnyField,
+      );
+
+      expect(
+        _effectEventsForHandler(sunny)
+            .map((event) => event.effectId)
+            .where((id) => id.startsWith('protosynthesis:boost:')),
+        contains('protosynthesis:boost:attack'),
+      );
+      expect(
+          sunny.state.battlerAt(psdkPlayerSlot).heldItemId, 'booster_energy');
+      expect(
+        _calculatedDamageFromState(sunny.state),
+        greaterThan(_calculatedDamageFromState(baseline.state)),
+      );
+
+      final cleared = const BattleWeatherChangeHandler().clearWeather(
+        context: BattleHandlerContext(
+          state: sunny.state,
+          rng: sunny.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+      );
+      final playerAfterClear = cleared.state.battlerAt(psdkPlayerSlot);
+      expect(playerAfterClear.heldItemId, isNull);
+      expect(playerAfterClear.consumedItemId, 'booster_energy');
+      expect(playerAfterClear.effects.contains('protosynthesis:boost:attack'),
+          isTrue);
+    });
+
+    test('Quark Drive tracks Electric Terrain and Booster Energy stat boosts',
+        () {
+      const speedBiasedStats = PsdkBattleStats(
+        attack: 40,
+        defense: 50,
+        specialAttack: 60,
+        specialDefense: 70,
+        speed: 80,
+      );
+      const electricField = PsdkBattleFieldState(
+        terrain: PsdkBattleTerrainState(
+          id: PsdkBattleTerrainId.electricTerrain,
+          remainingTurns: 5,
+        ),
+      );
+      final terrain = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'quark_drive',
+        playerStats: speedBiasedStats,
+        field: electricField,
+      );
+      final action = _fightActionFromState(terrain.state);
+
+      expect(
+        _effectEventsForHandler(terrain)
+            .map((event) => event.effectId)
+            .where((id) => id.startsWith('quark_drive:boost:')),
+        contains('quark_drive:boost:speed'),
+      );
+      expect(action.speed, 120);
+
+      final booster = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'quark_drive',
+        playerHeldItemId: 'booster_energy',
+        playerStats: speedBiasedStats,
+      );
+      final boosterPlayer = booster.state.battlerAt(psdkPlayerSlot);
+      expect(boosterPlayer.heldItemId, isNull);
+      expect(boosterPlayer.consumedItemId, 'booster_energy');
+      expect(boosterPlayer.effects.contains('quark_drive:boost:speed'), isTrue);
+    });
+
+    test('Paradox boosts stay inactive without their field or Booster Energy',
+        () {
+      const stats = PsdkBattleStats(
+        attack: 90,
+        defense: 70,
+        specialAttack: 80,
+        specialDefense: 60,
+        speed: 50,
+      );
+      final proto = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'protosynthesis',
+        playerStats: stats,
+      );
+      final protoBaseline = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'overgrow',
+        playerStats: stats,
+      );
+      final quark = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'quark_drive',
+        playerStats: stats,
+      );
+
+      expect(
+        _effectEventsForHandler(proto)
+            .map((event) => event.effectId)
+            .where((id) => id.startsWith('protosynthesis:boost:')),
+        isEmpty,
+      );
+      expect(
+        _calculatedDamageFromState(proto.state),
+        _calculatedDamageFromState(protoBaseline.state),
+      );
+      expect(
+        _effectEventsForHandler(quark)
+            .map((event) => event.effectId)
+            .where((id) => id.startsWith('quark_drive:boost:')),
+        isEmpty,
+      );
+      expect(_fightActionFromState(quark.state).speed, 50);
+    });
+
+    test('Paradox field boosts expire when their field disappears', () {
+      const stats = PsdkBattleStats(
+        attack: 90,
+        defense: 70,
+        specialAttack: 80,
+        specialDefense: 60,
+        speed: 50,
+      );
+      final proto = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'protosynthesis',
+        playerStats: stats,
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sunny,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+      final quark = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'quark_drive',
+        playerStats: stats,
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      final protoCleared = const BattleWeatherChangeHandler().clearWeather(
+        context: BattleHandlerContext(
+          state: proto.state,
+          rng: proto.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+      );
+      final quarkCleared = const BattleTerrainChangeHandler().clearTerrain(
+        context: BattleHandlerContext(
+          state: quark.state,
+          rng: quark.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(
+        protoCleared.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('protosynthesis:boost:attack'),
+        isFalse,
+      );
+      expect(
+          protoCleared.state.battlerAt(psdkPlayerSlot).consumedItemId, isNull);
+      expect(
+        quarkCleared.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('quark_drive:boost:attack'),
+        isFalse,
+      );
+      expect(
+          quarkCleared.state.battlerAt(psdkPlayerSlot).consumedItemId, isNull);
+    });
+
+    test('Paradox boosts follow natural end-turn field expiration', () {
+      const stats = PsdkBattleStats(
+        attack: 90,
+        defense: 70,
+        specialAttack: 80,
+        specialDefense: 60,
+        speed: 50,
+      );
+      final proto = _resolveAbilityEndTurn(
+        playerAbilityId: 'protosynthesis',
+        playerHeldItemId: 'booster_energy',
+        playerStats: stats,
+        playerEffects: PsdkBattleEffectStack(
+          values: <String>['protosynthesis:boost:attack'],
+        ),
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sunny,
+            remainingTurns: 1,
+          ),
+        ),
+      );
+      final quark = _resolveAbilityEndTurn(
+        playerAbilityId: 'quark_drive',
+        playerStats: stats,
+        playerEffects: PsdkBattleEffectStack(
+          values: <String>['quark_drive:boost:attack'],
+        ),
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 1,
+          ),
+        ),
+      );
+
+      final protoPlayer = proto.state.battlerAt(psdkPlayerSlot);
+      expect(proto.state.field.weather, isNull);
+      expect(protoPlayer.heldItemId, isNull);
+      expect(protoPlayer.consumedItemId, 'booster_energy');
+      expect(
+          protoPlayer.effects.contains('protosynthesis:boost:attack'), isTrue);
+
+      final quarkPlayer = quark.state.battlerAt(psdkPlayerSlot);
+      expect(quark.state.field.terrain, isNull);
+      expect(quarkPlayer.effects.contains('quark_drive:boost:attack'), isFalse);
+      expect(quarkPlayer.consumedItemId, isNull);
+    });
+
     test('stat modifier abilities affect damage formula like PSDK', () {
       final baseline = _runMove(
         playerMove: _move(id: 'tackle', power: 60),
@@ -4629,6 +4880,40 @@ void main() {
       expect(_statEventsForHandler(nonLethal), isEmpty);
     });
 
+    test('As One combines Unnerve switch-in pressure and Calyrex KO boosts',
+        () {
+      final switchIn = _dispatchAbilitySwitchIn(playerAbilityId: 'as_one');
+      expect(
+        _effectEventsForHandler(switchIn).map((event) => event.effectId),
+        contains('as_one:unnerve'),
+      );
+
+      for (final entry in <({int form, String stat})>[
+        (form: 1, stat: 'attack'),
+        (form: 2, stat: 'specialAttack'),
+      ]) {
+        final result = _applyDirectAbilityDamage(
+          playerAbilityId: 'as_one',
+          playerForm: entry.form,
+          opponentCurrentHp: 10,
+          rawDamage: 30,
+        );
+        final event = _statEventsForHandler(result).single;
+
+        expect(event.target, psdkPlayerSlot, reason: 'form ${entry.form}');
+        expect(event.stat, entry.stat, reason: 'form ${entry.form}');
+        expect(event.amount, 1, reason: 'form ${entry.form}');
+      }
+
+      final unresolvedForm = _applyDirectAbilityDamage(
+        playerAbilityId: 'as_one',
+        playerForm: 0,
+        opponentCurrentHp: 10,
+        rawDamage: 30,
+      );
+      expect(_statEventsForHandler(unresolvedForm), isEmpty);
+    });
+
     test('Soul Heart boosts after an ally faints', () {
       final result = _applyAllyKoAbilityDamage(
         allyAbilityId: 'soul_heart',
@@ -4694,6 +4979,32 @@ void main() {
         'receiver',
       );
       expect(_effectEventsForHandler(blocked), isEmpty);
+
+      for (final protectedAbilityId in <String>[
+        'as_one',
+        'commander',
+        'neutralizing_gas',
+        'protosynthesis',
+        'quark_drive',
+        'receiver',
+        'power_of_alchemy',
+        'trace',
+      ]) {
+        final result = _applyAllyKoAbilityDamage(
+          allyAbilityId: 'power_of_alchemy',
+          targetAbilityId: protectedAbilityId,
+          targetCurrentHp: 10,
+          rawDamage: 30,
+        );
+
+        expect(
+          result.state.battlerAt(_psdkOpponentAllySlot).abilityId,
+          'power_of_alchemy',
+          reason: protectedAbilityId,
+        );
+        expect(_effectEventsForHandler(result), isEmpty,
+            reason: protectedAbilityId);
+      }
     });
 
     test('Aftermath damages contact attackers after a KO unless Damp is alive',
@@ -5761,6 +6072,14 @@ PsdkBattleFightAction _fightActionForAbility({
   ) as PsdkBattleFightAction;
 }
 
+PsdkBattleFightAction _fightActionFromState(PsdkBattleState state) {
+  return const PsdkBattleActionDecisionMapper().map(
+    state: state,
+    user: psdkPlayerSlot,
+    decision: const BattleFightDecision(moveSlot: 0),
+  ) as PsdkBattleFightAction;
+}
+
 BattleHandlerResult _switchPreventionFor({
   String? playerAbilityId,
   String? opponentAbilityId,
@@ -5809,6 +6128,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   int playerCurrentHp = 100,
   int playerForm = 0,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleStats? playerStats,
   PsdkBattleEffectStack? playerEffects,
   List<PsdkBattleCombatantSetup> playerReserves =
       const <PsdkBattleCombatantSetup>[],
@@ -5838,6 +6158,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         currentHp: playerCurrentHp,
         form: playerForm,
         types: playerTypes,
+        stats: playerStats,
         effects: playerEffects,
         move: _move(id: 'tackle', power: 40),
       ),
@@ -5986,9 +6307,12 @@ BattleHandlerResult _faintPrimalWeatherHolder({
 BattleHandlerResult _resolveAbilityEndTurn({
   required String playerAbilityId,
   String? playerSpeciesId,
+  String? playerHeldItemId,
   int playerCurrentHp = 100,
   int playerForm = 0,
+  PsdkBattleStats? playerStats,
   PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleEffectStack? playerEffects,
   int opponentCurrentHp = 100,
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
@@ -6005,9 +6329,12 @@ BattleHandlerResult _resolveAbilityEndTurn({
         id: 'player',
         speciesId: playerSpeciesId,
         abilityId: playerAbilityId,
+        heldItemId: playerHeldItemId,
         currentHp: playerCurrentHp,
         form: playerForm,
+        stats: playerStats,
         majorStatus: playerMajorStatus,
+        effects: playerEffects,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
@@ -6761,6 +7088,7 @@ int _calculatedDoublesDamage({
 BattleHandlerResult _applyDirectAbilityDamage({
   String? opponentAbilityId,
   String? playerAbilityId,
+  int playerForm = 0,
   String moveType = 'normal',
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.special,
   BattleMoveFlags flags = const BattleMoveFlags(),
@@ -6789,6 +7117,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
         id: 'player',
         abilityId: playerAbilityId,
         gender: playerGender,
+        form: playerForm,
         types: playerTypes,
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,

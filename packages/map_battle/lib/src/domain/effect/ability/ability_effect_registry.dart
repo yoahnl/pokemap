@@ -906,6 +906,7 @@ final class AbilityEffectRegistry {
           boostedStat: 'specialAttack',
           skipFellStinger: true,
         ),
+    'as_one': ({required scope}) => AsOneEffect(scope: scope),
     'beast_boost': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
           abilityId: 'beast_boost',
           scope: scope,
@@ -939,6 +940,16 @@ final class AbilityEffectRegistry {
     'shield_dust': ({required scope}) => ShieldDustEffect(scope: scope),
     'electromorphosis': ({required scope}) =>
         ElectromorphosisEffect(scope: scope),
+    'protosynthesis': ({required scope}) => ParadoxStatBoostAbilityEffect(
+          abilityId: 'protosynthesis',
+          scope: scope,
+          trigger: ParadoxStatBoostTrigger.sunnyWeather,
+        ),
+    'quark_drive': ({required scope}) => ParadoxStatBoostAbilityEffect(
+          abilityId: 'quark_drive',
+          scope: scope,
+          trigger: ParadoxStatBoostTrigger.electricTerrain,
+        ),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
     'moody': ({required scope}) => MoodyEffect(scope: scope),
     'healer': ({required scope}) => HealerEffect(scope: scope),

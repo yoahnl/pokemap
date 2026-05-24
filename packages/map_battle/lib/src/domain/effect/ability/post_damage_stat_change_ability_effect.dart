@@ -354,6 +354,83 @@ final class PostDamageKoStatBoostAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class AsOneEffect extends BattleAbilityEffect {
+  const AsOneEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'as_one', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return AsOneEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (context.owner != context.replacement) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.replacement,
+          effectId: 'as_one:unnerve',
+          reason: 'ability:as_one',
+        ),
+      ],
+    );
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    final boostedStat = switch (context.state.battlerAt(context.owner).form) {
+      // Pokemon SDK's AsOne subclasses Moxie and derives the boosted stat from
+      // Calyrex's battle form: Ice Rider boosts Attack, Shadow Rider boosts
+      // Special Attack. Other forms intentionally stay inert instead of
+      // pretending to know which fused rider is active.
+      1 => 'attack',
+      2 => 'specialAttack',
+      _ => null,
+    };
+    if (boostedStat == null ||
+        context.owner != context.user ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        !context.targetFainted ||
+        context.state.battlerAt(context.owner).isFainted ||
+        context.move.battleEngineMethod == 's_fell_stinger') {
+      return null;
+    }
+
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      stat: boostedStat,
+      stages: 1,
+      move: context.move,
+    );
+    if (!result.applied && result.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectPostDamageResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
 final class SoulHeartEffect extends BattleAbilityEffect {
   const SoulHeartEffect({
     required BattleEffectScope scope,

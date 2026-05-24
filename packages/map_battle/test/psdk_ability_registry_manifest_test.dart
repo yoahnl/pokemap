@@ -203,9 +203,14 @@ void main() {
         'wonder_skin',
         'run_away',
         'aroma_veil',
+        'as_one',
         'oblivious',
         'beads_of_ruin',
         'sword_of_ruin',
+        'power_of_alchemy',
+        'protosynthesis',
+        'quark_drive',
+        'receiver',
       ]) {
         final entry = byId[abilityId];
 

@@ -120,6 +120,7 @@ final class BattleEndTurnHandler {
     final field = context.state.field;
     var nextState = context.state;
     var nextField = field;
+    var nextRng = context.rng;
     final events = <PsdkBattleEvent>[];
     var changed = false;
 
@@ -136,6 +137,21 @@ final class BattleEndTurnHandler {
             reason: 'expired',
           ),
         );
+        nextState = nextState.copyWith(field: nextField);
+        final postWeather = _dispatchPostWeatherExpiration(
+          context: BattleHandlerContext(
+            state: nextState,
+            rng: nextRng,
+            turn: context.turn,
+            user: context.user,
+          ),
+          lastWeather: weather.id,
+        );
+        nextState = postWeather.state;
+        nextField = nextState.field;
+        nextRng = postWeather.rng;
+        events.addAll(postWeather.events);
+        changed = changed || postWeather.applied;
       }
     }
 
@@ -147,7 +163,7 @@ final class BattleEndTurnHandler {
         final grassy = _healGrassyTerrain(
           context: BattleHandlerContext(
             state: nextState,
-            rng: context.rng,
+            rng: nextRng,
             turn: context.turn,
             user: context.user,
           ),
@@ -166,15 +182,113 @@ final class BattleEndTurnHandler {
             reason: 'expired',
           ),
         );
+        nextState = nextState.copyWith(field: nextField);
+        final postTerrain = _dispatchPostTerrainExpiration(
+          context: BattleHandlerContext(
+            state: nextState,
+            rng: nextRng,
+            turn: context.turn,
+            user: context.user,
+          ),
+          lastTerrain: terrain.id,
+        );
+        nextState = postTerrain.state;
+        nextField = nextState.field;
+        nextRng = postTerrain.rng;
+        events.addAll(postTerrain.events);
+        changed = changed || postTerrain.applied;
       }
     }
 
     return BattleHandlerResult(
       state: changed ? nextState.copyWith(field: nextField) : context.state,
-      rng: context.rng,
+      rng: nextRng,
       events: events,
       applied: changed,
       reason: changed ? null : 'no_field_progression',
+    );
+  }
+
+  BattleHandlerResult _dispatchPostWeatherExpiration({
+    required BattleHandlerContext context,
+    required PsdkBattleWeatherId lastWeather,
+  }) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final owner in context.state.aliveSlots()) {
+      // Natural duration expiry is still a Pokemon SDK weather change. Dispatch
+      // the same post-change hook surface used by explicit weather clears so
+      // abilities such as Protosynthesis can drop field boosts or fall back to
+      // Booster Energy instead of leaving stale stat markers behind.
+      final result =
+          nextState.battlerAt(owner).effects.dispatchPostWeatherChange(
+                BattleEffectWeatherChangeContext(
+                  state: nextState,
+                  rng: nextRng,
+                  turn: context.turn,
+                  owner: owner,
+                  user: context.user,
+                  weather: null,
+                  lastWeather: lastWeather,
+                  remainingTurns: null,
+                ),
+              );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleHandlerResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+      reason: changed ? null : 'no_post_weather_expiration_hooks',
+    );
+  }
+
+  BattleHandlerResult _dispatchPostTerrainExpiration({
+    required BattleHandlerContext context,
+    required PsdkBattleTerrainId lastTerrain,
+  }) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final owner in context.state.aliveSlots()) {
+      // Keep natural terrain expiry aligned with explicit terrain clears. This
+      // protects Quark Drive and future terrain listeners from observing a
+      // field that visually expired while their effect state stayed active.
+      final result =
+          nextState.battlerAt(owner).effects.dispatchPostTerrainChange(
+                BattleEffectTerrainChangeContext(
+                  state: nextState,
+                  rng: nextRng,
+                  turn: context.turn,
+                  owner: owner,
+                  user: context.user,
+                  terrain: null,
+                  lastTerrain: lastTerrain,
+                  remainingTurns: null,
+                ),
+              );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleHandlerResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+      reason: changed ? null : 'no_post_terrain_expiration_hooks',
     );
   }
 

@@ -9116,15 +9116,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 443,
-      "partial": 19,
-      "missing": 20
+      "ported": 447,
+      "partial": 18,
+      "missing": 17
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 232,
-        "partial": 5,
-        "missing": 17
+        "ported": 236,
+        "partial": 4,
+        "missing": 14
       },
       "move": {
         "ported": 98,
@@ -9288,7 +9288,7 @@
       {
         "effectName": "AsOne",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 AsOne.rb",
         "hookFamilies": [
           "switch"
@@ -11691,7 +11691,7 @@
       {
         "effectName": "PowerOfAlchemy",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb",
         "hookFamilies": [
           "post_damage"
@@ -11751,7 +11751,7 @@
       {
         "effectName": "Protosynthesis",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Protosynthesis.rb",
         "hookFamilies": [
           "switch",
@@ -11802,7 +11802,7 @@
       {
         "effectName": "QuarkDrive",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 QuarkDrive.rb",
         "hookFamilies": [
           "switch",

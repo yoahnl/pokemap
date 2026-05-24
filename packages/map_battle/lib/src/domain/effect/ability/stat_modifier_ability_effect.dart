@@ -1,6 +1,14 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_item_change_handler.dart';
+import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
+import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
 import 'ability_effect.dart';
 
@@ -103,6 +111,252 @@ final class FlowerGiftStatAbilityEffect extends BattleAbilityEffect {
       'attack' || 'specialDefense' => 1.5,
       _ => 1,
     };
+  }
+}
+
+enum ParadoxStatBoostTrigger {
+  sunnyWeather,
+  electricTerrain,
+}
+
+final class ParadoxStatBoostAbilityEffect extends BattleAbilityEffect {
+  const ParadoxStatBoostAbilityEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+    required this.trigger,
+  }) : super(abilityId: abilityId, scope: scope);
+
+  final ParadoxStatBoostTrigger trigger;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ParadoxStatBoostAbilityEffect(
+      abilityId: abilityId,
+      scope: scope,
+      trigger: trigger,
+    );
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (context.owner != context.replacement) {
+      return null;
+    }
+    final fieldActive = switch (trigger) {
+      ParadoxStatBoostTrigger.sunnyWeather =>
+        _paradoxSunny(context.state.field.weather?.id),
+      ParadoxStatBoostTrigger.electricTerrain =>
+        context.state.field.terrain?.id == PsdkBattleTerrainId.electricTerrain,
+    };
+    return _resolveActivation(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: context.owner,
+      fieldActive: fieldActive,
+      clearExistingFieldBoost: false,
+      clearReason: null,
+    )?.toSwitchResult();
+  }
+
+  @override
+  BattleEffectFieldChangeResult? onPostWeatherChange(
+    BattleEffectWeatherChangeContext context,
+  ) {
+    if (trigger != ParadoxStatBoostTrigger.sunnyWeather) {
+      return null;
+    }
+    return _resolveActivation(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: context.owner,
+      fieldActive: _paradoxSunny(context.weather),
+      clearExistingFieldBoost: _paradoxSunny(context.lastWeather),
+      clearReason: 'weather_cleared',
+    )?.toFieldResult();
+  }
+
+  @override
+  BattleEffectFieldChangeResult? onPostTerrainChange(
+    BattleEffectTerrainChangeContext context,
+  ) {
+    if (trigger != ParadoxStatBoostTrigger.electricTerrain) {
+      return null;
+    }
+    return _resolveActivation(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: context.owner,
+      fieldActive: context.terrain == PsdkBattleTerrainId.electricTerrain,
+      clearExistingFieldBoost:
+          context.lastTerrain == PsdkBattleTerrainId.electricTerrain,
+      clearReason: 'terrain_cleared',
+    )?.toFieldResult();
+  }
+
+  @override
+  double statMultiplier(BattleAbilityStatContext context) {
+    final ownerSlot = owner;
+    if (ownerSlot == null ||
+        context.battlerSlot != ownerSlot ||
+        context.battler.abilityId != abilityId) {
+      return 1;
+    }
+    final boostedStat = _currentParadoxBoostStat(context.battler, abilityId);
+    if (boostedStat != context.stat) {
+      return 1;
+    }
+    return boostedStat == 'speed' ? 1.5 : 1.3;
+  }
+
+  _ParadoxActivationResult? _resolveActivation({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+    required bool fieldActive,
+    required bool clearExistingFieldBoost,
+    required String? clearReason,
+  }) {
+    var nextState = state;
+    var nextRng = rng;
+    final events = <PsdkBattleEvent>[];
+
+    if (fieldActive) {
+      return _activateBoost(
+        state: nextState,
+        rng: nextRng,
+        turn: turn,
+        owner: owner,
+        source: 'field',
+        initialEvents: events,
+      );
+    }
+
+    if (clearExistingFieldBoost) {
+      final cleared = _clearBoost(
+        state: nextState,
+        owner: owner,
+        turn: turn,
+        reason: clearReason ?? 'field_cleared',
+      );
+      nextState = cleared.state;
+      events.addAll(cleared.events);
+    }
+
+    final booster = _activateBoost(
+      state: nextState,
+      rng: nextRng,
+      turn: turn,
+      owner: owner,
+      source: 'booster_energy',
+      initialEvents: events,
+      consumeBoosterEnergy: true,
+    );
+    if (booster != null) {
+      return booster;
+    }
+    if (events.isEmpty) {
+      return null;
+    }
+    return _ParadoxActivationResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
+  }
+
+  _ParadoxActivationResult? _activateBoost({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+    required String source,
+    required List<PsdkBattleEvent> initialEvents,
+    bool consumeBoosterEnergy = false,
+  }) {
+    final battler = state.battlerAt(owner);
+    final boostStat = _highestParadoxStat(battler);
+    final currentBoost = _currentParadoxBoostStat(battler, abilityId);
+    if (currentBoost == boostStat) {
+      return null;
+    }
+    if (consumeBoosterEnergy && battler.heldItemId != 'booster_energy') {
+      return null;
+    }
+
+    var nextState = state;
+    var nextRng = rng;
+    final events = <PsdkBattleEvent>[...initialEvents];
+    if (consumeBoosterEnergy) {
+      final itemResult = const BattleItemChangeHandler().consumeHeldItem(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: turn,
+          user: owner,
+        ),
+        target: owner,
+      );
+      nextState = itemResult.state;
+      nextRng = itemResult.rng;
+      events.addAll(itemResult.events);
+    }
+
+    final markerId = _paradoxBoostMarker(abilityId, boostStat);
+    nextState = nextState.updateBattler(
+      owner,
+      (current) => current.copyWith(
+        effects: _withoutParadoxBoost(current.effects, abilityId).add(markerId),
+      ),
+    );
+    events.add(
+      PsdkBattleEffectEvent.added(
+        turn: turn,
+        target: owner,
+        effectId: markerId,
+        reason: 'ability:$abilityId:$source',
+      ),
+    );
+    return _ParadoxActivationResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
+  }
+
+  _ParadoxClearResult _clearBoost({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef owner,
+    required int turn,
+    required String reason,
+  }) {
+    final battler = state.battlerAt(owner);
+    final currentBoost = _currentParadoxBoostStat(battler, abilityId);
+    if (currentBoost == null) {
+      return _ParadoxClearResult(state: state);
+    }
+    final markerId = _paradoxBoostMarker(abilityId, currentBoost);
+    return _ParadoxClearResult(
+      state: state.updateBattler(
+        owner,
+        (current) => current.copyWith(
+          effects: current.effects.remove(markerId),
+        ),
+      ),
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.removed(
+          turn: turn,
+          target: owner,
+          effectId: markerId,
+          reason: reason,
+        ),
+      ],
+    );
   }
 }
 
@@ -212,6 +466,99 @@ final class GaleWingsAbilityEffect extends BattleAbilityEffect {
 
 bool hasMajorStatus(BattleAbilityStatContext context) {
   return context.battler.majorStatus != null;
+}
+
+final class _ParadoxActivationResult {
+  const _ParadoxActivationResult({
+    required this.state,
+    required this.rng,
+    required this.events,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+
+  BattleEffectSwitchEventResult toSwitchResult() {
+    return BattleEffectSwitchEventResult(
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+
+  BattleEffectFieldChangeResult toFieldResult() {
+    return BattleEffectFieldChangeResult(
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+}
+
+final class _ParadoxClearResult {
+  const _ParadoxClearResult({
+    required this.state,
+    this.events = const <PsdkBattleEvent>[],
+  });
+
+  final PsdkBattleState state;
+  final List<PsdkBattleEvent> events;
+}
+
+const _paradoxStatOrder = <String>[
+  'attack',
+  'defense',
+  'specialAttack',
+  'specialDefense',
+  'speed',
+];
+
+bool _paradoxSunny(PsdkBattleWeatherId? weather) {
+  return weather == PsdkBattleWeatherId.sunny ||
+      weather == PsdkBattleWeatherId.hardsun;
+}
+
+String _highestParadoxStat(PsdkBattleCombatant battler) {
+  var highestStat = _paradoxStatOrder.first;
+  var highestValue = battler.effectiveStat(highestStat);
+  for (final stat in _paradoxStatOrder.skip(1)) {
+    final value = battler.effectiveStat(stat);
+    // Pokemon SDK uses Hash#key(max), so ties keep the earliest stat in the
+    // atk/def/spa/spd/spe declaration order instead of replacing it.
+    if (value > highestValue) {
+      highestStat = stat;
+      highestValue = value;
+    }
+  }
+  return highestStat;
+}
+
+String? _currentParadoxBoostStat(
+  PsdkBattleCombatant battler,
+  String abilityId,
+) {
+  for (final stat in _paradoxStatOrder) {
+    if (battler.effects.contains(_paradoxBoostMarker(abilityId, stat))) {
+      return stat;
+    }
+  }
+  return null;
+}
+
+PsdkBattleEffectStack _withoutParadoxBoost(
+  PsdkBattleEffectStack effects,
+  String abilityId,
+) {
+  var next = effects;
+  for (final stat in _paradoxStatOrder) {
+    next = next.remove(_paradoxBoostMarker(abilityId, stat));
+  }
+  return next;
+}
+
+String _paradoxBoostMarker(String abilityId, String stat) {
+  return '$abilityId:boost:$stat';
 }
 
 bool hasBurnStatus(BattleAbilityStatContext context) {
