@@ -6,9 +6,9 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-05 — Outcome Reference Contracts
+Lot courant : P2-06 — Battle Reference / Outcome Contract
 
-Prochain lot exact : P2-05 — Outcome Reference Contracts
+Prochain lot exact : P2-06 — Battle Reference / Outcome Contract
 
 Suivi des lots :
 
@@ -17,8 +17,8 @@ Suivi des lots :
 - ✅ P2-02 — Story Step Descriptor / Storyline Metadata Decision
 - ✅ P2-03 — Event Authoring Source Contract
 - ✅ P2-04 — Scene / ScenarioAsset Adapter Contract
-- 🔜 P2-05 — Outcome Reference Contracts
-- P2-06 — Battle Reference / Outcome Contract
+- ✅ P2-05 — Outcome Reference Contracts
+- 🔜 P2-06 — Battle Reference / Outcome Contract
 - P2-07 — Fact Descriptor / Presentation Layer
 - P2-08 — World Rule Predicate Adapter Contract
 - P2-09 — Narrative Validator Diagnostic Expansion
@@ -35,7 +35,9 @@ P2-03 : ✅ terminé
 
 P2-04 : ✅ terminé
 
-P2-05 : 🔜 prochain lot exact
+P2-05 : ✅ terminé
+
+P2-06 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -493,11 +495,50 @@ Pas de Scene Builder complet.
 Dépendances :
 P2-01, P2-03.
 
-### P2-05 — Outcome Reference Contracts
+### ✅ P2-05 — Outcome Reference Contracts
 
 Objectif :
 Rendre les outcomes Yarn / Scenario sélectionnables et validables sans exposer
 `scenario.outcome.*` comme UX principale.
+
+Résultat :
+P2-05 reste design-only. Le lot refuse un `OutcomeRegistry` persistant, garde
+`declaredOutcomes`, `emitOutcome` et `sourceOutcome` comme sources techniques
+actuelles, et recommande un futur `OutcomeReferenceReadModel` non persistant
+dérivé de `ScenarioAsset`. Le rapport distingue outcome déclaré, émis,
+consommé et persisté sous flag technique `scenario.outcome.*`, sans transformer
+automatiquement outcome en Fact et sans fusionner battle outcomes avant P2-06.
+Aucun code, aucun JSON, aucune migration et aucun package ne sont modifiés.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_05_outcome_reference_contracts.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `ctx_search(sort="timeline", source="session-events", queries=[...], limit=3)`
+- `ctx_batch_execute(commands=[P2-05 Required Roadmap And Reports Outcome Terms, Scenario Outcome Model And Runtime Terms, Scenario Runtime Executor Outcome Focus, Narrative Validator Outcome Diagnostics Focus, Project Validator Declared Outcome Focus, Narrative Workspace Outcome Projection Focus, Cutscene Studio Outcome Compile Focus], queries=[...])`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_05_outcome_reference_contracts.md || true`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle examples/playable_runtime_host`
+- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short`
+
+Décisions utilisateur nouvelles :
+La décision recommandée est de ne pas créer de contrat Dart maintenant. Les
+outcomes restent dérivés de `ScenarioAsset`; un read model outcome pourra être
+créé plus tard si P2-09/P2-10 le justifient.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-05 confirme que Battle outcome reste séparé
+jusqu'à P2-06 et que Fact Descriptor reste à P2-07.
 
 Risque :
 Créer un OutcomeRegistry trop tôt.
@@ -670,5 +711,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-05 — Outcome Reference Contracts
+P2-06 — Battle Reference / Outcome Contract
 ```
