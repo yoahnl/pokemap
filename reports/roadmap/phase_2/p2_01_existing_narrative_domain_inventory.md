@@ -1131,6 +1131,12 @@ MVP Selbrume/road_map_phase_2.md
 
 ### 25.5 Commandes exécutées
 
+Note P2-01-bis :
+Les commandes abrégées de la première version du rapport ont été remplacées par
+les commandes exactes ou exploitables disponibles dans l’historique du lot. Les
+commandes de recherche très longues sont conservées comme commandes complètes
+sur une seule ligne dans le bloc ci-dessous.
+
 ```text
 git status --short --untracked-files=all
 sed -n '1,220p' skills/README.md
@@ -1299,10 +1305,10 @@ index b23748c9..0375b235 100644
 +Commandes exécutées :
 +
 +- `git status --short --untracked-files=all`
-+- `sed -n ...` sur les roadmaps et rapports Phase 1 / Phase 2 ciblés
-+- `rg -n ...` sur les concepts narratifs, rapports NS-GS et tests associés
-+- `wc -l ...` sur les fichiers code critiques
-+- `rg --files ...` sur `scenario_runtime` et `features/narrative`
++- `sed -n '1,220p' "MVP Selbrume/road_map_global.md"` et commandes `sed -n` listées exactement en section 25.5 du rapport P2-01
++- `rg -n "Verdict|Phase 1|P2-00|P2-01|P2-02|Concepts figés|Frontières validées|Décisions restantes|réserves|ScenarioAsset|Fact|World Rule|Story Step|Storyline|Chapter|Validator|Evidence Pack|Auto-review" reports/roadmap/phase_1/p1_checkpoint_01_canonical_product_model_closure.md reports/roadmap/phase_1/p1_07_phase_2_domain_contract_proposal.md reports/roadmap/phase_1/p1_06_no_code_workflow_specification.md`
++- `wc -l packages/map_core/lib/src/models/scenario_asset.dart packages/map_core/lib/src/models/project_manifest.dart packages/map_core/lib/src/models/game_state.dart packages/map_core/lib/src/models/save_data.dart packages/map_core/lib/src/models/script_conditions.dart packages/map_core/lib/src/models/map_entity_payloads.dart packages/map_core/lib/src/operations/narrative_validator.dart packages/map_core/lib/src/validation/validators.dart packages/map_gameplay/lib/src/game_state_mutations.dart packages/map_gameplay/lib/src/script_condition_evaluator.dart packages/map_runtime/lib/src/application/map_entity_runtime_predicate_evaluator.dart packages/map_runtime/lib/src/application/global_story_chapter_runtime.dart packages/map_runtime/lib/src/application/step_studio_world_presence_runtime.dart packages/map_editor/lib/src/application/use_cases/project_scenario_use_cases.dart`
++- `rg --files packages/map_runtime/lib/src/application/scenario_runtime packages/map_editor/lib/src/features/narrative | sort`
 +- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md || true`
 +- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages examples/playable_runtime_host`
 +- `git diff --check`
