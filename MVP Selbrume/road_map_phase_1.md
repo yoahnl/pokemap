@@ -6,17 +6,17 @@ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 
 Statut : 🔜 En préparation
 
-Lot courant : P1-02 — Event / Scene / Cinematic Boundary Contract
+Lot courant : P1-03 — Fact & World Rule Product Grammar
 
-Prochain lot exact après P1-02 : P1-03 — Fact & World Rule Product Grammar
+Prochain lot exact après P1-03 : P1-04 — Storyline / Chapter / Story Step Structure
 
 Suivi des lots :
 
 - ✅ P1-00 — Phase 1 Roadmap Bootstrap
 - ✅ P1-01 — Canonical Narrative Product Model V1
 - ✅ P1-02 — Event / Scene / Cinematic Boundary Contract
-- 🔜 P1-03 — Fact & World Rule Product Grammar
-- P1-04 — Storyline / Chapter / Story Step Structure
+- ✅ P1-03 — Fact & World Rule Product Grammar
+- 🔜 P1-04 — Storyline / Chapter / Story Step Structure
 - P1-05 — Selbrume Reference Grammar Mapping
 - P1-06 — No-code Workflow Specification
 - P1-07 — Phase 2 Domain Contract Proposal
@@ -28,7 +28,9 @@ P1-01 : ✅ terminé
 
 P1-02 : ✅ terminé
 
-P1-03 : 🔜 prochain lot exact
+P1-03 : ✅ terminé
+
+P1-04 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 1
 
@@ -221,7 +223,7 @@ Critères de validation :
 - la relation avec Yarn, Battle, Fact et World Rule est clarifiée ;
 - les besoins Phase 2 sont bornés.
 
-### 🔜 P1-03 — Fact & World Rule Product Grammar
+### ✅ P1-03 — Fact & World Rule Product Grammar
 
 Objectif :
 Définir Fact comme vérité lisible et World Rule comme projection passive.
@@ -248,7 +250,7 @@ Critères de validation :
 - les erreurs World Rule ≠ Event et Fact ≠ flag technique sont traitées ;
 - les besoins de validation future sont listés.
 
-### P1-04 — Storyline / Chapter / Story Step Structure
+### 🔜 P1-04 — Storyline / Chapter / Story Step Structure
 
 Objectif :
 Définir la structure Storyline / Chapter / Story Step et le statut des side quests.
@@ -392,12 +394,13 @@ Critères de validation :
 
 ## 10. Prochain lot exact
 
-P1-03 — Fact & World Rule Product Grammar
+P1-04 — Storyline / Chapter / Story Step Structure
 
 Objectif du prochain lot :
-Définir Fact comme vérité lisible et World Rule comme projection passive.
+Définir la structure Storyline / Chapter / Story Step et le statut des side
+quests.
 
-P1-03 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
+P1-04 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
 Selbrume finales ou de `project.json`.
 
 ## 11. Critères de sortie de Phase 1
@@ -491,3 +494,16 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
   Décisions utilisateur nouvelles : aucune.
   Changements de périmètre : aucun.
   Prochain lot exact fixé à P1-03 — Fact & World Rule Product Grammar.
+- 2026-05-24 — P1-03 — Fact & World Rule Product Grammar terminé.
+  Résultat : grammaire produit stricte Fact = vérité lisible / World Rule =
+  projection passive, avec nommage no-code, cycle de vie des facts, types de
+  projections visibles et mapping prudent vers l’existant.
+  Fichiers créés : `reports/roadmap/phase_1/p1_03_fact_world_rule_product_grammar.md`.
+  Fichiers modifiés : `MVP Selbrume/road_map_phase_1.md`.
+  Commandes exécutées : lectures Markdown ciblées,
+  `git status --short --untracked-files=all`, `git diff --check`,
+  `git diff --stat`, `git diff --name-only`, `git diff --no-index --check`,
+  `wc -l`.
+  Décisions utilisateur nouvelles : aucune.
+  Changements de périmètre : aucun.
+  Prochain lot exact fixé à P1-04 — Storyline / Chapter / Story Step Structure.
