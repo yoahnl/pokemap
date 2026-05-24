@@ -278,8 +278,9 @@ void main() {
       expect(coverage.declaredEffectsWithoutFactory, isEmpty);
       expect(coverage.concreteFactoryAbilityIds, contains('imposter'));
       expect(coverage.concreteFactoryAbilityIds, contains('shadow_tag'));
+      expect(coverage.concreteFactoryAbilityIds, contains('zero_to_hero'));
       expect(coverage.manifestAbilityIds, contains('zero_to_hero'));
-      expect(coverage.missingAbilityIds, contains('zero_to_hero'));
+      expect(coverage.missingAbilityIds, contains('ball_fetch'));
     });
 
     test('Lot 98 damage type and accuracy abilities are strict', () {
@@ -391,6 +392,35 @@ void main() {
           PsdkAbilityPortStatus.ported,
           reason: abilityId,
         );
+      }
+    });
+
+    test('Lot 120 form-changing abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'battle_bond',
+        'disguise',
+        'gulp_missile',
+        'hunger_switch',
+        'ice_face',
+        'power_construct',
+        'schooling',
+        'shields_down',
+        'tera_shift',
+        'zen_mode',
+        'zero_to_hero',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+        expect(byId[abilityId]?.dartEffect, isNotNull, reason: abilityId);
+        expect(AbilityEffectRegistry().create(abilityId), isNotNull,
+            reason: abilityId);
       }
     });
   });

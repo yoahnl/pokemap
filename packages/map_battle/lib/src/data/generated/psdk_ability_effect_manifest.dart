@@ -112,7 +112,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'battle_bond',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Battle Bond.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'BattleBondEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'beads_of_ruin',
@@ -345,7 +346,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'disguise',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Disguise.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'DisguiseEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'download',
@@ -588,7 +590,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'gulp_missile',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 GulpMissile.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'GulpMissileEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'guts',
@@ -643,7 +646,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'hunger_switch',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Hunger Switch.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HungerSwitchEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'hustle',
@@ -676,7 +680,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'ice_face',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Ice Face.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'IceFaceEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'ice_scales',
@@ -1068,7 +1073,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'power_construct',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Power Construct.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PowerConstructEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'power_of_alchemy',
@@ -1311,7 +1317,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'schooling',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Zen Mode.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HpThresholdFormAbilityEffect.schooling',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'screen_cleaner',
@@ -1387,7 +1394,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'shields_down',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Zen Mode.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HpThresholdFormAbilityEffect.shieldsDown',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'simple',
@@ -1664,7 +1672,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'tera_shift',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Tera Shift.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'TeraShiftEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'teraform_zero',
@@ -1910,13 +1919,15 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'zen_mode',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Zen Mode.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'HpThresholdFormAbilityEffect.zenMode',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'zero_to_hero',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 ZeroToHero.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ZeroToHeroEffect',
   ),
 ];
 

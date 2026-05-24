@@ -9116,15 +9116,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 420,
+      "ported": 431,
       "partial": 13,
-      "missing": 49
+      "missing": 38
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 220,
+        "ported": 231,
         "partial": 5,
-        "missing": 29
+        "missing": 18
       },
       "move": {
         "ported": 87,
@@ -9404,7 +9404,7 @@
       {
         "effectName": "BattleBond",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Battle Bond.rb",
         "hookFamilies": [
           "post_damage"
@@ -9959,7 +9959,7 @@
       {
         "effectName": "Disguise",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Disguise.rb",
         "hookFamilies": [
           "damage_prevention",
@@ -10553,7 +10553,7 @@
       {
         "effectName": "GulpMissile",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 GulpMissile.rb",
         "hookFamilies": [
           "post_damage"
@@ -10692,7 +10692,7 @@
       {
         "effectName": "HungerSwitch",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Hunger Switch.rb",
         "hookFamilies": [
           "end_turn",
@@ -10737,7 +10737,7 @@
       {
         "effectName": "IceFace",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Ice Face.rb",
         "hookFamilies": [
           "damage_prevention",
@@ -11672,7 +11672,7 @@
       {
         "effectName": "PowerConstruct",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Power Construct.rb",
         "hookFamilies": [
           "end_turn",
@@ -12092,7 +12092,7 @@
       {
         "effectName": "Schooling",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb",
         "hookFamilies": []
       },
@@ -12215,7 +12215,7 @@
       {
         "effectName": "ShieldsDown",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb",
         "hookFamilies": [
           "status_prevention"
@@ -12782,7 +12782,7 @@
       {
         "effectName": "TeraShift",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Tera Shift.rb",
         "hookFamilies": [
           "switch"
@@ -13241,7 +13241,7 @@
       {
         "effectName": "ZenMode",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb",
         "hookFamilies": [
           "end_turn",
@@ -13251,7 +13251,7 @@
       {
         "effectName": "ZeroToHero",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 ZeroToHero.rb",
         "hookFamilies": [
           "switch"

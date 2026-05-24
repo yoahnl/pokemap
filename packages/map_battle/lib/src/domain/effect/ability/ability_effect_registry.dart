@@ -17,6 +17,7 @@ import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
 import 'flee_passthrough_ability_effect.dart';
+import 'form_change_ability_effect.dart';
 import 'gorilla_tactics_effect.dart';
 import 'item_change_ability_effect.dart';
 import 'item_steal_ability_effect.dart';
@@ -338,6 +339,7 @@ final class AbilityEffectRegistry {
           kind: AllyDamageModifierKind.batterySpecialAttack,
           multiplier: 1.3,
         ),
+    'battle_bond': ({required scope}) => BattleBondEffect(scope: scope),
     'friend_guard': ({required scope}) => AllyDamageModifierAbilityEffect(
           abilityId: 'friend_guard',
           scope: scope,
@@ -425,11 +427,13 @@ final class AbilityEffectRegistry {
           multiplier: 0.5,
         ),
     'tera_shell': ({required scope}) => TeraShellEffect(scope: scope),
+    'disguise': ({required scope}) => DisguiseEffect(scope: scope),
     'levitate': ({required scope}) => LevitateEffect(scope: scope),
     'no_guard': ({required scope}) => NoGuardEffect(scope: scope),
     'reckless': ({required scope}) => RecklessEffect(scope: scope),
     'rock_head': ({required scope}) => RockHeadEffect(scope: scope),
     'shadow_tag': ({required scope}) => ShadowTagEffect(scope: scope),
+    'zero_to_hero': ({required scope}) => ZeroToHeroEffect(scope: scope),
     'arena_trap': ({required scope}) => ShadowTagEffect.arenaTrap(
           scope: scope,
         ),
@@ -594,6 +598,7 @@ final class AbilityEffectRegistry {
           scope: scope,
           transform: AbilityStatChangeTransform.guardDog,
         ),
+    'hunger_switch': ({required scope}) => HungerSwitchEffect(scope: scope),
     'defiant': ({required scope}) => StatDropPunishAbilityEffect(
           abilityId: 'defiant',
           scope: scope,
@@ -752,6 +757,11 @@ final class AbilityEffectRegistry {
           condition: AbilityAccuracyCondition.targetSandstorm,
           multiplier: 0.8,
         ),
+    'schooling': ({required scope}) => HpThresholdFormAbilityEffect(
+          abilityId: 'schooling',
+          scope: scope,
+          family: HpThresholdFormFamily.schooling,
+        ),
     'snow_cloak': ({required scope}) => AccuracyModifierAbilityEffect(
           abilityId: 'snow_cloak',
           scope: scope,
@@ -763,6 +773,11 @@ final class AbilityEffectRegistry {
           scope: scope,
           condition: AbilityAccuracyCondition.targetStatusMove,
           multiplier: 0.5,
+        ),
+    'shields_down': ({required scope}) => HpThresholdFormAbilityEffect(
+          abilityId: 'shields_down',
+          scope: scope,
+          family: HpThresholdFormFamily.shieldsDown,
         ),
     'tangled_feet': ({required scope}) => AccuracyModifierAbilityEffect(
           abilityId: 'tangled_feet',
@@ -800,6 +815,7 @@ final class AbilityEffectRegistry {
           status: PsdkBattleMajorStatus.poison,
           requiresContact: true,
         ),
+    'power_construct': ({required scope}) => PowerConstructEffect(scope: scope),
     'toxic_chain': ({required scope}) => ApplyStatusToMoveTargetAbilityEffect(
           abilityId: 'toxic_chain',
           scope: scope,
@@ -928,6 +944,7 @@ final class AbilityEffectRegistry {
     'rain_dish': ({required scope}) => RainDishEffect(scope: scope),
     'hydration': ({required scope}) => HydrationEffect(scope: scope),
     'ice_body': ({required scope}) => IceBodyEffect(scope: scope),
+    'ice_face': ({required scope}) => IceFaceEffect(scope: scope),
     'dry_skin': ({required scope}) => DrySkinEffect(scope: scope),
     'solar_power': ({required scope}) => SolarPowerEffect(scope: scope),
     'shed_skin': ({required scope}) => ShedSkinEffect(scope: scope),
@@ -945,6 +962,7 @@ final class AbilityEffectRegistry {
           scope: scope,
           mode: ItemStealAbilityMode.stealFromAttacker,
         ),
+    'gulp_missile': ({required scope}) => GulpMissileEffect(scope: scope),
     'costar': ({required scope}) => CostarEffect(scope: scope),
     'curious_medicine': ({required scope}) =>
         CuriousMedicineEffect(scope: scope),
@@ -958,7 +976,13 @@ final class AbilityEffectRegistry {
         OrichalcumPulseEffect(scope: scope),
     'hadron_engine': ({required scope}) => HadronEngineEffect(scope: scope),
     'forecast': ({required scope}) => ForecastEffect(scope: scope),
+    'tera_shift': ({required scope}) => TeraShiftEffect(scope: scope),
     'teraform_zero': ({required scope}) => TeraformZeroEffect(scope: scope),
+    'zen_mode': ({required scope}) => HpThresholdFormAbilityEffect(
+          abilityId: 'zen_mode',
+          scope: scope,
+          family: HpThresholdFormFamily.zenMode,
+        ),
     'mimicry': ({required scope}) => MimicryEffect(scope: scope),
     'desolate_land': ({required scope}) => PrimalWeatherAbilityEffect(
           abilityId: 'desolate_land',

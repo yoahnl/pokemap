@@ -2414,6 +2414,225 @@ void main() {
       );
     });
 
+    test('Zen Mode family recalibrates forms from PSDK HP thresholds', () {
+      final zenMode = _resolveAbilityEndTurn(
+        playerAbilityId: 'zen_mode',
+        playerSpeciesId: 'darmanitan',
+        playerCurrentHp: 50,
+      );
+      final zenModeBack = _resolveAbilityEndTurn(
+        playerAbilityId: 'zen_mode',
+        playerSpeciesId: 'darmanitan',
+        playerCurrentHp: 80,
+        playerForm: 1,
+      );
+      final schooling = _resolveAbilityEndTurn(
+        playerAbilityId: 'schooling',
+        playerSpeciesId: 'wishiwashi',
+        playerCurrentHp: 80,
+      );
+      final schoolingSolo = _resolveAbilityEndTurn(
+        playerAbilityId: 'schooling',
+        playerSpeciesId: 'wishiwashi',
+        playerCurrentHp: 25,
+        playerForm: 1,
+      );
+      final shieldsDown = _resolveAbilityEndTurn(
+        playerAbilityId: 'shields_down',
+        playerSpeciesId: 'minior',
+        playerCurrentHp: 50,
+      );
+
+      expect(zenMode.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(zenModeBack.state.battlerAt(psdkPlayerSlot).form, 0);
+      expect(schooling.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(schoolingSolo.state.battlerAt(psdkPlayerSlot).form, 0);
+      expect(shieldsDown.state.battlerAt(psdkPlayerSlot).form, 1);
+    });
+
+    test('Shields Down prevents statuses while Minior shell is closed', () {
+      final shielded = _applyStatusWithAbility(
+        playerAbilityId: 'shields_down',
+        playerSpeciesId: 'minior',
+        playerForm: 0,
+        status: PsdkBattleMajorStatus.burn,
+        user: psdkOpponentSlot,
+        target: psdkPlayerSlot,
+      );
+      final exposed = _applyStatusWithAbility(
+        playerAbilityId: 'shields_down',
+        playerSpeciesId: 'minior',
+        playerForm: 1,
+        status: PsdkBattleMajorStatus.burn,
+        user: psdkOpponentSlot,
+        target: psdkPlayerSlot,
+      );
+
+      expect(shielded.applied, isFalse);
+      expect(shielded.reason, 'ability:shields_down');
+      expect(exposed.applied, isTrue);
+      expect(
+        exposed.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.burn,
+      );
+    });
+
+    test('Hunger Switch toggles Morpeko forms and resets after fainting', () {
+      final hungry = _resolveAbilityEndTurn(
+        playerAbilityId: 'hunger_switch',
+        playerSpeciesId: 'morpeko',
+      );
+      final fullBelly = _resolveAbilityEndTurn(
+        playerAbilityId: 'hunger_switch',
+        playerSpeciesId: 'morpeko',
+        playerForm: 1,
+      );
+      final fainted = _damageAbilityHolder(
+        abilityId: 'hunger_switch',
+        speciesId: 'morpeko',
+        form: 1,
+        rawDamage: 200,
+      );
+
+      expect(hungry.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(fullBelly.state.battlerAt(psdkPlayerSlot).form, 0);
+      expect(fainted.state.battlerAt(psdkPlayerSlot).form, 0);
+    });
+
+    test('Zero to Hero transforms Palafin while it leaves battle', () {
+      final switchedOut = _switchOutFormAbilityHolder(
+        abilityId: 'zero_to_hero',
+        speciesId: 'palafin',
+      );
+
+      expect(switchedOut.state.partyForBank(0).first.form, 1);
+      expect(switchedOut.state.battlerAt(psdkPlayerSlot).id, 'bench');
+
+      final returned = const BattleSwitchHandler().switchCombatant(
+        context: BattleHandlerContext(
+          state: switchedOut.state,
+          rng: switchedOut.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+        partyIndex: 0,
+      );
+
+      expect(returned.state.battlerAt(psdkPlayerSlot).speciesId, 'palafin');
+      expect(returned.state.battlerAt(psdkPlayerSlot).form, 1);
+    });
+
+    test('Tera Shift changes Terapagos to battle form on switch-in', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'tera_shift',
+        playerSpeciesId: 'terapagos',
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).form, 1);
+    });
+
+    test('Ice Face blocks one physical hit and reforms in snow', () {
+      final broken = _damageAbilityHolder(
+        abilityId: 'ice_face',
+        speciesId: 'eiscue',
+        form: 0,
+        rawDamage: 40,
+        moveCategory: PsdkBattleMoveCategory.physical,
+      );
+      final snowSwitchIn = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'ice_face',
+        playerSpeciesId: 'eiscue',
+        playerForm: 1,
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.snow,
+            remainingTurns: 4,
+          ),
+        ),
+      );
+
+      expect(broken.amount, 0);
+      expect(broken.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(broken.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(broken.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(snowSwitchIn.state.battlerAt(psdkPlayerSlot).form, 0);
+    });
+
+    test('Disguise blocks damage, chips Mimikyu and breaks its form', () {
+      final result = _damageAbilityHolder(
+        abilityId: 'disguise',
+        speciesId: 'mimikyu',
+        form: 0,
+        rawDamage: 80,
+        moveCategory: PsdkBattleMoveCategory.physical,
+      );
+
+      expect(result.amount, 12);
+      expect(result.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 88);
+      expect(result.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(_damageEventsForHandler(result).single.damage, 12);
+    });
+
+    test('Gulp Missile catches prey and spits it back with PSDK effects', () {
+      final caught = _damageFromAbilityHolder(
+        abilityId: 'gulp_missile',
+        speciesId: 'cramorant',
+        moveId: 'surf',
+        rawDamage: 10,
+      );
+
+      expect(caught.state.battlerAt(psdkPlayerSlot).form, 1);
+
+      final spat = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: caught.state,
+          rng: caught.rng,
+          turn: 2,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        moveId: 'tackle',
+        rawDamage: 10,
+        moveCategory: PsdkBattleMoveCategory.physical,
+      );
+
+      expect(spat.state.battlerAt(psdkPlayerSlot).form, 0);
+      expect(spat.state.battlerAt(psdkOpponentSlot).currentHp, 65);
+      expect(
+          spat.state.battlerAt(psdkOpponentSlot).statStages.valueOf(
+                'defense',
+              ),
+          -1);
+      expect(
+        _damageEventsForHandler(spat).map((event) => event.moveId),
+        contains('ability:gulp_missile'),
+      );
+    });
+
+    test('Power Construct completes Zygarde at low HP end turn', () {
+      final result = _resolveAbilityEndTurn(
+        playerAbilityId: 'power_construct',
+        playerSpeciesId: 'zygarde',
+        playerCurrentHp: 49,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).form, 3);
+    });
+
+    test('Battle Bond changes Greninja form after it knocks out a foe', () {
+      final result = _damageFromAbilityHolder(
+        abilityId: 'battle_bond',
+        speciesId: 'greninja',
+        moveId: 'water_shuriken',
+        rawDamage: 200,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(result.state.battlerAt(psdkOpponentSlot).isFainted, isTrue);
+    });
+
     test('Innards Out damages the attacker by the fainted HP amount', () {
       final result = _runMove(
         opponentAbilityId: 'innards_out',
@@ -5443,6 +5662,8 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   String? playerSpeciesId,
   String? playerHeldItemId,
   PsdkBattleMajorStatus? playerMajorStatus,
+  int playerCurrentHp = 100,
+  int playerForm = 0,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleEffectStack? playerEffects,
   List<PsdkBattleCombatantSetup> playerReserves =
@@ -5470,6 +5691,8 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         abilityId: playerAbilityId,
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,
+        currentHp: playerCurrentHp,
+        form: playerForm,
         types: playerTypes,
         effects: playerEffects,
         move: _move(id: 'tackle', power: 40),
@@ -5618,7 +5841,9 @@ BattleHandlerResult _faintPrimalWeatherHolder({
 
 BattleHandlerResult _resolveAbilityEndTurn({
   required String playerAbilityId,
+  String? playerSpeciesId,
   int playerCurrentHp = 100,
+  int playerForm = 0,
   PsdkBattleMajorStatus? playerMajorStatus,
   int opponentCurrentHp = 100,
   PsdkBattleMajorStatus? opponentMajorStatus,
@@ -5634,8 +5859,10 @@ BattleHandlerResult _resolveAbilityEndTurn({
     BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        speciesId: playerSpeciesId,
         abilityId: playerAbilityId,
         currentHp: playerCurrentHp,
+        form: playerForm,
         majorStatus: playerMajorStatus,
         move: _move(id: 'tackle', power: 40),
       ),
@@ -5662,14 +5889,20 @@ BattleHandlerResult _resolveAbilityEndTurn({
 
 BattleHandlerResult _applyStatusWithAbility({
   required String playerAbilityId,
+  String? playerSpeciesId,
+  int playerForm = 0,
   required PsdkBattleMajorStatus status,
   BattleMoveDefinition? move,
+  PsdkBattleSlotRef user = psdkPlayerSlot,
+  PsdkBattleSlotRef target = psdkOpponentSlot,
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        speciesId: playerSpeciesId,
         abilityId: playerAbilityId,
+        form: playerForm,
         move: _move(id: 'status_probe', power: 0),
       ),
       opponent: _combatant(
@@ -5690,12 +5923,145 @@ BattleHandlerResult _applyStatusWithAbility({
       state: state,
       rng: _rng(),
       turn: 1,
-      user: psdkPlayerSlot,
+      user: user,
     ),
-    target: psdkOpponentSlot,
+    target: target,
     moveId: move?.id ?? 'status_probe',
     status: status,
     move: move,
+  );
+}
+
+BattleHandlerResult _damageAbilityHolder({
+  required String abilityId,
+  required String speciesId,
+  int form = 0,
+  required int rawDamage,
+  PsdkBattleMoveCategory moveCategory = PsdkBattleMoveCategory.physical,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        speciesId: speciesId,
+        abilityId: abilityId,
+        form: form,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleDamageHandler().applyDamage(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkOpponentSlot,
+    ),
+    target: psdkPlayerSlot,
+    moveId: 'opponent_attack',
+    rawDamage: rawDamage,
+    moveCategory: moveCategory,
+  );
+}
+
+BattleHandlerResult _damageFromAbilityHolder({
+  required String abilityId,
+  required String speciesId,
+  required String moveId,
+  required int rawDamage,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        speciesId: speciesId,
+        abilityId: abilityId,
+        move: _move(id: moveId, power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleDamageHandler().applyDamage(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkOpponentSlot,
+    moveId: moveId,
+    rawDamage: rawDamage,
+    moveCategory: PsdkBattleMoveCategory.special,
+  );
+}
+
+BattleHandlerResult _switchOutFormAbilityHolder({
+  required String abilityId,
+  required String speciesId,
+  int form = 0,
+}) {
+  final active = PsdkBattleCombatant.fromSetup(
+    _combatant(
+      id: 'player',
+      speciesId: speciesId,
+      abilityId: abilityId,
+      form: form,
+      move: _move(id: 'tackle', power: 40),
+    ),
+  );
+  final bench = PsdkBattleCombatant.fromSetup(
+    _combatant(
+      id: 'bench',
+      move: _move(id: 'bench_wait', power: 0),
+    ),
+  );
+  final opponent = PsdkBattleCombatant.fromSetup(
+    _combatant(
+      id: 'opponent',
+      move: _move(id: 'opponent_wait', power: 0),
+    ),
+  );
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: active,
+      psdkOpponentSlot: opponent,
+    },
+    parties: <int, List<PsdkBattleCombatant>>{
+      0: <PsdkBattleCombatant>[active, bench],
+      1: <PsdkBattleCombatant>[opponent],
+    },
+  );
+
+  return const BattleSwitchHandler().switchCombatant(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkPlayerSlot,
+    partyIndex: 1,
   );
 }
 
