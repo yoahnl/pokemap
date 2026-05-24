@@ -944,6 +944,13 @@ const _unencorableMoveIds = <String>{
 };
 
 BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
+  if (context.move.battleEngineMethod == 's_basic' &&
+      _normalizedId(context.move.dbSymbol) == 'secret_sword') {
+    return const CustomStatSourceMoveBehavior.customStatsBased().resolve(
+      context,
+    );
+  }
+
   final common = prepareBattleMove(context);
   if (!common.shouldExecuteBehavior) {
     return common.toResolution();

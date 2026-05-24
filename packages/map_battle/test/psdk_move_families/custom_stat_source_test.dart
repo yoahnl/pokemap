@@ -351,6 +351,40 @@ void main() {
       );
     });
 
+    test('Studio s_basic secret_sword uses Special Attack against Defense', () {
+      final highSpecialDefenseTarget = _runMove(
+        playerMove: _move(
+          id: 'secret_sword',
+          dbSymbol: 'secret_sword',
+          battleEngineMethod: 's_basic',
+          power: 80,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(specialAttack: 100),
+        opponentStats: _stats(
+          defense: 50,
+          specialDefense: 200,
+        ),
+      );
+      final highDefenseTarget = _runMove(
+        playerMove: _move(
+          id: 'secret_sword',
+          dbSymbol: 'secret_sword',
+          battleEngineMethod: 's_basic',
+          power: 80,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(specialAttack: 100),
+        opponentStats: _stats(
+          defense: 100,
+          specialDefense: 50,
+        ),
+      );
+
+      expect(_damage(highSpecialDefenseTarget, moveId: 'secret_sword'), 29);
+      expect(_damage(highDefenseTarget, moveId: 'secret_sword'), 15);
+    });
+
     test('custom stat-source moves keep the post-damage secondary chain', () {
       final result = _runMove(
         playerMove: _move(

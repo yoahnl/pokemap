@@ -276,6 +276,20 @@ void main() {
             sourceFile: 'bulldoze.json',
           ),
           PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'secret_sword',
+            battleEngineMethod: 's_basic',
+            type: 'fighting',
+            category: 'special',
+            power: 85,
+            accuracy: '100',
+            pp: 10,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 100,
+            target: 'adjacent_pokemon',
+            sourceFile: 'secret_sword.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
             dbSymbol: 'growl_like_bad_data',
             battleEngineMethod: 's_basic',
             type: 'normal',
@@ -320,7 +334,7 @@ void main() {
         sourceDescription: 's_basic test moves',
       );
 
-      expect(report, contains('| fait | 10 |'));
+      expect(report, contains('| fait | 11 |'));
       expect(report, contains('| partiel | 2 |'));
       expect(
         report,
@@ -364,11 +378,107 @@ void main() {
       );
       expect(
         report,
+        contains('| fait | secret_sword | s_basic | ported |'),
+      );
+      expect(
+        report,
         contains('| partiel | growl_like_bad_data | s_basic | ported |'),
       );
       expect(
         report,
         contains('| partiel | flash | s_basic | ported |'),
+      );
+    });
+
+    test('classifies generic Studio Z-Move placeholders as strict s_basic', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'breakneck_blitz',
+            battleEngineMethod: 's_basic',
+            type: 'normal',
+            category: 'physical',
+            power: 0,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'breakneck_blitz.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'breakneck_blitz2',
+            battleEngineMethod: 's_basic',
+            type: 'normal',
+            category: 'special',
+            power: 0,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'breakneck_blitz2.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'zero_power_basic_not_z',
+            battleEngineMethod: 's_basic',
+            type: 'normal',
+            category: 'physical',
+            power: 0,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            sourceFile: 'zero_power_basic_not_z.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'breakneck_blitz',
+            battleEngineMethod: 's_basic',
+            type: 'fire',
+            category: 'physical',
+            power: 0,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'breakneck_blitz_bad_shape.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_basic',
+            rubyClass: 'Basic',
+            rubyPath: 'basic.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_basic',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 'generic Studio Z-Move placeholders',
+      );
+
+      expect(report, contains('| fait | 2 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(
+        report,
+        contains('| fait | breakneck_blitz | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | breakneck_blitz2 | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains(
+          '| partiel | zero_power_basic_not_z | s_basic | ported |',
+        ),
+      );
+      expect(
+        report,
+        contains(
+          '| partiel | breakneck_blitz | s_basic | ported | '
+          'StaticBasicMoveRegistry.s_basic | fire | physical | 0 | 0 | 1 | '
+          'breakneck_blitz_bad_shape.json |',
+        ),
       );
     });
 

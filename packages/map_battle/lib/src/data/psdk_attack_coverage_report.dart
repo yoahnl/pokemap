@@ -116,6 +116,58 @@ final class PsdkStudioMoveCoverageEntry {
         effectChance == 10;
   }
 
+  bool get isStrictGenericZMovePlaceholder {
+    if (battleEngineMethod != 's_basic') {
+      return false;
+    }
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final expectedType = _strictGenericZMovePlaceholderTypes[normalizedSymbol];
+    if (expectedType == null) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    final expectedCategory =
+        normalizedSymbol.endsWith('2') ? 'special' : 'physical';
+    final normalizedTarget = target.trim().toLowerCase();
+    return type.trim().toLowerCase() == expectedType &&
+        normalizedCategory == expectedCategory &&
+        power == 0 &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 0 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        normalizedTarget == 'adjacent_pokemon' &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
+  bool get isStrictSecretSwordStudioAlias {
+    if (battleEngineMethod != 's_basic' || dbSymbol != 'secret_sword') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    return type.trim().toLowerCase() == 'fighting' &&
+        category.trim().toLowerCase() == 'special' &&
+        power == 85 &&
+        accuracy.trim() == '100' &&
+        pp == 10 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 100 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        (normalizedTarget.isEmpty || normalizedTarget == 'adjacent_pokemon');
+  }
+
   bool get _hasStrictBasicDamageShape {
     if (power <= 0) {
       return false;
@@ -637,6 +689,16 @@ String generatePsdkAttackCoverageReport({
       'metadata riders remain `partiel`.',
     )
     ..writeln(
+      '- Generic offensive Z-Move placeholders encoded by Studio as zero-power '
+      '`s_basic` shells are counted as `fait` only when they match the known '
+      'type/category placeholder shape; full Z-Crystal/source-move selection '
+      'remains owned by the runtime bridge lot.',
+    )
+    ..writeln(
+      '- Studio `secret_sword` is counted as `fait` through the strict '
+      '`s_basic` alias that delegates to the PSDK custom-stat source behavior.',
+    )
+    ..writeln(
       '- `s_self_stat` is counted as `fait` for status self-stage payloads '
       'and supported single-target or adjacent-foe spread damage self-stage '
       'riders; mixed status riders remain `partiel`.',
@@ -828,7 +890,9 @@ String psdkAttackCoverageForMove(
     PsdkPortStatus.ported when move.battleEngineMethod == 's_basic' =>
       move.isStrictPlainBasicDamage ||
               move.isStrictBasicDamageWithSupportedRider ||
-              move.isStrictWeatherAccuracyBasic
+              move.isStrictWeatherAccuracyBasic ||
+              move.isStrictGenericZMovePlaceholder ||
+              move.isStrictSecretSwordStudioAlias
           ? 'fait'
           : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_stat' =>
@@ -1005,6 +1069,45 @@ const _strictBasicDamageRiderTargets = <String>{
   'adjacent_foe',
   'adjacent_all_foe',
   'any_other_pokemon',
+};
+
+const _strictGenericZMovePlaceholderTypes = <String, String>{
+  'acid_downpour': 'poison',
+  'acid_downpour2': 'poison',
+  'all_out_pummeling': 'fighting',
+  'all_out_pummeling2': 'fighting',
+  'black_hole_eclipse': 'dark',
+  'black_hole_eclipse2': 'dark',
+  'bloom_doom': 'grass',
+  'bloom_doom2': 'grass',
+  'breakneck_blitz': 'normal',
+  'breakneck_blitz2': 'normal',
+  'continental_crush': 'rock',
+  'continental_crush2': 'rock',
+  'corkscrew_crash': 'steel',
+  'corkscrew_crash2': 'steel',
+  'devastating_drake': 'dragon',
+  'devastating_drake2': 'dragon',
+  'gigavolt_havoc': 'electric',
+  'gigavolt_havoc2': 'electric',
+  'hydro_vortex': 'water',
+  'hydro_vortex2': 'water',
+  'inferno_overdrive': 'fire',
+  'inferno_overdrive2': 'fire',
+  'never_ending_nightmare': 'ghost',
+  'never_ending_nightmare2': 'ghost',
+  'savage_spin_out': 'bug',
+  'savage_spin_out2': 'bug',
+  'shattered_psyche': 'psychic',
+  'shattered_psyche2': 'psychic',
+  'subzero_slammer': 'ice',
+  'subzero_slammer2': 'ice',
+  'supersonic_skystrike': 'flying',
+  'supersonic_skystrike2': 'flying',
+  'tectonic_rage': 'ground',
+  'tectonic_rage2': 'ground',
+  'twinkle_tackle': 'fairy',
+  'twinkle_tackle2': 'fairy',
 };
 
 const _strictSelfStatDamageTargets = <String>{

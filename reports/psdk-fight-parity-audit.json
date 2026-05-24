@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 669,
-    "partiel": 59,
+    "fait": 706,
+    "partiel": 22,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -43,17 +43,17 @@
       {
         "moveId": "acid_downpour",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/acid_downpour.json"
       },
       {
         "moveId": "acid_downpour2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/acid_downpour2.json"
       },
       {
@@ -131,17 +131,17 @@
       {
         "moveId": "all_out_pummeling",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/all_out_pummeling.json"
       },
       {
         "moveId": "all_out_pummeling2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/all_out_pummeling2.json"
       },
       {
@@ -411,17 +411,17 @@
       {
         "moveId": "black_hole_eclipse",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/black_hole_eclipse.json"
       },
       {
         "moveId": "black_hole_eclipse2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/black_hole_eclipse2.json"
       },
       {
@@ -459,17 +459,17 @@
       {
         "moveId": "bloom_doom",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bloom_doom.json"
       },
       {
         "moveId": "bloom_doom2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/bloom_doom2.json"
       },
       {
@@ -547,17 +547,17 @@
       {
         "moveId": "breakneck_blitz",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/breakneck_blitz.json"
       },
       {
         "moveId": "breakneck_blitz2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/breakneck_blitz2.json"
       },
       {
@@ -835,17 +835,17 @@
       {
         "moveId": "continental_crush",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/continental_crush.json"
       },
       {
         "moveId": "continental_crush2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/continental_crush2.json"
       },
       {
@@ -883,17 +883,17 @@
       {
         "moveId": "corkscrew_crash",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/corkscrew_crash.json"
       },
       {
         "moveId": "corkscrew_crash2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/corkscrew_crash2.json"
       },
       {
@@ -1083,17 +1083,17 @@
       {
         "moveId": "devastating_drake",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/devastating_drake.json"
       },
       {
         "moveId": "devastating_drake2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/devastating_drake2.json"
       },
       {
@@ -1995,17 +1995,17 @@
       {
         "moveId": "gigavolt_havoc",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gigavolt_havoc.json"
       },
       {
         "moveId": "gigavolt_havoc2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gigavolt_havoc2.json"
       },
       {
@@ -2411,17 +2411,17 @@
       {
         "moveId": "hydro_vortex",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hydro_vortex.json"
       },
       {
         "moveId": "hydro_vortex2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hydro_vortex2.json"
       },
       {
@@ -2579,17 +2579,17 @@
       {
         "moveId": "inferno_overdrive",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/inferno_overdrive.json"
       },
       {
         "moveId": "inferno_overdrive2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/inferno_overdrive2.json"
       },
       {
@@ -3323,17 +3323,17 @@
       {
         "moveId": "never_ending_nightmare",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/never_ending_nightmare.json"
       },
       {
         "moveId": "never_ending_nightmare2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/never_ending_nightmare2.json"
       },
       {
@@ -4235,17 +4235,17 @@
       {
         "moveId": "savage_spin_out",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/savage_spin_out.json"
       },
       {
         "moveId": "savage_spin_out2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/savage_spin_out2.json"
       },
       {
@@ -4307,9 +4307,9 @@
       {
         "moveId": "secret_sword",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/secret_sword.json"
       },
       {
@@ -4403,17 +4403,17 @@
       {
         "moveId": "shattered_psyche",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/shattered_psyche.json"
       },
       {
         "moveId": "shattered_psyche2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/shattered_psyche2.json"
       },
       {
@@ -5019,17 +5019,17 @@
       {
         "moveId": "subzero_slammer",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/subzero_slammer.json"
       },
       {
         "moveId": "subzero_slammer2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/subzero_slammer2.json"
       },
       {
@@ -5083,17 +5083,17 @@
       {
         "moveId": "supersonic_skystrike",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/supersonic_skystrike.json"
       },
       {
         "moveId": "supersonic_skystrike2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/supersonic_skystrike2.json"
       },
       {
@@ -5251,17 +5251,17 @@
       {
         "moveId": "tectonic_rage",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/tectonic_rage.json"
       },
       {
         "moveId": "tectonic_rage2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/tectonic_rage2.json"
       },
       {
@@ -5499,17 +5499,17 @@
       {
         "moveId": "twinkle_tackle",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/twinkle_tackle.json"
       },
       {
         "moveId": "twinkle_tackle2",
         "battleEngineMethod": "s_basic",
-        "coverage": "partiel",
+        "coverage": "fait",
         "psdkStatus": "ported",
-        "reason": "ported_method_metadata_outside_strict_slice",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/twinkle_tackle2.json"
       },
       {

@@ -1,12 +1,12 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-24T15:24:18.231086Z
+Generated: 2026-05-24T16:02:42.167390Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
-| Attacks | 669 / 728 | 91.9% | 59 |
+| Attacks | 706 / 728 | 97.0% | 22 |
 | Methods | 326 / 330 | 98.8% | 4 |
 | Effects | 407 / 482 | 84.4% | 75 |
 
