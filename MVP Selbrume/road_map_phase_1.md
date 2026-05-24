@@ -6,16 +6,16 @@ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 
 Statut : 🔜 En préparation
 
-Lot courant : P1-01 — Canonical Narrative Product Model V1
+Lot courant : P1-02 — Event / Scene / Cinematic Boundary Contract
 
-Prochain lot exact après P1-01 : P1-02 — Event / Scene / Cinematic Boundary Contract
+Prochain lot exact après P1-02 : P1-03 — Fact & World Rule Product Grammar
 
 Suivi des lots :
 
 - ✅ P1-00 — Phase 1 Roadmap Bootstrap
 - ✅ P1-01 — Canonical Narrative Product Model V1
-- 🔜 P1-02 — Event / Scene / Cinematic Boundary Contract
-- P1-03 — Fact & World Rule Product Grammar
+- ✅ P1-02 — Event / Scene / Cinematic Boundary Contract
+- 🔜 P1-03 — Fact & World Rule Product Grammar
 - P1-04 — Storyline / Chapter / Story Step Structure
 - P1-05 — Selbrume Reference Grammar Mapping
 - P1-06 — No-code Workflow Specification
@@ -26,7 +26,9 @@ P1-00 : ✅ terminé
 
 P1-01 : ✅ terminé
 
-P1-02 : 🔜 prochain lot exact
+P1-02 : ✅ terminé
+
+P1-03 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 1
 
@@ -191,7 +193,7 @@ Critères de validation :
 - le vocabulaire reste no-code et créateur-friendly ;
 - les impacts Phase 2 sont listés sans implémentation.
 
-### 🔜 P1-02 — Event / Scene / Cinematic Boundary Contract
+### ✅ P1-02 — Event / Scene / Cinematic Boundary Contract
 
 Objectif :
 Figer les frontières Event déclenche / Scene orchestre / Cinematic linéaire.
@@ -219,7 +221,7 @@ Critères de validation :
 - la relation avec Yarn, Battle, Fact et World Rule est clarifiée ;
 - les besoins Phase 2 sont bornés.
 
-### P1-03 — Fact & World Rule Product Grammar
+### 🔜 P1-03 — Fact & World Rule Product Grammar
 
 Objectif :
 Définir Fact comme vérité lisible et World Rule comme projection passive.
@@ -390,12 +392,12 @@ Critères de validation :
 
 ## 10. Prochain lot exact
 
-P1-02 — Event / Scene / Cinematic Boundary Contract
+P1-03 — Fact & World Rule Product Grammar
 
 Objectif du prochain lot :
-Figer les frontières Event déclenche / Scene orchestre / Cinematic linéaire.
+Définir Fact comme vérité lisible et World Rule comme projection passive.
 
-P1-02 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
+P1-03 ne doit pas créer de code, de modèles `map_core`, d’UI, de fixtures
 Selbrume finales ou de `project.json`.
 
 ## 11. Critères de sortie de Phase 1
@@ -476,3 +478,16 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
   Décisions utilisateur nouvelles : aucune.
   Changements de périmètre : aucun.
   Prochain lot exact fixé à P1-02 — Event / Scene / Cinematic Boundary Contract.
+- 2026-05-24 — P1-02 — Event / Scene / Cinematic Boundary Contract terminé.
+  Résultat : contrat produit strict Event déclenche / Scene orchestre /
+  Cinematic met en scène linéairement, avec matrice de responsabilité et
+  relations clarifiées avec Yarn, Battle, Fact, Story Step, World Rule et
+  Validator.
+  Fichiers créés : `reports/roadmap/phase_1/p1_02_event_scene_cinematic_boundary_contract.md`.
+  Fichiers modifiés : `MVP Selbrume/road_map_phase_1.md`.
+  Commandes exécutées : lectures Markdown ciblées, `find`, `git status --short --untracked-files=all`,
+  `git diff --check`, `git diff --stat`, `git diff --name-only`,
+  `git diff --no-index --check`, `wc -l`.
+  Décisions utilisateur nouvelles : aucune.
+  Changements de périmètre : aucun.
+  Prochain lot exact fixé à P1-03 — Fact & World Rule Product Grammar.
