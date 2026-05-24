@@ -44,6 +44,7 @@ import '../domain/move/behaviors/variable_power_move_behavior.dart';
 import '../domain/move/behaviors/weather_move_behavior.dart';
 import '../domain/move/behaviors/weather_power_move_behavior.dart';
 import '../domain/move/behaviors/weight_power_move_behavior.dart';
+import '../domain/move/behaviors/z_move_behavior.dart';
 import '../domain/move/battle_move_behavior.dart';
 import '../domain/move/battle_move_data.dart';
 import '../domain/move/battle_move_damage_calculator.dart';
@@ -143,9 +144,8 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_basic',
       resolve: _resolveBasic,
     ),
-    CallbackBattleMoveBehavior(
-      battleEngineMethod: 's_z_move',
-      resolve: _resolveBasic,
+    ZMoveBehavior.offensiveSignature(
+      resolveBasic: _resolveBasic,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_2turns',

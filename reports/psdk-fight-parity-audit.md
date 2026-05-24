@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 706 |
-| Studio attacks `partiel` | 22 |
+| Studio attacks `fait` | 716 |
+| Studio attacks `partiel` | 12 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -30,7 +30,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_shell_trap | 1 |
 | s_snatch | 1 |
 | s_splintered_stormshards | 1 |
-| s_z_move | 10 |
 
 ## Method Coverage
 

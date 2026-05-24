@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 706,
-    "partiel": 22,
+    "fait": 716,
+    "partiel": 12,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -683,9 +683,9 @@
       {
         "moveId": "catastropika",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/catastropika.json"
       },
       {
@@ -2787,9 +2787,9 @@
       {
         "moveId": "let_s_snuggle_forever",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/let_s_snuggle_forever.json"
       },
       {
@@ -3051,9 +3051,9 @@
       {
         "moveId": "menacing_moonraze_maelstrom",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/menacing_moonraze_maelstrom.json"
       },
       {
@@ -3395,9 +3395,9 @@
       {
         "moveId": "oceanic_operetta",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/oceanic_operetta.json"
       },
       {
@@ -3835,9 +3835,9 @@
       {
         "moveId": "pulverizing_pancake",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/pulverizing_pancake.json"
       },
       {
@@ -4179,9 +4179,9 @@
       {
         "moveId": "s10_000_000_volt_thunderbolt",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/s10_000_000_volt_thunderbolt.json"
       },
       {
@@ -4291,9 +4291,9 @@
       {
         "moveId": "searing_sunraze_smash",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/searing_sunraze_smash.json"
       },
       {
@@ -4499,9 +4499,9 @@
       {
         "moveId": "sinister_arrow_raid",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sinister_arrow_raid.json"
       },
       {
@@ -4723,9 +4723,9 @@
       {
         "moveId": "soul_stealing_7_star_strike",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/soul_stealing_7_star_strike.json"
       },
       {
@@ -4907,9 +4907,9 @@
       {
         "moveId": "stoked_sparksurfer",
         "battleEngineMethod": "s_z_move",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/stoked_sparksurfer.json"
       },
       {

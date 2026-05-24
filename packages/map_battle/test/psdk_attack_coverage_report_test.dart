@@ -96,7 +96,7 @@ void main() {
       expect(
         report,
         contains(
-          '| partiel | z_move | s_z_move | partial | StaticBasicMoveRegistry.s_z_move |',
+          '| partiel | z_move | s_z_move | ported | StaticBasicMoveRegistry.s_z_move |',
         ),
       );
     });
@@ -478,6 +478,198 @@ void main() {
           '| partiel | breakneck_blitz | s_basic | ported | '
           'StaticBasicMoveRegistry.s_basic | fire | physical | 0 | 0 | 1 | '
           'breakneck_blitz_bad_shape.json |',
+        ),
+      );
+    });
+
+    test('classifies offensive signature Studio Z-Moves as strict s_z_move',
+        () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'catastropika',
+            battleEngineMethod: 's_z_move',
+            type: 'electric',
+            category: 'physical',
+            power: 210,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'catastropika.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'let_s_snuggle_forever',
+            battleEngineMethod: 's_z_move',
+            type: 'fairy',
+            category: 'physical',
+            power: 190,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'let_s_snuggle_forever.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'menacing_moonraze_maelstrom',
+            battleEngineMethod: 's_z_move',
+            type: 'ghost',
+            category: 'special',
+            power: 200,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'menacing_moonraze_maelstrom.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'oceanic_operetta',
+            battleEngineMethod: 's_z_move',
+            type: 'water',
+            category: 'special',
+            power: 195,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'oceanic_operetta.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'pulverizing_pancake',
+            battleEngineMethod: 's_z_move',
+            type: 'normal',
+            category: 'physical',
+            power: 210,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'pulverizing_pancake.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 's10_000_000_volt_thunderbolt',
+            battleEngineMethod: 's_z_move',
+            type: 'electric',
+            category: 'special',
+            power: 195,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 3,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 's10_000_000_volt_thunderbolt.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'searing_sunraze_smash',
+            battleEngineMethod: 's_z_move',
+            type: 'steel',
+            category: 'physical',
+            power: 200,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'user',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'searing_sunraze_smash.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'sinister_arrow_raid',
+            battleEngineMethod: 's_z_move',
+            type: 'ghost',
+            category: 'physical',
+            power: 180,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'sinister_arrow_raid.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'soul_stealing_7_star_strike',
+            battleEngineMethod: 's_z_move',
+            type: 'ghost',
+            category: 'physical',
+            power: 195,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'soul_stealing_7_star_strike.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'stoked_sparksurfer',
+            battleEngineMethod: 's_z_move',
+            type: 'electric',
+            category: 'special',
+            power: 175,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'paralysis'),
+            ],
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'stoked_sparksurfer.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'stoked_sparksurfer',
+            battleEngineMethod: 's_z_move',
+            type: 'electric',
+            category: 'special',
+            power: 175,
+            accuracy: '0',
+            pp: 1,
+            criticalRate: 1,
+            effectChance: 0,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'stoked_sparksurfer_bad_shape.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[],
+        sourceDescription: 'offensive signature Studio Z-Moves',
+      );
+
+      expect(report, contains('| fait | 10 |'));
+      expect(report, contains('| partiel | 1 |'));
+      expect(report, contains('| fait | catastropika | s_z_move | ported |'));
+      expect(
+        report,
+        contains(
+          '| fait | s10_000_000_volt_thunderbolt | s_z_move | ported |',
+        ),
+      );
+      expect(
+        report,
+        contains('| fait | stoked_sparksurfer | s_z_move | ported |'),
+      );
+      expect(
+        report,
+        contains(
+          '| partiel | stoked_sparksurfer | s_z_move | ported | '
+          'StaticBasicMoveRegistry.s_z_move | electric | special | 175 | 0 | '
+          '1 | stoked_sparksurfer_bad_shape.json |',
         ),
       );
     });

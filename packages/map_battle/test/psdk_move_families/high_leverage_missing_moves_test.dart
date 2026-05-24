@@ -460,6 +460,8 @@ void main() {
 
     test('s_z_move executes its offensive Studio Z-Move hit', () {
       final result = _runMove(
+        playerSpeciesId: 'pikachu',
+        playerHeldItemId: 'pikanium_z',
         playerMove: _move(
           id: 'catastropika',
           type: 'electric',
@@ -468,6 +470,15 @@ void main() {
           accuracy: 0,
           battleEngineMethod: 's_z_move',
         ),
+        playerExtraMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'volt_tackle',
+            type: 'electric',
+            category: PsdkBattleMoveCategory.physical,
+            power: 120,
+            battleEngineMethod: 's_basic',
+          ),
+        ],
         opponentTypes: const PsdkBattleTypes(primary: 'water'),
       );
 

@@ -148,6 +148,45 @@ final class PsdkStudioMoveCoverageEntry {
         kingRockUtility;
   }
 
+  bool get isStrictOffensiveSignatureZMove {
+    if (battleEngineMethod != 's_z_move') {
+      return false;
+    }
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final spec = _strictOffensiveSignatureZMoves[normalizedSymbol];
+    if (spec == null) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    final targetMatches = spec.target == normalizedTarget ||
+        (spec.target == 'adjacent_pokemon' &&
+            normalizedTarget == 'adjacent_foe');
+    if (!targetMatches) {
+      return false;
+    }
+    final expectedStatuses = spec.statuses;
+    final statusesMatch = expectedStatuses.isEmpty
+        ? moveStatusCount == 0 && moveStatuses.isEmpty && effectChance == 0
+        : moveStatusCount == expectedStatuses.length &&
+            moveStatuses.length == expectedStatuses.length &&
+            effectChance == 100 &&
+            _sameStatusSet(moveStatuses, expectedStatuses);
+    return type.trim().toLowerCase() == spec.type &&
+        category.trim().toLowerCase() == spec.category &&
+        power == spec.power &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == spec.criticalRate &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        statusesMatch &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
   bool get isStrictSecretSwordStudioAlias {
     if (battleEngineMethod != 's_basic' || dbSymbol != 'secret_sword') {
       return false;
@@ -695,6 +734,12 @@ String generatePsdkAttackCoverageReport({
       'remains owned by the runtime bridge lot.',
     )
     ..writeln(
+      '- Offensive signature `s_z_move` entries are counted as `fait` only '
+      'when they match the exact Studio power/type/category/status shape and '
+      'the battle engine owns item, species, source-move and once-per-bank '
+      'eligibility gates.',
+    )
+    ..writeln(
       '- Studio `secret_sword` is counted as `fait` through the strict '
       '`s_basic` alias that delegates to the PSDK custom-stat source behavior.',
     )
@@ -844,11 +889,7 @@ const psdkStudioOnlyBattleMethods = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'StudioZMove',
     rubyPath: 'Data/Studio/moves',
     dartBehavior: 'StaticBasicMoveRegistry.s_z_move',
-    status: PsdkPortStatus.partial,
-    dependencies: <PsdkMoveDependency>[
-      PsdkMoveDependency.item,
-      PsdkMoveDependency.runtimeBridge,
-    ],
+    status: PsdkPortStatus.ported,
   ),
 ];
 
@@ -895,6 +936,8 @@ String psdkAttackCoverageForMove(
               move.isStrictSecretSwordStudioAlias
           ? 'fait'
           : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_z_move' =>
+      move.isStrictOffensiveSignatureZMove ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_stat' =>
       move.isStrictSelfStatBoost || move.isStrictDamagingSelfStatRider
           ? 'fait'
@@ -1110,6 +1153,81 @@ const _strictGenericZMovePlaceholderTypes = <String, String>{
   'twinkle_tackle2': 'fairy',
 };
 
+const _strictOffensiveSignatureZMoves =
+    <String, _StrictOffensiveSignatureZMove>{
+  'catastropika': _StrictOffensiveSignatureZMove(
+    type: 'electric',
+    category: 'physical',
+    power: 210,
+  ),
+  'let_s_snuggle_forever': _StrictOffensiveSignatureZMove(
+    type: 'fairy',
+    category: 'physical',
+    power: 190,
+  ),
+  'menacing_moonraze_maelstrom': _StrictOffensiveSignatureZMove(
+    type: 'ghost',
+    category: 'special',
+    power: 200,
+  ),
+  'oceanic_operetta': _StrictOffensiveSignatureZMove(
+    type: 'water',
+    category: 'special',
+    power: 195,
+  ),
+  'pulverizing_pancake': _StrictOffensiveSignatureZMove(
+    type: 'normal',
+    category: 'physical',
+    power: 210,
+  ),
+  's10_000_000_volt_thunderbolt': _StrictOffensiveSignatureZMove(
+    type: 'electric',
+    category: 'special',
+    power: 195,
+    criticalRate: 3,
+  ),
+  'searing_sunraze_smash': _StrictOffensiveSignatureZMove(
+    type: 'steel',
+    category: 'physical',
+    power: 200,
+    target: 'user',
+  ),
+  'sinister_arrow_raid': _StrictOffensiveSignatureZMove(
+    type: 'ghost',
+    category: 'physical',
+    power: 180,
+  ),
+  'soul_stealing_7_star_strike': _StrictOffensiveSignatureZMove(
+    type: 'ghost',
+    category: 'physical',
+    power: 195,
+  ),
+  'stoked_sparksurfer': _StrictOffensiveSignatureZMove(
+    type: 'electric',
+    category: 'special',
+    power: 175,
+    statuses: <String>{'paralysis'},
+  ),
+};
+
+final class _StrictOffensiveSignatureZMove {
+  const _StrictOffensiveSignatureZMove({
+    required this.type,
+    required this.category,
+    required this.power,
+    this.criticalRate = 1,
+    this.target = 'adjacent_pokemon',
+    this.statuses = const <String>{},
+  });
+
+  final String type;
+  final String category;
+  final int power;
+  final int criticalRate;
+  final String target;
+  final Set<String> statuses;
+}
+
 const _strictSelfStatDamageTargets = <String>{
   'adjacent_all_foe',
   'adjacent_pokemon',
@@ -1218,6 +1336,14 @@ const _strictMajorStatusTargets = <String>{
   'adjacent_foe',
   'adjacent_all_foe',
 };
+
+bool _sameStatusSet(
+  List<PsdkStudioStatusCoverageEntry> actual,
+  Set<String> expected,
+) {
+  return actual.map((status) => status.status).toSet().containsAll(expected) &&
+      expected.containsAll(actual.map((status) => status.status));
+}
 
 String _md(String value) {
   return value

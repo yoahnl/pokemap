@@ -1,6 +1,7 @@
 import '../action/battle_action.dart';
 import '../battle/battle_context.dart';
 import '../move/battle_move_data.dart';
+import '../move/behaviors/z_move_behavior.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
@@ -248,11 +249,20 @@ bool _isSelectableByMovePrevention({
     user: user,
     target: move.target,
   );
+  final definition = BattleMoveDefinition.fromPsdk(move);
+  if (move.battleEngineMethod == 's_z_move' &&
+      !isSignatureZMoveSelectable(
+        state: context.state,
+        user: user,
+        move: definition,
+      )) {
+    return false;
+  }
   return context.state.battlerAt(user).effects.moveSelectionPrevention(
             state: context.state,
             user: user,
             target: target,
-            move: BattleMoveDefinition.fromPsdk(move),
+            move: definition,
           ) ==
       null;
 }
