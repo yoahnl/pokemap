@@ -6,9 +6,9 @@ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 
 Statut : 🔜 En préparation
 
-Lot courant : P1-06 — No-code Workflow Specification
+Lot courant : P1-07 — Phase 2 Domain Contract Proposal
 
-Prochain lot exact après P1-06 : P1-07 — Phase 2 Domain Contract Proposal
+Prochain lot exact après P1-07 : P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 Suivi des lots :
 
@@ -19,8 +19,8 @@ Suivi des lots :
 - ✅ P1-04 — Storyline / Chapter / Story Step Structure
 - ✅ P1-05 — Selbrume Reference Grammar Mapping
 - ✅ P1-06 — No-code Workflow Specification
-- 🔜 P1-07 — Phase 2 Domain Contract Proposal
-- P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
+- ✅ P1-07 — Phase 2 Domain Contract Proposal
+- 🔜 P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 P1-00 : ✅ terminé
 
@@ -36,7 +36,9 @@ P1-05 : ✅ terminé
 
 P1-06 : ✅ terminé
 
-P1-07 : 🔜 prochain lot exact
+P1-07 : ✅ terminé
+
+P1-CHECKPOINT-01 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 1
 
@@ -341,11 +343,11 @@ Critères de validation :
 - le validator est placé dans le flux auteur ;
 - les dépendances Phase 2 / Phase 4 sont séparées.
 
-### 🔜 P1-07 — Phase 2 Domain Contract Proposal
+### ✅ P1-07 — Phase 2 Domain Contract Proposal
 
 Objectif :
 Transformer les décisions Phase 1 en proposition de lots Phase 2.
-Lister les modèles map_core à créer, adapter ou reporter.
+Lister les contrats domaine à créer, adapter ou reporter.
 
 Type :
 Documentaire / proposition de contrats domaine.
@@ -369,7 +371,7 @@ Critères de validation :
 - les risques de migration sont listés ;
 - les modèles à reporter sont explicitement justifiés.
 
-### P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
+### 🔜 P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 Objectif :
 Vérifier que Phase 1 a fermé les ambiguïtés et recommander la roadmap détaillée
@@ -400,14 +402,16 @@ Critères de validation :
 
 ## 10. Prochain lot exact
 
-P1-07 — Phase 2 Domain Contract Proposal
+P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision
 
 Objectif du prochain lot :
-Transformer les décisions Phase 1 en proposition de lots Phase 2 et lister les
-contrats domaine à créer, adapter ou reporter.
+Auditer tous les livrables Phase 1, vérifier les ambiguïtés restantes,
+décider la transition vers Phase 2 et recommander ou préparer la roadmap de
+phase suivante.
 
-P1-07 ne doit pas créer de code, de modèles `map_core`, de schemas JSON, de
-fixtures Selbrume finales ou de `project.json`.
+P1-CHECKPOINT-01 est le seul lot Phase 1 autorisé à décider la transition de
+phase. Il ne doit pas démarrer Phase 2 ni créer de contenu Selbrume final sans
+validation utilisateur.
 
 ## 11. Critères de sortie de Phase 1
 
@@ -550,3 +554,17 @@ P1-CHECKPOINT-01 devra aussi mettre à jour
   Décisions utilisateur nouvelles : aucune.
   Changements de périmètre : aucun.
   Prochain lot exact fixé à P1-07 — Phase 2 Domain Contract Proposal.
+- 2026-05-24 — P1-07 — Phase 2 Domain Contract Proposal terminé.
+  Résultat : proposition bornée de contrats Phase 2, avec distinction
+  créer / adapter / reporter, consumers explicites, stratégie prudente
+  persistence / JSON / migration, package boundaries et lots Phase 2 proposés
+  sans les exécuter.
+  Fichiers créés : `reports/roadmap/phase_1/p1_07_phase_2_domain_contract_proposal.md`.
+  Fichiers modifiés : `MVP Selbrume/road_map_phase_1.md`.
+  Commandes exécutées : lectures Markdown ciblées, inspection read-only
+  `packages/...`, `find`, `rg`, `git status --short --untracked-files=all`,
+  `git diff --check`, `git diff --stat`, `git diff --name-only`,
+  `git diff --no-index --check`, `wc -l`.
+  Décisions utilisateur nouvelles : aucune.
+  Changements de périmètre : aucun.
+  Prochain lot exact fixé à P1-CHECKPOINT-01 — Canonical Product Model Closure & Phase 2 Decision.
