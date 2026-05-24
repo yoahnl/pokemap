@@ -63,9 +63,27 @@ final class ShellTrapEffect extends BattleEffect {
   }
 
   bool _sheerForceAlreadyActivated(BattleEffectPostDamageContext context) {
-    // PSDK exempts an activated Sheer Force hit. The Dart ability lane does not
-    // yet expose that activation marker, so this guard stays conservative
-    // rather than pretending to know whether Sheer Force boosted this move.
-    return false;
+    final attacker = context.state.battlerAt(context.user);
+    if (attacker.abilityId != 'sheer_force' ||
+        attacker.effects.contains('ability_suppressed') ||
+        context.move.category == PsdkBattleMoveCategory.status) {
+      return false;
+    }
+    if (context.move.statuses.any(
+          (status) =>
+              status.majorStatus != null || status.volatileStatus != null,
+        ) ||
+        context.move.effectChance != null) {
+      return true;
+    }
+    if (context.move.stageMods.isEmpty) {
+      return false;
+    }
+    final onlyPositive = context.move.stageMods.every((mod) => mod.stages > 0);
+    final onlyNegative = context.move.stageMods.every((mod) => mod.stages < 0);
+    return switch (context.move.target) {
+      PsdkBattleMoveTarget.self || PsdkBattleMoveTarget.user => onlyPositive,
+      _ => onlyNegative,
+    };
   }
 }

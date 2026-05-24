@@ -2344,11 +2344,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ShellTrap',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
     dartBehavior: 'PreAttackMoveBehavior.shellTrap',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.actionOrder,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_shore_up',

@@ -1,6 +1,6 @@
 # PSDK Fight Parity Audit
 
-Source: `moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle`
+Source: `moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
 
 Important: `partiel` is executable coverage, not strict PSDK parity.
 
@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 726 |
-| Studio attacks `partiel` | 2 |
+| Studio attacks `fait` | 727 |
+| Studio attacks `partiel` | 1 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -20,14 +20,13 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Battle method | Partial attacks |
 | --- | ---: |
 | s_multi_hit | 1 |
-| s_shell_trap | 1 |
 
 ## Method Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 328 |
-| `partial` | 2 |
+| `ported` | 329 |
+| `partial` | 1 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -35,8 +34,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| ability | 1 |
-| actionOrder | 1 |
 | effects | 1 |
 
 ### Partial Method Batches
@@ -45,15 +42,14 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 
 | Batch | Partial methods | Methods |
 | --- | ---: | --- |
-| Action queue / copy-call residuals | 1 | `s_shell_trap` |
 | Effect hook / manifest final sweep | 1 | `s_revival_blessing` |
 
 ## Effect Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 407 |
-| `partial` | 14 |
+| `ported` | 408 |
+| `partial` | 13 |
 | `missing` | 61 |
 | Total effect classes | 482 |
 
@@ -65,7 +61,7 @@ Each partial method is assigned to its first actionable Phase 2 batch.
 | field | 15 | 0 | 0 |
 | item | 81 | 0 | 6 |
 | mechanics | 4 | 0 | 0 |
-| move | 86 | 9 | 20 |
+| move | 87 | 8 | 20 |
 | status | 7 | 0 | 0 |
 
 ### Missing Effects by Family

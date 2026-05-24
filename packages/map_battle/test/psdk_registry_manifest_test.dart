@@ -586,7 +586,7 @@ void main() {
       );
       expect(
         byFamilyAndName['move:ShellTrap']?.status,
-        PsdkPortStatus.partial,
+        PsdkPortStatus.ported,
       );
     });
 
@@ -962,7 +962,7 @@ void main() {
         byMethod['s_pre_attack_base']!.dartBehavior,
         'PreAttackMoveBehavior.base',
       );
-      expect(byMethod['s_shell_trap']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_shell_trap']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_shell_trap']!.dartBehavior,
         'PreAttackMoveBehavior.shellTrap',

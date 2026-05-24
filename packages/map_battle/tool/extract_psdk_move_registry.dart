@@ -1378,7 +1378,6 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
 
 const _remainingPartialMoveMethods = <String>{
   's_revival_blessing',
-  's_shell_trap',
 };
 
 const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
@@ -1571,10 +1570,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.field,
     _PsdkMoveDependency.handlerStatus,
     _PsdkMoveDependency.handlerStat,
-  },
-  's_shell_trap': {
-    _PsdkMoveDependency.actionOrder,
-    _PsdkMoveDependency.ability,
   },
   's_simple_beam': {
     _PsdkMoveDependency.ability,

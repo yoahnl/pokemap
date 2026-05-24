@@ -30,8 +30,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 726 |
-| partiel | 2 |
+| fait | 727 |
+| partiel | 1 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -590,7 +590,7 @@ Coverage semantics:
 | fait | shattered_psyche2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/shattered_psyche2.json |
 | fait | sheer_cold | s_ohko | ported | OhkoMoveBehavior | ice | special | 0 | 30 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sheer_cold.json |
 | fait | shell_smash | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/shell_smash.json |
-| partiel | shell_trap | s_shell_trap | partial | PreAttackMoveBehavior.shellTrap | fire | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/shell_trap.json |
+| fait | shell_trap | s_shell_trap | ported | PreAttackMoveBehavior.shellTrap | fire | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/shell_trap.json |
 | fait | shift_gear | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/shift_gear.json |
 | fait | shock_wave | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 60 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/shock_wave.json |
 | fait | shore_up | s_shore_up | ported | HealMoveBehavior.shoreUp | ground | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/shore_up.json |

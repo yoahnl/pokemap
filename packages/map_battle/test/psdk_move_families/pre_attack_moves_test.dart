@@ -223,6 +223,65 @@ void main() {
       expect(_failed(result, moveId: 'shell_trap'), isFalse);
     });
 
+    test('s_shell_trap stays closed after a Sheer Force boosted hit', () {
+      final result = _runPreAttackTurn(
+        opponentAbilityId: 'sheer_force',
+        playerMove: _move(
+          id: 'shell_trap',
+          battleEngineMethod: 's_shell_trap',
+          category: PsdkBattleMoveCategory.special,
+          power: 150,
+          priority: -3,
+        ),
+        opponentMove: _move(
+          id: 'opponent_fire_fang',
+          category: PsdkBattleMoveCategory.physical,
+          power: 30,
+          contact: true,
+          effectChance: 100,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.burn,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'opponent_fire_fang'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'shell_trap'), isEmpty);
+      expect(_failed(result, moveId: 'shell_trap'), isTrue);
+    });
+
+    test('s_shell_trap stays closed after a Sheer Force flinch hit', () {
+      final result = _runPreAttackTurn(
+        opponentAbilityId: 'sheer_force',
+        playerMove: _move(
+          id: 'shell_trap',
+          battleEngineMethod: 's_shell_trap',
+          category: PsdkBattleMoveCategory.special,
+          power: 150,
+          priority: -3,
+        ),
+        opponentMove: _move(
+          id: 'opponent_bite',
+          category: PsdkBattleMoveCategory.physical,
+          power: 60,
+          contact: true,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.flinch,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'opponent_bite'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'shell_trap'), isEmpty);
+      expect(_failed(result, moveId: 'shell_trap'), isTrue);
+    });
+
     test('s_shell_trap respects Light Screen on the target bank', () {
       final baseline = _runPreAttackTurn(
         playerMove: _move(
@@ -279,6 +338,7 @@ PsdkBattleTurnResult _runPreAttackTurn({
   int playerSpeed = 1,
   int opponentSpeed = 100,
   PsdkBattleMajorStatus? playerStatus,
+  String? opponentAbilityId,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
 }) {
@@ -295,6 +355,7 @@ PsdkBattleTurnResult _runPreAttackTurn({
         id: 'opponent',
         speed: opponentSpeed,
         moves: <PsdkBattleMoveData>[opponentMove],
+        abilityId: opponentAbilityId,
         effects: opponentEffects,
       ),
       rngSeeds: const PsdkBattleRngSeeds(
@@ -313,6 +374,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required List<PsdkBattleMoveData> moves,
+  String? abilityId,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleMajorStatus? majorStatus,
   PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
@@ -333,6 +395,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     moves: moves,
+    abilityId: abilityId,
     majorStatus: majorStatus,
     effects: effects,
   );
@@ -348,6 +411,8 @@ PsdkBattleMoveData _move({
   int priority = 0,
   bool contact = false,
   bool ballistics = false,
+  int? effectChance,
+  List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -359,11 +424,13 @@ PsdkBattleMoveData _move({
     accuracy: accuracy,
     pp: 35,
     priority: priority,
+    effectChance: effectChance,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
     target: target,
     contact: contact,
     ballistics: ballistics,
+    statuses: statuses,
   );
 }
 

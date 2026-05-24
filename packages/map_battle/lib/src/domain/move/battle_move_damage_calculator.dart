@@ -276,7 +276,9 @@ bool _sheerForceBoosts(BattleMoveDamageContext context) {
       context.move.category == PsdkBattleMoveCategory.status) {
     return false;
   }
-  if (context.move.statuses.any((status) => status.majorStatus != null) ||
+  if (context.move.statuses.any(
+        (status) => status.majorStatus != null || status.volatileStatus != null,
+      ) ||
       context.move.effectChance != null) {
     return true;
   }
@@ -415,8 +417,7 @@ bool _hasBattleEffect(BattleMoveDamageContext context, String id) {
                 battler.effects.contains(id) ||
                 battler.effects.effects.any(
                   (effect) =>
-                      effect.id == id &&
-                      effect.scope is FieldBattleEffectScope,
+                      effect.id == id && effect.scope is FieldBattleEffectScope,
                 ),
           ));
 }
@@ -774,7 +775,7 @@ int _physicalAttack(BattleMoveDamageContext context) {
 int _defensiveStat(BattleMoveDamageContext context) {
   final wonderRoomActive =
       (context.state?.hasFieldEffect('wonder_room') ?? false) ||
-      _hasBattleEffect(context, 'wonder_room');
+          _hasBattleEffect(context, 'wonder_room');
   final value = switch (context.move.category) {
     PsdkBattleMoveCategory.physical => _adjustedStat(
         value: wonderRoomActive

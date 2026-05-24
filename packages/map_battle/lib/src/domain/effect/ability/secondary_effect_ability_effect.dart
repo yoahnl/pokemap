@@ -62,7 +62,9 @@ bool _canBoost(BattleMoveDefinition move) {
     return false;
   }
 
-  if (move.statuses.any((status) => status.majorStatus != null)) {
+  if (move.statuses.any(
+    (status) => status.majorStatus != null || status.volatileStatus != null,
+  )) {
     return true;
   }
 

@@ -1,10 +1,10 @@
 {
-  "sourceDescription": "moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle",
+  "sourceDescription": "moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle",
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 726,
-    "partiel": 2,
+    "fait": 727,
+    "partiel": 1,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -4435,9 +4435,9 @@
       {
         "moveId": "shell_trap",
         "battleEngineMethod": "s_shell_trap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/shell_trap.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 328,
-      "partial": 2,
+      "ported": 329,
+      "partial": 1,
       "missing": 0
     },
     "entries": [
@@ -8275,12 +8275,8 @@
         "rubyClass": "ShellTrap",
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
         "dartBehavior": "PreAttackMoveBehavior.shellTrap",
-        "status": "partial",
-        "dependencies": [
-          "actionOrder",
-          "ability"
-        ],
-        "methodBatch": "action_queue_copy_call"
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_shore_up",
@@ -9123,14 +9119,6 @@
     ],
     "backlogBatches": [
       {
-        "id": "action_queue_copy_call",
-        "label": "Action queue / copy-call residuals",
-        "count": 1,
-        "methods": [
-          "s_shell_trap"
-        ]
-      },
-      {
         "id": "effect_hook_manifest_sweep",
         "label": "Effect hook / manifest final sweep",
         "count": 1,
@@ -9143,8 +9131,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 407,
-      "partial": 14,
+      "ported": 408,
+      "partial": 13,
       "missing": 61
     },
     "byFamilyAndStatus": {
@@ -9154,8 +9142,8 @@
         "missing": 35
       },
       "move": {
-        "ported": 86,
-        "partial": 9,
+        "ported": 87,
+        "partial": 8,
         "missing": 20
       },
       "item": {
@@ -12223,7 +12211,7 @@
       {
         "effectName": "ShellTrap",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 ShellTrap.rb",
         "hookFamilies": [
           "post_damage"

@@ -87,7 +87,7 @@ final class BattleTurnRunner {
     final previousTurnNumber = _context.turnNumber;
 
     const actionMapper = PsdkBattleActionDecisionMapper();
-    final actions = PsdkBattleActionQueue(
+    var actions = PsdkBattleActionQueue(
       actions: <PsdkBattleAction>[
         actionMapper.map(
           state: _context.state,
@@ -399,6 +399,7 @@ final class BattleTurnRunner {
           ),
         );
 
+        final stateBeforeResolution = _context.state;
         final resolution = _moveBehaviorRegistry.resolve(
           method: moveAfterPp.battleEngineMethod,
           context: PsdkBattleMoveContext(
@@ -425,6 +426,12 @@ final class BattleTurnRunner {
         _context.applyStateAndRng(
           nextState: resolution.state,
           nextRng: resolution.rng,
+        );
+        actions = _deferOpenedShellTrapActions(
+          actions: actions,
+          currentIndex: actionIndex,
+          beforeState: stateBeforeResolution,
+          afterState: _context.state,
         );
         timeline.addPsdkAll(resolution.events);
         _recordMoveAttempt(
@@ -519,6 +526,31 @@ final class BattleTurnRunner {
       rng: _context.rng,
       applied: applied,
     );
+  }
+
+  List<PsdkBattleAction> _deferOpenedShellTrapActions({
+    required List<PsdkBattleAction> actions,
+    required int currentIndex,
+    required PsdkBattleState beforeState,
+    required PsdkBattleState afterState,
+  }) {
+    var next = actions;
+    for (final entry in beforeState.combatants.entries) {
+      final slot = entry.key;
+      if (!entry.value.effects.contains('shell_trap')) {
+        continue;
+      }
+      final after = afterState.combatants[slot];
+      if (after == null || after.effects.contains('shell_trap')) {
+        continue;
+      }
+      next = PsdkBattleActionQueue.deferPendingShellTrapActionToEnd(
+        actions: next,
+        currentIndex: currentIndex,
+        user: slot,
+      );
+    }
+    return next;
   }
 
   BattleEffect? _preAttackEffectFor(PsdkBattleFightAction action) {

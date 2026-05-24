@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 328 |
-| `partial` | 2 |
+| `ported` | 329 |
+| `partial` | 1 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -259,7 +259,7 @@ Total registered methods: 330
 | `s_self_status` | `SelfStatus` | `10 Move/1 Mechanics/101 Self.rb` | `StatusStatMoveBehavior.selfStatus` | `ported` | `-` |
 | `s_shed_tail` | `ShedTail` | `10 Move/2 Definitions/300 Substitute.rb` | `StaticBasicMoveRegistry.s_shed_tail` | `ported` | `-` |
 | `s_shell_side_arm` | `ShellSideArm` | `10 Move/2 Definitions/300 ShellSideArm.rb` | `StaticBasicMoveRegistry.s_shell_side_arm` | `ported` | `effects` |
-| `s_shell_trap` | `ShellTrap` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `PreAttackMoveBehavior.shellTrap` | `partial` | `action_order`, `ability` |
+| `s_shell_trap` | `ShellTrap` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `PreAttackMoveBehavior.shellTrap` | `ported` | `effects` |
 | `s_shore_up` | `ShoreUp` | `10 Move/2 Definitions/300 Shore Up.rb` | `HealMoveBehavior.shoreUp` | `ported` | `weather`, `handler_damage`, `effects` |
 | `s_simple_beam` | `SimpleBeam` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_simple_beam)` | `ported` | `ability`, `effects` |
 | `s_sketch` | `Sketch` | `10 Move/2 Definitions/300 Sketch.rb` | `CopyCallMoveBehavior.sketch` | `ported` | `-` |
