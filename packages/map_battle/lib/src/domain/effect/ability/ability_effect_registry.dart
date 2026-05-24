@@ -598,6 +598,7 @@ final class AbilityEffectRegistry {
           scope: scope,
           transform: AbilityStatChangeTransform.guardDog,
         ),
+    'mirror_armor': ({required scope}) => MirrorArmorEffect(scope: scope),
     'hunger_switch': ({required scope}) => HungerSwitchEffect(scope: scope),
     'defiant': ({required scope}) => StatDropPunishAbilityEffect(
           abilityId: 'defiant',

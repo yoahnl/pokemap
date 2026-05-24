@@ -48,6 +48,7 @@ void main() {
         'cloud_nine',
         'comatose',
         'compound_eyes',
+        'cotton_down',
         'cud_chew',
         'cursed_body',
         'damp',
@@ -216,8 +217,8 @@ void main() {
 
       for (final abilityId in <String>[
         'color_change',
-        'cotton_down',
         'electromorphosis',
+        'mirror_armor',
       ]) {
         final entry = byId[abilityId];
 

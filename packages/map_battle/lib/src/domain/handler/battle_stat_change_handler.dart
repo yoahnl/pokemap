@@ -45,6 +45,38 @@ final class BattleStatChangeHandler {
       );
     }
 
+    final fieldPrevention = _fieldStatPreventionReason(
+      context: context,
+      target: target,
+      stages: effectiveStages,
+    );
+    if (fieldPrevention != null) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: fieldPrevention,
+      );
+    }
+
+    final redirect = _dispatchStatChangeRedirect(
+      context: context,
+      target: target,
+      stat: stat,
+      stages: effectiveStages,
+      move: move,
+      sourceAbilityId: sourceAbilityId,
+    );
+    if (redirect != null) {
+      return BattleHandlerResult(
+        state: redirect.state,
+        rng: redirect.rng,
+        events: redirect.events,
+        applied: redirect.applied,
+        reason: 'stat_change_redirected',
+      );
+    }
+
     effectiveStages = _resolveStatChangeHooks(
       context: context,
       target: target,
@@ -63,17 +95,6 @@ final class BattleStatChangeHandler {
     }
 
     final battler = context.state.battlerAt(target);
-    if (effectiveStages < 0 &&
-        context.user.bank != target.bank &&
-        _bankHasEffect(context.state, target.bank, 'mist')) {
-      return BattleHandlerResult(
-        state: context.state,
-        rng: context.rng,
-        applied: false,
-        reason: 'mist',
-      );
-    }
-
     final statStages =
         battler.statStages.apply(stat: stat, stages: effectiveStages);
     final previousStage = battler.statStages.valueOf(stat);
@@ -152,6 +173,49 @@ String? _statPreventionReason({
             );
     if (reason != null) {
       return reason;
+    }
+  }
+  return null;
+}
+
+String? _fieldStatPreventionReason({
+  required BattleHandlerContext context,
+  required PsdkBattleSlotRef target,
+  required int stages,
+}) {
+  if (stages < 0 &&
+      context.user.bank != target.bank &&
+      _bankHasEffect(context.state, target.bank, 'mist')) {
+    return 'mist';
+  }
+  return null;
+}
+
+BattleEffectStatChangeRedirectResult? _dispatchStatChangeRedirect({
+  required BattleHandlerContext context,
+  required PsdkBattleSlotRef target,
+  required String stat,
+  required int stages,
+  required BattleMoveDefinition? move,
+  required String? sourceAbilityId,
+}) {
+  for (final owner in _orderedSlots(context.state)) {
+    final result = context.state.battlerAt(owner).effects.statChangeRedirect(
+          BattleEffectStatChangeContext(
+            state: context.state,
+            rng: context.rng,
+            turn: context.turn,
+            owner: owner,
+            user: context.user,
+            target: target,
+            stat: stat,
+            stages: stages,
+            move: move,
+            sourceAbilityId: sourceAbilityId,
+          ),
+        );
+    if (result != null) {
+      return result;
     }
   }
   return null;

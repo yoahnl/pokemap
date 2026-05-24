@@ -485,6 +485,27 @@ void main() {
       );
     });
 
+    test(
+        'effect parity promotes Cotton Down and scopes Mirror Armor reflection',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      expect(
+        byFamilyAndName['ability:CottonDown']?.status,
+        PsdkPortStatus.ported,
+      );
+      expect(
+        byFamilyAndName['ability:MirrorArmor']?.status,
+        PsdkPortStatus.partial,
+      );
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(

@@ -431,6 +431,20 @@ final class BattleEffectStatChangeContext {
   final String? sourceAbilityId;
 }
 
+final class BattleEffectStatChangeRedirectResult {
+  const BattleEffectStatChangeRedirectResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
 final class BattleEffectStatChangePostResult {
   const BattleEffectStatChangePostResult({
     required this.state,

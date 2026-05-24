@@ -9116,15 +9116,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 442,
+      "ported": 443,
       "partial": 19,
-      "missing": 21
+      "missing": 20
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 231,
+        "ported": 232,
         "partial": 5,
-        "missing": 18
+        "missing": 17
       },
       "move": {
         "ported": 98,
@@ -9795,7 +9795,7 @@
       {
         "effectName": "CottonDown",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Cotton Down.rb",
         "hookFamilies": [
           "post_damage"
@@ -11270,7 +11270,7 @@
       {
         "effectName": "MirrorArmor",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Mirror Armor.rb",
         "hookFamilies": [
           "stat_change"

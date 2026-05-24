@@ -242,8 +242,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'cotton_down',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Cotton Down.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'CottonDownEffect.partialNoMirrorArmor',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CottonDownEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'cud_chew',
@@ -880,7 +880,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'mirror_armor',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mirror Armor.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'MirrorArmorEffect.partialNoOriginalTargetBatch',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'misty_surge',

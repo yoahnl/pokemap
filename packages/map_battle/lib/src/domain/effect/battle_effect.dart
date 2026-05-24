@@ -124,6 +124,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectStatChangeRedirectResult? onStatChangeRedirect(
+    BattleEffectStatChangeContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectStatChangePostResult? onStatChangePost(
     BattleEffectStatChangeContext context,
   ) {

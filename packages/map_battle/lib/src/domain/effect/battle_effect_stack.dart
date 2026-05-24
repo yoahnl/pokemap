@@ -581,6 +581,33 @@ final class BattleEffectObjectStack {
     return stages;
   }
 
+  BattleEffectStatChangeRedirectResult? statChangeRedirect(
+    BattleEffectStatChangeContext context,
+  ) {
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: context.state,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      if (effect is BattleAbilityEffect &&
+          _userBypassesAbilityStatHook(
+            state: context.state,
+            user: context.user,
+            target: context.target,
+          )) {
+        continue;
+      }
+      final result = effect.onStatChangeRedirect(context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return null;
+  }
+
   BattleEffectStatChangePostResult dispatchStatChangePost(
     BattleEffectStatChangeContext context,
   ) {
@@ -880,15 +907,27 @@ final class BattleEffectObjectStack {
   bool _userBypassesAbilityStatPrevention(
     BattleEffectStatChangePreventionContext context,
   ) {
-    if (context.user == context.target) {
+    return _userBypassesAbilityStatHook(
+      state: context.state,
+      user: context.user,
+      target: context.target,
+    );
+  }
+
+  bool _userBypassesAbilityStatHook({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+  }) {
+    if (user == target) {
       return false;
     }
-    final user = context.state.battlerAt(context.user);
-    if (user.effects.contains('ability_suppressed')) {
+    final userBattler = state.battlerAt(user);
+    if (userBattler.effects.contains('ability_suppressed')) {
       return false;
     }
     return _abilityPreventionBypassAbilityIds.contains(
-      _normalizedAbilityId(user.abilityId),
+      _normalizedAbilityId(userBattler.abilityId),
     );
   }
 }

@@ -686,6 +686,121 @@ void main() {
       expect(_statEventsForHandler(simpleBoost).single.amount, 2);
     });
 
+    test('Mirror Armor reflects opposing stat drops and keeps PSDK guards', () {
+      final reflected = _applyPlayerStatDrop(
+        playerAbilityId: 'mirror_armor',
+        opponentAbilityId: 'overgrow',
+        stat: 'attack',
+      );
+      final selfDrop = _applyPlayerStatDrop(
+        playerAbilityId: 'mirror_armor',
+        stat: 'defense',
+        user: psdkPlayerSlot,
+      );
+      final boost = _applyPlayerStatDrop(
+        playerAbilityId: 'mirror_armor',
+        opponentAbilityId: 'overgrow',
+        stat: 'speed',
+        stages: 1,
+      );
+      final moldBreaker = _applyPlayerStatDrop(
+        playerAbilityId: 'mirror_armor',
+        opponentAbilityId: 'mold_breaker',
+        stat: 'attack',
+      );
+      final reflectedIntoClearBody = _applyPlayerStatDrop(
+        playerAbilityId: 'mirror_armor',
+        opponentAbilityId: 'clear_body',
+        stat: 'defense',
+      );
+      final mistBlocked = _applyPlayerStatDrop(
+        playerAbilityId: 'mirror_armor',
+        playerEffects: PsdkBattleEffectStack().addEffect(
+          const GenericBattleEffect(
+            id: 'mist',
+            scope: BankBattleEffectScope(0),
+          ),
+        ),
+        stat: 'attack',
+      );
+
+      expect(
+        reflected.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        0,
+      );
+      expect(
+        reflected.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('attack'),
+        -1,
+      );
+      expect(_statEventsForHandler(reflected).single.target, psdkOpponentSlot);
+
+      expect(
+        selfDrop.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+        -1,
+      );
+      expect(_statEventsForHandler(selfDrop).single.target, psdkPlayerSlot);
+
+      expect(
+        boost.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+        1,
+      );
+      expect(
+        boost.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        0,
+      );
+
+      expect(
+        moldBreaker.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('attack'),
+        -1,
+      );
+      expect(
+        moldBreaker.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('attack'),
+        0,
+      );
+
+      expect(
+        reflectedIntoClearBody.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('defense'),
+        0,
+      );
+      expect(
+        reflectedIntoClearBody.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('defense'),
+        -1,
+      );
+      expect(reflectedIntoClearBody.reason, 'stat_change_redirected');
+
+      expect(mistBlocked.applied, isFalse);
+      expect(mistBlocked.reason, 'mist');
+      expect(
+        mistBlocked.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('attack'),
+        0,
+      );
+      expect(
+        mistBlocked.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('attack'),
+        0,
+      );
+    });
+
     test('Defiant and Competitive punish opposing stat drops', () {
       final defiant = _applyPlayerStatDrop(
         playerAbilityId: 'defiant',
@@ -4234,6 +4349,35 @@ void main() {
       expect(_effectEventsForHandler(alreadyCharged), isEmpty);
     });
 
+    test('Cotton Down redirects Speed drops through opposing Mirror Armor', () {
+      final reflected = _applyDirectAbilityDamage(
+        playerAbilityId: 'mirror_armor',
+        opponentAbilityId: 'cotton_down',
+      );
+      final regular = _applyDirectAbilityDamage(
+        opponentAbilityId: 'cotton_down',
+      );
+
+      expect(
+        reflected.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+        0,
+      );
+      expect(
+        reflected.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        -1,
+      );
+      expect(_statEventsForHandler(reflected).single.target, psdkOpponentSlot);
+
+      expect(
+        regular.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+        -1,
+      );
+      expect(
+        regular.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        0,
+      );
+    });
+
     test('Color Change rewrites the defender type after damaging moves', () {
       final changed = _applyDirectAbilityDamage(
         opponentAbilityId: 'color_change',
@@ -6812,6 +6956,7 @@ BattleHandlerResult _applyPlayerStatDrop({
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleSlotRef user = psdkOpponentSlot,
   String? opponentAbilityId,
+  PsdkBattleEffectStack? playerEffects,
   PsdkBattleEffectStack? opponentEffects,
 }) {
   final state = PsdkBattleState.fromSetup(
@@ -6820,6 +6965,7 @@ BattleHandlerResult _applyPlayerStatDrop({
         id: 'player',
         abilityId: playerAbilityId,
         types: playerTypes,
+        effects: playerEffects,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(

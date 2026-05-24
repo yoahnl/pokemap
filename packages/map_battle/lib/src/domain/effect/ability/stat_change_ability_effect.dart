@@ -44,6 +44,58 @@ final class StatChangeTransformAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class MirrorArmorEffect extends BattleAbilityEffect {
+  const MirrorArmorEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'mirror_armor', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return MirrorArmorEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectStatChangeRedirectResult? onStatChangeRedirect(
+    BattleEffectStatChangeContext context,
+  ) {
+    if (!isOwnedBy(context.target) ||
+        context.user == context.target ||
+        context.stages >= 0 ||
+        context.sourceAbilityId == abilityId) {
+      return null;
+    }
+
+    final reflectedTarget = context.state.battlerAt(context.user);
+    if (reflectedTarget.isFainted) {
+      return null;
+    }
+
+    // PSDK Mirror Armor returns 0 for the original drop and runs a fresh stat
+    // change against the launcher. Routing through the regular handler keeps
+    // Contrary/Simple, Mist and stage bounds honest on the reflected target.
+    final result = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: context.user,
+      stat: context.stat,
+      stages: context.stages,
+      move: context.move,
+      sourceAbilityId: abilityId,
+    );
+
+    return BattleEffectStatChangeRedirectResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+      applied: true,
+    );
+  }
+}
+
 final class StatDropPunishAbilityEffect extends BattleAbilityEffect {
   const StatDropPunishAbilityEffect({
     required String abilityId,

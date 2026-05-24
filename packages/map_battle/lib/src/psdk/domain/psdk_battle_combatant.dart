@@ -377,6 +377,12 @@ class PsdkBattleEffectStack {
     return _stack.resolveStatChange(context);
   }
 
+  BattleEffectStatChangeRedirectResult? statChangeRedirect(
+    BattleEffectStatChangeContext context,
+  ) {
+    return _stack.statChangeRedirect(context);
+  }
+
   BattleEffectStatChangePostResult dispatchStatChangePost(
     BattleEffectStatChangeContext context,
   ) {
