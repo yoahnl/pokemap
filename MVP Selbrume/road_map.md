@@ -562,11 +562,11 @@ PHASE 3 — Authoring / runtime bridge (code + readiness)
 ✅ NS-GS-10   — World Rules / Conditional Presence Readiness
 ✅ NS-GS-11   — Trainer Battle Authoring Readiness
 
-PHASE 4 — Validation depuis l’éditeur
-🔜 NS-GS-12   — Editor-authored Golden Slice Validation
+PHASE 4 — Validation depuis l'éditeur
+✅ NS-GS-12   — Editor-authored Golden Slice Validation (Level 2 Application — 14 tests)
 
 PHASE 5 — Sécurité no-code
-   NS-GS-13   — Narrative Validator Minimal V0
+🔜 NS-GS-13   — Narrative Validator Minimal V0
 
 PHASE 6 — Extension gameplay
    NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
@@ -579,14 +579,16 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-12 — Editor-authored Golden Slice Validation
+🔜 NS-GS-13 — Narrative Validator Minimal V0
 ```
 
 Périmètre :
 
 ```text
-Validation depuis l'éditeur du Golden Slice.
-Intégration Flame complète des briques audités NS-GS-08 à NS-GS-11.
+Validator générique vérifiant qu'un projet créé dans l'éditeur
+est structurellement valide : scénarios connectés, ids résolvables,
+pas de nœuds orphelins, pas de références cassées.
+Mécanique clé pour un outil no-code.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -763,3 +765,21 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Prochain lot | NS-GS-12 — Editor-authored Golden Slice Validation |
 | Rapport | `reports/gameplay/ns_gs_11_trainer_battle_authoring_readiness.md` |
 | Fermeture documentaire | NS-GS-11-bis — Evidence Pack Fix Only. Rapport : `reports/gameplay/ns_gs_11_bis_evidence_pack_fix.md` |
+
+---
+
+# Mise à jour NS-GS-12 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-12 — Editor-authored Golden Slice Validation |
+| Résultat | Golden Slice intégré prouvé au niveau Application (Level 2). 14 tests composent NS-GS-05..11 en chaîne end-to-end. Aucun code de prod modifié. Analyze clean (0 diagnostic). |
+| Fichiers | `ns_gs_12_golden_slice_validation_test.dart` (14 tests), rapport |
+| Décision | Level 2 (Application) est le plus haut niveau prouvable sans construire un projet fixture Selbrume complet ou un harness headless PlayableMapGame. |
+| Frontière Event/Scene/Battle/World Rule | ✅ Les 3 scénarios (mentor, dialogue, battle) composent via dispatch + dispatchContinuation + emitOutcome + sourceOutcome. World Rule projette le state résultant. |
+| Garde-fou faux positif | Cas 1 : flux intégré prouvé (pas briques isolées). Gap honnête : Flame-level PlayableMapGame non testé. Battle outcome simulé (flag posé manuellement). openDialogue stubé. |
+| Limites | Tests au niveau ScenarioRuntimeExecutor + MapEntityRuntimePredicateEvaluator, pas au niveau Flame complet. Pas de PC/Box, bag/items, XP/money testés. |
+| Mechanics-first | ✅ Aucun code de prod modifié. Aucune fixture Selbrume. Ids génériques test_*. |
+| Prochain lot | NS-GS-13 — Narrative Validator Minimal V0 |
+| Rapport | `reports/gameplay/ns_gs_12_editor_authored_golden_slice_validation.md` |
+| Fermeture documentaire | NS-GS-12-bis — Evidence Pack & Level Label Fix Only. Rapport : `reports/gameplay/ns_gs_12_bis_evidence_pack_and_level_label_fix.md` |
