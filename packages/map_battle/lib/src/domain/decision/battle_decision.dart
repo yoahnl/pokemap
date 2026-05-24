@@ -250,7 +250,9 @@ bool _isSelectableByMovePrevention({
     target: move.target,
   );
   final definition = BattleMoveDefinition.fromPsdk(move);
-  if (move.battleEngineMethod == 's_z_move' &&
+  final isKnownSignatureZMove = move.battleEngineMethod == 's_z_move' ||
+      signatureZMoveSpecFor(move.dbSymbol) != null;
+  if (isKnownSignatureZMove &&
       !isSignatureZMoveSelectable(
         state: context.state,
         user: user,

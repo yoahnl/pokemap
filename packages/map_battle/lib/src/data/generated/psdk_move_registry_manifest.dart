@@ -3172,49 +3172,49 @@ const psdkSpecialMoveScopeDecisions = <PsdkSpecialMoveScopeDecision>[
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until the move-specific terrain side effect and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with signature gates, damage and Psychic Terrain side effect.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_guardian_of_alola',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until fractional target-HP damage and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with signature gates and fractional target-HP damage.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_hyperspace_hole',
     family: PsdkSpecialMoveFamily.studioOnlySpecialCase,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only special method. It remains in combat scope because Studio data can select it as a playable attack.',
+        'Studio-only special method ported as a Protect-bypassing attack because Studio data can select it as playable.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_light_that_burns_the_sky',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until Photon Geyser-like stat-source behavior and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with signature gates, target correction and Photon Geyser-like stat source.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_malicious_moonsault',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until target-specific damage behavior and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with Incineroar signature gates and damage behavior.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_self_stat_z_move',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move status family. Keep partial until full Z-status stat boosts and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move status family ported for Clangorous Soulblaze and Extreme Evoboost gates/boosts.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_splintered_stormshards',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until terrain clearing and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with Lycanroc signature gates, damage and terrain clearing.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_z_move',

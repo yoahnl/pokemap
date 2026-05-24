@@ -98,10 +98,19 @@ BattleMoveUserPreventionResult? signatureZMoveUserPrevention({
     );
   }
 
-  if (!spec.speciesIds.contains(_normalizedId(battler.speciesId))) {
+  final speciesId = _normalizedId(battler.speciesId);
+  if (!spec.speciesIds.contains(speciesId)) {
     return const BattleMoveUserPreventionResult(
       reason: BattleMoveFailureReason.unusableByUser,
       message: 'z_species_mismatch',
+    );
+  }
+
+  final allowedForms = spec.formIdsBySpeciesId[speciesId];
+  if (allowedForms != null && !allowedForms.contains(battler.form)) {
+    return const BattleMoveUserPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+      message: 'z_form_mismatch',
     );
   }
 
@@ -142,6 +151,7 @@ final class SignatureZMoveSpec {
     required this.crystalItemId,
     required this.sourceMoveId,
     required this.speciesIds,
+    this.formIdsBySpeciesId = const <String, Set<int>>{},
     this.correctUserTarget = false,
   });
 
@@ -149,6 +159,7 @@ final class SignatureZMoveSpec {
   final String crystalItemId;
   final String sourceMoveId;
   final Set<String> speciesIds;
+  final Map<String, Set<int>> formIdsBySpeciesId;
   final bool correctUserTarget;
 }
 
@@ -247,5 +258,56 @@ const _signatureZMoves = <String, SignatureZMoveSpec>{
     crystalItemId: 'aloraichium_z',
     sourceMoveId: 'thunderbolt',
     speciesIds: <String>{'raichu_alola', 'alolan_raichu'},
+  ),
+  'clangorous_soulblaze': SignatureZMoveSpec(
+    moveId: 'clangorous_soulblaze',
+    crystalItemId: 'kommonium_z',
+    sourceMoveId: 'clanging_scales',
+    speciesIds: <String>{'kommo_o', 'kommo_o_totem'},
+  ),
+  'extreme_evoboost': SignatureZMoveSpec(
+    moveId: 'extreme_evoboost',
+    crystalItemId: 'eevium_z',
+    sourceMoveId: 'last_resort',
+    speciesIds: <String>{'eevee'},
+  ),
+  'genesis_supernova': SignatureZMoveSpec(
+    moveId: 'genesis_supernova',
+    crystalItemId: 'mewnium_z',
+    sourceMoveId: 'psychic',
+    speciesIds: <String>{'mew'},
+  ),
+  'guardian_of_alola': SignatureZMoveSpec(
+    moveId: 'guardian_of_alola',
+    crystalItemId: 'tapunium_z',
+    sourceMoveId: 'nature_s_madness',
+    speciesIds: <String>{'tapu_koko', 'tapu_lele', 'tapu_bulu', 'tapu_fini'},
+  ),
+  'light_that_burns_the_sky': SignatureZMoveSpec(
+    moveId: 'light_that_burns_the_sky',
+    crystalItemId: 'ultranecrozium_z',
+    sourceMoveId: 'photon_geyser',
+    speciesIds: <String>{'necrozma', 'necrozma_ultra', 'ultra_necrozma'},
+    formIdsBySpeciesId: <String, Set<int>>{
+      'necrozma': <int>{30},
+    },
+    correctUserTarget: true,
+  ),
+  'malicious_moonsault': SignatureZMoveSpec(
+    moveId: 'malicious_moonsault',
+    crystalItemId: 'incinium_z',
+    sourceMoveId: 'darkest_lariat',
+    speciesIds: <String>{'incineroar'},
+  ),
+  'splintered_stormshards': SignatureZMoveSpec(
+    moveId: 'splintered_stormshards',
+    crystalItemId: 'lycanium_z',
+    sourceMoveId: 'stone_edge',
+    speciesIds: <String>{
+      'lycanroc',
+      'lycanroc_midday',
+      'lycanroc_midnight',
+      'lycanroc_dusk',
+    },
   ),
 };

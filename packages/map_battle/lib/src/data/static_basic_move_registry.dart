@@ -116,6 +116,34 @@ import '../psdk/domain/psdk_battle_slots.dart';
 import '../psdk/domain/psdk_battle_state.dart';
 import '../psdk/domain/psdk_battle_timeline.dart';
 
+final class _SignatureZMoveCallbackBehavior
+    implements BattleMoveUserPreventionBehavior {
+  const _SignatureZMoveCallbackBehavior({
+    required this.battleEngineMethod,
+    required BattleMoveBehaviorResolver resolve,
+  }) : _resolve = resolve;
+
+  @override
+  final String battleEngineMethod;
+  final BattleMoveBehaviorResolver _resolve;
+
+  @override
+  BattleMoveUserPreventionResult? preventUser(
+    BattleMoveBehaviorContext context,
+  ) {
+    return signatureZMoveUserPrevention(
+      state: context.state,
+      user: context.user,
+      move: context.move,
+    );
+  }
+
+  @override
+  BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    return _resolve(context);
+  }
+}
+
 BattleMoveRegistry createStaticBasicMoveRegistry() {
   late final BattleMoveRegistry registry;
 
@@ -146,6 +174,34 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     ),
     ZMoveBehavior.offensiveSignature(
       resolveBasic: _resolveBasic,
+    ),
+    _SignatureZMoveCallbackBehavior(
+      battleEngineMethod: 's_self_stat_z_move',
+      resolve: _resolveSelfStatZMove,
+    ),
+    _SignatureZMoveCallbackBehavior(
+      battleEngineMethod: 's_genesis_supernova',
+      resolve: _resolveGenesisSupernova,
+    ),
+    _SignatureZMoveCallbackBehavior(
+      battleEngineMethod: 's_guardian_of_alola',
+      resolve: _resolveGuardianOfAlola,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_hyperspace_hole',
+      resolve: _resolveHyperspaceHole,
+    ),
+    _SignatureZMoveCallbackBehavior(
+      battleEngineMethod: 's_light_that_burns_the_sky',
+      resolve: _resolveLightThatBurnsTheSky,
+    ),
+    _SignatureZMoveCallbackBehavior(
+      battleEngineMethod: 's_malicious_moonsault',
+      resolve: _resolveSignatureZBasic,
+    ),
+    _SignatureZMoveCallbackBehavior(
+      battleEngineMethod: 's_splintered_stormshards',
+      resolve: _resolveSplinteredStormshards,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_2turns',
@@ -823,14 +879,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
   return registry;
 }
 
-const _partialBasicDescendantMethods = <String>[
-  's_genesis_supernova',
-  's_guardian_of_alola',
-  's_hyperspace_hole',
-  's_light_that_burns_the_sky',
-  's_malicious_moonsault',
-  's_splintered_stormshards',
-];
+const _partialBasicDescendantMethods = <String>[];
 
 const _partialTargetMarkerMethods = <String, String>{
   's_charge': 'charge',
@@ -929,7 +978,6 @@ const _partialFieldMarkerMethods = <String, String>{
 
 const _partialSecondaryOnlyMethods = <String>[
   's_captivate',
-  's_self_stat_z_move',
   's_toxic_thread',
   's_venom_drench',
 ];
@@ -1748,6 +1796,313 @@ BattleMoveBehaviorResolution _resolvePhotonGeyser(
       ...secondary.events,
     ],
   );
+}
+
+BattleMoveBehaviorResolution _resolveSignatureZBasic(
+  BattleMoveBehaviorContext context,
+) {
+  final failed = _signatureZMoveFailure(context);
+  if (failed != null) {
+    return failed;
+  }
+  return _resolveBasic(_signatureZMoveContext(context));
+}
+
+BattleMoveBehaviorResolution _resolveSelfStatZMove(
+  BattleMoveBehaviorContext context,
+) {
+  final failed = _signatureZMoveFailure(context);
+  if (failed != null) {
+    return failed;
+  }
+
+  final zContext = _signatureZMoveContext(context);
+  if (zContext.move.category != PsdkBattleMoveCategory.status ||
+      zContext.move.power > 0) {
+    return _resolveBasicThenSelfStages(zContext);
+  }
+
+  final prepared = prepareBattleMove(zContext);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final boosted = _applySelfStageMods(
+    state: prepared.state,
+    rng: prepared.rng,
+    turn: context.turn,
+    user: context.user,
+    move: zContext.move,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: boosted.state,
+    rng: boosted.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      ...boosted.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveGenesisSupernova(
+  BattleMoveBehaviorContext context,
+) {
+  final failed = _signatureZMoveFailure(context);
+  if (failed != null) {
+    return failed;
+  }
+
+  final basic = _resolveBasic(_signatureZMoveContext(context));
+  if (!_hasMoveDamage(basic, context.move.id)) {
+    return basic;
+  }
+
+  final terrain = const BattleTerrainChangeHandler().changeTerrain(
+    context: BattleHandlerContext(
+      state: basic.state,
+      rng: basic.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    terrain: PsdkBattleTerrainId.psychicTerrain,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: terrain.state,
+    rng: terrain.rng,
+    successful: basic.successful,
+    events: <PsdkBattleEvent>[
+      ...basic.events,
+      ...terrain.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveGuardianOfAlola(
+  BattleMoveBehaviorContext context,
+) {
+  final failed = _signatureZMoveFailure(context);
+  if (failed != null) {
+    return failed;
+  }
+
+  final zContext = _signatureZMoveContext(context);
+  final prepared = prepareBattleMove(zContext);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final currentHp = prepared.state.battlerAt(targetSlot).currentHp;
+  var damage = (currentHp * 3) ~/ 4;
+  if (currentHp > 0 && damage < 1) {
+    damage = 1;
+  }
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: prepared.rng,
+    turn: context.turn,
+    amount: damage,
+    moveCategory: context.move.category,
+    move: zContext.move,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: applied.state,
+    rng: applied.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      ...applied.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveHyperspaceHole(
+  BattleMoveBehaviorContext context,
+) {
+  final unprotectableMove = BattleMoveDefinition.fromPsdk(
+    context.move.psdkMove.copyWith(protectable: false),
+  );
+  final unprotectableContext = BattleMoveBehaviorContext(
+    state: context.state,
+    rng: context.rng,
+    turn: context.turn,
+    user: context.user,
+    target: context.target,
+    move: unprotectableMove,
+    canFlee: context.canFlee,
+    moveSlot: context.moveSlot,
+    isLastActionOfTurn: context.isLastActionOfTurn,
+    moveProcedureHooks: context.moveProcedureHooks,
+    announcedMoveFor: context.announcedMoveFor,
+  );
+  final basic = _resolveBasic(unprotectableContext);
+  if (!_hasMoveDamage(basic, context.move.id)) {
+    return basic;
+  }
+
+  final targetSlots = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == context.move.id)
+      .map((event) => event.target)
+      .toSet();
+  var state = basic.state;
+  for (final targetSlot in targetSlots) {
+    state = state.updateBattler(
+      targetSlot,
+      (battler) => battler.copyWith(
+        effects: battler.effects.remove('protect').remove('crafty_shield'),
+      ),
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: basic.rng,
+    successful: basic.successful,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveLightThatBurnsTheSky(
+  BattleMoveBehaviorContext context,
+) {
+  final failed = _signatureZMoveFailure(context);
+  if (failed != null) {
+    return failed;
+  }
+  return _resolvePhotonGeyser(_signatureZMoveContext(context));
+}
+
+BattleMoveBehaviorResolution _resolveSplinteredStormshards(
+  BattleMoveBehaviorContext context,
+) {
+  final failed = _signatureZMoveFailure(context);
+  if (failed != null) {
+    return failed;
+  }
+
+  final basic = _resolveBasic(_signatureZMoveContext(context));
+  if (!_hasMoveDamage(basic, context.move.id) ||
+      basic.state.field.terrain == null) {
+    return basic;
+  }
+
+  final cleared = const BattleTerrainChangeHandler().clearTerrain(
+    context: BattleHandlerContext(
+      state: basic.state,
+      rng: basic.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    reason: context.move.id,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: cleared.state,
+    rng: cleared.rng,
+    successful: basic.successful,
+    events: <PsdkBattleEvent>[
+      ...basic.events,
+      ...cleared.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution? _signatureZMoveFailure(
+  BattleMoveBehaviorContext context,
+) {
+  final prevention = signatureZMoveUserPrevention(
+    state: context.state,
+    user: context.user,
+    move: context.move,
+  );
+  if (prevention == null) {
+    return null;
+  }
+  return BattleMoveBehaviorResolution(
+    state: context.state,
+    rng: context.rng,
+    successful: false,
+    events: <PsdkBattleEvent>[
+      PsdkBattleMoveFailedEvent(
+        user: context.user,
+        target: context.target,
+        moveId: context.move.id,
+        reason: prevention.reason.jsonName,
+      ),
+    ],
+  );
+}
+
+BattleMoveBehaviorContext _signatureZMoveContext(
+  BattleMoveBehaviorContext context,
+) {
+  final spec = signatureZMoveSpecFor(context.move.dbSymbol);
+  final normalizedMove = spec != null && spec.correctUserTarget
+      ? context.move.copyWith(target: PsdkBattleMoveTarget.adjacentFoe)
+      : context.move;
+  final normalizedTarget =
+      spec != null && spec.correctUserTarget && context.target == context.user
+          ? psdkSinglesFoeOf(context.user)
+          : context.target;
+  return BattleMoveBehaviorContext(
+    state: context.state.markZMoveUsed(context.user.bank),
+    rng: context.rng,
+    turn: context.turn,
+    user: context.user,
+    target: normalizedTarget,
+    move: normalizedMove,
+    canFlee: context.canFlee,
+    moveSlot: context.moveSlot,
+    isLastActionOfTurn: context.isLastActionOfTurn,
+    moveProcedureHooks: context.moveProcedureHooks,
+    announcedMoveFor: context.announcedMoveFor,
+  );
+}
+
+BattleMoveSecondaryEffectResult _applySelfStageMods({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef user,
+  required BattleMoveDefinition move,
+}) {
+  var nextState = state;
+  var nextRng = rng;
+  final events = <PsdkBattleEvent>[];
+  for (final mod in move.stageMods) {
+    final changed = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: nextState,
+        rng: nextRng,
+        turn: turn,
+        user: user,
+      ),
+      target: user,
+      stat: mod.stat,
+      stages: mod.stages,
+      move: move,
+    );
+    nextState = changed.state;
+    nextRng = changed.rng;
+    events.addAll(changed.events);
+  }
+  return BattleMoveSecondaryEffectResult(
+    state: nextState,
+    rng: nextRng,
+    events: events,
+  );
+}
+
+bool _hasMoveDamage(BattleMoveBehaviorResolution resolution, String moveId) {
+  return resolution.events
+      .whereType<PsdkBattleDamageEvent>()
+      .any((event) => event.moveId == moveId && event.damage > 0);
 }
 
 BattleMoveBehaviorResolution _resolvePollenPuff(

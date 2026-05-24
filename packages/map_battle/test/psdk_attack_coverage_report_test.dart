@@ -674,6 +674,181 @@ void main() {
       );
     });
 
+    test('classifies Studio-only A3 Z and Hyperspace methods strictly', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'clangorous_soulblaze',
+            battleEngineMethod: 's_self_stat_z_move',
+            type: 'dragon',
+            category: 'special',
+            power: 185,
+            accuracy: '0',
+            pp: 1,
+            effectChance: 100,
+            battleStageModCount: 5,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'attack', stages: 1),
+              PsdkStudioStageModCoverageEntry(stat: 'defense', stages: 1),
+              PsdkStudioStageModCoverageEntry(stat: 'speed', stages: 1),
+              PsdkStudioStageModCoverageEntry(
+                stat: 'specialAttack',
+                stages: 1,
+              ),
+              PsdkStudioStageModCoverageEntry(
+                stat: 'specialDefense',
+                stages: 1,
+              ),
+            ],
+            target: 'adjacent_all_foe',
+            protectable: false,
+            sound: true,
+            kingRockUtility: true,
+            sourceFile: 'clangorous_soulblaze.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'extreme_evoboost',
+            battleEngineMethod: 's_self_stat_z_move',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 1,
+            effectChance: 100,
+            battleStageModCount: 5,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'attack', stages: 2),
+              PsdkStudioStageModCoverageEntry(stat: 'defense', stages: 2),
+              PsdkStudioStageModCoverageEntry(stat: 'speed', stages: 2),
+              PsdkStudioStageModCoverageEntry(
+                stat: 'specialAttack',
+                stages: 2,
+              ),
+              PsdkStudioStageModCoverageEntry(
+                stat: 'specialDefense',
+                stages: 2,
+              ),
+            ],
+            target: 'user',
+            protectable: false,
+            sourceFile: 'extreme_evoboost.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'genesis_supernova',
+            battleEngineMethod: 's_genesis_supernova',
+            type: 'psychic',
+            category: 'special',
+            power: 185,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'genesis_supernova.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'guardian_of_alola',
+            battleEngineMethod: 's_guardian_of_alola',
+            type: 'fairy',
+            category: 'special',
+            power: 0,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'guardian_of_alola.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'hyperspace_hole',
+            battleEngineMethod: 's_hyperspace_hole',
+            type: 'psychic',
+            category: 'special',
+            power: 80,
+            accuracy: '0',
+            pp: 5,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'hyperspace_hole.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'light_that_burns_the_sky',
+            battleEngineMethod: 's_light_that_burns_the_sky',
+            type: 'psychic',
+            category: 'special',
+            power: 200,
+            accuracy: '0',
+            pp: 1,
+            target: 'user',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'light_that_burns_the_sky.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'malicious_moonsault',
+            battleEngineMethod: 's_malicious_moonsault',
+            type: 'dark',
+            category: 'physical',
+            power: 180,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'malicious_moonsault.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'splintered_stormshards',
+            battleEngineMethod: 's_splintered_stormshards',
+            type: 'rock',
+            category: 'physical',
+            power: 190,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'splintered_stormshards.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'guardian_of_alola',
+            battleEngineMethod: 's_guardian_of_alola',
+            type: 'fairy',
+            category: 'special',
+            power: 1,
+            accuracy: '0',
+            pp: 1,
+            target: 'adjacent_pokemon',
+            protectable: false,
+            kingRockUtility: true,
+            sourceFile: 'guardian_of_alola_bad_shape.json',
+          ),
+        ],
+        manifest: psdkStudioOnlyBattleMethods,
+        sourceDescription: 'A3 Studio-only Z and Hyperspace methods',
+      );
+
+      expect(report, contains('| fait | 8 |'));
+      expect(report, contains('| partiel | 1 |'));
+      expect(
+        report,
+        contains(
+          '| fait | clangorous_soulblaze | s_self_stat_z_move | ported |',
+        ),
+      );
+      expect(
+        report,
+        contains('| fait | hyperspace_hole | s_hyperspace_hole | ported |'),
+      );
+      expect(
+        report,
+        contains(
+          '| partiel | guardian_of_alola | s_guardian_of_alola | ported |',
+        ),
+      );
+    });
+
     test('scopes ported s_self_stat coverage to strict self boosts', () {
       final report = generatePsdkAttackCoverageReport(
         moves: const <PsdkStudioMoveCoverageEntry>[

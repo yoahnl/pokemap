@@ -187,6 +187,90 @@ final class PsdkStudioMoveCoverageEntry {
         kingRockUtility;
   }
 
+  bool get isStrictStudioSignatureZMove {
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final spec = _strictStudioSignatureZMoves[normalizedSymbol];
+    if (spec == null || battleEngineMethod != spec.battleEngineMethod) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    final targetMatches = spec.target == normalizedTarget ||
+        (spec.target == 'adjacent_pokemon' &&
+            normalizedTarget == 'adjacent_foe');
+    return targetMatches &&
+        type.trim().toLowerCase() == spec.type &&
+        category.trim().toLowerCase() == spec.category &&
+        power == spec.power &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 0 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
+  bool get isStrictSelfStatZMove {
+    if (battleEngineMethod != 's_self_stat_z_move') {
+      return false;
+    }
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final spec = _strictSelfStatZMoves[normalizedSymbol];
+    if (spec == null) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    return normalizedTarget == spec.target &&
+        type.trim().toLowerCase() == spec.type &&
+        category.trim().toLowerCase() == spec.category &&
+        power == spec.power &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 100 &&
+        battleStageModCount == spec.stageMods.length &&
+        _sameStageModSet(battleStageMods, spec.stageMods) &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        !protectable &&
+        sound == spec.sound &&
+        !ballistics &&
+        kingRockUtility == spec.kingRockUtility;
+  }
+
+  bool get isStrictHyperspaceHole {
+    if (battleEngineMethod != 's_hyperspace_hole') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    return dbSymbol == 'hyperspace_hole' &&
+        type.trim().toLowerCase() == 'psychic' &&
+        category.trim().toLowerCase() == 'special' &&
+        power == 80 &&
+        accuracy.trim() == '0' &&
+        pp == 5 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 0 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        (normalizedTarget == 'adjacent_pokemon' ||
+            normalizedTarget == 'adjacent_foe') &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
   bool get isStrictSecretSwordStudioAlias {
     if (battleEngineMethod != 's_basic' || dbSymbol != 'secret_sword') {
       return false;
@@ -830,58 +914,56 @@ const psdkStudioOnlyBattleMethods = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_genesis_supernova',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_genesis_supernova)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_genesis_supernova',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_guardian_of_alola',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_guardian_of_alola)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_guardian_of_alola',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_hyperspace_hole',
     rubyClass: 'StudioOnlyMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_hyperspace_hole)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_hyperspace_hole',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_light_that_burns_the_sky',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialBasic(s_light_that_burns_the_sky)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_light_that_burns_the_sky',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_malicious_moonsault',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_malicious_moonsault)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_malicious_moonsault',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_self_stat_z_move',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_self_stat_z_move)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_self_stat_z_move',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_splintered_stormshards',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialBasic(s_splintered_stormshards)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_splintered_stormshards',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -938,6 +1020,15 @@ String psdkAttackCoverageForMove(
           : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_z_move' =>
       move.isStrictOffensiveSignatureZMove ? 'fait' : 'partiel',
+    PsdkPortStatus.ported
+        when _strictStudioSignatureZMoveMethods
+            .contains(move.battleEngineMethod) =>
+      move.isStrictStudioSignatureZMove ? 'fait' : 'partiel',
+    PsdkPortStatus.ported
+        when move.battleEngineMethod == 's_self_stat_z_move' =>
+      move.isStrictSelfStatZMove ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_hyperspace_hole' =>
+      move.isStrictHyperspaceHole ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_stat' =>
       move.isStrictSelfStatBoost || move.isStrictDamagingSelfStatRider
           ? 'fait'
@@ -1210,6 +1301,79 @@ const _strictOffensiveSignatureZMoves =
   ),
 };
 
+const _strictStudioSignatureZMoveMethods = <String>{
+  's_genesis_supernova',
+  's_guardian_of_alola',
+  's_light_that_burns_the_sky',
+  's_malicious_moonsault',
+  's_splintered_stormshards',
+};
+
+const _strictStudioSignatureZMoves = <String, _StrictStudioZMove>{
+  'genesis_supernova': _StrictStudioZMove(
+    battleEngineMethod: 's_genesis_supernova',
+    type: 'psychic',
+    category: 'special',
+    power: 185,
+  ),
+  'guardian_of_alola': _StrictStudioZMove(
+    battleEngineMethod: 's_guardian_of_alola',
+    type: 'fairy',
+    category: 'special',
+    power: 0,
+  ),
+  'light_that_burns_the_sky': _StrictStudioZMove(
+    battleEngineMethod: 's_light_that_burns_the_sky',
+    type: 'psychic',
+    category: 'special',
+    power: 200,
+    target: 'user',
+  ),
+  'malicious_moonsault': _StrictStudioZMove(
+    battleEngineMethod: 's_malicious_moonsault',
+    type: 'dark',
+    category: 'physical',
+    power: 180,
+  ),
+  'splintered_stormshards': _StrictStudioZMove(
+    battleEngineMethod: 's_splintered_stormshards',
+    type: 'rock',
+    category: 'physical',
+    power: 190,
+  ),
+};
+
+const _strictSelfStatZMoves = <String, _StrictSelfStatZMove>{
+  'clangorous_soulblaze': _StrictSelfStatZMove(
+    type: 'dragon',
+    category: 'special',
+    power: 185,
+    target: 'adjacent_all_foe',
+    sound: true,
+    kingRockUtility: true,
+    stageMods: <String, int>{
+      'attack': 1,
+      'defense': 1,
+      'speed': 1,
+      'specialAttack': 1,
+      'specialDefense': 1,
+    },
+  ),
+  'extreme_evoboost': _StrictSelfStatZMove(
+    type: 'normal',
+    category: 'status',
+    power: 0,
+    target: 'user',
+    stageMods: <String, int>{
+      'attack': 2,
+      'defense': 2,
+      'speed': 2,
+      'specialAttack': 2,
+      'specialDefense': 2,
+    },
+  ),
+};
+
 final class _StrictOffensiveSignatureZMove {
   const _StrictOffensiveSignatureZMove({
     required this.type,
@@ -1226,6 +1390,42 @@ final class _StrictOffensiveSignatureZMove {
   final int criticalRate;
   final String target;
   final Set<String> statuses;
+}
+
+final class _StrictStudioZMove {
+  const _StrictStudioZMove({
+    required this.battleEngineMethod,
+    required this.type,
+    required this.category,
+    required this.power,
+    this.target = 'adjacent_pokemon',
+  });
+
+  final String battleEngineMethod;
+  final String type;
+  final String category;
+  final int power;
+  final String target;
+}
+
+final class _StrictSelfStatZMove {
+  const _StrictSelfStatZMove({
+    required this.type,
+    required this.category,
+    required this.power,
+    required this.target,
+    required this.stageMods,
+    this.sound = false,
+    this.kingRockUtility = false,
+  });
+
+  final String type;
+  final String category;
+  final int power;
+  final String target;
+  final Map<String, int> stageMods;
+  final bool sound;
+  final bool kingRockUtility;
 }
 
 const _strictSelfStatDamageTargets = <String>{
@@ -1343,6 +1543,21 @@ bool _sameStatusSet(
 ) {
   return actual.map((status) => status.status).toSet().containsAll(expected) &&
       expected.containsAll(actual.map((status) => status.status));
+}
+
+bool _sameStageModSet(
+  List<PsdkStudioStageModCoverageEntry> actual,
+  Map<String, int> expected,
+) {
+  if (actual.length != expected.length) {
+    return false;
+  }
+  for (final mod in actual) {
+    if (expected[mod.stat] != mod.stages) {
+      return false;
+    }
+  }
+  return true;
 }
 
 String _md(String value) {
