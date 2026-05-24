@@ -1,6 +1,6 @@
 # PSDK Fight Parity Audit
 
-Source: `moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
+Source: `moves=/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves; effects=/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
 
 Important: `partiel` is executable coverage, not strict PSDK parity.
 
@@ -38,9 +38,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 408 |
+| `ported` | 414 |
 | `partial` | 13 |
-| `missing` | 61 |
+| `missing` | 55 |
 | Total effect classes | 482 |
 
 ### Effects by Family
@@ -49,7 +49,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | --- | ---: | ---: | ---: |
 | ability | 214 | 5 | 35 |
 | field | 15 | 0 | 0 |
-| item | 81 | 0 | 6 |
+| item | 87 | 0 | 0 |
 | mechanics | 4 | 0 | 0 |
 | move | 87 | 8 | 20 |
 | status | 7 | 0 | 0 |
@@ -59,7 +59,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Family | Missing effects |
 | --- | ---: |
 | ability | 35 |
-| item | 6 |
 | move | 20 |
 
 ## Runtime Bridge

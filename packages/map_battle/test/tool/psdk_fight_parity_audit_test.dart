@@ -382,6 +382,26 @@ void main() {
           audit.toMarkdown(), contains('| Unexplained rejected moves | 0 |'));
     });
 
+    test('treats PSDK base item abstractions as ported Dart infrastructure',
+        () {
+      expect(
+        psdkEffectPortStatusFor(
+          effectName: 'Item',
+          family: 'item',
+          rubyPath: '06 Effects/05 Item Effects/001 ItemBase.rb',
+        ),
+        PsdkPortStatus.ported,
+      );
+      expect(
+        psdkEffectPortStatusFor(
+          effectName: 'Berry',
+          family: 'item',
+          rubyPath: '06 Effects/05 Item Effects/002 Berry.rb',
+        ),
+        PsdkPortStatus.ported,
+      );
+    });
+
     test('CLI imports the default runtime bridge diagnostics when present',
         () async {
       final outputFile = File(

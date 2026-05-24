@@ -188,6 +188,7 @@ final class BattleTurnRunner {
         final moveAllowsFaintedOriginalTarget =
             moveBeforePp.battleEngineMethod == 's_dragon_darts';
         if (user.isFainted ||
+            user.switching ||
             (target.isFainted && !moveAllowsFaintedOriginalTarget)) {
           continue;
         }

@@ -228,19 +228,10 @@ void main() {
         counts.values.fold<int>(0, (total, count) => total + count),
         remaining.length,
       );
-      for (final batch in PsdkItemEffectBatch.values.where(
-        (batch) =>
-            batch != PsdkItemEffectBatch.weatherTerrainField &&
-            batch != PsdkItemEffectBatch.damageTypeStatModifiers &&
-            batch != PsdkItemEffectBatch.berries &&
-            batch != PsdkItemEffectBatch.heldItemLifecycleConsumption,
-      )) {
-        expect(counts[batch], greaterThan(0), reason: batch.name);
+      expect(remaining, isEmpty);
+      for (final batch in PsdkItemEffectBatch.values) {
+        expect(counts[batch], 0, reason: batch.name);
       }
-      expect(counts[PsdkItemEffectBatch.berries], 0);
-      expect(counts[PsdkItemEffectBatch.weatherTerrainField], 0);
-      expect(counts[PsdkItemEffectBatch.damageTypeStatModifiers], 0);
-      expect(counts[PsdkItemEffectBatch.heldItemLifecycleConsumption], 0);
       expect(byId['babiri_berry']!.batch, PsdkItemEffectBatch.berries);
       expect(
         byId['adamant_orb']!.batch,
@@ -519,6 +510,26 @@ void main() {
         'leppa_berry',
         'metronome',
         'micle_berry',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
+    test('Lot 253 switch-forcing and primal orb items are tracked', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'blue_orb',
+        'eject_button',
+        'red_card',
+        'red_orb',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
         expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
