@@ -6,15 +6,15 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-01 — Existing Narrative Domain Inventory
+Lot courant : P2-02 — Story Step Descriptor / Storyline Metadata Decision
 
-Prochain lot exact : P2-01 — Existing Narrative Domain Inventory
+Prochain lot exact : P2-02 — Story Step Descriptor / Storyline Metadata Decision
 
 Suivi des lots :
 
 - ✅ P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
-- 🔜 P2-01 — Existing Narrative Domain Inventory
-- P2-02 — Story Step Descriptor / Storyline Metadata Decision
+- ✅ P2-01 — Existing Narrative Domain Inventory
+- 🔜 P2-02 — Story Step Descriptor / Storyline Metadata Decision
 - P2-03 — Event Authoring Source Contract
 - P2-04 — Scene / ScenarioAsset Adapter Contract
 - P2-05 — Outcome Reference Contracts
@@ -27,7 +27,9 @@ Suivi des lots :
 
 P2-00 : ✅ terminé
 
-P2-01 : 🔜 prochain lot exact
+P2-01 : ✅ terminé
+
+P2-02 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -190,17 +192,52 @@ pas de Selbrume final.
 Dépendances :
 P1-CHECKPOINT-01.
 
-### 🔜 P2-01 — Existing Narrative Domain Inventory
+### ✅ P2-01 — Existing Narrative Domain Inventory
 
 Objectif :
 Inventorier `ScenarioAsset`, metadata narrative, validators, runtime source
 events, predicates, save state et authoring projections.
 
-Frontière héritée de P2-00 :
-P2-01 doit produire l’inventaire technique détaillé que P2-00 a volontairement
-laissé hors scope : champs, usages, sources de vérité, conventions metadata,
-risques de migration et preuves exactes. P2-01 ne doit pas encore créer les
-contrats Phase 2.
+Résultat :
+P2-01 produit l’inventaire technique détaillé de l’existant narratif :
+`ScenarioAsset`, `ProjectManifest`, `GameState` / `SaveData`,
+`ScriptCondition`, predicates de map entity, validators, runtime events,
+executor, flags de battle outcome, metadata Global Story / Step Studio,
+projections editor et use cases scénario. Le lot sépare vérité observée,
+interprétation prudente, risques et décisions à reporter.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `sed -n ...` sur les roadmaps et rapports Phase 1 / Phase 2 ciblés
+- `rg -n ...` sur les concepts narratifs, rapports NS-GS et tests associés
+- `wc -l ...` sur les fichiers code critiques
+- `rg --files ...` sur `scenario_runtime` et `features/narrative`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_01_existing_narrative_domain_inventory.md || true`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages examples/playable_runtime_host`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+
+Décisions utilisateur nouvelles :
+Aucune décision imposée. P2-01 reporte explicitement à P2-02+ les choix
+Story Step Descriptor, Storyline/Chapter metadata, FactDescriptor,
+WorldRule adapter, Outcome adapter, Scene/ScenarioAsset adapter et éventuelle
+migration `ProjectManifest`.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-01 confirme que l’approche Phase 2 doit
+rester audit-first puis décision par contrat, sans modèle persistant tant que
+les consumers ne sont pas clairs.
 
 Risque :
 Sous-estimer les conventions déjà présentes dans metadata editor.
@@ -446,5 +483,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-01 — Existing Narrative Domain Inventory
+P2-02 — Story Step Descriptor / Storyline Metadata Decision
 ```
