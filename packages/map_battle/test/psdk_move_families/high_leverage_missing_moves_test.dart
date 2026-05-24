@@ -4691,12 +4691,6 @@ void main() {
           power: 50,
         ),
         (
-          method: 's_revival_blessing',
-          moveId: 'revival_blessing',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-        ),
-        (
           method: 's_rising_voltage',
           moveId: 'rising_voltage',
           category: PsdkBattleMoveCategory.special,

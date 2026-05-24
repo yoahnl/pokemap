@@ -1,13 +1,13 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-24T18:12:59.868693Z
+Generated: 2026-05-24T19:12:36.822492Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
 | Attacks | 728 / 728 | 100.0% | 0 |
-| Methods | 329 / 330 | 99.7% | 1 |
+| Methods | 330 / 330 | 100.0% | 0 |
 | Effects | 408 / 482 | 84.6% | 74 |
 
 ## Effects By Family
@@ -20,12 +20,6 @@ Generated: 2026-05-24T18:12:59.868693Z
 | mechanics | 4 | 0 | 0 | 0 |
 | move | 87 | 8 | 20 | 28 |
 | status | 7 | 0 | 0 | 0 |
-
-## Method Backlog
-
-| Batch | Partial methods | Methods |
-| --- | ---: | --- |
-| Effect hook / manifest final sweep | 1 | `s_revival_blessing` |
 
 ## Ability Effect Backlog
 

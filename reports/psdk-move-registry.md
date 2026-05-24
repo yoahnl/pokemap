@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 329 |
-| `partial` | 1 |
+| `ported` | 330 |
+| `partial` | 0 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -241,7 +241,7 @@ Total registered methods: 330
 | `s_return` | `Return` | `10 Move/2 Definitions/300 Return.rb` | `VariablePowerMoveBehavior.returnMove` | `ported` | `-` |
 | `s_revelation_dance` | `RevelationDance` | `10 Move/2 Definitions/300 RevelationDance.rb` | `TypeBasedMoveBehavior.revelationDance` | `ported` | `-` |
 | `s_revenge` | `Revenge` | `10 Move/2 Definitions/300 Revenge.rb` | `HistoryPowerMoveBehavior.revenge` | `ported` | `history` |
-| `s_revival_blessing` | `RevivalBlessing` | `10 Move/2 Definitions/300 RevivalBlessing.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_revival_blessing)` | `partial` | `effects` |
+| `s_revival_blessing` | `RevivalBlessing` | `10 Move/2 Definitions/300 RevivalBlessing.rb` | `RevivalBlessingMoveBehavior` | `ported` | `-` |
 | `s_rising_voltage` | `RisingVoltage` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.risingVoltage` | `ported` | `terrain`, `grounded` |
 | `s_roar` | `ForceSwitch` | `10 Move/2 Definitions/300 ForceSwitch.rb` | `StaticBasicMoveRegistry.forceSwitch(s_roar)` | `ported` | `handler_switch`, `effects`, `ability` |
 | `s_role_play` | `RolePlay` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.abilityChanging(s_role_play)` | `ported` | `ability`, `effects` |

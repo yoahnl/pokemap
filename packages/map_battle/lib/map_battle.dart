@@ -248,6 +248,7 @@ export 'src/domain/timeline/battle_timeline_event.dart'
         BattleMoveProcedureStage,
         BattleMoveProcedureTraceEvent,
         BattleMovePpSpentTimelineEvent,
+        BattleReviveTimelineEvent,
         BattleStatStageChangeTimelineEvent,
         BattleStatusChangeTimelineEvent,
         BattleStatusCureTimelineEvent,

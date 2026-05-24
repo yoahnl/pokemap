@@ -24,8 +24,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 329 |
-| `partial` | 1 |
+| `ported` | 330 |
+| `partial` | 0 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -33,15 +33,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| effects | 1 |
-
-### Partial Method Batches
-
-Each partial method is assigned to its first actionable Phase 2 batch.
-
-| Batch | Partial methods | Methods |
-| --- | ---: | --- |
-| Effect hook / manifest final sweep | 1 | `s_revival_blessing` |
 
 ## Effect Coverage
 

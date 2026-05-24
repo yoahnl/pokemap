@@ -207,6 +207,41 @@ class PsdkBattleHealEvent extends PsdkBattleEvent {
       };
 }
 
+class PsdkBattleReviveEvent extends PsdkBattleEvent {
+  const PsdkBattleReviveEvent({
+    required this.user,
+    required this.bank,
+    required this.partyIndex,
+    required this.moveId,
+    required this.amount,
+    required this.remainingHp,
+    required this.speciesId,
+    required this.displayName,
+  }) : super(kind: 'revive');
+
+  final PsdkBattleSlotRef user;
+  final int bank;
+  final int partyIndex;
+  final String moveId;
+  final int amount;
+  final int remainingHp;
+  final String speciesId;
+  final String displayName;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        'user': user.toJson(),
+        'bank': bank,
+        'partyIndex': partyIndex,
+        'moveId': moveId,
+        'amount': amount,
+        'remainingHp': remainingHp,
+        'speciesId': speciesId,
+        'displayName': displayName,
+      };
+}
+
 class PsdkBattleStatusEvent extends PsdkBattleEvent {
   const PsdkBattleStatusEvent({
     required this.user,

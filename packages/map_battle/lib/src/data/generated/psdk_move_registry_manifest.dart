@@ -2163,10 +2163,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_revival_blessing',
     rubyClass: 'RevivalBlessing',
     rubyPath: '10 Move/2 Definitions/300 RevivalBlessing.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialTargetMarker(s_revival_blessing)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    dartBehavior: 'RevivalBlessingMoveBehavior',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_rising_voltage',

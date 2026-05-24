@@ -341,9 +341,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_revival_blessing': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialTargetMarker(s_revival_blessing)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'RevivalBlessingMoveBehavior',
+    status: _PsdkPortStatus.ported,
   ),
   's_rising_voltage': _KnownDartBehavior(
     dartBehavior: 'TerrainPowerMoveBehavior.risingVoltage',
@@ -1376,9 +1375,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
 };
 
-const _remainingPartialMoveMethods = <String>{
-  's_revival_blessing',
-};
+const _remainingPartialMoveMethods = <String>{};
 
 const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   // Weather and terrain families need handlers/effects before their move class

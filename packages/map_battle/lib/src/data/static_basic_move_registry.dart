@@ -28,6 +28,7 @@ import '../domain/move/behaviors/psycho_shift_move_behavior.dart';
 import '../domain/move/behaviors/purify_move_behavior.dart';
 import '../domain/move/behaviors/recovery_stat_move_behavior.dart';
 import '../domain/move/behaviors/recoil_move_behavior.dart';
+import '../domain/move/behaviors/revival_blessing_move_behavior.dart';
 import '../domain/move/behaviors/self_destruct_move_behavior.dart';
 import '../domain/move/behaviors/special_secondary_move_behavior.dart';
 import '../domain/move/behaviors/special_power_move_behavior.dart';
@@ -844,6 +845,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const HistoryPowerMoveBehavior.stompingTantrum(),
     const PsychoShiftMoveBehavior(),
     const PurifyMoveBehavior(),
+    const RevivalBlessingMoveBehavior(),
     const StatusCureMoveBehavior.healBell(),
     const StatusCureMoveBehavior.takeHeart(),
     const StatusCureMoveBehavior.sparklySwirl(),
@@ -977,7 +979,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_octolock': 'octolock',
   's_perish_song': 'perish_song',
   's_powder': 'powder',
-  's_revival_blessing': 'revival_blessing',
   's_taunt': 'taunt',
   's_telekinesis': 'telekinesis',
   's_yawn': 'drowsiness',
