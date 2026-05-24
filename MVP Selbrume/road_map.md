@@ -566,10 +566,10 @@ PHASE 4 — Validation depuis l'éditeur
 ✅ NS-GS-12   — Editor-authored Golden Slice Validation (Level 2 Application — 14 tests)
 
 PHASE 5 — Sécurité no-code
-🔜 NS-GS-13   — Narrative Validator Minimal V0
+✅ NS-GS-13   — Narrative Validator Minimal V0
 
 PHASE 6 — Extension gameplay
-   NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
+🔜 NS-GS-14   — Item Pickup / GiveItem Authoring Readiness
    NS-GS-15   — Key Item / Door Gate Readiness
    NS-GS-16   — Side Quest / Optional Storyline Readiness
    NS-GS-17   — Static Encounter / Boss Battle Readiness
@@ -579,16 +579,15 @@ PHASE 6 — Extension gameplay
 # Prochain lot exact
 
 ```text
-🔜 NS-GS-13 — Narrative Validator Minimal V0
+🔜 NS-GS-14 — Item Pickup / GiveItem Authoring Readiness
 ```
 
 Périmètre :
 
 ```text
-Validator générique vérifiant qu'un projet créé dans l'éditeur
-est structurellement valide : scénarios connectés, ids résolvables,
-pas de nœuds orphelins, pas de références cassées.
-Mécanique clé pour un outil no-code.
+Caractériser ou ajouter le flux générique Item Pickup / GiveItem :
+ramassage d'objet, ajout inventaire, idempotence si nécessaire,
+authoring readiness et preuves runtime/application.
 Pas de fixtures Selbrume finales.
 Tests obligatoires.
 Mettre à jour MVP Selbrume/road_map.md.
@@ -783,3 +782,22 @@ Mettre à jour MVP Selbrume/road_map.md.
 | Prochain lot | NS-GS-13 — Narrative Validator Minimal V0 |
 | Rapport | `reports/gameplay/ns_gs_12_editor_authored_golden_slice_validation.md` |
 | Fermeture documentaire | NS-GS-12-bis — Evidence Pack & Level Label Fix Only. Rapport : `reports/gameplay/ns_gs_12_bis_evidence_pack_and_level_label_fix.md` |
+
+---
+
+# Mise à jour NS-GS-13 — 2026-05-24
+
+| Champ | Détail |
+|---|---|
+| Lot exécuté | NS-GS-13 — Narrative Validator Minimal V0 |
+| Résultat | Narrative Validator minimal ajouté dans `map_core` avec rapport multi-diagnostics déterministe. 16 tests ciblés couvrent les erreurs/warnings V0 principaux. |
+| Décision | Cas B : `ProjectValidator` existait déjà mais lève une seule `ValidationException`; il ne fournit pas un rapport narratif no-code multi-diagnostics. Ajout d'une brique pure Dart dans `packages/map_core/lib/src/operations/narrative_validator.dart`. |
+| Fichiers | `packages/map_core/lib/src/operations/narrative_validator.dart`, `packages/map_core/test/narrative_validator_test.dart`, `packages/map_core/lib/map_core.dart`, rapport NS-GS-13 |
+| Diagnostics V0 | Unknown node refs, unreachable node, missing source, unknown dialogue, unknown trainer, missing trainerId/npcEntityId, blank battleId explicite, source entityInteract unknown map/entity, outcome emitted/consumed mismatch, conditional dialogue unknown, flag/step read-write mismatch warnings. |
+| Tests exécutés | `cd packages/map_core && dart test test/narrative_validator_test.dart` ; `cd packages/map_core && dart test --reporter compact` |
+| Analyzer | `cd packages/map_core && dart analyze` → No issues found. |
+| git diff --check | À reporter dans `reports/gameplay/ns_gs_13_narrative_validator_minimal_v0.md` Evidence Pack final. |
+| Limites | Validator V0 mémoire uniquement ; pas de chargement disque ; `entityInteract` valide l'entité seulement quand les `MapData` sont fournis ; pas de correction automatique ; pas de validator complet de tout PokeMap. |
+| Mechanics-first | ✅ Brique générique pure Dart. Aucun code runtime/editor modifié. Aucun contenu Selbrume final. Aucun `project.json` généré. |
+| Prochain lot | NS-GS-14 — Item Pickup / GiveItem Authoring Readiness |
+| Rapport | `reports/gameplay/ns_gs_13_narrative_validator_minimal_v0.md` |
