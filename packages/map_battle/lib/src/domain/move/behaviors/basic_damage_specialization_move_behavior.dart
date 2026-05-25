@@ -69,15 +69,26 @@ final class BasicDamageSpecializationMoveBehavior
       );
     }
 
-    final applied = applyDirectDamage(
-      state: prepared.state,
-      user: context.user,
-      target: targetSlot,
-      moveId: context.move.id,
-      rng: damageResult.rng,
-      turn: context.turn,
-      amount: damage,
-    );
+    final applied = _kind == _BasicDamageSpecializationKind.falseSwipe
+        ? applyDirectDamage(
+            state: prepared.state,
+            user: context.user,
+            target: targetSlot,
+            moveId: context.move.id,
+            rng: damageResult.rng,
+            turn: context.turn,
+            amount: damage,
+          )
+        : applyMoveTargetDamage(
+            state: prepared.state,
+            user: context.user,
+            target: targetSlot,
+            moveId: context.move.id,
+            rng: damageResult.rng,
+            turn: context.turn,
+            amount: damage,
+            move: move,
+          );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
       rng: applied.rng,
@@ -92,7 +103,11 @@ final class BasicDamageSpecializationMoveBehavior
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        if (_kind == _BasicDamageSpecializationKind.falseSwipe &&
+            applied.event != null)
+          applied.event!,
+        if (_kind != _BasicDamageSpecializationKind.falseSwipe)
+          ...applied.events,
         ...secondary.events,
       ],
     );

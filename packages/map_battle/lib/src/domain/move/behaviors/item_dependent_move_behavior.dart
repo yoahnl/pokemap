@@ -250,7 +250,7 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -258,6 +258,8 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: move,
+      targetCount: prepared.psdkTargets.length,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -281,7 +283,7 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       rng: itemEffect.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
         ...itemEffect.events,
       ],

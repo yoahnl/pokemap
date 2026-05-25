@@ -1,12 +1,12 @@
 # PSDK Fight 100 Percent Acceptance Gate
 
-Date: 2026-05-17
+Date: 2026-05-25
 
 ## Purpose
 
 This document defines the mechanical acceptance gate for claiming 100 percent
 Pokemon SDK battle parity. The gate is intentionally stricter than the
-non-regression gate: it is allowed to fail while migration is incomplete.
+non-regression gate and must stay green before claiming final measured parity.
 
 ## Command
 
@@ -31,12 +31,15 @@ dart run tool/psdk_fight_parity_audit.dart --final-gate --goldens test/fixtures/
 
 ## Current Status
 
-The gate currently fails, as expected:
+The gate now passes on the measured PSDK fight parity axes:
 
-- attacks complete: `342 / 728`
-- methods complete: `148 / 330`
-- effects complete: `3 / 482`
+- attacks complete: `728 / 728`
+- methods complete: `330 / 330`
+- effects complete: `482 / 482`
+- unknown methods: `0`
 - runtime bridge: `28` sampled runtime moves, `20` bridgeable,
   `8` rejected with diagnostics, `0` unexplained rejections
 
-This is not a regression. It is the remaining migration work made explicit.
+The runtime bridge remains intentionally measured as a sampled integration
+surface: unsupported playable host rows are accepted only because each rejected
+row has an explicit diagnostic reason.

@@ -222,22 +222,12 @@ void main() {
         'wimp_out',
         'symbiosis',
         'mirror_armor',
-      ]) {
-        final entry = byId[abilityId];
-
-        expect(entry, isNotNull, reason: abilityId);
-        expect(entry!.status, PsdkAbilityPortStatus.ported);
-        expect(entry.dartEffect, isNotNull, reason: abilityId);
-        expect(registry.create(abilityId), isNotNull, reason: abilityId);
-      }
-
-      for (final abilityId in <String>[
         'parental_bond',
       ]) {
         final entry = byId[abilityId];
 
         expect(entry, isNotNull, reason: abilityId);
-        expect(entry!.status, PsdkAbilityPortStatus.partial);
+        expect(entry!.status, PsdkAbilityPortStatus.ported);
         expect(entry.dartEffect, isNotNull, reason: abilityId);
         expect(registry.create(abilityId), isNotNull, reason: abilityId);
       }

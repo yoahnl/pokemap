@@ -1018,8 +1018,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'parental_bond',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Parental Bond.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'ParentalBondEffect.partialBasicMoveFollowUpOnly',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ParentalBondEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'pastel_veil',

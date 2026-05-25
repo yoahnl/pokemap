@@ -9116,14 +9116,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 481,
-      "partial": 1,
+      "ported": 482,
+      "partial": 0,
       "missing": 0
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 253,
-        "partial": 1,
+        "ported": 254,
+        "partial": 0,
         "missing": 0
       },
       "move": {
@@ -11531,7 +11531,7 @@
       {
         "effectName": "ParentalBond",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Parental Bond.rb",
         "hookFamilies": []
       },

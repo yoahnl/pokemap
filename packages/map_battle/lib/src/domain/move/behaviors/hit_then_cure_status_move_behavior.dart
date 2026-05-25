@@ -74,7 +74,7 @@ final class HitThenCureStatusMoveBehavior implements BattleMoveBehavior {
         continue;
       }
 
-      final damage = applyDirectDamage(
+      final damage = applyMoveTargetDamage(
         state: state,
         user: context.user,
         target: targetSlot,
@@ -82,12 +82,12 @@ final class HitThenCureStatusMoveBehavior implements BattleMoveBehavior {
         rng: rng,
         turn: context.turn,
         amount: damageResult.damage,
+        move: move,
+        targetCount: prepared.psdkTargets.length,
       );
       state = damage.state;
       rng = damage.rng;
-      if (damage.event != null) {
-        events.add(damage.event!);
-      }
+      events.addAll(damage.events);
 
       final secondary = const BattleMoveSecondaryEffectResolver().resolve(
         state: state,

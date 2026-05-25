@@ -816,6 +816,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Obstruct',
     'Octolock',
     'OutOfReachBase',
+    'ParentalBond',
     'PerishSong',
     'Paralysis',
     'Poison',
@@ -877,9 +878,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Wish',
     'WonderRoom',
   };
-  const partialEffects = <String>{
-    'ParentalBond',
-  };
+  const partialEffects = <String>{};
   if (portedEffects.contains(effectName)) {
     return PsdkPortStatus.ported;
   }

@@ -1847,6 +1847,116 @@ void main() {
       expect(_damageEvents(result, moveId: 'double_kick'), hasLength(2));
     });
 
+    test('Parental Bond keeps False Swipe from KOing on the follow-up hit', () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        opponentCurrentHp: 30,
+        playerMove: _move(
+          id: 'false_swipe',
+          power: 200,
+          battleEngineMethod: 's_false_swipe',
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'false_swipe');
+
+      expect(hits, hasLength(1));
+      expect(hits.single.damage, 29);
+      expect(hits.single.remainingHp, 1);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 1);
+      expect(result.state.outcome, isNull);
+    });
+
+    test('Parental Bond adds follow-up damage to basic damage specializations',
+        () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        playerMove: _move(
+          id: 'high_crit_slash',
+          power: 80,
+          battleEngineMethod: 's_full_crit',
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'high_crit_slash');
+
+      expect(hits, hasLength(2));
+      expect(hits.last.damage, hits.first.damage ~/ 2);
+    });
+
+    test('Parental Bond adds follow-up damage to item-effect attacks', () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        opponentHeldItemId: 'leftovers',
+        playerMove: _move(
+          id: 'knock_off',
+          type: 'dark',
+          power: 65,
+          battleEngineMethod: 's_knock_off',
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'knock_off');
+
+      expect(hits, hasLength(2));
+      expect(hits.last.damage, hits.first.damage ~/ 2);
+      expect(result.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+    });
+
+    test('Parental Bond applies second-hit-only status cures after both hits',
+        () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        opponentMajorStatus: PsdkBattleMajorStatus.paralysis,
+        playerMove: _move(
+          id: 'smelling_salt',
+          power: 70,
+          battleEngineMethod: 's_smelling_salt',
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'smelling_salt');
+      final eventKinds = _eventsFor(result, moveId: 'smelling_salt')
+          .map((event) => event.kind)
+          .toList(growable: false);
+
+      expect(hits, hasLength(2));
+      expect(hits.last.damage, hits.first.damage ~/ 2);
+      expect(
+        eventKinds,
+        containsAllInOrder(<String>['damage', 'damage', 'status_cure']),
+      );
+      expect(result.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
+    });
+
+    test('Parental Bond adds follow-up damage before Sparkly Swirl team cure',
+        () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+        playerMove: _move(
+          id: 'sparkly_swirl',
+          type: 'fairy',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+          battleEngineMethod: 's_sparkly_swirl',
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'sparkly_swirl');
+      final eventKinds = _eventsFor(result, moveId: 'sparkly_swirl')
+          .map((event) => event.kind)
+          .toList(growable: false);
+
+      expect(hits, hasLength(2));
+      expect(hits.last.damage, hits.first.damage ~/ 2);
+      expect(
+        eventKinds,
+        containsAllInOrder(<String>['damage', 'damage', 'status_cure']),
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+    });
+
     test('Hadron Engine sets Electric Terrain and boosts Special Attack', () {
       final switchIn =
           _dispatchAbilitySwitchIn(playerAbilityId: 'hadron_engine');
@@ -6363,6 +6473,8 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int playerCurrentHp = 100,
   int opponentCurrentHp = 100,
+  String? playerHeldItemId,
+  String? opponentHeldItemId,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   BattleRngSeeds rngSeeds = const BattleRngSeeds(
     moveDamage: 1,
@@ -6378,6 +6490,7 @@ PsdkBattleTurnResult _runMove({
         speciesId: playerSpeciesId,
         currentHp: playerCurrentHp,
         abilityId: playerAbilityId,
+        heldItemId: playerHeldItemId,
         form: playerForm,
         types: playerTypes,
         majorStatus: playerMajorStatus,
@@ -6388,6 +6501,7 @@ PsdkBattleTurnResult _runMove({
         id: 'opponent',
         currentHp: opponentCurrentHp,
         abilityId: opponentAbilityId,
+        heldItemId: opponentHeldItemId,
         majorStatus: opponentMajorStatus,
         types: opponentTypes,
         speed: 1,
