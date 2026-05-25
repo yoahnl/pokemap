@@ -1008,8 +1008,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     ProjectManifest? manifest,
   }) async {
     if (absolutePathByTilesetId.isEmpty) {
+      debugPrint('[runtime_game] tileset cache skipped: no tilesets');
       return const <String, RuntimeTilesetImage>{};
     }
+    debugPrint(
+      '[runtime_game] tileset cache resolve requested=${absolutePathByTilesetId.length}',
+    );
     final transparentColors = _transparentColorByTilesetId(
       manifest ?? _bundle.manifest,
     );
@@ -1022,12 +1026,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final cached = _cachedTilesetImagesByPath[cacheKey];
       if (cached != null) {
+        debugPrint('[runtime_game] tileset cache hit id=${entry.key}');
         result[entry.key] = cached;
       } else {
+        debugPrint(
+          '[runtime_game] tileset cache miss id=${entry.key} path=${entry.value}',
+        );
         missing[entry.key] = entry.value;
       }
     }
     if (missing.isNotEmpty) {
+      debugPrint(
+        '[runtime_game] tileset image loader start missing=${missing.length}',
+      );
       final loaded = await _runtimeTilesetImageLoader(
         missing,
         transparentColorByTilesetId: <String, TilesetTransparentColor>{
@@ -1039,8 +1050,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       for (final entry in missing.entries) {
         final image = loaded[entry.key];
         if (image == null) {
+          debugPrint(
+            '[runtime_game] tileset image loader returned no image id=${entry.key} path=${entry.value}',
+          );
           continue;
         }
+        debugPrint('[runtime_game] tileset image loaded id=${entry.key}');
         _cachedTilesetImagesByPath[_tilesetImageCacheKey(
           entry.value,
           transparentColors[entry.key],
@@ -1048,6 +1063,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         result[entry.key] = image;
       }
     }
+    debugPrint(
+        '[runtime_game] tileset cache resolve ok result=${result.length}');
     return result;
   }
 
@@ -1322,7 +1339,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @override
   Future<void> onLoad() async {
+    debugPrint(
+      '[runtime_game] onLoad start map=${_bundle.map.id} projectFilePath=$projectFilePath tilesets=${_bundle.tilesetAbsolutePathsById.length}',
+    );
     try {
+      debugPrint('[runtime_game] world build start map=${_bundle.map.id}');
       _world = GameplayWorldState.fromMap(
         _bundle.map,
         project: _bundle.manifest,
@@ -1345,15 +1366,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       );
     }
+    debugPrint('[runtime_game] tileset image load start map=${_bundle.map.id}');
     final images =
         await _loadTilesetImagesCached(_bundle.tilesetAbsolutePathsById);
+    debugPrint(
+      '[runtime_game] tileset image load ok count=${images.length} map=${_bundle.map.id}',
+    );
     _activeMapId = _bundle.map.id;
+    debugPrint('[runtime_game] mount root map start map=$_activeMapId');
     final rootMap = await _mountLoadedMap(
       bundle: _bundle,
       tileImagesById: images,
       originCellX: 0,
       originCellY: 0,
     );
+    debugPrint('[runtime_game] mount root map ok map=$_activeMapId');
     final playerChar = _resolvePlayerCharacter(_bundle);
     _player = PlayerComponent(
       bundle: _bundle,
@@ -1382,6 +1409,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _dispatchScenarioRuntimeSource(
       ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
     );
+    debugPrint('[runtime_game] onLoad completed activeMapId=$_activeMapId');
     return super.onLoad();
   }
 

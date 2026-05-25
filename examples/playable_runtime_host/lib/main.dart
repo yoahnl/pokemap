@@ -27,6 +27,10 @@ import 'src/runtime_projects_directory.dart';
 import 'src/runtime_touch_controls.dart';
 import 'src/runtime_touch_controls_visibility.dart';
 
+void _runtimeHostLog(String message) {
+  debugPrint('[runtime_host] $message');
+}
+
 // Point d'entrée minimal du host runtime.
 // On garde un MaterialApp très simple, puis toute la navigation se fait
 // depuis la page de chargement et le menu in-game.
@@ -243,10 +247,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     String projectFilePath, {
     String? preferredMapId,
   }) async {
+    _runtimeHostLog('manifest read start projectFilePath=$projectFilePath');
     try {
       final raw = await File(projectFilePath).readAsString();
+      _runtimeHostLog('manifest read ok bytes=${raw.length}');
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) {
+        _runtimeHostLog(
+          'manifest read ignored rootType=${decoded.runtimeType}',
+        );
         if (!mounted) return;
         setState(() {
           _availableMaps = const [];
@@ -254,6 +263,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         return;
       }
       final manifest = ProjectManifest.fromJson(decoded);
+      _runtimeHostLog(
+        'manifest parsed maps=${manifest.maps.length} tilesets=${manifest.tilesets.length} scenarios=${manifest.scenarios.length}',
+      );
       final maps = List<ProjectMapEntry>.of(manifest.maps)
         ..sort((a, b) {
           final byOrder = a.sortOrder.compareTo(b.sortOrder);
@@ -276,7 +288,17 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         _availableMaps = maps;
         _selectedMapId = nextSelected;
       });
-    } catch (_) {
+      _runtimeHostLog(
+        'manifest maps ready selectedMapId=$nextSelected availableMapIds=${maps.map((m) => m.id).join(',')}',
+      );
+    } catch (e, stackTrace) {
+      _runtimeHostLog(
+        'manifest read failed projectFilePath=$projectFilePath error=$e',
+      );
+      debugPrintStack(
+        label: '[runtime_host] manifest read stack',
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _availableMaps = const [];
@@ -407,6 +429,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   }
 
   Future<void> _pickProjectFile() async {
+    _runtimeHostLog('project picker start');
     setState(() {
       _loading = true;
       _error = null;
@@ -424,16 +447,21 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
               importProjectJsonPath: _ensureProjectCopiedToDocuments,
             );
       if (!mounted) {
+        _runtimeHostLog('project picker result ignored: widget unmounted');
         return;
       }
       if (result.didCancel) {
+        _runtimeHostLog('project picker cancelled');
         return;
       }
       if (!result.didSelectProject) {
+        _runtimeHostLog('project picker failed message=${result.errorMessage}');
         setState(() => _error = result.errorMessage);
         return;
       }
       final projectJsonPath = result.projectJsonPath!;
+      _runtimeHostLog(
+          'project picker selected projectJsonPath=$projectJsonPath');
       setState(() {
         _projectFilePath = projectJsonPath;
         _error = null;
@@ -444,7 +472,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       await _loadProjectMapsFromManifest(projectJsonPath);
       await _loadPartyBuilderOptions(projectJsonPath);
       await _persistLastSession();
-    } catch (e) {
+      _runtimeHostLog(
+          'project picker completed projectJsonPath=$_projectFilePath');
+    } catch (e, stackTrace) {
+      _runtimeHostLog('project picker exception error=$e');
+      debugPrintStack(
+        label: '[runtime_host] project picker stack',
+        stackTrace: stackTrace,
+      );
       if (!mounted) {
         return;
       }
@@ -463,14 +498,20 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     final mapId = (_selectedMapId ?? '').trim();
 
     if (projectFilePath.isEmpty) {
+      _runtimeHostLog('map load blocked: empty projectFilePath');
       setState(() => _error = 'Sélectionnez un dossier projet valide.');
       return;
     }
     if (mapId.isEmpty) {
+      _runtimeHostLog(
+          'map load blocked: empty mapId projectFilePath=$projectFilePath');
       setState(() => _error = 'Saisissez un identifiant de map.');
       return;
     }
 
+    _runtimeHostLog(
+      'map load start projectFilePath=$projectFilePath mapId=$mapId',
+    );
     setState(() {
       _loading = true;
       _error = null;
@@ -478,17 +519,28 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     });
 
     try {
+      _runtimeHostLog('bundle load start mapId=$mapId');
       final bundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
         mapId: mapId,
       );
+      _runtimeHostLog(
+        'bundle load ok map=${bundle.map.id} size=${bundle.map.size.width}x${bundle.map.size.height} layers=${bundle.map.layers.length} entities=${bundle.map.entities.length} tilesets=${bundle.tilesetAbsolutePathsById.length}',
+      );
       // Phase A privilégie un vrai état joueur versionné quand le projet en
       // fournit un. Le seed de démo historique reste un fallback pratique pour
       // les projets génériques qui n'ont pas encore de save de lancement.
+      _runtimeHostLog('launch save load start');
       final launchSaveData = await loadRuntimeHostLaunchSaveData(
         projectFilePath: projectFilePath,
       );
+      _runtimeHostLog(
+        'launch save load ${launchSaveData == null ? 'missing: will use fallback if available' : 'ok'}',
+      );
       final manualPartySeed = _buildManualPartySeed();
+      _runtimeHostLog(
+        'party seed source=${manualPartySeed == null ? 'auto/demo' : 'manual'} seedDemoPokemon=$_seedDemoPokemon',
+      );
       final launchDemoSeed = manualPartySeed == null
           ? await buildRuntimeHostLaunchDemoPartySeed(
               seedDemoPokemon: launchSaveData == null && _seedDemoPokemon,
@@ -514,6 +566,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                     seed: launchDemoSeed,
                   )),
       );
+      _runtimeHostLog('game instance created mapId=$mapId');
       setState(() {
         _game = nextGame;
         _saveLoadStatus = null;
@@ -529,11 +582,18 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       );
       _startRuntimeInfoTicker();
       await _persistLastSession();
-    } catch (e) {
+      _runtimeHostLog('map load completed mapId=$mapId');
+    } catch (e, stackTrace) {
+      _runtimeHostLog('map load failed mapId=$mapId error=$e');
+      debugPrintStack(
+        label: '[runtime_host] map load stack',
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
+      _runtimeHostLog('map load finished loading=false mapId=$mapId');
     }
   }
 
