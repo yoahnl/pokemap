@@ -11,6 +11,7 @@ class PsdkBattleState {
     required Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
     Map<int, List<PsdkBattleCombatant>>? parties,
     Set<int> megaEvolvedBanks = const <int>{},
+    Set<int> zMoveUsedBanks = const <int>{},
     this.field = const PsdkBattleFieldState(),
     this.outcome,
   })  : _combatants = Map<PsdkBattleSlotRef, PsdkBattleCombatant>.unmodifiable(
@@ -20,7 +21,8 @@ class PsdkBattleState {
           combatants: combatants,
           parties: parties,
         ),
-        _megaEvolvedBanks = Set<int>.unmodifiable(megaEvolvedBanks);
+        _megaEvolvedBanks = Set<int>.unmodifiable(megaEvolvedBanks),
+        _zMoveUsedBanks = Set<int>.unmodifiable(zMoveUsedBanks);
 
   factory PsdkBattleState.fromSetup(PsdkBattleSetup setup) {
     final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
@@ -46,6 +48,7 @@ class PsdkBattleState {
   final Map<PsdkBattleSlotRef, PsdkBattleCombatant> _combatants;
   final Map<int, List<PsdkBattleCombatant>> _parties;
   final Set<int> _megaEvolvedBanks;
+  final Set<int> _zMoveUsedBanks;
   final PsdkBattleFieldState field;
   final PsdkBattleOutcome? outcome;
 
@@ -75,6 +78,19 @@ class PsdkBattleState {
   Set<int> get megaEvolvedBanks => Set<int>.unmodifiable(_megaEvolvedBanks);
 
   bool hasMegaEvolvedBank(int bank) => _megaEvolvedBanks.contains(bank);
+
+  Set<int> get zMoveUsedBanks => Set<int>.unmodifiable(_zMoveUsedBanks);
+
+  bool hasZMoveUsedBank(int bank) => _zMoveUsedBanks.contains(bank);
+
+  PsdkBattleState markZMoveUsed(int bank) {
+    if (hasZMoveUsedBank(bank)) {
+      return this;
+    }
+    return copyWith(
+      zMoveUsedBanks: <int>{..._zMoveUsedBanks, bank},
+    );
+  }
 
   PsdkBattleCombatant battlerAt(PsdkBattleSlotRef slot) {
     final combatant = _combatants[slot];
@@ -109,6 +125,7 @@ class PsdkBattleState {
     Map<PsdkBattleSlotRef, PsdkBattleCombatant>? combatants,
     Map<int, List<PsdkBattleCombatant>>? parties,
     Set<int>? megaEvolvedBanks,
+    Set<int>? zMoveUsedBanks,
     PsdkBattleFieldState? field,
     PsdkBattleOutcome? outcome,
   }) {
@@ -116,6 +133,7 @@ class PsdkBattleState {
       combatants: combatants ?? this.combatants,
       parties: parties ?? this.parties,
       megaEvolvedBanks: megaEvolvedBanks ?? this.megaEvolvedBanks,
+      zMoveUsedBanks: zMoveUsedBanks ?? this.zMoveUsedBanks,
       field: field ?? this.field,
       outcome: outcome ?? this.outcome,
     );

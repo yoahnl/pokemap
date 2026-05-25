@@ -52,6 +52,34 @@ void main() {
       expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 92);
     });
 
+    test('s_false_swipe does not clamp damage against Substitute', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'false_swipe',
+          battleEngineMethod: 's_false_swipe',
+          power: 200,
+        ),
+        opponentCurrentHp: 30,
+        opponentEffects: PsdkBattleEffectStack(
+          effects: <SubstituteEffect>[
+            SubstituteEffect(
+              scope: BattlerBattleEffectScope(psdkOpponentSlot),
+              remainingHp: 40,
+            ),
+          ],
+        ),
+      );
+
+      final damage = _damageEvents(result, moveId: 'false_swipe');
+      expect(damage, hasLength(1));
+      expect(
+        damage.single.target,
+        const BattlePositionRef(bank: 1, position: 0),
+      );
+      expect(damage.single.damage, greaterThan(29));
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 30);
+    });
+
     test('s_false_swipe keeps the common immunity precheck', () {
       final result = _runMove(
         playerMove: _move(

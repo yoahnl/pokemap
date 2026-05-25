@@ -32,6 +32,7 @@ final class BattleMoveTypeProcessor {
     bool forceGrounded = false,
     bool foresight = false,
     bool miracleEye = false,
+    bool neutralizeFlyingWeaknesses = false,
   }) {
     final multiplier = _resolveEffectivenessMultiplier(
       moveType: moveType,
@@ -40,6 +41,7 @@ final class BattleMoveTypeProcessor {
       forceGrounded: forceGrounded,
       foresight: foresight,
       miracleEye: miracleEye,
+      neutralizeFlyingWeaknesses: neutralizeFlyingWeaknesses,
     );
     return BattleTypeEffectivenessResult(multiplier: multiplier);
   }
@@ -52,6 +54,7 @@ double _resolveEffectivenessMultiplier({
   required bool forceGrounded,
   required bool foresight,
   required bool miracleEye,
+  required bool neutralizeFlyingWeaknesses,
 }) {
   final normalizedMoveType = moveType.toLowerCase();
   var multiplier = 1.0;
@@ -67,6 +70,7 @@ double _resolveEffectivenessMultiplier({
       forceGrounded: forceGrounded,
       foresight: foresight,
       miracleEye: miracleEye,
+      neutralizeFlyingWeaknesses: neutralizeFlyingWeaknesses,
     );
     if (overwrite != null) {
       multiplier *= overwrite;
@@ -86,7 +90,13 @@ double? _singleTypeMultiplierOverwrite({
   required bool forceGrounded,
   required bool foresight,
   required bool miracleEye,
+  required bool neutralizeFlyingWeaknesses,
 }) {
+  if (neutralizeFlyingWeaknesses &&
+      targetType == 'flying' &&
+      _flyingWeaknessTypes.contains(moveType)) {
+    return 1;
+  }
   if (forceGrounded && moveType == 'ground' && targetType == 'flying') {
     return 1;
   }
@@ -100,6 +110,8 @@ double? _singleTypeMultiplierOverwrite({
   }
   return null;
 }
+
+const _flyingWeaknessTypes = <String>{'electric', 'ice', 'rock'};
 
 final class BattleTypeEffectivenessResult {
   const BattleTypeEffectivenessResult({

@@ -104,6 +104,68 @@ void main() {
         'fixture_post_status_cure',
       );
     });
+
+    test('Substitute effect prevents opposing non-authentic stat hooks', () {
+      final state = PsdkBattleState.fromSetup(_setup());
+      const effect = SubstituteEffect(
+        scope: BattlerBattleEffectScope(psdkOpponentSlot),
+        remainingHp: 25,
+      );
+      final move = _moveDefinition(id: 'tail_whip');
+
+      final decrease = effect.onStatDecreasePrevention(
+        BattleEffectStatChangePreventionContext(
+          state: state,
+          rng: _rng(),
+          turn: 3,
+          owner: psdkOpponentSlot,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          stat: 'defense',
+          stages: -1,
+          move: move,
+        ),
+      );
+      final increase = effect.onStatIncreasePrevention(
+        BattleEffectStatChangePreventionContext(
+          state: state,
+          rng: _rng(),
+          turn: 3,
+          owner: psdkOpponentSlot,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          stat: 'attack',
+          stages: 1,
+          move: move,
+        ),
+      );
+
+      expect(decrease, 'substitute');
+      expect(increase, 'substitute');
+    });
+
+    test('Substitute effect prevents opposing non-authentic status hooks', () {
+      final state = PsdkBattleState.fromSetup(_setup());
+      const effect = SubstituteEffect(
+        scope: BattlerBattleEffectScope(psdkOpponentSlot),
+        remainingHp: 25,
+      );
+
+      final reason = effect.onStatusPrevention(
+        BattleEffectStatusPreventionContext(
+          state: state,
+          rng: _rng(),
+          turn: 3,
+          owner: psdkOpponentSlot,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          status: PsdkBattleMajorStatus.paralysis,
+          move: _moveDefinition(id: 'thunder_wave'),
+        ),
+      );
+
+      expect(reason, 'substitute');
+    });
   });
 }
 
@@ -208,14 +270,41 @@ BattleHandlerContext _context({
 }) {
   return BattleHandlerContext(
     state: state ?? PsdkBattleState.fromSetup(_setup()),
-    rng: BattleRngStreams.fromSeeds(
-      moveDamageSeed: 1,
-      moveCriticalSeed: 1,
-      moveAccuracySeed: 1,
-      genericSeed: 1,
-    ),
+    rng: _rng(),
     turn: 3,
     user: user,
+  );
+}
+
+BattleRngStreams _rng() {
+  return BattleRngStreams.fromSeeds(
+    moveDamageSeed: 1,
+    moveCriticalSeed: 1,
+    moveAccuracySeed: 1,
+    genericSeed: 1,
+  );
+}
+
+BattleMoveDefinition _moveDefinition({
+  required String id,
+  bool sound = false,
+}) {
+  return BattleMoveDefinition.fromPsdk(
+    PsdkBattleMoveData(
+      id: id,
+      dbSymbol: id,
+      name: id,
+      type: 'normal',
+      category: PsdkBattleMoveCategory.status,
+      power: 0,
+      accuracy: 100,
+      pp: 20,
+      priority: 0,
+      criticalRate: 1,
+      sound: sound,
+      battleEngineMethod: 's_status',
+      target: PsdkBattleMoveTarget.adjacentFoe,
+    ),
   );
 }
 

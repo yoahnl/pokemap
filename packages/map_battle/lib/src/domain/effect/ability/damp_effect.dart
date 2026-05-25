@@ -8,6 +8,7 @@ const Set<String> _dampBlockedMethods = <String>{
   's_misty_explosion',
   's_mind_blown',
   's_chloroblast',
+  's_steel_beam',
 };
 
 final class DampEffect extends BattleAbilityEffect {
@@ -24,7 +25,8 @@ final class DampEffect extends BattleAbilityEffect {
   BattleMoveFailureReason? onMovePreventionUser(
     BattleAbilityMoveContext context,
   ) {
-    if (_dampBlockedMethods.contains(context.move.battleEngineMethod)) {
+    if (_dampBlockedMethods.contains(context.move.battleEngineMethod) ||
+        context.move.dbSymbol == 'mind_blown') {
       return BattleMoveFailureReason.unusableByUser;
     }
     return null;

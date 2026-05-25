@@ -1,8 +1,10 @@
+import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../effect/battle_effect_hooks.dart';
+import '../effect/ability/ability_effect.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_prevention.dart';
 import '../rng/battle_rng_streams.dart';
@@ -20,6 +22,8 @@ final class BattleDamageHandler {
     required int rawDamage,
     PsdkBattleMoveCategory? moveCategory,
     BattleMoveDefinition? move,
+    bool criticalHit = false,
+    bool isFinalHit = true,
   }) {
     final targetBattler = context.state.battlerAt(target);
     final moveDefinition = move ??
@@ -27,6 +31,9 @@ final class BattleDamageHandler {
           moveId: moveId,
           category: moveCategory,
         );
+    final abilityBypassed = _userBypassesAbilityPrevention(
+      context.state.battlerAt(context.user),
+    );
     final prevention = targetBattler.effects.dispatchDamagePrevention(
       BattleEffectDamagePreventionContext(
         state: context.state,
@@ -38,6 +45,13 @@ final class BattleDamageHandler {
         move: moveDefinition,
         damage: rawDamage,
       ),
+      where: (effect) {
+        if (effect is! BattleAbilityEffect) {
+          return true;
+        }
+        return !targetBattler.effects.contains('ability_suppressed') &&
+            !abilityBypassed;
+      },
     );
     if (prevention != null && prevention.prevented) {
       return BattleHandlerResult(
@@ -98,6 +112,8 @@ final class BattleDamageHandler {
       target: target,
       move: moveDefinition,
       damage: damage,
+      criticalHit: criticalHit,
+      isFinalHit: isFinalHit,
     );
 
     return BattleHandlerResult(
@@ -119,6 +135,8 @@ final class BattleDamageHandler {
     required PsdkBattleSlotRef target,
     required BattleMoveDefinition move,
     required int damage,
+    required bool criticalHit,
+    required bool isFinalHit,
   }) {
     var nextState = state;
     var nextRng = rng;
@@ -128,6 +146,9 @@ final class BattleDamageHandler {
     final owners = <PsdkBattleSlotRef>[
       target,
       if (context.user != target) context.user,
+      for (final owner in nextState.alliesOf(target))
+        if (owner != context.user && _observesAllyPostDamage(nextState, owner))
+          owner,
     ];
     for (final owner in owners) {
       final result = nextState.battlerAt(owner).effects.dispatchPostDamage(
@@ -141,6 +162,11 @@ final class BattleDamageHandler {
               move: move,
               damage: damage,
               targetFainted: nextState.battlerAt(target).isFainted,
+              criticalHit: criticalHit,
+              canFlee: context.canFlee,
+              userActionOrder: context.actionOrder,
+              targetActionOrder: context.targetActionOrder,
+              isFinalHit: isFinalHit,
             ),
           );
       nextState = result.state;
@@ -183,6 +209,30 @@ final class BattleDamageHandler {
       stages: 1,
     );
   }
+}
+
+bool _observesAllyPostDamage(
+  PsdkBattleState state,
+  PsdkBattleSlotRef owner,
+) {
+  return state.battlerAt(owner).abilityEffects.any(
+        (effect) => effect.affectsAlliesPostDamage,
+      );
+}
+
+const _abilityPreventionBypassAbilityIds = <String>{
+  'mold_breaker',
+  'teravolt',
+  'turboblaze',
+};
+
+bool _userBypassesAbilityPrevention(PsdkBattleCombatant user) {
+  if (user.effects.contains('ability_suppressed')) {
+    return false;
+  }
+  final abilityId = user.abilityId?.trim().toLowerCase();
+  return abilityId != null &&
+      _abilityPreventionBypassAbilityIds.contains(abilityId);
 }
 
 BattleMoveDefinition _damageMoveDefinition({

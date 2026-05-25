@@ -463,6 +463,56 @@ void main() {
       expect(chargedNormal.damageToOpponent, normalBaseline.damageToOpponent);
     });
 
+    test('Helping Hand mark boosts only the marked battler move power', () {
+      final baseline = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+      final helped = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(
+            id: 'helping_hand_mark',
+            scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            remainingTurns: 0,
+          ),
+        ),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+      final helpedOpponent = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(
+            id: 'helping_hand_mark',
+            scope: BattlerBattleEffectScope(psdkOpponentSlot),
+            remainingTurns: 0,
+          ),
+        ),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+
+      expect(helped.damageToOpponent, greaterThan(baseline.damageToOpponent));
+      expect(
+        helpedOpponent.damageToOpponent,
+        baseline.damageToOpponent,
+      );
+    });
+
     test('sport markers halve matching move base power only', () {
       final electricBaseline = _runSinglePlayerMove(
         playerTypes: const PsdkBattleTypes(primary: 'electric'),
@@ -751,6 +801,110 @@ void main() {
       expect(ionDelugeIntoGhost.damageToOpponent, greaterThan(0));
     });
 
+    test('Ion Deluge rewrites Normal moves from any battler on the field', () {
+      final opponentOwnedIonDelugeIntoGhost = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'ghost'),
+        opponentEffects: _opponentEffect('ion_deluge'),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+        ),
+      );
+
+      expect(opponentOwnedIonDelugeIntoGhost.damageToOpponent, greaterThan(0));
+    });
+
+    test('Flying Press applies Fighting and Flying effectiveness together', () {
+      final fightingIntoGrass = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fighting'),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _damagingMove(
+          id: 'brick_break',
+          type: 'fighting',
+          power: 100,
+        ),
+      );
+      final fightingIntoNormal = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fighting'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _damagingMove(
+          id: 'brick_break',
+          type: 'fighting',
+          power: 100,
+        ),
+      );
+      final flyingPressIntoGrass = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fighting'),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _damagingMove(
+          id: 'flying_press',
+          type: 'fighting',
+          power: 100,
+          battleEngineMethod: 's_flying_press',
+        ),
+      );
+
+      expect(fightingIntoGrass.damageToOpponent, lessThan(fightingIntoNormal.damageToOpponent));
+      expect(flyingPressIntoGrass.damageToOpponent, fightingIntoNormal.damageToOpponent);
+    });
+
+    test('Electrify move rewrites only the target next move then expires', () {
+      final engine = BattleEngine(
+        setup: BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            types: const PsdkBattleTypes(primary: 'ground'),
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _damagingMove(
+                id: 'electrify',
+                type: 'electric',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                battleEngineMethod: 's_electrify',
+              ),
+              _damagingMove(
+                id: 'splash',
+                type: 'normal',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            types: const PsdkBattleTypes(primary: 'normal'),
+            speed: 50,
+            moves: <PsdkBattleMoveData>[
+              _damagingMove(
+                id: 'tackle',
+                type: 'normal',
+                power: 40,
+              ),
+            ],
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ),
+      );
+
+      final firstTurn = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final secondTurn = engine.submit(const BattleDecision.fight(moveSlot: 1));
+
+      expect(firstTurn.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(
+        firstTurn.state.battlerAt(psdkOpponentSlot).effects.contains('electrify'),
+        isFalse,
+      );
+      expect(secondTurn.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
+    });
+
     test('durable change-type marker does not behave like Electrify', () {
       final changedType = _runSinglePlayerMove(
         playerTypes: const PsdkBattleTypes(primary: 'normal'),
@@ -874,6 +1028,90 @@ void main() {
           greaterThan(normalTarget.damageToOpponent));
       expect(ghostThirdType.damageToOpponent, 0);
     });
+
+    test('Wonder Room swaps target defensive stats for damage calculation', () {
+      final baselinePhysical = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.physical,
+        ),
+      );
+      final baselineSpecial = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        playerMove: _damagingMove(
+          id: 'swift',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final wonderPhysical = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        opponentEffects: _fieldEffect('wonder_room'),
+        playerMove: _damagingMove(
+          id: 'tackle',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.physical,
+        ),
+      );
+      final wonderSpecial = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 100,
+          specialAttack: 50,
+          specialDefense: 20,
+          speed: 1,
+        ),
+        opponentEffects: _fieldEffect('wonder_room'),
+        playerMove: _damagingMove(
+          id: 'swift',
+          type: 'normal',
+          power: 40,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+
+      expect(wonderPhysical.damageToOpponent, baselineSpecial.damageToOpponent);
+      expect(wonderSpecial.damageToOpponent, baselinePhysical.damageToOpponent);
+      expect(
+        wonderPhysical.damageToOpponent,
+        greaterThan(baselinePhysical.damageToOpponent),
+      );
+      expect(
+        wonderSpecial.damageToOpponent,
+        lessThan(baselineSpecial.damageToOpponent),
+      );
+    });
   });
 }
 
@@ -888,6 +1126,8 @@ _RunResult _runSinglePlayerMove({
   String? opponentAbilityId,
   String? playerHeldItemId,
   String? opponentHeldItemId,
+  PsdkBattleStats? playerStats,
+  PsdkBattleStats? opponentStats,
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
@@ -905,6 +1145,7 @@ _RunResult _runSinglePlayerMove({
       types: playerTypes,
       type3: playerType3,
       speed: 100,
+      stats: playerStats,
       abilityId: playerAbilityId,
       heldItemId: playerHeldItemId,
       effects: playerEffects,
@@ -915,6 +1156,7 @@ _RunResult _runSinglePlayerMove({
       types: opponentTypes,
       type3: opponentType3,
       speed: 1,
+      stats: opponentStats,
       abilityId: opponentAbilityId,
       heldItemId: opponentHeldItemId,
       majorStatus: opponentMajorStatus,
@@ -967,6 +1209,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleTypes types,
   String? type3,
   required int speed,
+  PsdkBattleStats? stats,
   required List<PsdkBattleMoveData> moves,
   String? abilityId,
   String? heldItemId,
@@ -982,13 +1225,14 @@ PsdkBattleCombatantSetup _combatant({
     currentHp: 100,
     types: types,
     type3: type3,
-    stats: PsdkBattleStats(
-      attack: 50,
-      defense: 50,
-      specialAttack: 50,
-      specialDefense: 50,
-      speed: speed,
-    ),
+    stats: stats ??
+        PsdkBattleStats(
+          attack: 50,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: speed,
+        ),
     abilityId: abilityId,
     heldItemId: heldItemId,
     majorStatus: majorStatus,
@@ -1003,6 +1247,7 @@ PsdkBattleMoveData _damagingMove({
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   required int power,
   int criticalRate = 1,
+  String battleEngineMethod = 's_basic',
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -1015,7 +1260,7 @@ PsdkBattleMoveData _damagingMove({
     pp: 35,
     priority: 0,
     criticalRate: criticalRate,
-    battleEngineMethod: 's_basic',
+    battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
   );
 }

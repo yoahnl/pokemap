@@ -7,7 +7,7 @@ void main() {
     test('tracks all PSDK ability registrations without duplicates', () {
       final ids = psdkAbilityEffectManifest.map((entry) => entry.abilityId);
 
-      expect(psdkAbilityEffectManifest.length, 276);
+      expect(psdkAbilityEffectManifest.length, 278);
       expect(ids.toSet(), hasLength(psdkAbilityEffectManifest.length));
       expect(
         ids,
@@ -30,9 +30,199 @@ void main() {
       final registry = AbilityEffectRegistry();
 
       for (final abilityId in <String>[
+        'analytic',
+        'anticipation',
+        'aura_break',
+        'blaze',
+        'aftermath',
+        'air_lock',
+        'anger_point',
+        'anger_shell',
+        'armor_tail',
+        'ball_fetch',
+        'battery',
+        'beast_boost',
+        'berserk',
+        'bulletproof',
+        'chilling_neigh',
+        'chlorophyll',
+        'cloud_nine',
+        'color_change',
+        'comatose',
+        'compound_eyes',
+        'cotton_down',
+        'cud_chew',
+        'cursed_body',
+        'damp',
+        'dancer',
+        'dark_aura',
+        'dauntless_shield',
+        'dazzling',
+        'download',
+        'drizzle',
+        'dragon_s_maw',
+        'drought',
+        'dry_skin',
+        'earth_eater',
+        'effect_spore',
+        'electric_surge',
+        'electromorphosis',
+        'defeatist',
+        'fairy_aura',
+        'flash_fire',
+        'flame_body',
+        'flare_boost',
+        'flower_veil',
+        'fluffy',
+        'friend_guard',
+        'fur_coat',
+        'gooey',
+        'grass_pelt',
+        'grassy_surge',
+        'good_as_gold',
+        'grim_neigh',
+        'guts',
+        'healer',
+        'heatproof',
+        'hospitality',
+        'huge_power',
+        'hustle',
+        'hydration',
+        'ice_body',
+        'ice_scales',
+        'immunity',
+        'innards_out',
+        'inner_focus',
+        'iron_barbs',
+        'iron_fist',
+        'insomnia',
+        'intrepid_sword',
+        'intimidate',
+        'justified',
+        'own_tempo',
+        'leaf_guard',
+        'levitate',
+        'lightning_rod',
+        'limber',
+        'lingering_aroma',
+        'magician',
+        'magma_armor',
+        'marvel_scale',
+        'mega_launcher',
+        'misty_surge',
+        'mold_breaker',
+        'motor_drive',
+        'moody',
+        'mummy',
+        'moxie',
+        'natural_cure',
+        'neuroforce',
+        'no_guard',
+        'overgrow',
+        'opportunist',
+        'pastel_veil',
+        'perish_body',
+        'pickpocket',
+        'pressure',
+        'psychic_surge',
+        'purifying_salt',
+        'power_spot',
+        'prankster',
+        'propeller_tail',
+        'poison_point',
+        'poison_touch',
+        'punk_rock',
+        'pure_power',
+        'poison_puppeteer',
+        'queenly_majesty',
+        'quick_feet',
+        'rain_dish',
+        'reckless',
+        'regenerator',
+        'rock_head',
+        'rocky_payload',
+        'rough_skin',
+        'sap_sipper',
+        'sand_spit',
+        'sand_force',
+        'sand_rush',
+        'sand_veil',
+        'sharpness',
         'shadow_tag',
         'arena_trap',
+        'skill_link',
         'magnet_pull',
+        'speed_boost',
+        'sand_stream',
+        'screen_cleaner',
+        'seed_sower',
+        'snow_warning',
+        'snow_cloak',
+        'slush_rush',
+        'soundproof',
+        'solar_power',
+        'stamina',
+        'stakeout',
+        'stalwart',
+        'static',
+        'steelworker',
+        'steely_spirit',
+        'steam_engine',
+        'stench',
+        'storm_drain',
+        'strong_jaw',
+        'surge_surfer',
+        'swarm',
+        'suction_cups',
+        'sweet_veil',
+        'synchronize',
+        'swift_swim',
+        'tangled_feet',
+        'tangling_hair',
+        'technician',
+        'telepathy',
+        'teravolt',
+        'thermal_exchange',
+        'thick_fat',
+        'torrent',
+        'tough_claws',
+        'transistor',
+        'triage',
+        'truant',
+        'toxic_boost',
+        'toxic_chain',
+        'toxic_debris',
+        'turboblaze',
+        'unnerve',
+        'vital_spirit',
+        'volt_absorb',
+        'victory_star',
+        'water_veil',
+        'water_bubble',
+        'water_compaction',
+        'water_absorb',
+        'wandering_spirit',
+        'weak_armor',
+        'well_baked_body',
+        'wind_power',
+        'wind_rider',
+        'wonder_skin',
+        'run_away',
+        'aroma_veil',
+        'as_one',
+        'commander',
+        'oblivious',
+        'beads_of_ruin',
+        'sword_of_ruin',
+        'power_of_alchemy',
+        'protosynthesis',
+        'quark_drive',
+        'receiver',
+        'emergency_exit',
+        'wimp_out',
+        'symbiosis',
+        'mirror_armor',
+        'parental_bond',
       ]) {
         final entry = byId[abilityId];
 
@@ -41,65 +231,62 @@ void main() {
         expect(entry.dartEffect, isNotNull, reason: abilityId);
         expect(registry.create(abilityId), isNotNull, reason: abilityId);
       }
+    });
+
+    test('Lot 256 post-damage and stat-copy abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
 
       for (final abilityId in <String>[
-        'air_lock',
-        'blaze',
-        'cloud_nine',
-        'damp',
-        'dragon_s_maw',
-        'drizzle',
-        'drought',
-        'dry_skin',
-        'earth_eater',
-        'electric_surge',
-        'flash_fire',
-        'grassy_surge',
-        'intimidate',
-        'iron_barbs',
-        'iron_fist',
-        'levitate',
-        'lightning_rod',
-        'motor_drive',
-        'misty_surge',
-        'no_guard',
-        'overgrow',
-        'punk_rock',
-        'psychic_surge',
-        'rain_dish',
-        'reckless',
-        'rock_head',
-        'rocky_payload',
-        'rough_skin',
-        'sap_sipper',
-        'sand_stream',
-        'sharpness',
-        'skill_link',
-        'snow_warning',
-        'soundproof',
-        'speed_boost',
-        'steelworker',
-        'storm_drain',
-        'swarm',
-        'technician',
-        'torrent',
-        'tough_claws',
-        'transistor',
-        'volt_absorb',
-        'water_absorb',
-        'immunity',
-        'insomnia',
-        'vital_spirit',
-        'limber',
-        'magma_armor',
-        'water_veil',
+        'anger_shell',
+        'berserk',
+        'opportunist',
       ]) {
-        final entry = byId[abilityId];
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+        expect(byId[abilityId]?.dartEffect, isNotNull, reason: abilityId);
+        expect(AbilityEffectRegistry().create(abilityId), isNotNull,
+            reason: abilityId);
+      }
+    });
 
-        expect(entry, isNotNull, reason: abilityId);
-        expect(entry!.status, PsdkAbilityPortStatus.partial);
-        expect(entry.dartEffect, isNotNull, reason: abilityId);
-        expect(registry.create(abilityId), isNotNull, reason: abilityId);
+    test('Lot 257 residual Speed Boost ability is strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      expect(
+        byId['speed_boost']?.status,
+        PsdkAbilityPortStatus.ported,
+      );
+      expect(byId['speed_boost']?.dartEffect, 'SpeedBoostEffect');
+      expect(AbilityEffectRegistry().create('speed_boost'), isNotNull);
+    });
+
+    test('Lot 261 quick closure ability effects are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'ball_fetch',
+        'color_change',
+        'dancer',
+        'neutralizing_gas',
+        'wind_rider',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+        expect(byId[abilityId]?.dartEffect, isNotNull, reason: abilityId);
+        expect(AbilityEffectRegistry().create(abilityId), isNotNull,
+            reason: abilityId);
       }
     });
 
@@ -109,6 +296,163 @@ void main() {
       expect(effect, isNotNull);
       expect(effect!.id, 'ability:totally_unknown_ability');
       expect(effect.scope, isA<LocalBattleEffectScope>());
+    });
+
+    test('registry coverage keeps manifest evidence and factories aligned', () {
+      final coverage = AbilityEffectRegistry().manifestCoverage();
+
+      expect(coverage.totalManifestAbilities, 278);
+      expect(coverage.factoryIdsOutsideManifest, isEmpty);
+      expect(coverage.declaredEffectsWithoutFactory, isEmpty);
+      expect(coverage.concreteFactoryAbilityIds, contains('imposter'));
+      expect(coverage.concreteFactoryAbilityIds, contains('shadow_tag'));
+      expect(coverage.concreteFactoryAbilityIds, contains('zero_to_hero'));
+      expect(coverage.concreteFactoryAbilityIds, contains('neutralizing_gas'));
+      expect(coverage.concreteFactoryAbilityIds, contains('parental_bond'));
+      expect(coverage.manifestAbilityIds, contains('zero_to_hero'));
+      expect(coverage.missingAbilityIds, isNot(contains('neutralizing_gas')));
+      expect(coverage.missingAbilityIds, isNot(contains('parental_bond')));
+    });
+
+    test('Lot 98 damage type and accuracy abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'blaze',
+        'overgrow',
+        'torrent',
+        'swarm',
+        'dragon_s_maw',
+        'steelworker',
+        'transistor',
+        'rocky_payload',
+        'technician',
+        'iron_fist',
+        'tough_claws',
+        'sharpness',
+        'punk_rock',
+        'water_absorb',
+        'volt_absorb',
+        'earth_eater',
+        'flash_fire',
+        'motor_drive',
+        'lightning_rod',
+        'storm_drain',
+        'sap_sipper',
+        'levitate',
+        'no_guard',
+        'reckless',
+        'rock_head',
+        'skill_link',
+        'rough_skin',
+        'iron_barbs',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
+    });
+
+    test('Lot 99 status and selection guard abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'damp',
+        'soundproof',
+        'immunity',
+        'insomnia',
+        'vital_spirit',
+        'limber',
+        'magma_armor',
+        'water_veil',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
+    });
+
+    test('Lot 100 switch residual and form abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'drizzle',
+        'drought',
+        'sand_stream',
+        'snow_warning',
+        'electric_surge',
+        'grassy_surge',
+        'misty_surge',
+        'psychic_surge',
+        'intimidate',
+        'rain_dish',
+        'dry_skin',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
+    });
+
+    test('Lot 119 weather form and high-value tera abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'forecast',
+        'embody_aspect',
+        'supreme_overlord',
+        'tera_shell',
+        'teraform_zero',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
+    });
+
+    test('Lot 120 form-changing abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'battle_bond',
+        'disguise',
+        'gulp_missile',
+        'hunger_switch',
+        'ice_face',
+        'power_construct',
+        'schooling',
+        'shields_down',
+        'tera_shift',
+        'zen_mode',
+        'zero_to_hero',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+        expect(byId[abilityId]?.dartEffect, isNotNull, reason: abilityId);
+        expect(AbilityEffectRegistry().create(abilityId), isNotNull,
+            reason: abilityId);
+      }
     });
   });
 }

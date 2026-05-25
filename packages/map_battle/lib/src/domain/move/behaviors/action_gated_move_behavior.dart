@@ -1,7 +1,7 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
-import '../../effect/battle_effect_scope.dart';
+import '../../effect/ability/mental_immunity_ability_effect.dart';
 import '../../effect/move/flinch_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -14,6 +14,7 @@ enum _ActionGatedKind {
   focusPunch,
   snore,
   suckerPunch,
+  upperHand,
 }
 
 /// Ports small PSDK move-specific user gates that are checked before PP.
@@ -37,6 +38,10 @@ final class ActionGatedMoveBehavior
   const ActionGatedMoveBehavior.suckerPunch()
       : battleEngineMethod = 's_sucker_punch',
         _kind = _ActionGatedKind.suckerPunch;
+
+  const ActionGatedMoveBehavior.upperHand()
+      : battleEngineMethod = 's_upper_hand',
+        _kind = _ActionGatedKind.upperHand;
 
   @override
   final String battleEngineMethod;
@@ -70,6 +75,13 @@ final class ActionGatedMoveBehavior
       _ActionGatedKind.suckerPunch => _canUseSuckerPunch(
           target: target,
           turn: context.turn,
+        )
+            ? null
+            : const BattleMoveUserPreventionResult(
+                reason: BattleMoveFailureReason.unusableByUser,
+              ),
+      _ActionGatedKind.upperHand => _canUseUpperHand(
+          context.announcedMoveFor?.call(context.target),
         )
             ? null
             : const BattleMoveUserPreventionResult(
@@ -111,6 +123,10 @@ final class ActionGatedMoveBehavior
         target: target,
         move: context.move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
       ),
     );
     if (damageResult.damage <= 0) {
@@ -121,7 +137,7 @@ final class ActionGatedMoveBehavior
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -129,6 +145,7 @@ final class ActionGatedMoveBehavior
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: context.move,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -138,24 +155,33 @@ final class ActionGatedMoveBehavior
       move: context.move,
       turn: context.turn,
     );
-    final flinched = _kind == _ActionGatedKind.fakeOut
-        ? secondary.state.updateBattler(
-            targetSlot,
-            (battler) => battler.copyWith(
-              effects: battler.effects.addEffect(
-                FlinchEffect(scope: BattlerBattleEffectScope(targetSlot)),
-              ),
-            ),
+    final shouldFlinch = (_kind == _ActionGatedKind.fakeOut ||
+            _kind == _ActionGatedKind.upperHand) &&
+        !battleMentalAbilityBlocksEffect(
+          state: secondary.state,
+          user: context.user,
+          target: targetSlot,
+          effectId: 'flinch',
+        );
+    final flinched = shouldFlinch
+        ? applyFlinchEffect(
+            state: secondary.state,
+            rng: secondary.rng,
+            turn: context.turn,
+            target: targetSlot,
+            reason: 'move:${context.move.id}',
+            move: context.move,
           )
-        : secondary.state;
+        : null;
 
     return BattleMoveBehaviorResolution(
-      state: flinched,
-      rng: secondary.rng,
+      state: flinched?.state ?? secondary.state,
+      rng: flinched?.rng ?? secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
+        ...?flinched?.events,
       ],
     );
   }
@@ -187,5 +213,13 @@ final class ActionGatedMoveBehavior
       return false;
     }
     return target.moves.first.category != PsdkBattleMoveCategory.status;
+  }
+
+  bool _canUseUpperHand(BattleAnnouncedMove? announcedMove) {
+    if (announcedMove == null) {
+      return false;
+    }
+    final move = announcedMove.move;
+    return move.category != PsdkBattleMoveCategory.status && move.priority >= 1;
   }
 }

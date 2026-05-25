@@ -1,8 +1,12 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../rng/battle_rng_streams.dart';
 import '../../effect/ability/ability_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
+import '../battle_move_prevention.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
@@ -38,9 +42,9 @@ const Set<String> _recoilFromUserCurrentHp = <String>{
 ///
 /// The target hit still uses the normal damage formula and shared move
 /// procedure. Recoil is represented as a second damage event targeting the
-/// user. The strict subset includes regular recoil, Rock Head prevention and
-/// Reckless power; Parental Bond, dedicated messages and Basculin evolution
-/// bookkeeping remain outside this lot.
+/// user. The strict subset includes regular recoil, Rock Head prevention,
+/// Reckless power and Parental Bond's combined recoil base; dedicated messages
+/// and Basculin evolution bookkeeping remain outside this lot.
 final class RecoilMoveBehavior implements BattleMoveBehavior {
   const RecoilMoveBehavior.psdkRecoil() : battleEngineMethod = 's_recoil';
 
@@ -53,7 +57,24 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
     final prepared = prepareBattleMove(context);
     if (!prepared.shouldExecuteBehavior) {
+      if (_isStudioMindBlown(context.move.dbSymbol) &&
+          _shouldMindBlownCrashAfterFailure(prepared.failureReason)) {
+        return _crashMindBlownUser(
+          context: context,
+          state: prepared.state,
+          rng: prepared.rng,
+          events: prepared.events,
+          successful: false,
+        );
+      }
       return prepared.toResolution();
+    }
+
+    if (_isStudioMindBlown(context.move.dbSymbol)) {
+      return _resolveStudioMindBlown(
+        context: context,
+        prepared: prepared,
+      );
     }
 
     final targetSlot = prepared.psdkTargets.single;
@@ -76,6 +97,10 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: context.move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
         overrides: BattleMoveDamageOverrides(power: resolvedPower),
       ),
     );
@@ -87,7 +112,7 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final targetDamage = applyDirectDamage(
+    final targetDamage = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -95,16 +120,17 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: context.move,
     );
     var state = targetDamage.state;
     final events = <PsdkBattleEvent>[
       ...prepared.events,
-      if (targetDamage.event != null) targetDamage.event!,
+      ...targetDamage.events,
     ];
     if (targetDamage.damage <= 0) {
       return BattleMoveBehaviorResolution(
         state: state,
-        rng: damageResult.rng,
+        rng: targetDamage.rng,
         events: events,
       );
     }
@@ -168,6 +194,123 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
       state: state,
       rng: secondary.rng,
       events: events,
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveStudioMindBlown({
+    required BattleMoveBehaviorContext context,
+    required PreparedBattleMove prepared,
+  }) {
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final successfulTargets = <PsdkBattleSlotRef>[];
+
+    for (final targetSlot in prepared.psdkTargets) {
+      final damageResult = const BattleMoveDamageCalculator().calculate(
+        BattleMoveDamageContext(
+          user: state.battlerAt(context.user),
+          target: state.battlerAt(targetSlot),
+          move: context.move,
+          rng: rng,
+          field: state.field,
+          state: state,
+          userSlot: context.user,
+          targetSlot: targetSlot,
+        ),
+      );
+      rng = damageResult.rng;
+      if (damageResult.damage <= 0) {
+        continue;
+      }
+
+      final targetDamage = applyDirectDamage(
+        state: state,
+        user: context.user,
+        target: targetSlot,
+        moveId: context.move.id,
+        rng: rng,
+        turn: context.turn,
+        amount: damageResult.damage,
+      );
+      state = targetDamage.state;
+      rng = targetDamage.rng;
+      if (targetDamage.event != null) {
+        events.add(targetDamage.event!);
+      }
+      if (targetDamage.damage > 0) {
+        successfulTargets.add(targetSlot);
+      }
+    }
+
+    for (final targetSlot in successfulTargets) {
+      final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: rng,
+        user: context.user,
+        target: targetSlot,
+        move: context.move,
+        turn: context.turn,
+      );
+      state = secondary.state;
+      rng = secondary.rng;
+      events.addAll(secondary.events);
+    }
+
+    return _crashMindBlownUser(
+      context: context,
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+
+  bool _isStudioMindBlown(String dbSymbol) => dbSymbol == 'mind_blown';
+
+  bool _shouldMindBlownCrashAfterFailure(BattleMoveFailureReason? reason) {
+    return switch (reason) {
+      BattleMoveFailureReason.accuracy ||
+      BattleMoveFailureReason.immunity ||
+      BattleMoveFailureReason.protected =>
+        true,
+      _ => false,
+    };
+  }
+
+  BattleMoveBehaviorResolution _crashMindBlownUser({
+    required BattleMoveBehaviorContext context,
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required List<PsdkBattleEvent> events,
+    bool successful = true,
+  }) {
+    final user = state.battlerAt(context.user);
+    if (user.abilityId == 'wonder_guard') {
+      return BattleMoveBehaviorResolution(
+        state: state,
+        rng: rng,
+        events: events,
+        successful: successful,
+      );
+    }
+
+    final crash = applyDirectDamage(
+      state: state,
+      user: context.user,
+      target: context.user,
+      moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
+      amount: user.maxHp ~/ 2,
+    );
+    return BattleMoveBehaviorResolution(
+      state: crash.state,
+      rng: crash.rng,
+      events: <PsdkBattleEvent>[
+        ...events,
+        if (crash.event != null) crash.event!,
+      ],
+      successful: successful,
     );
   }
 

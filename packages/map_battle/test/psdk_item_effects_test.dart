@@ -47,6 +47,48 @@ void main() {
       expect(resolver.isGrounded(state.battlerAt(psdkOpponentSlot)), isTrue);
     });
 
+    test('Air Balloon pops after move damage and removes grounding override',
+        () {
+      const resolver = BattleGroundingResolver();
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            heldItemId: 'air_balloon',
+            move: _move(id: 'tackle', power: 40),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'tackle', power: 40),
+          ),
+          rngSeeds: _seeds.psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: BattleRngStreams.fromSeedSnapshot(_seeds),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        moveId: 'tackle',
+        rawDamage: 20,
+        move: BattleMoveDefinition.fromPsdk(_move(id: 'tackle', power: 40)),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'air_balloon');
+      expect(player.effects.contains('item:air_balloon'), isFalse);
+      expect(resolver.isGrounded(player), isTrue);
+      expect(
+        result.events.whereType<PsdkBattleItemEvent>().single.itemId,
+        'air_balloon',
+      );
+    });
+
     test('consumeHeldItem clears the held item and its active item effect', () {
       final state = PsdkBattleState.fromSetup(
         BattleEngineSetup.singles(

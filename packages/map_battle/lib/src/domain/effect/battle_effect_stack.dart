@@ -1,5 +1,6 @@
 import 'battle_effect.dart';
 import 'battle_effect_hooks.dart';
+import 'ability/ability_effect.dart';
 import '../move/battle_move_prevention.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
@@ -120,8 +121,9 @@ final class BattleEffectObjectStack {
   }
 
   BattleEffectDamagePreventionResult? dispatchDamagePrevention(
-    BattleEffectDamagePreventionContext context,
-  ) {
+    BattleEffectDamagePreventionContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     var nextState = context.state;
     var nextRng = context.rng;
     for (final effect in _effects) {
@@ -130,6 +132,9 @@ final class BattleEffectObjectStack {
         state: nextState,
         owner: context.owner,
       )) {
+        continue;
+      }
+      if (where != null && !where(effect)) {
         continue;
       }
       final result = effect.onDamagePrevention(
@@ -179,6 +184,11 @@ final class BattleEffectObjectStack {
           move: context.move,
           damage: context.damage,
           targetFainted: context.targetFainted,
+          criticalHit: context.criticalHit,
+          canFlee: context.canFlee,
+          userActionOrder: context.userActionOrder,
+          targetActionOrder: context.targetActionOrder,
+          isFinalHit: context.isFinalHit,
         ),
       );
       if (result == null) {
@@ -191,6 +201,181 @@ final class BattleEffectObjectStack {
     }
 
     return BattleEffectPostDamageResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  BattleEffectPostActionResult dispatchPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostAction(
+        BattleEffectPostActionContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          move: context.move,
+          successful: context.successful,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectPostActionResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  BattleEffectPreAccuracyResult dispatchPreAccuracy(
+    BattleEffectPreAccuracyContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPreAccuracy(
+        BattleEffectPreAccuracyContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          target: context.target,
+          move: context.move,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectPreAccuracyResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  BattleEffectItemChangeResult dispatchPostItemChange(
+    BattleEffectItemChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostItemChange(
+        BattleEffectItemChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          target: context.target,
+          previousItemId: context.previousItemId,
+          nextItemId: context.nextItemId,
+          consumedItemId: context.consumedItemId,
+          reason: context.reason,
+          launcher: context.launcher,
+          move: context.move,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectItemChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  BattleEffectBattleEndResult dispatchBattleEnd(
+    BattleEffectBattleEndContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      final result = effect.onBattleEnd(
+        BattleEffectBattleEndContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          canFlee: context.canFlee,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectBattleEndResult(
       state: nextState,
       rng: nextRng,
       events: events,
@@ -241,9 +426,13 @@ final class BattleEffectObjectStack {
   }
 
   BattleMoveFailureReason? targetMovePreventionReason(
-    BattleEffectMoveContext context,
-  ) {
+    BattleEffectMoveContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
       final reason = effect.onMovePreventionTarget(context);
       if (reason != null) {
         return reason;
@@ -258,6 +447,8 @@ final class BattleEffectObjectStack {
   }) {
     var nextState = context.state;
     var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    BattleEffectUserMovePreventionResult? nonPreventingResult;
     for (final effect in _effects) {
       if (where != null && !where(effect)) {
         continue;
@@ -282,9 +473,29 @@ final class BattleEffectObjectStack {
       if (result == null) {
         continue;
       }
-      return result;
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      if (result.prevented) {
+        return BattleEffectUserMovePreventionResult(
+          state: nextState,
+          rng: nextRng,
+          prevented: true,
+          reason: result.reason,
+          recordAttempt: result.recordAttempt,
+          events: events,
+        );
+      }
+      nonPreventingResult = BattleEffectUserMovePreventionResult(
+        state: nextState,
+        rng: nextRng,
+        prevented: false,
+        reason: result.reason,
+        recordAttempt: result.recordAttempt,
+        events: events,
+      );
     }
-    return null;
+    return nonPreventingResult;
   }
 
   BattleMoveSelectionPreventionResult? moveSelectionPrevention(
@@ -319,14 +530,18 @@ final class BattleEffectObjectStack {
   }
 
   BattleEffectSwitchEventResult dispatchSwitchEvent(
-    BattleEffectSwitchEventContext context,
-  ) {
+    BattleEffectSwitchEventContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     var nextState = context.state;
     var nextRng = context.rng;
     final events = <PsdkBattleEvent>[];
     var changed = false;
 
     for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
       if (!_effectIsStillActive(
         effect: effect,
         state: nextState,
@@ -361,6 +576,48 @@ final class BattleEffectObjectStack {
     );
   }
 
+  BattleEffectSwitchOutResult dispatchSwitchOut(
+    BattleEffectSwitchOutContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onSwitchOut(
+        BattleEffectSwitchOutContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          replacement: context.replacement,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectSwitchOutResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   String? statChangePreventionReason(
     BattleEffectStatChangePreventionContext context,
   ) {
@@ -370,6 +627,10 @@ final class BattleEffectObjectStack {
         state: context.state,
         owner: context.owner,
       )) {
+        continue;
+      }
+      if (effect is BattleAbilityEffect &&
+          _userBypassesAbilityStatPrevention(context)) {
         continue;
       }
       final reason = context.stages > 0
@@ -402,7 +663,9 @@ final class BattleEffectObjectStack {
           target: context.target,
           stat: context.stat,
           stages: stages,
+          originalTargets: context.originalTargets,
           move: context.move,
+          sourceAbilityId: context.sourceAbilityId,
         ),
       );
       if (changed != null) {
@@ -410,6 +673,33 @@ final class BattleEffectObjectStack {
       }
     }
     return stages;
+  }
+
+  BattleEffectStatChangeRedirectResult? statChangeRedirect(
+    BattleEffectStatChangeContext context,
+  ) {
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: context.state,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      if (effect is BattleAbilityEffect &&
+          _userBypassesAbilityStatHook(
+            state: context.state,
+            user: context.user,
+            target: context.target,
+          )) {
+        continue;
+      }
+      final result = effect.onStatChangeRedirect(context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return null;
   }
 
   BattleEffectStatChangePostResult dispatchStatChangePost(
@@ -438,7 +728,9 @@ final class BattleEffectObjectStack {
           target: context.target,
           stat: context.stat,
           stages: context.stages,
+          originalTargets: context.originalTargets,
           move: context.move,
+          sourceAbilityId: context.sourceAbilityId,
         ),
       );
       if (result == null) {
@@ -517,6 +809,53 @@ final class BattleEffectObjectStack {
     }
 
     return BattleEffectStatusChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  BattleEffectVolatileStatusChangeResult dispatchPostVolatileStatusChange(
+    BattleEffectVolatileStatusChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostVolatileStatusChange(
+        BattleEffectVolatileStatusChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          target: context.target,
+          effectId: context.effectId,
+          cured: context.cured,
+          moveId: context.moveId,
+          move: context.move,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectVolatileStatusChangeResult(
       state: nextState,
       rng: nextRng,
       events: events,
@@ -659,4 +998,41 @@ final class BattleEffectObjectStack {
   }) {
     return state.battlerAt(owner).effects.contains(effect.id);
   }
+
+  bool _userBypassesAbilityStatPrevention(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    return _userBypassesAbilityStatHook(
+      state: context.state,
+      user: context.user,
+      target: context.target,
+    );
+  }
+
+  bool _userBypassesAbilityStatHook({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+  }) {
+    if (user == target) {
+      return false;
+    }
+    final userBattler = state.battlerAt(user);
+    if (userBattler.effects.contains('ability_suppressed')) {
+      return false;
+    }
+    return _abilityPreventionBypassAbilityIds.contains(
+      _normalizedAbilityId(userBattler.abilityId),
+    );
+  }
+}
+
+const _abilityPreventionBypassAbilityIds = <String>{
+  'mold_breaker',
+  'teravolt',
+  'turboblaze',
+};
+
+String _normalizedAbilityId(String? abilityId) {
+  return abilityId?.trim().toLowerCase() ?? '';
 }

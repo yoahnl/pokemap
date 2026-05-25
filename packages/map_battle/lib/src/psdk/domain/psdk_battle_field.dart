@@ -5,16 +5,25 @@
 /// Showdown-era assumptions. Lot 24 only stores observable field state.
 /// Application, expiration, prevention hooks and duration-extending items stay
 /// future work.
+import 'psdk_battle_slots.dart';
+
 const _unchanged = Object();
 
 class PsdkBattleFieldState {
   const PsdkBattleFieldState({
     this.terrain,
     this.weather,
-  });
+    this.additionalMoney = 0,
+    this.lastBallUsedId,
+    List<PsdkBattleSlotRef> ballFetchEligibleSlots =
+        const <PsdkBattleSlotRef>[],
+  }) : ballFetchEligibleSlots = ballFetchEligibleSlots;
 
   final PsdkBattleTerrainState? terrain;
   final PsdkBattleWeatherState? weather;
+  final int additionalMoney;
+  final String? lastBallUsedId;
+  final List<PsdkBattleSlotRef> ballFetchEligibleSlots;
 
   bool get hasTerrain => terrain != null;
   bool get hasWeather => weather != null;
@@ -36,7 +45,7 @@ class PsdkBattleFieldState {
 
   PsdkBattleFieldState withWeather(
     PsdkBattleWeatherId id, {
-    int remainingTurns = 5,
+    int? remainingTurns = 5,
   }) {
     return copyWith(
       weather: PsdkBattleWeatherState(
@@ -50,6 +59,13 @@ class PsdkBattleFieldState {
 
   PsdkBattleFieldState clearWeather() => copyWith(weather: null);
 
+  PsdkBattleFieldState clearBallFetch() {
+    return copyWith(
+      lastBallUsedId: null,
+      ballFetchEligibleSlots: const <PsdkBattleSlotRef>[],
+    );
+  }
+
   PsdkBattleFieldState tickEndTurn() {
     return copyWith(
       terrain: terrain?.tickEndTurn(),
@@ -60,6 +76,9 @@ class PsdkBattleFieldState {
   PsdkBattleFieldState copyWith({
     Object? terrain = _unchanged,
     Object? weather = _unchanged,
+    int? additionalMoney,
+    Object? lastBallUsedId = _unchanged,
+    List<PsdkBattleSlotRef>? ballFetchEligibleSlots,
   }) {
     return PsdkBattleFieldState(
       terrain: identical(terrain, _unchanged)
@@ -68,6 +87,12 @@ class PsdkBattleFieldState {
       weather: identical(weather, _unchanged)
           ? this.weather
           : weather as PsdkBattleWeatherState?,
+      additionalMoney: additionalMoney ?? this.additionalMoney,
+      lastBallUsedId: identical(lastBallUsedId, _unchanged)
+          ? this.lastBallUsedId
+          : lastBallUsedId as String?,
+      ballFetchEligibleSlots:
+          ballFetchEligibleSlots ?? this.ballFetchEligibleSlots,
     );
   }
 }
@@ -96,18 +121,22 @@ class PsdkBattleWeatherState {
   const PsdkBattleWeatherState({
     required this.id,
     required this.remainingTurns,
-  }) : assert(remainingTurns > 0);
+  }) : assert(remainingTurns == null || remainingTurns > 0);
 
   final PsdkBattleWeatherId id;
-  final int remainingTurns;
+  final int? remainingTurns;
 
   PsdkBattleWeatherState? tickEndTurn() {
-    if (remainingTurns <= 1) {
+    final turns = remainingTurns;
+    if (turns == null) {
+      return this;
+    }
+    if (turns <= 1) {
       return null;
     }
     return PsdkBattleWeatherState(
       id: id,
-      remainingTurns: remainingTurns - 1,
+      remainingTurns: turns - 1,
     );
   }
 }

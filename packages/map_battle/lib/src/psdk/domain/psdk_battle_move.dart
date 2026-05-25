@@ -50,6 +50,7 @@ enum PsdkBattleMajorStatus {
 /// Volatile statuses carried by PSDK move data.
 enum PsdkBattleVolatileStatus {
   confusion,
+  flinch,
 }
 
 /// Status rider carried by a PSDK move import.
@@ -123,8 +124,21 @@ class PsdkBattleMoveData {
     this.effectChance,
     required String battleEngineMethod,
     required this.target,
+    this.contact = false,
     this.protectable = true,
     this.sound = false,
+    this.bite = false,
+    this.pulse = false,
+    this.wind = false,
+    this.ballistics = false,
+    this.dance = false,
+    this.kingRockUtility = false,
+    this.heal = false,
+    this.charge = false,
+    this.recharge = false,
+    this.mirrorMoveAffected = true,
+    this.snatchable = false,
+    this.magicCoatAffected = false,
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
     List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -171,8 +185,21 @@ class PsdkBattleMoveData {
   final int? effectChance;
   final String battleEngineMethod;
   final PsdkBattleMoveTarget target;
+  final bool contact;
   final bool protectable;
   final bool sound;
+  final bool bite;
+  final bool pulse;
+  final bool wind;
+  final bool ballistics;
+  final bool dance;
+  final bool kingRockUtility;
+  final bool heal;
+  final bool charge;
+  final bool recharge;
+  final bool mirrorMoveAffected;
+  final bool snatchable;
+  final bool magicCoatAffected;
   final List<PsdkBattleMoveStatus> _statuses;
   final List<PsdkBattleMoveStageMod> _stageMods;
 
@@ -212,8 +239,21 @@ class PsdkBattleMoveData {
     int? effectChance,
     String? battleEngineMethod,
     PsdkBattleMoveTarget? target,
+    bool? contact,
     bool? protectable,
     bool? sound,
+    bool? bite,
+    bool? pulse,
+    bool? wind,
+    bool? ballistics,
+    bool? dance,
+    bool? kingRockUtility,
+    bool? heal,
+    bool? charge,
+    bool? recharge,
+    bool? mirrorMoveAffected,
+    bool? snatchable,
+    bool? magicCoatAffected,
     List<PsdkBattleMoveStatus>? statuses,
     List<PsdkBattleMoveStageMod>? stageMods,
   }) {
@@ -232,8 +272,21 @@ class PsdkBattleMoveData {
       effectChance: effectChance ?? this.effectChance,
       battleEngineMethod: battleEngineMethod ?? this.battleEngineMethod,
       target: target ?? this.target,
+      contact: contact ?? this.contact,
       protectable: protectable ?? this.protectable,
       sound: sound ?? this.sound,
+      bite: bite ?? this.bite,
+      pulse: pulse ?? this.pulse,
+      wind: wind ?? this.wind,
+      ballistics: ballistics ?? this.ballistics,
+      dance: dance ?? this.dance,
+      kingRockUtility: kingRockUtility ?? this.kingRockUtility,
+      heal: heal ?? this.heal,
+      charge: charge ?? this.charge,
+      recharge: recharge ?? this.recharge,
+      mirrorMoveAffected: mirrorMoveAffected ?? this.mirrorMoveAffected,
+      snatchable: snatchable ?? this.snatchable,
+      magicCoatAffected: magicCoatAffected ?? this.magicCoatAffected,
       statuses: statuses ?? this.statuses,
       stageMods: stageMods ?? this.stageMods,
     );

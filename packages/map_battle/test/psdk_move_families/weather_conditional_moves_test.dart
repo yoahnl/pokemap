@@ -136,6 +136,85 @@ void main() {
       expect(hail, greaterThan(noWeather));
     });
 
+    test('hard rain prevents damaging Fire moves', () {
+      final result = _runMove(
+        field: _weather(PsdkBattleWeatherId.hardrain, remainingTurns: null),
+        playerMove: _move(
+          id: 'flamethrower',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+          battleEngineMethod: 's_basic',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'flamethrower'), isEmpty);
+      expect(_failedEvents(result, moveId: 'flamethrower'), hasLength(1));
+      expect(_failedEvents(result, moveId: 'flamethrower').single.reason,
+          'weather');
+    });
+
+    test('hard sun prevents damaging Water moves', () {
+      final result = _runMove(
+        field: _weather(PsdkBattleWeatherId.hardsun, remainingTurns: null),
+        playerMove: _move(
+          id: 'hydro_pump',
+          type: 'water',
+          category: PsdkBattleMoveCategory.special,
+          power: 110,
+          battleEngineMethod: 's_basic',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'hydro_pump'), isEmpty);
+      expect(_failedEvents(result, moveId: 'hydro_pump'), hasLength(1));
+      expect(
+          _failedEvents(result, moveId: 'hydro_pump').single.reason, 'weather');
+    });
+
+    test('strong winds neutralizes only the Flying weakness component', () {
+      final clearFlying = _damage(
+        _runMove(
+          field: const PsdkBattleFieldState(),
+          playerMove: _rockMove(),
+          opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        ),
+        moveId: 'stone_edge',
+      );
+      final strongFlying = _damage(
+        _runMove(
+          field:
+              _weather(PsdkBattleWeatherId.strongWinds, remainingTurns: null),
+          playerMove: _rockMove(),
+          opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        ),
+        moveId: 'stone_edge',
+      );
+      final strongFireFlying = _damage(
+        _runMove(
+          field:
+              _weather(PsdkBattleWeatherId.strongWinds, remainingTurns: null),
+          playerMove: _rockMove(),
+          opponentTypes:
+              const PsdkBattleTypes(primary: 'fire', secondary: 'flying'),
+        ),
+        moveId: 'stone_edge',
+      );
+      final strongFire = _damage(
+        _runMove(
+          field:
+              _weather(PsdkBattleWeatherId.strongWinds, remainingTurns: null),
+          playerMove: _rockMove(),
+          opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+        ),
+        moveId: 'stone_edge',
+      );
+
+      expect(strongFlying, lessThan(clearFlying));
+      expect(strongFireFlying, equals(strongFire));
+      expect(strongFireFlying, greaterThan(strongFlying));
+    });
+
     for (final weather in <PsdkBattleWeatherId>[
       PsdkBattleWeatherId.hail,
       PsdkBattleWeatherId.snow,
@@ -395,9 +474,22 @@ PsdkBattleMoveData _move({
   );
 }
 
-PsdkBattleFieldState _weather(PsdkBattleWeatherId id) {
+PsdkBattleMoveData _rockMove() {
+  return _move(
+    id: 'stone_edge',
+    type: 'rock',
+    category: PsdkBattleMoveCategory.physical,
+    power: 100,
+    battleEngineMethod: 's_basic',
+  );
+}
+
+PsdkBattleFieldState _weather(
+  PsdkBattleWeatherId id, {
+  int? remainingTurns = 5,
+}) {
   return PsdkBattleFieldState(
-    weather: PsdkBattleWeatherState(id: id, remainingTurns: 5),
+    weather: PsdkBattleWeatherState(id: id, remainingTurns: remainingTurns),
   );
 }
 
@@ -417,6 +509,16 @@ List<PsdkBattleDamageEvent> _damageEvents(
 }) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleMoveFailedEvent> _failedEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.events
+      .whereType<PsdkBattleMoveFailedEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);
 }

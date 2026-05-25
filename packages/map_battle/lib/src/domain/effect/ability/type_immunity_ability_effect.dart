@@ -15,6 +15,7 @@ enum TypeImmunityReward {
   attack,
   specialAttack,
   speed,
+  defenseSharp,
   flashFire,
 }
 
@@ -25,11 +26,13 @@ final class TypeImmunityAbilityEffect extends BattleAbilityEffect {
     required this.blockedType,
     this.reward = TypeImmunityReward.none,
     this.excludedMoveIds = const <String>{},
+    this.preventsBeforeDamage = true,
   }) : super(abilityId: abilityId, scope: scope);
 
   final String blockedType;
   final TypeImmunityReward reward;
   final Set<String> excludedMoveIds;
+  final bool preventsBeforeDamage;
 
   @override
   BattleEffect copyWithRemainingTurns(int remainingTurns) {
@@ -39,6 +42,7 @@ final class TypeImmunityAbilityEffect extends BattleAbilityEffect {
       blockedType: blockedType,
       reward: reward,
       excludedMoveIds: excludedMoveIds,
+      preventsBeforeDamage: preventsBeforeDamage,
     );
   }
 
@@ -46,7 +50,8 @@ final class TypeImmunityAbilityEffect extends BattleAbilityEffect {
   BattleMoveFailureReason? onMovePreventionTarget(
     BattleEffectMoveContext context,
   ) {
-    if (!_isOwner(context.target) ||
+    if (!preventsBeforeDamage ||
+        !_isOwner(context.target) ||
         context.user == context.target ||
         !_blocks(context.move)) {
       return null;
@@ -98,6 +103,8 @@ final class TypeImmunityAbilityEffect extends BattleAbilityEffect {
       TypeImmunityReward.attack => _raiseStat(context, 'attack'),
       TypeImmunityReward.specialAttack => _raiseStat(context, 'special_attack'),
       TypeImmunityReward.speed => _raiseStat(context, 'speed'),
+      TypeImmunityReward.defenseSharp =>
+        _raiseStat(context, 'defense', stages: 2),
       TypeImmunityReward.flashFire || TypeImmunityReward.none => _RewardResult(
           state: context.state,
           events: const <PsdkBattleEvent>[],
@@ -143,12 +150,13 @@ final class TypeImmunityAbilityEffect extends BattleAbilityEffect {
 
   _RewardResult _raiseStat(
     BattleEffectDamagePreventionContext context,
-    String stat,
-  ) {
+    String stat, {
+    int stages = 1,
+  }) {
     final battler = context.state.battlerAt(context.target);
-    final stages = battler.statStages.apply(stat: stat, stages: 1);
+    final nextStages = battler.statStages.apply(stat: stat, stages: stages);
     final previousStage = battler.statStages.valueOf(stat);
-    final currentStage = stages.valueOf(stat);
+    final currentStage = nextStages.valueOf(stat);
     if (currentStage == previousStage) {
       return _RewardResult(
         state: context.state,
@@ -156,19 +164,20 @@ final class TypeImmunityAbilityEffect extends BattleAbilityEffect {
       );
     }
 
-    final nextBattler = battler.copyWith(statStages: stages).recordStatChange(
-          turn: context.turn,
-          stat: stat,
-          delta: 1,
-          currentStage: currentStage,
-        );
+    final nextBattler =
+        battler.copyWith(statStages: nextStages).recordStatChange(
+              turn: context.turn,
+              stat: stat,
+              delta: stages,
+              currentStage: currentStage,
+            );
     return _RewardResult(
       state: context.state.replaceBattler(context.target, nextBattler),
       events: <PsdkBattleEvent>[
         PsdkBattleStatStageEvent(
           target: context.target,
           stat: stat,
-          amount: 1,
+          amount: stages,
           currentStage: currentStage,
         ),
       ],

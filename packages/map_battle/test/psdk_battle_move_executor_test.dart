@@ -38,6 +38,27 @@ void main() {
       );
     });
 
+    test('dispatches post-action held item effects after successful moves', () {
+      final result = const PsdkBattleMoveExecutor().execute(
+        _request(
+          moveId: 'hyper_voice',
+          dbSymbol: 'hyper_voice',
+          battleEngineMethod: 's_basic',
+          power: 40,
+          playerHeldItemId: 'throat_spray',
+          sound: true,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final itemEvents =
+          result.events.whereType<PsdkBattleItemEvent>().toList();
+
+      expect(player.statStages.valueOf('specialAttack'), 1);
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'throat_spray');
+      expect(itemEvents.single.itemId, 'throat_spray');
+    });
+
     test('fails explicitly for an unknown battleEngineMethod', () {
       expect(
         () => const PsdkBattleMoveExecutor().execute(
@@ -65,9 +86,13 @@ PsdkBattleMoveRequest _request({
   required String dbSymbol,
   required String battleEngineMethod,
   required int power,
+  String? playerHeldItemId,
+  bool sound = false,
 }) {
   return PsdkBattleMoveRequest(
-    state: PsdkBattleState.fromSetup(_setup()),
+    state: PsdkBattleState.fromSetup(
+      _setup(playerHeldItemId: playerHeldItemId),
+    ),
     rng: BattleRngStreams.fromSeeds(
       moveDamageSeed: 1,
       moveCriticalSeed: 2,
@@ -84,13 +109,14 @@ PsdkBattleMoveRequest _request({
       dbSymbol: dbSymbol,
       battleEngineMethod: battleEngineMethod,
       power: power,
+      sound: sound,
     ),
   );
 }
 
-PsdkBattleSetup _setup() {
+PsdkBattleSetup _setup({String? playerHeldItemId}) {
   return PsdkBattleSetup.singles(
-    player: _combatant(id: 'player'),
+    player: _combatant(id: 'player', heldItemId: playerHeldItemId),
     opponent: _combatant(id: 'opponent'),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
@@ -101,7 +127,10 @@ PsdkBattleSetup _setup() {
   );
 }
 
-PsdkBattleCombatantSetup _combatant({required String id}) {
+PsdkBattleCombatantSetup _combatant({
+  required String id,
+  String? heldItemId,
+}) {
   return PsdkBattleCombatantSetup(
     id: id,
     speciesId: id,
@@ -117,6 +146,7 @@ PsdkBattleCombatantSetup _combatant({required String id}) {
       specialDefense: 50,
       speed: 50,
     ),
+    heldItemId: heldItemId,
     moves: <PsdkBattleMoveData>[
       _move(
         id: '${id}_move',
@@ -133,6 +163,7 @@ PsdkBattleMoveData _move({
   required String dbSymbol,
   required String battleEngineMethod,
   required int power,
+  bool sound = false,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -146,5 +177,6 @@ PsdkBattleMoveData _move({
     priority: 0,
     battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
+    sound: sound,
   );
 }

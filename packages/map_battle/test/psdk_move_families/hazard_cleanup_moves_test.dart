@@ -182,6 +182,59 @@ void main() {
       expect(rainResult.state.field.weather?.id, PsdkBattleWeatherId.rain);
     });
 
+    test('s_court_change swaps swappable bank effects between both sides', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMove: _move(
+            id: 'court_change',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_court_change',
+          ),
+          playerEffects: const PsdkBattleEffectStack.empty()
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'spikes',
+                  scope: BankBattleEffectScope(0),
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'reflect',
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                  remainingTurns: 4,
+                ),
+              ),
+          opponentEffects: const PsdkBattleEffectStack.empty()
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'sticky_web',
+                  scope: BankBattleEffectScope(1),
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'safeguard',
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                  remainingTurns: 3,
+                ),
+              ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_hasBankEffect(result.state, 'spikes', bank: 0), isFalse);
+      expect(_hasBankEffect(result.state, 'reflect', bank: 0), isFalse);
+      expect(_hasBankEffect(result.state, 'sticky_web', bank: 1), isFalse);
+      expect(_hasBankEffect(result.state, 'safeguard', bank: 1), isFalse);
+
+      expect(_hasBankEffect(result.state, 'spikes', bank: 1), isTrue);
+      expect(_hasBankEffect(result.state, 'reflect', bank: 1), isTrue);
+      expect(_hasBankEffect(result.state, 'sticky_web', bank: 0), isTrue);
+      expect(_hasBankEffect(result.state, 'safeguard', bank: 0), isTrue);
+    });
+
     test('s_tidy_up clears all hazards, rapid-spin effects, and substitutes',
         () {
       final engine = PsdkBattleEngine(
@@ -847,12 +900,19 @@ bool _hasBankEffect(
   required int bank,
 }) {
   return state.combatants.values.any(
-    (combatant) => combatant.effects.effects.any(
-      (effect) =>
-          effect.id == effectId &&
-          effect.scope is BankBattleEffectScope &&
-          (effect.scope as BankBattleEffectScope).bank == bank,
-    ),
+    (combatant) => combatant.effects.effects.any((effect) {
+      if (effect.id != effectId) {
+        return false;
+      }
+      final scope = effect.scope;
+      if (scope is BankBattleEffectScope) {
+        return scope.bank == bank;
+      }
+      if (scope is BattlerBattleEffectScope) {
+        return scope.slot.bank == bank;
+      }
+      return false;
+    }),
   );
 }
 
@@ -871,12 +931,19 @@ List<BattleEffect> _bankEffects(
 }) {
   return state.combatants.values
       .expand((combatant) => combatant.effects.effects)
-      .where(
-        (effect) =>
-            effect.id == effectId &&
-            effect.scope is BankBattleEffectScope &&
-            (effect.scope as BankBattleEffectScope).bank == bank,
-      )
+      .where((effect) {
+        if (effect.id != effectId) {
+          return false;
+        }
+        final scope = effect.scope;
+        if (scope is BankBattleEffectScope) {
+          return scope.bank == bank;
+        }
+        if (scope is BattlerBattleEffectScope) {
+          return scope.slot.bank == bank;
+        }
+        return false;
+      })
       .toList(growable: false);
 }
 

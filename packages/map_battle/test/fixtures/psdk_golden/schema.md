@@ -22,6 +22,9 @@ Required top-level fields:
 `initialBattle` contains:
 
 - `rngSeeds`: `moveDamage`, `moveCritical`, `moveAccuracy`, and `generic`.
+- optional `field`: active `weather` and/or `terrain`, each with `id` and
+  `remainingTurns`.
+  `id` values use Dart enum names such as `rain` or `electricTerrain`.
 - `player`: a combatant object.
 - `opponent`: a combatant object.
 
@@ -41,7 +44,7 @@ Move objects contain:
 - `priority`, optional `criticalRate`, optional `effectChance`.
 - `battleEngineMethod`: Pokemon SDK method symbol such as `s_basic`.
 - `target`: a `PsdkBattleMoveTarget` enum name such as `adjacentFoe`.
-- Optional booleans: `protectable`, `sound`.
+- Optional booleans: `contact`, `protectable`, `sound`.
 
 Actions currently support:
 

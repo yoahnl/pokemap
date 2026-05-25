@@ -84,6 +84,18 @@ sealed class BattleTimelineEvent {
         remainingHp: event.remainingHp,
       );
     }
+    if (event is PsdkBattleReviveEvent) {
+      return BattleReviveTimelineEvent(
+        user: _fromPsdkSlot(event.user),
+        bank: event.bank,
+        partyIndex: event.partyIndex,
+        moveId: event.moveId,
+        amount: event.amount,
+        remainingHp: event.remainingHp,
+        speciesId: event.speciesId,
+        displayName: event.displayName,
+      );
+    }
     if (event is PsdkBattleStatusEvent) {
       return BattleStatusChangeTimelineEvent(
         user: _fromPsdkSlot(event.user),
@@ -685,6 +697,58 @@ final class BattleHealTimelineEvent extends BattleTimelineEvent {
       moveId: moveId,
       amount: amount,
       remainingHp: remainingHp,
+    );
+  }
+}
+
+final class BattleReviveTimelineEvent extends BattleTimelineEvent {
+  const BattleReviveTimelineEvent({
+    int? turn,
+    required this.user,
+    required this.bank,
+    required this.partyIndex,
+    required this.moveId,
+    required this.amount,
+    required this.remainingHp,
+    required this.speciesId,
+    required this.displayName,
+  }) : super(kind: 'revive', turn: turn);
+
+  final BattlePositionRef user;
+  final int bank;
+  final int partyIndex;
+  final String moveId;
+  final int amount;
+  final int remainingHp;
+  final String speciesId;
+  final String displayName;
+
+  @override
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      ...baseJson(),
+      'user': _slotJson(user),
+      'bank': bank,
+      'partyIndex': partyIndex,
+      'moveId': moveId,
+      'amount': amount,
+      'remainingHp': remainingHp,
+      'speciesId': speciesId,
+      'displayName': displayName,
+    };
+  }
+
+  @override
+  PsdkBattleEvent toPsdkEvent() {
+    return PsdkBattleReviveEvent(
+      user: _toPsdkSlot(user),
+      bank: bank,
+      partyIndex: partyIndex,
+      moveId: moveId,
+      amount: amount,
+      remainingHp: remainingHp,
+      speciesId: speciesId,
+      displayName: displayName,
     );
   }
 }

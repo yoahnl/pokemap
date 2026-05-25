@@ -9,44 +9,64 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 267 |
-| Studio attacks `partiel` | 461 |
+| Studio attacks `fait` | 728 |
+| Studio attacks `partiel` | 0 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
+
+### Partial Attacks by Method
+
+| Battle method | Partial attacks |
+| --- | ---: |
 
 ## Method Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 65 |
-| `partial` | 265 |
+| `ported` | 330 |
+| `partial` | 0 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
+
+### Partial Methods by Dependency
+
+| Dependency | Partial methods |
+| --- | ---: |
 
 ## Effect Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 0 |
-| `partial` | 25 |
-| `missing` | 457 |
+| `ported` | 482 |
+| `partial` | 0 |
+| `missing` | 0 |
 | Total effect classes | 482 |
 
 ### Effects by Family
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 0 | 3 | 251 |
-| field | 0 | 0 | 15 |
-| item | 0 | 0 | 87 |
-| mechanics | 0 | 0 | 4 |
-| move | 0 | 22 | 93 |
-| status | 0 | 0 | 7 |
+| ability | 254 | 0 | 0 |
+| field | 15 | 0 | 0 |
+| item | 87 | 0 | 0 |
+| mechanics | 4 | 0 | 0 |
+| move | 115 | 0 | 0 |
+| status | 7 | 0 | 0 |
+
+### Missing Effects by Family
+
+| Family | Missing effects |
+| --- | ---: |
 
 ## Runtime Bridge
 
 | Metric | Value |
 | --- | --- |
-| Status | `not_measured` |
-| Reason | Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04. |
+| Status | `explained` |
+| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
+| Total moves | 28 |
+| Bridgeable moves | 20 |
+| Rejected moves | 8 |
+| Explained rejected moves | 8 |
+| Unexplained rejected moves | 0 |

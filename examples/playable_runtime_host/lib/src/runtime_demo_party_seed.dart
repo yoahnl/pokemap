@@ -15,6 +15,7 @@ const _runtimeDemoSeedBagEntries = <BagEntry>[
   BagEntry(itemId: 'hyper-potion', categoryId: 'medicine', quantity: 6),
 ];
 const _preferredRuntimeDemoSpeciesIds = <String>[
+  'ditto',
   'squirtle',
   'carapuce',
   'mew',

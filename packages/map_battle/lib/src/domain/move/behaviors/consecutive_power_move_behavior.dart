@@ -1,5 +1,10 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/battle_effect_scope.dart';
+import '../../effect/move/echoed_voice_effect.dart';
+import '../../effect/move/rollout_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_data.dart';
@@ -17,8 +22,8 @@ enum _ConsecutivePowerKind {
 
 /// Ports local power formulas that depend on repeated use or remaining PP.
 ///
-/// This slice intentionally reads the existing clean move history instead of
-/// introducing full PSDK force-next-move effects for Rollout/Ice Ball.
+/// Rollout and Ice Ball also keep the PSDK force-next-move counter so misses
+/// interrupt the lock and successful hits advance the power stage.
 final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
   const ConsecutivePowerMoveBehavior.echoedVoice()
       : battleEngineMethod = 's_echo',
@@ -48,6 +53,10 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
   final String battleEngineMethod;
   final _ConsecutivePowerKind _kind;
 
+  bool get _isRolloutFamily =>
+      _kind == _ConsecutivePowerKind.rollout ||
+      _kind == _ConsecutivePowerKind.iceBall;
+
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
     final accuracyBypass = _trumpCardBypassesAccuracy(context);
@@ -65,16 +74,35 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       ),
       forceAccuracyBypass: accuracyBypass,
     );
+    final declaredState = _kind == _ConsecutivePowerKind.echoedVoice
+        ? _increaseEchoedVoiceEffect(
+            state: prepared.state,
+            user: context.user,
+          )
+        : prepared.state;
     if (!prepared.shouldExecuteBehavior) {
-      return prepared.toResolution();
+      if (_isRolloutFamily) {
+        return BattleMoveBehaviorResolution(
+          state: _clearRolloutEffect(prepared.state, context.user),
+          rng: prepared.rng,
+          events: prepared.events,
+          successful: false,
+        );
+      }
+      return BattleMoveBehaviorResolution(
+        state: declaredState,
+        rng: prepared.rng,
+        events: prepared.events,
+        successful: false,
+      );
     }
 
     final targetSlot = prepared.psdkTargets.single;
-    final user = prepared.state.battlerAt(context.user);
-    final target = prepared.state.battlerAt(targetSlot);
+    final user = declaredState.battlerAt(context.user);
+    final target = declaredState.battlerAt(targetSlot);
     final move = _effectiveMove(
       BattleMoveBehaviorContext(
-        state: prepared.state,
+        state: declaredState,
         rng: prepared.rng,
         turn: context.turn,
         user: context.user,
@@ -91,25 +119,32 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: move,
         rng: prepared.rng,
-        field: prepared.state.field,
+        field: declaredState.field,
+        state: declaredState,
+        userSlot: context.user,
+        targetSlot: targetSlot,
       ),
     );
     if (damageResult.damage <= 0) {
       return BattleMoveBehaviorResolution(
-        state: prepared.state,
+        state: _isRolloutFamily
+            ? _clearRolloutEffect(declaredState, context.user)
+            : declaredState,
         rng: damageResult.rng,
         events: prepared.events,
+        successful: !_isRolloutFamily,
       );
     }
 
-    final applied = applyDirectDamage(
-      state: prepared.state,
+    final applied = applyMoveTargetDamage(
+      state: declaredState,
       user: context.user,
       target: targetSlot,
       moveId: context.move.id,
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: move,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -119,13 +154,20 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       move: move,
       turn: context.turn,
     );
+    final resolvedState = _isRolloutFamily
+        ? _advanceRolloutEffect(
+            state: secondary.state,
+            user: context.user,
+            moveId: context.move.id,
+          )
+        : secondary.state;
 
     return BattleMoveBehaviorResolution(
-      state: secondary.state,
+      state: resolvedState,
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
       ],
     );
@@ -135,13 +177,13 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
     final user = context.state.battlerAt(context.user);
     final power = switch (_kind) {
       _ConsecutivePowerKind.echoedVoice =>
-        (context.move.power + 40 * _sameMoveStreak(user, context.move.id))
+        (context.move.power + 40 * _echoedVoiceSuccessiveTurns(context.state))
             .clamp(0, 200)
             .toInt(),
-      _ConsecutivePowerKind.furyCutter =>
-        (context.move.power * (1 << _sameMoveStreak(user, context.move.id)))
-            .clamp(0, 160)
-            .toInt(),
+      _ConsecutivePowerKind.furyCutter => (context.move.power *
+              (1 << _sameSuccessfulAttemptStreak(user, context.move.id)))
+          .clamp(0, 160)
+          .toInt(),
       _ConsecutivePowerKind.round => _allyUsedRoundThisTurn(context)
           ? context.move.power * 2
           : context.move.power,
@@ -149,7 +191,7 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       _ConsecutivePowerKind.iceBall =>
         context.move.power *
             (1 <<
-                (_sameMoveStreak(user, context.move.id) +
+                (_rolloutSuccessiveUses(user, context.move.id) +
                     (_hasDefenseCurlSuccess(user) ? 1 : 0))),
       _ConsecutivePowerKind.trumpCard => _trumpCardPower(context.move),
     };
@@ -190,9 +232,146 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
     return streak;
   }
 
+  int _sameSuccessfulAttemptStreak(PsdkBattleCombatant user, String moveId) {
+    var streak = 0;
+    final attempts = user.moveHistory.attempts;
+    final successes = user.moveHistory.successes;
+    for (var index = attempts.length - 1; index >= 0; index--) {
+      final attempt = attempts[index];
+      if (attempt.moveId != moveId ||
+          !_hasMatchingSuccess(successes: successes, attempt: attempt)) {
+        break;
+      }
+      streak++;
+    }
+    return streak;
+  }
+
+  bool _hasMatchingSuccess({
+    required List<PsdkBattleMoveHistoryEntry> successes,
+    required PsdkBattleMoveHistoryEntry attempt,
+  }) {
+    return successes.any(
+      (success) =>
+          success.moveId == attempt.moveId &&
+          success.turn == attempt.turn &&
+          success.attackOrder == attempt.attackOrder,
+    );
+  }
+
   bool _hasDefenseCurlSuccess(PsdkBattleCombatant user) {
     return user.moveHistory.successes.any(
       (entry) => entry.moveId == 'defense_curl',
+    );
+  }
+
+  int _echoedVoiceSuccessiveTurns(PsdkBattleState state) {
+    return _currentEchoedVoiceEffect(state)?.effect.successiveTurns ?? 0;
+  }
+
+  ({PsdkBattleSlotRef owner, EchoedVoiceEffect effect})?
+      _currentEchoedVoiceEffect(PsdkBattleState state) {
+    for (final entry in state.combatants.entries) {
+      for (final effect in entry.value.effects.effects) {
+        if (effect is EchoedVoiceEffect &&
+            effect.scope is FieldBattleEffectScope) {
+          return (owner: entry.key, effect: effect);
+        }
+      }
+    }
+    return null;
+  }
+
+  PsdkBattleState _increaseEchoedVoiceEffect({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+  }) {
+    final current = _currentEchoedVoiceEffect(state);
+    if (current != null) {
+      return state.updateBattler(
+        current.owner,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(current.effect.increase()),
+        ),
+      );
+    }
+
+    return state.updateBattler(
+      user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          const EchoedVoiceEffect(
+            scope: FieldBattleEffectScope(),
+            hasIncreased: true,
+          ),
+        ),
+      ),
+    );
+  }
+
+  int _rolloutSuccessiveUses(PsdkBattleCombatant user, String moveId) {
+    final effect = _currentRolloutEffect(user, moveId);
+    return effect?.successiveUses ?? _sameMoveStreak(user, moveId);
+  }
+
+  RolloutEffect? _currentRolloutEffect(
+    PsdkBattleCombatant user,
+    String moveId,
+  ) {
+    for (final effect in user.effects.effects) {
+      if (effect is RolloutEffect && _sameMove(effect.forcedMoveId, moveId)) {
+        return effect;
+      }
+    }
+    return null;
+  }
+
+  PsdkBattleState _advanceRolloutEffect({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required String moveId,
+  }) {
+    final battler = state.battlerAt(user);
+    final current = _currentRolloutEffect(battler, moveId);
+    if (current == null) {
+      return state.updateBattler(
+        user,
+        (currentBattler) => currentBattler.copyWith(
+          effects: currentBattler.effects.addEffect(
+            RolloutEffect(
+              scope: BattlerBattleEffectScope(user),
+              forcedMoveId: moveId,
+              remainingTurns: 4,
+              successiveUses: 1,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final advanced = current.afterSuccessfulUse();
+    if (advanced.remainingTurnsAfterCurrent <= 0) {
+      return _clearRolloutEffect(state, user);
+    }
+    return state.updateBattler(
+      user,
+      (currentBattler) => currentBattler.copyWith(
+        effects: currentBattler.effects.addEffect(advanced),
+      ),
+    );
+  }
+
+  PsdkBattleState _clearRolloutEffect(
+    PsdkBattleState state,
+    PsdkBattleSlotRef user,
+  ) {
+    final battler = state.battlerAt(user);
+    if (!battler.effects.contains('rollout')) {
+      return state;
+    }
+    return state.updateBattler(
+      user,
+      (current) => current.copyWith(effects: current.effects.remove('rollout')),
     );
   }
 
@@ -205,6 +384,14 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       _ => 40,
     };
   }
+}
+
+bool _sameMove(String left, String right) {
+  return _normalizedId(left) == _normalizedId(right);
+}
+
+String _normalizedId(String? id) {
+  return id?.trim().toLowerCase().replaceAll('-', '_') ?? '';
 }
 
 BattleMoveDefinition _copyMove(

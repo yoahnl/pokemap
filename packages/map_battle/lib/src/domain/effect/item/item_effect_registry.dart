@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../data/generated/psdk_item_effect_manifest.dart';
@@ -7,14 +8,29 @@ import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
 import 'berry_item_effect.dart';
 import 'black_sludge_effect.dart';
+import 'flee_passthrough_item_effect.dart';
+import 'flinch_item_effect.dart';
+import 'focus_item_effect.dart';
 import 'held_item_modifier_effect.dart';
 import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
+import 'mental_herb_effect.dart';
 import 'move_modifier_item_effect.dart';
+import 'power_herb_effect.dart';
+import 'primal_orb_effect.dart';
+import 'reactive_held_item_effect.dart';
+import 'repeat_move_item_effect.dart';
+import 'safety_goggles_effect.dart';
 import 'shed_shell_effect.dart';
+import 'special_berry_item_effect.dart';
+import 'status_orb_item_effect.dart';
+import 'switch_forcing_item_effect.dart';
+import 'switch_trigger_item_effect.dart';
 import 'terrain_extender_effect.dart';
+import 'terrain_seed_item_effect.dart';
 import 'weather_rock_effect.dart';
+import 'white_herb_effect.dart';
 
 typedef ItemEffectFactory = BattleEffect Function({
   required BattleEffectScope scope,
@@ -29,14 +45,73 @@ final class ItemEffectRegistry {
       <String, ItemEffectFactory>{
     'air_balloon': ({required scope}) => AirBalloonEffect(scope: scope),
     'black_sludge': ({required scope}) => BlackSludgeEffect(scope: scope),
+    'blue_orb': ({required scope}) => PrimalOrbEffect.blueOrb(scope: scope),
     'big_root': ({required scope}) => BigRootEffect(scope: scope),
     'binding_band': ({required scope}) => BindingBandEffect(scope: scope),
     'grip_claw': ({required scope}) => GripClawEffect(scope: scope),
     'iron_ball': ({required scope}) => IronBallEffect(scope: scope),
     'leftovers': ({required scope}) => LeftoversEffect(scope: scope),
     'loaded_dice': ({required scope}) => LoadedDiceEffect(scope: scope),
+    'rocky_helmet': ({required scope}) => RockyHelmetEffect(scope: scope),
+    'safety_goggles': ({required scope}) => SafetyGogglesEffect(scope: scope),
+    'shell_bell': ({required scope}) => ShellBellEffect(scope: scope),
     'shed_shell': ({required scope}) => ShedShellEffect(scope: scope),
+    'smoke_ball': ({required scope}) => SmokeBallEffect(scope: scope),
+    'sticky_barb': ({required scope}) => StickyBarbEffect(scope: scope),
+    'throat_spray': ({required scope}) => ThroatSprayEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
+          scope: scope,
+        ),
+    'electric_seed': ({required scope}) => TerrainSeedItemEffect.defense(
+          itemId: 'electric_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.electricTerrain,
+        ),
+    'eject_button': ({required scope}) => EjectButtonEffect(scope: scope),
+    'grassy_seed': ({required scope}) => TerrainSeedItemEffect.defense(
+          itemId: 'grassy_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.grassyTerrain,
+        ),
+    'misty_seed': ({required scope}) => TerrainSeedItemEffect.specialDefense(
+          itemId: 'misty_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.mistyTerrain,
+        ),
+    'psychic_seed': ({required scope}) => TerrainSeedItemEffect.specialDefense(
+          itemId: 'psychic_seed',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.psychicTerrain,
+        ),
+    'absorb_bulb': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'absorb_bulb',
+          scope: scope,
+          triggerType: 'water',
+          stat: 'specialAttack',
+        ),
+    'cell_battery': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'cell_battery',
+          scope: scope,
+          triggerType: 'electric',
+          stat: 'attack',
+        ),
+    'luminous_moss': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'luminous_moss',
+          scope: scope,
+          triggerType: 'water',
+          stat: 'specialDefense',
+        ),
+    'mental_herb': ({required scope}) => MentalHerbEffect(scope: scope),
+    'mirror_herb': ({required scope}) => MirrorHerbEffect(scope: scope),
+    'red_card': ({required scope}) => RedCardEffect(scope: scope),
+    'red_orb': ({required scope}) => PrimalOrbEffect.redOrb(scope: scope),
+    'snowball': ({required scope}) => TypeReactiveStatItemEffect(
+          itemId: 'snowball',
+          scope: scope,
+          triggerType: 'ice',
+          stat: 'attack',
+        ),
+    'weakness_policy': ({required scope}) => WeaknessPolicyEffect(
           scope: scope,
         ),
     'damp_rock': ({required scope}) => WeatherRockEffect(
@@ -71,6 +146,23 @@ final class ItemEffectRegistry {
     };
   }
 
+  Set<String> get portedItemIds =>
+      _itemIdsWithStatus(PsdkItemPortStatus.ported);
+
+  Set<String> get partialItemIds =>
+      _itemIdsWithStatus(PsdkItemPortStatus.partial);
+
+  Set<String> get missingItemIds =>
+      _itemIdsWithStatus(PsdkItemPortStatus.missing);
+
+  PsdkItemPortStatus statusOf(String? itemId) {
+    final normalized = _normalizeItemId(itemId);
+    if (normalized == null) {
+      return PsdkItemPortStatus.missing;
+    }
+    return _manifestByItemId[normalized]?.status ?? PsdkItemPortStatus.missing;
+  }
+
   BattleEffect? create(String? itemId, {required PsdkBattleSlotRef owner}) {
     final normalized = _normalizeItemId(itemId);
     if (normalized == null) {
@@ -96,7 +188,19 @@ final class ItemEffectRegistry {
     final effect = create(itemId, owner: owner);
     return effect == null ? base : base.addEffect(effect);
   }
+
+  Set<String> _itemIdsWithStatus(PsdkItemPortStatus status) {
+    return <String>{
+      for (final entry in psdkItemEffectManifest)
+        if (entry.status == status) entry.itemId,
+    };
+  }
 }
+
+final Map<String, PsdkItemEffectManifestEntry> _manifestByItemId =
+    <String, PsdkItemEffectManifestEntry>{
+  for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+};
 
 String? _normalizeItemId(String? itemId) {
   if (itemId == null) {
@@ -126,15 +230,15 @@ final Map<String, ItemEffectFactory> _berryFactories =
         scope: scope,
         healAmount: (battler) => battler.abilityId == 'ripen' ? 40 : 20,
       ),
-  for (final itemId in const <String>[
-    'figy_berry',
-    'wiki_berry',
-    'mago_berry',
-    'aguav_berry',
-    'iapapa_berry',
-  ])
-    itemId: ({required scope}) => BerryItemEffect.hpHeal(
-          itemId: itemId,
+  for (final entry in const <String, String>{
+    'figy_berry': 'spicy',
+    'wiki_berry': 'dry',
+    'mago_berry': 'sweet',
+    'aguav_berry': 'bitter',
+    'iapapa_berry': 'sour',
+  }.entries)
+    entry.key: ({required scope}) => BerryItemEffect.hpHeal(
+          itemId: entry.key,
           scope: scope,
           hpThreshold: (battler) =>
               battler.abilityId == 'gluttony' ? 0.5 : 0.25,
@@ -143,6 +247,7 @@ final Map<String, ItemEffectFactory> _berryFactories =
                   .clamp(1, battler.maxHp)
                   .toInt(),
           mayConfuseFromNature: true,
+          confusingFlavor: entry.value,
         ),
   'aspear_berry': ({required scope}) => BerryItemEffect.statusCure(
         itemId: 'aspear_berry',
@@ -177,6 +282,7 @@ final Map<String, ItemEffectFactory> _berryFactories =
   'lum_berry': ({required scope}) => BerryItemEffect.statusCure(
         itemId: 'lum_berry',
         scope: scope,
+        curesConfusion: true,
         statuses: const <PsdkBattleMajorStatus>{
           PsdkBattleMajorStatus.paralysis,
           PsdkBattleMajorStatus.burn,
@@ -185,6 +291,12 @@ final Map<String, ItemEffectFactory> _berryFactories =
           PsdkBattleMajorStatus.sleep,
           PsdkBattleMajorStatus.freeze,
         },
+      ),
+  'persim_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'persim_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{},
+        curesConfusion: true,
       ),
   'liechi_berry': ({required scope}) => BerryItemEffect.statPinch(
         itemId: 'liechi_berry',
@@ -215,6 +327,38 @@ final Map<String, ItemEffectFactory> _berryFactories =
         itemId: 'starf_berry',
         scope: scope,
         stat: 'random',
+      ),
+  for (final entry in _typeResistingBerryTypes.entries)
+    entry.key: ({required scope}) => TypeResistingBerryEffect(
+          itemId: entry.key,
+          scope: scope,
+          resistedType: entry.value,
+        ),
+  'enigma_berry': ({required scope}) => EnigmaBerryEffect(scope: scope),
+  'lansat_berry': ({required scope}) => LansatBerryEffect(scope: scope),
+  'leppa_berry': ({required scope}) => LeppaBerryEffect(scope: scope),
+  'micle_berry': ({required scope}) => MicleBerryEffect(scope: scope),
+  'jaboca_berry': ({required scope}) => RetaliateBerryEffect(
+        itemId: 'jaboca_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.physical,
+      ),
+  'rowap_berry': ({required scope}) => RetaliateBerryEffect(
+        itemId: 'rowap_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.special,
+      ),
+  'kee_berry': ({required scope}) => HitStatBerryEffect(
+        itemId: 'kee_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.physical,
+        stat: 'defense',
+      ),
+  'maranga_berry': ({required scope}) => HitStatBerryEffect(
+        itemId: 'maranga_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.special,
+        stat: 'specialDefense',
       ),
 };
 
@@ -254,6 +398,28 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
         damageCondition: (context) => context.typeEffectivenessMultiplier > 1,
       ),
   'life_orb': ({required scope}) => LifeOrbEffect(scope: scope),
+  'focus_sash': ({required scope}) => FocusSashEffect(scope: scope),
+  'focus_band': ({required scope}) => FocusBandEffect(scope: scope),
+  'king_s_rock': ({required scope}) => FlinchItemEffect(
+        itemId: 'king_s_rock',
+        scope: scope,
+      ),
+  'razor_fang': ({required scope}) => FlinchItemEffect(
+        itemId: 'razor_fang',
+        scope: scope,
+      ),
+  'flame_orb': ({required scope}) => StatusOrbItemEffect(
+        itemId: 'flame_orb',
+        scope: scope,
+        status: PsdkBattleMajorStatus.burn,
+      ),
+  'toxic_orb': ({required scope}) => StatusOrbItemEffect(
+        itemId: 'toxic_orb',
+        scope: scope,
+        status: PsdkBattleMajorStatus.toxic,
+      ),
+  'white_herb': ({required scope}) => WhiteHerbEffect(scope: scope),
+  'power_herb': ({required scope}) => PowerHerbEffect(scope: scope),
   for (final entry in _gemTypes.entries)
     entry.key: ({required scope}) => GemItemEffect(
           itemId: entry.key,
@@ -275,10 +441,90 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
         scope: scope,
         statMultipliers: <String, double>{'speed': 1.5},
       ),
-  'assault_vest': ({required scope}) => HeldItemModifierEffect(
-        itemId: 'assault_vest',
+  'assault_vest': ({required scope}) => AssaultVestEffect(scope: scope),
+  'berserk_gene': ({required scope}) => BerserkGeneEffect(scope: scope),
+  'metronome': ({required scope}) => MetronomeHeldItemEffect(scope: scope),
+  'adamant_orb': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'adamant_orb',
         scope: scope,
-        statMultipliers: <String, double>{'specialDefense': 1.5},
+        basePowerMultiplier: 1.2,
+        damageCondition: (context) =>
+            context.user.speciesId == 'dialga' &&
+            (context.moveType == 'dragon' || context.moveType == 'steel'),
+      ),
+  'lustrous_orb': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'lustrous_orb',
+        scope: scope,
+        basePowerMultiplier: 1.2,
+        damageCondition: (context) =>
+            context.user.speciesId == 'palkia' &&
+            (context.moveType == 'dragon' || context.moveType == 'water'),
+      ),
+  'griseous_orb': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'griseous_orb',
+        scope: scope,
+        basePowerMultiplier: 1.2,
+        damageCondition: (context) =>
+            context.user.speciesId == 'giratina' &&
+            (context.moveType == 'dragon' || context.moveType == 'ghost'),
+      ),
+  'soul_dew': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'soul_dew',
+        scope: scope,
+        basePowerMultiplier: 1.2,
+        damageCondition: (context) =>
+            (context.user.speciesId == 'latias' ||
+                context.user.speciesId == 'latios') &&
+            (context.moveType == 'dragon' || context.moveType == 'psychic'),
+      ),
+  'eviolite': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'eviolite',
+        scope: scope,
+        statMultipliers: const <String, double>{
+          'defense': 1.5,
+          'specialDefense': 1.5,
+        },
+        statCondition: (battler) =>
+            _evioliteEligibleSpecies.contains(battler.speciesId),
+      ),
+  'wide_lens': ({required scope}) => AccuracyModifierItemEffect(
+        itemId: 'wide_lens',
+        scope: scope,
+        multiplier: 1.1,
+        appliesToTarget: false,
+      ),
+  'lax_incense': ({required scope}) => AccuracyModifierItemEffect(
+        itemId: 'lax_incense',
+        scope: scope,
+        multiplier: 0.9,
+        appliesToTarget: true,
+      ),
+  'bright_powder': ({required scope}) => AccuracyModifierItemEffect(
+        itemId: 'bright_powder',
+        scope: scope,
+        multiplier: 0.9,
+        appliesToTarget: true,
+      ),
+  'zoom_lens': ({required scope}) => ZoomLensEffect(scope: scope),
+  'douse_drive': ({required scope}) => DriveItemEffect(
+        itemId: 'douse_drive',
+        scope: scope,
+        moveType: 'water',
+      ),
+  'shock_drive': ({required scope}) => DriveItemEffect(
+        itemId: 'shock_drive',
+        scope: scope,
+        moveType: 'electric',
+      ),
+  'burn_drive': ({required scope}) => DriveItemEffect(
+        itemId: 'burn_drive',
+        scope: scope,
+        moveType: 'fire',
+      ),
+  'chill_drive': ({required scope}) => DriveItemEffect(
+        itemId: 'chill_drive',
+        scope: scope,
+        moveType: 'ice',
       ),
   'deep_sea_tooth': ({required scope}) => HeldItemModifierEffect(
         itemId: 'deep_sea_tooth',
@@ -353,6 +599,7 @@ const _typeBoostingItems = <String, String>{
   'sharp_beak': 'flying',
   'soft_sand': 'ground',
   'twisted_spoon': 'psychic',
+  'poison_barb': 'poison',
   'silver_powder': 'bug',
   'hard_stone': 'rock',
   'spell_tag': 'ghost',
@@ -397,4 +644,320 @@ const _gemTypes = <String, String>{
   'dark_gem': 'dark',
   'steel_gem': 'steel',
   'fairy_gem': 'fairy',
+};
+
+const _typeResistingBerryTypes = <String, String>{
+  'occa_berry': 'fire',
+  'passho_berry': 'water',
+  'wacan_berry': 'electric',
+  'rindo_berry': 'grass',
+  'yache_berry': 'ice',
+  'chople_berry': 'fighting',
+  'kebia_berry': 'poison',
+  'shuca_berry': 'ground',
+  'coba_berry': 'flying',
+  'payapa_berry': 'psychic',
+  'tanga_berry': 'bug',
+  'charti_berry': 'rock',
+  'kasib_berry': 'ghost',
+  'haban_berry': 'dragon',
+  'colbur_berry': 'dark',
+  'babiri_berry': 'steel',
+  'chilan_berry': 'normal',
+  'roseli_berry': 'fairy',
+};
+
+const _evioliteEligibleSpecies = <String>{
+  'abra',
+  'aipom',
+  'amaura',
+  'applin',
+  'archen',
+  'aron',
+  'axew',
+  'azurill',
+  'bagon',
+  'baltoy',
+  'barboach',
+  'bayleef',
+  'bellsprout',
+  'bergmite',
+  'bidoof',
+  'binacle',
+  'blipbug',
+  'boldore',
+  'bonsly',
+  'braixen',
+  'brionne',
+  'bronzor',
+  'budew',
+  'buizel',
+  'bunnelby',
+  'cacnea',
+  'carvanha',
+  'cascoon',
+  'caterpie',
+  'charcadet',
+  'chansey',
+  'charjabug',
+  'charmeleon',
+  'chespin',
+  'chingling',
+  'clauncher',
+  'cleffa',
+  'combee',
+  'corphish',
+  'corvisquire',
+  'cosmoem',
+  'cottonee',
+  'crabrawler',
+  'croagunk',
+  'croconaw',
+  'cubchoo',
+  'cubone',
+  'cufant',
+  'cyndaquil',
+  'dartrix',
+  'deerling',
+  'deino',
+  'dewott',
+  'diglett',
+  'doduo',
+  'dottler',
+  'doublade',
+  'dratini',
+  'dreepy',
+  'drilbur',
+  'ducklett',
+  'dusclops',
+  'duskull',
+  'dustox',
+  'dwebble',
+  'eelektrik',
+  'eevee',
+  'ekans',
+  'electabuzz',
+  'elekid',
+  'espurr',
+  'fletchinder',
+  'fletchling',
+  'floette',
+  'flittle',
+  'foongus',
+  'fraxure',
+  'frogadier',
+  'fuecoco',
+  'gabite',
+  'gastly',
+  'geodude',
+  'gible',
+  'gloom',
+  'golbat',
+  'golett',
+  'goomy',
+  'gothita',
+  'gothorita',
+  'graveler',
+  'grimer',
+  'grovyle',
+  'grotle',
+  'grookey',
+  'growlithe',
+  'grubbin',
+  'gulpin',
+  'happiny',
+  'haunter',
+  'helioptile',
+  'hippopotas',
+  'honedge',
+  'hoothoot',
+  'hoppip',
+  'horsea',
+  'houndour',
+  'igglybuff',
+  'ivysaur',
+  'jangmo_o',
+  'jigglypuff',
+  'kadabra',
+  'kakuna',
+  'kirlia',
+  'klang',
+  'klink',
+  'koffing',
+  'krokorok',
+  'kricketot',
+  'lampent',
+  'larvesta',
+  'larvitar',
+  'lileep',
+  'linoone',
+  'litten',
+  'litwick',
+  'lombre',
+  'loudred',
+  'luxio',
+  'machoke',
+  'machop',
+  'magby',
+  'magikarp',
+  'magmar',
+  'magnemite',
+  'magneton',
+  'makuhita',
+  'mankey',
+  'mareanie',
+  'mareep',
+  'marill',
+  'marshtomp',
+  'meowth',
+  'metang',
+  'metapod',
+  'mienfoo',
+  'mime_jr',
+  'minccino',
+  'morgrem',
+  'munchlax',
+  'munna',
+  'nacli',
+  'natu',
+  'nidoran_f',
+  'nidoran_m',
+  'nidorina',
+  'nidorino',
+  'nincada',
+  'noibat',
+  'numel',
+  'nuzleaf',
+  'oddish',
+  'oshawott',
+  'palpitoad',
+  'panpour',
+  'pansage',
+  'pansear',
+  'pawmi',
+  'pawmo',
+  'petilil',
+  'phanpy',
+  'pichu',
+  'pidove',
+  'pidgeotto',
+  'pidgey',
+  'pikachu',
+  'pineco',
+  'piplup',
+  'poipole',
+  'poliwhirl',
+  'poliwag',
+  'ponyta',
+  'poochyena',
+  'popplio',
+  'porygon',
+  'porygon2',
+  'prinplup',
+  'pumpkaboo',
+  'pupitar',
+  'quaxly',
+  'quilava',
+  'raboot',
+  'ralts',
+  'remoraid',
+  'rhydon',
+  'rhyhorn',
+  'riolu',
+  'rockruff',
+  'roggenrola',
+  'rolycoly',
+  'rookidee',
+  'roselia',
+  'rowlet',
+  'rufflet',
+  'sandile',
+  'sandshrew',
+  'scatterbug',
+  'scorbunny',
+  'scyther',
+  'seadra',
+  'sealeo',
+  'seedot',
+  'seel',
+  'sewaddle',
+  'shelgon',
+  'shellder',
+  'shelmet',
+  'shinx',
+  'shroomish',
+  'shuppet',
+  'silcoon',
+  'sizzlipede',
+  'skiddo',
+  'skiploom',
+  'skrelp',
+  'skwovet',
+  'slakoth',
+  'slugma',
+  'smoochum',
+  'snom',
+  'snorunt',
+  'snubbull',
+  'sobble',
+  'solosis',
+  'spewpa',
+  'spheal',
+  'spinarak',
+  'spoink',
+  'sprigatito',
+  'squirtle',
+  'starly',
+  'staravia',
+  'staryu',
+  'steenee',
+  'stufful',
+  'stunky',
+  'sunkern',
+  'surskit',
+  'swablu',
+  'swadloon',
+  'swirlix',
+  'swinub',
+  'taillow',
+  'tandemaus',
+  'tangela',
+  'tepig',
+  'tentacool',
+  'timburr',
+  'tirtouga',
+  'togepi',
+  'togetic',
+  'torchic',
+  'torracat',
+  'totodile',
+  'tranquill',
+  'treecko',
+  'trubbish',
+  'turtwig',
+  'tympole',
+  'tynamo',
+  'tyrogue',
+  'vanillish',
+  'vanillite',
+  'venipede',
+  'venonat',
+  'vibrava',
+  'voltorb',
+  'vullaby',
+  'wartortle',
+  'weedle',
+  'weepinbell',
+  'whirlipede',
+  'whismur',
+  'wingull',
+  'woobat',
+  'wooloo',
+  'wooper',
+  'wynaut',
+  'yamask',
+  'yamper',
+  'yungoos',
+  'zigzagoon',
+  'zubat',
 };

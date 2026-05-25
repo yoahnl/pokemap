@@ -1,5 +1,9 @@
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../effect/battle_effect_hooks.dart';
+import '../move/battle_move_data.dart';
+import '../rng/battle_rng_streams.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 
@@ -10,25 +14,39 @@ final class BattleItemChangeHandler {
     required BattleHandlerContext context,
     required PsdkBattleSlotRef target,
     required String? heldItemId,
+    BattleMoveDefinition? move,
+    PsdkBattleSlotRef? launcher,
   }) {
-    return BattleHandlerResult(
-      state: context.state.updateBattler(
-        target,
-        (battler) => battler
-            .copyWith(
-              heldItemId: heldItemId,
-              consumedItemId: null,
-              itemConsumed: false,
-            )
-            .withItemEffect(target),
-      ),
+    final previousItemId = context.state.battlerAt(target).heldItemId;
+    final nextState = context.state.updateBattler(
+      target,
+      (battler) => battler
+          .copyWith(
+            heldItemId: heldItemId,
+            consumedItemId: null,
+            itemConsumed: false,
+          )
+          .withItemEffect(target),
+    );
+    return _dispatchPostItemChange(
+      context: context,
+      state: nextState,
       rng: context.rng,
+      target: target,
+      previousItemId: previousItemId,
+      nextItemId: heldItemId,
+      consumedItemId: null,
+      reason: 'changed',
+      move: move,
+      launcher: launcher ?? context.user,
     );
   }
 
   BattleHandlerResult consumeHeldItem({
     required BattleHandlerContext context,
     required PsdkBattleSlotRef target,
+    BattleMoveDefinition? move,
+    PsdkBattleSlotRef? launcher,
   }) {
     final battler = context.state.battlerAt(target);
     final heldItemId = battler.heldItemId;
@@ -40,25 +58,83 @@ final class BattleItemChangeHandler {
         reason: 'no_held_item',
       );
     }
-    return BattleHandlerResult(
-      state: context.state.updateBattler(
-        target,
-        (current) => current
-            .copyWith(
-              heldItemId: null,
-              consumedItemId: heldItemId,
-              itemConsumed: true,
-            )
-            .withItemEffect(target),
+    final itemEvents = <PsdkBattleEvent>[
+      PsdkBattleItemEvent.consumed(
+        turn: context.turn,
+        user: target,
+        itemId: heldItemId,
       ),
+    ];
+    final nextState = context.state.updateBattler(
+      target,
+      (current) => current
+          .copyWith(
+            heldItemId: null,
+            consumedItemId: heldItemId,
+            itemConsumed: true,
+          )
+          .withItemEffect(target),
+    );
+    return _dispatchPostItemChange(
+      context: context,
+      state: nextState,
       rng: context.rng,
-      events: <PsdkBattleEvent>[
-        PsdkBattleItemEvent.consumed(
-          turn: context.turn,
-          user: target,
-          itemId: heldItemId,
-        ),
-      ],
+      target: target,
+      previousItemId: heldItemId,
+      nextItemId: null,
+      consumedItemId: heldItemId,
+      reason: 'consumed',
+      initialEvents: itemEvents,
+      move: move,
+      launcher: launcher ?? context.user,
+    );
+  }
+
+  BattleHandlerResult _dispatchPostItemChange({
+    required BattleHandlerContext context,
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required PsdkBattleSlotRef target,
+    required String? previousItemId,
+    required String? nextItemId,
+    required String? consumedItemId,
+    required String reason,
+    required PsdkBattleSlotRef? launcher,
+    required BattleMoveDefinition? move,
+    List<PsdkBattleEvent> initialEvents = const <PsdkBattleEvent>[],
+  }) {
+    var nextState = state;
+    var nextRng = rng;
+    final events = <PsdkBattleEvent>[...initialEvents];
+    var changed = true;
+
+    for (final owner in state.aliveSlots()) {
+      final result = nextState.battlerAt(owner).effects.dispatchPostItemChange(
+            BattleEffectItemChangeContext(
+              state: nextState,
+              rng: nextRng,
+              turn: context.turn,
+              owner: owner,
+              target: target,
+              previousItemId: previousItemId,
+              nextItemId: nextItemId,
+              consumedItemId: consumedItemId,
+              reason: reason,
+              launcher: launcher,
+              move: move,
+            ),
+          );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleHandlerResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
     );
   }
 }

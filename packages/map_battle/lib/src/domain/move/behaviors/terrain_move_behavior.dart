@@ -20,7 +20,6 @@ final class TerrainMoveBehavior implements BattleMoveBehavior {
     }
 
     final terrain = _terrainForMove(context.move.dbSymbol);
-    final user = prepared.state.battlerAt(context.user);
     final result = const BattleTerrainChangeHandler().changeTerrain(
       context: BattleHandlerContext(
         state: prepared.state,
@@ -31,7 +30,7 @@ final class TerrainMoveBehavior implements BattleMoveBehavior {
       terrain: terrain,
       remainingTurns: _durationForMove(
         dbSymbol: context.move.dbSymbol,
-        itemEffects: user.activeItemEffects,
+        itemEffects: prepared.state.activeItemEffectsAt(context.user),
       ),
     );
 

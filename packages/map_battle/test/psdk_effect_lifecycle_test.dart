@@ -89,6 +89,42 @@ void main() {
       expect(event.reason, 'expired');
     });
 
+    test('item_stolen marker clears when the holder receives an item', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              effects: const PsdkBattleEffectStack.empty().add('item_stolen'),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'opponent'),
+          ),
+        },
+      );
+
+      final result =
+          state.battlerAt(psdkPlayerSlot).effects.dispatchPostItemChange(
+                BattleEffectItemChangeContext(
+                  state: state,
+                  rng: _rng(),
+                  turn: 3,
+                  owner: psdkPlayerSlot,
+                  target: psdkPlayerSlot,
+                  previousItemId: null,
+                  nextItemId: 'leftovers',
+                  consumedItemId: null,
+                  reason: 'changed',
+                ),
+              );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('item_stolen'),
+        isFalse,
+      );
+    });
+
     test('effect lifecycle events map to clean timeline events', () {
       const event = PsdkBattleEffectEvent.ticked(
         turn: 6,
@@ -231,6 +267,51 @@ void main() {
       expect(replacement.effects.contains('aqua_ring'), isTrue);
       expect(replacement.effects.contains('ingrain'), isTrue);
       expect(replacement.effects.contains('protect'), isFalse);
+    });
+
+    test('BattleSwitchHandler Baton Pass copies Confusion to incoming', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'source',
+              effects: const PsdkBattleEffectStack.empty()
+                  .addEffect(
+                    const BatonPassEffect(
+                      scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                    ),
+                  )
+                  .addEffect(
+                    const ConfusionEffect(
+                      scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                      remainingConfusionTurns: 3,
+                    ),
+                  ),
+            ),
+          ),
+          _benchSlot: PsdkBattleCombatant.fromSetup(_combatant(id: 'bench')),
+        },
+      );
+
+      final result = const BattleSwitchHandler().batonPassTransfer(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+        source: psdkPlayerSlot,
+        replacement: _benchSlot,
+      );
+      final source = result.state.battlerAt(psdkPlayerSlot);
+      final replacement = result.state.battlerAt(_benchSlot);
+      final confusion =
+          replacement.effects.effects.whereType<ConfusionEffect>().single;
+
+      expect(source.effects.contains('confusion'), isFalse);
+      expect(replacement.effects.contains('confusion'), isTrue);
+      expect(confusion.remainingConfusionTurns, 3);
+      expect((confusion.scope as BattlerBattleEffectScope).slot, _benchSlot);
     });
 
     test('Ingrain prevents regular switch-out attempts', () {

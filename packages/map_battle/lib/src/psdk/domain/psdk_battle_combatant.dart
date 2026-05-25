@@ -28,6 +28,12 @@ class PsdkBattleTypes {
   final String? secondary;
 }
 
+enum PsdkBattleGender {
+  unknown,
+  male,
+  female,
+}
+
 const Object _unchanged = Object();
 
 /// Resolved combat stats used by the first PSDK smoke engine.
@@ -118,11 +124,13 @@ class PsdkBattleMoveHistoryEntry {
     required String moveId,
     required this.turn,
     required List<PsdkBattleSlotRef> targets,
+    this.attackOrder = 0,
   })  : moveId = _requireNonBlank(moveId, 'moveId'),
         targets = List<PsdkBattleSlotRef>.unmodifiable(targets);
 
   final String moveId;
   final int turn;
+  final int attackOrder;
   final List<PsdkBattleSlotRef> targets;
 }
 
@@ -165,6 +173,7 @@ class PsdkBattleMoveHistory {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return PsdkBattleMoveHistory(
       attempts: <PsdkBattleMoveHistoryEntry>[
@@ -173,6 +182,7 @@ class PsdkBattleMoveHistory {
           moveId: moveId,
           turn: turn,
           targets: targets,
+          attackOrder: attackOrder,
         ),
       ],
       successes: _successes,
@@ -183,6 +193,7 @@ class PsdkBattleMoveHistory {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return PsdkBattleMoveHistory(
       attempts: _attempts,
@@ -192,6 +203,7 @@ class PsdkBattleMoveHistory {
           moveId: moveId,
           turn: turn,
           targets: targets,
+          attackOrder: attackOrder,
         ),
       ],
     );
@@ -209,6 +221,7 @@ final class PsdkBattleEffectIds {
   static const String confusion = 'confusion';
   static const String curse = 'curse';
   static const String endure = 'endure';
+  static const String flinch = 'flinch';
   static const String forceNextMoveBase = 'force_next_move_base';
   static const String foresight = 'foresight';
   static const String ingrain = 'ingrain';
@@ -302,6 +315,12 @@ class PsdkBattleEffectStack {
     );
   }
 
+  BattleEffectVolatileStatusChangeResult dispatchPostVolatileStatusChange(
+    BattleEffectVolatileStatusChangeContext context,
+  ) {
+    return _stack.dispatchPostVolatileStatusChange(context);
+  }
+
   PsdkBattleEffectStack batonPassTransferEffects({
     required PsdkBattleSlotRef source,
     required PsdkBattleSlotRef target,
@@ -337,9 +356,16 @@ class PsdkBattleEffectStack {
   }
 
   BattleEffectSwitchEventResult dispatchSwitchEvent(
-    BattleEffectSwitchEventContext context,
+    BattleEffectSwitchEventContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.dispatchSwitchEvent(context, where: where);
+  }
+
+  BattleEffectSwitchOutResult dispatchSwitchOut(
+    BattleEffectSwitchOutContext context,
   ) {
-    return _stack.dispatchSwitchEvent(context);
+    return _stack.dispatchSwitchOut(context);
   }
 
   String? statChangePreventionReason(
@@ -350,6 +376,12 @@ class PsdkBattleEffectStack {
 
   int resolveStatChange(BattleEffectStatChangeContext context) {
     return _stack.resolveStatChange(context);
+  }
+
+  BattleEffectStatChangeRedirectResult? statChangeRedirect(
+    BattleEffectStatChangeContext context,
+  ) {
+    return _stack.statChangeRedirect(context);
   }
 
   BattleEffectStatChangePostResult dispatchStatChangePost(
@@ -402,15 +434,41 @@ class PsdkBattleEffectStack {
   }
 
   BattleEffectDamagePreventionResult? dispatchDamagePrevention(
-    BattleEffectDamagePreventionContext context,
-  ) {
-    return _stack.dispatchDamagePrevention(context);
+    BattleEffectDamagePreventionContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.dispatchDamagePrevention(context, where: where);
   }
 
   BattleEffectPostDamageResult dispatchPostDamage(
     BattleEffectPostDamageContext context,
   ) {
     return _stack.dispatchPostDamage(context);
+  }
+
+  BattleEffectPostActionResult dispatchPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    return _stack.dispatchPostAction(context);
+  }
+
+  BattleEffectPreAccuracyResult dispatchPreAccuracy(
+    BattleEffectPreAccuracyContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.dispatchPreAccuracy(context, where: where);
+  }
+
+  BattleEffectItemChangeResult dispatchPostItemChange(
+    BattleEffectItemChangeContext context,
+  ) {
+    return _stack.dispatchPostItemChange(context);
+  }
+
+  BattleEffectBattleEndResult dispatchBattleEnd(
+    BattleEffectBattleEndContext context,
+  ) {
+    return _stack.dispatchBattleEnd(context);
   }
 
   BattleEffectLifecycleResult dispatchLifecycle(
@@ -423,13 +481,14 @@ class PsdkBattleEffectStack {
     required BattlePositionRef user,
     required BattlePositionRef target,
     required BattleMoveDefinition move,
+    bool Function(BattleEffect effect)? where,
   }) {
     final context = BattleEffectMoveContext(
       user: user,
       target: target,
       move: move,
     );
-    return _stack.targetMovePreventionReason(context);
+    return _stack.targetMovePreventionReason(context, where: where);
   }
 
   BattleEffectUserMovePreventionResult? userMovePrevention(
@@ -471,7 +530,17 @@ class PsdkBattleCombatantSetup {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    int form = 0,
     this.abilityId,
+    this.gender = PsdkBattleGender.unknown,
+    this.dislikedFlavor,
+    this.loyalty = 255,
+    int ivHp = 31,
+    int ivAttack = 31,
+    int ivDefense = 31,
+    int ivSpeed = 31,
+    int ivSpecialAttack = 31,
+    int ivSpecialDefense = 31,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -500,6 +569,13 @@ class PsdkBattleCombatantSetup {
           currentWeightKg ?? baseWeightKg,
           'currentWeightKg',
         ),
+        form = _checkNonNegativeInt(form, 'form'),
+        ivHp = _checkIv(ivHp, 'ivHp'),
+        ivAttack = _checkIv(ivAttack, 'ivAttack'),
+        ivDefense = _checkIv(ivDefense, 'ivDefense'),
+        ivSpeed = _checkIv(ivSpeed, 'ivSpeed'),
+        ivSpecialAttack = _checkIv(ivSpecialAttack, 'ivSpecialAttack'),
+        ivSpecialDefense = _checkIv(ivSpecialDefense, 'ivSpecialDefense'),
         temporaryTypes = List<String>.unmodifiable(
           temporaryTypes.map((type) => _requireNonBlank(type, 'type')),
         ),
@@ -514,7 +590,17 @@ class PsdkBattleCombatantSetup {
   final int currentHp;
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
+  final int form;
   final String? abilityId;
+  final PsdkBattleGender gender;
+  final String? dislikedFlavor;
+  final int loyalty;
+  final int ivHp;
+  final int ivAttack;
+  final int ivDefense;
+  final int ivSpeed;
+  final int ivSpecialAttack;
+  final int ivSpecialDefense;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -577,7 +663,17 @@ class PsdkBattleCombatant {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    int form = 0,
     this.abilityId,
+    this.gender = PsdkBattleGender.unknown,
+    this.dislikedFlavor,
+    this.loyalty = 255,
+    int ivHp = 31,
+    int ivAttack = 31,
+    int ivDefense = 31,
+    int ivSpeed = 31,
+    int ivSpecialAttack = 31,
+    int ivSpecialDefense = 31,
     this.heldItemId,
     this.consumedItemId,
     this.itemConsumed = false,
@@ -606,6 +702,13 @@ class PsdkBattleCombatant {
           currentWeightKg ?? baseWeightKg,
           'currentWeightKg',
         ),
+        form = _checkNonNegativeInt(form, 'form'),
+        ivHp = _checkIv(ivHp, 'ivHp'),
+        ivAttack = _checkIv(ivAttack, 'ivAttack'),
+        ivDefense = _checkIv(ivDefense, 'ivDefense'),
+        ivSpeed = _checkIv(ivSpeed, 'ivSpeed'),
+        ivSpecialAttack = _checkIv(ivSpecialAttack, 'ivSpecialAttack'),
+        ivSpecialDefense = _checkIv(ivSpecialDefense, 'ivSpecialDefense'),
         statStages = statStages ?? PsdkBattleStatStages.neutral(),
         moveHistory = moveHistory ?? PsdkBattleMoveHistory.empty(),
         damageHistory = damageHistory ?? const PsdkBattleDamageHistory.empty(),
@@ -628,7 +731,17 @@ class PsdkBattleCombatant {
       types: setup.types,
       stats: setup.stats,
       moves: setup.moves,
+      form: setup.form,
       abilityId: setup.abilityId,
+      gender: setup.gender,
+      dislikedFlavor: setup.dislikedFlavor,
+      loyalty: setup.loyalty,
+      ivHp: setup.ivHp,
+      ivAttack: setup.ivAttack,
+      ivDefense: setup.ivDefense,
+      ivSpeed: setup.ivSpeed,
+      ivSpecialAttack: setup.ivSpecialAttack,
+      ivSpecialDefense: setup.ivSpecialDefense,
       heldItemId: setup.heldItemId,
       consumedItemId: setup.consumedItemId,
       itemConsumed: setup.itemConsumed,
@@ -667,7 +780,17 @@ class PsdkBattleCombatant {
   final int currentHp;
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
+  final int form;
   final String? abilityId;
+  final PsdkBattleGender gender;
+  final String? dislikedFlavor;
+  final int loyalty;
+  final int ivHp;
+  final int ivAttack;
+  final int ivDefense;
+  final int ivSpeed;
+  final int ivSpecialAttack;
+  final int ivSpecialDefense;
   final String? heldItemId;
   final String? consumedItemId;
   final bool itemConsumed;
@@ -758,7 +881,17 @@ class PsdkBattleCombatant {
     PsdkBattleTypes? types,
     PsdkBattleStats? stats,
     int? currentHp,
+    int? form,
     Object? abilityId = _unchanged,
+    PsdkBattleGender? gender,
+    Object? dislikedFlavor = _unchanged,
+    int? loyalty,
+    int? ivHp,
+    int? ivAttack,
+    int? ivDefense,
+    int? ivSpeed,
+    int? ivSpecialAttack,
+    int? ivSpecialDefense,
     Object? heldItemId = _unchanged,
     Object? consumedItemId = _unchanged,
     bool? itemConsumed,
@@ -802,9 +935,21 @@ class PsdkBattleCombatant {
       types: types ?? this.types,
       stats: stats ?? this.stats,
       moves: moves ?? this.moves,
+      form: form ?? this.form,
       abilityId: identical(abilityId, _unchanged)
           ? this.abilityId
           : abilityId as String?,
+      gender: gender ?? this.gender,
+      dislikedFlavor: identical(dislikedFlavor, _unchanged)
+          ? this.dislikedFlavor
+          : dislikedFlavor as String?,
+      loyalty: loyalty ?? this.loyalty,
+      ivHp: ivHp ?? this.ivHp,
+      ivAttack: ivAttack ?? this.ivAttack,
+      ivDefense: ivDefense ?? this.ivDefense,
+      ivSpeed: ivSpeed ?? this.ivSpeed,
+      ivSpecialAttack: ivSpecialAttack ?? this.ivSpecialAttack,
+      ivSpecialDefense: ivSpecialDefense ?? this.ivSpecialDefense,
       heldItemId: identical(heldItemId, _unchanged)
           ? this.heldItemId
           : heldItemId as String?,
@@ -857,12 +1002,14 @@ class PsdkBattleCombatant {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return copyWith(
       moveHistory: moveHistory.recordAttempt(
         moveId: moveId,
         turn: turn,
         targets: targets,
+        attackOrder: attackOrder,
       ),
     );
   }
@@ -871,12 +1018,14 @@ class PsdkBattleCombatant {
     required String moveId,
     required int turn,
     required List<PsdkBattleSlotRef> targets,
+    int attackOrder = 0,
   }) {
     return copyWith(
       moveHistory: moveHistory.recordSuccess(
         moveId: moveId,
         turn: turn,
         targets: targets,
+        attackOrder: attackOrder,
       ),
     );
   }
@@ -930,6 +1079,20 @@ String _requireEffectId(String value) {
 double _requirePositiveWeight(double value, String name) {
   if (!value.isFinite || value <= 0) {
     throw ArgumentError.value(value, name, 'must be a finite positive weight');
+  }
+  return value;
+}
+
+int _checkNonNegativeInt(int value, String name) {
+  if (value < 0) {
+    throw ArgumentError.value(value, name, 'must be >= 0');
+  }
+  return value;
+}
+
+int _checkIv(int value, String name) {
+  if (value < 0 || value > 31) {
+    throw RangeError.range(value, 0, 31, name);
   }
   return value;
 }

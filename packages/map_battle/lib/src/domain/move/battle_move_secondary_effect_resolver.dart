@@ -3,8 +3,12 @@ import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../effect/ability/mental_immunity_ability_effect.dart';
+import '../effect/ability/ability_effect.dart';
+import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/move/confusion_effect.dart';
+import '../effect/move/flinch_effect.dart';
 import '../handler/battle_handler_context.dart';
 import '../handler/battle_stat_change_handler.dart';
 import '../handler/battle_status_change_handler.dart';
@@ -33,8 +37,24 @@ final class BattleMoveSecondaryEffectResolver {
     var nextState = state;
     var nextRng = rng;
     final events = <PsdkBattleEvent>[];
+    final secondaryContext = BattleAbilitySecondaryEffectContext(
+      state: nextState,
+      user: user,
+      target: target,
+      move: move,
+    );
+    if (_secondaryEffectsPrevented(secondaryContext)) {
+      return BattleMoveSecondaryEffectResult(
+        state: nextState,
+        rng: nextRng,
+        events: events,
+      );
+    }
 
-    final globalChance = move.effectChance;
+    final globalChance = _modifiedChance(
+      move.effectChance,
+      secondaryContext,
+    );
     if (globalChance != null && globalChance < 100) {
       final roll = nextRng.generic.nextPercent();
       nextRng = nextRng.copyWith(generic: roll.next);
@@ -48,10 +68,11 @@ final class BattleMoveSecondaryEffectResolver {
     }
 
     for (final status in move.statuses) {
-      if (globalChance == null && status.chance < 100) {
+      final statusChance = _modifiedChance(status.chance, secondaryContext);
+      if (globalChance == null && statusChance != null && statusChance < 100) {
         final roll = nextRng.generic.nextPercent();
         nextRng = nextRng.copyWith(generic: roll.next);
-        if (roll.value > status.chance) {
+        if (roll.value > statusChance) {
           continue;
         }
       }
@@ -84,6 +105,12 @@ final class BattleMoveSecondaryEffectResolver {
             user: user,
             target: target,
           ) &&
+          !battleMentalAbilityBlocksEffect(
+            state: nextState,
+            user: user,
+            target: target,
+            effectId: PsdkBattleEffectIds.confusion,
+          ) &&
           !nextState
               .battlerAt(target)
               .effects
@@ -101,6 +128,50 @@ final class BattleMoveSecondaryEffectResolver {
             ),
           ),
         );
+        final postVolatile = nextState
+            .battlerAt(target)
+            .effects
+            .dispatchPostVolatileStatusChange(
+              BattleEffectVolatileStatusChangeContext(
+                state: nextState,
+                rng: nextRng,
+                turn: turn,
+                owner: target,
+                user: user,
+                target: target,
+                effectId: PsdkBattleEffectIds.confusion,
+                cured: false,
+                moveId: move.id,
+                move: move,
+              ),
+            );
+        nextState = postVolatile.state;
+        nextRng = postVolatile.rng;
+        events.addAll(postVolatile.events);
+      }
+
+      if (status.volatileStatus == PsdkBattleVolatileStatus.flinch &&
+          !battleMentalAbilityBlocksEffect(
+            state: nextState,
+            user: user,
+            target: target,
+            effectId: PsdkBattleEffectIds.flinch,
+          ) &&
+          !nextState
+              .battlerAt(target)
+              .effects
+              .contains(PsdkBattleEffectIds.flinch)) {
+        final result = applyFlinchEffect(
+          state: nextState,
+          rng: nextRng,
+          turn: turn,
+          target: target,
+          reason: move.id,
+          move: move,
+        );
+        nextState = result.state;
+        nextRng = result.rng;
+        events.addAll(result.events);
       }
     }
 
@@ -108,10 +179,11 @@ final class BattleMoveSecondaryEffectResolver {
       if (mod.stages == 0) {
         continue;
       }
-      if (globalChance == null && mod.chance != null && mod.chance! < 100) {
+      final modChance = _modifiedChance(mod.chance, secondaryContext);
+      if (globalChance == null && modChance != null && modChance < 100) {
         final roll = nextRng.generic.nextPercent();
         nextRng = nextRng.copyWith(generic: roll.next);
-        if (roll.value > mod.chance!) {
+        if (roll.value > modChance) {
           continue;
         }
       }
@@ -141,6 +213,88 @@ final class BattleMoveSecondaryEffectResolver {
       events: events,
     );
   }
+}
+
+bool _secondaryEffectsPrevented(BattleAbilitySecondaryEffectContext context) {
+  if (_sheerForceSuppresses(context)) {
+    return true;
+  }
+  for (final effect in context.state.activeAbilityEffects()) {
+    if (effect.preventsSecondaryEffects(context)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _sheerForceSuppresses(BattleAbilitySecondaryEffectContext context) {
+  final user = context.state.battlerAt(context.user);
+  if (user.abilityId != 'sheer_force' ||
+      user.effects.contains('ability_suppressed') ||
+      context.move.category == PsdkBattleMoveCategory.status) {
+    return false;
+  }
+  if (context.move.statuses.any(
+        (status) => status.majorStatus != null || status.volatileStatus != null,
+      ) ||
+      context.move.effectChance != null) {
+    return true;
+  }
+  if (context.move.stageMods.isEmpty) {
+    return false;
+  }
+  final onlyPositive = context.move.stageMods.every((mod) => mod.stages > 0);
+  final onlyNegative = context.move.stageMods.every((mod) => mod.stages < 0);
+  return switch (context.move.target) {
+    PsdkBattleMoveTarget.self || PsdkBattleMoveTarget.user => onlyPositive,
+    _ => onlyNegative,
+  };
+}
+
+int? battleModifiedSecondaryEffectChance({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition move,
+  required int? chance,
+}) {
+  return _modifiedChance(
+    chance,
+    BattleAbilitySecondaryEffectContext(
+      state: state,
+      user: user,
+      target: target,
+      move: move,
+    ),
+  );
+}
+
+int? _modifiedChance(
+  int? chance,
+  BattleAbilitySecondaryEffectContext context,
+) {
+  if (chance == null) {
+    return null;
+  }
+  var multiplier = 1.0;
+  for (final effect in context.state.activeAbilityEffects()) {
+    multiplier *= effect.secondaryEffectChanceMultiplier(context);
+  }
+  multiplier *= _rainbowPledgeSecondaryEffectChanceMultiplier(context);
+  final modified = (chance * multiplier).floor();
+  return modified > 100 ? 100 : modified;
+}
+
+double _rainbowPledgeSecondaryEffectChanceMultiplier(
+  BattleAbilitySecondaryEffectContext context,
+) {
+  if (!_bankHasEffect(context.state, context.user.bank, 'pledge_rainbow') ||
+      context.move.statuses.any(
+        (status) => status.volatileStatus == PsdkBattleVolatileStatus.flinch,
+      )) {
+    return 1;
+  }
+  return 2;
 }
 
 bool _safeguardPreventsVolatileStatus({

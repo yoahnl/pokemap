@@ -14,10 +14,18 @@ final class IronBallEffect extends BattleItemEffect {
   }
 
   @override
-  bool? groundedOverride(PsdkBattleCombatant battler) => true;
+  bool? groundedOverride(PsdkBattleCombatant battler) {
+    return _canApplyTo(battler) ? true : null;
+  }
 
   @override
   double statMultiplier(PsdkBattleCombatant battler, String stat) {
-    return stat == 'speed' ? 0.5 : 1;
+    return _canApplyTo(battler) && stat == 'speed' ? 0.5 : 1;
+  }
+
+  bool _canApplyTo(PsdkBattleCombatant battler) {
+    return battler.heldItemId == itemId &&
+        !battler.itemConsumed &&
+        !battler.itemEffectsSuppressed;
   }
 }

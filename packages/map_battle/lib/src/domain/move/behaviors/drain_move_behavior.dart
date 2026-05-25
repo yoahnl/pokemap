@@ -1,5 +1,7 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
 import '../../effect/item/item_effect.dart';
@@ -21,9 +23,9 @@ enum _DrainMoveKind {
 /// Ports the PSDK drain family (`s_absorb` and `s_dream_eater`) for the common
 /// HP-transfer path.
 ///
-/// The local port mirrors PSDK's damage-first drain process for single targets:
-/// damage dealt drives the heal amount, Big Root boosts that amount, Heal Block
-/// prevents only the recovery, and Liquid Ooze turns the recovery into damage.
+/// The local port mirrors PSDK's damage-first drain process: damage dealt
+/// drives the heal amount, Big Root boosts that amount, Heal Block prevents
+/// only the recovery, and Liquid Ooze turns the recovery into damage.
 final class DrainMoveBehavior implements BattleMoveBehavior {
   const DrainMoveBehavior.absorb()
       : battleEngineMethod = 's_absorb',
@@ -49,89 +51,110 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
       return prepared.toResolution();
     }
 
-    final targetSlot = prepared.psdkTargets.single;
-    final target = prepared.state.battlerAt(targetSlot);
-    final user = prepared.state.battlerAt(context.user);
-    final damageResult = const BattleMoveDamageCalculator().calculate(
-      BattleMoveDamageContext(
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final successfulTargets = <PsdkBattleSlotRef>[];
+
+    for (final targetSlot in prepared.psdkTargets) {
+      final user = state.battlerAt(context.user);
+      final target = state.battlerAt(targetSlot);
+      final damageResult = const BattleMoveDamageCalculator().calculate(
+        BattleMoveDamageContext(
+          user: user,
+          target: target,
+          move: context.move,
+          rng: rng,
+          field: state.field,
+          state: state,
+          userSlot: context.user,
+          targetSlot: targetSlot,
+        ),
+      );
+      rng = damageResult.rng;
+      if (damageResult.damage <= 0) {
+        continue;
+      }
+
+      final damage = applyMoveTargetDamage(
+        state: state,
+        user: context.user,
+        target: targetSlot,
+        moveId: context.move.id,
+        rng: rng,
+        turn: context.turn,
+        amount: damageResult.damage,
+        move: context.move,
+        targetCount: prepared.psdkTargets.length,
+      );
+      state = damage.state;
+      rng = damage.rng;
+      events.addAll(damage.events);
+      if (damage.damage <= 0) {
+        continue;
+      }
+      successfulTargets.add(targetSlot);
+
+      final healAmount = _drainHealAmount(
+        damage: damage.damage,
+        dbSymbol: context.move.dbSymbol,
         user: user,
+        state: state,
+        userSlot: context.user,
         target: target,
         move: context.move,
-        rng: prepared.rng,
-      ),
-    );
-    if (damageResult.damage <= 0) {
-      return BattleMoveBehaviorResolution(
-        state: prepared.state,
-        rng: damageResult.rng,
-        events: prepared.events,
       );
+      PsdkBattleEvent? drainEvent;
+      if (_hasLiquidOoze(target)) {
+        final liquidOozeDamage = applyDirectDamage(
+          state: state,
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          rng: rng,
+          turn: context.turn,
+          amount: healAmount,
+        );
+        state = liquidOozeDamage.state;
+        rng = liquidOozeDamage.rng;
+        drainEvent = liquidOozeDamage.event;
+      } else if (!_isHealBlocked(user)) {
+        final heal = applyDirectHeal(
+          state: state,
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          rng: rng,
+          turn: context.turn,
+          amount: healAmount,
+        );
+        state = heal.state;
+        rng = heal.rng;
+        drainEvent = heal.event;
+      }
+      if (drainEvent != null) {
+        events.add(drainEvent);
+      }
     }
 
-    final damage = applyDirectDamage(
-      state: prepared.state,
-      user: context.user,
-      target: targetSlot,
-      moveId: context.move.id,
-      rng: damageResult.rng,
-      turn: context.turn,
-      amount: damageResult.damage,
-    );
-    final healAmount = _drainHealAmount(
-      damage: damage.damage,
-      dbSymbol: context.move.dbSymbol,
-      user: user,
-      target: target,
-      move: context.move,
-    );
-    var stateAfterDrain = damage.state;
-    var rngAfterDrain = damage.rng;
-    PsdkBattleEvent? drainEvent;
-    if (_hasLiquidOoze(target)) {
-      final liquidOozeDamage = applyDirectDamage(
-        state: damage.state,
+    for (final targetSlot in successfulTargets) {
+      final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: rng,
         user: context.user,
-        target: context.user,
-        moveId: context.move.id,
-        rng: damage.rng,
+        target: targetSlot,
+        move: context.move,
         turn: context.turn,
-        amount: healAmount,
       );
-      stateAfterDrain = liquidOozeDamage.state;
-      rngAfterDrain = liquidOozeDamage.rng;
-      drainEvent = liquidOozeDamage.event;
-    } else if (!_isHealBlocked(user)) {
-      final heal = applyDirectHeal(
-        state: damage.state,
-        user: context.user,
-        target: context.user,
-        moveId: context.move.id,
-        rng: damage.rng,
-        turn: context.turn,
-        amount: healAmount,
-      );
-      stateAfterDrain = heal.state;
-      rngAfterDrain = heal.rng;
-      drainEvent = heal.event;
+      state = secondary.state;
+      rng = secondary.rng;
+      events.addAll(secondary.events);
     }
-    final secondary = const BattleMoveSecondaryEffectResolver().resolve(
-      state: stateAfterDrain,
-      rng: rngAfterDrain,
-      user: context.user,
-      target: targetSlot,
-      move: context.move,
-      turn: context.turn,
-    );
 
     return BattleMoveBehaviorResolution(
-      state: secondary.state,
-      rng: secondary.rng,
-      events: <PsdkBattleEvent>[
-        ...prepared.events,
-        if (damage.event != null) damage.event!,
-        if (drainEvent != null) drainEvent,
-        ...secondary.events,
-      ],
+      state: state,
+      rng: rng,
+      events: events,
     );
   }
 }
@@ -179,6 +202,8 @@ int _drainHealAmount({
   required int damage,
   required String dbSymbol,
   required PsdkBattleCombatant user,
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef userSlot,
   required PsdkBattleCombatant target,
   required BattleMoveDefinition move,
 }) {
@@ -186,6 +211,8 @@ int _drainHealAmount({
       dbSymbol == 'draining_kiss' || dbSymbol == 'oblivion_wing' ? 4 / 3 : 2;
   final multiplier = _drainHealMultiplier(
     user: user,
+    state: state,
+    userSlot: userSlot,
     target: target,
     move: move,
     baseHealAmount: (damage / drainFactor).floor(),
@@ -196,12 +223,18 @@ int _drainHealAmount({
 
 double _drainHealMultiplier({
   required PsdkBattleCombatant user,
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef userSlot,
   required PsdkBattleCombatant target,
   required BattleMoveDefinition move,
   required int baseHealAmount,
 }) {
   var multiplier = 1.0;
-  for (final effect in user.activeItemEffects) {
+  for (final effect in battleActiveItemEffects(
+    battler: user,
+    state: state,
+    slot: userSlot,
+  )) {
     multiplier *= effect.drainHealMultiplier(
       BattleItemDrainModifierContext(
         user: user,

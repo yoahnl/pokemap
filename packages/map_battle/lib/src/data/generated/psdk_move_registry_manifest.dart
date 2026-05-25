@@ -44,7 +44,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Fangs',
     rubyPath: '10 Move/2 Definitions/300 Fangs.rb',
     dartBehavior: 'BasicDamageSpecializationMoveBehavior.fangs',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.effects,
@@ -89,7 +89,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'AddThirdType',
     rubyPath: '10 Move/2 Definitions/300 AddThirdType.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_add_type',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.ability
@@ -99,8 +99,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_after_you',
     rubyClass: 'AfterYou',
     rubyPath: '10 Move/2 Definitions/300 After you.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_after_you)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.afterYou',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.actionOrder],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -124,7 +124,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'AquaRing',
     rubyPath: '10 Move/2 Definitions/300 AquaRing.rb',
     dartBehavior: 'PersistentEffectMoveBehavior.aquaRing',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
@@ -137,7 +137,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Assist',
     rubyPath: '10 Move/2 Definitions/300 Assist.rb',
     dartBehavior: 'CopyCallMoveBehavior.assist',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -153,24 +153,24 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Attract',
     rubyPath: '10 Move/2 Definitions/300 Attract.rb',
     dartBehavior: 'StaticBasicMoveRegistry.attract',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_aura_wheel',
     rubyClass: 'AuraWheel',
     rubyPath: '10 Move/2 Definitions/300 AuraWheel.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_aura_wheel)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'TypeBasedMoveBehavior.auraWheel',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_autotomize',
     rubyClass: 'Autotomize',
     rubyPath: '10 Move/2 Definitions/300 Autotomize.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_autotomize',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_avalanche',
@@ -185,7 +185,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BaddyBad',
     rubyPath: '10 Move/2 Definitions/300 GlitzyGlow.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_baddy_bad',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -201,7 +201,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BatonPass',
     rubyPath: '10 Move/2 Definitions/300 BatonPass.rb',
     dartBehavior: 'SwitchEffectMoveBehavior.batonPass',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerSwitch,
       PsdkMoveDependency.effects
@@ -211,16 +211,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_beak_blast',
     rubyClass: 'BeakBlast',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_beak_blast)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'PreAttackMoveBehavior.beakBlast',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_beat_up',
     rubyClass: 'BeatUp',
     rubyPath: '10 Move/2 Definitions/300 BeatUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_beat_up)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_beat_up',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -249,16 +249,24 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Bestow',
     rubyPath: '10 Move/2 Definitions/300 Bestow.rb',
     dartBehavior: 'ItemDependentMoveBehavior.bestow',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.item,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_bide',
     rubyClass: 'Bide',
     rubyPath: '10 Move/2 Definitions/300 Bide.rb',
     dartBehavior: 'CounterDamageMoveBehavior.bide',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.history,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_bind',
@@ -281,7 +289,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BodyPress',
     rubyPath: '10 Move/2 Definitions/300 BodyPress.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.bodyPress',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.ability,
@@ -293,7 +301,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BrickBreak',
     rubyPath: '10 Move/2 Definitions/300 BrickBreak.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_brick_break',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -325,8 +333,11 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Camouflage',
     rubyPath: '10 Move/2 Definitions/300 Camouflage.rb',
     dartBehavior: 'FieldLocationMoveBehavior.camouflage',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_cantflee',
@@ -341,8 +352,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Captivate',
     rubyPath: '10 Move/2 Definitions/300 Captivate.rb',
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_captivate)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_ceaseless_edge',
@@ -357,8 +373,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ChangeType',
     rubyPath: '10 Move/2 Definitions/300 ChangeType.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_change_type',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_charge',
@@ -375,21 +391,20 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_chilly_reception',
     rubyClass: 'ChillyReception',
     rubyPath: '10 Move/2 Definitions/300 ChillyReception.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialFieldMarker(s_chilly_reception)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_chilly_reception',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_chloroblast',
     rubyClass: 'MindBlown',
     rubyPath: '10 Move/2 Definitions/300 MindBlown.rb',
     dartBehavior: 'MindBlownMoveBehavior.chloroblast',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_clangorous_soul',
@@ -408,33 +423,38 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_conversion',
     rubyClass: 'Conversion',
     rubyPath: '10 Move/2 Definitions/300 Conversion.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_conversion)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_conversion',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_conversion2',
     rubyClass: 'Conversion2',
     rubyPath: '10 Move/2 Definitions/300 Conversion.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_conversion2)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_conversion2',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.history],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_core_enforcer',
     rubyClass: 'CoreEnforcer',
     rubyPath: '10 Move/2 Definitions/300 CoreEnforcer.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_core_enforcer)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_core_enforcer',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.item
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_corrosive_gas',
     rubyClass: 'CorrosiveGas',
     rubyPath: '10 Move/2 Definitions/300 CorrosiveGas.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_corrosive_gas',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_counter',
@@ -448,9 +468,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_court_change',
     rubyClass: 'CourtChange',
     rubyPath: '10 Move/2 Definitions/300 CourtChange.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_court_change)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_court_change',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_crafty_shield',
@@ -478,7 +501,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'CustomStatsBased',
     rubyPath: '10 Move/2 Definitions/300 CustomStatsBased.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.customStatsBased',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.ability,
@@ -497,17 +520,17 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_destiny_bond',
     rubyClass: 'DestinyBond',
     rubyPath: '10 Move/2 Definitions/300 DestinyBond.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_destiny_bond',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_disable',
     rubyClass: 'Disable',
     rubyPath: '10 Move/2 Definitions/300 Disable.rb',
     dartBehavior: 'StaticBasicMoveRegistry.disable',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_do_nothing',
@@ -521,41 +544,45 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_doodle',
     rubyClass: 'Doodle',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_doodle)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_doodle',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_double_iron_bash',
     rubyClass: 'DoubleIronBash',
     rubyPath: '10 Move/2 Definitions/300 DoubleIronBash.rb',
     dartBehavior: 'MultiHitMoveBehavior.doubleIronBash',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.targetingMulti,
+      PsdkMoveDependency.history,
+      PsdkMoveDependency.accuracy,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.item
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_dragon_cheer',
     rubyClass: 'DragonCheer',
     rubyPath: '10 Move/2 Definitions/300 DragonCheer.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_dragon_cheer)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_dragon_cheer',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_dragon_darts',
     rubyClass: 'DragonDarts',
     rubyPath: '10 Move/2 Definitions/300 DragonDarts.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_dragon_darts)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'DragonDartsMoveBehavior',
+    status: PsdkPortStatus.ported,
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_dragon_tail',
     rubyClass: 'ForceSwitch',
     rubyPath: '10 Move/2 Definitions/300 ForceSwitch.rb',
     dartBehavior: 'StaticBasicMoveRegistry.forceSwitch(s_dragon_tail)',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerSwitch,
       PsdkMoveDependency.effects,
@@ -589,19 +616,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'EerieSpell',
     rubyPath: '10 Move/2 Definitions/300 EerieSpell.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_eerie_spell',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_electrify',
     rubyClass: 'Electrify',
     rubyPath: '10 Move/2 Definitions/300 Electrify.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_electrify)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.actionOrder
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_electrify',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_electro_ball',
@@ -623,17 +647,17 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_embargo',
     rubyClass: 'Embargo',
     rubyPath: '10 Move/2 Definitions/300 Embargo.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_embargo)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_embargo)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_encore',
     rubyClass: 'Encore',
     rubyPath: '10 Move/2 Definitions/300 Encore.rb',
     dartBehavior: 'StaticBasicMoveRegistry.encore',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_endeavor',
@@ -647,10 +671,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_entrainment',
     rubyClass: 'Entrainment',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_entrainment)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_eruption',
@@ -665,7 +691,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ExpandingForce',
     rubyPath: '10 Move/2 Definitions/300 TerrainDamageMoves.rb',
     dartBehavior: 'TerrainPowerMoveBehavior.expandingForce',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.terrain,
       PsdkMoveDependency.grounded,
@@ -677,11 +703,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SelfDestruct',
     rubyPath: '10 Move/2 Definitions/300 SelfDestruct.rb',
     dartBehavior: 'SelfDestructMoveBehavior.explosion',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_facade',
@@ -695,8 +718,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_fairy_lock',
     rubyClass: 'FairyLock',
     rubyPath: '10 Move/2 Definitions/300 FairyLock.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_fairy_lock)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fairyLock',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -712,8 +735,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FalseSwipe',
     rubyPath: '10 Move/2 Definitions/300 FalseSwipe.rb',
     dartBehavior: 'BasicDamageSpecializationMoveBehavior.falseSwipe',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_feint',
@@ -728,15 +751,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FellStinger',
     rubyPath: '10 Move/2 Definitions/300 FellStinger.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_fell_stinger',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_fickle_beam',
     rubyClass: 'FickleBeam',
     rubyPath: '10 Move/2 Definitions/300 FickleBeam.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_fickle_beam',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -757,7 +780,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FinalGambit',
     rubyPath: '10 Move/2 Definitions/300 FinalGambit.rb',
     dartBehavior: 'DirectHpMoveBehavior.finalGambit',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.faintProcess,
       PsdkMoveDependency.history
@@ -792,7 +815,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FlameBurst',
     rubyPath: '10 Move/2 Definitions/300 FlameBurst.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_flame_burst',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -800,15 +823,19 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Fling',
     rubyPath: '10 Move/2 Definitions/300 Fling.rb',
     dartBehavior: 'ItemDependentMoveBehavior.fling',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.item,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_floral_healing',
     rubyClass: 'FloralHealing',
     rubyPath: '10 Move/2 Definitions/300 FloralHealing.rb',
     dartBehavior: 'HealMoveBehavior.floralHealing',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.terrain,
@@ -821,16 +848,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FlowerShield',
     rubyPath: '10 Move/2 Definitions/300 FlowerShield.rb',
     dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_flower_shield)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_flying_press',
     rubyClass: 'FlyingPress',
     rubyPath: '10 Move/2 Definitions/300 FlyingPress.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_flying_press)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_flying_press',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -854,7 +881,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FollowMe',
     rubyPath: '10 Move/2 Definitions/300 FollowMe.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_follow_me',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.actionOrder,
@@ -874,7 +901,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FoulPlay',
     rubyPath: '10 Move/2 Definitions/300 FoulPlay.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.foulPlay',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.ability,
@@ -893,8 +920,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_frustration',
     rubyClass: 'Frustration',
     rubyPath: '10 Move/2 Definitions/300 Frustration.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_frustration)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'VariablePowerMoveBehavior.frustration',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -918,23 +945,23 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FusionBolt',
     rubyPath: '10 Move/2 Definitions/300 FusionFlareBolt.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_fusion_bolt',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_fusion_flare',
     rubyClass: 'FusionFlare',
     rubyPath: '10 Move/2 Definitions/300 FusionFlareBolt.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_fusion_flare',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_future_sight',
     rubyClass: 'FutureSight',
     rubyPath: '10 Move/2 Definitions/300 FutureSight.rb',
     dartBehavior: 'StaticBasicMoveRegistry.delayedMove(s_future_sight)',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.endTurn,
@@ -957,9 +984,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_gear_up',
     rubyClass: 'GearUp',
     rubyPath: '10 Move/2 Definitions/300 GearUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.resolveSupportStatMove(s_gear_up)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_genies_storm',
@@ -973,9 +1000,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_geomancy',
     rubyClass: 'Geomancy',
     rubyPath: '10 Move/2 Definitions/300 Geomancy.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_geomancy',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_gigaton_hammer',
@@ -990,7 +1017,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'GlaiveRush',
     rubyPath: '10 Move/2 Definitions/300 GlaiveRush.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_glaive_rush',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -998,7 +1025,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'GlitzyGlow',
     rubyPath: '10 Move/2 Definitions/300 GlitzyGlow.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_glitzy_glow',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1018,16 +1045,19 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'GravApple',
     rubyPath: '10 Move/2 Definitions/300 GravApple.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_grav_apple',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_gravity',
     rubyClass: 'Gravity',
     rubyPath: '10 Move/2 Definitions/300 Gravity.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_gravity)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_gravity',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_growth',
@@ -1046,9 +1076,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_grudge',
     rubyClass: 'Grudge',
     rubyPath: '10 Move/2 Definitions/300 Grudge.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_grudge',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_guard_split',
@@ -1082,9 +1112,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_happy_hour',
     rubyClass: 'HappyHour',
     rubyPath: '10 Move/2 Definitions/300 HappyHour.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_happy_hour)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_hard_press',
@@ -1124,7 +1157,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HealBell',
     rubyPath: '10 Move/2 Definitions/300 HealBell.rb',
     dartBehavior: 'StatusCureMoveBehavior.healBell',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.effects,
@@ -1137,8 +1170,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HealBlock',
     rubyPath: '10 Move/2 Definitions/300 HealBlock.rb',
     dartBehavior: 'StaticBasicMoveRegistry.healBlock',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_heal_weather',
@@ -1157,9 +1190,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_healing_wish',
     rubyClass: 'HealingWish',
     rubyPath: '10 Move/2 Definitions/300 HealingSacrifice.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_healing_wish',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_heart_swap',
@@ -1188,9 +1221,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_helping_hand',
     rubyClass: 'HelpingHand',
     rubyPath: '10 Move/2 Definitions/300 HelpingHand.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_helping_hand',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.targetingMulti
@@ -1211,8 +1243,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_hidden_power',
     rubyClass: 'HiddenPower',
     rubyPath: '10 Move/2 Definitions/300 HiddenPower.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_hidden_power)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'TypeBasedMoveBehavior.hiddenPower',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1240,7 +1272,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Rollout',
     rubyPath: '10 Move/2 Definitions/300 Rollout.rb',
     dartBehavior: 'ConsecutivePowerMoveBehavior.iceBall',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.history,
@@ -1252,7 +1284,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'IceSpinner',
     rubyPath: '10 Move/2 Definitions/300 IceSpinner SteelRoller.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_ice_spinner',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1260,8 +1292,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Imprison',
     rubyPath: '10 Move/2 Definitions/300 Imprison.rb',
     dartBehavior: 'StaticBasicMoveRegistry.imprison',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_incinerate',
@@ -1284,7 +1316,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Ingrain',
     rubyPath: '10 Move/2 Definitions/300 Ingrain.rb',
     dartBehavior: 'PersistentEffectMoveBehavior.ingrain',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerSwitch,
@@ -1298,19 +1330,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Instruct',
     rubyPath: '10 Move/2 Definitions/300 Instruct.rb',
     dartBehavior: 'CopyCallMoveBehavior.instruct',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_ion_deluge',
     rubyClass: 'IonDeluge',
     rubyPath: '10 Move/2 Definitions/300 Ion Deluge.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.field
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_ion_deluge)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_ivy_cudgel',
@@ -1325,7 +1354,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'JawLock',
     rubyPath: '10 Move/2 Definitions/300 JawLock.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_jaw_lock',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1341,7 +1370,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HighJumpKick',
     rubyPath: '10 Move/2 Definitions/300 HighJumpKick.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_jump_kick',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1349,7 +1378,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'JungleHealing',
     rubyPath: '10 Move/2 Definitions/300 LifeDew.rb',
     dartBehavior: 'HealMoveBehavior.jungleHealing',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerStatus,
@@ -1362,8 +1391,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'KnockOff',
     rubyPath: '10 Move/2 Definitions/300 KnockOff.rb',
     dartBehavior: 'ItemDependentMoveBehavior.knockOff',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.item,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_laser_focus',
@@ -1394,7 +1427,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LastRespects',
     rubyPath: '10 Move/2 Definitions/300 LastRespects.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_last_respects',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1402,7 +1435,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LeechSeed',
     rubyPath: '10 Move/2 Definitions/300 LeechSeed.rb',
     dartBehavior: 'PersistentEffectMoveBehavior.leechSeed',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
@@ -1415,7 +1448,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LifeDew',
     rubyPath: '10 Move/2 Definitions/300 LifeDew.rb',
     dartBehavior: 'HealMoveBehavior.lifeDew',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
@@ -1427,8 +1460,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LockOn',
     rubyPath: '10 Move/2 Definitions/300 LockOn.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_lock_on',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_low_kick',
@@ -1454,33 +1487,36 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_lunar_dance',
     rubyClass: 'LunarDance',
     rubyPath: '10 Move/2 Definitions/300 HealingSacrifice.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_lunar_dance',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_magic_coat',
     rubyClass: 'MagicCoat',
     rubyPath: '10 Move/2 Definitions/300 MagicCoat.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_magic_coat',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_magic_powder',
     rubyClass: 'MagicPowder',
     rubyPath: '10 Move/2 Definitions/300 MagicPowder.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_magic_powder',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_magic_room',
     rubyClass: 'MagicRoom',
     rubyPath: '10 Move/2 Definitions/300 MagicRoom.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_magic_room)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_magnet_rise',
@@ -1498,32 +1534,32 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MagneticFlux',
     rubyPath: '10 Move/2 Definitions/300 MagneticFlux.rb',
     dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_magnetic_flux)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_magnitude',
     rubyClass: 'Magnitude',
     rubyPath: '10 Move/2 Definitions/300 Magnitude.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_magnitude',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_make_it_rain',
     rubyClass: 'MakeItRain',
     rubyPath: '10 Move/2 Definitions/300 MakeItRain.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_make_it_rain',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_me_first',
     rubyClass: 'MeFirst',
     rubyPath: '10 Move/2 Definitions/300 Me First.rb',
     dartBehavior: 'CopyCallMoveBehavior.meFirst',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1547,7 +1583,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Metronome',
     rubyPath: '10 Move/2 Definitions/300 Metronome.rb',
     dartBehavior: 'CopyCallMoveBehavior.metronome',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1555,7 +1591,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Mimic',
     rubyPath: '10 Move/2 Definitions/300 Mimic.rb',
     dartBehavior: 'CopyCallMoveBehavior.mimic',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1563,19 +1599,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MindBlown',
     rubyPath: '10 Move/2 Definitions/300 MindBlown.rb',
     dartBehavior: 'MindBlownMoveBehavior.mindBlown',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_mind_reader',
     rubyClass: 'LockOn',
     rubyPath: '10 Move/2 Definitions/300 LockOn.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_mind_reader',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_minimize',
@@ -1609,7 +1642,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MirrorMove',
     rubyPath: '10 Move/2 Definitions/300 MirrorMove.rb',
     dartBehavior: 'CopyCallMoveBehavior.mirrorMove',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1625,7 +1658,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MistyExplosion',
     rubyPath: '10 Move/2 Definitions/300 TerrainDamageMoves.rb',
     dartBehavior: 'SelfDestructMoveBehavior.mistyExplosion',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.faintProcess,
@@ -1662,31 +1695,34 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'NaturePower',
     rubyPath: '10 Move/2 Definitions/300 NaturePower.rb',
     dartBehavior: 'FieldLocationMoveBehavior.naturePower',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_nightmare',
     rubyClass: 'Nightmare',
     rubyPath: '10 Move/2 Definitions/300 Nightmare.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_nightmare)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_no_retreat',
     rubyClass: 'NoRetreat',
     rubyPath: '10 Move/2 Definitions/300 NoRetreat.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_no_retreat',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_octolock',
     rubyClass: 'Octolock',
     rubyPath: '10 Move/2 Definitions/300 Octolock.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_octolock)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.octolock',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1694,7 +1730,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'OHKO',
     rubyPath: '10 Move/2 Definitions/300 OHKO.rb',
     dartBehavior: 'OhkoMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.ability,
@@ -1705,8 +1741,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_order_up',
     rubyClass: 'OrderUp',
     rubyPath: '10 Move/2 Definitions/300 OrderUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_order_up)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_order_up',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1714,7 +1750,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Thrash',
     rubyPath: '10 Move/2 Definitions/300 Thrash.rb',
     dartBehavior: 'ForcedActionMoveBehavior.outrage',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerStatus,
@@ -1726,7 +1762,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PainSplit',
     rubyPath: '10 Move/2 Definitions/300 PainSplit.rb',
     dartBehavior: 'DirectHpMoveBehavior.painSplit',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects
@@ -1737,8 +1773,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PartingShot',
     rubyPath: '10 Move/2 Definitions/300 PartingShot.rb',
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_parting_shot)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_payback',
@@ -1752,24 +1793,24 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_payday',
     rubyClass: 'PayDay',
     rubyPath: '10 Move/2 Definitions/300 Payday.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_payday)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_payday',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_perish_song',
     rubyClass: 'PerishSong',
     rubyPath: '10 Move/2 Definitions/300 PerishSong.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_perish_song)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_photon_geyser',
     rubyClass: 'PhotonGeyser',
     rubyPath: '10 Move/2 Definitions/300 PhotonGeyser.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_photon_geyser',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1777,8 +1818,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PlasmaFists',
     rubyPath: '10 Move/2 Definitions/300 PlasmaFists.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_plasma_fists',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_pledge',
@@ -1798,7 +1839,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Pluck',
     rubyPath: '10 Move/2 Definitions/300 Pluck.rb',
     dartBehavior: 'ItemDependentMoveBehavior.pluck',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.item,
       PsdkMoveDependency.ability
@@ -1825,7 +1866,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PopulationBomb',
     rubyPath: '10 Move/1 Mechanics/103 TwoHit MultiHit.rb',
     dartBehavior: 'MultiHitMoveBehavior.populationBomb',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.item
@@ -1835,9 +1876,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_powder',
     rubyClass: 'Powder',
     rubyPath: '10 Move/2 Definitions/300 Powder.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_powder)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.targetMarker(s_powder)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_power_split',
@@ -1871,8 +1912,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_pre_attack_base',
     rubyClass: 'PreAttackBase',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_pre_attack_base)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'PreAttackMoveBehavior.base',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1919,7 +1960,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PsychoShift',
     rubyPath: '10 Move/2 Definitions/300 PsychoShift.rb',
     dartBehavior: 'PsychoShiftMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.effects,
@@ -1932,7 +1973,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'CustomStatsBased',
     rubyPath: '10 Move/2 Definitions/300 CustomStatsBased.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.psyshock',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.ability,
@@ -1952,7 +1993,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Purify',
     rubyPath: '10 Move/2 Definitions/300 Purify.rb',
     dartBehavior: 'PurifyMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerStatus,
@@ -1965,15 +2006,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Pursuit',
     rubyPath: '10 Move/2 Definitions/300 Pursuit.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_pursuit',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_quash',
     rubyClass: 'Quash',
     rubyPath: '10 Move/2 Definitions/300 Quash.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_quash)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.quash',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.actionOrder],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1981,8 +2022,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Rage',
     rubyPath: '10 Move/2 Definitions/300 Rage.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_rage',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_rage_fist',
@@ -1997,8 +2038,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'RagingBull',
     rubyPath: '10 Move/2 Definitions/300 BrickBreak.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_raging_bull',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_rapid_spin',
@@ -2042,7 +2083,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ReflectType',
     rubyPath: '10 Move/2 Definitions/300 ReflectType.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_reflect_type',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.ability
@@ -2098,8 +2139,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_return',
     rubyClass: 'Return',
     rubyPath: '10 Move/2 Definitions/300 Return.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_return)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'VariablePowerMoveBehavior.returnMove',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2122,9 +2163,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_revival_blessing',
     rubyClass: 'RevivalBlessing',
     rubyPath: '10 Move/2 Definitions/300 RevivalBlessing.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialTargetMarker(s_revival_blessing)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'RevivalBlessingMoveBehavior',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2143,7 +2183,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ForceSwitch',
     rubyPath: '10 Move/2 Definitions/300 ForceSwitch.rb',
     dartBehavior: 'StaticBasicMoveRegistry.forceSwitch(s_roar)',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerSwitch,
       PsdkMoveDependency.effects,
@@ -2154,8 +2194,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_role_play',
     rubyClass: 'RolePlay',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_role_play)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -2166,7 +2206,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Rollout',
     rubyPath: '10 Move/2 Definitions/300 Rollout.rb',
     dartBehavior: 'ConsecutivePowerMoveBehavior.rollout',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.history,
@@ -2178,7 +2218,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Roost',
     rubyPath: '10 Move/2 Definitions/300 Roost.rb',
     dartBehavior: 'HealMoveBehavior.roost',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects
@@ -2188,9 +2228,10 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_rototiller',
     rubyClass: 'Rototiller',
     rubyPath: '10 Move/2 Definitions/300 Rototiller.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior:
+        'StaticBasicMoveRegistry.resolveSupportStatMove(s_rototiller)',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_round',
@@ -2209,7 +2250,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SacredSword',
     rubyPath: '10 Move/2 Definitions/300 SacredSword.rb',
     dartBehavior: 'CustomStatSourceMoveBehavior.sacredSword',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects
@@ -2236,7 +2277,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SappySeed',
     rubyPath: '10 Move/2 Definitions/300 SappySeed.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_sappy_seed',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2244,15 +2285,21 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ScaleShot',
     rubyPath: '10 Move/2 Definitions/300 ScaleShot.rb',
     dartBehavior: 'MultiHitMoveBehavior.scaleShot',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.targetingMulti,
+      PsdkMoveDependency.history,
+      PsdkMoveDependency.accuracy,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.item
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_secret_power',
     rubyClass: 'SecretPower',
     rubyPath: '10 Move/2 Definitions/300 SecretPower.rb',
     dartBehavior: 'FieldLocationMoveBehavior.secretPower',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.field,
       PsdkMoveDependency.handlerStatus,
@@ -2279,24 +2326,24 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_shed_tail',
     rubyClass: 'ShedTail',
     rubyPath: '10 Move/2 Definitions/300 Substitute.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_shed_tail)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_shed_tail',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_shell_side_arm',
     rubyClass: 'ShellSideArm',
     rubyPath: '10 Move/2 Definitions/300 ShellSideArm.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_shell_side_arm',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_shell_trap',
     rubyClass: 'ShellTrap',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_shell_trap)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'PreAttackMoveBehavior.shellTrap',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2315,9 +2362,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_simple_beam',
     rubyClass: 'SimpleBeam',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_simple_beam)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -2328,16 +2374,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Sketch',
     rubyPath: '10 Move/2 Definitions/300 Sketch.rb',
     dartBehavior: 'CopyCallMoveBehavior.sketch',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_skill_swap',
     rubyClass: 'SkillSwap',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_skill_swap)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -2356,7 +2401,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SleepTalk',
     rubyPath: '10 Move/2 Definitions/300 SleepTalk.rb',
     dartBehavior: 'CopyCallMoveBehavior.sleepTalk',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2364,7 +2409,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SmackDown',
     rubyPath: '10 Move/2 Definitions/300 SmackDown.rb',
     dartBehavior: 'GroundingMoveBehavior.smackDown',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.grounded,
@@ -2376,19 +2421,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SmellingSalts',
     rubyPath: '10 Move/2 Definitions/300 HitThenCureStatus.rb',
     dartBehavior: 'HitThenCureStatusMoveBehavior.smellingSalt',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.effects
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_snatch',
     rubyClass: 'Snatch',
     rubyPath: '10 Move/2 Definitions/300 Snatch.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_snatch',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2418,19 +2459,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SparklingAria',
     rubyPath: '10 Move/2 Definitions/300 SparklingAria.rb',
     dartBehavior: 'HitThenCureStatusMoveBehavior.sparklingAria',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.effects
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_sparkly_swirl',
     rubyClass: 'SparklySwirl',
     rubyPath: '10 Move/2 Definitions/300 SparklySwirl.rb',
     dartBehavior: 'StatusCureMoveBehavior.sparklySwirl',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.handlerStatus,
@@ -2443,8 +2480,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SpectralThief',
     rubyPath: '10 Move/2 Definitions/300 SpectralThief.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_spectral_thief',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_speed_swap',
@@ -2470,9 +2507,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_spite',
     rubyClass: 'Spite',
     rubyPath: '10 Move/2 Definitions/300 Spite.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_spite)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_spite',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.history],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_splash',
@@ -2486,9 +2523,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_split_up',
     rubyClass: 'SpitUp',
     rubyPath: '10 Move/2 Definitions/300 SpitUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_split_up)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_split_up',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.item
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_stat',
@@ -2522,18 +2564,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MindBlown',
     rubyPath: '10 Move/2 Definitions/300 MindBlown.rb',
     dartBehavior: 'MindBlownMoveBehavior.steelBeam',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.faintProcess
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_steel_roller',
     rubyClass: 'SteelRoller',
     rubyPath: '10 Move/2 Definitions/300 IceSpinner SteelRoller.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_steel_roller',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2553,15 +2592,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Stockpile',
     rubyPath: '10 Move/2 Definitions/300 Stockpile.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_stockpile',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_stomp',
     rubyClass: 'Stomp',
     rubyPath: '10 Move/2 Definitions/300 Stomp.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_stomp',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2607,24 +2646,23 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Struggle',
     rubyPath: '10 Move/2 Definitions/300 RecoilMove.rb',
     dartBehavior: 'RecoilMoveBehavior.struggle',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_stuff_cheeks',
     rubyClass: 'StuffCheeks',
     rubyPath: '10 Move/2 Definitions/300 StuffCheeks.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_stuff_cheeks)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_stuff_cheeks',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_substitute',
     rubyClass: 'Substitute',
     rubyPath: '10 Move/2 Definitions/300 Substitute.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_substitute',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2640,7 +2678,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SuperDuperEffective',
     rubyPath: '10 Move/2 Definitions/300 SuperDuperEffective.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_super_duper_effective',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2655,16 +2693,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_swallow',
     rubyClass: 'Swallow',
     rubyPath: '10 Move/2 Definitions/300 Swallow.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_swallow)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_swallow',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_synchronoise',
     rubyClass: 'Synchronoise',
     rubyPath: '10 Move/2 Definitions/300 Synchronoise.rb',
     dartBehavior: 'FieldLocationMoveBehavior.synchronoise',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.targetingMulti],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2691,7 +2729,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TakeHeart',
     rubyPath: '10 Move/2 Definitions/300 TakeHeart.rb',
     dartBehavior: 'StatusCureMoveBehavior.takeHeart',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.effects,
@@ -2721,9 +2759,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_teatime',
     rubyClass: 'Teatime',
     rubyPath: '10 Move/2 Definitions/300 TeaTime.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_teatime)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_teatime',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.field,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_techno_blast',
@@ -2748,9 +2789,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_teleport',
     rubyClass: 'Teleport',
     rubyPath: '10 Move/2 Definitions/300 Teleport.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_teleport)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_teleport',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_terrain',
@@ -2789,7 +2830,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Thief',
     rubyPath: '10 Move/2 Definitions/300 Thief.rb',
     dartBehavior: 'ItemDependentMoveBehavior.thief',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.item,
       PsdkMoveDependency.ability,
@@ -2801,7 +2842,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MudSport',
     rubyPath: '10 Move/2 Definitions/300 MudSport.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_thing_sport',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.field
@@ -2812,7 +2853,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Thrash',
     rubyPath: '10 Move/2 Definitions/300 Thrash.rb',
     dartBehavior: 'ForcedActionMoveBehavior.thrash',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerStatus,
@@ -2862,8 +2903,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_torment',
     rubyClass: 'Torment',
     rubyPath: '10 Move/2 Definitions/300 Torment.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_torment)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_torment',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.history
@@ -2886,20 +2927,21 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ToxicThread',
     rubyPath: '10 Move/2 Definitions/300 ToxicThread.rb',
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_toxic_thread)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_transform',
     rubyClass: 'Transform',
     rubyPath: '10 Move/2 Definitions/300 Transform.rb',
     dartBehavior: 'TransformMoveBehavior',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerSwitch,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_tri_attack',
@@ -2914,7 +2956,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Switcheroo',
     rubyPath: '10 Move/2 Definitions/300 Switcheroo.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_trick',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerItem,
       PsdkMoveDependency.item,
@@ -2938,7 +2980,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TripleArrows',
     rubyPath: '10 Move/2 Definitions/300 TripleArrows.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_triple_arrows',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2946,7 +2988,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TripleKick',
     rubyPath: '10 Move/1 Mechanics/103 TwoHit MultiHit.rb',
     dartBehavior: 'MultiHitMoveBehavior.tripleKick',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.item,
@@ -2958,7 +3000,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TrumpCard',
     rubyPath: '10 Move/2 Definitions/300 TrumpCard.rb',
     dartBehavior: 'ConsecutivePowerMoveBehavior.trumpCard',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.history,
       PsdkMoveDependency.accuracy,
@@ -2970,7 +3012,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'UTurn',
     rubyPath: '10 Move/2 Definitions/300 UTurn.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_u_turn',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerSwitch,
       PsdkMoveDependency.item,
@@ -2981,8 +3023,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_upper_hand',
     rubyClass: 'UpperHand',
     rubyPath: '10 Move/2 Definitions/300 UpperHand.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_upper_hand)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'ActionGatedMoveBehavior.upperHand',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2990,7 +3032,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'UpRoar',
     rubyPath: '10 Move/2 Definitions/300 UpRoar.rb',
     dartBehavior: 'ForcedActionMoveBehavior.uproar',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerStatus,
@@ -3003,8 +3045,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'VenomDrench',
     rubyPath: '10 Move/2 Definitions/300 VenomDrench.rb',
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_venom_drench)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_venoshock',
@@ -3019,24 +3066,16 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'WakeUpSlap',
     rubyPath: '10 Move/2 Definitions/300 HitThenCureStatus.rb',
     dartBehavior: 'HitThenCureStatusMoveBehavior.wakeUpSlap',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_water_shuriken',
     rubyClass: 'WaterShuriken',
     rubyPath: '10 Move/1 Mechanics/103 TwoHit MultiHit.rb',
     dartBehavior: 'MultiHitMoveBehavior.waterShuriken',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.ability,
-      PsdkMoveDependency.item
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_weather',
@@ -3066,8 +3105,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_wish',
     rubyClass: 'Wish',
     rubyPath: '10 Move/2 Definitions/300 Wish.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_wish)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_wish',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.endTurn,
@@ -3078,8 +3117,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_wonder_room',
     rubyClass: 'WonderRoom',
     rubyPath: '10 Move/2 Definitions/300 WonderRoom.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.fieldMarker(s_wonder_room)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerStat,
@@ -3090,9 +3129,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_worry_seed',
     rubyClass: 'WorrySeed',
     rubyPath: '10 Move/2 Definitions/300 AbilityChanging.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.abilityChanging(s_worry_seed)',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.effects
@@ -3110,8 +3148,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_yawn',
     rubyClass: 'Yawn',
     rubyPath: '10 Move/2 Definitions/300 Yawn.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_yawn)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.drowsiness',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerStatus,
@@ -3127,49 +3165,49 @@ const psdkSpecialMoveScopeDecisions = <PsdkSpecialMoveScopeDecision>[
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until the move-specific terrain side effect and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with signature gates, damage and Psychic Terrain side effect.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_guardian_of_alola',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until fractional target-HP damage and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with signature gates and fractional target-HP damage.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_hyperspace_hole',
     family: PsdkSpecialMoveFamily.studioOnlySpecialCase,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only special method. It remains in combat scope because Studio data can select it as a playable attack.',
+        'Studio-only special method ported as a Protect-bypassing attack because Studio data can select it as playable.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_light_that_burns_the_sky',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until Photon Geyser-like stat-source behavior and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with signature gates, target correction and Photon Geyser-like stat source.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_malicious_moonsault',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until target-specific damage behavior and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with Incineroar signature gates and damage behavior.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_self_stat_z_move',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move status family. Keep partial until full Z-status stat boosts and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move status family ported for Clangorous Soulblaze and Extreme Evoboost gates/boosts.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_splintered_stormshards',
     family: PsdkSpecialMoveFamily.zMove,
     scope: PsdkSpecialMoveScope.combatScope,
     note:
-        'Studio-only Z-Move method. Keep partial until terrain clearing and Z-Move eligibility gates exist.',
+        'Studio-only Z-Move method ported with Lycanroc signature gates, damage and terrain clearing.',
   ),
   PsdkSpecialMoveScopeDecision(
     battleEngineMethod: 's_z_move',

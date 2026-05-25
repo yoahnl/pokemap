@@ -6,15 +6,18 @@ import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../battler/battle_transform_state.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/ability/neutralizing_gas_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/field/delayed_move_effect.dart';
 import '../effect/field/healing_wish_effect.dart';
 import '../effect/field/wish_effect.dart';
+import '../effect/move/shed_tail_effect.dart';
 import '../effect/side/hazard_effects.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_type_processor.dart';
+import '../rng/battle_rng_streams.dart';
 import 'battle_damage_handler.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
@@ -60,9 +63,14 @@ final class BattleSwitchHandler {
       target: target,
       move: move,
     );
+    final fieldEffects = _fieldEffects(context.state);
     if (context.state.battlerAt(target).effects.switchPassthrough(
               switchContext,
             ) ||
+        _hasSwitchPassthrough(
+          effects: fieldEffects,
+          context: switchContext,
+        ) ||
         _hasSwitchPassthrough(
           effects: context.state.activeAbilityEffects(),
           context: switchContext,
@@ -76,6 +84,10 @@ final class BattleSwitchHandler {
         context.state.battlerAt(target).effects.switchPreventionReason(
                   switchContext,
                 ) ??
+            _switchPreventionReason(
+              effects: fieldEffects,
+              context: switchContext,
+            ) ??
             context.state.activeAbilityEffects().switchPreventionReason(
                   switchContext,
                 );
@@ -130,20 +142,37 @@ final class BattleSwitchHandler {
       return prevention;
     }
 
+    var state = context.state;
+    var rng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    final switchOut = active.effects.dispatchSwitchOut(
+      BattleEffectSwitchOutContext(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        owner: target,
+        replacement: replacement,
+      ),
+    );
+    state = switchOut.state;
+    rng = switchOut.rng;
+    events.addAll(switchOut.events);
+
+    final activeAfterSwitchOut = state.battlerAt(target);
     final activePartyIndex = _activePartyIndex(
       party: party,
-      active: active,
+      active: activeAfterSwitchOut,
       fallback: target.position,
     );
-    final slotPersistentEffects = _slotPersistentEffects(active);
-    final healingSacrifice = _healingSacrificeEffect(active);
-    final batonPassEffects = active.effects.contains('baton_pass')
-        ? active.effects.batonPassTransferEffects(
+    final slotPersistentEffects = _slotPersistentEffects(activeAfterSwitchOut);
+    final healingSacrifice = _healingSacrificeEffect(activeAfterSwitchOut);
+    final batonPassEffects = activeAfterSwitchOut.effects.contains('baton_pass')
+        ? activeAfterSwitchOut.effects.batonPassTransferEffects(
             source: target,
             target: target,
           )
         : const PsdkBattleEffectStack.empty();
-    final outgoing = _switchOutSnapshot(active);
+    final outgoing = _switchOutSnapshot(activeAfterSwitchOut);
     var incoming = replacement
         .copyWith(
           switching: false,
@@ -172,18 +201,16 @@ final class BattleSwitchHandler {
     nextParty[activePartyIndex] = outgoing;
     nextParty[partyIndex] = incoming;
 
-    var state = context.state.copyWith(
+    state = state.copyWith(
       combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
-        ...context.state.combatants,
+        ...state.combatants,
         target: incoming,
       },
       parties: <int, List<PsdkBattleCombatant>>{
-        ...context.state.parties,
+        ...state.parties,
         target.bank: nextParty,
       },
     );
-    var rng = context.rng;
-    final events = <PsdkBattleEvent>[];
 
     final hazards = applyEntryHazards(
       context: BattleHandlerContext(
@@ -396,10 +423,17 @@ final class BattleSwitchHandler {
     required PsdkBattleSlotRef who,
     required PsdkBattleSlotRef replacement,
   }) {
-    var nextState = context.state;
-    var nextRng = context.rng;
-    final events = <PsdkBattleEvent>[];
-    var changed = false;
+    final neutralizingGas = _dispatchNeutralizingGasSwitchEvent(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      who: who,
+      replacement: replacement,
+    );
+    var nextState = neutralizingGas.state;
+    var nextRng = neutralizingGas.rng;
+    final events = <PsdkBattleEvent>[...neutralizingGas.events];
+    var changed = neutralizingGas.applied || neutralizingGas.events.isNotEmpty;
     final owners = context.state.combatants.keys.toList()..sort(_compareSlots);
 
     for (final owner in owners) {
@@ -412,6 +446,9 @@ final class BattleSwitchHandler {
               who: who,
               replacement: replacement,
             ),
+            where: (effect) =>
+                !neutralizingGas.preChecked.contains(owner) ||
+                effect.id != 'ability:neutralizing_gas',
           );
       nextState = result.state;
       nextRng = result.rng;
@@ -429,6 +466,145 @@ final class BattleSwitchHandler {
   }
 }
 
+_NeutralizingGasSwitchEventResult _dispatchNeutralizingGasSwitchEvent({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef who,
+  required PsdkBattleSlotRef replacement,
+}) {
+  final owners = _neutralizingGasSlots(
+    state: state,
+    who: who,
+    replacement: replacement,
+  );
+  if (owners.isEmpty) {
+    return _NeutralizingGasSwitchEventResult(
+      state: state,
+      rng: rng,
+      preChecked: const <PsdkBattleSlotRef>{},
+    );
+  }
+
+  final candidates = <PsdkBattleSlotRef>[...owners];
+  if (who != replacement) {
+    candidates.removeWhere((slot) => slot == who);
+  }
+
+  if (candidates.isEmpty) {
+    final result = state.battlerAt(who).effects.dispatchSwitchEvent(
+          BattleEffectSwitchEventContext(
+            state: state,
+            rng: rng,
+            turn: turn,
+            owner: who,
+            who: who,
+            replacement: replacement,
+          ),
+          where: _isNeutralizingGasEffect,
+        );
+    return _NeutralizingGasSwitchEventResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+      preChecked: owners.toSet(),
+      applied: result.applied,
+    );
+  }
+
+  final owner = _activatedNeutralizingGasSlot(
+        state: state,
+        candidates: candidates,
+      ) ??
+      _fastestNeutralizingGasSlot(
+        state: state,
+        candidates: candidates,
+      );
+  final result = state.battlerAt(owner).effects.dispatchSwitchEvent(
+        BattleEffectSwitchEventContext(
+          state: state,
+          rng: rng,
+          turn: turn,
+          owner: owner,
+          who: owner,
+          replacement: owner,
+        ),
+        where: _isNeutralizingGasEffect,
+      );
+  return _NeutralizingGasSwitchEventResult(
+    state: result.state,
+    rng: result.rng,
+    events: result.events,
+    preChecked: owners.toSet(),
+    applied: result.applied,
+  );
+}
+
+List<PsdkBattleSlotRef> _neutralizingGasSlots({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef who,
+  required PsdkBattleSlotRef replacement,
+}) {
+  final slots = <PsdkBattleSlotRef>[];
+  final seen = <PsdkBattleSlotRef>{};
+
+  void addIfNeutralizingGas(PsdkBattleSlotRef slot) {
+    if (seen.contains(slot) || !state.combatants.containsKey(slot)) {
+      return;
+    }
+    final battler = state.battlerAt(slot);
+    if (battler.isFainted ||
+        _normalizedId(battler.abilityId) != 'neutralizing_gas') {
+      return;
+    }
+    seen.add(slot);
+    slots.add(slot);
+  }
+
+  for (final slot in state.aliveSlots()) {
+    addIfNeutralizingGas(slot);
+  }
+  addIfNeutralizingGas(who);
+  addIfNeutralizingGas(replacement);
+  return slots;
+}
+
+PsdkBattleSlotRef? _activatedNeutralizingGasSlot({
+  required PsdkBattleState state,
+  required List<PsdkBattleSlotRef> candidates,
+}) {
+  for (final slot in candidates) {
+    if (state
+        .battlerAt(slot)
+        .effects
+        .contains(neutralizingGasActivatedEffectId)) {
+      return slot;
+    }
+  }
+  return null;
+}
+
+PsdkBattleSlotRef _fastestNeutralizingGasSlot({
+  required PsdkBattleState state,
+  required List<PsdkBattleSlotRef> candidates,
+}) {
+  var fastest = candidates.first;
+  for (final slot in candidates.skip(1)) {
+    final speed = state
+        .battlerAt(slot)
+        .effectiveStat('speed')
+        .compareTo(state.battlerAt(fastest).effectiveStat('speed'));
+    if (speed > 0 || (speed == 0 && _compareSlots(slot, fastest) < 0)) {
+      fastest = slot;
+    }
+  }
+  return fastest;
+}
+
+bool _isNeutralizingGasEffect(BattleEffect effect) {
+  return effect.id == 'ability:neutralizing_gas';
+}
+
 int _activePartyIndex({
   required List<PsdkBattleCombatant> party,
   required PsdkBattleCombatant active,
@@ -442,6 +618,29 @@ int _activePartyIndex({
     return fallback;
   }
   return 0;
+}
+
+Iterable<BattleEffect> _fieldEffects(PsdkBattleState state) sync* {
+  for (final combatant in state.combatants.values) {
+    for (final effect in combatant.effects.effects) {
+      if (effect.scope is FieldBattleEffectScope) {
+        yield effect;
+      }
+    }
+  }
+}
+
+String? _switchPreventionReason({
+  required Iterable<BattleEffect> effects,
+  required BattleEffectSwitchPreventionContext context,
+}) {
+  for (final effect in effects) {
+    final reason = effect.onSwitchPrevention(context);
+    if (reason != null) {
+      return reason;
+    }
+  }
+  return null;
 }
 
 PsdkBattleCombatant _switchOutSnapshot(PsdkBattleCombatant active) {
@@ -458,7 +657,12 @@ PsdkBattleCombatant _switchOutSnapshot(PsdkBattleCombatant active) {
 
 List<BattleEffect> _slotPersistentEffects(PsdkBattleCombatant active) {
   return active.effects.effects
-      .where((effect) => effect is DelayedMoveEffect || effect is WishEffect)
+      .where(
+        (effect) =>
+            effect is DelayedMoveEffect ||
+            effect is WishEffect ||
+            effect is ShedTailEffect,
+      )
       .toList(growable: false);
 }
 
@@ -587,6 +791,22 @@ bool _hasMagicGuard(PsdkBattleCombatant battler) {
 
 String _normalizedId(String? id) {
   return id?.trim().toLowerCase().replaceAll('-', '_') ?? '';
+}
+
+final class _NeutralizingGasSwitchEventResult {
+  _NeutralizingGasSwitchEventResult({
+    required this.state,
+    required this.rng,
+    required Set<PsdkBattleSlotRef> preChecked,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = false,
+  }) : preChecked = Set<PsdkBattleSlotRef>.unmodifiable(preChecked);
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final Set<PsdkBattleSlotRef> preChecked;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
 }
 
 extension _BattleAbilitySwitchPrevention on Iterable<BattleAbilityEffect> {

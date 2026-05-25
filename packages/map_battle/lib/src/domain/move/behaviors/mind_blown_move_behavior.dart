@@ -12,9 +12,9 @@ import 'battle_move_behavior_support.dart';
 /// Pokemon SDK registers Mind Blown, Steel Beam and Chloroblast on the same
 /// class. They are not regular recoil moves: after a successful Basic hit they
 /// run `deal_effect`, which removes half of the user's max HP. The same crash
-/// also happens when accuracy or target immunity prevents the hit. Ability
-/// gates (`Damp`, `Wonder Guard`) remain outside this slice because the PSDK
-/// combatant snapshot does not carry ability data yet.
+/// also happens when accuracy or target immunity prevents the hit. `Damp` is
+/// handled by the ability move-prevention hook, while the user's `Wonder Guard`
+/// skips the crash damage like PSDK's `crash_procedure`.
 final class MindBlownMoveBehavior implements BattleMoveBehavior {
   const MindBlownMoveBehavior.mindBlown() : battleEngineMethod = 's_mind_blown';
 
@@ -51,6 +51,10 @@ final class MindBlownMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: context.move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
       ),
     );
     if (damageResult.damage <= 0) {
@@ -121,6 +125,15 @@ final class MindBlownMoveBehavior implements BattleMoveBehavior {
     bool successful = true,
   }) {
     final user = state.battlerAt(context.user);
+    if (user.abilityId == 'wonder_guard') {
+      return BattleMoveBehaviorResolution(
+        state: state,
+        rng: rng,
+        events: events,
+        successful: successful,
+      );
+    }
+
     final crash = applyDirectDamage(
       state: state,
       user: context.user,

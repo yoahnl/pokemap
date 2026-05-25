@@ -72,12 +72,168 @@ void main() {
       expect(result.missedTargets, isEmpty);
       expect(result.rng.seeds.moveAccuracy, isNot(99));
     });
+
+    test('accuracy and evasion stages modify chance of hit like PSDK', () {
+      final neutral = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 90,
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final loweredAccuracy = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 90,
+          playerStatStages: PsdkBattleStatStages(
+            values: <String, int>{'accuracy': -1},
+          ),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final raisedEvasion = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 90,
+          opponentStatStages: PsdkBattleStatStages(
+            values: <String, int>{'evasion': 1},
+          ),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+
+      expect(neutral.hitTargets, <BattlePositionRef>[_opponent]);
+      expect(loweredAccuracy.missedTargets, <BattlePositionRef>[_opponent]);
+      expect(raisedEvasion.missedTargets, <BattlePositionRef>[_opponent]);
+    });
+
+    test('held accuracy items modify chance of hit like PSDK item hooks', () {
+      final wideLens = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 91,
+          moveAccuracySeed: 99,
+          playerHeldItemId: 'wide_lens',
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final wideLensBaseline = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 91,
+          moveAccuracySeed: 99,
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final laxIncense = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 98,
+          opponentHeldItemId: 'lax_incense',
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final brightPowder = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 98,
+          opponentHeldItemId: 'bright_powder',
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+
+      expect(wideLens.hitTargets, <BattlePositionRef>[_opponent]);
+      expect(wideLensBaseline.missedTargets, <BattlePositionRef>[_opponent]);
+      expect(laxIncense.missedTargets, <BattlePositionRef>[_opponent]);
+      expect(brightPowder.missedTargets, <BattlePositionRef>[_opponent]);
+    });
+
+    test('Zoom Lens improves accuracy only after the target acted', () {
+      final afterTarget = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 84,
+          moveAccuracySeed: 90,
+          playerHeldItemId: 'zoom_lens',
+          opponentMoveHistory: PsdkBattleMoveHistory(
+            attempts: <PsdkBattleMoveHistoryEntry>[
+              PsdkBattleMoveHistoryEntry(
+                moveId: 'quick_attack',
+                turn: 1,
+                targets: <PsdkBattleSlotRef>[psdkPlayerSlot],
+                attackOrder: 0,
+              ),
+            ],
+          ),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final beforeTarget = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 84,
+          moveAccuracySeed: 90,
+          playerHeldItemId: 'zoom_lens',
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final previousTurn = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 84,
+          moveAccuracySeed: 90,
+          playerHeldItemId: 'zoom_lens',
+          opponentMoveHistory: PsdkBattleMoveHistory(
+            attempts: <PsdkBattleMoveHistoryEntry>[
+              PsdkBattleMoveHistoryEntry(
+                moveId: 'quick_attack',
+                turn: 0,
+                targets: <PsdkBattleSlotRef>[psdkPlayerSlot],
+                attackOrder: 0,
+              ),
+            ],
+          ),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+
+      expect(afterTarget.hitTargets, <BattlePositionRef>[_opponent]);
+      expect(beforeTarget.missedTargets, <BattlePositionRef>[_opponent]);
+      expect(previousTurn.missedTargets, <BattlePositionRef>[_opponent]);
+    });
+
+    test('Tangled Feet halves chance of hit while the target is confused', () {
+      final confusedTarget = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 60,
+          opponentAbilityId: 'tangled_feet',
+          opponentEffects: PsdkBattleEffectStack(values: <String>[
+            PsdkBattleEffectIds.confusion,
+          ]),
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+      final clearTarget = const BattleAccuracyResolver().resolve(
+        execution: _execution(
+          accuracy: 100,
+          moveAccuracySeed: 60,
+          opponentAbilityId: 'tangled_feet',
+        ),
+        targets: const <BattlePositionRef>[_opponent],
+      );
+
+      expect(confusedTarget.missedTargets, <BattlePositionRef>[_opponent]);
+      expect(clearTarget.hitTargets, <BattlePositionRef>[_opponent]);
+    });
   });
 }
 
 BattleMoveProcedureExecution _execution({
   required int accuracy,
   required int moveAccuracySeed,
+  String? playerHeldItemId,
+  String? opponentHeldItemId,
+  String? opponentAbilityId,
+  PsdkBattleEffectStack? opponentEffects,
+  PsdkBattleMoveHistory? opponentMoveHistory,
+  PsdkBattleStatStages? playerStatStages,
+  PsdkBattleStatStages? opponentStatStages,
 }) {
   final move = BattleMoveDefinition(
     id: 'tackle',
@@ -94,7 +250,18 @@ BattleMoveProcedureExecution _execution({
   );
   return BattleMoveProcedureExecution(
     context: BattleMoveBehaviorContext(
-      state: PsdkBattleState.fromSetup(_setup(move.psdkMove)),
+      state: PsdkBattleState.fromSetup(
+        _setup(
+          move.psdkMove,
+          playerHeldItemId: playerHeldItemId,
+          opponentHeldItemId: opponentHeldItemId,
+          opponentAbilityId: opponentAbilityId,
+          opponentEffects: opponentEffects,
+          opponentMoveHistory: opponentMoveHistory,
+          playerStatStages: playerStatStages,
+          opponentStatStages: opponentStatStages,
+        ),
+      ),
       rng: BattleRngStreams.fromSeeds(
         moveDamageSeed: 1,
         moveCriticalSeed: 2,
@@ -113,10 +280,31 @@ BattleMoveProcedureExecution _execution({
   );
 }
 
-PsdkBattleSetup _setup(PsdkBattleMoveData move) {
+PsdkBattleSetup _setup(
+  PsdkBattleMoveData move, {
+  String? playerHeldItemId,
+  String? opponentHeldItemId,
+  String? opponentAbilityId,
+  PsdkBattleEffectStack? opponentEffects,
+  PsdkBattleMoveHistory? opponentMoveHistory,
+  PsdkBattleStatStages? playerStatStages,
+  PsdkBattleStatStages? opponentStatStages,
+}) {
   return PsdkBattleSetup.singles(
-    player: _combatant(id: 'player', moves: <PsdkBattleMoveData>[move]),
-    opponent: _combatant(id: 'opponent'),
+    player: _combatant(
+      id: 'player',
+      heldItemId: playerHeldItemId,
+      statStages: playerStatStages,
+      moves: <PsdkBattleMoveData>[move],
+    ),
+    opponent: _combatant(
+      id: 'opponent',
+      abilityId: opponentAbilityId,
+      heldItemId: opponentHeldItemId,
+      effects: opponentEffects,
+      moveHistory: opponentMoveHistory,
+      statStages: opponentStatStages,
+    ),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 2,
@@ -128,6 +316,11 @@ PsdkBattleSetup _setup(PsdkBattleMoveData move) {
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? abilityId,
+  String? heldItemId,
+  PsdkBattleEffectStack? effects,
+  PsdkBattleMoveHistory? moveHistory,
+  PsdkBattleStatStages? statStages,
   List<PsdkBattleMoveData>? moves,
 }) {
   return PsdkBattleCombatantSetup(
@@ -145,6 +338,11 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: 50,
     ),
+    abilityId: abilityId,
+    heldItemId: heldItemId,
+    effects: effects,
+    moveHistory: moveHistory,
+    statStages: statStages,
     moves: moves ?? <PsdkBattleMoveData>[moveStub()],
   );
 }

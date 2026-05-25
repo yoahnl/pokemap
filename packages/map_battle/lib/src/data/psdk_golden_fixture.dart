@@ -98,6 +98,7 @@ class PsdkGoldenFixture {
       player: initialBattle.player.toSetup(),
       opponent: initialBattle.opponent.toSetup(),
       rngSeeds: initialBattle.rngSeeds,
+      field: initialBattle.field,
     );
   }
 
@@ -138,6 +139,7 @@ class PsdkGoldenExpectedAuditDeltas {
 class PsdkGoldenInitialBattle {
   const PsdkGoldenInitialBattle({
     required this.rngSeeds,
+    required this.field,
     required this.player,
     required this.opponent,
   });
@@ -151,12 +153,16 @@ class PsdkGoldenInitialBattle {
         moveAccuracy: _requiredInt(rngSeeds, 'moveAccuracy'),
         generic: _requiredInt(rngSeeds, 'generic'),
       ),
+      field: json['field'] == null
+          ? const PsdkBattleFieldState()
+          : _fieldFromJson(_requiredMap(json, 'field')),
       player: PsdkGoldenCombatant.fromJson(_requiredMap(json, 'player')),
       opponent: PsdkGoldenCombatant.fromJson(_requiredMap(json, 'opponent')),
     );
   }
 
   final PsdkBattleRngSeeds rngSeeds;
+  final PsdkBattleFieldState field;
   final PsdkGoldenCombatant player;
   final PsdkGoldenCombatant opponent;
 }
@@ -421,6 +427,39 @@ PsdkBattleStats _statsFromJson(Map<String, Object?> json) {
   );
 }
 
+PsdkBattleFieldState _fieldFromJson(Map<String, Object?> json) {
+  return PsdkBattleFieldState(
+    weather: json['weather'] == null
+        ? null
+        : _weatherStateFromJson(_requiredMap(json, 'weather')),
+    terrain: json['terrain'] == null
+        ? null
+        : _terrainStateFromJson(_requiredMap(json, 'terrain')),
+  );
+}
+
+PsdkBattleWeatherState _weatherStateFromJson(Map<String, Object?> json) {
+  return PsdkBattleWeatherState(
+    id: _requiredEnum(
+      PsdkBattleWeatherId.values,
+      _requiredString(json, 'id'),
+      'weather.id',
+    ),
+    remainingTurns: _requiredInt(json, 'remainingTurns'),
+  );
+}
+
+PsdkBattleTerrainState _terrainStateFromJson(Map<String, Object?> json) {
+  return PsdkBattleTerrainState(
+    id: _requiredEnum(
+      PsdkBattleTerrainId.values,
+      _requiredString(json, 'id'),
+      'terrain.id',
+    ),
+    remainingTurns: _requiredInt(json, 'remainingTurns'),
+  );
+}
+
 PsdkBattleMoveData _moveFromJson(Map<String, Object?> json) {
   return PsdkBattleMoveData(
     id: _requiredString(json, 'id'),
@@ -445,8 +484,26 @@ PsdkBattleMoveData _moveFromJson(Map<String, Object?> json) {
       _requiredString(json, 'target'),
       'target',
     ),
+    contact: _optionalBool(json, 'contact') ??
+        _optionalBool(json, 'isDirect') ??
+        false,
     protectable: _optionalBool(json, 'protectable') ?? true,
     sound: _optionalBool(json, 'sound') ?? false,
+    bite: _optionalBool(json, 'bite') ?? false,
+    pulse: _optionalBool(json, 'pulse') ?? false,
+    ballistics: _optionalBool(json, 'ballistics') ??
+        _optionalBool(json, 'ballistic') ??
+        false,
+    kingRockUtility: _optionalBool(json, 'kingRockUtility') ??
+        _optionalBool(json, 'isKingRockUtility') ??
+        false,
+    heal: _optionalBool(json, 'heal') ?? _optionalBool(json, 'isHeal') ?? false,
+    snatchable: _optionalBool(json, 'snatchable') ??
+        _optionalBool(json, 'isSnatchable') ??
+        false,
+    magicCoatAffected: _optionalBool(json, 'magicCoatAffected') ??
+        _optionalBool(json, 'isMagicCoatAffected') ??
+        false,
   );
 }
 

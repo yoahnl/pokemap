@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/ability/unaware_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_secondary_effect_resolver.dart';
@@ -63,6 +64,10 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: context.move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
         overrides: BattleMoveDamageOverrides(
           offensiveStatResolver: (isCritical) => _offensiveStat(
             user: user,
@@ -84,7 +89,7 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -92,6 +97,7 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: context.move,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -107,7 +113,7 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
       ],
     );
@@ -129,7 +135,9 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
           'attack',
           // PSDK FoulPlay also returns stage modifier 1 on critical hit, using
           // the target's raw Attack instead of any target Attack stage.
-          ignoreAllStages: isCritical,
+          ignoreAllStages: isCritical ||
+              (battlerHasActiveUnaware(target) &&
+                  !_bypassesTargetAbility(user)),
         ),
       _CustomStatSourceKind.psyshock ||
       _CustomStatSourceKind.customStatsBased =>
@@ -175,4 +183,14 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       'Unsupported s_custom_stats_based dbSymbol "${context.move.dbSymbol}".',
     );
   }
+}
+
+bool _bypassesTargetAbility(PsdkBattleCombatant user) {
+  if (user.effects.contains('ability_suppressed')) {
+    return false;
+  }
+  final abilityId = user.abilityId?.trim().toLowerCase();
+  return abilityId == 'mold_breaker' ||
+      abilityId == 'teravolt' ||
+      abilityId == 'turboblaze';
 }

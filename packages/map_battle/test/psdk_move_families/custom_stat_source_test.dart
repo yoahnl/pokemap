@@ -192,6 +192,49 @@ void main() {
       expect(_damage(result, moveId: 'photon_geyser'), 53);
     });
 
+    test('s_photon_geyser chooses its category after stat stage modifiers', () {
+      final neutral = _runMove(
+        playerMove: _move(
+          id: 'photon_geyser',
+          battleEngineMethod: 's_photon_geyser',
+          power: 100,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(
+          attack: 60,
+          specialAttack: 80,
+        ),
+        opponentStats: _stats(
+          defense: 40,
+          specialDefense: 200,
+        ),
+      );
+      final attackBoost = _runMove(
+        playerMove: _move(
+          id: 'photon_geyser',
+          battleEngineMethod: 's_photon_geyser',
+          power: 100,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(
+          attack: 60,
+          specialAttack: 80,
+        ),
+        playerStages: PsdkBattleStatStages(values: const <String, int>{
+          'attack': 2,
+        }),
+        opponentStats: _stats(
+          defense: 40,
+          specialDefense: 200,
+        ),
+      );
+
+      expect(
+        _damage(attackBoost, moveId: 'photon_geyser'),
+        greaterThan(_damage(neutral, moveId: 'photon_geyser')),
+      );
+    });
+
     test('custom stat-source moves keep PSDK critical stage rules', () {
       final bodyPressCrit = _runMove(
         playerMove: _move(
@@ -306,6 +349,40 @@ void main() {
         ),
         throwsUnsupportedError,
       );
+    });
+
+    test('Studio s_basic secret_sword uses Special Attack against Defense', () {
+      final highSpecialDefenseTarget = _runMove(
+        playerMove: _move(
+          id: 'secret_sword',
+          dbSymbol: 'secret_sword',
+          battleEngineMethod: 's_basic',
+          power: 80,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(specialAttack: 100),
+        opponentStats: _stats(
+          defense: 50,
+          specialDefense: 200,
+        ),
+      );
+      final highDefenseTarget = _runMove(
+        playerMove: _move(
+          id: 'secret_sword',
+          dbSymbol: 'secret_sword',
+          battleEngineMethod: 's_basic',
+          power: 80,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(specialAttack: 100),
+        opponentStats: _stats(
+          defense: 100,
+          specialDefense: 50,
+        ),
+      );
+
+      expect(_damage(highSpecialDefenseTarget, moveId: 'secret_sword'), 29);
+      expect(_damage(highDefenseTarget, moveId: 'secret_sword'), 15);
     });
 
     test('custom stat-source moves keep the post-damage secondary chain', () {

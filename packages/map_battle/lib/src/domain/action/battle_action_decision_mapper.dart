@@ -5,8 +5,10 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../decision/battle_decision.dart';
+import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
+import '../effect/move/bide_effect.dart';
 import '../effect/move/two_turn_charge_effect.dart';
 import 'battle_action.dart';
 
@@ -63,9 +65,12 @@ final class PsdkBattleActionDecisionMapper {
   }) {
     final battler = state.battlerAt(user);
     final twoTurnCharge = _twoTurnCharge(battler);
+    final bide = _bide(battler);
     final chargedMoveSlot =
         _chargedMoveSlot(battler: battler, charge: twoTurnCharge);
-    final effectiveMoveSlot = chargedMoveSlot ?? moveSlot;
+    final bideMoveSlot = _bideMoveSlot(battler: battler, bide: bide);
+    final forcedTarget = twoTurnCharge?.chargedTarget ?? bide?.chargedTarget;
+    final effectiveMoveSlot = chargedMoveSlot ?? bideMoveSlot ?? moveSlot;
     if (effectiveMoveSlot < 0 || effectiveMoveSlot >= battler.moves.length) {
       throw RangeError.range(
         effectiveMoveSlot,
@@ -76,14 +81,14 @@ final class PsdkBattleActionDecisionMapper {
     }
     final move = _effectiveActionMove(
       state: state,
+      user: user,
       battler: battler,
       move: battler.moves[effectiveMoveSlot],
     );
     return PsdkBattleFightAction(
       user: user,
-      target: chargedMoveSlot != null
-          ? twoTurnCharge!.chargedTarget
-          : requestedTarget ?? _targetFor(user: user, move: move),
+      target:
+          forcedTarget ?? requestedTarget ?? _targetFor(user: user, move: move),
       moveSlot: effectiveMoveSlot,
       move: move,
       speed: _actionSpeed(state: state, user: user, battler: battler),
@@ -91,10 +96,35 @@ final class PsdkBattleActionDecisionMapper {
   }
 }
 
+BideEffect? _bide(PsdkBattleCombatant battler) {
+  for (final effect in battler.effects.effects) {
+    if (effect is BideEffect) {
+      return effect;
+    }
+  }
+  return null;
+}
+
 TwoTurnChargeEffect? _twoTurnCharge(PsdkBattleCombatant battler) {
   for (final effect in battler.effects.effects) {
     if (effect is TwoTurnChargeEffect) {
       return effect;
+    }
+  }
+  return null;
+}
+
+int? _bideMoveSlot({
+  required PsdkBattleCombatant battler,
+  required BideEffect? bide,
+}) {
+  final forcedMoveId = bide?.forcedMoveId;
+  if (forcedMoveId == null) {
+    return null;
+  }
+  for (var index = 0; index < battler.moves.length; index++) {
+    if (battler.moves[index].id == forcedMoveId) {
+      return index;
     }
   }
   return null;
@@ -118,16 +148,46 @@ int? _chargedMoveSlot({
 
 PsdkBattleMoveData _effectiveActionMove({
   required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
   required PsdkBattleCombatant battler,
   required PsdkBattleMoveData move,
 }) {
-  if (move.battleEngineMethod != 's_grassy_glide' ||
-      !state.field.isTerrainActive(PsdkBattleTerrainId.grassyTerrain) ||
-      !const BattleGroundingResolver().isGrounded(battler) ||
-      move.priority >= 14) {
-    return move;
+  var nextMove = move;
+  if (nextMove.battleEngineMethod == 's_grassy_glide' &&
+      state.field.isTerrainActive(PsdkBattleTerrainId.grassyTerrain) &&
+      const BattleGroundingResolver().isGrounded(battler) &&
+      nextMove.priority < 14) {
+    nextMove = _copyMoveWithPriority(nextMove, nextMove.priority + 1);
   }
-  return _copyMoveWithPriority(move, move.priority + 1);
+  return _applyAbilityPriority(
+    state: state,
+    user: user,
+    battler: battler,
+    move: nextMove,
+  );
+}
+
+PsdkBattleMoveData _applyAbilityPriority({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleCombatant battler,
+  required PsdkBattleMoveData move,
+}) {
+  var priority = move.priority;
+  for (final effect in battler.abilityEffects) {
+    priority += effect.movePriorityModifier(
+      BattleAbilityMovePriorityContext(
+        state: state,
+        user: user,
+        battler: battler,
+        move: move,
+        currentPriority: priority,
+      ),
+    );
+  }
+  return priority == move.priority
+      ? move
+      : _copyMoveWithPriority(move, priority);
 }
 
 PsdkBattleMoveData _copyMoveWithPriority(
@@ -149,7 +209,15 @@ PsdkBattleMoveData _copyMoveWithPriority(
     effectChance: move.effectChance,
     battleEngineMethod: move.battleEngineMethod,
     target: move.target,
+    contact: move.contact,
     protectable: move.protectable,
+    sound: move.sound,
+    bite: move.bite,
+    pulse: move.pulse,
+    wind: move.wind,
+    ballistics: move.ballistics,
+    kingRockUtility: move.kingRockUtility,
+    heal: move.heal,
     statuses: move.statuses,
     stageMods: move.stageMods,
   );
@@ -160,9 +228,18 @@ int _actionSpeed({
   required PsdkBattleSlotRef user,
   required PsdkBattleCombatant battler,
 }) {
-  var speed = _itemAdjustedSpeed(battler);
+  var speed = _adjustedStat(
+    state: state,
+    battlerSlot: user,
+    battler: battler,
+    stat: 'speed',
+    value: battler.stats.speed,
+  );
   if (_bankHasEffect(state, user.bank, 'tailwind')) {
     speed *= 2;
+  }
+  if (_bankHasEffect(state, user.bank, 'pledge_swamp')) {
+    speed = (speed * 0.25).floor().clamp(1, speed).toInt();
   }
   if (battler.majorStatus != PsdkBattleMajorStatus.paralysis ||
       battler.abilityId == 'quick_feet') {
@@ -172,12 +249,34 @@ int _actionSpeed({
   return paralyzedSpeed < 1 ? 1 : paralyzedSpeed;
 }
 
-int _itemAdjustedSpeed(PsdkBattleCombatant battler) {
+int _adjustedStat({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef battlerSlot,
+  required PsdkBattleCombatant battler,
+  required String stat,
+  required int value,
+}) {
   var multiplier = 1.0;
-  for (final effect in battler.activeItemEffects) {
-    multiplier *= effect.statMultiplier(battler, 'speed');
+  for (final effect in state.activeItemEffectsAt(battlerSlot)) {
+    multiplier *= effect.statMultiplier(battler, stat);
   }
-  final adjusted = (battler.stats.speed * multiplier).floor();
+  final abilityContext = BattleAbilityStatContext(
+    field: state.field,
+    battler: battler,
+    stat: stat,
+    state: state,
+    battlerSlot: battlerSlot,
+    weatherEffectsSuppressed: state.weatherEffectsSuppressed,
+  );
+  for (final effect in battler.abilityEffects) {
+    multiplier *= effect.statMultiplier(abilityContext);
+  }
+  for (final effect in state.activeAbilityEffects()) {
+    if (effect.affectsGlobalStats && !effect.isOwnedBy(battlerSlot)) {
+      multiplier *= effect.statMultiplier(abilityContext);
+    }
+  }
+  final adjusted = (value * multiplier).floor();
   return adjusted < 1 ? 1 : adjusted;
 }
 

@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
+import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
+
 final _classLinePattern = RegExp(
   r'^\s*class\s+([A-Za-z_][A-Za-z0-9_:]*)(?:\s*<\s*([A-Za-z0-9_:]+))?',
 );
@@ -50,7 +53,11 @@ Future<List<_EffectMatrixRow>> _extractRows(Directory root) async {
           hookFamilies: _hookFamiliesFor(parsedClass.sortedHooks),
           rubyPath: relativePath,
           dartTargetPath: _dartTargetPath(parsedClass.name, relativePath),
-          status: _statusFor(parsedClass.name),
+          status: _statusFor(
+            parsedClass.name,
+            family: _effectFamily(relativePath),
+            rubyPath: relativePath,
+          ),
           notes: _notesFor(parsedClass.name),
         ),
       );
@@ -278,55 +285,145 @@ String _dartTargetPath(String effectName, String rubyPath) {
 String _notesFor(String effectName) {
   return switch (effectName) {
     'AquaRing' =>
-      'Object-backed AquaRingEffect heals at end turn and transfers through Baton Pass; Big Root branch is local.',
+      'Object-backed AquaRingEffect heals at end turn, honors Big Root through item hooks and transfers through Baton Pass.',
     'ArenaTrap' =>
       'Object-backed ShadowTagEffect.arenaTrap prevents opposing grounded non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work.',
     'Attract' =>
       'Object-backed AttractEffect performs the PSDK 50% user-prevention roll against the attracting battler; gender immunity, Destiny Knot mirroring and delete messages remain future work.',
+    'Autotomize' =>
+      'StaticBasicMoveRegistry.s_autotomize installs the marker, applies the Speed raise and records local weight loss only when the stat raise succeeds.',
+    'AuroraVeil' =>
+      'StaticBasicMoveRegistry.s_reflect installs Aurora Veil only under active hail/snow, supports Light Clay duration, duplicate failure and screen damage reduction.',
     'BatonPass' =>
       'Object-backed BatonPassEffect marks switch transfer; the current handler transfers stat stages and transferable effects, while full party switch action remains future work.',
     'Bind' =>
-      'Object-backed BindEffect prevents regular switch attempts, applies residual end-turn damage, honors Magic Guard, Grip Claw and Binding Band, stops when the origin fainted, and is Rapid Spin-cleanable; delete messages remain future work.',
+      'Object-backed BindEffect prevents regular switch attempts, applies residual end-turn damage, honors Magic Guard, Grip Claw and Binding Band, stops when the origin fainted, and is Rapid Spin-cleanable.',
+    'BurnUp' =>
+      'SpecialSecondaryMoveBehavior.s_burn_up requires an owned Fire typing, deals damage, then removes the matching battle type locally.',
     'CantSwitch' =>
       'Object-backed CantSwitchEffect prevents regular switch attempts, transfers through Baton Pass and clears once the origin fainted; full switch-event cleanup and message parity remain future work.',
+    'Charge' =>
+      'StaticBasicMoveRegistry.s_charge installs a timed marker, applies the Special Defense raise and BattleMoveDamageCalculator doubles the next Electric move power.',
+    'CenterOfAttention' =>
+      'BattleTargetResolver redirects eligible single-target foe moves toward center_of_attention holders and respects prevent_targets_move; Rage Powder-specific Grass/Overcoat/Safety Goggles immunity remains future work.',
     'Confusion' =>
       'Object-backed ConfusionEffect runs the PSDK user-prevention lifecycle: countdown, last-turn cleanup, 50% self-hit roll and typeless 40-power self damage; PSDK move statuses can now apply CONFUSED as a volatile effect, while Own Tempo/Persim-style cures and battle messages remain future work.',
+    'CraftyShield' =>
+      'Object-backed CraftyShieldEffect blocks opposing status moves against the protected bank while allowing self-targeting and Curse.',
     'Curse' =>
-      'Object-backed CurseEffect applies end-turn damage and transfers through Baton Pass; Magic Guard is checked by id.',
+      'Object-backed CurseEffect applies PSDK ghost-curse end-turn damage, honors Magic Guard and transfers through Baton Pass.',
     'Disable' =>
-      'Object-backed DisableEffect blocks the target last successful non-Struggle move through the user-prevention hook; UI disabled checks and deletion messages remain future work.',
+      'Object-backed DisableEffect blocks execution and selection of the disabled move for the PSDK four-turn lifecycle.',
+    'DragonCheer' =>
+      'StaticBasicMoveRegistry.s_dragon_cheer installs a bank marker and the critical resolver applies the Dragon/non-Dragon critical-rate branches.',
+    'Embargo' =>
+      'Object-backed EmbargoEffect suppresses held-item effects, keeps the PSDK five-turn lifecycle and transfers through Baton Pass.',
     'Encore' =>
-      'Object-backed EncoreEffect blocks choosing a different move than the encored last successful move; PP forcing, UI selection forcing and deletion messages remain future work.',
+      'Object-backed EncoreEffect blocks execution and selection of moves other than the encored move for the PSDK three-turn lifecycle.',
+    'Electrify' =>
+      'StaticBasicMoveRegistry.s_electrify installs the turn marker and move type resolution rewrites the holder move to Electric.',
     'Flinch' =>
       'Object-backed FlinchEffect blocks the target next action through the user-prevention hook and clears at end turn; messaging and Steadfast-style side effects remain future work.',
+    'FocusEnergy' =>
+      'StaticBasicMoveRegistry.s_focus_energy installs the self marker and the critical resolver applies the +2 critical-rate boost.',
+    'Foresight' =>
+      'StaticBasicMoveRegistry.s_foresight installs the marker and type effectiveness locally bypasses Normal/Fighting into Ghost immunity.',
+    'GlaiveRush' =>
+      'StaticBasicMoveRegistry.s_glaive_rush installs the timed marker after damage and damage calculation applies the doubled incoming damage branch.',
+    'Gravity' =>
+      'StaticBasicMoveRegistry field marker installs gravity with duration; grounding resolver and Gravity-sensitive move formulas observe the effect.',
     'HealBlock' =>
-      'Object-backed HealBlockEffect blocks local healing battle methods through the user-prevention hook; Studio heal flags, messages and all item/ability exceptions remain future work.',
+      'Object-backed HealBlockEffect blocks execution and selection of local healing battle methods for the PSDK five-turn lifecycle.',
     'Imprison' =>
-      'Object-backed ImprisonEffect blocks shared foe move ids through the user-prevention hook; the current Dart storage is target-local until global PSDK effect dispatch exists.',
+      'Object-backed ImprisonEffect blocks execution and selection of shared imprisoned move ids while allowing the owner and Struggle.',
     'Ingrain' =>
-      'Object-backed IngrainEffect heals at end turn, grounds the user, prevents regular switch-out and transfers through Baton Pass; Ghost/Teleport/forced-switch exceptions remain future work.',
+      'Object-backed IngrainEffect heals at end turn, honors Big Root through item hooks, grounds the user, prevents regular switch-out and transfers through Baton Pass.',
+    'LaserFocus' =>
+      'StaticBasicMoveRegistry.s_laser_focus installs the timed marker and the critical resolver forces the next critical branch.',
     'LeechSeed' =>
-      'Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard, punishes the source through Liquid Ooze and transfers through Baton Pass; full mark/origin cleanup remains future work.',
+      'Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard, punishes the source through Liquid Ooze, honors Big Root and transfers through Baton Pass.',
+    'LightScreen' =>
+      'StaticBasicMoveRegistry.s_reflect installs Light Screen, supports Light Clay duration, duplicate failure and special damage reduction with Infiltrator bypass.',
+    'LuckyChant' =>
+      'StaticBasicMoveRegistry.s_lucky_chant installs the bank-scoped Lucky Chant marker and critical-rate resolution observes it.',
     'MagnetPull' =>
       'Object-backed ShadowTagEffect.magnetPull prevents opposing Steel non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work.',
+    'MagicRoom' =>
+      'StaticBasicMoveRegistry field marker installs Magic Room and held-item effect resolution suppresses item hooks while it is active.',
+    'MagnetRise' =>
+      'StaticBasicMoveRegistry.s_magnet_rise installs the five-turn marker and grounding resolution treats the holder as airborne unless forced grounded.',
+    'MatBlock' =>
+      'Object-backed MatBlockEffect blocks protectable damaging moves against the protected bank and lets status moves through.',
+    'Minimize' =>
+      'StaticBasicMoveRegistry.s_minimize installs the marker; Heavy Slam and Double Iron Bash consume it for accuracy bypass and boosted power.',
+    'MiracleEye' =>
+      'StaticBasicMoveRegistry.s_miracle_eye installs the marker and type effectiveness locally bypasses Psychic into Dark immunity.',
+    'Mist' =>
+      'StaticBasicMoveRegistry.s_mist installs the bank-scoped marker and stat-change prevention blocks opposing stat drops for the whole bank.',
+    'MudSport' =>
+      'StaticBasicMoveRegistry.s_thing_sport installs Mud Sport and damage calculation halves Electric move power while active.',
+    'Nightmare' =>
+      'Object-backed NightmareEffect applies PSDK one-quarter end-turn damage to sleeping or Comatose targets, honors Magic Guard and clears when the target is no longer asleep.',
+    'PerishSong' =>
+      'Object-backed PerishSongEffect counts down at end turn, transfers through Baton Pass and faints the holder when the counter resolves.',
+    'Powder' =>
+      'Object-backed PowderEffect prevents Fire move execution for its holder and applies one-quarter max HP damage.',
+    'PreventTargetsMove' =>
+      'Object-backed PreventTargetsMoveEffect blocks carried targets through the user-prevention hook and Sky Drop installs the one-turn marker on its first turn.',
     'Protect' =>
       'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.',
+    'QuickGuard' =>
+      'Object-backed QuickGuardEffect blocks positive-priority protectable moves against the protected bank.',
+    'Rage' =>
+      'StaticBasicMoveRegistry.s_rage installs the marker after a hit and BattleDamageHandler raises Attack when the marked battler takes opposing damage.',
+    'Reflect' =>
+      'StaticBasicMoveRegistry.s_reflect installs Reflect, supports Light Clay duration, duplicate failure and physical damage reduction with Infiltrator bypass.',
+    'Safeguard' =>
+      'StaticBasicMoveRegistry.s_safe_guard installs the bank-scoped marker; major and volatile status application honor it with Infiltrator bypass.',
     'SaltCure' =>
-      'Object-backed SaltCureEffect applies end-turn residual damage with the Water/Steel divisor branch; messages and full cleanup hooks remain future work.',
+      'Object-backed SaltCureEffect applies end-turn residual damage with the Water/Steel divisor branch and honors Magic Guard.',
     'ShadowTag' =>
       'Object-backed ShadowTagEffect prevents opposing non-Ghost non-Shadow Tag switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work.',
     'SmackDown' =>
       'Object-backed SmackDownEffect forces grounded checks and removes Flying immunity for local Ground damage; flying-effect cleanup remains future work.',
+    'Spikes' =>
+      'StaticBasicMoveRegistry.s_spike installs and empowers Spikes layers; BattleSwitchHandler applies grounded entry damage.',
+    'StealthRock' =>
+      'StaticBasicMoveRegistry.s_stealth_rock installs Stealth Rock once; BattleSwitchHandler applies type-aware entry damage.',
+    'StickyWeb' =>
+      'StaticBasicMoveRegistry.s_sticky_web installs Sticky Web once; BattleSwitchHandler applies grounded Speed drops and preserves origin.',
+    'Stockpile' =>
+      'StaticBasicMoveRegistry.s_stockpile installs the marker and applies the paired Defense/Special Defense raises.',
     'SyrupBomb' =>
-      'Object-backed SyrupBombEffect applies timed end-turn Speed drops; full counter lifecycle and message parity remain future work.',
-    'Taunt' =>
-      'Object-backed TauntEffect blocks status moves through the user-prevention hook; move-disabled UI messaging and full deletion messages remain future work.',
+      'Object-backed SyrupBombEffect applies timed end-turn Speed drops and clears when its counter resolves.',
+    'Tailwind' =>
+      'StaticBasicMoveRegistry.s_tailwind installs the bank-scoped marker, rejects duplicate use and action ordering doubles that bank speed.',
     'TarShot' =>
-      'Object-backed TarShotEffect records the target fire-weakness marker; type-multiplier overwrite remains future work.',
+      'Object-backed TarShotEffect marks the target and damage calculation doubles local Fire effectiveness against that holder.',
+    'Taunt' =>
+      'Object-backed TauntEffect blocks execution and selection of status moves for the PSDK three-turn lifecycle.',
+    'Telekinesis' =>
+      'StaticBasicMoveRegistry.s_telekinesis installs the timed marker and grounding/type-immunity resolution treats the holder as airborne.',
     'ThroatChop' =>
-      'Object-backed ThroatChopEffect blocks sound-flagged moves through the user-prevention hook; disabled-move UI checks and messages remain future work.',
+      'Object-backed ThroatChopEffect blocks execution and selection of sound-flagged moves for the PSDK three-turn lifecycle.',
     'Torment' =>
-      'Object-backed TormentEffect blocks repeating the last successful non-Struggle move; Instruct and switch-in timing branches remain future work.',
+      'Object-backed TormentEffect blocks execution and selection of the last successful non-Struggle move.',
+    'ToxicSpikes' =>
+      'StaticBasicMoveRegistry.s_toxic_spike installs and empowers Toxic Spikes layers; BattleSwitchHandler poisons grounded entrants or clears on Poison-type entry.',
+    'Transform' =>
+      'TransformMoveBehavior copies the target battle form, ability, stats, stages and moves while switch handling clears transformed state.',
+    'TrickRoom' =>
+      'Object-backed TrickRoomEffect toggles the field marker, ticks duration and action ordering observes reversed speed.',
+    'UpRoar' =>
+      'ForcedActionMoveBehavior.s_uproar deals damage, installs the timed uproar marker and participates in the forced-action family.',
+    'WaterSport' =>
+      'StaticBasicMoveRegistry.s_thing_sport installs Water Sport and damage calculation halves Fire move power while active.',
+    'Wish' =>
+      'Object-backed WishEffect stores the queued heal amount, ticks end-turn duration and heals the current position holder when it resolves.',
+    'WideGuard' =>
+      'Object-backed WideGuardEffect blocks protectable spread moves against the protected bank.',
+    'WonderRoom' =>
+      'StaticBasicMoveRegistry field marker installs Wonder Room with duration; Defense/Special Defense stat swapping remains future work.',
     _ => '',
   };
 }
@@ -353,38 +450,19 @@ String _effectFamily(String rubyPath) {
   return 'mechanics';
 }
 
-_PsdkPortStatus _statusFor(String effectName) {
-  // Lot 14 has only a minimal Protect id/effect bridge, not the full generic
-  // PSDK EffectBase hook object. Mark it partial and keep everything else
-  // missing until the dedicated effect-system lots port them explicitly.
-  return switch (effectName) {
-    'AquaRing' ||
-    'ArenaTrap' ||
-    'Attract' ||
-    'BatonPass' ||
-    'Bind' ||
-    'CantSwitch' ||
-    'Confusion' ||
-    'Curse' ||
-    'Disable' ||
-    'Encore' ||
-    'Flinch' ||
-    'HealBlock' ||
-    'Imprison' ||
-    'Ingrain' ||
-    'LeechSeed' ||
-    'MagnetPull' ||
-    'Protect' ||
-    'SaltCure' ||
-    'ShadowTag' ||
-    'SmackDown' ||
-    'SyrupBomb' ||
-    'Taunt' ||
-    'TarShot' ||
-    'ThroatChop' ||
-    'Torment' =>
-      _PsdkPortStatus.partial,
-    _ => _PsdkPortStatus.missing,
+_PsdkPortStatus _statusFor(
+  String effectName, {
+  required String family,
+  required String rubyPath,
+}) {
+  return switch (psdkEffectPortStatusFor(
+    effectName: effectName,
+    family: family,
+    rubyPath: rubyPath,
+  )) {
+    PsdkPortStatus.ported => _PsdkPortStatus.ported,
+    PsdkPortStatus.partial => _PsdkPortStatus.partial,
+    PsdkPortStatus.missing => _PsdkPortStatus.missing,
   };
 }
 

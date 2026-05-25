@@ -2,6 +2,8 @@ import '../../battler/battle_combatant_history.dart';
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/battle_effect_scope.dart';
+import '../../effect/move/bide_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_prevention.dart';
 import 'battle_move_behavior_support.dart';
@@ -40,6 +42,10 @@ final class CounterDamageMoveBehavior implements BattleMoveBehavior {
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    if (_kind == _CounterDamageKind.bide) {
+      return _resolveBide(context);
+    }
+
     final prepared = prepareBattleMove(context, forceAccuracyBypass: true);
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
@@ -105,6 +111,97 @@ final class CounterDamageMoveBehavior implements BattleMoveBehavior {
     };
   }
 
+  BattleMoveBehaviorResolution _resolveBide(
+    BattleMoveBehaviorContext context,
+  ) {
+    final prepared = prepareBattleMove(context, forceAccuracyBypass: true);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    final targetSlot = prepared.psdkTargets.single;
+    final user = prepared.state.battlerAt(context.user);
+    final effect = _bideEffect(user);
+    if (effect == null) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state.updateBattler(
+          context.user,
+          (battler) => battler.copyWith(
+            effects: battler.effects.addEffect(
+              BideEffect(
+                scope: BattlerBattleEffectScope(context.user),
+                forcedMoveId: context.move.id,
+                chargedTarget: targetSlot,
+              ),
+            ),
+          ),
+        ),
+        rng: prepared.rng,
+        events: prepared.events,
+      );
+    }
+
+    if (!effect.canUnleash) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        events: prepared.events,
+      );
+    }
+
+    final amount = effect.storedDamage * 2;
+    if (amount <= 0) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state.updateBattler(
+          context.user,
+          (battler) => battler.copyWith(
+            effects: battler.effects.remove(effect.id),
+          ),
+        ),
+        rng: prepared.rng,
+        successful: false,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: targetSlot,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+      );
+    }
+
+    final applied = applyDirectDamage(
+      state: prepared.state,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      rng: prepared.rng,
+      turn: context.turn,
+      amount: amount,
+      moveCategory: context.move.category,
+      move: context.move,
+      canFlee: context.canFlee,
+      actionOrder: context.actionOrder,
+      targetActionOrder:
+          context.announcedMoveFor?.call(targetSlot)?.actionOrder,
+    );
+    return BattleMoveBehaviorResolution(
+      state: applied.state.updateBattler(
+        context.user,
+        (battler) => battler.copyWith(
+          effects: battler.effects.remove(effect.id),
+        ),
+      ),
+      rng: applied.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        if (applied.event != null) applied.event!,
+      ],
+    );
+  }
+
   bool _matchesCounterCategory(PsdkBattleDamageHistoryEntry entry) {
     return switch (_kind) {
       _CounterDamageKind.counter =>
@@ -115,4 +212,13 @@ final class CounterDamageMoveBehavior implements BattleMoveBehavior {
       _CounterDamageKind.bide => true,
     };
   }
+}
+
+BideEffect? _bideEffect(PsdkBattleCombatant user) {
+  for (final effect in user.effects.effects) {
+    if (effect is BideEffect) {
+      return effect;
+    }
+  }
+  return null;
 }

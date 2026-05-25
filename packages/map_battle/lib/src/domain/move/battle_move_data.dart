@@ -21,6 +21,12 @@ final class BattleMoveDefinition {
     required String battleEngineMethod,
     required this.target,
     BattleMoveFlags flags = const BattleMoveFlags(),
+    this.heal = false,
+    this.charge = false,
+    this.recharge = false,
+    this.mirrorMoveAffected = true,
+    this.snatchable = false,
+    this.magicCoatAffected = false,
     List<BattleStageMod> stageMods = const <BattleStageMod>[],
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -65,10 +71,23 @@ final class BattleMoveDefinition {
       effectChance: move.effectChance,
       battleEngineMethod: move.battleEngineMethod,
       target: move.target,
+      heal: move.heal,
       flags: BattleMoveFlags(
+        contact: move.contact,
         protectable: move.protectable,
         sound: move.sound,
+        bite: move.bite,
+        pulse: move.pulse,
+        wind: move.wind,
+        ballistics: move.ballistics,
+        dance: move.dance,
+        kingRockUtility: move.kingRockUtility,
       ),
+      charge: move.charge,
+      recharge: move.recharge,
+      mirrorMoveAffected: move.mirrorMoveAffected,
+      snatchable: move.snatchable,
+      magicCoatAffected: move.magicCoatAffected,
       stageMods: move.stageMods
           .map(
             (mod) => BattleStageMod(
@@ -97,6 +116,12 @@ final class BattleMoveDefinition {
   final String battleEngineMethod;
   final PsdkBattleMoveTarget target;
   final BattleMoveFlags flags;
+  final bool heal;
+  final bool charge;
+  final bool recharge;
+  final bool mirrorMoveAffected;
+  final bool snatchable;
+  final bool magicCoatAffected;
   final List<BattleStageMod> _stageMods;
   final List<PsdkBattleMoveStatus> _statuses;
 
@@ -122,6 +147,12 @@ final class BattleMoveDefinition {
     String? battleEngineMethod,
     PsdkBattleMoveTarget? target,
     BattleMoveFlags? flags,
+    bool? heal,
+    bool? charge,
+    bool? recharge,
+    bool? mirrorMoveAffected,
+    bool? snatchable,
+    bool? magicCoatAffected,
     List<BattleStageMod>? stageMods,
     List<PsdkBattleMoveStatus>? statuses,
   }) {
@@ -141,6 +172,12 @@ final class BattleMoveDefinition {
       battleEngineMethod: battleEngineMethod ?? this.battleEngineMethod,
       target: target ?? this.target,
       flags: flags ?? this.flags,
+      heal: heal ?? this.heal,
+      charge: charge ?? this.charge,
+      recharge: recharge ?? this.recharge,
+      mirrorMoveAffected: mirrorMoveAffected ?? this.mirrorMoveAffected,
+      snatchable: snatchable ?? this.snatchable,
+      magicCoatAffected: magicCoatAffected ?? this.magicCoatAffected,
       stageMods: stageMods ?? this.stageMods,
       statuses: statuses ?? this.statuses,
     );
@@ -162,8 +199,21 @@ final class BattleMoveDefinition {
       effectChance: effectChance,
       battleEngineMethod: battleEngineMethod,
       target: target,
+      contact: flags.contact,
       protectable: flags.protectable,
       sound: flags.sound,
+      bite: flags.bite,
+      pulse: flags.pulse,
+      wind: flags.wind,
+      ballistics: flags.ballistics,
+      dance: flags.dance,
+      kingRockUtility: flags.kingRockUtility,
+      heal: heal,
+      charge: charge,
+      recharge: recharge,
+      mirrorMoveAffected: mirrorMoveAffected,
+      snatchable: snatchable,
+      magicCoatAffected: magicCoatAffected,
       stageMods: stageMods
           .map(
             (mod) => PsdkBattleMoveStageMod(
@@ -186,6 +236,12 @@ final class BattleMoveFlags {
     this.punch = false,
     this.powder = false,
     this.slicing = false,
+    this.bite = false,
+    this.pulse = false,
+    this.wind = false,
+    this.ballistics = false,
+    this.dance = false,
+    this.kingRockUtility = false,
   });
 
   final bool contact;
@@ -194,6 +250,12 @@ final class BattleMoveFlags {
   final bool punch;
   final bool powder;
   final bool slicing;
+  final bool bite;
+  final bool pulse;
+  final bool wind;
+  final bool ballistics;
+  final bool dance;
+  final bool kingRockUtility;
 }
 
 final class BattleStageMod {

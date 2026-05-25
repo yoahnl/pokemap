@@ -30,9 +30,7 @@ final class ImprisonEffect extends BattleEffect {
   BattleEffectUserMovePreventionResult? onUserMovePrevention(
     BattleEffectUserMovePreventionContext context,
   ) {
-    if (!_appliesTo(context.user) ||
-        context.move.id == 'struggle' ||
-        !_imprisonedMoveIds.contains(context.move.id)) {
+    if (!_prevents(user: context.user, moveId: context.move.id)) {
       return null;
     }
 
@@ -44,8 +42,30 @@ final class ImprisonEffect extends BattleEffect {
     );
   }
 
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    if (!_prevents(user: context.user, moveId: context.move.id)) {
+      return null;
+    }
+
+    return const BattleMoveSelectionPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
   bool _appliesTo(PsdkBattleSlotRef user) {
     final scope = this.scope;
     return scope is! BattlerBattleEffectScope || scope.slot == user;
+  }
+
+  bool _prevents({
+    required PsdkBattleSlotRef user,
+    required String moveId,
+  }) {
+    return _appliesTo(user) &&
+        moveId != 'struggle' &&
+        _imprisonedMoveIds.contains(moveId);
   }
 }

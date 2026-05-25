@@ -103,6 +103,24 @@ void main() {
       );
     });
 
+    test('prefers Ditto as a Transform runtime smoke-test species', () async {
+      await _writeProjectFixture(
+        root,
+        includeDitto: true,
+      );
+
+      final seed = await buildRuntimeHostLaunchDemoPartySeed(
+        seedDemoPokemon: true,
+        projectFilePath: '${root.path}/project.json',
+      );
+
+      expect(seed, isNotNull);
+      final member = seed!.members.first;
+      expect(member.speciesId, equals('ditto'));
+      expect(member.abilityId, equals('limber'));
+      expect(member.knownMoveIds, equals(<String>['transform']));
+    });
+
     test('derives a stable gender from breeding ratios when available',
         () async {
       await _writeProjectFixture(
@@ -243,7 +261,7 @@ void main() {
           equals('s_transform'));
       expect(
         mew.moveDiagnostics['transform']?.psdkRegistryStatus,
-        equals('partial'),
+        equals('ported'),
       );
       expect(mew.moveDiagnostics['baton_pass']?.bridgeable, isFalse);
       expect(
@@ -266,6 +284,7 @@ Future<void> _writeProjectFixture(
   bool includeAbra = false,
   bool includeSquirtle = false,
   bool includeMew = false,
+  bool includeDitto = false,
   bool includeGenderRatio = false,
   String squirtleFileName = '0007-squirtle.json',
 }) async {
@@ -475,6 +494,39 @@ Future<void> _writeProjectFixture(
             'versionGroup': 'demo',
           },
         ],
+      },
+    );
+  }
+
+  if (includeDitto) {
+    await _writeJson(
+      root,
+      'data/pokemon/species/0132-ditto.json',
+      <String, dynamic>{
+        'id': 'ditto',
+        'nationalDex': 132,
+        'names': <String, String>{'en': 'Ditto'},
+        'typing': <String, Object>{
+          'types': <String>['normal'],
+        },
+        'abilities': <String, String>{'primary': 'limber'},
+        'refs': <String, String>{
+          'learnset': 'ditto',
+          'evolution': 'ditto',
+          'media': 'ditto',
+        },
+        'classification': <String, bool>{'isEnabledInProject': true},
+      },
+    );
+
+    await _writeJson(
+      root,
+      'data/pokemon/learnsets/ditto.json',
+      <String, dynamic>{
+        'speciesId': 'ditto',
+        'startingMoves': <String>['transform'],
+        'relearnMoves': const <String>[],
+        'levelUp': const <Map<String, Object>>[],
       },
     );
   }

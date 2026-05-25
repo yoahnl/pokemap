@@ -56,6 +56,103 @@ void main() {
       );
     });
 
+    test('s_shed_tail pays half HP and marks the user for switch', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'shed_tail',
+              battleEngineMethod: 's_shed_tail',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 50);
+      expect(player.switching, isTrue);
+      expect(player.effects.contains('substitute'), isTrue);
+      expect(player.effects.contains('shed_tail'), isTrue);
+      expect(
+        result.timeline.events.whereType<PsdkBattleDamageEvent>(),
+        hasLength(1),
+      );
+    });
+
+    test('s_shed_tail fails when the user has no replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'shed_tail',
+              battleEngineMethod: 's_shed_tail',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 100);
+      expect(player.switching, isFalse);
+      expect(player.effects.contains('substitute'), isFalse);
+      expect(player.effects.contains('shed_tail'), isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'shed_tail'),
+        hasLength(1),
+      );
+    });
+
+    test('s_shed_tail transfers its substitute to the incoming battler', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'shed_tail',
+              battleEngineMethod: 's_shed_tail',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final turn = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final switched = const BattleSwitchHandler().switchCombatant(
+        context: BattleHandlerContext(
+          state: turn.state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+        partyIndex: 1,
+      );
+      final incoming = switched.state.battlerAt(psdkPlayerSlot);
+      final outgoing = switched.state.partyForBank(0).first;
+      final substitute =
+          incoming.effects.effects.whereType<SubstituteEffect>().single;
+
+      expect(incoming.speciesId, 'player-reserve');
+      expect(incoming.effects.contains('substitute'), isTrue);
+      expect(incoming.effects.contains('shed_tail'), isFalse);
+      expect(substitute.remainingHp, 50);
+      expect(outgoing.currentHp, 50);
+      expect(outgoing.effects.contains('substitute'), isFalse);
+    });
+
     test('s_u_turn damages the target then marks the user for switch', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -223,6 +320,161 @@ void main() {
       }
     });
 
+    test('s_chilly_reception applies hail and marks the user for switch', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerHeldItemId: 'icy_rock',
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'chilly_reception',
+              battleEngineMethod: 's_chilly_reception',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.field.weather?.id, PsdkBattleWeatherId.hail);
+      expect(result.state.field.weather?.remainingTurns, 7);
+      expect(
+        result.timeline.events.whereType<PsdkBattleWeatherChangedEvent>().single
+            .remainingTurns,
+        8,
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isTrue);
+    });
+
+    test(
+        's_chilly_reception still applies hail when no replacement is available',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'chilly_reception',
+              battleEngineMethod: 's_chilly_reception',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.field.weather?.id, PsdkBattleWeatherId.hail);
+      expect(result.state.field.weather?.remainingTurns, 4);
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events.whereType<PsdkBattleWeatherChangedEvent>(),
+        hasLength(1),
+      );
+    });
+
+    test('s_teleport marks the user for switch in trainer-style battles', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isTrue);
+      expect(result.outcome, isNull);
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isEmpty,
+      );
+    });
+
+    test('s_teleport fails in trainer-style battles without replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'teleport')
+            .single
+            .reason,
+        'no_replacement',
+      );
+    });
+
+    test('s_teleport fails in trainer-style battles when the user is trapped',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          opponentAbilityId: 'shadow_tag',
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'teleport'),
+        hasLength(1),
+      );
+    });
+
+    test('s_teleport ends flee-enabled battles with a fled outcome', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          canFlee: true,
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'teleport',
+              battleEngineMethod: 's_teleport',
+              target: PsdkBattleMoveTarget.none,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.outcome?.kind, PsdkBattleOutcomeKind.fled);
+      expect(result.state.outcome?.kind, PsdkBattleOutcomeKind.fled);
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(
+        result.timeline.events.whereType<PsdkBattleEndedEvent>().single.outcome,
+        const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled),
+      );
+    });
+
     test('s_parting_shot marks the user for switch after offensive drops', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -356,6 +608,8 @@ PsdkBattleSetup _setup({
   PsdkBattleStatStages? opponentStatStages,
   String? playerAbilityId,
   String? opponentAbilityId,
+  String? playerHeldItemId,
+  bool canFlee = false,
   bool includePlayerReserve = true,
   bool includeOpponentReserve = true,
 }) {
@@ -365,6 +619,7 @@ PsdkBattleSetup _setup({
       speed: 100,
       moves: playerMoves,
       abilityId: playerAbilityId,
+      heldItemId: playerHeldItemId,
     ),
     opponent: _combatant(
       id: 'opponent',
@@ -415,6 +670,7 @@ PsdkBattleSetup _setup({
       moveAccuracy: 3,
       generic: 4,
     ),
+    canFlee: canFlee,
   );
 }
 
@@ -424,6 +680,7 @@ PsdkBattleCombatantSetup _combatant({
   required List<PsdkBattleMoveData> moves,
   PsdkBattleStatStages? statStages,
   String? abilityId,
+  String? heldItemId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -442,6 +699,7 @@ PsdkBattleCombatantSetup _combatant({
     ),
     statStages: statStages ?? PsdkBattleStatStages.neutral(),
     abilityId: abilityId,
+    heldItemId: heldItemId,
     moves: moves,
   );
 }

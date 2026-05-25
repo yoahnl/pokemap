@@ -1,4 +1,6 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
+import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import '../effect/ability/ability_effect.dart';
 import '../effect/item/item_effect.dart';
 
@@ -11,7 +13,11 @@ import '../effect/item/item_effect.dart';
 final class BattleGroundingResolver {
   const BattleGroundingResolver();
 
-  bool isGrounded(PsdkBattleCombatant battler) {
+  bool isGrounded(
+    PsdkBattleCombatant battler, {
+    PsdkBattleState? state,
+    PsdkBattleSlotRef? slot,
+  }) {
     if (battler.effects.contains('gravity') ||
         battler.effects.contains('smack_down') ||
         battler.effects.contains('ingrain')) {
@@ -23,16 +29,29 @@ final class BattleGroundingResolver {
       return false;
     }
 
-    for (final effect in battler.activeItemEffects) {
+    for (final effect in battleActiveItemEffects(
+      battler: battler,
+      state: state,
+      slot: slot,
+    )) {
       final grounded = effect.groundedOverride(battler);
       if (grounded != null) {
         return grounded;
       }
     }
-    if (!battler.itemEffectsSuppressed && battler.heldItemId == 'iron_ball') {
+    if (!battleItemEffectsSuppressed(
+          battler: battler,
+          state: state,
+          slot: slot,
+        ) &&
+        battler.heldItemId == 'iron_ball') {
       return true;
     }
-    if (!battler.itemEffectsSuppressed &&
+    if (!battleItemEffectsSuppressed(
+          battler: battler,
+          state: state,
+          slot: slot,
+        ) &&
         battler.heldItemId == 'air_balloon' &&
         !battler.itemConsumed) {
       return false;
@@ -49,6 +68,6 @@ final class BattleGroundingResolver {
       return false;
     }
 
-    return !battler.hasType('flying');
+    return battler.effects.contains('roost') || !battler.hasType('flying');
   }
 }

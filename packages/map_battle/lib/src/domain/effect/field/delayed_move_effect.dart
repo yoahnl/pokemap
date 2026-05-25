@@ -68,6 +68,9 @@ final class DelayedMoveEffect extends BattleEffect {
         move: move,
         rng: context.rng,
         field: clearedState.field,
+        state: clearedState,
+        userSlot: origin,
+        targetSlot: context.owner,
       ),
     );
     if (damageResult.damage <= 0) {

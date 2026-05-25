@@ -36,6 +36,71 @@ void main() {
       expect(_damageEvents(result, moveId: 'earthquake'), hasLength(1));
       expect(result.state.battlerAt(psdkOpponentSlot).currentHp, lessThan(100));
     });
+
+    test('s_smack_down clears floating effects when grounding the target', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'smack_down',
+          type: 'rock',
+          power: 50,
+          battleEngineMethod: 's_smack_down',
+        ),
+        opponentEffects: const PsdkBattleEffectStack.empty()
+            .add(
+              'magnet_rise',
+            )
+            .add(
+              'telekinesis',
+            ),
+      );
+
+      final target = result.state.battlerAt(psdkOpponentSlot);
+      expect(_damageEvents(result, moveId: 'smack_down'), hasLength(1));
+      expect(target.effects.contains('smack_down'), isTrue);
+      expect(target.effects.contains('magnet_rise'), isFalse);
+      expect(target.effects.contains('telekinesis'), isFalse);
+    });
+
+    test('s_smack_down affects grounded targets that are out of reach', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'smack_down',
+          type: 'rock',
+          power: 50,
+          battleEngineMethod: 's_smack_down',
+        ),
+        opponentEffects: const PsdkBattleEffectStack.empty().add(
+          'out_of_reach_base',
+        ),
+      );
+
+      final target = result.state.battlerAt(psdkOpponentSlot);
+      expect(_damageEvents(result, moveId: 'smack_down'), hasLength(1));
+      expect(target.effects.contains('smack_down'), isTrue);
+      expect(target.effects.contains('out_of_reach_base'), isFalse);
+    });
+
+    test('s_smack_down does not ground a protected substitute target', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'smack_down',
+          type: 'rock',
+          power: 50,
+          battleEngineMethod: 's_smack_down',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          SubstituteEffect(
+            scope: BattlerBattleEffectScope(psdkOpponentSlot),
+            remainingHp: 40,
+          ),
+        ),
+      );
+
+      final target = result.state.battlerAt(psdkOpponentSlot);
+      expect(target.effects.contains('substitute'), isTrue);
+      expect(target.effects.contains('smack_down'), isFalse);
+    });
   });
 }
 

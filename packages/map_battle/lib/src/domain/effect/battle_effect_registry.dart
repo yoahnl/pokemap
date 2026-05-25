@@ -1,31 +1,64 @@
 import 'battle_effect.dart';
 import 'battle_effect_scope.dart';
+import 'field/pledge_field_effects.dart';
+import 'field/wish_effect.dart';
+import 'mechanics/mechanics_effects.dart';
+import 'move/ability_suppressed_effect.dart';
 import 'move/aqua_ring_effect.dart';
 import 'move/attract_effect.dart';
 import 'move/baton_pass_effect.dart';
+import 'move/beak_blast_effect.dart';
+import 'move/bestow_effect.dart';
+import 'move/bide_effect.dart';
 import 'move/bind_effect.dart';
 import 'move/cant_switch_effect.dart';
 import 'move/confusion_effect.dart';
 import 'move/curse_effect.dart';
+import 'move/destiny_bond_effect.dart';
 import 'move/disable_effect.dart';
+import 'move/drowsiness_effect.dart';
+import 'move/echoed_voice_effect.dart';
+import 'move/embargo_effect.dart';
 import 'move/encore_effect.dart';
 import 'move/endure_effect.dart';
+import 'move/fairy_lock_effect.dart';
 import 'move/flinch_effect.dart';
 import 'move/force_next_move_base_effect.dart';
+import 'move/focus_punch_effect.dart';
+import 'move/happy_hour_effect.dart';
 import 'move/heal_block_effect.dart';
+import 'move/grudge_effect.dart';
 import 'move/imprison_effect.dart';
 import 'move/ingrain_effect.dart';
+import 'move/item_burnt_effect.dart';
+import 'move/item_stolen_effect.dart';
+import 'move/leech_seed_effect.dart';
+import 'move/lock_on_effect.dart';
+import 'move/nightmare_effect.dart';
+import 'move/no_retreat_effect.dart';
+import 'move/octolock_effect.dart';
+import 'move/perish_song_effect.dart';
+import 'move/magic_coat_effect.dart';
 import 'move/powder_effect.dart';
+import 'move/prevent_targets_move_effect.dart';
 import 'move/protect_effect.dart';
+import 'move/roost_effect.dart';
+import 'move/rollout_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
+import 'move/shed_tail_effect.dart';
+import 'move/shell_trap_effect.dart';
+import 'move/snatch_effect.dart';
+import 'move/stockpile_effect.dart';
 import 'move/substitute_effect.dart';
 import 'move/syrup_bomb_effect.dart';
 import 'move/taunt_effect.dart';
 import 'move/tar_shot_effect.dart';
 import 'move/throat_chop_effect.dart';
 import 'move/torment_effect.dart';
+import 'move/triple_arrows_effect.dart';
 import 'move/two_turn_charge_effect.dart';
+import 'move/uproar_effect.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
 /// Small id-to-effect factory used by compatibility constructors.
@@ -39,9 +72,25 @@ final class BattleEffectRegistry {
 
   BattleEffect fromId(String id) {
     return switch (id) {
+      'ability_suppressed' => const AbilitySuppressedEffect(
+          scope: LocalBattleEffectScope(),
+          origin: 'unknown',
+        ),
       'aqua_ring' => const AquaRingEffect(scope: LocalBattleEffectScope()),
       'attract' => const AttractEffect(scope: LocalBattleEffectScope()),
       'baton_pass' => const BatonPassEffect(scope: LocalBattleEffectScope()),
+      'beak_blast' => const BeakBlastEffect(scope: LocalBattleEffectScope()),
+      'bestow' => const BestowEffect(
+          scope: LocalBattleEffectScope(),
+          giver: psdkPlayerSlot,
+          receiver: psdkOpponentSlot,
+          itemId: '',
+        ),
+      'bide' => const BideEffect(
+          scope: LocalBattleEffectScope(),
+          forcedMoveId: 'bide',
+          chargedTarget: psdkOpponentSlot,
+        ),
       'bind' => const BindEffect(
           scope: LocalBattleEffectScope(),
           origin: psdkOpponentSlot,
@@ -52,25 +101,89 @@ final class BattleEffectRegistry {
         ),
       'confusion' => const ConfusionEffect(scope: LocalBattleEffectScope()),
       'curse' => const CurseEffect(scope: LocalBattleEffectScope()),
+      'destiny_bond' =>
+        const DestinyBondEffect(scope: LocalBattleEffectScope()),
       'disable' => const DisableEffect(
           scope: LocalBattleEffectScope(),
           disabledMoveId: '',
         ),
+      'drowsiness' => const DrowsinessEffect(
+          scope: LocalBattleEffectScope(),
+          origin: psdkOpponentSlot,
+        ),
+      'echoed_voice' =>
+        const EchoedVoiceEffect(scope: FieldBattleEffectScope()),
+      'embargo' => const EmbargoEffect(scope: LocalBattleEffectScope()),
       'endure' => const EndureEffect(scope: LocalBattleEffectScope()),
       'encore' => const EncoreEffect(
           scope: LocalBattleEffectScope(),
           encoredMoveId: '',
         ),
       'flinch' => const FlinchEffect(scope: LocalBattleEffectScope()),
+      'fairy_lock' => const FairyLockEffect(scope: FieldBattleEffectScope()),
       'force_next_move_base' =>
         const ForceNextMoveBaseEffect(scope: LocalBattleEffectScope()),
+      'focus_punch' => const FocusPunchEffect(scope: LocalBattleEffectScope()),
+      'happy_hour' => const HappyHourEffect(scope: LocalBattleEffectScope()),
       'heal_block' => const HealBlockEffect(scope: LocalBattleEffectScope()),
+      'grudge' => const GrudgeEffect(scope: LocalBattleEffectScope()),
       'imprison' => ImprisonEffect(scope: const LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
+      'item_burnt' => const ItemBurntEffect(scope: LocalBattleEffectScope()),
+      'item_stolen' => const ItemStolenEffect(scope: LocalBattleEffectScope()),
+      'leech_seed' => const LeechSeedEffect(
+          scope: LocalBattleEffectScope(),
+          source: psdkOpponentSlot,
+        ),
+      'lock_on' => const LockOnEffect(
+          scope: LocalBattleEffectScope(),
+          target: psdkOpponentSlot,
+        ),
+      'nightmare' => const NightmareEffect(scope: LocalBattleEffectScope()),
+      'no_retreat' => const NoRetreatEffect(scope: LocalBattleEffectScope()),
+      'octolock' => const OctolockEffect(
+          scope: LocalBattleEffectScope(),
+          origin: psdkOpponentSlot,
+        ),
+      'perish_song' => const PerishSongEffect(scope: LocalBattleEffectScope()),
+      'magic_coat' => const MagicCoatEffect(scope: LocalBattleEffectScope()),
       'powder' => const PowderEffect(scope: LocalBattleEffectScope()),
+      'prevent_targets_move' =>
+        const PreventTargetsMoveEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
+      'roost' => const RoostEffect(scope: LocalBattleEffectScope()),
+      'rollout' => const RolloutEffect(
+          scope: LocalBattleEffectScope(),
+          forcedMoveId: 'rollout',
+          remainingTurns: 4,
+          successiveUses: 1,
+        ),
+      'pledge_rainbow' =>
+        const RainbowPledgeEffect(scope: LocalBattleEffectScope()),
+      'pledge_sea_of_fire' =>
+        const SeaOfFirePledgeEffect(scope: LocalBattleEffectScope()),
+      'pledge_swamp' =>
+        const SwampPledgeEffect(scope: LocalBattleEffectScope()),
+      'baneful_bunker' =>
+        const BanefulBunkerEffect(scope: LocalBattleEffectScope()),
+      'burning_bulwark' =>
+        const BurningBulwarkEffect(scope: LocalBattleEffectScope()),
+      'king_s_shield' =>
+        const KingsShieldEffect(scope: LocalBattleEffectScope()),
+      'obstruct' => const ObstructEffect(scope: LocalBattleEffectScope()),
+      'silk_trap' => const SilkTrapEffect(scope: LocalBattleEffectScope()),
+      'spiky_shield' =>
+        const SpikyShieldEffect(scope: LocalBattleEffectScope()),
       'salt_cure' => const SaltCureEffect(scope: LocalBattleEffectScope()),
       'smack_down' => const SmackDownEffect(scope: LocalBattleEffectScope()),
+      'shed_tail' => const ShedTailEffect(
+          scope: LocalBattleEffectScope(),
+          remainingHp: 1,
+        ),
+      'shell_trap' => const ShellTrapEffect(scope: LocalBattleEffectScope()),
+      'snatch' => const SnatchEffect(scope: LocalBattleEffectScope()),
+      'snatched' => const SnatchedEffect(scope: LocalBattleEffectScope()),
+      'stockpile' => const StockpileEffect(scope: LocalBattleEffectScope()),
       'substitute' => const SubstituteEffect(
           scope: LocalBattleEffectScope(),
           remainingHp: 1,
@@ -80,11 +193,25 @@ final class BattleEffectRegistry {
       'tar_shot' => const TarShotEffect(scope: LocalBattleEffectScope()),
       'throat_chop' => const ThroatChopEffect(scope: LocalBattleEffectScope()),
       'torment' => const TormentEffect(scope: LocalBattleEffectScope()),
+      'triple_arrows' =>
+        const TripleArrowsEffect(scope: LocalBattleEffectScope()),
       'two_turn_charge' => const TwoTurnChargeEffect(
           scope: LocalBattleEffectScope(),
           chargedMoveId: '',
           chargedTarget: psdkOpponentSlot,
         ),
+      'uproar' => const UproarEffect(scope: LocalBattleEffectScope()),
+      'wish' => const WishEffect(
+          scope: LocalBattleEffectScope(),
+          healAmount: 1,
+          remainingTurns: 2,
+        ),
+      'effect_base' => const PsdkEffectBaseEffect(),
+      'effects_handler' => const PsdkEffectsHandlerEffect(),
+      'pokemon_tied_effect_base' =>
+        const PsdkPokemonTiedEffectBaseEffect(scope: LocalBattleEffectScope()),
+      'position_tied_effect_base' =>
+        const PsdkPositionTiedEffectBaseEffect(scope: LocalBattleEffectScope()),
       final value => GenericBattleEffect(id: value),
     };
   }

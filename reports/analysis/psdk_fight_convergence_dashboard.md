@@ -1,25 +1,25 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-17T17:33:18.992107Z
+Generated: 2026-05-25T11:53:28.303399Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
-| Attacks | 342 / 728 | 47.0% | 386 |
-| Methods | 148 / 330 | 44.8% | 182 |
-| Effects | 3 / 482 | 0.6% | 479 |
+| Attacks | 728 / 728 | 100.0% | 0 |
+| Methods | 330 / 330 | 100.0% | 0 |
+| Effects | 482 / 482 | 100.0% | 0 |
 
 ## Effects By Family
 
 | Family | Ported | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: | ---: |
-| ability | 3 | 0 | 251 | 251 |
-| field | 0 | 0 | 15 | 15 |
-| item | 0 | 0 | 87 | 87 |
-| mechanics | 0 | 0 | 4 | 4 |
-| move | 0 | 22 | 93 | 115 |
-| status | 0 | 0 | 7 | 7 |
+| ability | 254 | 0 | 0 | 0 |
+| field | 15 | 0 | 0 | 0 |
+| item | 87 | 0 | 0 | 0 |
+| mechanics | 4 | 0 | 0 | 0 |
+| move | 115 | 0 | 0 | 0 |
+| status | 7 | 0 | 0 | 0 |
 
 ## Runtime Bridge
 
@@ -30,4 +30,4 @@ Generated: 2026-05-17T17:33:18.992107Z
 
 ## Next Recommendation
 
-Next recommended lot: close effect family `ability` (251 remaining effects).
+Next recommended lot: run final acceptance gate.

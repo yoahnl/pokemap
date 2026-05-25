@@ -23,6 +23,8 @@ final class PsdkStudioMoveCoverageEntry {
     this.target = '',
     this.protectable = true,
     this.sound = false,
+    this.ballistics = false,
+    this.kingRockUtility = false,
   });
 
   final String dbSymbol;
@@ -43,21 +45,56 @@ final class PsdkStudioMoveCoverageEntry {
   final String target;
   final bool protectable;
   final bool sound;
+  final bool ballistics;
+  final bool kingRockUtility;
 
   bool get isStrictPlainBasicDamage {
     if (battleEngineMethod != 's_basic') {
       return false;
     }
-    if (power <= 0) {
-      return false;
-    }
-    final normalizedCategory = category.trim().toLowerCase();
-    if (normalizedCategory != 'physical' && normalizedCategory != 'special') {
+    if (!_hasStrictBasicDamageShape) {
       return false;
     }
     return battleStageModCount == 0 &&
         moveStatusCount == 0 &&
         effectChance == 0;
+  }
+
+  bool get isStrictBasicDamageWithSupportedRider {
+    if (battleEngineMethod != 's_basic') {
+      return false;
+    }
+    if (!_hasStrictBasicDamageShape) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictBasicDamageRiderTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    if (effectChance < 1 || effectChance > 100) {
+      return false;
+    }
+    if (battleStageModCount > 0) {
+      if (moveStatusCount != 0 ||
+          battleStageMods.length != battleStageModCount) {
+        return false;
+      }
+      return battleStageMods.every((mod) {
+        return mod.stages != 0 && _strictStatChangeStats.contains(mod.stat);
+      });
+    }
+    if (moveStatusCount > 0) {
+      if (battleStageModCount != 0 || moveStatuses.length != moveStatusCount) {
+        return false;
+      }
+      return moveStatuses.every((status) {
+        return _strictMajorStatuses.contains(status.status) ||
+            status.status == 'confusion' ||
+            status.status == 'flinch';
+      });
+    }
+    return false;
   }
 
   bool get isStrictWeatherAccuracyBasic {
@@ -77,6 +114,189 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 1 &&
         moveStatuses.single.status == 'freeze' &&
         effectChance == 10;
+  }
+
+  bool get isStrictGenericZMovePlaceholder {
+    if (battleEngineMethod != 's_basic') {
+      return false;
+    }
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final expectedType = _strictGenericZMovePlaceholderTypes[normalizedSymbol];
+    if (expectedType == null) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    final expectedCategory =
+        normalizedSymbol.endsWith('2') ? 'special' : 'physical';
+    final normalizedTarget = target.trim().toLowerCase();
+    return type.trim().toLowerCase() == expectedType &&
+        normalizedCategory == expectedCategory &&
+        power == 0 &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 0 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        normalizedTarget == 'adjacent_pokemon' &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
+  bool get isStrictOffensiveSignatureZMove {
+    if (battleEngineMethod != 's_z_move') {
+      return false;
+    }
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final spec = _strictOffensiveSignatureZMoves[normalizedSymbol];
+    if (spec == null) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    final targetMatches = spec.target == normalizedTarget ||
+        (spec.target == 'adjacent_pokemon' &&
+            normalizedTarget == 'adjacent_foe');
+    if (!targetMatches) {
+      return false;
+    }
+    final expectedStatuses = spec.statuses;
+    final statusesMatch = expectedStatuses.isEmpty
+        ? moveStatusCount == 0 && moveStatuses.isEmpty && effectChance == 0
+        : moveStatusCount == expectedStatuses.length &&
+            moveStatuses.length == expectedStatuses.length &&
+            effectChance == 100 &&
+            _sameStatusSet(moveStatuses, expectedStatuses);
+    return type.trim().toLowerCase() == spec.type &&
+        category.trim().toLowerCase() == spec.category &&
+        power == spec.power &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == spec.criticalRate &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        statusesMatch &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
+  bool get isStrictStudioSignatureZMove {
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final spec = _strictStudioSignatureZMoves[normalizedSymbol];
+    if (spec == null || battleEngineMethod != spec.battleEngineMethod) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    final targetMatches = spec.target == normalizedTarget ||
+        (spec.target == 'adjacent_pokemon' &&
+            normalizedTarget == 'adjacent_foe');
+    return targetMatches &&
+        type.trim().toLowerCase() == spec.type &&
+        category.trim().toLowerCase() == spec.category &&
+        power == spec.power &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 0 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
+  bool get isStrictSelfStatZMove {
+    if (battleEngineMethod != 's_self_stat_z_move') {
+      return false;
+    }
+    final normalizedSymbol = dbSymbol.trim().toLowerCase();
+    final spec = _strictSelfStatZMoves[normalizedSymbol];
+    if (spec == null) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    return normalizedTarget == spec.target &&
+        type.trim().toLowerCase() == spec.type &&
+        category.trim().toLowerCase() == spec.category &&
+        power == spec.power &&
+        accuracy.trim() == '0' &&
+        pp == 1 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 100 &&
+        battleStageModCount == spec.stageMods.length &&
+        _sameStageModSet(battleStageMods, spec.stageMods) &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        !protectable &&
+        sound == spec.sound &&
+        !ballistics &&
+        kingRockUtility == spec.kingRockUtility;
+  }
+
+  bool get isStrictHyperspaceHole {
+    if (battleEngineMethod != 's_hyperspace_hole') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    return dbSymbol == 'hyperspace_hole' &&
+        type.trim().toLowerCase() == 'psychic' &&
+        category.trim().toLowerCase() == 'special' &&
+        power == 80 &&
+        accuracy.trim() == '0' &&
+        pp == 5 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 0 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        (normalizedTarget == 'adjacent_pokemon' ||
+            normalizedTarget == 'adjacent_foe') &&
+        !protectable &&
+        !sound &&
+        !ballistics &&
+        kingRockUtility;
+  }
+
+  bool get isStrictSecretSwordStudioAlias {
+    if (battleEngineMethod != 's_basic' || dbSymbol != 'secret_sword') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    return type.trim().toLowerCase() == 'fighting' &&
+        category.trim().toLowerCase() == 'special' &&
+        power == 85 &&
+        accuracy.trim() == '100' &&
+        pp == 10 &&
+        priority == 0 &&
+        criticalRate == 1 &&
+        effectChance == 100 &&
+        battleStageModCount == 0 &&
+        battleStageMods.isEmpty &&
+        moveStatusCount == 0 &&
+        moveStatuses.isEmpty &&
+        (normalizedTarget.isEmpty || normalizedTarget == 'adjacent_pokemon');
+  }
+
+  bool get _hasStrictBasicDamageShape {
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    return normalizedCategory == 'physical' || normalizedCategory == 'special';
   }
 
   bool get isStrictSelfStatBoost {
@@ -103,7 +323,34 @@ final class PsdkStudioMoveCoverageEntry {
       return false;
     }
     return battleStageMods.every((mod) {
-      return mod.stages > 0 && _strictSelfStatBoostStats.contains(mod.stat);
+      return mod.stages != 0 && _strictSelfStatBoostStats.contains(mod.stat);
+    });
+  }
+
+  bool get isStrictDamagingSelfStatRider {
+    if (battleEngineMethod != 's_self_stat') {
+      return false;
+    }
+    if (!_hasStrictBasicDamageShape) {
+      return false;
+    }
+    if (moveStatusCount != 0) {
+      return false;
+    }
+    if (effectChance < 1 || effectChance > 100) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictSelfStatDamageTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    if (battleStageMods.isEmpty ||
+        battleStageMods.length != battleStageModCount) {
+      return false;
+    }
+    return battleStageMods.every((mod) {
+      return mod.stages != 0 && _strictStatChangeStats.contains(mod.stat);
     });
   }
 
@@ -112,9 +359,6 @@ final class PsdkStudioMoveCoverageEntry {
       return false;
     }
     if (category.trim().toLowerCase() != 'status' || power != 0) {
-      return false;
-    }
-    if (moveStatusCount != 0) {
       return false;
     }
     if (effectChance != 0 && effectChance != 100) {
@@ -129,9 +373,20 @@ final class PsdkStudioMoveCoverageEntry {
         battleStageMods.length != battleStageModCount) {
       return false;
     }
-    return battleStageMods.every((mod) {
+    final stageModsSupported = battleStageMods.every((mod) {
       return mod.stages != 0 && _strictStatChangeStats.contains(mod.stat);
     });
+    if (!stageModsSupported) {
+      return false;
+    }
+    if (moveStatusCount == 0) {
+      return true;
+    }
+    if (moveStatuses.length != 1 || moveStatusCount != 1) {
+      return false;
+    }
+    return _strictMajorStatuses.contains(moveStatuses.single.status) ||
+        moveStatuses.single.status == 'confusion';
   }
 
   bool get isStrictMajorStatus {
@@ -158,6 +413,30 @@ final class PsdkStudioMoveCoverageEntry {
     return _strictMajorStatuses.contains(moveStatuses.single.status);
   }
 
+  bool get isStrictVolatileStatus {
+    if (battleEngineMethod != 's_status') {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    if (battleStageModCount != 0) {
+      return false;
+    }
+    if (effectChance != 0 && effectChance != 100) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictMajorStatusTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    if (moveStatuses.length != 1 || moveStatusCount != 1) {
+      return false;
+    }
+    return moveStatuses.single.status == 'confusion';
+  }
+
   bool get isStrictSelfStatus {
     if (battleEngineMethod != 's_self_status') {
       return false;
@@ -181,9 +460,6 @@ final class PsdkStudioMoveCoverageEntry {
     if (battleEngineMethod != 's_multi_hit') {
       return false;
     }
-    if (dbSymbol == 'water_shuriken') {
-      return false;
-    }
     if (power <= 0) {
       return false;
     }
@@ -200,6 +476,9 @@ final class PsdkStudioMoveCoverageEntry {
     if (battleEngineMethod != 's_2turns') {
       return false;
     }
+    if (dbSymbol == 'geomancy') {
+      return isStrictTwoTurnStatusPayload;
+    }
     if (!_strictTwoTurnDamageMoves.contains(dbSymbol)) {
       return false;
     }
@@ -215,9 +494,49 @@ final class PsdkStudioMoveCoverageEntry {
         !_strictTwoTurnDamageTargets.contains(normalizedTarget)) {
       return false;
     }
-    return battleStageModCount == 0 &&
-        moveStatusCount == 0 &&
-        effectChance == 0;
+    if (battleStageModCount != 0) {
+      return false;
+    }
+    if (moveStatusCount == 0) {
+      return effectChance == 0;
+    }
+    if (effectChance <= 0) {
+      return false;
+    }
+    return moveStatuses.every((status) {
+      return _strictMajorStatuses.contains(status.status) ||
+          status.status == 'confusion' ||
+          status.status == 'flinch';
+    });
+  }
+
+  bool get isStrictTwoTurnStatusPayload {
+    if (battleEngineMethod != 's_2turns' || dbSymbol != 'geomancy') {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedCategory != 'status' ||
+        power != 0 ||
+        moveStatusCount != 0 ||
+        effectChance != 0 ||
+        normalizedTarget != 'user') {
+      return false;
+    }
+    const expected = <String, int>{
+      'specialAttack': 2,
+      'specialDefense': 2,
+      'speed': 2,
+    };
+    if (battleStageMods.length != expected.length) {
+      return false;
+    }
+    for (final mod in battleStageMods) {
+      if (expected[mod.stat] != mod.stages) {
+        return false;
+      }
+    }
+    return true;
   }
 
   bool get isStrictRechargeDamage {
@@ -245,6 +564,9 @@ final class PsdkStudioMoveCoverageEntry {
     if (battleEngineMethod != 's_recoil') {
       return false;
     }
+    if (dbSymbol == 'mind_blown') {
+      return _isStrictStudioMindBlownRecoil;
+    }
     if (!_strictRecoilDamageMoves.contains(dbSymbol)) {
       return false;
     }
@@ -260,7 +582,35 @@ final class PsdkStudioMoveCoverageEntry {
         !_strictRecoilDamageTargets.contains(normalizedTarget)) {
       return false;
     }
-    return battleStageModCount == 0 &&
+    if (battleStageModCount != 0) {
+      return false;
+    }
+    if (moveStatusCount == 0) {
+      return true;
+    }
+    if (effectChance < 1 || effectChance > 100) {
+      return false;
+    }
+    if (moveStatuses.length != moveStatusCount) {
+      return false;
+    }
+    return moveStatuses.every((status) {
+      return _strictMajorStatuses.contains(status.status) ||
+          status.status == 'confusion' ||
+          status.status == 'flinch';
+    });
+  }
+
+  bool get _isStrictStudioMindBlownRecoil {
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    final normalizedTarget = target.trim().toLowerCase();
+    return (normalizedCategory == 'physical' ||
+            normalizedCategory == 'special') &&
+        normalizedTarget == 'adjacent_all_pokemon' &&
+        battleStageModCount == 0 &&
         moveStatusCount == 0 &&
         effectChance == 0;
   }
@@ -277,6 +627,11 @@ final class PsdkStudioMoveCoverageEntry {
       return false;
     }
     final normalizedTarget = target.trim().toLowerCase();
+    if (dbSymbol == 'oblivion_wing' && normalizedTarget == 'all_ally') {
+      return battleStageModCount == 0 &&
+          moveStatusCount == 0 &&
+          effectChance == 0;
+    }
     if (normalizedTarget.isNotEmpty &&
         !_strictAbsorbDrainTargets.contains(normalizedTarget)) {
       return false;
@@ -303,6 +658,23 @@ final class PsdkStudioMoveCoverageEntry {
         effectChance == 0;
   }
 
+  bool get isStrictTargetHealPulse {
+    if (battleEngineMethod != 's_heal' || dbSymbol != 'heal_pulse') {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        normalizedTarget != 'any_other_pokemon') {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        (effectChance == 0 || effectChance == 100);
+  }
+
   bool get isStrictRestRecovery {
     if (battleEngineMethod != 's_rest') {
       return false;
@@ -325,7 +697,7 @@ final class PsdkStudioMoveCoverageEntry {
     if (battleEngineMethod != 's_protect') {
       return false;
     }
-    if (!_strictProtectBaseMoves.contains(dbSymbol)) {
+    if (!_strictProtectCoveredMoves.contains(dbSymbol)) {
       return false;
     }
     if (category.trim().toLowerCase() != 'status' || power != 0) {
@@ -431,35 +803,57 @@ String generatePsdkAttackCoverageReport({
     ..writeln('- `partiel`: the move executes through a partial method.')
     ..writeln('- `pas_fait`: the method is missing or unknown locally.')
     ..writeln(
-      '- `s_basic` is counted as `fait` only for plain damaging Studio moves; '
+      '- `s_basic` is counted as `fait` for damaging Studio moves with no '
+      'rider, with supported single-target or adjacent spread '
+      'stat/major-status/confusion/flinch riders, or Blizzard; unsupported '
       'metadata riders remain `partiel`.',
     )
     ..writeln(
-      '- `s_self_stat` is counted as `fait` only for status self-boosts '
-      'on supported stats; accuracy/evasion, drops, damage riders and '
-      'chance riders remain `partiel`.',
+      '- Generic offensive Z-Move placeholders encoded by Studio as zero-power '
+      '`s_basic` shells are counted as `fait` only when they match the known '
+      'type/category placeholder shape; full Z-Crystal/source-move selection '
+      'remains owned by the runtime bridge lot.',
+    )
+    ..writeln(
+      '- Offensive signature `s_z_move` entries are counted as `fait` only '
+      'when they match the exact Studio power/type/category/status shape and '
+      'the battle engine owns item, species, source-move and once-per-bank '
+      'eligibility gates.',
+    )
+    ..writeln(
+      '- Studio `secret_sword` is counted as `fait` through the strict '
+      '`s_basic` alias that delegates to the PSDK custom-stat source behavior.',
+    )
+    ..writeln(
+      '- `s_self_stat` is counted as `fait` for status self-stage payloads '
+      'and supported single-target or adjacent-foe spread damage self-stage '
+      'riders; mixed status riders remain `partiel`.',
     )
     ..writeln(
       '- `s_stat` is counted as `fait` only for status stage-only moves '
-      'on supported stats and targets; accuracy/evasion and status riders '
-      'remain `partiel`.',
+      'on supported stats and single-target foe/ally/self targets, '
+      'optionally with one supported status rider; other riders remain '
+      '`partiel`.',
     )
     ..writeln(
-      '- `s_status` is counted as `fait` only for single major-status moves; '
-      'volatile statuses and mixed payloads remain `partiel`.',
+      '- `s_status` is counted as `fait` only for single major-status or '
+      'Confusion moves on supported single or adjacent spread targets; '
+      'mixed payloads remain `partiel`.',
     )
     ..writeln(
       '- `s_self_status` is counted as `fait` only for single self-applied '
       'major-status or Confusion moves without damage/stat riders.',
     )
     ..writeln(
-      '- `s_multi_hit` is counted as `fait` only for plain random 2-5 hit '
-      'moves; Water Shuriken and metadata riders remain `partiel`.',
+      '- `s_multi_hit` is counted as `fait` for plain random 2-5 hit moves '
+      'and Water Shuriken, including its PSDK Ash-Greninja override; metadata '
+      'riders remain `partiel`.',
     )
     ..writeln(
-      '- `s_2turns` is counted as `fait` only for plain charged damage moves '
-      'with forced release; Power Herb, weather/stat/status and multi-target '
-      'variants remain `partiel`.',
+      '- `s_2turns` is counted as `fait` for charged damage moves, supported '
+      'release-turn status riders, Skull Bash charge boost, Geomancy release '
+      'boosts and supported spread release targets; unsupported weather or '
+      'custom charge variants remain `partiel`.',
     )
     ..writeln(
       '- `s_reload` is counted as `fait` only for plain damage moves that '
@@ -467,22 +861,24 @@ String generatePsdkAttackCoverageReport({
     )
     ..writeln(
       '- `s_recoil` is counted as `fait` only for plain recoil damage moves; '
-      'status riders, special self-crash, and multi-target variants remain '
-      '`partiel`.',
+      'implemented status riders and Studio Mind Blown self-crash are '
+      'supported, while other special self-crash or multi-target variants '
+      'remain `partiel`.',
     )
     ..writeln(
-      '- `s_absorb` is counted as `fait` only for plain single-target drain '
-      'moves; multi-target and unusual target variants remain `partiel`.',
+      '- `s_absorb` is counted as `fait` for plain drain moves, including '
+      'implemented adjacent spread drain plus the explicit `oblivion_wing` '
+      'Studio alias; unusual target variants remain `partiel`.',
     )
     ..writeln(
       '- Heal/recovery methods are counted as `fait` only for status-only '
-      'self recovery moves; Heal Pulse, Substitute/Mega Launcher branches and '
-      'mixed riders remain `partiel`.',
+      'self recovery moves plus Heal Pulse with Substitute and Mega Launcher '
+      'branches; mixed riders remain `partiel`.',
     )
     ..writeln(
       '- `s_protect` is counted as `fait` for Protect, Detect, Endure, '
-      'Wide Guard, Quick Guard and Mat Block; contact-punish variants remain '
-      '`partiel`.',
+      'Wide Guard, Quick Guard, Mat Block and implemented contact-punish '
+      'variants.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -516,58 +912,56 @@ const psdkStudioOnlyBattleMethods = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_genesis_supernova',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_genesis_supernova)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_genesis_supernova',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_guardian_of_alola',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_guardian_of_alola)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_guardian_of_alola',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_hyperspace_hole',
     rubyClass: 'StudioOnlyMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_hyperspace_hole)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_hyperspace_hole',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_light_that_burns_the_sky',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialBasic(s_light_that_burns_the_sky)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_light_that_burns_the_sky',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_malicious_moonsault',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_malicious_moonsault)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_malicious_moonsault',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_self_stat_z_move',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_self_stat_z_move)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_self_stat_z_move',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_splintered_stormshards',
     rubyClass: 'StudioOnlyZMove',
     rubyPath: 'Data/Studio/moves',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialBasic(s_splintered_stormshards)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_splintered_stormshards',
+    status: PsdkPortStatus.ported,
     dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -575,11 +969,7 @@ const psdkStudioOnlyBattleMethods = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'StudioZMove',
     rubyPath: 'Data/Studio/moves',
     dartBehavior: 'StaticBasicMoveRegistry.s_z_move',
-    status: PsdkPortStatus.partial,
-    dependencies: <PsdkMoveDependency>[
-      PsdkMoveDependency.item,
-      PsdkMoveDependency.runtimeBridge,
-    ],
+    status: PsdkPortStatus.ported,
   ),
 ];
 
@@ -607,6 +997,8 @@ PsdkStudioMoveCoverageEntry _entryFromPayload(
     target: _stringValue(payload['battleEngineAimedTarget']),
     protectable: _boolValue(payload['isBlocable'], fallback: true),
     sound: _boolValue(payload['isSoundAttack'], fallback: false),
+    ballistics: _boolValue(payload['isBallistics'], fallback: false),
+    kingRockUtility: _boolValue(payload['isKingRockUtility'], fallback: false),
     sourceFile: sourceFile,
   );
 }
@@ -617,15 +1009,34 @@ String psdkAttackCoverageForMove(
 ) {
   return switch (manifestEntry?.status) {
     PsdkPortStatus.ported when move.battleEngineMethod == 's_basic' =>
-      move.isStrictPlainBasicDamage || move.isStrictWeatherAccuracyBasic
+      move.isStrictPlainBasicDamage ||
+              move.isStrictBasicDamageWithSupportedRider ||
+              move.isStrictWeatherAccuracyBasic ||
+              move.isStrictGenericZMovePlaceholder ||
+              move.isStrictSecretSwordStudioAlias
           ? 'fait'
           : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_z_move' =>
+      move.isStrictOffensiveSignatureZMove ? 'fait' : 'partiel',
+    PsdkPortStatus.ported
+        when _strictStudioSignatureZMoveMethods
+            .contains(move.battleEngineMethod) =>
+      move.isStrictStudioSignatureZMove ? 'fait' : 'partiel',
+    PsdkPortStatus.ported
+        when move.battleEngineMethod == 's_self_stat_z_move' =>
+      move.isStrictSelfStatZMove ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_hyperspace_hole' =>
+      move.isStrictHyperspaceHole ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_stat' =>
-      move.isStrictSelfStatBoost ? 'fait' : 'partiel',
+      move.isStrictSelfStatBoost || move.isStrictDamagingSelfStatRider
+          ? 'fait'
+          : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_stat' =>
       move.isStrictTargetStatChange ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_status' =>
-      move.isStrictMajorStatus ? 'fait' : 'partiel',
+      move.isStrictMajorStatus || move.isStrictVolatileStatus
+          ? 'fait'
+          : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_status' =>
       move.isStrictSelfStatus ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_multi_hit' =>
@@ -640,7 +1051,9 @@ String psdkAttackCoverageForMove(
       move.isStrictAbsorbDrain ? 'fait' : 'partiel',
     PsdkPortStatus.ported
         when _strictSelfRecoveryMethods.contains(move.battleEngineMethod) =>
-      move.isStrictSelfRecovery ? 'fait' : 'partiel',
+      move.isStrictSelfRecovery || move.isStrictTargetHealPulse
+          ? 'fait'
+          : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_rest' =>
       move.isStrictRestRecovery ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_protect' =>
@@ -748,32 +1161,276 @@ String _normalizeMoveStatus(String value) {
     'ASLEEP' || 'SLEEP' => 'sleep',
     'FROZEN' || 'FREEZE' => 'freeze',
     'CONFUSED' || 'CONFUSION' => 'confusion',
+    'FLINCH' => 'flinch',
     _ => value.trim(),
   };
 }
 
 const _strictSelfStatBoostStats = <String>{
+  'accuracy',
   'attack',
   'defense',
+  'evasion',
   'specialAttack',
   'specialDefense',
   'speed',
 };
 
 const _strictStatChangeStats = <String>{
+  'accuracy',
   'attack',
   'defense',
+  'evasion',
   'specialAttack',
   'specialDefense',
   'speed',
 };
 
 const _strictTargetStatChangeTargets = <String>{
+  'adjacent_ally',
   'adjacent_foe',
   'adjacent_pokemon',
   'adjacent_all_foe',
   'user',
   'self',
+};
+
+const _strictBasicDamageRiderTargets = <String>{
+  'adjacent_all_pokemon',
+  'adjacent_pokemon',
+  'adjacent_foe',
+  'adjacent_all_foe',
+  'any_other_pokemon',
+};
+
+const _strictGenericZMovePlaceholderTypes = <String, String>{
+  'acid_downpour': 'poison',
+  'acid_downpour2': 'poison',
+  'all_out_pummeling': 'fighting',
+  'all_out_pummeling2': 'fighting',
+  'black_hole_eclipse': 'dark',
+  'black_hole_eclipse2': 'dark',
+  'bloom_doom': 'grass',
+  'bloom_doom2': 'grass',
+  'breakneck_blitz': 'normal',
+  'breakneck_blitz2': 'normal',
+  'continental_crush': 'rock',
+  'continental_crush2': 'rock',
+  'corkscrew_crash': 'steel',
+  'corkscrew_crash2': 'steel',
+  'devastating_drake': 'dragon',
+  'devastating_drake2': 'dragon',
+  'gigavolt_havoc': 'electric',
+  'gigavolt_havoc2': 'electric',
+  'hydro_vortex': 'water',
+  'hydro_vortex2': 'water',
+  'inferno_overdrive': 'fire',
+  'inferno_overdrive2': 'fire',
+  'never_ending_nightmare': 'ghost',
+  'never_ending_nightmare2': 'ghost',
+  'savage_spin_out': 'bug',
+  'savage_spin_out2': 'bug',
+  'shattered_psyche': 'psychic',
+  'shattered_psyche2': 'psychic',
+  'subzero_slammer': 'ice',
+  'subzero_slammer2': 'ice',
+  'supersonic_skystrike': 'flying',
+  'supersonic_skystrike2': 'flying',
+  'tectonic_rage': 'ground',
+  'tectonic_rage2': 'ground',
+  'twinkle_tackle': 'fairy',
+  'twinkle_tackle2': 'fairy',
+};
+
+const _strictOffensiveSignatureZMoves =
+    <String, _StrictOffensiveSignatureZMove>{
+  'catastropika': _StrictOffensiveSignatureZMove(
+    type: 'electric',
+    category: 'physical',
+    power: 210,
+  ),
+  'let_s_snuggle_forever': _StrictOffensiveSignatureZMove(
+    type: 'fairy',
+    category: 'physical',
+    power: 190,
+  ),
+  'menacing_moonraze_maelstrom': _StrictOffensiveSignatureZMove(
+    type: 'ghost',
+    category: 'special',
+    power: 200,
+  ),
+  'oceanic_operetta': _StrictOffensiveSignatureZMove(
+    type: 'water',
+    category: 'special',
+    power: 195,
+  ),
+  'pulverizing_pancake': _StrictOffensiveSignatureZMove(
+    type: 'normal',
+    category: 'physical',
+    power: 210,
+  ),
+  's10_000_000_volt_thunderbolt': _StrictOffensiveSignatureZMove(
+    type: 'electric',
+    category: 'special',
+    power: 195,
+    criticalRate: 3,
+  ),
+  'searing_sunraze_smash': _StrictOffensiveSignatureZMove(
+    type: 'steel',
+    category: 'physical',
+    power: 200,
+    target: 'user',
+  ),
+  'sinister_arrow_raid': _StrictOffensiveSignatureZMove(
+    type: 'ghost',
+    category: 'physical',
+    power: 180,
+  ),
+  'soul_stealing_7_star_strike': _StrictOffensiveSignatureZMove(
+    type: 'ghost',
+    category: 'physical',
+    power: 195,
+  ),
+  'stoked_sparksurfer': _StrictOffensiveSignatureZMove(
+    type: 'electric',
+    category: 'special',
+    power: 175,
+    statuses: <String>{'paralysis'},
+  ),
+};
+
+const _strictStudioSignatureZMoveMethods = <String>{
+  's_genesis_supernova',
+  's_guardian_of_alola',
+  's_light_that_burns_the_sky',
+  's_malicious_moonsault',
+  's_splintered_stormshards',
+};
+
+const _strictStudioSignatureZMoves = <String, _StrictStudioZMove>{
+  'genesis_supernova': _StrictStudioZMove(
+    battleEngineMethod: 's_genesis_supernova',
+    type: 'psychic',
+    category: 'special',
+    power: 185,
+  ),
+  'guardian_of_alola': _StrictStudioZMove(
+    battleEngineMethod: 's_guardian_of_alola',
+    type: 'fairy',
+    category: 'special',
+    power: 0,
+  ),
+  'light_that_burns_the_sky': _StrictStudioZMove(
+    battleEngineMethod: 's_light_that_burns_the_sky',
+    type: 'psychic',
+    category: 'special',
+    power: 200,
+    target: 'user',
+  ),
+  'malicious_moonsault': _StrictStudioZMove(
+    battleEngineMethod: 's_malicious_moonsault',
+    type: 'dark',
+    category: 'physical',
+    power: 180,
+  ),
+  'splintered_stormshards': _StrictStudioZMove(
+    battleEngineMethod: 's_splintered_stormshards',
+    type: 'rock',
+    category: 'physical',
+    power: 190,
+  ),
+};
+
+const _strictSelfStatZMoves = <String, _StrictSelfStatZMove>{
+  'clangorous_soulblaze': _StrictSelfStatZMove(
+    type: 'dragon',
+    category: 'special',
+    power: 185,
+    target: 'adjacent_all_foe',
+    sound: true,
+    kingRockUtility: true,
+    stageMods: <String, int>{
+      'attack': 1,
+      'defense': 1,
+      'speed': 1,
+      'specialAttack': 1,
+      'specialDefense': 1,
+    },
+  ),
+  'extreme_evoboost': _StrictSelfStatZMove(
+    type: 'normal',
+    category: 'status',
+    power: 0,
+    target: 'user',
+    stageMods: <String, int>{
+      'attack': 2,
+      'defense': 2,
+      'speed': 2,
+      'specialAttack': 2,
+      'specialDefense': 2,
+    },
+  ),
+};
+
+final class _StrictOffensiveSignatureZMove {
+  const _StrictOffensiveSignatureZMove({
+    required this.type,
+    required this.category,
+    required this.power,
+    this.criticalRate = 1,
+    this.target = 'adjacent_pokemon',
+    this.statuses = const <String>{},
+  });
+
+  final String type;
+  final String category;
+  final int power;
+  final int criticalRate;
+  final String target;
+  final Set<String> statuses;
+}
+
+final class _StrictStudioZMove {
+  const _StrictStudioZMove({
+    required this.battleEngineMethod,
+    required this.type,
+    required this.category,
+    required this.power,
+    this.target = 'adjacent_pokemon',
+  });
+
+  final String battleEngineMethod;
+  final String type;
+  final String category;
+  final int power;
+  final String target;
+}
+
+final class _StrictSelfStatZMove {
+  const _StrictSelfStatZMove({
+    required this.type,
+    required this.category,
+    required this.power,
+    required this.target,
+    required this.stageMods,
+    this.sound = false,
+    this.kingRockUtility = false,
+  });
+
+  final String type;
+  final String category;
+  final int power;
+  final String target;
+  final Map<String, int> stageMods;
+  final bool sound;
+  final bool kingRockUtility;
+}
+
+const _strictSelfStatDamageTargets = <String>{
+  'adjacent_all_foe',
+  'adjacent_pokemon',
+  'adjacent_foe',
+  'any_other_pokemon',
 };
 
 const _strictMajorStatuses = <String>{
@@ -791,14 +1448,21 @@ const _strictSelfStatuses = <String>{
 };
 
 const _strictTwoTurnDamageMoves = <String>{
+  'bounce',
   'dig',
   'dive',
   'fly',
+  'freeze_shock',
+  'ice_burn',
   'phantom_force',
+  'razor_wind',
   'shadow_force',
+  'skull_bash',
+  'sky_attack',
 };
 
 const _strictTwoTurnDamageTargets = <String>{
+  'adjacent_all_foe',
   'adjacent_pokemon',
   'adjacent_foe',
   'any_other_pokemon',
@@ -812,10 +1476,14 @@ const _strictRechargeDamageTargets = <String>{
 const _strictRecoilDamageMoves = <String>{
   'brave_bird',
   'double_edge',
+  'flare_blitz',
   'head_charge',
   'head_smash',
+  'light_of_ruin',
   'submission',
   'take_down',
+  'volt_tackle',
+  'wave_crash',
   'wild_charge',
   'wood_hammer',
 };
@@ -827,6 +1495,7 @@ const _strictRecoilDamageTargets = <String>{
 };
 
 const _strictAbsorbDrainTargets = <String>{
+  'adjacent_all_pokemon',
   'adjacent_pokemon',
   'adjacent_foe',
   'any_other_pokemon',
@@ -844,20 +1513,50 @@ const _strictSelfRecoveryTargets = <String>{
   'adjacent_pokemon',
 };
 
-const _strictProtectBaseMoves = <String>{
+const _strictProtectCoveredMoves = <String>{
+  'baneful_bunker',
+  'burning_bulwark',
   'detect',
   'endure',
+  'king_s_shield',
   'mat_block',
+  'obstruct',
   'protect',
   'quick_guard',
+  'silk_trap',
+  'spiky_shield',
   'wide_guard',
 };
 
 const _strictMajorStatusTargets = <String>{
+  'adjacent_all_pokemon',
   'adjacent_pokemon',
   'adjacent_foe',
   'adjacent_all_foe',
 };
+
+bool _sameStatusSet(
+  List<PsdkStudioStatusCoverageEntry> actual,
+  Set<String> expected,
+) {
+  return actual.map((status) => status.status).toSet().containsAll(expected) &&
+      expected.containsAll(actual.map((status) => status.status));
+}
+
+bool _sameStageModSet(
+  List<PsdkStudioStageModCoverageEntry> actual,
+  Map<String, int> expected,
+) {
+  if (actual.length != expected.length) {
+    return false;
+  }
+  for (final mod in actual) {
+    if (expected[mod.stat] != mod.stages) {
+      return false;
+    }
+  }
+  return true;
+}
 
 String _md(String value) {
   return value

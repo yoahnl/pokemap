@@ -278,6 +278,7 @@ final class _SelfTargetRemapper implements BattleMoveRemapper {
   @override
   BattleMoveRemapResult remap(BattleMoveRemapContext context) {
     return BattleMoveRemapResult(
+      state: context.state,
       user: context.user,
       targets: <BattlePositionRef>[context.user],
     );

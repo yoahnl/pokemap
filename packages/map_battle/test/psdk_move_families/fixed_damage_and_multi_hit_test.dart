@@ -543,7 +543,8 @@ void main() {
       expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 195);
     });
 
-    test('s_water_shuriken uses the base PSDK multi-hit distribution for now',
+    test(
+        's_water_shuriken uses the base PSDK multi-hit distribution by default',
         () {
       final result = _runPsdkMove(
         playerMove: _move(
@@ -563,11 +564,124 @@ void main() {
 
       expect(_psdkDamageEvents(result, moveId: 'water_shuriken'), hasLength(5));
     });
+
+    test(
+        'water_shuriken uses the PSDK Ash-Greninja hit count from Studio s_multi_hit data',
+        () {
+      final result = _runPsdkMove(
+        playerSpeciesId: 'greninja',
+        playerForm: 1,
+        playerMove: _move(
+          id: 'water_shuriken',
+          dbSymbol: 'water_shuriken',
+          type: 'water',
+          category: PsdkBattleMoveCategory.special,
+          battleEngineMethod: 's_multi_hit',
+          power: 15,
+        ),
+        opponentHp: 200,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 5,
+        ),
+      );
+
+      expect(_psdkDamageEvents(result, moveId: 'water_shuriken'), hasLength(3));
+    });
+
+    test(
+        'water_shuriken uses the PSDK Ash-Greninja power override from Studio s_multi_hit data',
+        () {
+      final ashGreninja = _runPsdkMove(
+        playerSpeciesId: 'greninja',
+        playerForm: 1,
+        playerLevel: 100,
+        playerMove: _move(
+          id: 'water_shuriken',
+          dbSymbol: 'water_shuriken',
+          type: 'water',
+          category: PsdkBattleMoveCategory.special,
+          battleEngineMethod: 's_multi_hit',
+          power: 15,
+        ),
+        opponentHp: 200,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 3,
+        ),
+      );
+      final genericMultiHit = _runPsdkMove(
+        playerSpeciesId: 'greninja',
+        playerForm: 1,
+        playerLevel: 100,
+        playerMove: _move(
+          id: 'generic_water_shuriken',
+          dbSymbol: 'generic_water_shuriken',
+          type: 'water',
+          category: PsdkBattleMoveCategory.special,
+          battleEngineMethod: 's_multi_hit',
+          power: 15,
+        ),
+        opponentHp: 200,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 3,
+        ),
+      );
+
+      final ashDamage = _psdkDamageEvents(
+        ashGreninja,
+        moveId: 'water_shuriken',
+      );
+      final genericDamage = _psdkDamageEvents(
+        genericMultiHit,
+        moveId: 'generic_water_shuriken',
+      );
+
+      expect(ashDamage, hasLength(3));
+      expect(genericDamage, hasLength(3));
+      expect(ashDamage.first.damage, greaterThan(genericDamage.first.damage));
+    });
+
+    test('water_shuriken Ash-Greninja branch bypasses Skill Link like PSDK',
+        () {
+      final result = _runPsdkMove(
+        playerSpeciesId: 'greninja',
+        playerForm: 1,
+        playerAbilityId: 'skill_link',
+        playerMove: _move(
+          id: 'water_shuriken',
+          dbSymbol: 'water_shuriken',
+          type: 'water',
+          category: PsdkBattleMoveCategory.special,
+          battleEngineMethod: 's_multi_hit',
+          power: 15,
+        ),
+        opponentHp: 200,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
+
+      expect(_psdkDamageEvents(result, moveId: 'water_shuriken'), hasLength(3));
+    });
   });
 }
 
 PsdkBattleTurnResult _runPsdkMove({
   required PsdkBattleMoveData playerMove,
+  String playerSpeciesId = 'player',
+  int playerForm = 0,
+  String? playerAbilityId,
   int playerLevel = 20,
   int opponentHp = 100,
   int? opponentCurrentHp,
@@ -582,6 +696,9 @@ PsdkBattleTurnResult _runPsdkMove({
   final engine = PsdkBattleEngine(
     setup: _setup(
       playerMove: playerMove,
+      playerSpeciesId: playerSpeciesId,
+      playerForm: playerForm,
+      playerAbilityId: playerAbilityId,
       playerLevel: playerLevel,
       opponentHp: opponentHp,
       opponentCurrentHp: opponentCurrentHp,
@@ -594,6 +711,9 @@ PsdkBattleTurnResult _runPsdkMove({
 
 BattleEngineSetup _setup({
   required PsdkBattleMoveData playerMove,
+  String playerSpeciesId = 'player',
+  int playerForm = 0,
+  String? playerAbilityId,
   int playerLevel = 20,
   int opponentHp = 100,
   int? opponentCurrentHp,
@@ -608,6 +728,9 @@ BattleEngineSetup _setup({
   return BattleEngineSetup.singles(
     player: _combatant(
       id: 'player',
+      speciesId: playerSpeciesId,
+      form: playerForm,
+      abilityId: playerAbilityId,
       level: playerLevel,
       maxHp: 100,
       currentHp: 100,
@@ -616,6 +739,7 @@ BattleEngineSetup _setup({
     ),
     opponent: _combatant(
       id: 'opponent',
+      speciesId: 'opponent',
       level: 20,
       maxHp: opponentHp,
       currentHp: opponentCurrentHp ?? opponentHp,
@@ -633,6 +757,9 @@ BattleEngineSetup _setup({
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? speciesId,
+  int form = 0,
+  String? abilityId,
   required int level,
   required int maxHp,
   required int currentHp,
@@ -642,7 +769,7 @@ PsdkBattleCombatantSetup _combatant({
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
-    speciesId: id,
+    speciesId: speciesId ?? id,
     displayName: id,
     level: level,
     maxHp: maxHp,
@@ -656,6 +783,8 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     effects: PsdkBattleEffectStack(values: effects),
+    form: form,
+    abilityId: abilityId,
     moves: <PsdkBattleMoveData>[move],
   );
 }

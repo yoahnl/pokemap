@@ -4,6 +4,7 @@ import '../move/battle_move_prevention.dart';
 import '../rng/battle_rng_streams.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
+import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
@@ -153,6 +154,11 @@ final class BattleEffectPostDamageContext {
     required this.move,
     required this.damage,
     this.targetFainted = false,
+    this.criticalHit = false,
+    this.canFlee = false,
+    this.userActionOrder,
+    this.targetActionOrder,
+    this.isFinalHit = true,
   });
 
   final PsdkBattleState state;
@@ -164,10 +170,155 @@ final class BattleEffectPostDamageContext {
   final BattleMoveDefinition move;
   final int damage;
   final bool targetFainted;
+  final bool criticalHit;
+  final bool canFlee;
+  final int? userActionOrder;
+  final int? targetActionOrder;
+  final bool isFinalHit;
 }
 
 final class BattleEffectPostDamageResult {
   const BattleEffectPostDamageResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectPostActionContext {
+  const BattleEffectPostActionContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.move,
+    required this.successful,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final BattleMoveDefinition move;
+  final bool successful;
+}
+
+final class BattleEffectPostActionResult {
+  const BattleEffectPostActionResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectPreAccuracyContext {
+  const BattleEffectPreAccuracyContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.target,
+    required this.move,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final BattleMoveDefinition move;
+}
+
+final class BattleEffectPreAccuracyResult {
+  const BattleEffectPreAccuracyResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectItemChangeContext {
+  const BattleEffectItemChangeContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.target,
+    required this.previousItemId,
+    required this.nextItemId,
+    required this.consumedItemId,
+    required this.reason,
+    this.launcher,
+    this.move,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef target;
+  final String? previousItemId;
+  final String? nextItemId;
+  final String? consumedItemId;
+  final String reason;
+  final PsdkBattleSlotRef? launcher;
+  final BattleMoveDefinition? move;
+}
+
+final class BattleEffectItemChangeResult {
+  const BattleEffectItemChangeResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectBattleEndContext {
+  const BattleEffectBattleEndContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    this.canFlee = false,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final bool canFlee;
+}
+
+final class BattleEffectBattleEndResult {
+  const BattleEffectBattleEndResult({
     required this.state,
     required this.rng,
     this.events = const <PsdkBattleEvent>[],
@@ -274,6 +425,36 @@ final class BattleEffectSwitchEventResult {
   final bool applied;
 }
 
+final class BattleEffectSwitchOutContext {
+  const BattleEffectSwitchOutContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.replacement,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleCombatant replacement;
+}
+
+final class BattleEffectSwitchOutResult {
+  const BattleEffectSwitchOutResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
 final class BattleEffectStatChangePreventionContext {
   const BattleEffectStatChangePreventionContext({
     required this.state,
@@ -285,6 +466,7 @@ final class BattleEffectStatChangePreventionContext {
     required this.stat,
     required this.stages,
     this.move,
+    this.sourceAbilityId,
   });
 
   final PsdkBattleState state;
@@ -296,6 +478,7 @@ final class BattleEffectStatChangePreventionContext {
   final String stat;
   final int stages;
   final BattleMoveDefinition? move;
+  final String? sourceAbilityId;
 }
 
 final class BattleEffectStatChangeContext {
@@ -308,7 +491,9 @@ final class BattleEffectStatChangeContext {
     required this.target,
     required this.stat,
     required this.stages,
+    this.originalTargets = const <PsdkBattleSlotRef>[],
     this.move,
+    this.sourceAbilityId,
   });
 
   final PsdkBattleState state;
@@ -319,7 +504,23 @@ final class BattleEffectStatChangeContext {
   final PsdkBattleSlotRef target;
   final String stat;
   final int stages;
+  final List<PsdkBattleSlotRef> originalTargets;
   final BattleMoveDefinition? move;
+  final String? sourceAbilityId;
+}
+
+final class BattleEffectStatChangeRedirectResult {
+  const BattleEffectStatChangeRedirectResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
 }
 
 final class BattleEffectStatChangePostResult {
@@ -386,6 +587,46 @@ final class BattleEffectStatusChangeContext {
 
 final class BattleEffectStatusChangeResult {
   const BattleEffectStatusChangeResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectVolatileStatusChangeContext {
+  const BattleEffectVolatileStatusChangeContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.target,
+    required this.effectId,
+    required this.cured,
+    this.moveId,
+    this.move,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final String effectId;
+  final bool cured;
+  final String? moveId;
+  final BattleMoveDefinition? move;
+}
+
+final class BattleEffectVolatileStatusChangeResult {
+  const BattleEffectVolatileStatusChangeResult({
     required this.state,
     required this.rng,
     this.events = const <PsdkBattleEvent>[],

@@ -73,6 +73,9 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
         move: effectiveMove,
         rng: prepared.rng,
         field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
         overrides: BattleMoveDamageOverrides(power: resolvedPower),
       ),
     );
@@ -84,7 +87,7 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -92,6 +95,8 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: effectiveMove,
+      moveCategory: effectiveMove.category,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -107,7 +112,7 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
       ],
     );

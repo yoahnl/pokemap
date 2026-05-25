@@ -1,0 +1,1272 @@
+import 'package:map_battle/map_battle.dart';
+import 'package:test/test.dart';
+
+const _playerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+
+void main() {
+  group('PSDK missing ability effects', () {
+    test('Unaware defender ignores attacker offensive stat stages', () {
+      final neutral = _calculateDamage(
+        playerStages: PsdkBattleStatStages.neutral(),
+      );
+      final boosted = _calculateDamage(
+        playerStages: PsdkBattleStatStages(
+          values: const <String, int>{'attack': 2},
+        ),
+      );
+      final unaware = _calculateDamage(
+        playerStages: PsdkBattleStatStages(
+          values: const <String, int>{'attack': 2},
+        ),
+        opponentAbilityId: 'unaware',
+      );
+
+      expect(boosted.damage, greaterThan(neutral.damage));
+      expect(unaware.damage, neutral.damage);
+    });
+
+    test('Unaware attacker ignores target defensive stat stages', () {
+      final neutral = _calculateDamage(
+        opponentStages: PsdkBattleStatStages.neutral(),
+      );
+      final defended = _calculateDamage(
+        opponentStages: PsdkBattleStatStages(
+          values: const <String, int>{'defense': 2},
+        ),
+      );
+      final unaware = _calculateDamage(
+        playerAbilityId: 'unaware',
+        opponentStages: PsdkBattleStatStages(
+          values: const <String, int>{'defense': 2},
+        ),
+      );
+
+      expect(defended.damage, lessThan(neutral.damage));
+      expect(unaware.damage, neutral.damage);
+    });
+
+    test('Unaware target ignores user accuracy drops', () {
+      final loweredAccuracy = _resolveAccuracy(
+        accuracy: 100,
+        moveAccuracySeed: 90,
+        playerStages: PsdkBattleStatStages(
+          values: const <String, int>{'accuracy': -1},
+        ),
+      );
+      final unawareTarget = _resolveAccuracy(
+        accuracy: 100,
+        moveAccuracySeed: 90,
+        opponentAbilityId: 'unaware',
+        playerStages: PsdkBattleStatStages(
+          values: const <String, int>{'accuracy': -1},
+        ),
+      );
+
+      expect(loweredAccuracy.missedTargets, <BattlePositionRef>[
+        const BattlePositionRef(bank: 1, position: 0),
+      ]);
+      expect(unawareTarget.hitTargets, <BattlePositionRef>[
+        const BattlePositionRef(bank: 1, position: 0),
+      ]);
+    });
+
+    test('Unaware user ignores target evasion boosts', () {
+      final raisedEvasion = _resolveAccuracy(
+        accuracy: 100,
+        moveAccuracySeed: 90,
+        opponentStages: PsdkBattleStatStages(
+          values: const <String, int>{'evasion': 1},
+        ),
+      );
+      final unawareUser = _resolveAccuracy(
+        accuracy: 100,
+        moveAccuracySeed: 90,
+        playerAbilityId: 'unaware',
+        opponentStages: PsdkBattleStatStages(
+          values: const <String, int>{'evasion': 1},
+        ),
+      );
+
+      expect(raisedEvasion.missedTargets, <BattlePositionRef>[
+        const BattlePositionRef(bank: 1, position: 0),
+      ]);
+      expect(unawareUser.hitTargets, <BattlePositionRef>[
+        const BattlePositionRef(bank: 1, position: 0),
+      ]);
+    });
+
+    test('Emergency Exit queues a damaged holder below half HP', () {
+      final state = _singlesState(
+        opponentAbilityId: 'emergency_exit',
+        opponentReserves: <PsdkBattleCombatantSetup>[
+          _combatant(id: 'opponent-reserve'),
+        ],
+      );
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'tackle',
+        rawDamage: 60,
+        move: _move(id: 'tackle', power: 40).definition,
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 40);
+      expect(result.state.battlerAt(psdkOpponentSlot).switching, isTrue);
+    });
+
+    test('Emergency Exit does not trigger without a replacement', () {
+      final state = _singlesState(opponentAbilityId: 'wimp_out');
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'tackle',
+        rawDamage: 60,
+        move: _move(id: 'tackle', power: 40).definition,
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 40);
+      expect(result.state.battlerAt(psdkOpponentSlot).switching, isFalse);
+    });
+
+    test('Emergency Exit skips force-switch and Sky Drop move families', () {
+      for (final entry in <({String moveId, String method})>[
+        (moveId: 'dragon_tail', method: 's_dragon_tail'),
+        (moveId: 'sky_drop', method: 's_sky_drop'),
+      ]) {
+        final state = _singlesState(
+          opponentAbilityId: 'emergency_exit',
+          opponentReserves: <PsdkBattleCombatantSetup>[
+            _combatant(id: 'opponent-reserve'),
+          ],
+        );
+
+        final result = const BattleDamageHandler().applyDamage(
+          context: BattleHandlerContext(
+            state: state,
+            rng: _rng(),
+            turn: 1,
+            user: psdkPlayerSlot,
+          ),
+          target: psdkOpponentSlot,
+          moveId: entry.moveId,
+          rawDamage: 60,
+          move: _move(
+            id: entry.moveId,
+            power: 40,
+            battleEngineMethod: entry.method,
+          ).definition,
+        );
+
+        expect(
+          result.state.battlerAt(psdkOpponentSlot).switching,
+          isFalse,
+          reason: entry.method,
+        );
+      }
+    });
+
+    test('Emergency Exit waits for the final hit of a multi-hit move', () {
+      final state = _singlesState(
+        opponentAbilityId: 'wimp_out',
+        opponentReserves: <PsdkBattleCombatantSetup>[
+          _combatant(id: 'opponent-reserve'),
+        ],
+      );
+      final move = _move(
+        id: 'double_slap',
+        power: 15,
+        battleEngineMethod: 's_multi_hit',
+      ).definition;
+
+      final firstHit = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: move.id,
+        rawDamage: 60,
+        move: move,
+        isFinalHit: false,
+      );
+      final finalHit = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: firstHit.state,
+          rng: firstHit.rng,
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: move.id,
+        rawDamage: 10,
+        move: move,
+      );
+
+      expect(firstHit.state.battlerAt(psdkOpponentSlot).currentHp, 40);
+      expect(firstHit.state.battlerAt(psdkOpponentSlot).switching, isFalse);
+      expect(finalHit.state.battlerAt(psdkOpponentSlot).currentHp, 30);
+      expect(finalHit.state.battlerAt(psdkOpponentSlot).switching, isTrue);
+    });
+
+    test('Emergency Exit is prevented when a healing berry restores above half',
+        () {
+      final state = _singlesState(
+        opponentAbilityId: 'emergency_exit',
+        opponentHeldItemId: 'sitrus_berry',
+        opponentReserves: <PsdkBattleCombatantSetup>[
+          _combatant(id: 'opponent-reserve'),
+        ],
+      );
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'tackle',
+        rawDamage: 60,
+        move: _move(id: 'tackle', power: 40).definition,
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(opponent.currentHp, 65);
+      expect(opponent.heldItemId, isNull);
+      expect(opponent.consumedItemId, 'sitrus_berry');
+      expect(opponent.switching, isFalse);
+    });
+
+    test('Emergency Exit flees in wild-style battles without a replacement',
+        () {
+      final state = _singlesState(opponentAbilityId: 'emergency_exit');
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+          canFlee: true,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'tackle',
+        rawDamage: 60,
+        move: _move(id: 'tackle', power: 40).definition,
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).switching, isFalse);
+      expect(result.state.outcome?.kind, PsdkBattleOutcomeKind.fled);
+    });
+
+    test('Emergency Exit wild flee propagates through the battle engine', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          canFlee: true,
+          player: _combatant(
+            id: 'player',
+            move: _move(id: 'tackle', power: 120).psdk,
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'wimp_out',
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.outcome?.kind, PsdkBattleOutcomeKind.fled);
+    });
+
+    test('Symbiosis gives the owner held item to an ally that consumed one',
+        () {
+      final state = _doublesState(
+        playerAbilityId: 'symbiosis',
+        playerHeldItemId: 'sitrus_berry',
+        playerAllyHeldItemId: 'oran_berry',
+      );
+
+      final result = const BattleItemChangeHandler().consumeHeldItem(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        target: _playerAllySlot,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+        result.state.battlerAt(_playerAllySlot).heldItemId,
+        'sitrus_berry',
+      );
+      expect(
+        result.events.whereType<PsdkBattleItemEvent>().single.itemId,
+        'oran_berry',
+      );
+    });
+
+    test('Symbiosis does not give an item to an ally with item_burnt', () {
+      final state = _doublesState(
+        playerAbilityId: 'symbiosis',
+        playerHeldItemId: 'sitrus_berry',
+        playerAllyHeldItemId: 'oran_berry',
+        playerAllyEffects: PsdkBattleEffectStack(
+          values: const <String>['item_burnt'],
+        ),
+      );
+
+      final result = const BattleItemChangeHandler().consumeHeldItem(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        target: _playerAllySlot,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, 'sitrus_berry');
+      expect(result.state.battlerAt(_playerAllySlot).heldItemId, isNull);
+    });
+
+    test('Symbiosis defers gem-holder transfer until post damage', () {
+      final state = _doublesState(
+        playerAbilityId: 'symbiosis',
+        playerHeldItemId: 'normal_gem',
+        playerAllyHeldItemId: 'oran_berry',
+      );
+
+      final consumed = const BattleItemChangeHandler().consumeHeldItem(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        target: _playerAllySlot,
+      );
+      expect(consumed.state.battlerAt(psdkPlayerSlot).heldItemId, 'normal_gem');
+      expect(consumed.state.battlerAt(_playerAllySlot).heldItemId, isNull);
+
+      final damaged = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: consumed.state,
+          rng: consumed.rng,
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: _playerAllySlot,
+        moveId: 'ember',
+        rawDamage: 10,
+        move: _move(id: 'ember', power: 40).definition,
+      );
+
+      expect(damaged.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+        damaged.state.battlerAt(_playerAllySlot).heldItemId,
+        'normal_gem',
+      );
+    });
+
+    test('Ball Fetch retrieves the last failed ball at end turn', () {
+      final state = _singlesState(
+        playerAbilityId: 'ball_fetch',
+        field: const PsdkBattleFieldState(
+          lastBallUsedId: 'poke_ball',
+          ballFetchEligibleSlots: <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      final result = const BattleEndTurnHandler().resolveEndTurn(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, 'poke_ball');
+      expect(result.state.field.lastBallUsedId, isNull);
+      expect(result.state.field.ballFetchEligibleSlots, isEmpty);
+    });
+
+    test('Ball Fetch only lets the first eligible battler retrieve the ball',
+        () {
+      final state = _doublesState(
+        playerAbilityId: 'ball_fetch',
+        playerAllyAbilityId: 'ball_fetch',
+        field: const PsdkBattleFieldState(
+          lastBallUsedId: 'poke_ball',
+          ballFetchEligibleSlots: <PsdkBattleSlotRef>[
+            _playerAllySlot,
+            psdkPlayerSlot,
+          ],
+        ),
+      );
+
+      final result = const BattleEndTurnHandler().resolveEndTurn(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+        result.state.battlerAt(_playerAllySlot).heldItemId,
+        'poke_ball',
+      );
+      expect(result.state.field.lastBallUsedId, isNull);
+      expect(result.state.field.ballFetchEligibleSlots, isEmpty);
+    });
+
+    test('Dancer immediately replays dance moves without PP or history', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(id: 'fiery_dance', power: 40).psdk.copyWith(
+                  dance: true,
+                ),
+            speed: 80,
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'dancer',
+            move: _move(id: 'wait', power: 0).psdk,
+            speed: 40,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final danceDamage = result.timeline.events
+          .whereType<PsdkBattleDamageEvent>()
+          .where((event) => event.moveId == 'fiery_dance')
+          .toList(growable: false);
+      final fieryPpEvents = result.timeline.events
+          .whereType<PsdkBattleMovePpSpentEvent>()
+          .where((event) => event.moveId == 'fiery_dance')
+          .toList(growable: false);
+      final opponentHistory =
+          result.state.battlerAt(psdkOpponentSlot).moveHistory;
+
+      expect(
+        danceDamage.map((event) => event.user),
+        <PsdkBattleSlotRef>[psdkPlayerSlot, psdkOpponentSlot],
+      );
+      expect(
+        danceDamage.map((event) => event.target),
+        <PsdkBattleSlotRef>[psdkOpponentSlot, psdkPlayerSlot],
+      );
+      expect(fieryPpEvents.map((event) => event.user), <PsdkBattleSlotRef>[
+        psdkPlayerSlot,
+      ]);
+      expect(opponentHistory.usedMoveIds, isNot(contains('fiery_dance')));
+      expect(
+        opponentHistory.successfulMoveIds,
+        isNot(contains('fiery_dance')),
+      );
+    });
+
+    test('Color Change waits until the final successful multi-hit damage', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(
+              id: 'double_slap',
+              power: 20,
+              battleEngineMethod: 's_2hits',
+            ).psdk.copyWith(type: 'fire'),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'color_change',
+            move: _move(id: 'wait', power: 0).psdk,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final events = result.timeline.events;
+      final damageIndexes = <int>[
+        for (var index = 0; index < events.length; index += 1)
+          if (events[index] is PsdkBattleDamageEvent) index,
+      ];
+      final colorChangeIndex = events.indexWhere(
+        (event) =>
+            event is PsdkBattleEffectEvent &&
+            event.effectId == 'color_change:fire',
+      );
+
+      expect(damageIndexes, hasLength(2));
+      expect(colorChangeIndex, greaterThan(damageIndexes.last));
+      expect(result.state.battlerAt(psdkOpponentSlot).types.primary, 'fire');
+    });
+
+    test('Dancer replay does not lock Thrash-style dance moves', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(
+              id: 'thrash',
+              power: 40,
+              battleEngineMethod: 's_thrash',
+            ).psdk.copyWith(dance: true),
+            speed: 80,
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'dancer',
+            move: _move(id: 'wait', power: 0).psdk,
+            speed: 40,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(
+        result.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('force_next_move_base'),
+        isFalse,
+      );
+    });
+
+    test('Commander marks Tatsugiri and sharply boosts allied Dondozo', () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+      final tatsugiri = result.state.battlerAt(psdkPlayerSlot);
+      final dondozo = result.state.battlerAt(_playerAllySlot);
+
+      expect(tatsugiri.effects.contains('commanding'), isTrue);
+      expect(dondozo.effects.contains('commanded'), isTrue);
+      expect(dondozo.statStages.valueOf('attack'), 2);
+      expect(dondozo.statStages.valueOf('defense'), 2);
+      expect(dondozo.statStages.valueOf('specialAttack'), 2);
+      expect(dondozo.statStages.valueOf('specialDefense'), 2);
+      expect(dondozo.statStages.valueOf('speed'), 2);
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>(),
+        hasLength(5),
+      );
+    });
+
+    test('Commander clears queued switches for the tied pair', () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(
+            tatsugiriSwitching: true,
+            dondozoSwitching: true,
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(result.state.battlerAt(_playerAllySlot).switching, isFalse);
+    });
+
+    test('Commander also activates when allied Dondozo switches in', () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(),
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        who: _playerAllySlot,
+        replacement: _playerAllySlot,
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('commanding'),
+        isTrue,
+      );
+      expect(
+        result.state.battlerAt(_playerAllySlot).effects.contains('commanded'),
+        isTrue,
+      );
+    });
+
+    test('Commanding and Commanded prevent actions until Dondozo faints', () {
+      final commander = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+      final commandingPrevention =
+          commander.state.battlerAt(psdkPlayerSlot).effects.userMovePrevention(
+                BattleEffectUserMovePreventionContext(
+                  state: commander.state,
+                  rng: _rng(),
+                  turn: 1,
+                  user: psdkPlayerSlot,
+                  target: psdkOpponentSlot,
+                  move: _move(id: 'tackle', power: 40).definition,
+                ),
+              );
+      final tatsugiriSwitch =
+          const BattleSwitchHandler().resolveSwitchPrevention(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+      );
+      final dondozoSwitch = const BattleSwitchHandler().resolveSwitchPrevention(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        target: _playerAllySlot,
+      );
+      final ko = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: _playerAllySlot,
+        moveId: 'ko_hit',
+        rawDamage: 100,
+      );
+      final outOfReach = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        moveId: 'target_commander',
+        rawDamage: 20,
+      );
+
+      expect(commandingPrevention?.prevented, isTrue);
+      expect(
+          commandingPrevention?.reason, BattleMoveFailureReason.unusableByUser);
+      expect(
+        commander.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('out_of_reach_base'),
+        isTrue,
+      );
+      expect(outOfReach.applied, isFalse);
+      expect(outOfReach.reason, BattleMoveFailureReason.protected.jsonName);
+      expect(tatsugiriSwitch.applied, isFalse);
+      expect(tatsugiriSwitch.reason, 'commanding');
+      expect(dondozoSwitch.applied, isFalse);
+      expect(dondozoSwitch.reason, 'commanded');
+      expect(
+        ko.state.battlerAt(psdkPlayerSlot).effects.contains('commanding'),
+        isFalse,
+      );
+    });
+
+    test('Neutralizing Gas suppresses other active abilities on switch-in', () {
+      final state = _doublesState(
+        playerAbilityId: 'neutralizing_gas',
+        playerAllyAbilityId: 'levitate',
+        opponentAbilityId: 'water_absorb',
+      );
+
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isTrue,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains(
+              'ability_suppressed',
+            ),
+        isFalse,
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          result.state.battlerAt(_playerAllySlot),
+        ),
+        'neutralizing_gas',
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          result.state.battlerAt(psdkOpponentSlot),
+        ),
+        'neutralizing_gas',
+      );
+    });
+
+    test('Neutralizing Gas restores suppressed abilities when owner leaves',
+        () {
+      final activated = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            playerAllyAbilityId: 'levitate',
+            opponentAbilityId: 'water_absorb',
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      final restored = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: activated.state,
+          rng: activated.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: _playerAllySlot,
+      );
+
+      expect(
+        restored.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('neutralizing_gas_activated'),
+        isFalse,
+      );
+      expect(
+        restored.state
+            .battlerAt(_playerAllySlot)
+            .effects
+            .contains('ability_suppressed'),
+        isFalse,
+      );
+      expect(
+        restored.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('ability_suppressed'),
+        isFalse,
+      );
+    });
+
+    test('Neutralizing Gas releases suppression before ability changes away',
+        () {
+      final activated = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            opponentAbilityId: 'water_absorb',
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      final changed = const BattleAbilityChangeHandler().changeAbility(
+        context: BattleHandlerContext(
+          state: activated.state,
+          rng: activated.rng,
+          turn: 2,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        abilityId: 'run_away',
+      );
+
+      expect(changed.state.battlerAt(psdkPlayerSlot).abilityId, 'run_away');
+      expect(
+        changed.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('ability_suppressed'),
+        isFalse,
+      );
+    });
+
+    test(
+        'Neutralizing Gas replacement suppresses the former owner after ability change',
+        () {
+      final activated = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            playerAllyAbilityId: 'levitate',
+            opponentAbilityId: 'neutralizing_gas',
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      final changed = const BattleAbilityChangeHandler().changeAbility(
+        context: BattleHandlerContext(
+          state: activated.state,
+          rng: activated.rng,
+          turn: 2,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        abilityId: 'run_away',
+      );
+
+      expect(changed.state.battlerAt(psdkPlayerSlot).abilityId, 'run_away');
+      expect(
+        changed.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isTrue,
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          changed.state.battlerAt(psdkPlayerSlot),
+        ),
+        'neutralizing_gas',
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          changed.state.battlerAt(_playerAllySlot),
+        ),
+        'neutralizing_gas',
+      );
+    });
+
+    test('Neutralizing Gas initial switch pre-pass activates fastest Gas owner',
+        () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            opponentAbilityId: 'neutralizing_gas',
+            playerSpeed: 40,
+            opponentSpeed: 120,
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isTrue,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isFalse,
+      );
+    });
+
+    test('Parental Bond adds a weaker second hit for simple damaging moves',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'parental_bond',
+            move: _move(id: 'tackle', power: 40).psdk,
+          ),
+          opponent: _combatant(id: 'opponent'),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final hits = result.timeline.events
+          .whereType<PsdkBattleDamageEvent>()
+          .where((event) => event.user == psdkPlayerSlot)
+          .toList(growable: false);
+
+      expect(hits, hasLength(2));
+      expect(hits[1].damage, lessThan(hits[0].damage));
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).currentHp,
+        100 - hits[0].damage - hits[1].damage,
+      );
+    });
+
+    test('Parental Bond skips excluded one-attack methods', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'parental_bond',
+            move: _move(
+              id: 'uproar',
+              power: 40,
+              battleEngineMethod: 's_uproar',
+            ).psdk,
+          ),
+          opponent: _combatant(id: 'opponent'),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final hits = result.timeline.events
+          .whereType<PsdkBattleDamageEvent>()
+          .where((event) => event.user == psdkPlayerSlot)
+          .toList(growable: false);
+
+      expect(hits, hasLength(1));
+    });
+  });
+}
+
+BattleMoveDamageResult _calculateDamage({
+  String? playerAbilityId,
+  String? opponentAbilityId,
+  PsdkBattleStatStages? playerStages,
+  PsdkBattleStatStages? opponentStages,
+}) {
+  final move = _move(id: 'tackle', power: 80).definition;
+  final state = _singlesState(
+    playerAbilityId: playerAbilityId,
+    opponentAbilityId: opponentAbilityId,
+    playerStages: playerStages,
+    opponentStages: opponentStages,
+  );
+  return const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: state.battlerAt(psdkPlayerSlot),
+      target: state.battlerAt(psdkOpponentSlot),
+      move: move,
+      rng: _rng(),
+      field: state.field,
+      state: state,
+      userSlot: psdkPlayerSlot,
+      targetSlot: psdkOpponentSlot,
+    ),
+  );
+}
+
+BattleAccuracyResult _resolveAccuracy({
+  required int accuracy,
+  required int moveAccuracySeed,
+  String? playerAbilityId,
+  String? opponentAbilityId,
+  PsdkBattleStatStages? playerStages,
+  PsdkBattleStatStages? opponentStages,
+}) {
+  final move = _move(
+    id: 'tackle',
+    power: 40,
+    accuracy: accuracy,
+  ).definition;
+  final state = _singlesState(
+    playerAbilityId: playerAbilityId,
+    opponentAbilityId: opponentAbilityId,
+    playerStages: playerStages,
+    opponentStages: opponentStages,
+  );
+  return const BattleAccuracyResolver().resolve(
+    execution: BattleMoveProcedureExecution(
+      context: BattleMoveBehaviorContext(
+        state: state,
+        rng: BattleRngStreams.fromSeeds(
+          moveDamageSeed: 1,
+          moveCriticalSeed: 99999,
+          moveAccuracySeed: moveAccuracySeed,
+          genericSeed: 4,
+        ),
+        turn: 1,
+        user: psdkPlayerSlot,
+        target: psdkOpponentSlot,
+        move: move,
+      ),
+      timeline: BattleTimelineBuilder(),
+      user: const BattlePositionRef(bank: 0, position: 0),
+      move: move,
+      requestedTarget: const BattlePositionRef(bank: 1, position: 0),
+    ),
+    targets: const <BattlePositionRef>[
+      BattlePositionRef(bank: 1, position: 0),
+    ],
+  );
+}
+
+PsdkBattleState _singlesState({
+  String? playerAbilityId,
+  String? opponentAbilityId,
+  String? opponentHeldItemId,
+  PsdkBattleStatStages? playerStages,
+  PsdkBattleStatStages? opponentStages,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+  List<PsdkBattleCombatantSetup> opponentReserves =
+      const <PsdkBattleCombatantSetup>[],
+}) {
+  return PsdkBattleState.fromSetup(
+    PsdkBattleSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: playerAbilityId,
+        statStages: playerStages,
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        abilityId: opponentAbilityId,
+        heldItemId: opponentHeldItemId,
+        statStages: opponentStages,
+      ),
+      opponentReserves: opponentReserves,
+      field: field,
+      rngSeeds: const PsdkBattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ),
+    ),
+  );
+}
+
+PsdkBattleState _doublesState({
+  String? playerAbilityId,
+  String? playerAllyAbilityId,
+  String? opponentAbilityId,
+  String? playerHeldItemId,
+  String? playerAllyHeldItemId,
+  PsdkBattleEffectStack playerAllyEffects = const PsdkBattleEffectStack.empty(),
+  int playerSpeed = 80,
+  int playerAllySpeed = 80,
+  int opponentSpeed = 80,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+}) {
+  return PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player',
+          abilityId: playerAbilityId,
+          heldItemId: playerHeldItemId,
+          speed: playerSpeed,
+        ),
+      ),
+      _playerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'player-ally',
+          abilityId: playerAllyAbilityId,
+          heldItemId: playerAllyHeldItemId,
+          effects: playerAllyEffects,
+          speed: playerAllySpeed,
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          abilityId: opponentAbilityId,
+          speed: opponentSpeed,
+        ),
+      ),
+    },
+    field: field,
+  );
+}
+
+PsdkBattleState _commanderState({
+  bool tatsugiriSwitching = false,
+  bool dondozoSwitching = false,
+}) {
+  return PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'tatsugiri',
+          speciesId: 'tatsugiri',
+          abilityId: 'commander',
+          switching: tatsugiriSwitching,
+        ),
+      ),
+      _playerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'dondozo',
+          speciesId: 'dondozo',
+          switching: dondozoSwitching,
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'opponent'),
+      ),
+    },
+  );
+}
+
+({BattleMoveDefinition definition, PsdkBattleMoveData psdk}) _move({
+  required String id,
+  required int power,
+  int accuracy = 100,
+  String battleEngineMethod = 's_basic',
+}) {
+  final definition = BattleMoveDefinition(
+    id: id,
+    dbSymbol: id,
+    name: id,
+    type: 'normal',
+    category: PsdkBattleMoveCategory.physical,
+    power: power,
+    accuracy: accuracy,
+    pp: 35,
+    priority: 0,
+    battleEngineMethod: battleEngineMethod,
+    target: PsdkBattleMoveTarget.adjacentFoe,
+  );
+  return (definition: definition, psdk: definition.psdkMove);
+}
+
+PsdkBattleCombatantSetup _combatant({
+  required String id,
+  String? speciesId,
+  String? abilityId,
+  String? heldItemId,
+  PsdkBattleStatStages? statStages,
+  PsdkBattleMoveData? move,
+  int speed = 80,
+  bool switching = false,
+  PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
+}) {
+  return PsdkBattleCombatantSetup(
+    id: id,
+    speciesId: speciesId ?? id,
+    displayName: id,
+    level: 50,
+    maxHp: 100,
+    currentHp: 100,
+    types: const PsdkBattleTypes(primary: 'normal'),
+    stats: PsdkBattleStats(
+      attack: 80,
+      defense: 80,
+      specialAttack: 80,
+      specialDefense: 80,
+      speed: speed,
+    ),
+    abilityId: abilityId,
+    heldItemId: heldItemId,
+    statStages: statStages,
+    switching: switching,
+    effects: effects,
+    moves: <PsdkBattleMoveData>[
+      move ?? _move(id: 'tackle', power: 40).psdk,
+    ],
+  );
+}
+
+BattleRngStreams _rng() {
+  return BattleRngStreams.fromSeeds(
+    moveDamageSeed: 1,
+    moveCriticalSeed: 99999,
+    moveAccuracySeed: 3,
+    genericSeed: 4,
+  );
+}
+
+String? _abilitySuppressionOrigin(PsdkBattleCombatant battler) {
+  for (final effect in battler.effects.effects) {
+    if (effect is AbilitySuppressedEffect) {
+      return effect.origin;
+    }
+  }
+  return null;
+}

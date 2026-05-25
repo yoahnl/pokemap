@@ -1,11 +1,17 @@
-import '../../../domain/effect/battle_effect.dart';
+import '../../../domain/effect/ability/ability_effect.dart';
+import '../../../domain/effect/ability/mental_immunity_ability_effect.dart';
+import '../../../domain/effect/ability/dancer_effect.dart';
 import '../../../domain/effect/battle_effect_scope.dart';
 import '../../../domain/effect/move/confusion_effect.dart';
 import '../../../domain/effect/move/force_next_move_base_effect.dart';
+import '../../../domain/effect/move/uproar_effect.dart';
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_status_change_handler.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -64,6 +70,7 @@ final class ForcedActionMoveBehavior
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    final dancerReplay = _isDancerReplay(context.state.battlerAt(context.user));
     final prevention = preventUser(context);
     if (prevention != null) {
       return BattleMoveBehaviorResolution(
@@ -95,6 +102,10 @@ final class ForcedActionMoveBehavior
         target: target,
         move: context.move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
       ),
     );
     if (damageResult.damage <= 0) {
@@ -105,7 +116,7 @@ final class ForcedActionMoveBehavior
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -113,6 +124,7 @@ final class ForcedActionMoveBehavior
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: context.move,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -125,8 +137,10 @@ final class ForcedActionMoveBehavior
     final forcedAction = _applyForcedActionEffect(
       state: secondary.state,
       rng: secondary.rng,
+      turn: context.turn,
       user: context.user,
       moveId: context.move.id,
+      dancerReplay: dancerReplay,
     );
 
     return BattleMoveBehaviorResolution(
@@ -134,8 +148,9 @@ final class ForcedActionMoveBehavior
       rng: forcedAction.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
+        ...forcedAction.events,
       ],
     );
   }
@@ -143,32 +158,79 @@ final class ForcedActionMoveBehavior
   _ForcedActionEffectResult _applyForcedActionEffect({
     required PsdkBattleState state,
     required BattleRngStreams rng,
+    required int turn,
     required PsdkBattleSlotRef user,
     required String moveId,
+    required bool dancerReplay,
   }) {
     return switch (_kind) {
       _ForcedActionMoveKind.gigatonHammer =>
         _ForcedActionEffectResult(state: state, rng: rng),
       _ForcedActionMoveKind.thrash ||
       _ForcedActionMoveKind.outrage =>
-        _applyRepeatedMoveLock(
-            state: state, rng: rng, user: user, moveId: moveId),
-      _ForcedActionMoveKind.uproar => _ForcedActionEffectResult(
-          state: state.updateBattler(
-            user,
-            (battler) => battler.copyWith(
-              effects: battler.effects.addEffect(
-                GenericBattleEffect(
-                  id: 'uproar',
-                  scope: BattlerBattleEffectScope(user),
-                  remainingTurns: 3,
-                ),
+        dancerReplay
+            ? _ForcedActionEffectResult(state: state, rng: rng)
+            : _applyRepeatedMoveLock(
+                state: state,
+                rng: rng,
+                user: user,
+                moveId: moveId,
               ),
-            ),
-          ),
+      _ForcedActionMoveKind.uproar => _applyUproarEffect(
+          state: state,
           rng: rng,
+          turn: turn,
+          user: user,
+          moveId: moveId,
         ),
     };
+  }
+
+  _ForcedActionEffectResult _applyUproarEffect({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef user,
+    required String moveId,
+  }) {
+    var nextState = state.updateBattler(
+      user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          UproarEffect(scope: BattlerBattleEffectScope(user)),
+        ),
+      ),
+    );
+    var nextRng = rng;
+    final events = <PsdkBattleEvent>[];
+
+    for (final slot in nextState.aliveSlots()) {
+      if (nextState.battlerAt(slot).majorStatus !=
+          PsdkBattleMajorStatus.sleep) {
+        continue;
+      }
+      final cured = const BattleStatusChangeHandler().cureMajorStatus(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: turn,
+          user: user,
+        ),
+        target: slot,
+        moveId: moveId,
+      );
+      nextState = cured.state;
+      nextRng = cured.rng;
+      if (cured.applied) {
+        events.addAll(cured.events);
+      }
+    }
+
+    return _ForcedActionEffectResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+    );
   }
 
   _ForcedActionEffectResult _applyRepeatedMoveLock({
@@ -204,11 +266,22 @@ final class ForcedActionMoveBehavior
       return _ForcedActionEffectResult(
         state: state.updateBattler(
           user,
-          (current) => current.copyWith(
-            effects: current.effects.remove(lock.id).addEffect(
-                  ConfusionEffect(scope: BattlerBattleEffectScope(user)),
-                ),
-          ),
+          (current) {
+            final clearedEffects = current.effects.remove(lock.id);
+            if (battleMentalAbilityBlocksEffect(
+              state: state,
+              user: user,
+              target: user,
+              effectId: PsdkBattleEffectIds.confusion,
+            )) {
+              return current.copyWith(effects: clearedEffects);
+            }
+            return current.copyWith(
+              effects: clearedEffects.addEffect(
+                ConfusionEffect(scope: BattlerBattleEffectScope(user)),
+              ),
+            );
+          },
         ),
         rng: rng,
       );
@@ -245,12 +318,23 @@ final class ForcedActionMoveBehavior
   }
 }
 
+bool _isDancerReplay(PsdkBattleCombatant user) {
+  return user.effects.contains(_dancerReplayActivatedEffectId) ||
+      user.abilityEffects.any(
+        (effect) => effect is DancerEffect && effect.activated,
+      );
+}
+
+const _dancerReplayActivatedEffectId = 'dancer_replay_activated';
+
 final class _ForcedActionEffectResult {
   const _ForcedActionEffectResult({
     required this.state,
     required this.rng,
+    this.events = const <PsdkBattleEvent>[],
   });
 
   final PsdkBattleState state;
   final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
 }

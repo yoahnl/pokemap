@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import '../battle/battle_slot.dart';
 import '../timeline/battle_timeline_builder.dart';
 import 'battle_move_behavior.dart';
@@ -11,7 +12,8 @@ final class BattleMoveProcedureExecution {
     required this.user,
     required this.move,
     required this.requestedTarget,
-  }) : actualUser = user;
+  })  : actualUser = user,
+        actualState = context.state;
 
   final BattleMoveBehaviorContext context;
   final BattleTimelineBuilder timeline;
@@ -25,6 +27,8 @@ final class BattleMoveProcedureExecution {
   /// move after accuracy, so FIGHT-11 keeps this mutable execution-local value
   /// beside [actualTargets] instead of rewriting the selected action.
   BattlePositionRef actualUser;
+
+  PsdkBattleState actualState;
 
   List<BattlePositionRef> actualTargets = <BattlePositionRef>[];
 

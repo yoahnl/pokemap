@@ -3,7 +3,10 @@ import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/battle_effect_scope.dart';
+import '../../effect/move/bestow_effect.dart';
 import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_item_change_handler.dart';
 import '../../handler/battle_status_change_handler.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
@@ -101,19 +104,52 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final transferred = _setHeldItem(
-      _setHeldItem(
-        prepared.state,
-        slot: targetSlot,
-        heldItemId: user.heldItemId,
+    final itemId = user.heldItemId!;
+    final given = const BattleItemChangeHandler().changeHeldItem(
+      context: BattleHandlerContext(
+        state: prepared.state,
+        rng: prepared.rng,
+        turn: context.turn,
+        user: context.user,
       ),
-      slot: context.user,
+      target: targetSlot,
+      heldItemId: itemId,
+      move: context.move,
+      launcher: context.user,
+    );
+    final removed = const BattleItemChangeHandler().changeHeldItem(
+      context: BattleHandlerContext(
+        state: given.state,
+        rng: given.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: context.user,
       heldItemId: null,
+      move: context.move,
+      launcher: context.user,
+    );
+    final marked = removed.state.updateBattler(
+      context.user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          BestowEffect(
+            scope: BattlerBattleEffectScope(context.user),
+            giver: context.user,
+            receiver: targetSlot,
+            itemId: itemId,
+          ),
+        ),
+      ),
     );
     return BattleMoveBehaviorResolution(
-      state: transferred,
-      rng: prepared.rng,
-      events: prepared.events,
+      state: marked,
+      rng: removed.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        ...given.events,
+        ...removed.events,
+      ],
     );
   }
 
@@ -199,6 +235,10 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
         overrides: BattleMoveDamageOverrides(power: power),
       ),
     );
@@ -210,7 +250,7 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -218,6 +258,8 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: move,
+      targetCount: prepared.psdkTargets.length,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -241,7 +283,7 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       rng: itemEffect.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
         ...itemEffect.events,
       ],
@@ -462,11 +504,19 @@ BattleMoveBehaviorResolution _failed({
 }
 
 bool _canGiveItem(PsdkBattleCombatant user, PsdkBattleCombatant target) {
-  return user.heldItemId != null && target.heldItemId == null;
+  return _canLoseItem(user) &&
+      target.heldItemId == null &&
+      !_speciesHasProtectedItems(target.speciesId);
 }
 
 bool _canLoseItem(PsdkBattleCombatant battler) {
-  return battler.heldItemId != null;
+  final itemId = _normalizedNullableId(battler.heldItemId);
+  return itemId != null &&
+      !battler.isFainted &&
+      !_protectedItems.contains(itemId) &&
+      !(_protectedPokemonItems[_normalizedId(battler.speciesId)]
+              ?.contains(itemId) ??
+          false);
 }
 
 PsdkBattleState _setHeldItem(
@@ -590,6 +640,75 @@ int _pluckBerryHealAmount(String? itemId, int maxHp) {
 }
 
 int _atLeastOne(int value) => value < 1 ? 1 : value;
+
+bool _speciesHasProtectedItems(String speciesId) {
+  return _protectedPokemonItems.containsKey(_normalizedId(speciesId));
+}
+
+String? _normalizedNullableId(String? value) {
+  if (value == null) {
+    return null;
+  }
+  final normalized = _normalizedId(value);
+  return normalized.isEmpty ? null : normalized;
+}
+
+String _normalizedId(String value) {
+  return value.trim().toLowerCase().replaceAll('-', '_');
+}
+
+const _protectedItems = <String>{
+  'exp_share',
+  'lucky_egg',
+  'amulet_coin',
+  'oak_s_letter',
+  'gram_1',
+  'gram_2',
+  'gram_3',
+  'prof_s_letter',
+  'letter',
+  'greet_mail',
+  'favored_mail',
+  'rsvp_mail',
+  'thanks_mail',
+  'inquiry_mail',
+  'like_mail',
+  'reply_mail',
+  'bridge_mail_s',
+  'bridge_mail_d',
+  'bridge_mail_t',
+  'bridge_mail_v',
+  'bridge_mail_m',
+};
+
+const _protectedPokemonItems = <String, Set<String>>{
+  'giratina': {'griseous_orb'},
+  'arceus': {
+    'flame_plate',
+    'splash_plate',
+    'zap_plate',
+    'meadow_plate',
+    'icicle_plate',
+    'fist_plate',
+    'toxic_plate',
+    'earth_plate',
+    'sky_plate',
+    'mind_plate',
+    'insect_plate',
+    'stone_plate',
+    'spooky_plate',
+    'draco_plate',
+    'dread_plate',
+    'iron_plate',
+    'pixie_plate',
+  },
+  'genesect': {'shock_drive', 'burn_drive', 'chill_drive', 'douse_drive'},
+  'kyogre': {'blue_orb'},
+  'groudon': {'red_orb'},
+  'zacian': {'rusted_sword'},
+  'zamazenta': {'rusted_shield'},
+  'ogerpon': {'wellspring_mask', 'hearthflame_mask', 'cornerstone_mask'},
+};
 
 const _naturalGiftBerries = <String, ({String type, int power})>{
   'aguav_berry': (type: 'dragon', power: 80),

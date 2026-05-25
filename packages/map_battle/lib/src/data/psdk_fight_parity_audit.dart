@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'generated/psdk_ability_effect_manifest.dart';
+import 'generated/psdk_item_effect_manifest.dart';
 import 'generated/psdk_move_registry_manifest.dart';
 import 'psdk_attack_coverage_report.dart';
 
 final _classLinePattern = RegExp(
   r'^\s*class\s+([A-Za-z_][A-Za-z0-9_:]*)(?:\s*<\s*([A-Za-z0-9_:]+))?',
 );
+final _hookLinePattern = RegExp(r'^\s*def\s+(on_[A-Za-z0-9_!?=]+)');
 final _blockStartPattern = RegExp(
   r'^\s*(module|def|if|unless|case|begin|for|while|until)\b|'
   r'\bdo\s*(?:\|[^|]*\|)?\s*$',
@@ -72,6 +75,7 @@ final class PsdkFightParityAudit {
       'methods': <String, Object?>{
         ...methodMetrics.toJson(),
         'entries': methodEntries.map(_methodEntryJson).toList(),
+        'backlogBatches': _methodBacklogBatchJson(methodEntries),
       },
       'effects': <String, Object?>{
         ...effectMetrics.toJson(),
@@ -119,6 +123,7 @@ final class PsdkFightParityAudit {
     buffer
       ..writeln('| Total manifest methods | ${methodMetrics.totalMethods} |');
     _writePartialMethodsByDependency(buffer, methodEntries);
+    _writePartialMethodBatches(buffer, methodEntries);
     buffer
       ..writeln()
       ..writeln('## Effect Coverage')
@@ -364,12 +369,14 @@ final class PsdkEffectParityEntry {
     required this.family,
     required this.status,
     this.rubyPath = '',
+    this.hookFamilies = const <String>[],
   });
 
   final String effectName;
   final String family;
   final PsdkPortStatus status;
   final String rubyPath;
+  final List<String> hookFamilies;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -377,6 +384,7 @@ final class PsdkEffectParityEntry {
       'family': family,
       'status': status.name,
       'rubyPath': rubyPath,
+      'hookFamilies': hookFamilies,
     };
   }
 }
@@ -559,12 +567,18 @@ Future<List<PsdkEffectParityEntry>> loadPsdkEffectParityEntries(
       if (_isGenericContainerClass(parsedClass.name, classes)) {
         continue;
       }
+      final family = _effectFamily(relativePath);
       rows.add(
         PsdkEffectParityEntry(
           effectName: parsedClass.name,
-          family: _effectFamily(relativePath),
-          status: _statusForEffect(parsedClass.name),
+          family: family,
+          status: psdkEffectPortStatusFor(
+            effectName: parsedClass.name,
+            family: family,
+            rubyPath: relativePath,
+          ),
           rubyPath: relativePath,
+          hookFamilies: _hookFamiliesFor(parsedClass.sortedHooks),
         ),
       );
     }
@@ -610,6 +624,14 @@ List<_ParsedRubyClass> _parseRubyClasses(String content) {
       continue;
     }
 
+    final hookMatch = _hookLinePattern.firstMatch(line);
+    if (hookMatch != null) {
+      final classIndex = _currentClassIndex(blockStack);
+      if (classIndex != null) {
+        classes[classIndex].hooks.add(hookMatch.group(1)!);
+      }
+    }
+
     if (_startsRubyBlock(line)) {
       blockStack.add(const _RubyBlock.other());
       continue;
@@ -620,6 +642,16 @@ List<_ParsedRubyClass> _parseRubyClasses(String content) {
     }
   }
   return classes;
+}
+
+int? _currentClassIndex(List<_RubyBlock> blockStack) {
+  for (var index = blockStack.length - 1; index >= 0; index -= 1) {
+    final block = blockStack[index];
+    if (block.classIndex != null) {
+      return block.classIndex;
+    }
+  }
+  return null;
 }
 
 bool _startsRubyBlock(String line) {
@@ -653,36 +685,200 @@ String _effectFamily(String rubyPath) {
   return 'mechanics';
 }
 
-PsdkPortStatus _statusForEffect(String effectName) {
+PsdkPortStatus psdkEffectPortStatusFor({
+  required String effectName,
+  required String family,
+  required String rubyPath,
+}) {
+  if (family == 'move' &&
+      rubyPath.contains('02 Move Effects/001 HelpingHand.rb') &&
+      (effectName == 'HelpingHand' || effectName == 'Mark')) {
+    return PsdkPortStatus.ported;
+  }
+  final manifestStatus = _manifestStatusForEffect(
+    effectName: effectName,
+    family: family,
+    rubyPath: rubyPath,
+  );
+  if (manifestStatus != null && manifestStatus != PsdkPortStatus.missing) {
+    return manifestStatus;
+  }
+  return _explicitEffectStatusFor(effectName);
+}
+
+PsdkPortStatus? _manifestStatusForEffect({
+  required String effectName,
+  required String family,
+  required String rubyPath,
+}) {
+  final normalizedPath = _normalizeEffectManifestPath(rubyPath);
+  if (family == 'ability') {
+    return _abilityEffectStatusByName[effectName] ??
+        _abilityEffectStatusByPath[normalizedPath];
+  }
+  if (family == 'item') {
+    return _itemEffectStatusByName[effectName] ??
+        _itemEffectStatusByPath[normalizedPath];
+  }
+  return null;
+}
+
+PsdkPortStatus _explicitEffectStatusFor(String effectName) {
   const portedEffects = <String>{
-    'ArenaTrap',
-    'MagnetPull',
-    'ShadowTag',
-  };
-  const partialEffects = <String>{
-    'AquaRing',
+    'Ability',
+    'AbilitySuppressed',
+    'Asleep',
+    'AttackMultiplier',
     'Attract',
+    'AquaRing',
+    'ArenaTrap',
+    'Autotomize',
+    'AuroraVeil',
+    'BanefulBunker',
     'BatonPass',
+    'Berry',
+    'BeakBlast',
+    'Bestow',
+    'Bide',
     'Bind',
+    'Burn',
+    'BurnUp',
+    'BurningBulwark',
     'CantSwitch',
+    'CenterOfAttention',
+    'ChangeType',
+    'Charge',
+    'Commanded',
+    'Commanding',
     'Confusion',
+    'CraftyShield',
     'Curse',
+    'DefenseMultiplier',
+    'DestinyBond',
     'Disable',
+    'DragonCheer',
+    'Drowsiness',
+    'EffectBase',
+    'EffectsHandler',
+    'EchoedVoice',
+    'Electric',
+    'Embargo',
     'Encore',
+    'Electrify',
+    'Endure',
+    'FieldTerrain',
+    'FairyLock',
     'Flinch',
+    'Fog',
+    'FocusEnergy',
+    'FocusPunch',
+    'ForceNextMoveBase',
+    'Foresight',
+    'Frozen',
+    'FutureSight',
+    'FuryCutter',
+    'GlaiveRush',
+    'Gravity',
+    'Grudge',
+    'Grassy',
+    'Hail',
+    'Hardrain',
+    'Hardsun',
+    'HappyHour',
     'HealBlock',
+    'HealingWish',
+    'Imposter',
     'Imprison',
+    'Instruct',
     'Ingrain',
+    'IonDeluge',
+    'Item',
+    'ItemBurnt',
+    'ItemStolen',
+    'KingsShield',
+    'LaserFocus',
     'LeechSeed',
+    'LightScreen',
+    'LockOn',
+    'LuckyChant',
+    'LunarDance',
+    'MagnetPull',
+    'MagicCoat',
+    'MagicRoom',
+    'MagnetRise',
+    'Mark',
+    'Minimize',
+    'Misty',
+    'Nightmare',
+    'MiracleEye',
+    'NeutralizingGas',
+    'NoRetreat',
+    'Obstruct',
+    'Octolock',
+    'OutOfReachBase',
+    'ParentalBond',
+    'PerishSong',
+    'Paralysis',
+    'Poison',
+    'PokemonTiedEffectBase',
+    'PositionTiedEffectBase',
+    'Powder',
+    'PreventTargetsMove',
+    'MatBlock',
+    'Mist',
+    'MudSport',
     'Protect',
+    'Psychic',
+    'QuickGuard',
+    'Rage',
+    'Rainbow',
+    'Rain',
+    'Reflect',
+    'Rollout',
+    'Roost',
+    'Safeguard',
     'SaltCure',
+    'Sandstorm',
+    'SeaOfFire',
+    'ShadowTag',
+    'ShedTail',
+    'SilkTrap',
+    'ShellTrap',
     'SmackDown',
+    'Snatch',
+    'Snatched',
+    'Snow',
+    'SleepPrevention',
+    'Spikes',
+    'SpikyShield',
+    'Status',
+    'StealthRock',
+    'StickyWeb',
+    'Stockpile',
+    'StrongWinds',
+    'Substitute',
+    'Swamp',
+    'Sunny',
     'SyrupBomb',
-    'Taunt',
+    'Tailwind',
     'TarShot',
+    'Taunt',
+    'Telekinesis',
     'ThroatChop',
     'Torment',
+    'TripleArrows',
+    'Toxic',
+    'ToxicSpikes',
+    'Transform',
+    'TrickRoom',
+    'UpRoar',
+    'WaterSport',
+    'Weather',
+    'WideGuard',
+    'Wish',
+    'WonderRoom',
   };
+  const partialEffects = <String>{};
   if (portedEffects.contains(effectName)) {
     return PsdkPortStatus.ported;
   }
@@ -690,6 +886,205 @@ PsdkPortStatus _statusForEffect(String effectName) {
     return PsdkPortStatus.partial;
   }
   return PsdkPortStatus.missing;
+}
+
+List<String> _hookFamiliesFor(List<String> hooks) {
+  final families = <String>{};
+  for (final hook in hooks) {
+    final family = _hookFamilyFor(hook);
+    if (family != null) {
+      families.add(family);
+    }
+  }
+  return families.toList()..sort();
+}
+
+String? _hookFamilyFor(String hook) {
+  if (hook == 'on_move_ability_immunity') {
+    return 'ability_immunity';
+  }
+  if (hook == 'on_move_priority_change') {
+    return 'action_order';
+  }
+  if (hook == 'on_move_type_change') {
+    return 'move_type_change';
+  }
+  if (hook == 'on_pre_accuracy_check' || hook == 'on_post_accuracy_check') {
+    return 'accuracy';
+  }
+  if (hook == 'on_two_turn_shortcut') {
+    return 'two_turn_shortcut';
+  }
+  if (hook == 'on_move_disabled_check' ||
+      hook == 'on_move_failure' ||
+      hook.startsWith('on_move_prevention')) {
+    return 'move_prevention';
+  }
+  if (hook == 'on_damage_prevention') {
+    return 'damage_prevention';
+  }
+  if (hook == 'on_post_damage' || hook == 'on_post_damage_death') {
+    return 'post_damage';
+  }
+  if (hook == 'on_drain_prevention' || hook == 'on_pre_drain') {
+    return 'drain';
+  }
+  if (hook.contains('status')) {
+    return 'status_prevention';
+  }
+  if (hook.contains('stat')) {
+    return 'stat_change';
+  }
+  if (hook.contains('weather')) {
+    return 'weather_change';
+  }
+  if (hook.contains('fterrain')) {
+    return 'terrain_change';
+  }
+  if (hook.contains('item')) {
+    return 'item_change';
+  }
+  if (hook.contains('ability_change')) {
+    return 'ability_change';
+  }
+  if (hook.contains('switch') || hook.contains('flee')) {
+    return 'switch';
+  }
+  if (hook == 'on_end_turn_event') {
+    return 'end_turn';
+  }
+  if (hook == 'on_post_action_event') {
+    return 'action_order';
+  }
+  if (hook == 'on_transform_event') {
+    return 'transform';
+  }
+  if (hook == 'on_single_type_multiplier_overwrite') {
+    return 'damage_change';
+  }
+  if (hook.startsWith('on_delete') ||
+      hook == 'on_reset_states' ||
+      hook == 'on_clear_message' ||
+      hook == 'on_increase_message') {
+    return 'lifecycle';
+  }
+  return null;
+}
+
+final Map<String, PsdkPortStatus> _abilityEffectStatusByName =
+    _buildAbilityEffectStatusByName();
+final Map<String, PsdkPortStatus> _abilityEffectStatusByPath =
+    _buildAbilityEffectStatusByPath();
+final Map<String, PsdkPortStatus> _itemEffectStatusByName =
+    _buildItemEffectStatusByName();
+final Map<String, PsdkPortStatus> _itemEffectStatusByPath =
+    _buildItemEffectStatusByPath();
+
+Map<String, PsdkPortStatus> _buildAbilityEffectStatusByName() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkAbilityEffectManifest) {
+    grouped
+        .putIfAbsent(_pascalCaseManifestId(entry.abilityId), () => [])
+        .add(_abilityPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _buildAbilityEffectStatusByPath() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkAbilityEffectManifest) {
+    grouped
+        .putIfAbsent(_normalizeEffectManifestPath(entry.rubyPath), () => [])
+        .add(_abilityPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _buildItemEffectStatusByName() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkItemEffectManifest) {
+    grouped
+        .putIfAbsent(_itemEffectNameFromId(entry.itemId), () => [])
+        .add(_itemPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _buildItemEffectStatusByPath() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkItemEffectManifest) {
+    grouped
+        .putIfAbsent(_normalizeEffectManifestPath(entry.rubyPath), () => [])
+        .add(_itemPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _combineGroupedStatuses(
+  Map<String, List<PsdkPortStatus>> grouped,
+) {
+  return Map.unmodifiable(<String, PsdkPortStatus>{
+    for (final entry in grouped.entries)
+      entry.key: _combineStatuses(entry.value),
+  });
+}
+
+PsdkPortStatus _combineStatuses(List<PsdkPortStatus> statuses) {
+  if (statuses.isEmpty ||
+      statuses.every((status) => status == PsdkPortStatus.missing)) {
+    return PsdkPortStatus.missing;
+  }
+  if (statuses.every((status) => status == PsdkPortStatus.ported)) {
+    return PsdkPortStatus.ported;
+  }
+  return PsdkPortStatus.partial;
+}
+
+PsdkPortStatus _abilityPortStatus(PsdkAbilityPortStatus status) {
+  return switch (status) {
+    PsdkAbilityPortStatus.ported => PsdkPortStatus.ported,
+    PsdkAbilityPortStatus.partial => PsdkPortStatus.partial,
+    PsdkAbilityPortStatus.missing ||
+    PsdkAbilityPortStatus.outOfScope =>
+      PsdkPortStatus.missing,
+  };
+}
+
+PsdkPortStatus _itemPortStatus(PsdkItemPortStatus status) {
+  return switch (status) {
+    PsdkItemPortStatus.ported => PsdkPortStatus.ported,
+    PsdkItemPortStatus.partial => PsdkPortStatus.partial,
+    PsdkItemPortStatus.missing ||
+    PsdkItemPortStatus.outOfScope =>
+      PsdkPortStatus.missing,
+  };
+}
+
+String _itemEffectNameFromId(String itemId) {
+  if (itemId.endsWith('_berry')) {
+    return _pascalCaseManifestId(
+      itemId.substring(0, itemId.length - '_berry'.length),
+    );
+  }
+  return _pascalCaseManifestId(itemId);
+}
+
+String _pascalCaseManifestId(String id) {
+  return id
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .map((part) => part[0].toUpperCase() + part.substring(1))
+      .join();
+}
+
+String _normalizeEffectManifestPath(String rubyPath) {
+  final normalizedSeparators = rubyPath.replaceAll('\\', '/');
+  const marker = '5 Battle/';
+  final markerIndex = normalizedSeparators.indexOf(marker);
+  if (markerIndex == -1) {
+    return normalizedSeparators;
+  }
+  return normalizedSeparators.substring(markerIndex + marker.length);
 }
 
 Directory? _childDir(Directory root, String childName) {
@@ -740,7 +1135,141 @@ Map<String, Object?> _methodEntryJson(PsdkMoveRegistryManifestEntry entry) {
     'status': entry.status.name,
     'dependencies':
         entry.dependencies.map((dependency) => dependency.name).toList(),
+    if (entry.status != PsdkPortStatus.ported)
+      'methodBatch': _methodBacklogBatchFor(entry).id,
   };
+}
+
+List<Map<String, Object?>> _methodBacklogBatchJson(
+  List<PsdkMoveRegistryManifestEntry> entries,
+) {
+  return _methodBacklogBatches(entries)
+      .map(
+        (batch) => <String, Object?>{
+          'id': batch.id,
+          'label': batch.label,
+          'count': batch.methods.length,
+          'methods': batch.methods,
+        },
+      )
+      .toList(growable: false);
+}
+
+List<_MethodBacklogBatch> _methodBacklogBatches(
+  List<PsdkMoveRegistryManifestEntry> entries,
+) {
+  final byId = <String, _MethodBacklogBatch>{
+    for (final definition in _methodBacklogBatchDefinitions)
+      definition.id: _MethodBacklogBatch(
+        id: definition.id,
+        label: definition.label,
+        methods: <String>[],
+      ),
+  };
+  for (final entry
+      in entries.where((entry) => entry.status != PsdkPortStatus.ported)) {
+    byId[_methodBacklogBatchFor(entry).id]!.methods.add(
+          entry.battleEngineMethod,
+        );
+  }
+  return <_MethodBacklogBatch>[
+    for (final definition in _methodBacklogBatchDefinitions)
+      if (byId[definition.id]!.methods.isNotEmpty)
+        byId[definition.id]!..methods.sort(),
+  ];
+}
+
+_MethodBacklogBatchDefinition _methodBacklogBatchFor(
+  PsdkMoveRegistryManifestEntry entry,
+) {
+  final dependencies = entry.dependencies.map((dependency) => dependency.name);
+  final dependencySet = dependencies.toSet();
+  if (dependencySet.contains('actionOrder')) {
+    return _actionQueueMethodBatch;
+  }
+  if (dependencySet.contains('endTurn') && dependencySet.length == 1) {
+    return _multiturnMethodBatch;
+  }
+  if (dependencySet.intersection(_damageFormulaDependencies).isNotEmpty) {
+    return _damageFormulaMethodBatch;
+  }
+  if (dependencySet.intersection(_failurePreventionDependencies).isNotEmpty &&
+      dependencySet.difference(_failurePreventionDependencies).isEmpty) {
+    return _failurePreventionMethodBatch;
+  }
+  if (dependencySet.contains('targetingMulti') && dependencySet.length == 1) {
+    return _targetingMethodBatch;
+  }
+  if (dependencySet.contains('effects')) {
+    return _effectManifestSweepMethodBatch;
+  }
+  return _effectManifestSweepMethodBatch;
+}
+
+const _actionQueueMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'action_queue_copy_call',
+  label: 'Action queue / copy-call residuals',
+);
+const _targetingMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'target_resolution_doubles',
+  label: 'Target resolution / doubles topology',
+);
+const _damageFormulaMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'damage_formula_variable_power',
+  label: 'Damage formula / variable power',
+);
+const _failurePreventionMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'failure_prevention_immunity',
+  label: 'Failure / prevention / immunity',
+);
+const _multiturnMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'multiturn_delayed_state',
+  label: 'Multi-turn / delayed state',
+);
+const _effectManifestSweepMethodBatch = _MethodBacklogBatchDefinition(
+  id: 'effect_hook_manifest_sweep',
+  label: 'Effect hook / manifest final sweep',
+);
+const _methodBacklogBatchDefinitions = <_MethodBacklogBatchDefinition>[
+  _actionQueueMethodBatch,
+  _targetingMethodBatch,
+  _failurePreventionMethodBatch,
+  _multiturnMethodBatch,
+  _damageFormulaMethodBatch,
+  _effectManifestSweepMethodBatch,
+];
+const _damageFormulaDependencies = <String>{
+  'accuracy',
+  'handlerDamage',
+};
+const _failurePreventionDependencies = <String>{
+  'faintProcess',
+  'handlerItem',
+  'handlerStat',
+  'handlerStatus',
+  'handlerSwitch',
+};
+
+final class _MethodBacklogBatchDefinition {
+  const _MethodBacklogBatchDefinition({
+    required this.id,
+    required this.label,
+  });
+
+  final String id;
+  final String label;
+}
+
+final class _MethodBacklogBatch {
+  _MethodBacklogBatch({
+    required this.id,
+    required this.label,
+    required this.methods,
+  });
+
+  final String id;
+  final String label;
+  final List<String> methods;
 }
 
 String _coverageReasonForMove({
@@ -814,6 +1343,32 @@ void _writePartialMethodsByDependency(
   }
 }
 
+void _writePartialMethodBatches(
+  StringBuffer buffer,
+  List<PsdkMoveRegistryManifestEntry> entries,
+) {
+  final batches = _methodBacklogBatches(entries);
+  if (batches.isEmpty) {
+    return;
+  }
+  buffer
+    ..writeln()
+    ..writeln('### Partial Method Batches')
+    ..writeln()
+    ..writeln(
+      'Each partial method is assigned to its first actionable Phase 2 batch.',
+    )
+    ..writeln()
+    ..writeln('| Batch | Partial methods | Methods |')
+    ..writeln('| --- | ---: | --- |');
+  for (final batch in batches) {
+    buffer.writeln(
+      '| ${_md(batch.label)} | ${batch.methods.length} | '
+      '${batch.methods.map((method) => '`$method`').join(', ')} |',
+    );
+  }
+}
+
 void _writeMissingEffectsByFamily(
   StringBuffer buffer,
   List<PsdkEffectParityEntry> entries,
@@ -862,9 +1417,12 @@ bool _requiredBoolValue(Object? value, String field) {
 }
 
 final class _ParsedRubyClass {
-  const _ParsedRubyClass({required this.name});
+  _ParsedRubyClass({required this.name});
 
   final String name;
+  final List<String> hooks = <String>[];
+
+  List<String> get sortedHooks => hooks.toSet().toList()..sort();
 }
 
 final class _RubyBlock {

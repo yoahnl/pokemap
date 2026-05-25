@@ -2,6 +2,7 @@ import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../../data/generated/psdk_metronome_move_pool.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_data.dart';
 import '../battle_move_prevention.dart';
@@ -96,11 +97,11 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
       _CopyCallMoveKind.instruct => null,
       _CopyCallMoveKind.mirrorMove => null,
       _CopyCallMoveKind.meFirst => null,
-      _CopyCallMoveKind.mimic => _canUseMimic(context)
-          ? null
-          : const BattleMoveUserPreventionResult(
+      _CopyCallMoveKind.mimic => context.moveSlot == null
+          ? const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
-            ),
+            )
+          : null,
       _CopyCallMoveKind.sketch => _canUseSketch(context)
           ? null
           : const BattleMoveUserPreventionResult(
@@ -414,14 +415,22 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     BattleMoveBehaviorContext context,
   ) {
     final moveSlot = context.moveSlot;
-    final copiedMove = _mimicTargetMove(context);
-    if (moveSlot == null || copiedMove == null) {
+    if (moveSlot == null) {
       return _failure(context, BattleMoveFailureReason.unusableByUser);
     }
 
     final prepared = prepareBattleMove(context);
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
+    }
+
+    final copiedMove = _mimicTargetMove(context);
+    if (copiedMove == null) {
+      return _failureAfterPreparation(
+        context: context,
+        prepared: prepared,
+        reason: BattleMoveFailureReason.unusableByUser,
+      );
     }
 
     final copied = copiedMove.copyWith(pp: 5, currentPp: 5);
@@ -559,6 +568,8 @@ bool _canInstructMove(PsdkBattleMoveData move) {
     move.dbSymbol.isEmpty ? move.id : move.dbSymbol,
   );
   return move.currentPp > 0 &&
+      !move.charge &&
+      !move.recharge &&
       !_instructExcludedMoveIds.contains(moveId) &&
       !_instructExcludedMoveIds.contains(_normalizedId(move.id)) &&
       !_instructExcludedMethods
@@ -592,6 +603,10 @@ BattleMoveDefinition _meFirstBoostedMove(PsdkBattleMoveData move) {
     flags: BattleMoveFlags(
       protectable: move.protectable,
       sound: move.sound,
+      bite: move.bite,
+      pulse: move.pulse,
+      ballistics: move.ballistics,
+      kingRockUtility: move.kingRockUtility,
     ),
     stageMods: move.stageMods
         .map(
@@ -738,10 +753,6 @@ List<PsdkBattleMoveData> _assistUsableMoves(BattleMoveBehaviorContext context) {
   return uniqueMoves.values.toList(growable: false);
 }
 
-bool _canUseMimic(BattleMoveBehaviorContext context) {
-  return context.moveSlot != null && _mimicTargetMove(context) != null;
-}
-
 bool _canUseSketch(BattleMoveBehaviorContext context) {
   final moveSlot = context.moveSlot;
   if (moveSlot == null) {
@@ -762,7 +773,10 @@ bool _canUseSketch(BattleMoveBehaviorContext context) {
 
 PsdkBattleMoveData? _mimicTargetMove(BattleMoveBehaviorContext context) {
   final target = context.state.battlerAt(context.target);
-  final moveId = target.moveHistory.lastSuccessfulMoveId;
+  final history = target.moveHistory.attempts.isEmpty
+      ? null
+      : target.moveHistory.attempts.last;
+  final moveId = history?.moveId;
   if (moveId == null || _mimicExcludedMoveIds.contains(_normalizedId(moveId))) {
     return null;
   }
@@ -799,13 +813,19 @@ PsdkBattleMoveData? _mirrorMoveLastTargetMove(
 }
 
 PsdkBattleMoveData? _copycatLastMove(BattleMoveBehaviorContext context) {
-  final candidates = <({PsdkBattleCombatant battler, int turn, String moveId})>[
+  final candidates = <({
+    PsdkBattleCombatant battler,
+    int attackOrder,
+    int turn,
+    String moveId,
+  })>[
     for (final entry in context.state.combatants.entries)
       if (entry.key != context.user &&
           !entry.value.isFainted &&
           entry.value.moveHistory.attempts.isNotEmpty)
         (
           battler: entry.value,
+          attackOrder: entry.value.moveHistory.attempts.last.attackOrder,
           turn: entry.value.moveHistory.attempts.last.turn,
           moveId: entry.value.moveHistory.attempts.last.moveId,
         ),
@@ -813,7 +833,13 @@ PsdkBattleMoveData? _copycatLastMove(BattleMoveBehaviorContext context) {
   if (candidates.isEmpty) {
     return null;
   }
-  candidates.sort((left, right) => left.turn.compareTo(right.turn));
+  candidates.sort((left, right) {
+    final turnOrder = left.turn.compareTo(right.turn);
+    if (turnOrder != 0) {
+      return turnOrder;
+    }
+    return left.attackOrder.compareTo(right.attackOrder);
+  });
   final candidate = candidates.last;
   return _moveFromCombatant(candidate.battler, candidate.moveId);
 }
@@ -829,7 +855,8 @@ bool _mirrorMoveExcluded(
     return _copycatExcludedMoveIds.contains(moveId) ||
         _copycatExcludedMoveIds.contains(_normalizedId(calledMove.id));
   }
-  return _mirrorMoveExcludedMoveIds.contains(moveId) ||
+  return !calledMove.mirrorMoveAffected ||
+      _mirrorMoveExcludedMoveIds.contains(moveId) ||
       _mirrorMoveExcludedMoveIds.contains(_normalizedId(calledMove.id));
 }
 
@@ -897,36 +924,7 @@ const _sleepTalkExcludedMoveIds = <String>{
 };
 
 final List<PsdkBattleMoveData> _defaultMetronomeMovePool =
-    List<PsdkBattleMoveData>.unmodifiable(<PsdkBattleMoveData>[
-  PsdkBattleMoveData(
-    id: 'tackle',
-    dbSymbol: 'tackle',
-    name: 'Tackle',
-    type: 'normal',
-    category: PsdkBattleMoveCategory.physical,
-    power: 40,
-    accuracy: 100,
-    pp: 1,
-    priority: 0,
-    criticalRate: 1,
-    battleEngineMethod: 's_basic',
-    target: PsdkBattleMoveTarget.adjacentFoe,
-  ),
-  PsdkBattleMoveData(
-    id: 'scratch',
-    dbSymbol: 'scratch',
-    name: 'Scratch',
-    type: 'normal',
-    category: PsdkBattleMoveCategory.physical,
-    power: 40,
-    accuracy: 100,
-    pp: 1,
-    priority: 0,
-    criticalRate: 1,
-    battleEngineMethod: 's_basic',
-    target: PsdkBattleMoveTarget.adjacentFoe,
-  ),
-]);
+    psdkMetronomeMovePool;
 
 const _metronomeExcludedMoveIds = <String>{
   'after_you',
@@ -1074,7 +1072,13 @@ const _instructExcludedMoveIds = <String>{
 
 const _instructExcludedMethods = <String>{
   's_2turns',
+  's_beak_blast',
+  's_bide',
+  's_focus_punch',
+  's_outrage',
   's_reload',
+  's_rollout',
+  's_shell_trap',
   's_thrash',
 };
 

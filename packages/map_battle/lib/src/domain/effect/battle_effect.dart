@@ -27,6 +27,9 @@ abstract class BattleEffect {
 
   bool get isTurnScoped => remainingTurns == 0;
 
+  /// PSDK marker used by effects such as Focus Punch while a move is charging.
+  bool get preparingAttack => false;
+
   BattleEffect copyWithRemainingTurns(int remainingTurns);
 
   BattleMoveFailureReason? onMovePreventionTarget(
@@ -63,6 +66,30 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectPostActionResult? onPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectPreAccuracyResult? onPreAccuracy(
+    BattleEffectPreAccuracyContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectItemChangeResult? onPostItemChange(
+    BattleEffectItemChangeContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectBattleEndResult? onBattleEnd(
+    BattleEffectBattleEndContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectLifecycleResult? onLifecycle(
     BattleEffectLifecycleContext context,
   ) {
@@ -87,6 +114,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectSwitchOutResult? onSwitchOut(
+    BattleEffectSwitchOutContext context,
+  ) {
+    return null;
+  }
+
   String? onStatIncreasePrevention(
     BattleEffectStatChangePreventionContext context,
   ) {
@@ -100,6 +133,12 @@ abstract class BattleEffect {
   }
 
   int? onStatChange(BattleEffectStatChangeContext context) {
+    return null;
+  }
+
+  BattleEffectStatChangeRedirectResult? onStatChangeRedirect(
+    BattleEffectStatChangeContext context,
+  ) {
     return null;
   }
 
@@ -117,6 +156,12 @@ abstract class BattleEffect {
 
   BattleEffectStatusChangeResult? onPostStatusChange(
     BattleEffectStatusChangeContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectVolatileStatusChangeResult? onPostVolatileStatusChange(
+    BattleEffectVolatileStatusChangeContext context,
   ) {
     return null;
   }

@@ -13,8 +13,8 @@ enum _BasicDamageSpecializationKind {
 
 /// Ports small PSDK `Basic` descendants that only specialize damage inputs.
 ///
-/// `FalseSwipe` remains partial until Substitute exists in the PSDK combatant
-/// effects. `FullCrit` is a direct port of Ruby's `critical_rate = 100`.
+/// `FalseSwipe` mirrors Ruby's anti-KO clamp and Substitute exception.
+/// `FullCrit` is a direct port of Ruby's `critical_rate = 100`.
 final class BasicDamageSpecializationMoveBehavior
     implements BattleMoveBehavior {
   const BasicDamageSpecializationMoveBehavior.fangs()
@@ -50,11 +50,16 @@ final class BasicDamageSpecializationMoveBehavior
         target: target,
         move: move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
       ),
     );
     final damage = _damageAmount(
       calculatedDamage: damageResult.damage,
       targetCurrentHp: target.currentHp,
+      targetHasSubstitute: target.effects.contains('substitute'),
     );
     if (damage <= 0) {
       return BattleMoveBehaviorResolution(
@@ -64,15 +69,26 @@ final class BasicDamageSpecializationMoveBehavior
       );
     }
 
-    final applied = applyDirectDamage(
-      state: prepared.state,
-      user: context.user,
-      target: targetSlot,
-      moveId: context.move.id,
-      rng: damageResult.rng,
-      turn: context.turn,
-      amount: damage,
-    );
+    final applied = _kind == _BasicDamageSpecializationKind.falseSwipe
+        ? applyDirectDamage(
+            state: prepared.state,
+            user: context.user,
+            target: targetSlot,
+            moveId: context.move.id,
+            rng: damageResult.rng,
+            turn: context.turn,
+            amount: damage,
+          )
+        : applyMoveTargetDamage(
+            state: prepared.state,
+            user: context.user,
+            target: targetSlot,
+            moveId: context.move.id,
+            rng: damageResult.rng,
+            turn: context.turn,
+            amount: damage,
+            move: move,
+          );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
       rng: applied.rng,
@@ -87,7 +103,11 @@ final class BasicDamageSpecializationMoveBehavior
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        if (_kind == _BasicDamageSpecializationKind.falseSwipe &&
+            applied.event != null)
+          applied.event!,
+        if (_kind != _BasicDamageSpecializationKind.falseSwipe)
+          ...applied.events,
         ...secondary.events,
       ],
     );
@@ -107,11 +127,12 @@ final class BasicDamageSpecializationMoveBehavior
   int _damageAmount({
     required int calculatedDamage,
     required int targetCurrentHp,
+    required bool targetHasSubstitute,
   }) {
     return switch (_kind) {
       _BasicDamageSpecializationKind.fangs => calculatedDamage,
       _BasicDamageSpecializationKind.falseSwipe =>
-        calculatedDamage >= targetCurrentHp
+        !targetHasSubstitute && calculatedDamage >= targetCurrentHp
             ? targetCurrentHp - 1
             : calculatedDamage,
       _BasicDamageSpecializationKind.fullCrit => calculatedDamage,

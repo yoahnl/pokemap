@@ -13,7 +13,7 @@ enum _SelfDestructKind {
   mistyExplosion,
 }
 
-/// Partially ports PSDK `SelfDestruct`, registered as `s_explosion`.
+/// Ports PSDK `SelfDestruct`, registered as `s_explosion`.
 ///
 /// PSDK keeps Self-Destruct and Explosion on the same Ruby class. Its local
 /// effect removes the user's *current* HP after a successful Basic damage
@@ -21,8 +21,8 @@ enum _SelfDestructKind {
 /// distinct `protected` reason, so Protect is mapped to the same self-KO branch
 /// because PSDK reaches it through the `:immunity` failure path.
 ///
-/// `Damp` intentionally stays out of this lot: the current PSDK combatant
-/// snapshot has no ability field, so claiming full parity would be dishonest.
+/// `Damp` is handled by the ability move-prevention hook before this behavior
+/// executes.
 final class SelfDestructMoveBehavior implements BattleMoveBehavior {
   const SelfDestructMoveBehavior.explosion()
       : battleEngineMethod = 's_explosion',
@@ -69,6 +69,10 @@ final class SelfDestructMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: context.move,
         rng: prepared.rng,
+        field: prepared.state.field,
+        state: prepared.state,
+        userSlot: context.user,
+        targetSlot: targetSlot,
         overrides: BattleMoveDamageOverrides(power: resolvedPower),
       ),
     );

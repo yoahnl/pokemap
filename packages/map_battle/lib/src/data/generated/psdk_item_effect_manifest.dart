@@ -12,17 +12,41 @@ enum PsdkItemPortStatus {
   outOfScope,
 }
 
+enum PsdkItemEffectBatch {
+  damageTypeStatModifiers,
+  berries,
+  focusEjectChoiceOrb,
+  weatherTerrainField,
+  heldItemLifecycleConsumption,
+}
+
+extension PsdkItemEffectBatchLabel on PsdkItemEffectBatch {
+  String get label {
+    return switch (this) {
+      PsdkItemEffectBatch.damageTypeStatModifiers =>
+        'damage/type/stat modifiers',
+      PsdkItemEffectBatch.berries => 'berries',
+      PsdkItemEffectBatch.focusEjectChoiceOrb => 'focus/eject/choice/orb',
+      PsdkItemEffectBatch.weatherTerrainField => 'weather/terrain/field',
+      PsdkItemEffectBatch.heldItemLifecycleConsumption =>
+        'held-item lifecycle and consumption',
+    };
+  }
+}
+
 final class PsdkItemEffectManifestEntry {
   const PsdkItemEffectManifestEntry({
     required this.itemId,
     required this.rubyPath,
     required this.status,
+    required this.batch,
     this.dartEffect,
   });
 
   final String itemId;
   final String rubyPath;
   final PsdkItemPortStatus status;
+  final PsdkItemEffectBatch batch;
   final String? dartEffect;
 }
 
@@ -37,9 +61,8 @@ List<PsdkItemEffectManifestEntry> _buildPsdkItemEffectManifest() {
       PsdkItemEffectManifestEntry(
         itemId: itemId,
         rubyPath: rubyPath,
-        status: dartEffect == null
-            ? PsdkItemPortStatus.missing
-            : PsdkItemPortStatus.partial,
+        status: _itemStatus(itemId, dartEffect),
+        batch: psdkItemEffectBatchFor(itemId: itemId, rubyPath: rubyPath),
         dartEffect: dartEffect,
       ),
     );
@@ -47,66 +70,357 @@ List<PsdkItemEffectManifestEntry> _buildPsdkItemEffectManifest() {
   return List<PsdkItemEffectManifestEntry>.unmodifiable(entries);
 }
 
+PsdkItemEffectBatch psdkItemEffectBatchFor({
+  required String itemId,
+  required String rubyPath,
+}) {
+  final normalizedId = itemId.trim().toLowerCase();
+  if (normalizedId.endsWith('_berry')) {
+    return PsdkItemEffectBatch.berries;
+  }
+  return psdkItemEffectBatchForPath(rubyPath);
+}
+
+PsdkItemEffectBatch psdkItemEffectBatchForPath(String rubyPath) {
+  final normalizedPath = rubyPath.toLowerCase();
+  if (normalizedPath.contains('berry')) {
+    return PsdkItemEffectBatch.berries;
+  }
+  if (normalizedPath.contains('itembasepowermultiplier') ||
+      normalizedPath.contains('halfspeeditems') ||
+      normalizedPath.contains('gems') ||
+      normalizedPath.contains('drives') ||
+      normalizedPath.contains('expert belt') ||
+      normalizedPath.contains('eviolite') ||
+      normalizedPath.contains('deep sea') ||
+      normalizedPath.contains('lightball') ||
+      normalizedPath.contains('metal powder') ||
+      normalizedPath.contains('quick powder') ||
+      normalizedPath.contains('thick club') ||
+      normalizedPath.contains('lax incense') ||
+      normalizedPath.contains('wide lens') ||
+      normalizedPath.contains('zoom lens') ||
+      normalizedPath.contains('poisonbarb')) {
+    return PsdkItemEffectBatch.damageTypeStatModifiers;
+  }
+  if (normalizedPath.contains('choiceitemmultiplier') ||
+      normalizedPath.contains('focus ') ||
+      normalizedPath.contains('focus_') ||
+      normalizedPath.contains('eject') ||
+      normalizedPath.contains(' orb') ||
+      normalizedPath.contains('primalorbs') ||
+      normalizedPath.contains('life orb') ||
+      normalizedPath.contains('red card')) {
+    return PsdkItemEffectBatch.focusEjectChoiceOrb;
+  }
+  if (normalizedPath.contains('weathermove') ||
+      normalizedPath.contains('terrainmove') ||
+      normalizedPath.contains('terrainseeds') ||
+      normalizedPath.contains('safetygoggles')) {
+    return PsdkItemEffectBatch.weatherTerrainField;
+  }
+  return PsdkItemEffectBatch.heldItemLifecycleConsumption;
+}
+
+PsdkItemPortStatus _itemStatus(String itemId, String? dartEffect) {
+  if (_portedItemEffects.contains(itemId)) {
+    return PsdkItemPortStatus.ported;
+  }
+  return dartEffect == null
+      ? PsdkItemPortStatus.missing
+      : PsdkItemPortStatus.partial;
+}
+
+const _portedItemEffects = <String>{
+  'absorb_bulb',
+  'adamant_orb',
+  'aguav_berry',
+  'air_balloon',
+  'apicot_berry',
+  'aspear_berry',
+  'assault_vest',
+  'babiri_berry',
+  'berry_juice',
+  'berserk_gene',
+  'big_root',
+  'binding_band',
+  'black_belt',
+  'black_glasses',
+  'black_sludge',
+  'blue_orb',
+  'bright_powder',
+  'bug_gem',
+  'burn_drive',
+  'cell_battery',
+  'charcoal',
+  'charti_berry',
+  'cheri_berry',
+  'chesto_berry',
+  'chilan_berry',
+  'chill_drive',
+  'chople_berry',
+  'choice_band',
+  'choice_scarf',
+  'choice_specs',
+  'coba_berry',
+  'colbur_berry',
+  'damp_rock',
+  'dark_gem',
+  'deep_sea_scale',
+  'deep_sea_tooth',
+  'douse_drive',
+  'draco_plate',
+  'dragon_fang',
+  'dragon_gem',
+  'dread_plate',
+  'earth_plate',
+  'eject_button',
+  'electric_gem',
+  'electric_seed',
+  'enigma_berry',
+  'eviolite',
+  'expert_belt',
+  'fairy_gem',
+  'fighting_gem',
+  'figy_berry',
+  'fire_gem',
+  'fist_plate',
+  'flame_orb',
+  'flame_plate',
+  'flying_gem',
+  'focus_band',
+  'focus_sash',
+  'ganlon_berry',
+  'ghost_gem',
+  'grass_gem',
+  'griseous_orb',
+  'grassy_seed',
+  'grip_claw',
+  'ground_gem',
+  'haban_berry',
+  'hard_stone',
+  'heat_rock',
+  'ice_gem',
+  'iapapa_berry',
+  'icicle_plate',
+  'icy_rock',
+  'insect_plate',
+  'iron_ball',
+  'iron_plate',
+  'jaboca_berry',
+  'kasib_berry',
+  'kebia_berry',
+  'kee_berry',
+  'king_s_rock',
+  'lax_incense',
+  'leftovers',
+  'lansat_berry',
+  'leppa_berry',
+  'liechi_berry',
+  'life_orb',
+  'light_ball',
+  'loaded_dice',
+  'lum_berry',
+  'luminous_moss',
+  'lustrous_orb',
+  'macho_brace',
+  'magnet',
+  'mago_berry',
+  'maranga_berry',
+  'meadow_plate',
+  'metal_coat',
+  'metal_powder',
+  'mental_herb',
+  'metronome',
+  'micle_berry',
+  'mind_plate',
+  'miracle_seed',
+  'mirror_herb',
+  'misty_seed',
+  'muscle_band',
+  'mystic_water',
+  'never_melt_ice',
+  'normal_gem',
+  'occa_berry',
+  'odd_incense',
+  'oran_berry',
+  'passho_berry',
+  'payapa_berry',
+  'pecha_berry',
+  'persim_berry',
+  'petaya_berry',
+  'pixie_plate',
+  'poison_barb',
+  'poison_gem',
+  'power_band',
+  'power_belt',
+  'power_bracer',
+  'power_herb',
+  'power_lens',
+  'power_weight',
+  'psychic_gem',
+  'psychic_seed',
+  'punching_glove',
+  'quick_powder',
+  'rawst_berry',
+  'razor_fang',
+  'red_card',
+  'red_orb',
+  'rindo_berry',
+  'rock_gem',
+  'rock_incense',
+  'rocky_helmet',
+  'rose_incense',
+  'roseli_berry',
+  'rowap_berry',
+  'safety_goggles',
+  'salac_berry',
+  'sea_incense',
+  'sharp_beak',
+  'shed_shell',
+  'shock_drive',
+  'shell_bell',
+  'shuca_berry',
+  'silk_scarf',
+  'silver_powder',
+  'sitrus_berry',
+  'sky_plate',
+  'smoke_ball',
+  'smooth_rock',
+  'snowball',
+  'soul_dew',
+  'soft_sand',
+  'spell_tag',
+  'splash_plate',
+  'spooky_plate',
+  'starf_berry',
+  'steel_gem',
+  'sticky_barb',
+  'stone_plate',
+  'tanga_berry',
+  'terrain_extender',
+  'throat_spray',
+  'thick_club',
+  'toxic_orb',
+  'toxic_plate',
+  'twisted_spoon',
+  'wacan_berry',
+  'water_gem',
+  'wave_incense',
+  'weakness_policy',
+  'white_herb',
+  'wide_lens',
+  'wiki_berry',
+  'wise_glasses',
+  'yache_berry',
+  'zap_plate',
+  'zoom_lens',
+};
+
 const _dartItemEffects = <String, String>{
+  'absorb_bulb': 'TypeReactiveStatItemEffect',
+  'adamant_orb': 'HeldItemModifierEffect.legendaryOrb',
   'air_balloon': 'AirBalloonEffect',
-  'aguav_berry': 'BerryItemEffect.hpHeal.partialNoNatureConfusion',
+  'aguav_berry': 'BerryItemEffect.hpHeal',
   'apicot_berry': 'BerryItemEffect.statPinch',
   'aspear_berry': 'BerryItemEffect.statusCure',
-  'assault_vest': 'HeldItemModifierEffect.specialDefense',
+  'assault_vest': 'AssaultVestEffect',
+  'babiri_berry': 'TypeResistingBerryEffect',
   'berry_juice': 'BerryItemEffect.hpHeal',
+  'berserk_gene': 'BerserkGeneEffect',
   'big_root': 'BigRootEffect',
   'binding_band': 'BindingBandEffect',
   'black_belt': 'HeldItemModifierEffect.typeBoost',
   'black_glasses': 'HeldItemModifierEffect.typeBoost',
   'black_sludge': 'BlackSludgeEffect',
+  'blue_orb': 'PrimalOrbEffect.blueOrb',
+  'bright_powder': 'AccuracyModifierItemEffect.target',
   'bug_gem': 'GemItemEffect',
+  'burn_drive': 'DriveItemEffect.technoBlastType',
+  'cell_battery': 'TypeReactiveStatItemEffect',
   'charcoal': 'HeldItemModifierEffect.typeBoost',
+  'charti_berry': 'TypeResistingBerryEffect',
   'cheri_berry': 'BerryItemEffect.statusCure',
   'chesto_berry': 'BerryItemEffect.statusCure',
+  'chill_drive': 'DriveItemEffect.technoBlastType',
+  'chilan_berry': 'TypeResistingBerryEffect',
+  'chople_berry': 'TypeResistingBerryEffect',
   'choice_band': 'ChoiceItemEffect.choiceBand',
   'choice_scarf': 'ChoiceItemEffect.choiceScarf',
   'choice_specs': 'ChoiceItemEffect.choiceSpecs',
+  'coba_berry': 'TypeResistingBerryEffect',
+  'colbur_berry': 'TypeResistingBerryEffect',
   'damp_rock': 'WeatherRockEffect.dampRock',
   'dark_gem': 'GemItemEffect',
   'deep_sea_scale': 'HeldItemModifierEffect.speciesStat',
   'deep_sea_tooth': 'HeldItemModifierEffect.speciesStat',
+  'douse_drive': 'DriveItemEffect.technoBlastType',
+  'draco_plate': 'HeldItemModifierEffect.typeBoost',
+  'electric_seed': 'TerrainSeedItemEffect.defense',
   'dragon_fang': 'HeldItemModifierEffect.typeBoost',
   'dragon_gem': 'GemItemEffect',
   'dread_plate': 'HeldItemModifierEffect.typeBoost',
   'earth_plate': 'HeldItemModifierEffect.typeBoost',
+  'eject_button': 'EjectButtonEffect',
   'electric_gem': 'GemItemEffect',
+  'enigma_berry': 'EnigmaBerryEffect',
+  'eviolite': 'HeldItemModifierEffect.eviolite',
   'expert_belt': 'HeldItemModifierEffect.finalDamage',
   'fairy_gem': 'GemItemEffect',
   'fighting_gem': 'GemItemEffect',
-  'figy_berry': 'BerryItemEffect.hpHeal.partialNoNatureConfusion',
+  'figy_berry': 'BerryItemEffect.hpHeal',
   'fire_gem': 'GemItemEffect',
+  'flame_orb': 'StatusOrbItemEffect.burn',
   'fist_plate': 'HeldItemModifierEffect.typeBoost',
   'flame_plate': 'HeldItemModifierEffect.typeBoost',
   'flying_gem': 'GemItemEffect',
+  'focus_band': 'FocusBandEffect',
+  'focus_sash': 'FocusSashEffect',
   'ganlon_berry': 'BerryItemEffect.statPinch',
   'ghost_gem': 'GemItemEffect',
   'grass_gem': 'GemItemEffect',
+  'ground_gem': 'GemItemEffect',
+  'griseous_orb': 'HeldItemModifierEffect.legendaryOrb',
+  'grassy_seed': 'TerrainSeedItemEffect.defense',
   'grip_claw': 'GripClawEffect',
+  'haban_berry': 'TypeResistingBerryEffect',
   'hard_stone': 'HeldItemModifierEffect.typeBoost',
   'heat_rock': 'WeatherRockEffect.heatRock',
-  'iapapa_berry': 'BerryItemEffect.hpHeal.partialNoNatureConfusion',
+  'ice_gem': 'GemItemEffect',
+  'iapapa_berry': 'BerryItemEffect.hpHeal',
   'icy_rock': 'WeatherRockEffect.icyRock',
   'icicle_plate': 'HeldItemModifierEffect.typeBoost',
   'insect_plate': 'HeldItemModifierEffect.typeBoost',
   'iron_ball': 'IronBallEffect',
   'iron_plate': 'HeldItemModifierEffect.typeBoost',
+  'jaboca_berry': 'RetaliateBerryEffect.physical',
+  'kasib_berry': 'TypeResistingBerryEffect',
+  'kebia_berry': 'TypeResistingBerryEffect',
+  'kee_berry': 'HitStatBerryEffect.physicalDefense',
+  'king_s_rock': 'FlinchItemEffect',
+  'lax_incense': 'AccuracyModifierItemEffect.target',
   'liechi_berry': 'BerryItemEffect.statPinch',
   'leftovers': 'LeftoversEffect',
-  'life_orb': 'LifeOrbEffect.partialNoPostActionBatching',
-  'light_ball': 'HeldItemModifierEffect.speciesStat.partialFlingOnlyStatus',
+  'lansat_berry': 'LansatBerryEffect',
+  'leppa_berry': 'LeppaBerryEffect',
+  'life_orb': 'LifeOrbEffect',
+  'light_ball': 'HeldItemModifierEffect.speciesStat',
   'loaded_dice': 'LoadedDiceEffect',
-  'lum_berry': 'BerryItemEffect.statusCure.partialNoVolatileConfusion',
+  'luminous_moss': 'TypeReactiveStatItemEffect',
+  'lum_berry': 'BerryItemEffect.statusCure',
+  'lustrous_orb': 'HeldItemModifierEffect.legendaryOrb',
   'macho_brace': 'HeldItemModifierEffect.speed',
   'magnet': 'HeldItemModifierEffect.typeBoost',
-  'mago_berry': 'BerryItemEffect.hpHeal.partialNoNatureConfusion',
+  'mago_berry': 'BerryItemEffect.hpHeal',
+  'maranga_berry': 'HitStatBerryEffect.specialDefense',
   'meadow_plate': 'HeldItemModifierEffect.typeBoost',
   'metal_coat': 'HeldItemModifierEffect.typeBoost',
   'metal_powder': 'HeldItemModifierEffect.speciesStat',
+  'mental_herb': 'MentalHerbEffect',
+  'metronome': 'MetronomeHeldItemEffect',
+  'micle_berry': 'MicleBerryEffect',
+  'mirror_herb': 'MirrorHerbEffect',
+  'misty_seed': 'TerrainSeedItemEffect.specialDefense',
   'mind_plate': 'HeldItemModifierEffect.typeBoost',
   'miracle_seed': 'HeldItemModifierEffect.typeBoost',
   'muscle_band': 'HeldItemModifierEffect.categoryBoost',
@@ -114,47 +428,79 @@ const _dartItemEffects = <String, String>{
   'never_melt_ice': 'HeldItemModifierEffect.typeBoost',
   'normal_gem': 'GemItemEffect',
   'odd_incense': 'HeldItemModifierEffect.typeBoost',
+  'occa_berry': 'TypeResistingBerryEffect',
   'oran_berry': 'BerryItemEffect.hpHeal',
+  'passho_berry': 'TypeResistingBerryEffect',
+  'payapa_berry': 'TypeResistingBerryEffect',
   'pecha_berry': 'BerryItemEffect.statusCure',
+  'persim_berry': 'BerryItemEffect.statusCure',
   'petaya_berry': 'BerryItemEffect.statPinch',
   'pixie_plate': 'HeldItemModifierEffect.typeBoost',
+  'poison_barb': 'HeldItemModifierEffect.typeBoost',
   'poison_gem': 'GemItemEffect',
   'power_band': 'HeldItemModifierEffect.speed',
   'power_belt': 'HeldItemModifierEffect.speed',
   'power_bracer': 'HeldItemModifierEffect.speed',
+  'power_herb': 'PowerHerbEffect',
   'power_lens': 'HeldItemModifierEffect.speed',
   'power_weight': 'HeldItemModifierEffect.speed',
+  'psychic_seed': 'TerrainSeedItemEffect.specialDefense',
   'psychic_gem': 'GemItemEffect',
   'punching_glove': 'HeldItemModifierEffect.categoryBoost',
   'quick_powder': 'HeldItemModifierEffect.speciesSpeed',
   'rawst_berry': 'BerryItemEffect.statusCure',
+  'razor_fang': 'FlinchItemEffect',
+  'red_card': 'RedCardEffect',
+  'red_orb': 'PrimalOrbEffect.redOrb',
+  'rindo_berry': 'TypeResistingBerryEffect',
   'rock_gem': 'GemItemEffect',
   'rock_incense': 'HeldItemModifierEffect.typeBoost',
+  'rocky_helmet': 'RockyHelmetEffect',
+  'roseli_berry': 'TypeResistingBerryEffect',
   'rose_incense': 'HeldItemModifierEffect.typeBoost',
+  'rowap_berry': 'RetaliateBerryEffect.special',
+  'safety_goggles': 'SafetyGogglesEffect',
   'salac_berry': 'BerryItemEffect.statPinch',
   'sea_incense': 'HeldItemModifierEffect.typeBoost',
+  'shell_bell': 'ShellBellEffect',
   'sharp_beak': 'HeldItemModifierEffect.typeBoost',
   'shed_shell': 'ShedShellEffect',
+  'shock_drive': 'DriveItemEffect.technoBlastType',
+  'shuca_berry': 'TypeResistingBerryEffect',
   'silk_scarf': 'HeldItemModifierEffect.typeBoost',
   'silver_powder': 'HeldItemModifierEffect.typeBoost',
   'sitrus_berry': 'BerryItemEffect.hpHeal',
   'sky_plate': 'HeldItemModifierEffect.typeBoost',
+  'smoke_ball': 'SmokeBallEffect',
   'smooth_rock': 'WeatherRockEffect.smoothRock',
+  'snowball': 'TypeReactiveStatItemEffect',
   'soft_sand': 'HeldItemModifierEffect.typeBoost',
+  'soul_dew': 'HeldItemModifierEffect.legendaryOrb',
   'splash_plate': 'HeldItemModifierEffect.typeBoost',
   'spell_tag': 'HeldItemModifierEffect.typeBoost',
+  'spooky_plate': 'HeldItemModifierEffect.typeBoost',
   'starf_berry': 'BerryItemEffect.statPinch',
   'steel_gem': 'GemItemEffect',
+  'sticky_barb': 'StickyBarbEffect',
   'stone_plate': 'HeldItemModifierEffect.typeBoost',
+  'tanga_berry': 'TypeResistingBerryEffect',
   'terrain_extender': 'TerrainExtenderEffect',
+  'throat_spray': 'ThroatSprayEffect',
   'thick_club': 'HeldItemModifierEffect.speciesStat',
+  'toxic_orb': 'StatusOrbItemEffect.toxic',
   'toxic_plate': 'HeldItemModifierEffect.typeBoost',
   'twisted_spoon': 'HeldItemModifierEffect.typeBoost',
+  'wacan_berry': 'TypeResistingBerryEffect',
   'water_gem': 'GemItemEffect',
   'wave_incense': 'HeldItemModifierEffect.typeBoost',
-  'wiki_berry': 'BerryItemEffect.hpHeal.partialNoNatureConfusion',
+  'weakness_policy': 'WeaknessPolicyEffect',
+  'white_herb': 'WhiteHerbEffect',
+  'wide_lens': 'AccuracyModifierItemEffect.user',
+  'wiki_berry': 'BerryItemEffect.hpHeal',
   'wise_glasses': 'HeldItemModifierEffect.categoryBoost',
+  'yache_berry': 'TypeResistingBerryEffect',
   'zap_plate': 'HeldItemModifierEffect.typeBoost',
+  'zoom_lens': 'ZoomLensEffect',
 };
 
 const _psdkItemEffectRows = '''

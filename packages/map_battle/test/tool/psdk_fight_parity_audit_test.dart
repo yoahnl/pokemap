@@ -58,6 +58,91 @@ void main() {
             dartBehavior: 'PartialBehavior',
             status: PsdkPortStatus.partial,
           ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_after_you',
+            rubyClass: 'AfterYou',
+            rubyPath: 'after_you.rb',
+            dartBehavior: 'ActionQueueBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.actionOrder,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_target_only',
+            rubyClass: 'TargetOnly',
+            rubyPath: 'target_only.rb',
+            dartBehavior: 'TargetOnlyBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.targetingMulti,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_target_with_effects',
+            rubyClass: 'TargetWithEffects',
+            rubyPath: 'target_with_effects.rb',
+            dartBehavior: 'TargetWithEffectsBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.effects,
+              PsdkMoveDependency.targetingMulti,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_failure_only',
+            rubyClass: 'FailureOnly',
+            rubyPath: 'failure_only.rb',
+            dartBehavior: 'FailureOnlyBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.handlerStatus,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_failure_with_effects',
+            rubyClass: 'FailureWithEffects',
+            rubyPath: 'failure_with_effects.rb',
+            dartBehavior: 'FailureWithEffectsBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.handlerStatus,
+              PsdkMoveDependency.effects,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_failure_with_damage',
+            rubyClass: 'FailureWithDamage',
+            rubyPath: 'failure_with_damage.rb',
+            dartBehavior: 'FailureWithDamageBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.handlerStatus,
+              PsdkMoveDependency.handlerDamage,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_multiturn_only',
+            rubyClass: 'MultiturnOnly',
+            rubyPath: 'multiturn_only.rb',
+            dartBehavior: 'MultiturnOnlyBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.endTurn,
+            ],
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_multiturn_with_damage',
+            rubyClass: 'MultiturnWithDamage',
+            rubyPath: 'multiturn_with_damage.rb',
+            dartBehavior: 'MultiturnWithDamageBehavior',
+            status: PsdkPortStatus.partial,
+            dependencies: const <PsdkMoveDependency>[
+              PsdkMoveDependency.endTurn,
+              PsdkMoveDependency.effects,
+              PsdkMoveDependency.handlerDamage,
+            ],
+          ),
         ],
         effects: const <PsdkEffectParityEntry>[
           PsdkEffectParityEntry(
@@ -65,6 +150,7 @@ void main() {
             family: 'move',
             rubyPath: '06 Effects/02 Move Effects/001 Protect.rb',
             status: PsdkPortStatus.partial,
+            hookFamilies: <String>['move_prevention'],
           ),
           PsdkEffectParityEntry(
             effectName: 'FlashFire',
@@ -81,7 +167,7 @@ void main() {
       expect(audit.attackMetrics.pasFait, 1);
       expect(audit.attackMetrics.unknownMethods, 1);
       expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 1);
-      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 1);
+      expect(audit.methodMetrics.byStatus[PsdkPortStatus.partial], 9);
       expect(audit.effectMetrics.totalEffects, 2);
       expect(
         audit.effectMetrics.byFamilyAndStatus['move']![PsdkPortStatus.partial],
@@ -100,12 +186,100 @@ void main() {
       );
       final methods = (json['methods']! as Map<String, Object?>)['entries']!
           as List<Object?>;
-      expect(methods, hasLength(2));
+      expect(methods, hasLength(10));
       expect(
         methods.cast<Map<String, Object?>>().singleWhere(
               (entry) => entry['battleEngineMethod'] == 's_done',
             ),
         containsPair('rubyPath', 'done.rb'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_after_you',
+            ),
+        containsPair('methodBatch', 'action_queue_copy_call'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_target_only',
+            ),
+        containsPair('methodBatch', 'target_resolution_doubles'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_target_with_effects',
+            ),
+        containsPair('methodBatch', 'effect_hook_manifest_sweep'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_failure_only',
+            ),
+        containsPair('methodBatch', 'failure_prevention_immunity'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) =>
+                  entry['battleEngineMethod'] == 's_failure_with_effects',
+            ),
+        containsPair('methodBatch', 'effect_hook_manifest_sweep'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_failure_with_damage',
+            ),
+        containsPair('methodBatch', 'damage_formula_variable_power'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) => entry['battleEngineMethod'] == 's_multiturn_only',
+            ),
+        containsPair('methodBatch', 'multiturn_delayed_state'),
+      );
+      expect(
+        methods.cast<Map<String, Object?>>().singleWhere(
+              (entry) =>
+                  entry['battleEngineMethod'] == 's_multiturn_with_damage',
+            ),
+        containsPair('methodBatch', 'damage_formula_variable_power'),
+      );
+      final methodBatches = (json['methods']!
+          as Map<String, Object?>)['backlogBatches']! as List<Object?>;
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'action_queue_copy_call'),
+            containsPair('methods', <String>['s_after_you']),
+          ),
+        ),
+      );
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'target_resolution_doubles'),
+            containsPair('methods', <String>['s_target_only']),
+          ),
+        ),
+      );
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'failure_prevention_immunity'),
+            containsPair('methods', <String>['s_failure_only']),
+          ),
+        ),
+      );
+      expect(
+        methodBatches.cast<Map<String, Object?>>(),
+        contains(
+          allOf(
+            containsPair('id', 'multiturn_delayed_state'),
+            containsPair('methods', <String>['s_multiturn_only']),
+          ),
+        ),
       );
       final effects = (json['effects']! as Map<String, Object?>)['entries']!
           as List<Object?>;
@@ -113,6 +287,10 @@ void main() {
       expect(
         effects.cast<Map<String, Object?>>().first,
         containsPair('rubyPath', '06 Effects/02 Move Effects/001 Protect.rb'),
+      );
+      expect(
+        effects.cast<Map<String, Object?>>().first,
+        containsPair('hookFamilies', <String>['move_prevention']),
       );
       final runtimeBridge = json['runtimeBridge']! as Map<String, Object?>;
       expect(runtimeBridge['status'], 'not_measured');
@@ -124,6 +302,13 @@ void main() {
       expect(markdown, contains('| s_partial | 1 |'));
       expect(markdown, contains('### Partial Methods by Dependency'));
       expect(markdown, contains('| no_dependency_declared | 1 |'));
+      expect(markdown, contains('### Partial Method Batches'));
+      expect(markdown, contains('| Action queue / copy-call residuals | 1 |'));
+      expect(
+        markdown,
+        contains('| Target resolution / doubles topology | 1 |'),
+      );
+      expect(markdown, contains('`s_after_you`'));
       expect(markdown, contains('### Missing Effects by Family'));
       expect(markdown, contains('| ability | 1 |'));
       expect(
@@ -195,6 +380,34 @@ void main() {
       expect(audit.toMarkdown(), contains('| Total moves | 2 |'));
       expect(
           audit.toMarkdown(), contains('| Unexplained rejected moves | 0 |'));
+    });
+
+    test('treats PSDK base effect abstractions as ported Dart infrastructure',
+        () {
+      expect(
+        psdkEffectPortStatusFor(
+          effectName: 'Ability',
+          family: 'ability',
+          rubyPath: '06 Effects/04 Ability Effects/001 AbilityBase.rb',
+        ),
+        PsdkPortStatus.ported,
+      );
+      expect(
+        psdkEffectPortStatusFor(
+          effectName: 'Item',
+          family: 'item',
+          rubyPath: '06 Effects/05 Item Effects/001 ItemBase.rb',
+        ),
+        PsdkPortStatus.ported,
+      );
+      expect(
+        psdkEffectPortStatusFor(
+          effectName: 'Berry',
+          family: 'item',
+          rubyPath: '06 Effects/05 Item Effects/002 Berry.rb',
+        ),
+        PsdkPortStatus.ported,
+      );
     });
 
     test('CLI imports the default runtime bridge diagnostics when present',

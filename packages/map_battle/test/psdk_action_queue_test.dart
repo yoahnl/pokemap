@@ -86,6 +86,43 @@ void main() {
       );
     });
 
+    test('defers a pending opened Shell Trap action behind remaining actions',
+        () {
+      final actions = <PsdkBattleAction>[
+        _fight(
+          user: psdkOpponentSlot,
+          moveId: 'opener',
+          speed: 100,
+        ),
+        _fight(
+          user: psdkPlayerSlot,
+          moveId: 'shell_trap',
+          battleEngineMethod: 's_shell_trap',
+          speed: 90,
+        ),
+        _fight(
+          user: const PsdkBattleSlotRef(bank: 1, position: 1),
+          moveId: 'later_action',
+          speed: 80,
+        ),
+      ];
+
+      final deferred = PsdkBattleActionQueue.deferPendingShellTrapActionToEnd(
+        actions: actions,
+        currentIndex: 0,
+        user: psdkPlayerSlot,
+      );
+
+      expect(
+        deferred.map((action) => (action as PsdkBattleFightAction).move.id),
+        <String>['opener', 'later_action', 'shell_trap'],
+      );
+      expect(
+        actions.map((action) => (action as PsdkBattleFightAction).move.id),
+        <String>['opener', 'shell_trap', 'later_action'],
+      );
+    });
+
     test('decision mapper builds a fight action from PSDK state', () {
       final state = PsdkBattleState.fromSetup(_setup());
 
@@ -110,6 +147,7 @@ PsdkBattleFightAction _fight({
   required String moveId,
   int priority = 0,
   int speed = 50,
+  String? battleEngineMethod,
 }) {
   return PsdkBattleFightAction(
     user: user,
@@ -118,7 +156,8 @@ PsdkBattleFightAction _fight({
     move: _move(
       id: moveId,
       priority: priority,
-      battleEngineMethod: moveId.startsWith('round') ? 's_round' : 's_basic',
+      battleEngineMethod: battleEngineMethod ??
+          (moveId.startsWith('round') ? 's_round' : 's_basic'),
     ),
     speed: speed,
   );

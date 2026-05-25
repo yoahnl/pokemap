@@ -5,23 +5,61 @@ import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../data/generated/psdk_ability_effect_manifest.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
+import 'accuracy_modifier_ability_effect.dart';
+import 'ability_effect.dart';
+import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
+import 'apply_status_to_move_target_ability_effect.dart';
+import 'ball_fetch_effect.dart';
 import 'cloud_nine_effect.dart';
+import 'commander_effect.dart';
+import 'contact_disable_ability_effect.dart';
 import 'contact_punish_ability_effect.dart';
+import 'contact_reaction_ability_effect.dart';
+import 'contact_status_ability_effect.dart';
+import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
+import 'dancer_effect.dart';
+import 'flee_passthrough_ability_effect.dart';
+import 'form_change_ability_effect.dart';
+import 'gorilla_tactics_effect.dart';
+import 'item_change_ability_effect.dart';
+import 'item_steal_ability_effect.dart';
 import 'levitate_effect.dart';
+import 'mental_immunity_ability_effect.dart';
+import 'mimicry_effect.dart';
+import 'mold_breaker_ability_effect.dart';
 import 'move_shape_power_ability_effect.dart';
+import 'move_type_change_ability_effect.dart';
+import 'neutralizing_gas_effect.dart';
 import 'no_guard_effect.dart';
+import 'parental_bond_effect.dart';
+import 'post_damage_field_ability_effect.dart';
+import 'post_damage_ability_copy_effect.dart';
+import 'post_damage_reactive_ability_effect.dart';
+import 'post_damage_stat_change_ability_effect.dart';
+import 'primal_weather_ability_effect.dart';
+import 'priority_modifier_ability_effect.dart';
+import 'priority_move_prevention_ability_effect.dart';
 import 'reckless_effect.dart';
 import 'residual_ability_effect.dart';
 import 'rock_head_effect.dart';
+import 'secondary_effect_ability_effect.dart';
 import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
+import 'stat_change_ability_effect.dart';
+import 'stat_copy_ability_effect.dart';
+import 'stat_modifier_ability_effect.dart';
+import 'stat_drop_prevention_ability_effect.dart';
+import 'status_share_ability_effect.dart';
 import 'status_immunity_effect.dart';
 import 'switch_trigger_ability_effect.dart';
+import 'switch_out_cleanup_ability_effect.dart';
 import 'type_boosting_ability_effect.dart';
 import 'type_immunity_ability_effect.dart';
+import 'turn_skip_ability_effect.dart';
+import 'unaware_effect.dart';
 
 typedef AbilityEffectFactory = BattleEffect Function({
   required BattleEffectScope scope,
@@ -36,7 +74,20 @@ final class AbilityEffectRegistry {
       <String, AbilityEffectFactory>{
     'air_lock': ({required scope}) => AirLockEffect(scope: scope),
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
+    'commander': ({required scope}) => CommanderEffect(scope: scope),
     'damp': ({required scope}) => DampEffect(scope: scope),
+    'dancer': ({required scope}) => DancerEffect(scope: scope),
+    'run_away': ({required scope}) => RunAwayEffect(scope: scope),
+    'cheek_pouch': ({required scope}) => CheekPouchEffect(scope: scope),
+    'cud_chew': ({required scope}) => CudChewEffect(scope: scope),
+    'harvest': ({required scope}) => HarvestEffect(scope: scope),
+    'opportunist': ({required scope}) => OpportunistEffect(scope: scope),
+    'ripen': ({required scope}) => RipenEffect(scope: scope),
+    'unburden': ({required scope}) => UnburdenEffect(scope: scope),
+    'ball_fetch': ({required scope}) => BallFetchEffect(scope: scope),
+    'symbiosis': ({required scope}) => SymbiosisEffect(scope: scope),
+    'aftermath': ({required scope}) => AftermathEffect(scope: scope),
+    'anger_point': ({required scope}) => AngerPointEffect(scope: scope),
     'rough_skin': ({required scope}) => ContactPunishAbilityEffect(
           abilityId: 'rough_skin',
           scope: scope,
@@ -69,6 +120,13 @@ final class AbilityEffectRegistry {
           blockedType: 'fire',
           reward: TypeImmunityReward.flashFire,
         ),
+    'well_baked_body': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'well_baked_body',
+          scope: scope,
+          blockedType: 'fire',
+          reward: TypeImmunityReward.defenseSharp,
+          preventsBeforeDamage: false,
+        ),
     'motor_drive': ({required scope}) => TypeImmunityAbilityEffect(
           abilityId: 'motor_drive',
           scope: scope,
@@ -93,6 +151,77 @@ final class AbilityEffectRegistry {
           blockedType: 'grass',
           reward: TypeImmunityReward.attack,
           excludedMoveIds: const <String>{'aromatherapy'},
+        ),
+    'overcoat': ({required scope}) => PowderMoveImmunityAbilityEffect(
+          abilityId: 'overcoat',
+          scope: scope,
+        ),
+    'aroma_veil': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'aroma_veil',
+          scope: scope,
+        ),
+    'inner_focus': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'inner_focus',
+          scope: scope,
+        ),
+    'oblivious': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'oblivious',
+          scope: scope,
+        ),
+    'own_tempo': ({required scope}) => MentalImmunityAbilityEffect(
+          abilityId: 'own_tempo',
+          scope: scope,
+        ),
+    'bulletproof': ({required scope}) => BulletproofEffect(scope: scope),
+    'good_as_gold': ({required scope}) => GoodAsGoldEffect(scope: scope),
+    'sturdy': ({required scope}) => SturdyEffect(scope: scope),
+    'wonder_guard': ({required scope}) => WonderGuardEffect(scope: scope),
+    'mold_breaker': ({required scope}) => MoldBreakerFamilyEffect(
+          abilityId: 'mold_breaker',
+          scope: scope,
+        ),
+    'teravolt': ({required scope}) => MoldBreakerFamilyEffect(
+          abilityId: 'teravolt',
+          scope: scope,
+        ),
+    'turboblaze': ({required scope}) => MoldBreakerFamilyEffect(
+          abilityId: 'turboblaze',
+          scope: scope,
+        ),
+    'neutralizing_gas': ({required scope}) =>
+        NeutralizingGasEffect(scope: scope),
+    'parental_bond': ({required scope}) => ParentalBondEffect(scope: scope),
+    'big_pecks': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'big_pecks',
+          scope: scope,
+          preventedStats: const <String>{'defense'},
+        ),
+    'hyper_cutter': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'hyper_cutter',
+          scope: scope,
+          preventedStats: const <String>{'attack'},
+        ),
+    'keen_eye': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'keen_eye',
+          scope: scope,
+          preventedStats: const <String>{'accuracy'},
+        ),
+    'mind_s_eye': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'mind_s_eye',
+          scope: scope,
+          preventedStats: const <String>{'accuracy'},
+        ),
+    'clear_body': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'clear_body',
+          scope: scope,
+        ),
+    'full_metal_body': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'full_metal_body',
+          scope: scope,
+        ),
+    'white_smoke': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'white_smoke',
+          scope: scope,
         ),
     'blaze': ({required scope}) => TypeBoostingAbilityEffect(
           abilityId: 'blaze',
@@ -138,6 +267,52 @@ final class AbilityEffectRegistry {
           scope: scope,
           boostedType: 'rock',
         ),
+    'aerilate': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'aerilate',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'flying',
+          powerMultiplier: 1.3,
+        ),
+    'galvanize': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'galvanize',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'electric',
+          powerMultiplier: 1.3,
+        ),
+    'pixilate': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'pixilate',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'fairy',
+          powerMultiplier: 1.3,
+        ),
+    'refrigerate': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'refrigerate',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'ice',
+          powerMultiplier: 1.3,
+        ),
+    'libero': ({required scope}) => ProteanTypeChangeAbilityEffect(
+          abilityId: 'libero',
+          scope: scope,
+        ),
+    'protean': ({required scope}) => ProteanTypeChangeAbilityEffect(
+          abilityId: 'protean',
+          scope: scope,
+        ),
+    'normalize': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'normalize',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.anyToNormal,
+        ),
+    'liquid_voice': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'liquid_voice',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.soundToWater,
+        ),
     'technician': ({required scope}) => MoveShapePowerAbilityEffect(
           abilityId: 'technician',
           scope: scope,
@@ -168,19 +343,335 @@ final class AbilityEffectRegistry {
           shape: AbilityMovePowerShape.sound,
           multiplier: 1.3,
         ),
+    'strong_jaw': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'strong_jaw',
+          scope: scope,
+          shape: AbilityMovePowerShape.bite,
+          multiplier: 1.5,
+        ),
+    'mega_launcher': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'mega_launcher',
+          scope: scope,
+          shape: AbilityMovePowerShape.pulse,
+          multiplier: 1.5,
+        ),
+    'battery': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'battery',
+          scope: scope,
+          kind: AllyDamageModifierKind.batterySpecialAttack,
+          multiplier: 1.3,
+        ),
+    'battle_bond': ({required scope}) => BattleBondEffect(scope: scope),
+    'friend_guard': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'friend_guard',
+          scope: scope,
+          kind: AllyDamageModifierKind.friendGuard,
+          multiplier: 0.75,
+        ),
+    'power_spot': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'power_spot',
+          scope: scope,
+          kind: AllyDamageModifierKind.powerSpot,
+          multiplier: 1.2,
+        ),
+    'steely_spirit': ({required scope}) => AllyDamageModifierAbilityEffect(
+          abilityId: 'steely_spirit',
+          scope: scope,
+          kind: AllyDamageModifierKind.steelySpirit,
+          multiplier: 1.5,
+        ),
+    'stalwart': ({required scope}) => GenericBattleEffect(
+          id: 'ability:stalwart',
+          scope: scope,
+        ),
+    'propeller_tail': ({required scope}) => GenericBattleEffect(
+          id: 'ability:propeller_tail',
+          scope: scope,
+        ),
+    'liquid_ooze': ({required scope}) => GenericBattleEffect(
+          id: 'ability:liquid_ooze',
+          scope: scope,
+        ),
+    'steadfast': ({required scope}) => GenericBattleEffect(
+          id: 'ability:steadfast',
+          scope: scope,
+        ),
+    'solid_rock': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'solid_rock',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveIncoming,
+          multiplier: 0.75,
+        ),
+    'filter': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'filter',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveIncoming,
+          multiplier: 0.75,
+        ),
+    'prism_armor': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'prism_armor',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveIncoming,
+          multiplier: 0.75,
+        ),
+    'tinted_lens': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'tinted_lens',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.notVeryEffectiveOutgoing,
+          multiplier: 2,
+        ),
+    'neuroforce': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'neuroforce',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveOutgoing,
+          multiplier: 1.25,
+        ),
+    'dark_aura': ({required scope}) => AuraPowerAbilityEffect(
+          abilityId: 'dark_aura',
+          scope: scope,
+        ),
+    'fairy_aura': ({required scope}) => AuraPowerAbilityEffect(
+          abilityId: 'fairy_aura',
+          scope: scope,
+        ),
+    'aura_break': ({required scope}) => AuraPowerAbilityEffect(
+          abilityId: 'aura_break',
+          scope: scope,
+        ),
+    'multiscale': ({required scope}) => FullHpIncomingPowerReductionEffect(
+          abilityId: 'multiscale',
+          scope: scope,
+          multiplier: 0.5,
+        ),
+    'shadow_shield': ({required scope}) => FullHpIncomingPowerReductionEffect(
+          abilityId: 'shadow_shield',
+          scope: scope,
+          multiplier: 0.5,
+        ),
+    'tera_shell': ({required scope}) => TeraShellEffect(scope: scope),
+    'disguise': ({required scope}) => DisguiseEffect(scope: scope),
     'levitate': ({required scope}) => LevitateEffect(scope: scope),
     'no_guard': ({required scope}) => NoGuardEffect(scope: scope),
     'reckless': ({required scope}) => RecklessEffect(scope: scope),
     'rock_head': ({required scope}) => RockHeadEffect(scope: scope),
     'shadow_tag': ({required scope}) => ShadowTagEffect(scope: scope),
+    'zero_to_hero': ({required scope}) => ZeroToHeroEffect(scope: scope),
     'arena_trap': ({required scope}) => ShadowTagEffect.arenaTrap(
           scope: scope,
         ),
     'magnet_pull': ({required scope}) => ShadowTagEffect.magnetPull(
           scope: scope,
         ),
+    'suction_cups': ({required scope}) => SuctionCupsEffect(scope: scope),
     'skill_link': ({required scope}) => SkillLinkEffect(scope: scope),
     'soundproof': ({required scope}) => SoundproofEffect(scope: scope),
+    'queenly_majesty': ({required scope}) =>
+        PriorityMovePreventionAbilityEffect(
+          abilityId: 'queenly_majesty',
+          scope: _bankScopeFor(scope),
+        ),
+    'dazzling': ({required scope}) => PriorityMovePreventionAbilityEffect(
+          abilityId: 'dazzling',
+          scope: _bankScopeFor(scope),
+        ),
+    'armor_tail': ({required scope}) => PriorityMovePreventionAbilityEffect(
+          abilityId: 'armor_tail',
+          scope: _bankScopeFor(scope),
+          requiresProtectable: false,
+          restrictToSingleTargetOrPerishSong: true,
+        ),
+    'pure_power': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'pure_power',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 2},
+        ),
+    'huge_power': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'huge_power',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 2},
+        ),
+    'guts': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'guts',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 1.5},
+          condition: hasMajorStatus,
+        ),
+    'flare_boost': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'flare_boost',
+          scope: scope,
+          statMultipliers: const <String, double>{'specialAttack': 1.5},
+          condition: hasBurnStatus,
+        ),
+    'toxic_boost': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'toxic_boost',
+          scope: scope,
+          statMultipliers: const <String, double>{'attack': 1.5},
+          condition: hasPoisonStatus,
+        ),
+    'defeatist': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'defeatist',
+          scope: scope,
+          condition: AbilityBasePowerCondition.lowHpUser,
+          multiplier: 0.5,
+        ),
+    'fluffy': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'fluffy',
+          scope: scope,
+          condition: AbilityBasePowerCondition.fluffyIncoming,
+          multiplier: 1,
+        ),
+    'heatproof': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'heatproof',
+          scope: scope,
+          condition: AbilityBasePowerCondition.fireIncoming,
+          multiplier: 0.5,
+        ),
+    'thick_fat': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'thick_fat',
+          scope: scope,
+          condition: AbilityBasePowerCondition.fireOrIceIncoming,
+          multiplier: 0.5,
+        ),
+    'sand_force': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'sand_force',
+          scope: scope,
+          condition: AbilityBasePowerCondition.sandForceOutgoing,
+          multiplier: 1.3,
+        ),
+    'stakeout': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'stakeout',
+          scope: scope,
+          condition: AbilityBasePowerCondition.stakeoutOutgoing,
+          multiplier: 2,
+        ),
+    'analytic': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'analytic',
+          scope: scope,
+          condition: AbilityBasePowerCondition.analyticOutgoing,
+          multiplier: 1.3,
+        ),
+    'rivalry': ({required scope}) => RivalryEffect(scope: scope),
+    'ice_scales': ({required scope}) => AbilityBasePowerModifierEffect(
+          abilityId: 'ice_scales',
+          scope: scope,
+          condition: AbilityBasePowerCondition.specialIncoming,
+          multiplier: 0.5,
+        ),
+    'fur_coat': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'fur_coat',
+          scope: scope,
+          statMultipliers: const <String, double>{'defense': 2},
+        ),
+    'hustle': ({required scope}) => HustleAbilityEffect(scope: scope),
+    'plus': ({required scope}) => PlusMinusAbilityEffect(
+          abilityId: 'plus',
+          scope: scope,
+        ),
+    'minus': ({required scope}) => PlusMinusAbilityEffect(
+          abilityId: 'minus',
+          scope: scope,
+        ),
+    'flower_gift': ({required scope}) =>
+        FlowerGiftStatAbilityEffect(scope: scope),
+    'tablets_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'tablets_of_ruin',
+          scope: scope,
+          stat: 'attack',
+        ),
+    'vessel_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'vessel_of_ruin',
+          scope: scope,
+          stat: 'specialAttack',
+        ),
+    'sword_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'sword_of_ruin',
+          scope: scope,
+          stat: 'defense',
+        ),
+    'beads_of_ruin': ({required scope}) => RuinStatAbilityEffect(
+          abilityId: 'beads_of_ruin',
+          scope: scope,
+          stat: 'specialDefense',
+        ),
+    'marvel_scale': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'marvel_scale',
+          scope: scope,
+          statMultipliers: const <String, double>{'defense': 1.5},
+          condition: hasMajorStatus,
+        ),
+    'grass_pelt': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'grass_pelt',
+          scope: scope,
+          statMultipliers: const <String, double>{'defense': 1.5},
+          condition: hasGrassyTerrain,
+        ),
+    'contrary': ({required scope}) => StatChangeTransformAbilityEffect(
+          abilityId: 'contrary',
+          scope: scope,
+          transform: AbilityStatChangeTransform.contrary,
+        ),
+    'simple': ({required scope}) => StatChangeTransformAbilityEffect(
+          abilityId: 'simple',
+          scope: scope,
+          transform: AbilityStatChangeTransform.simple,
+        ),
+    'guard_dog': ({required scope}) => StatChangeTransformAbilityEffect(
+          abilityId: 'guard_dog',
+          scope: scope,
+          transform: AbilityStatChangeTransform.guardDog,
+        ),
+    'mirror_armor': ({required scope}) => MirrorArmorEffect(scope: scope),
+    'hunger_switch': ({required scope}) => HungerSwitchEffect(scope: scope),
+    'defiant': ({required scope}) => StatDropPunishAbilityEffect(
+          abilityId: 'defiant',
+          scope: scope,
+          boostedStat: 'attack',
+        ),
+    'competitive': ({required scope}) => StatDropPunishAbilityEffect(
+          abilityId: 'competitive',
+          scope: scope,
+          boostedStat: 'specialAttack',
+        ),
+    'chlorophyll': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'chlorophyll',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasSunnyWeather,
+        ),
+    'slow_start': ({required scope}) => SlowStartAbilityEffect(scope: scope),
+    'gale_wings': ({required scope}) => GaleWingsAbilityEffect(scope: scope),
+    'prankster': ({required scope}) => PranksterAbilityEffect(scope: scope),
+    'triage': ({required scope}) => TriageAbilityEffect(scope: scope),
+    'swift_swim': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'swift_swim',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasRainWeather,
+        ),
+    'sand_rush': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'sand_rush',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasSandstormWeather,
+        ),
+    'slush_rush': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'slush_rush',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasSnowingWeather,
+        ),
+    'surge_surfer': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'surge_surfer',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 2},
+          condition: hasElectricTerrain,
+        ),
+    'quick_feet': ({required scope}) => StatModifierAbilityEffect(
+          abilityId: 'quick_feet',
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 1.5},
+          condition: hasMajorStatus,
+        ),
     'immunity': ({required scope}) => StatusImmunityEffect(
           abilityId: 'immunity',
           scope: scope,
@@ -224,9 +715,335 @@ final class AbilityEffectRegistry {
             PsdkBattleMajorStatus.burn,
           },
         ),
+    'water_bubble': ({required scope}) => WaterBubbleEffect(scope: scope),
+    'purifying_salt': ({required scope}) => PurifyingSaltEffect(scope: scope),
+    'leaf_guard': ({required scope}) => StatusPreventionAbilityEffect(
+          abilityId: 'leaf_guard',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.poison,
+            PsdkBattleMajorStatus.toxic,
+            PsdkBattleMajorStatus.sleep,
+            PsdkBattleMajorStatus.freeze,
+            PsdkBattleMajorStatus.paralysis,
+            PsdkBattleMajorStatus.burn,
+          },
+          requiresSunnyWeather: true,
+        ),
+    'sweet_veil': ({required scope}) => StatusPreventionAbilityEffect(
+          abilityId: 'sweet_veil',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.sleep,
+          },
+          preventionScope: StatusPreventionScope.bank,
+        ),
+    'pastel_veil': ({required scope}) => StatusPreventionAbilityEffect(
+          abilityId: 'pastel_veil',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.poison,
+            PsdkBattleMajorStatus.toxic,
+          },
+          preventionScope: StatusPreventionScope.bank,
+          curesBankPoisonOnSwitch: true,
+        ),
+    'flower_veil': ({required scope}) => FlowerVeilEffect(scope: scope),
+    'comatose': ({required scope}) => StatusImmunityEffect(
+          abilityId: 'comatose',
+          scope: scope,
+          preventedStatuses: const <PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.poison,
+            PsdkBattleMajorStatus.toxic,
+            PsdkBattleMajorStatus.burn,
+            PsdkBattleMajorStatus.paralysis,
+            PsdkBattleMajorStatus.freeze,
+            PsdkBattleMajorStatus.sleep,
+          },
+          curesExistingStatus: false,
+        ),
+    'compound_eyes': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'compound_eyes',
+          scope: scope,
+          condition: AbilityAccuracyCondition.user,
+          multiplier: 1.3,
+        ),
+    'victory_star': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'victory_star',
+          scope: scope,
+          condition: AbilityAccuracyCondition.allyBank,
+          multiplier: 1.1,
+        ),
+    'sand_veil': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'sand_veil',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetSandstorm,
+          multiplier: 0.8,
+        ),
+    'schooling': ({required scope}) => HpThresholdFormAbilityEffect(
+          abilityId: 'schooling',
+          scope: scope,
+          family: HpThresholdFormFamily.schooling,
+        ),
+    'snow_cloak': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'snow_cloak',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetSnowing,
+          multiplier: 0.8,
+        ),
+    'wonder_skin': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'wonder_skin',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetStatusMove,
+          multiplier: 0.5,
+        ),
+    'shields_down': ({required scope}) => HpThresholdFormAbilityEffect(
+          abilityId: 'shields_down',
+          scope: scope,
+          family: HpThresholdFormFamily.shieldsDown,
+        ),
+    'tangled_feet': ({required scope}) => AccuracyModifierAbilityEffect(
+          abilityId: 'tangled_feet',
+          scope: scope,
+          condition: AbilityAccuracyCondition.targetConfused,
+          multiplier: 0.5,
+        ),
+    'flame_body': ({required scope}) => ContactStatusAbilityEffect(
+          abilityId: 'flame_body',
+          scope: scope,
+          status: PsdkBattleMajorStatus.burn,
+        ),
+    'static': ({required scope}) => ContactStatusAbilityEffect(
+          abilityId: 'static',
+          scope: scope,
+          status: PsdkBattleMajorStatus.paralysis,
+        ),
+    'poison_point': ({required scope}) => ContactStatusAbilityEffect(
+          abilityId: 'poison_point',
+          scope: scope,
+          status: PsdkBattleMajorStatus.poison,
+        ),
+    'poison_puppeteer': ({required scope}) =>
+        PoisonPuppeteerEffect(scope: scope),
+    'effect_spore': ({required scope}) =>
+        ContactStatusAbilityEffect.effectSpore(scope: scope),
+    'cute_charm': ({required scope}) => CuteCharmEffect(scope: scope),
+    'cursed_body': ({required scope}) => ContactDisableAbilityEffect(
+          abilityId: 'cursed_body',
+          scope: scope,
+        ),
+    'poison_touch': ({required scope}) => ApplyStatusToMoveTargetAbilityEffect(
+          abilityId: 'poison_touch',
+          scope: scope,
+          status: PsdkBattleMajorStatus.poison,
+          requiresContact: true,
+        ),
+    'power_construct': ({required scope}) => PowerConstructEffect(scope: scope),
+    'toxic_chain': ({required scope}) => ApplyStatusToMoveTargetAbilityEffect(
+          abilityId: 'toxic_chain',
+          scope: scope,
+          status: PsdkBattleMajorStatus.toxic,
+        ),
+    'stamina': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'stamina',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.anyIncoming,
+          changes: const <String, int>{'defense': 1},
+        ),
+    'weak_armor': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'weak_armor',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.physicalIncoming,
+          changes: const <String, int>{'defense': -1, 'speed': 1},
+        ),
+    'water_compaction': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'water_compaction',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.waterIncoming,
+          changes: const <String, int>{'defense': 2},
+        ),
+    'steam_engine': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'steam_engine',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.fireOrWaterIncoming,
+          changes: const <String, int>{'speed': 3},
+        ),
+    'thermal_exchange': ({required scope}) =>
+        ThermalExchangeEffect(scope: scope),
+    'sand_spit': ({required scope}) => SandSpitEffect(scope: scope),
+    'seed_sower': ({required scope}) => SeedSowerEffect(scope: scope),
+    'innards_out': ({required scope}) => InnardsOutEffect(scope: scope),
+    'cotton_down': ({required scope}) => CottonDownEffect(scope: scope),
+    'color_change': ({required scope}) => ColorChangeEffect(scope: scope),
+    'emergency_exit': ({required scope}) => EmergencyExitEffect(
+          abilityId: 'emergency_exit',
+          scope: scope,
+        ),
+    'wimp_out': ({required scope}) => EmergencyExitEffect(
+          abilityId: 'wimp_out',
+          scope: scope,
+        ),
+    'perish_body': ({required scope}) => PerishBodyEffect(scope: scope),
+    'toxic_debris': ({required scope}) => ToxicDebrisEffect(scope: scope),
+    'mummy': ({required scope}) => ContactAbilityChangeEffect(
+          abilityId: 'mummy',
+          scope: scope,
+        ),
+    'lingering_aroma': ({required scope}) => ContactAbilityChangeEffect(
+          abilityId: 'lingering_aroma',
+          scope: scope,
+        ),
+    'wandering_spirit': ({required scope}) =>
+        WanderingSpiritEffect(scope: scope),
+    'justified': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'justified',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.darkIncoming,
+          changes: const <String, int>{'attack': 1},
+        ),
+    'rattled': ({required scope}) => RattledEffect(scope: scope),
+    'berserk': ({required scope}) => HalfHpThresholdStatChangeAbilityEffect(
+          abilityId: 'berserk',
+          scope: scope,
+          changes: const <String, int>{'specialAttack': 1},
+        ),
+    'anger_shell': ({required scope}) => HalfHpThresholdStatChangeAbilityEffect(
+          abilityId: 'anger_shell',
+          scope: scope,
+          changes: const <String, int>{
+            'attack': 1,
+            'specialAttack': 1,
+            'speed': 1,
+            'defense': -1,
+            'specialDefense': -1,
+          },
+        ),
+    'moxie': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'moxie',
+          scope: scope,
+          boostedStat: 'attack',
+          skipFellStinger: true,
+        ),
+    'chilling_neigh': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'chilling_neigh',
+          scope: scope,
+          boostedStat: 'attack',
+          skipFellStinger: true,
+        ),
+    'grim_neigh': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'grim_neigh',
+          scope: scope,
+          boostedStat: 'specialAttack',
+          skipFellStinger: true,
+        ),
+    'as_one': ({required scope}) => AsOneEffect(scope: scope),
+    'beast_boost': ({required scope}) => PostDamageKoStatBoostAbilityEffect(
+          abilityId: 'beast_boost',
+          scope: scope,
+        ),
+    'soul_heart': ({required scope}) => SoulHeartEffect(scope: scope),
+    'receiver': ({required scope}) => ReceiverPowerOfAlchemyEffect(
+          abilityId: 'receiver',
+          scope: scope,
+        ),
+    'power_of_alchemy': ({required scope}) => ReceiverPowerOfAlchemyEffect(
+          abilityId: 'power_of_alchemy',
+          scope: scope,
+        ),
+    'gooey': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'gooey',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.contactIncoming,
+          changes: const <String, int>{'speed': -1},
+          changeTarget: AbilityPostDamageStatChangeTarget.user,
+        ),
+    'tangling_hair': ({required scope}) => PostDamageStatChangeAbilityEffect(
+          abilityId: 'tangling_hair',
+          scope: scope,
+          condition: AbilityPostDamageStatCondition.contactIncoming,
+          changes: const <String, int>{'speed': -1},
+          changeTarget: AbilityPostDamageStatChangeTarget.user,
+        ),
+    'stench': ({required scope}) => StenchEffect(scope: scope),
+    'serene_grace': ({required scope}) => SereneGraceEffect(scope: scope),
+    'sheer_force': ({required scope}) => SheerForceEffect(scope: scope),
+    'shield_dust': ({required scope}) => ShieldDustEffect(scope: scope),
+    'electromorphosis': ({required scope}) =>
+        ElectromorphosisEffect(scope: scope),
+    'wind_power': ({required scope}) => WindPowerEffect(scope: scope),
+    'wind_rider': ({required scope}) => WindRiderEffect(scope: scope),
+    'protosynthesis': ({required scope}) => ParadoxStatBoostAbilityEffect(
+          abilityId: 'protosynthesis',
+          scope: scope,
+          trigger: ParadoxStatBoostTrigger.sunnyWeather,
+        ),
+    'quark_drive': ({required scope}) => ParadoxStatBoostAbilityEffect(
+          abilityId: 'quark_drive',
+          scope: scope,
+          trigger: ParadoxStatBoostTrigger.electricTerrain,
+        ),
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
+    'moody': ({required scope}) => MoodyEffect(scope: scope),
+    'healer': ({required scope}) => HealerEffect(scope: scope),
     'rain_dish': ({required scope}) => RainDishEffect(scope: scope),
+    'hydration': ({required scope}) => HydrationEffect(scope: scope),
+    'ice_body': ({required scope}) => IceBodyEffect(scope: scope),
+    'ice_face': ({required scope}) => IceFaceEffect(scope: scope),
+    'stance_change': ({required scope}) => StanceChangeEffect(scope: scope),
     'dry_skin': ({required scope}) => DrySkinEffect(scope: scope),
+    'solar_power': ({required scope}) => SolarPowerEffect(scope: scope),
+    'shed_skin': ({required scope}) => ShedSkinEffect(scope: scope),
+    'bad_dreams': ({required scope}) => BadDreamsEffect(scope: scope),
+    'natural_cure': ({required scope}) => NaturalCureEffect(scope: scope),
+    'regenerator': ({required scope}) => RegeneratorEffect(scope: scope),
+    'synchronize': ({required scope}) => SynchronizeEffect(scope: scope),
+    'magician': ({required scope}) => ItemStealAbilityEffect(
+          abilityId: 'magician',
+          scope: scope,
+          mode: ItemStealAbilityMode.stealFromTarget,
+        ),
+    'pickpocket': ({required scope}) => ItemStealAbilityEffect(
+          abilityId: 'pickpocket',
+          scope: scope,
+          mode: ItemStealAbilityMode.stealFromAttacker,
+        ),
+    'gulp_missile': ({required scope}) => GulpMissileEffect(scope: scope),
+    'costar': ({required scope}) => CostarEffect(scope: scope),
+    'curious_medicine': ({required scope}) =>
+        CuriousMedicineEffect(scope: scope),
+    'supersweet_syrup': ({required scope}) =>
+        SupersweetSyrupEffect(scope: scope),
+    'hospitality': ({required scope}) => HospitalityEffect(scope: scope),
+    'embody_aspect': ({required scope}) => EmbodyAspectEffect(scope: scope),
+    'supreme_overlord': ({required scope}) =>
+        SupremeOverlordEffect(scope: scope),
+    'orichalcum_pulse': ({required scope}) =>
+        OrichalcumPulseEffect(scope: scope),
+    'hadron_engine': ({required scope}) => HadronEngineEffect(scope: scope),
+    'forecast': ({required scope}) => ForecastEffect(scope: scope),
+    'tera_shift': ({required scope}) => TeraShiftEffect(scope: scope),
+    'teraform_zero': ({required scope}) => TeraformZeroEffect(scope: scope),
+    'zen_mode': ({required scope}) => HpThresholdFormAbilityEffect(
+          abilityId: 'zen_mode',
+          scope: scope,
+          family: HpThresholdFormFamily.zenMode,
+        ),
+    'mimicry': ({required scope}) => MimicryEffect(scope: scope),
+    'desolate_land': ({required scope}) => PrimalWeatherAbilityEffect(
+          abilityId: 'desolate_land',
+          scope: scope,
+          weather: PsdkBattleWeatherId.hardsun,
+        ),
+    'primordial_sea': ({required scope}) => PrimalWeatherAbilityEffect(
+          abilityId: 'primordial_sea',
+          scope: scope,
+          weather: PsdkBattleWeatherId.hardrain,
+        ),
+    'delta_stream': ({required scope}) => PrimalWeatherAbilityEffect(
+          abilityId: 'delta_stream',
+          scope: scope,
+          weather: PsdkBattleWeatherId.strongWinds,
+        ),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',
           scope: scope,
@@ -275,7 +1092,32 @@ final class AbilityEffectRegistry {
           terrain: PsdkBattleTerrainId.psychicTerrain,
           terrainMoveDbSymbol: 'psychic_terrain',
         ),
+    'dauntless_shield': ({required scope}) => SwitchStatBoostAbilityEffect(
+          abilityId: 'dauntless_shield',
+          scope: scope,
+          stat: 'defense',
+          stages: 1,
+        ),
+    'intrepid_sword': ({required scope}) => SwitchStatBoostAbilityEffect(
+          abilityId: 'intrepid_sword',
+          scope: scope,
+          stat: 'attack',
+          stages: 1,
+        ),
+    'download': ({required scope}) => DownloadEffect(scope: scope),
+    'anticipation': ({required scope}) => AnticipationEffect(scope: scope),
+    'forewarn': ({required scope}) => ForewarnEffect(scope: scope),
+    'frisk': ({required scope}) => FriskEffect(scope: scope),
+    'gorilla_tactics': ({required scope}) => GorillaTacticsEffect(scope: scope),
     'intimidate': ({required scope}) => IntimidateEffect(scope: scope),
+    'imposter': ({required scope}) => ImposterEffect(scope: scope),
+    'pressure': ({required scope}) => PressureEffect(scope: scope),
+    'screen_cleaner': ({required scope}) => ScreenCleanerEffect(scope: scope),
+    'trace': ({required scope}) => TraceEffect(scope: scope),
+    'telepathy': ({required scope}) => TelepathyEffect(scope: scope),
+    'truant': ({required scope}) => TruantEffect(scope: scope),
+    'unaware': ({required scope}) => UnawareEffect(scope: scope),
+    'unnerve': ({required scope}) => UnnerveEffect(scope: scope),
   };
 
   final Map<String, AbilityEffectFactory> _factories;
@@ -284,6 +1126,27 @@ final class AbilityEffectRegistry {
     return <String>{
       for (final entry in psdkAbilityEffectManifest) entry.abilityId,
     };
+  }
+
+  AbilityEffectRegistryCoverage manifestCoverage() {
+    final manifestIds = registeredAbilityIds;
+    final factoryIds = _factories.keys.toSet();
+    return AbilityEffectRegistryCoverage(
+      manifestAbilityIds: manifestIds,
+      concreteFactoryAbilityIds: factoryIds,
+      factoryIdsOutsideManifest: factoryIds.difference(manifestIds),
+      declaredEffectsWithoutFactory: <String>{
+        for (final entry in psdkAbilityEffectManifest)
+          if (entry.dartEffect != null &&
+              !_isNestedAbilityEffectEntry(entry.abilityId) &&
+              !factoryIds.contains(entry.abilityId))
+            entry.abilityId,
+      },
+      missingAbilityIds: <String>{
+        for (final entry in psdkAbilityEffectManifest)
+          if (entry.status == PsdkAbilityPortStatus.missing) entry.abilityId,
+      },
+    );
   }
 
   BattleEffect? create(String? abilityId, {PsdkBattleSlotRef? owner}) {
@@ -312,10 +1175,62 @@ final class AbilityEffectRegistry {
     required String? abilityId,
     PsdkBattleSlotRef? owner,
   }) {
+    final normalized = _normalizeAbilityId(abilityId);
     final base = effects.withoutAbilityEffects();
-    final effect = create(abilityId, owner: owner);
+    if (normalized == null) {
+      return base;
+    }
+    final existing = _existingAbilityEffect(
+      effects: effects,
+      abilityId: normalized,
+      owner: owner,
+    );
+    final effect = existing ?? create(normalized, owner: owner);
     return effect == null ? base : base.addEffect(effect);
   }
+}
+
+BattleAbilityEffect? _existingAbilityEffect({
+  required PsdkBattleEffectStack effects,
+  required String abilityId,
+  required PsdkBattleSlotRef? owner,
+}) {
+  for (final effect in effects.effects.whereType<BattleAbilityEffect>()) {
+    if (effect.abilityId == abilityId &&
+        (owner == null || effect.owner == owner)) {
+      return effect;
+    }
+  }
+  return null;
+}
+
+bool _isNestedAbilityEffectEntry(String abilityId) {
+  return abilityId.endsWith('_effect');
+}
+
+final class AbilityEffectRegistryCoverage {
+  AbilityEffectRegistryCoverage({
+    required Set<String> manifestAbilityIds,
+    required Set<String> concreteFactoryAbilityIds,
+    required Set<String> factoryIdsOutsideManifest,
+    required Set<String> declaredEffectsWithoutFactory,
+    required Set<String> missingAbilityIds,
+  })  : manifestAbilityIds = Set<String>.unmodifiable(manifestAbilityIds),
+        concreteFactoryAbilityIds =
+            Set<String>.unmodifiable(concreteFactoryAbilityIds),
+        factoryIdsOutsideManifest =
+            Set<String>.unmodifiable(factoryIdsOutsideManifest),
+        declaredEffectsWithoutFactory =
+            Set<String>.unmodifiable(declaredEffectsWithoutFactory),
+        missingAbilityIds = Set<String>.unmodifiable(missingAbilityIds);
+
+  final Set<String> manifestAbilityIds;
+  final Set<String> concreteFactoryAbilityIds;
+  final Set<String> factoryIdsOutsideManifest;
+  final Set<String> declaredEffectsWithoutFactory;
+  final Set<String> missingAbilityIds;
+
+  int get totalManifestAbilities => manifestAbilityIds.length;
 }
 
 String? _normalizeAbilityId(String? abilityId) {
@@ -324,4 +1239,11 @@ String? _normalizeAbilityId(String? abilityId) {
   }
   final normalized = abilityId.trim().toLowerCase();
   return normalized.isEmpty || normalized == 'unknown' ? null : normalized;
+}
+
+BattleEffectScope _bankScopeFor(BattleEffectScope scope) {
+  return switch (scope) {
+    BattlerBattleEffectScope(:final slot) => BankBattleEffectScope(slot.bank),
+    _ => scope,
+  };
 }

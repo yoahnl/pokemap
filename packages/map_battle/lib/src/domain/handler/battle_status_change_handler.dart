@@ -27,18 +27,18 @@ final class BattleStatusChangeHandler {
     BattleMoveDefinition? move,
   }) {
     final targetBattler = context.state.battlerAt(target);
-    if (_substitutePreventsStatus(
+    final hookPrevention = _statusPreventionReason(
       context: context,
       target: target,
-      targetBattler: targetBattler,
-      moveId: moveId,
+      status: status,
       move: move,
-    )) {
+    );
+    if (hookPrevention != null) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,
         applied: false,
-        reason: 'substitute',
+        reason: hookPrevention,
       );
     }
     if (targetBattler.majorStatus != null) {
@@ -47,19 +47,6 @@ final class BattleStatusChangeHandler {
         rng: context.rng,
         applied: false,
         reason: 'already_statused',
-      );
-    }
-    final hookPrevention = _statusPreventionReason(
-      context: context,
-      target: target,
-      status: status,
-    );
-    if (hookPrevention != null) {
-      return BattleHandlerResult(
-        state: context.state,
-        rng: context.rng,
-        applied: false,
-        reason: hookPrevention,
       );
     }
     if (_isStatusImmune(context, target, targetBattler, status)) {
@@ -98,6 +85,7 @@ final class BattleStatusChangeHandler {
       status: status,
       cured: false,
       moveId: moveId,
+      move: move,
     );
 
     return BattleHandlerResult(
@@ -119,6 +107,7 @@ final class BattleStatusChangeHandler {
     required BattleHandlerContext context,
     required PsdkBattleSlotRef target,
     required PsdkBattleMajorStatus status,
+    BattleMoveDefinition? move,
   }) {
     final targetBattler = context.state.battlerAt(target);
     return targetBattler.majorStatus == null &&
@@ -126,6 +115,7 @@ final class BattleStatusChangeHandler {
               context: context,
               target: target,
               status: status,
+              move: move,
             ) ==
             null &&
         !_isStatusImmune(context, target, targetBattler, status);
@@ -303,6 +293,7 @@ String? _statusPreventionReason({
   required BattleHandlerContext context,
   required PsdkBattleSlotRef target,
   required PsdkBattleMajorStatus status,
+  BattleMoveDefinition? move,
 }) {
   for (final owner in _orderedSlots(context.state)) {
     final reason =
@@ -315,6 +306,7 @@ String? _statusPreventionReason({
                 user: context.user,
                 target: target,
                 status: status,
+                move: move,
               ),
             );
     if (reason != null) {
@@ -330,6 +322,7 @@ BattleEffectStatusChangeResult _dispatchPostStatusChange({
   required PsdkBattleMajorStatus status,
   required bool cured,
   required String moveId,
+  BattleMoveDefinition? move,
 }) {
   var nextState = context.state;
   var nextRng = context.rng;
@@ -347,6 +340,7 @@ BattleEffectStatusChangeResult _dispatchPostStatusChange({
             status: status,
             cured: cured,
             moveId: moveId,
+            move: move,
           ),
         );
     nextState = result.state;
@@ -474,6 +468,7 @@ bool _isStatusImmune(
   final abilityContext = BattleAbilityStatusContext(
     status: status,
     target: battler,
+    field: context.state.field,
   );
   if (battler.abilityEffects.any(
     (effect) => effect.preventsStatus(abilityContext),
@@ -501,24 +496,6 @@ bool _isStatusImmune(
     PsdkBattleMajorStatus.freeze => battler.hasType('ice'),
     PsdkBattleMajorStatus.sleep => false,
   };
-}
-
-bool _substitutePreventsStatus({
-  required BattleHandlerContext context,
-  required PsdkBattleSlotRef target,
-  required PsdkBattleCombatant targetBattler,
-  required String moveId,
-  BattleMoveDefinition? move,
-}) {
-  if (context.user == target || !targetBattler.effects.contains('substitute')) {
-    return false;
-  }
-  final moveDefinition = move;
-  if (moveDefinition != null) {
-    final user = context.state.battlerAt(context.user);
-    return !moveDefinition.flags.sound && user.abilityId != 'infiltrator';
-  }
-  return !moveId.startsWith('effect:') && !moveId.startsWith('status:');
 }
 
 bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
