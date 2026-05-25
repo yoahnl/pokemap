@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+Lot courant : ✅ P6-04-bis — Selbrume Git Worktree Attribution / Diff Cleanup
 
-Prochain lot exact : P6-05 — Selbrume First Trainer Battle Golden Slice V0
+Prochain lot exact : P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
 
 Légende :
 
@@ -42,7 +42,9 @@ Suivi des lots :
 - ✅ P6-02 — Selbrume Initial Party / Bag Setup V0
 - ✅ P6-03 — Selbrume First Narrative Interaction V0
 - ✅ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
-- ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+- ✅ P6-04-bis — Selbrume Git Worktree Attribution / Diff Cleanup
+- ➡️ P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
+- ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
 - ⏳ P6-07 — Selbrume Beta Validator Pass V0
 - ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
@@ -58,12 +60,14 @@ P6-03 : ✅ terminé
 
 P6-04 : ✅ terminé
 
-P6-05 : ➡️ prochain lot exact
+P6-04-bis : ✅ terminé
+
+P6-04-ter : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-05 — Selbrume First Trainer Battle Golden Slice V0
+P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
 ```
 
 ## Objectif Phase 6
@@ -300,6 +304,37 @@ la preuve ne lance pas Battle UI et ne crée pas de trainer battle
 le pidgeotto capturé duplique volontairement l'espèce initiale P6-02, car la table Route 1 ne contient que pidgeotto
 ```
 
+## Résultat P6-04-bis
+
+Décision : option B.
+
+P6-04-bis a établi que les changements `grant` ne sont plus des diffs courants :
+ils sont désormais suivis par Git.
+
+Attribution historique :
+
+```text
+02fbb1db -> ajout de selbrume/assets/tilesets/grant.png
+cbfec67e -> ajout de grant dans project.json, ajout de l'entité grant sur route 1,
+             ajout des artefacts P6-04 et retrait du scénario P6-03 dans project.json
+```
+
+Impact vérifié :
+
+```text
+P6-04 passe encore.
+P6-02 passe encore.
+P6-01 échoue car route 1 n'est plus vide.
+P6-03 échoue car p6_03_first_interaction est absent de project.json.
+```
+
+Décision roadmap :
+
+```text
+Ne pas passer directement à P6-05.
+Le prochain lot exact devient P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix.
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -392,9 +427,35 @@ Preuve :
 packages/map_runtime/test/p6_selbrume_route_1_encounter_capture_golden_slice_test.dart
 ```
 
-### ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+### ✅ P6-04-bis — Selbrume Git Worktree Attribution / Diff Cleanup
+
+Statut : terminé.
+
+But :
+
+```text
+attribuer les changements grant observés autour de P6-04 et décider si P6-05
+peut démarrer sans mélanger une régression P6 précédente.
+```
+
+Décision :
+
+```text
+option B : ne pas démarrer P6-05 avant un correctif P6-04-ter.
+```
+
+### ➡️ P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
 
 Statut : prochain lot exact.
+
+But :
+
+```text
+réconcilier les changements grant avec les contrats P6-01/P6-03 et rétablir les
+preuves cassées avant le premier trainer battle.
+```
+
+### ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 
 But :
 
