@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-02 — Selbrume Initial Party / Bag Setup V0
+Lot courant : ✅ P6-03 — Selbrume First Narrative Interaction V0
 
-Prochain lot exact : P6-03 — Selbrume First Narrative Interaction V0
+Prochain lot exact : P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 
 Légende :
 
@@ -40,8 +40,8 @@ Suivi des lots :
 - ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 - ✅ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
 - ✅ P6-02 — Selbrume Initial Party / Bag Setup V0
-- ➡️ P6-03 — Selbrume First Narrative Interaction V0
-- ⏳ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+- ✅ P6-03 — Selbrume First Narrative Interaction V0
+- ➡️ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 - ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
 - ⏳ P6-07 — Selbrume Beta Validator Pass V0
@@ -54,12 +54,14 @@ P6-01 : ✅ terminé
 
 P6-02 : ✅ terminé
 
-P6-03 : ➡️ prochain lot exact
+P6-03 : ✅ terminé
+
+P6-04 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-03 — Selbrume First Narrative Interaction V0
+P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 ```
 
 ## Objectif Phase 6
@@ -228,6 +230,39 @@ aucun fichier selbrume/ n'est modifié
 le setup initial est prouvé par seed explicite de test
 ```
 
+## Résultat P6-03
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json est chargé via loadRuntimeMapBundle
+start map retenue : Selbrume
+spawn retenu : spawn
+party/bag minimal seedé comme P6-02
+interaction retenue : p6_03_intro_sign
+scénario retenu : p6_03_first_interaction
+preuve : ScenarioRuntimeExecutor.dispatch(entityInteract)
+effet runtime observable : showMessage court
+effet persistable : story flag p6.selbrume.first_interaction.seen
+effet persistable : completed step p6.selbrume.first_interaction
+roundtrip SaveData conserve flag, completed step, party et bag
+```
+
+Fichiers Selbrume modifiés :
+
+```text
+selbrume/project.json
+selbrume/maps/Selbrume.json
+```
+
+Décision narrative :
+
+```text
+l'interaction est une preuve technique golden slice V0
+elle n'est pas un dialogue final, une quête finale, un PNJ final ou une cinématique
+aucun combat, reward, capture ou P6-04 n'est démarré en P6-03
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -287,7 +322,9 @@ Preuve :
 packages/map_runtime/test/p6_selbrume_initial_party_bag_setup_test.dart
 ```
 
-### ➡️ P6-03 — Selbrume First Narrative Interaction V0
+### ✅ P6-03 — Selbrume First Narrative Interaction V0
+
+Statut : terminé.
 
 But :
 
@@ -295,7 +332,15 @@ But :
 prouver une première interaction narrative courte dans le mini-parcours choisi.
 ```
 
-### ⏳ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+Preuve :
+
+```text
+packages/map_runtime/test/p6_selbrume_first_narrative_interaction_test.dart
+```
+
+### ➡️ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+
+Statut : prochain lot exact.
 
 But :
 

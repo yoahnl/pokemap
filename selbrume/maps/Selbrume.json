@@ -67534,6 +67534,33 @@
       "editorVisual": null,
       "blocksMovement": true,
       "properties": {}
+    },
+    {
+      "id": "p6_03_intro_sign",
+      "name": "P6-03 intro sign",
+      "kind": "sign",
+      "pos": {
+        "x": 22,
+        "y": 25
+      },
+      "size": {
+        "width": 2,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "P6-03 Intro",
+        "dialogue": null,
+        "plainText": "Bienvenue à Selbrume. Ceci est la première interaction narrative du golden slice."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {
+        "phase": "P6-03",
+        "contentStatus": "technical_golden_slice_v0"
+      }
     }
   ],
   "connections": [
