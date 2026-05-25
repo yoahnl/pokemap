@@ -6,9 +6,9 @@ Phase 4 — Authoring Workflows Minimal
 
 Statut : 🔜 Phase courante en exécution
 
-Lot courant : P4-07 — Minimal Authoring Golden Path Test V0
+Lot courant : P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
-Prochain lot exact : P4-07 — Minimal Authoring Golden Path Test V0
+Prochain lot exact : P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
 Suivi des lots :
 
@@ -19,8 +19,8 @@ Suivi des lots :
 - ✅ P4-04 — Outcome / Battle Outcome Authoring Operations V0
 - ✅ P4-05 — Predicate / World Rule Authoring Draft V0
 - ✅ P4-06 — Narrative Validator Authoring Adapter V0
-- 🔜 P4-07 — Minimal Authoring Golden Path Test V0
-- P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
+- ✅ P4-07 — Minimal Authoring Golden Path Test V0
+- 🔜 P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
 P4-00 : ✅ terminé
 
@@ -36,7 +36,9 @@ P4-05 : ✅ terminé
 
 P4-06 : ✅ terminé
 
-P4-07 : 🔜 prochain lot exact
+P4-07 : ✅ terminé
+
+P4-CHECKPOINT-01 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -352,8 +354,8 @@ Preuve concrète, pure et testée :
 Objectif :
 Prouver un workflow authoring minimal complet sans UI premium.
 
-Résultat attendu :
-Preuve concrète et testée :
+Résultat :
+Preuve concrète et testée ajoutée :
 
 - sélection de références via read models ;
 - draft scenario minimal ;
@@ -362,6 +364,12 @@ Preuve concrète et testée :
 - predicate/world rule passive ;
 - diagnostics authoring ;
 - export ou conversion vers structures existantes, sans créer Selbrume final.
+- test ciblé :
+  `packages/map_core/test/narrative_authoring_golden_path_test.dart` ;
+- rapport :
+  `reports/roadmap/phase_4/p4_07_minimal_authoring_golden_path_test.md` ;
+- aucun code de production modifié, aucune UI, aucun registry persistant,
+  aucun auto-fix, aucun reward/money/XP et aucun contenu Selbrume final créé.
 
 ### P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
@@ -408,5 +416,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-07 — Minimal Authoring Golden Path Test V0
+P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 ```
