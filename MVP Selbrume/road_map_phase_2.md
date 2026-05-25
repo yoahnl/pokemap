@@ -6,9 +6,9 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-08 — World Rule Predicate Adapter Contract
+Lot courant : P2-09 — Narrative Validator Diagnostic Expansion
 
-Prochain lot exact : P2-08 — World Rule Predicate Adapter Contract
+Prochain lot exact : P2-09 — Narrative Validator Diagnostic Expansion
 
 Suivi des lots :
 
@@ -20,8 +20,8 @@ Suivi des lots :
 - ✅ P2-05 — Outcome Reference Contracts
 - ✅ P2-06 — Battle Reference / Outcome Contract
 - ✅ P2-07 — Fact Descriptor / Presentation Layer
-- 🔜 P2-08 — World Rule Predicate Adapter Contract
-- P2-09 — Narrative Validator Diagnostic Expansion
+- ✅ P2-08 — World Rule Predicate Adapter Contract
+- 🔜 P2-09 — Narrative Validator Diagnostic Expansion
 - P2-10 — Reference Picker Read Models
 - P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
@@ -41,7 +41,9 @@ P2-06 : ✅ terminé
 
 P2-07 : ✅ terminé
 
-P2-08 : 🔜 prochain lot exact
+P2-08 : ✅ terminé
+
+P2-09 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -700,11 +702,66 @@ Pas de duplication automatique de state.
 Dépendances :
 P2-02, P2-05.
 
-### P2-08 — World Rule Predicate Adapter Contract
+### ✅ P2-08 — World Rule Predicate Adapter Contract
 
 Objectif :
 Adapter les predicates et projections conditionnelles existantes à la grammaire
 World Rule.
+
+Résultat :
+P2-08 reste design-only. Le lot refuse un `WorldRuleRegistry` persistant, toute
+modification `ProjectManifest`, toute modification `GameState` / `SaveData` et
+toute duplication de `MapEntityRuntimePredicate` ou de Step Studio world
+presence. Les sources techniques actuelles restent
+`MapEntityRuntimePredicate`, `visibilityRule`, `conditionalDialogues`, Step
+Studio world presence et `GlobalStoryChapterStepIndex`. La trajectoire
+recommandée est une future `WorldRuleReadModel` /
+`WorldRulePredicateAdapter` non persistante, dérivée des predicates et metadata
+existants si P2-09/P2-10 le justifient. World Rule reste passive : elle lit une
+vérité et projette le monde, sans déclencher Event/Scene, sans écrire Fact, sans
+compléter Step et sans émettre Outcome.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_08_world_rule_predicate_adapter_contract.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `test -f skills/README.md && sed -n '1,220p' skills/README.md || true`
+- `sed -n '1,220p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/using-superpowers/SKILL.md`
+- `sed -n '1,220p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/verification-before-completion/SKILL.md`
+- `grep -nE ...` sur les roadmaps, rapports P1/P2 et termes World Rule
+- `grep -nE ...` sur predicates, visibility rules, conditional dialogues,
+  Step Studio world presence et diagnostics validator
+- `sed -n ...` sur `map_entity_payloads.dart`,
+  `map_entity_runtime_predicate_evaluator.dart`,
+  `step_studio_world_presence_runtime.dart`,
+  `global_story_chapter_runtime.dart`,
+  `step_studio_authoring.dart`,
+  `global_story_studio_authoring.dart`,
+  `narrative_workspace_projection.dart`,
+  `narrative_validator.dart` et `scenario_runtime_executor.dart`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_08_world_rule_predicate_adapter_contract.md || true`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle examples/playable_runtime_host`
+- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+
+Décisions utilisateur nouvelles :
+Aucune décision utilisateur imposée. La décision recommandée pour la suite est
+de garder World Rule comme projection passive non persistante et de laisser
+P2-09 traiter l'expansion des diagnostics sans créer de registry.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-08 confirme que Fact nomme, World Rule
+projette, Event déclenche et Scene orchestre.
 
 Risque :
 Créer un WorldRuleRegistry prématuré ou laisser World Rule déclencher des
@@ -823,5 +880,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-08 — World Rule Predicate Adapter Contract
+P2-09 — Narrative Validator Diagnostic Expansion
 ```
