@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+Lot courant : ✅ P6-06 — Selbrume Save/Load Golden Slice V0
 
-Prochain lot exact : P6-06 — Selbrume Save/Load Golden Slice V0
+Prochain lot exact : P6-07 — Selbrume Beta Validator Pass V0
 
 Légende :
 
@@ -45,8 +45,8 @@ Suivi des lots :
 - ✅ P6-04-bis — Selbrume Git Worktree Attribution / Diff Cleanup
 - ✅ P6-04-ter — Selbrume Grant Reconciliation / P6-03 Regression Fix
 - ✅ P6-05 — Selbrume First Trainer Battle Golden Slice V0
-- ➡️ P6-06 — Selbrume Save/Load Golden Slice V0
-- ⏳ P6-07 — Selbrume Beta Validator Pass V0
+- ✅ P6-06 — Selbrume Save/Load Golden Slice V0
+- ➡️ P6-07 — Selbrume Beta Validator Pass V0
 - ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
 - 🧭 P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
@@ -66,12 +66,14 @@ P6-04-ter : ✅ terminé
 
 P6-05 : ✅ terminé
 
-P6-06 : ➡️ prochain lot exact
+P6-06 : ✅ terminé
+
+P6-07 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-06 — Selbrume Save/Load Golden Slice V0
+P6-07 — Selbrume Beta Validator Pass V0
 ```
 
 ## Objectif Phase 6
@@ -402,6 +404,45 @@ Aucun code production et aucun fichier selbrume/ n'est modifié en P6-05.
 Prochain lot exact : P6-06 — Selbrume Save/Load Golden Slice V0.
 ```
 
+## Résultat P6-06
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json est chargé via loadRuntimeMapBundle
+maps chargées : Selbrume et route 1
+état golden slice reconstruit depuis les preuves P6-02 à P6-05
+party : pidgeotto niveau 9, pidgeotto capturé niveau 3
+bag : poke-ball x4, potion x2
+progression narrative : p6.selbrume.first_interaction.seen
+completed step : p6.selbrume.first_interaction
+trainer defeated flag : trainer_defeated:grant
+money : 120
+position finale : route 1, x=24, y=22, facing north
+repository : SaveGameUseCase + LoadGameUseCase + FileGameSaveRepository
+fichier disque temporaire hors repo : Directory.systemTemp sous p6_06_selbrume_save_load_*/pokemonProject/game_save.json
+rechargement disque réel prouvé
+normalizeLoadedGameState appliqué après LoadGameUseCase
+assertions golden slice complètes après reload
+```
+
+Niveau de preuve save/load :
+
+```text
+repository/use-case disque réel
+pas seulement un roundtrip SaveData en mémoire
+pas de UI save/load
+pas de Boot Flow
+```
+
+Décision roadmap :
+
+```text
+P6-06 est concluant.
+Aucun code production et aucun fichier selbrume/ n'est modifié en P6-06.
+Prochain lot exact : P6-07 — Selbrume Beta Validator Pass V0.
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -539,9 +580,9 @@ But :
 prouver un premier trainer battle Selbrume court avec reward minimal.
 ```
 
-### ➡️ P6-06 — Selbrume Save/Load Golden Slice V0
+### ✅ P6-06 — Selbrume Save/Load Golden Slice V0
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -549,7 +590,15 @@ But :
 prouver que l'état Selbrume golden slice survit à un vrai save/load disque.
 ```
 
-### ⏳ P6-07 — Selbrume Beta Validator Pass V0
+Preuve :
+
+```text
+packages/map_runtime/test/p6_selbrume_save_load_golden_slice_test.dart
+```
+
+### ➡️ P6-07 — Selbrume Beta Validator Pass V0
+
+Statut : prochain lot exact.
 
 But :
 
