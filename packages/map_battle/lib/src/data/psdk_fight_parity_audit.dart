@@ -729,6 +729,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'AbilitySuppressed',
     'Asleep',
     'AttackMultiplier',
+    'Attract',
     'AquaRing',
     'ArenaTrap',
     'Autotomize',
@@ -827,6 +828,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Rainbow',
     'Rain',
     'Reflect',
+    'Rollout',
     'Safeguard',
     'SaltCure',
     'Sandstorm',
@@ -870,14 +872,12 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'WonderRoom',
   };
   const partialEffects = <String>{
-    'Attract',
     'Bestow',
     'Bide',
     'Commanded',
     'Commanding',
     'EchoedVoice',
     'ParentalBond',
-    'Rollout',
     'Roost',
   };
   if (portedEffects.contains(effectName)) {

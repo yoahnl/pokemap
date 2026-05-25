@@ -2956,6 +2956,12 @@ void main() {
     ]) {
       test('${entry.method} installs a local target marker', () {
         final result = _runMove(
+          playerGender: entry.method == 's_attract'
+              ? PsdkBattleGender.male
+              : PsdkBattleGender.unknown,
+          opponentGender: entry.method == 's_attract'
+              ? PsdkBattleGender.female
+              : PsdkBattleGender.unknown,
           playerMove: _move(
             id: entry.moveId,
             category: PsdkBattleMoveCategory.status,
@@ -4829,6 +4835,8 @@ PsdkBattleTurnResult _runMove({
   int opponentIvSpecialDefense = 0,
   bool opponentSwitching = false,
   int? opponentLastSentTurn,
+  PsdkBattleGender playerGender = PsdkBattleGender.unknown,
+  PsdkBattleGender opponentGender = PsdkBattleGender.unknown,
   double playerBaseWeightKg = 1,
   double? playerCurrentWeightKg,
   PsdkBattleStatStages? playerStages,
@@ -4856,6 +4864,7 @@ PsdkBattleTurnResult _runMove({
         form: playerForm,
         heldItemId: playerHeldItemId,
         abilityId: playerAbilityId,
+        gender: playerGender,
         effects: playerEffects,
         koCount: playerKoCount,
         loyalty: playerLoyalty,
@@ -4886,6 +4895,7 @@ PsdkBattleTurnResult _runMove({
         form: opponentForm,
         heldItemId: opponentHeldItemId,
         abilityId: opponentAbilityId,
+        gender: opponentGender,
         effects: opponentEffects,
         moveHistory: opponentMoveHistory,
         koCount: opponentKoCount,
@@ -4925,6 +4935,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleMajorStatus? majorStatus,
   String? heldItemId,
   String? abilityId,
+  PsdkBattleGender gender = PsdkBattleGender.unknown,
   PsdkBattleEffectStack? effects,
   PsdkBattleMoveHistory? moveHistory,
   int koCount = 0,
@@ -4963,6 +4974,7 @@ PsdkBattleCombatantSetup _combatant({
     majorStatus: majorStatus,
     heldItemId: heldItemId,
     abilityId: abilityId,
+    gender: gender,
     effects: effects,
     moveHistory: moveHistory,
     koCount: koCount,

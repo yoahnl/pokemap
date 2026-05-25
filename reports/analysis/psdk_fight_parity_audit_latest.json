@@ -9116,8 +9116,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 469,
-      "partial": 13,
+      "ported": 471,
+      "partial": 11,
       "missing": 0
     },
     "byFamilyAndStatus": {
@@ -9127,8 +9127,8 @@
         "missing": 0
       },
       "move": {
-        "ported": 109,
-        "partial": 6,
+        "ported": 111,
+        "partial": 4,
         "missing": 0
       },
       "item": {
@@ -9321,7 +9321,7 @@
       {
         "effectName": "Attract",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Attract.rb",
         "hookFamilies": [
           "lifecycle",
@@ -11963,7 +11963,7 @@
       {
         "effectName": "Rollout",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb",
         "hookFamilies": []
       },

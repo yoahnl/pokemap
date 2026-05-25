@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_battle/src/domain/effect/move/rollout_effect.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -114,6 +115,50 @@ void main() {
       (method: 's_rollout', moveId: 'rollout'),
       (method: 's_ice_ball', moveId: 'ice_ball'),
     ]) {
+      test('${entry.method} installs a rollout lock after a hit', () {
+        final result = _runMove(
+          playerMove: _move(
+            id: entry.moveId,
+            type: entry.method == 's_rollout' ? 'rock' : 'ice',
+            power: 30,
+            battleEngineMethod: entry.method,
+          ),
+        );
+
+        final effect = result.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .effects
+            .whereType<RolloutEffect>()
+            .single;
+        expect(effect.forcedMoveId, entry.moveId);
+        expect(effect.remainingTurns, 4);
+        expect(effect.successiveUses, 1);
+      });
+
+      test('${entry.method} blocks selecting another move while locked', () {
+        final engine = _engine(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: entry.moveId,
+              type: entry.method == 's_rollout' ? 'rock' : 'ice',
+              power: 30,
+              battleEngineMethod: entry.method,
+            ),
+            _move(id: 'tackle', power: 40),
+          ],
+        );
+
+        final first =
+            engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+        final second =
+            engine.submit(const PsdkBattleDecision.fight(moveSlot: 1));
+
+        expect(_damage(first, moveId: entry.moveId), greaterThan(0));
+        expect(_failed(second, moveId: 'tackle'), isTrue);
+        expect(_damageEvents(second, moveId: 'tackle'), isEmpty);
+      });
+
       test('${entry.method} doubles after consecutive successful uses', () {
         final first = _runMove(
           playerMove: _move(
@@ -136,6 +181,67 @@ void main() {
         expect(
           _damage(second, moveId: entry.moveId),
           greaterThan(_damage(first, moveId: entry.moveId)),
+        );
+      });
+
+      test('${entry.method} advances the rollout counter after repeated hits',
+          () {
+        final engine = _engine(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: entry.moveId,
+              type: entry.method == 's_rollout' ? 'rock' : 'ice',
+              power: 30,
+              battleEngineMethod: entry.method,
+            ),
+          ],
+        );
+
+        final first =
+            engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+        final second =
+            engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+        final effect = second.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .effects
+            .whereType<RolloutEffect>()
+            .single;
+
+        expect(
+          _damage(second, moveId: entry.moveId),
+          greaterThan(_damage(first, moveId: entry.moveId)),
+        );
+        expect(effect.remainingTurns, 3);
+        expect(effect.successiveUses, 2);
+      });
+
+      test('${entry.method} clears the rollout lock when the move misses', () {
+        final result = _runMove(
+          playerEffects: PsdkBattleEffectStack(
+            effects: <BattleEffect>[
+              RolloutEffect(
+                scope: const BattlerBattleEffectScope(psdkPlayerSlot),
+                forcedMoveId: entry.moveId,
+                remainingTurns: 3,
+                successiveUses: 2,
+              ),
+            ],
+          ),
+          moveAccuracySeed: 99,
+          playerMove: _move(
+            id: entry.moveId,
+            type: entry.method == 's_rollout' ? 'rock' : 'ice',
+            power: 30,
+            accuracy: 1,
+            battleEngineMethod: entry.method,
+          ),
+        );
+
+        expect(_damageEvents(result, moveId: entry.moveId), isEmpty);
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).effects.contains('rollout'),
+          isFalse,
         );
       });
 
@@ -510,6 +616,8 @@ BattleMoveBehaviorResolution _resolvePledge({
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleMoveHistory? playerMoveHistory,
+  PsdkBattleEffectStack? playerEffects,
+  int moveAccuracySeed = 3,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -518,6 +626,40 @@ PsdkBattleTurnResult _runMove({
         speed: 100,
         move: playerMove,
         moveHistory: playerMoveHistory,
+        effects: playerEffects,
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        speed: 1,
+        move: _move(
+          id: 'opponent_wait',
+          power: 0,
+          accuracy: 0,
+          category: PsdkBattleMoveCategory.status,
+          battleEngineMethod: 's_splash',
+        ),
+      ),
+      rngSeeds: PsdkBattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: moveAccuracySeed,
+        generic: 4,
+      ),
+    ),
+  );
+  return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+}
+
+PsdkBattleEngine _engine({
+  required List<PsdkBattleMoveData> playerMoves,
+}) {
+  return PsdkBattleEngine(
+    setup: PsdkBattleSetup.singles(
+      player: _combatant(
+        id: 'player',
+        speed: 100,
+        move: playerMoves.first,
+        extraMoves: playerMoves.skip(1).toList(growable: false),
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -538,14 +680,15 @@ PsdkBattleTurnResult _runMove({
       ),
     ),
   );
-  return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required PsdkBattleMoveData move,
+  List<PsdkBattleMoveData> extraMoves = const <PsdkBattleMoveData>[],
   PsdkBattleMoveHistory? moveHistory,
+  PsdkBattleEffectStack? effects,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -563,8 +706,15 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     moveHistory: moveHistory,
-    moves: <PsdkBattleMoveData>[move],
+    effects: effects,
+    moves: <PsdkBattleMoveData>[move, ...extraMoves],
   );
+}
+
+bool _failed(PsdkBattleTurnResult result, {required String moveId}) {
+  return result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().any(
+        (event) => event.moveId == moveId,
+      );
 }
 
 PsdkBattleMoveData _move({

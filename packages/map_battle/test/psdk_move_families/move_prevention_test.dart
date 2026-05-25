@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_battle/src/domain/effect/move/attract_effect.dart';
 import 'package:map_battle/src/domain/effect/move/disable_effect.dart';
 import 'package:map_battle/src/domain/effect/move/encore_effect.dart';
 import 'package:map_battle/src/domain/effect/move/taunt_effect.dart';
@@ -438,6 +439,8 @@ void main() {
 
     test('Attract can prevent moving against the attracting battler', () {
       final result = _runMove(
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.female,
         playerMove: _move(
           id: 'attract',
           category: PsdkBattleMoveCategory.status,
@@ -460,6 +463,116 @@ void main() {
       expect(failures.single.reason,
           BattleMoveFailureReason.unusableByUser.jsonName);
       expect(_damageEvents(result, moveId: 'tackle'), isEmpty);
+    });
+
+    test('s_attract fails against same or unknown gender targets', () {
+      final sameGender = _runMove(
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.male,
+        playerMove: _move(
+          id: 'attract',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_attract',
+        ),
+      );
+      final unknownGender = _runMove(
+        playerGender: PsdkBattleGender.unknown,
+        opponentGender: PsdkBattleGender.female,
+        playerMove: _move(
+          id: 'attract',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_attract',
+        ),
+      );
+
+      for (final result in <PsdkBattleTurnResult>[
+        sameGender,
+        unknownGender,
+      ]) {
+        final failures = result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) =>
+                event.user == psdkPlayerSlot && event.moveId == 'attract')
+            .toList(growable: false);
+        expect(failures, hasLength(1));
+        expect(
+            failures.single.reason, BattleMoveFailureReason.immunity.jsonName);
+        expect(
+          result.state.battlerAt(psdkOpponentSlot).effects.contains('attract'),
+          isFalse,
+        );
+      }
+    });
+
+    test('s_attract fails when the target is already attracted', () {
+      final existingAttract = AttractEffect(
+        scope: BattlerBattleEffectScope(psdkOpponentSlot),
+        attractedTo: psdkOpponentSlot,
+      );
+
+      final result = _runMove(
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.female,
+        playerMove: _move(
+          id: 'attract',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_attract',
+        ),
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          existingAttract,
+        ),
+      );
+
+      final failures = result.timeline.events
+          .whereType<PsdkBattleMoveFailedEvent>()
+          .where((event) =>
+              event.user == psdkPlayerSlot && event.moveId == 'attract')
+          .toList(growable: false);
+      final attract = result.state
+          .battlerAt(psdkOpponentSlot)
+          .effects
+          .effects
+          .whereType<AttractEffect>()
+          .single;
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(attract.attractedTo, psdkOpponentSlot);
+    });
+
+    test('s_attract mirrors through Destiny Knot', () {
+      final result = _runMove(
+        playerGender: PsdkBattleGender.male,
+        opponentGender: PsdkBattleGender.female,
+        opponentHeldItemId: 'destiny_knot',
+        playerMove: _move(
+          id: 'attract',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_attract',
+        ),
+      );
+
+      final opponentAttract = result.state
+          .battlerAt(psdkOpponentSlot)
+          .effects
+          .effects
+          .whereType<AttractEffect>()
+          .single;
+      final playerAttract = result.state
+          .battlerAt(psdkPlayerSlot)
+          .effects
+          .effects
+          .whereType<AttractEffect>()
+          .single;
+      expect(opponentAttract.attractedTo, psdkPlayerSlot);
+      expect(playerAttract.attractedTo, psdkOpponentSlot);
     });
 
     test('Aroma Veil blocks local mental prevention effects', () {
@@ -688,11 +801,15 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleEffectStack? playerEffects,
   int playerCurrentHp = 100,
+  PsdkBattleGender playerGender = PsdkBattleGender.unknown,
+  String? playerHeldItemId,
   PsdkBattleMoveHistory? playerMoveHistory,
   List<PsdkBattleMoveData> playerExtraMoves = const <PsdkBattleMoveData>[],
   String? playerAbilityId,
   PsdkBattleMoveData? opponentMove,
   PsdkBattleEffectStack? opponentEffects,
+  PsdkBattleGender opponentGender = PsdkBattleGender.unknown,
+  String? opponentHeldItemId,
   PsdkBattleMoveHistory? opponentMoveHistory,
   String? opponentAbilityId,
 }) {
@@ -705,6 +822,8 @@ PsdkBattleTurnResult _runMove({
         move: playerMove,
         extraMoves: playerExtraMoves,
         effects: playerEffects,
+        gender: playerGender,
+        heldItemId: playerHeldItemId,
         moveHistory: playerMoveHistory,
         abilityId: playerAbilityId,
       ),
@@ -718,6 +837,8 @@ PsdkBattleTurnResult _runMove({
               accuracy: 1,
             ),
         effects: opponentEffects,
+        gender: opponentGender,
+        heldItemId: opponentHeldItemId,
         moveHistory: opponentMoveHistory,
         abilityId: opponentAbilityId,
       ),
@@ -741,6 +862,8 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleEffectStack? effects,
   PsdkBattleMoveHistory? moveHistory,
   String? abilityId,
+  PsdkBattleGender gender = PsdkBattleGender.unknown,
+  String? heldItemId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -760,6 +883,8 @@ PsdkBattleCombatantSetup _combatant({
     effects: effects,
     moveHistory: moveHistory,
     abilityId: abilityId,
+    gender: gender,
+    heldItemId: heldItemId,
     moves: <PsdkBattleMoveData>[move, ...extraMoves],
   );
 }

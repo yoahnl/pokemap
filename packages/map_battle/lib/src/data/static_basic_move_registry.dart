@@ -4372,8 +4372,23 @@ BattleMoveBehaviorResolution _resolveAttract(
   }
 
   var state = prepared.state;
+  var rng = prepared.rng;
   final events = <PsdkBattleEvent>[...prepared.events];
   for (final targetSlot in prepared.psdkTargets) {
+    final user = state.battlerAt(context.user);
+    final target = state.battlerAt(targetSlot);
+    if (!_gendersCanAttract(user.gender, target.gender) ||
+        target.effects.contains('attract')) {
+      events.add(
+        _targetMarkerImmunityEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+        ),
+      );
+      continue;
+    }
+
     if (_mentalAbilityBlocksEffect(
       state: state,
       user: context.user,
@@ -4392,7 +4407,7 @@ BattleMoveBehaviorResolution _resolveAttract(
 
     final installed = _addTargetEffectAndDispatchVolatile(
       state: state,
-      rng: prepared.rng,
+      rng: rng,
       turn: context.turn,
       user: context.user,
       target: targetSlot,
@@ -4403,12 +4418,32 @@ BattleMoveBehaviorResolution _resolveAttract(
       ),
     );
     state = installed.state;
+    rng = installed.rng;
     events.addAll(installed.events);
+
+    if (_holdsActiveItem(target, 'destiny_knot') &&
+        !state.battlerAt(context.user).effects.contains('attract')) {
+      final reflected = _addTargetEffectAndDispatchVolatile(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: targetSlot,
+        target: context.user,
+        moveId: context.move.id,
+        effect: AttractEffect(
+          scope: BattlerBattleEffectScope(context.user),
+          attractedTo: targetSlot,
+        ),
+      );
+      state = reflected.state;
+      rng = reflected.rng;
+      events.addAll(reflected.events);
+    }
   }
 
   return BattleMoveBehaviorResolution(
     state: state,
-    rng: prepared.rng,
+    rng: rng,
     events: events,
   );
 }
@@ -6401,6 +6436,19 @@ bool _mentalAbilityBlocksEffect({
     target: target,
     effectId: effectId,
   );
+}
+
+bool _gendersCanAttract(
+  PsdkBattleGender userGender,
+  PsdkBattleGender targetGender,
+) {
+  return userGender != PsdkBattleGender.unknown &&
+      targetGender != PsdkBattleGender.unknown &&
+      userGender != targetGender;
+}
+
+bool _holdsActiveItem(PsdkBattleCombatant battler, String itemId) {
+  return _normalizedId(battler.heldItemId) == itemId && !battler.itemConsumed;
 }
 
 bool _gastroAcidBlockedTarget({

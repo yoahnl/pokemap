@@ -650,6 +650,7 @@ void main() {
       };
 
       for (final effectName in <String>[
+        'Attract',
         'BatonPass',
         'CantSwitch',
         'ChangeType',
@@ -665,6 +666,7 @@ void main() {
         'LunarDance',
         'Mark',
         'Rainbow',
+        'Rollout',
         'ShedTail',
         'SleepPrevention',
         'SmackDown',
@@ -681,7 +683,6 @@ void main() {
         'Bestow',
         'Bide',
         'EchoedVoice',
-        'Rollout',
         'Roost',
       ]) {
         expect(
