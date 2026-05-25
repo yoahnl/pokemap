@@ -465,6 +465,12 @@ class PsdkBattleEffectStack {
     return _stack.dispatchPostItemChange(context);
   }
 
+  BattleEffectBattleEndResult dispatchBattleEnd(
+    BattleEffectBattleEndContext context,
+  ) {
+    return _stack.dispatchBattleEnd(context);
+  }
+
   BattleEffectLifecycleResult dispatchLifecycle(
     BattleEffectLifecycleContext context,
   ) {

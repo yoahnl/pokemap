@@ -2,6 +2,7 @@ import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/battle_effect_hooks.dart';
+import '../move/battle_move_data.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
@@ -13,6 +14,8 @@ final class BattleItemChangeHandler {
     required BattleHandlerContext context,
     required PsdkBattleSlotRef target,
     required String? heldItemId,
+    BattleMoveDefinition? move,
+    PsdkBattleSlotRef? launcher,
   }) {
     final previousItemId = context.state.battlerAt(target).heldItemId;
     final nextState = context.state.updateBattler(
@@ -34,12 +37,16 @@ final class BattleItemChangeHandler {
       nextItemId: heldItemId,
       consumedItemId: null,
       reason: 'changed',
+      move: move,
+      launcher: launcher ?? context.user,
     );
   }
 
   BattleHandlerResult consumeHeldItem({
     required BattleHandlerContext context,
     required PsdkBattleSlotRef target,
+    BattleMoveDefinition? move,
+    PsdkBattleSlotRef? launcher,
   }) {
     final battler = context.state.battlerAt(target);
     final heldItemId = battler.heldItemId;
@@ -78,6 +85,8 @@ final class BattleItemChangeHandler {
       consumedItemId: heldItemId,
       reason: 'consumed',
       initialEvents: itemEvents,
+      move: move,
+      launcher: launcher ?? context.user,
     );
   }
 
@@ -90,6 +99,8 @@ final class BattleItemChangeHandler {
     required String? nextItemId,
     required String? consumedItemId,
     required String reason,
+    required PsdkBattleSlotRef? launcher,
+    required BattleMoveDefinition? move,
     List<PsdkBattleEvent> initialEvents = const <PsdkBattleEvent>[],
   }) {
     var nextState = state;
@@ -109,6 +120,8 @@ final class BattleItemChangeHandler {
               nextItemId: nextItemId,
               consumedItemId: consumedItemId,
               reason: reason,
+              launcher: launcher,
+              move: move,
             ),
           );
       nextState = result.state;

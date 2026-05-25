@@ -1627,8 +1627,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'symbiosis',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Symbiosis.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'SymbiosisEffect.partialNoDeferredPostDamageTransfer',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SymbiosisEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'synchronize',

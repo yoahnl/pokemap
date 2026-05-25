@@ -6,6 +6,7 @@ import '../../../data/generated/psdk_ability_effect_manifest.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'accuracy_modifier_ability_effect.dart';
+import 'ability_effect.dart';
 import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
 import 'apply_status_to_move_target_ability_effect.dart';
@@ -1174,10 +1175,33 @@ final class AbilityEffectRegistry {
     required String? abilityId,
     PsdkBattleSlotRef? owner,
   }) {
+    final normalized = _normalizeAbilityId(abilityId);
     final base = effects.withoutAbilityEffects();
-    final effect = create(abilityId, owner: owner);
+    if (normalized == null) {
+      return base;
+    }
+    final existing = _existingAbilityEffect(
+      effects: effects,
+      abilityId: normalized,
+      owner: owner,
+    );
+    final effect = existing ?? create(normalized, owner: owner);
     return effect == null ? base : base.addEffect(effect);
   }
+}
+
+BattleAbilityEffect? _existingAbilityEffect({
+  required PsdkBattleEffectStack effects,
+  required String abilityId,
+  required PsdkBattleSlotRef? owner,
+}) {
+  for (final effect in effects.effects.whereType<BattleAbilityEffect>()) {
+    if (effect.abilityId == abilityId &&
+        (owner == null || effect.owner == owner)) {
+      return effect;
+    }
+  }
+  return null;
 }
 
 bool _isNestedAbilityEffectEntry(String abilityId) {

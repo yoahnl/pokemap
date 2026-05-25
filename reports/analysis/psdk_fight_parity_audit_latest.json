@@ -9116,19 +9116,19 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 477,
-      "partial": 5,
+      "ported": 479,
+      "partial": 3,
       "missing": 0
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 251,
-        "partial": 3,
+        "ported": 252,
+        "partial": 2,
         "missing": 0
       },
       "move": {
-        "ported": 113,
-        "partial": 2,
+        "ported": 114,
+        "partial": 1,
         "missing": 0
       },
       "item": {
@@ -9477,7 +9477,7 @@
       {
         "effectName": "Bestow",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Bestow.rb",
         "hookFamilies": []
       },
@@ -12668,7 +12668,7 @@
       {
         "effectName": "Symbiosis",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Symbiosis.rb",
         "hookFamilies": [
           "item_change",

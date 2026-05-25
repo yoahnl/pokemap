@@ -327,6 +327,8 @@ final class BattleEffectObjectStack {
           nextItemId: context.nextItemId,
           consumedItemId: context.consumedItemId,
           reason: context.reason,
+          launcher: context.launcher,
+          move: context.move,
         ),
       );
       if (result == null) {
@@ -339,6 +341,41 @@ final class BattleEffectObjectStack {
     }
 
     return BattleEffectItemChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  BattleEffectBattleEndResult dispatchBattleEnd(
+    BattleEffectBattleEndContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      final result = effect.onBattleEnd(
+        BattleEffectBattleEndContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          canFlee: context.canFlee,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectBattleEndResult(
       state: nextState,
       rng: nextRng,
       events: events,

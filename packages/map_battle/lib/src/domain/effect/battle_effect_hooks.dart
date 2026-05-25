@@ -270,6 +270,8 @@ final class BattleEffectItemChangeContext {
     required this.nextItemId,
     required this.consumedItemId,
     required this.reason,
+    this.launcher,
+    this.move,
   });
 
   final PsdkBattleState state;
@@ -281,10 +283,42 @@ final class BattleEffectItemChangeContext {
   final String? nextItemId;
   final String? consumedItemId;
   final String reason;
+  final PsdkBattleSlotRef? launcher;
+  final BattleMoveDefinition? move;
 }
 
 final class BattleEffectItemChangeResult {
   const BattleEffectItemChangeResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectBattleEndContext {
+  const BattleEffectBattleEndContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    this.canFlee = false,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final bool canFlee;
+}
+
+final class BattleEffectBattleEndResult {
+  const BattleEffectBattleEndResult({
     required this.state,
     required this.rng,
     this.events = const <PsdkBattleEvent>[],

@@ -84,6 +84,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectBattleEndResult? onBattleEnd(
+    BattleEffectBattleEndContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectLifecycleResult? onLifecycle(
     BattleEffectLifecycleContext context,
   ) {

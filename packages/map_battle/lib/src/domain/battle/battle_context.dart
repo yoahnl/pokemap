@@ -3,6 +3,8 @@ import '../../psdk/domain/psdk_battle_outcome.dart';
 import '../../psdk/domain/psdk_battle_setup.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
+import '../handler/battle_battle_end_handler.dart';
+import '../handler/battle_handler_context.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_outcome.dart';
 import 'battle_setup.dart';
@@ -64,7 +66,18 @@ final class BattleContext {
   }
 
   void finish(PsdkBattleOutcome outcome) {
-    state = state.copyWith(outcome: outcome);
+    final result = const BattleBattleEndHandler().finish(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: turnNumber,
+        user: psdkPlayerSlot,
+      ),
+      outcome: outcome,
+      canFlee: setup.canFlee,
+    );
+    state = result.state;
+    rng = result.rng;
   }
 
   PsdkBattleOutcome? resolveOutcome() => state.outcome ?? _outcomeFor(state);

@@ -329,6 +329,69 @@ void main() {
       );
     });
 
+    test('Symbiosis does not give an item to an ally with item_burnt', () {
+      final state = _doublesState(
+        playerAbilityId: 'symbiosis',
+        playerHeldItemId: 'sitrus_berry',
+        playerAllyHeldItemId: 'oran_berry',
+        playerAllyEffects: PsdkBattleEffectStack(
+          values: const <String>['item_burnt'],
+        ),
+      );
+
+      final result = const BattleItemChangeHandler().consumeHeldItem(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        target: _playerAllySlot,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, 'sitrus_berry');
+      expect(result.state.battlerAt(_playerAllySlot).heldItemId, isNull);
+    });
+
+    test('Symbiosis defers gem-holder transfer until post damage', () {
+      final state = _doublesState(
+        playerAbilityId: 'symbiosis',
+        playerHeldItemId: 'normal_gem',
+        playerAllyHeldItemId: 'oran_berry',
+      );
+
+      final consumed = const BattleItemChangeHandler().consumeHeldItem(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        target: _playerAllySlot,
+      );
+      expect(consumed.state.battlerAt(psdkPlayerSlot).heldItemId, 'normal_gem');
+      expect(consumed.state.battlerAt(_playerAllySlot).heldItemId, isNull);
+
+      final damaged = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: consumed.state,
+          rng: consumed.rng,
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: _playerAllySlot,
+        moveId: 'ember',
+        rawDamage: 10,
+        move: _move(id: 'ember', power: 40).definition,
+      );
+
+      expect(damaged.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+        damaged.state.battlerAt(_playerAllySlot).heldItemId,
+        'normal_gem',
+      );
+    });
+
     test('Ball Fetch retrieves the last failed ball at end turn', () {
       final state = _singlesState(
         playerAbilityId: 'ball_fetch',
@@ -1066,6 +1129,7 @@ PsdkBattleState _doublesState({
   String? opponentAbilityId,
   String? playerHeldItemId,
   String? playerAllyHeldItemId,
+  PsdkBattleEffectStack playerAllyEffects = const PsdkBattleEffectStack.empty(),
   int playerSpeed = 80,
   int playerAllySpeed = 80,
   int opponentSpeed = 80,
@@ -1086,6 +1150,7 @@ PsdkBattleState _doublesState({
           id: 'player-ally',
           abilityId: playerAllyAbilityId,
           heldItemId: playerAllyHeldItemId,
+          effects: playerAllyEffects,
           speed: playerAllySpeed,
         ),
       ),
@@ -1160,6 +1225,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleMoveData? move,
   int speed = 80,
   bool switching = false,
+  PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -1180,6 +1246,7 @@ PsdkBattleCombatantSetup _combatant({
     heldItemId: heldItemId,
     statStages: statStages,
     switching: switching,
+    effects: effects,
     moves: <PsdkBattleMoveData>[
       move ?? _move(id: 'tackle', power: 40).psdk,
     ],

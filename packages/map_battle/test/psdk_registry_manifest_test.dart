@@ -659,6 +659,7 @@ void main() {
         'Flinch',
         'FutureSight',
         'FuryCutter',
+        'Bestow',
         'Grudge',
         'EchoedVoice',
         'HealingWish',
@@ -682,7 +683,6 @@ void main() {
       }
 
       for (final effectName in <String>[
-        'Bestow',
         'Bide',
       ]) {
         expect(

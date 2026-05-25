@@ -738,6 +738,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'BatonPass',
     'Berry',
     'BeakBlast',
+    'Bestow',
     'Bind',
     'Burn',
     'BurnUp',
@@ -876,7 +877,6 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'WonderRoom',
   };
   const partialEffects = <String>{
-    'Bestow',
     'Bide',
     'ParentalBond',
   };

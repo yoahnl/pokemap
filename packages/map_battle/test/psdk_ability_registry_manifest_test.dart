@@ -220,6 +220,7 @@ void main() {
         'receiver',
         'emergency_exit',
         'wimp_out',
+        'symbiosis',
       ]) {
         final entry = byId[abilityId];
 

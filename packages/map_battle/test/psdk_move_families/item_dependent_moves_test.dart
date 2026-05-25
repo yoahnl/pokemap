@@ -62,6 +62,64 @@ void main() {
           result.state.battlerAt(psdkOpponentSlot).heldItemId, 'choice_scarf');
     });
 
+    test('s_bestow dispatches item-change hooks for the giver', () {
+      final result = _runMove(
+        playerAbilityId: 'unburden',
+        playerHeldItemId: 'choice_scarf',
+        playerMove: _move(
+          id: 'bestow',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_bestow',
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(player.heldItemId, isNull);
+      expect(player.effects.contains('unburden_active'), isTrue);
+    });
+
+    test('s_bestow fails when the user cannot lose a protected held item', () {
+      final result = _runMove(
+        playerSpeciesId: 'giratina',
+        playerHeldItemId: 'griseous_orb',
+        playerMove: _move(
+          id: 'bestow',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_bestow',
+        ),
+      );
+
+      expect(_failed(result, moveId: 'bestow'), isTrue);
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, 'griseous_orb');
+      expect(result.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+    });
+
+    test('s_bestow restores the transferred item at trainer battle end', () {
+      final result = _runMove(
+        playerHeldItemId: 'choice_scarf',
+        playerMove: _move(
+          id: 'bestow',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_bestow',
+        ),
+      );
+      final ended = const BattleBattleEndHandler().finish(
+        context: BattleHandlerContext(
+          state: result.state,
+          rng: _rng(),
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+        outcome: const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.victory),
+      );
+
+      expect(ended.state.battlerAt(psdkPlayerSlot).heldItemId, 'choice_scarf');
+      expect(ended.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+    });
+
     test('s_thief steals the target item after a successful hit', () {
       final result = _runMove(
         opponentHeldItemId: 'leftovers',
@@ -371,6 +429,7 @@ void main() {
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   String playerSpeciesId = 'player',
+  String? playerAbilityId,
   String? playerHeldItemId,
   String? opponentHeldItemId,
   String? playerConsumedItemId,
@@ -387,6 +446,7 @@ PsdkBattleTurnResult _runMove({
         types: playerTypes,
         move: playerMove,
         currentHp: playerCurrentHp,
+        abilityId: playerAbilityId,
         heldItemId: playerHeldItemId,
         consumedItemId: playerConsumedItemId,
         itemConsumed: playerItemConsumed,
@@ -422,6 +482,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleMoveData move,
   int speed = 100,
   int currentHp = 100,
+  String? abilityId,
   String? heldItemId,
   String? consumedItemId,
   bool itemConsumed = false,
@@ -441,6 +502,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: speed,
     ),
+    abilityId: abilityId,
     heldItemId: heldItemId,
     consumedItemId: consumedItemId,
     itemConsumed: itemConsumed,
@@ -491,4 +553,13 @@ bool _failed(PsdkBattleTurnResult result, {required String moveId}) {
   return result.timeline.events
       .whereType<PsdkBattleMoveFailedEvent>()
       .any((event) => event.moveId == moveId);
+}
+
+BattleRngStreams _rng() {
+  return BattleRngStreams.fromSeeds(
+    moveDamageSeed: 1,
+    moveCriticalSeed: 99999,
+    moveAccuracySeed: 3,
+    genericSeed: 4,
+  );
 }

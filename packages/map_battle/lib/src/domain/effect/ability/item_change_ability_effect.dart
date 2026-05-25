@@ -1,8 +1,12 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_item_change_handler.dart';
+import '../../move/battle_move_data.dart';
+import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
@@ -168,12 +172,19 @@ final class RipenEffect extends BattleAbilityEffect {
 }
 
 final class SymbiosisEffect extends BattleAbilityEffect {
-  const SymbiosisEffect({required BattleEffectScope scope})
-      : super(abilityId: 'symbiosis', scope: scope);
+  const SymbiosisEffect({
+    required BattleEffectScope scope,
+    this.pendingAlly,
+  }) : super(abilityId: 'symbiosis', scope: scope);
+
+  final PsdkBattleSlotRef? pendingAlly;
+
+  @override
+  bool get affectsAlliesPostDamage => true;
 
   @override
   BattleEffect copyWithRemainingTurns(int remainingTurns) {
-    return SymbiosisEffect(scope: scope);
+    return SymbiosisEffect(scope: scope, pendingAlly: pendingAlly);
   }
 
   @override
@@ -181,48 +192,204 @@ final class SymbiosisEffect extends BattleAbilityEffect {
     BattleEffectItemChangeContext context,
   ) {
     final owner = this.owner;
+    if (owner == null || !_isItemLoss(context)) {
+      return null;
+    }
+
+    if (!_validItemChangeTarget(context, owner, context.target)) {
+      return null;
+    }
+    if (_shouldDefer(context, owner)) {
+      return BattleEffectItemChangeResult(
+        state: context.state.updateBattler(
+          owner,
+          (battler) => battler.copyWith(
+            effects: battler.effects.addEffect(
+              SymbiosisEffect(scope: scope, pendingAlly: context.target),
+            ),
+          ),
+        ),
+        rng: context.rng,
+      );
+    }
+
+    return _transferFromItemChange(context, owner, context.target);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    final owner = this.owner;
+    final ally = pendingAlly;
     if (owner == null ||
-        owner == context.target ||
-        owner.bank != context.target.bank ||
-        context.reason != 'consumed' ||
-        context.consumedItemId == null ||
-        context.nextItemId != null) {
+        ally == null ||
+        context.target != ally ||
+        context.damage <= 0 ||
+        context.targetFainted ||
+        !_validPostDamageTarget(context, owner, ally)) {
       return null;
     }
 
-    final holder = context.state.battlerAt(owner);
-    final receiver = context.state.battlerAt(context.target);
-    final itemId = holder.heldItemId;
-    if (holder.abilityId != abilityId ||
-        holder.isFainted ||
-        itemId == null ||
-        receiver.isFainted ||
-        receiver.heldItemId != null) {
+    final transferred = _transferFromPostDamage(context, owner, ally);
+    if (transferred == null) {
       return null;
     }
+    return BattleEffectPostDamageResult(
+      state: transferred.state,
+      rng: transferred.rng,
+      events: transferred.events,
+      applied: transferred.applied,
+    );
+  }
 
+  bool _isItemLoss(BattleEffectItemChangeContext context) {
+    return context.previousItemId != null && context.nextItemId == null;
+  }
+
+  bool _validItemChangeTarget(
+    BattleEffectItemChangeContext context,
+    PsdkBattleSlotRef owner,
+    PsdkBattleSlotRef target,
+  ) {
+    return _validTargetState(
+      state: context.state,
+      owner: owner,
+      target: target,
+      moveMethod: context.move?.battleEngineMethod,
+      moveId: context.move?.id,
+    );
+  }
+
+  bool _validPostDamageTarget(
+    BattleEffectPostDamageContext context,
+    PsdkBattleSlotRef owner,
+    PsdkBattleSlotRef target,
+  ) {
+    return _validTargetState(
+      state: context.state,
+      owner: owner,
+      target: target,
+      moveMethod: context.move.battleEngineMethod,
+      moveId: context.move.id,
+    );
+  }
+
+  bool _validTargetState({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef owner,
+    required PsdkBattleSlotRef target,
+    required String? moveMethod,
+    required String? moveId,
+  }) {
+    if (owner == target ||
+        owner.bank != target.bank ||
+        _invalidMove(moveMethod) ||
+        _invalidMove(moveId)) {
+      return false;
+    }
+    final holder = state.battlerAt(owner);
+    final receiver = state.battlerAt(target);
+    return holder.abilityId == abilityId &&
+        !holder.isFainted &&
+        holder.heldItemId != null &&
+        !receiver.isFainted &&
+        !receiver.switching &&
+        receiver.heldItemId == null &&
+        !receiver.effects.contains('item_burnt');
+  }
+
+  bool _shouldDefer(
+    BattleEffectItemChangeContext context,
+    PsdkBattleSlotRef owner,
+  ) {
+    final holderItemId = _normalizedNullableId(
+      context.state.battlerAt(owner).heldItemId,
+    );
+    final consumedItemId = _normalizedNullableId(
+      context.consumedItemId ?? context.previousItemId,
+    );
+    return (holderItemId?.contains('_gem') ?? false) ||
+        _deferredMoveIds.contains(_normalizedNullableId(context.move?.id)) ||
+        _deferredMoveIds.contains(
+          _normalizedNullableId(context.move?.battleEngineMethod),
+        ) ||
+        _typeResistingBerries.contains(consumedItemId);
+  }
+
+  BattleEffectItemChangeResult? _transferFromItemChange(
+    BattleEffectItemChangeContext context,
+    PsdkBattleSlotRef owner,
+    PsdkBattleSlotRef target,
+  ) {
+    return _transferItemFromState(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: owner,
+      target: target,
+      move: context.move,
+    );
+  }
+
+  BattleEffectItemChangeResult? _transferFromPostDamage(
+    BattleEffectPostDamageContext context,
+    PsdkBattleSlotRef owner,
+    PsdkBattleSlotRef target,
+  ) {
+    return _transferItemFromState(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: owner,
+      target: target,
+      move: context.move,
+    );
+  }
+
+  BattleEffectItemChangeResult? _transferItemFromState({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
+    required PsdkBattleSlotRef owner,
+    required PsdkBattleSlotRef target,
+    required BattleMoveDefinition? move,
+  }) {
+    final itemId = state.battlerAt(owner).heldItemId;
+    if (itemId == null) {
+      return null;
+    }
     final withoutHolderItem = const BattleItemChangeHandler().changeHeldItem(
       context: BattleHandlerContext(
-        state: context.state,
-        rng: context.rng,
-        turn: context.turn,
+        state: state,
+        rng: rng,
+        turn: turn,
         user: owner,
       ),
       target: owner,
       heldItemId: null,
+      move: move,
+      launcher: owner,
     );
     final transferred = const BattleItemChangeHandler().changeHeldItem(
       context: BattleHandlerContext(
         state: withoutHolderItem.state,
         rng: withoutHolderItem.rng,
-        turn: context.turn,
+        turn: turn,
         user: owner,
       ),
-      target: context.target,
+      target: target,
       heldItemId: itemId,
+      move: move,
+      launcher: owner,
     );
     return BattleEffectItemChangeResult(
-      state: transferred.state,
+      state: transferred.state.updateBattler(
+        owner,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(SymbiosisEffect(scope: scope)),
+        ),
+      ),
       rng: transferred.rng,
       events: <PsdkBattleEvent>[
         ...withoutHolderItem.events,
@@ -231,6 +398,49 @@ final class SymbiosisEffect extends BattleAbilityEffect {
     );
   }
 }
+
+bool _invalidMove(String? moveId) {
+  return switch (_normalizedNullableId(moveId)) {
+    's_knock_off' || 'knock_off' || 's_thief' || 'thief' => true,
+    _ => false,
+  };
+}
+
+String? _normalizedNullableId(String? id) {
+  if (id == null) {
+    return null;
+  }
+  final normalized = id.trim().toLowerCase().replaceAll('-', '_');
+  return normalized.isEmpty ? null : normalized;
+}
+
+const _deferredMoveIds = <String>{
+  'fling',
+  's_fling',
+  'natural_gift',
+  's_natural_gift',
+};
+
+const _typeResistingBerries = <String>{
+  'occa_berry',
+  'passho_berry',
+  'wacan_berry',
+  'rindo_berry',
+  'yache_berry',
+  'chople_berry',
+  'kebia_berry',
+  'shuca_berry',
+  'coba_berry',
+  'payapa_berry',
+  'tanga_berry',
+  'charti_berry',
+  'kasib_berry',
+  'haban_berry',
+  'colbur_berry',
+  'babiri_berry',
+  'chilan_berry',
+  'roseli_berry',
+};
 
 final class CheekPouchEffect extends BattleAbilityEffect {
   const CheekPouchEffect({required BattleEffectScope scope})
