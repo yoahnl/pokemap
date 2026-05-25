@@ -37,7 +37,15 @@ void main() {
 
       expect(selbrumeBundle.map.id, 'Selbrume');
       expect(routeBundle.map.id, 'route 1');
-      expect(routeBundle.map.entities, isEmpty);
+      final grant = routeBundle.map.entities.singleWhere(
+        (entity) => entity.id == 'grant',
+      );
+      expect(grant.kind, MapEntityKind.npc);
+      expect(grant.npc?.trainerId, 'grant');
+      expect(
+        selbrumeBundle.manifest.trainers.map((trainer) => trainer.id),
+        contains('grant'),
+      );
 
       final startMap = selbrumeBundle.map;
       expect(startMap.mapMetadata.defaultSpawnId, isNull);

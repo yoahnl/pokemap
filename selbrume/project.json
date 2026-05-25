@@ -12789,6 +12789,256 @@
         "authoring.cutsceneSchema": "cutscene_studio_v2",
         "authoring.cutsceneFlow": "{\"v\":1,\"seq\":[{\"t\":\"b\",\"b\":{\"id\":\"block_dialogue_1\",\"kind\":\"dialogue\",\"actorId\":null,\"dialogueId\":null,\"messageText\":null,\"scriptId\":null,\"flagName\":null,\"outcomeId\":null,\"resultLabel\":null,\"resultScope\":null,\"destinationTargetKind\":null,\"destinationTargetId\":null,\"transitionMapId\":null,\"transitionWarpId\":null,\"facingDirection\":null,\"durationMs\":null,\"waitForCompletion\":null,\"choiceOptions\":[]}}]}"
       }
+    },
+    {
+      "id": "p6_03_first_interaction",
+      "name": "P6-03 First Narrative Interaction",
+      "description": "Interaction narrative technique courte pour le golden slice V0.",
+      "scope": "localEventFlow",
+      "entryNodeId": "start",
+      "declaredOutcomes": [],
+      "activationCondition": null,
+      "nodes": [
+        {
+          "id": "start",
+          "type": "start",
+          "title": "Start",
+          "description": "",
+          "position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "binding": {
+            "mapId": null,
+            "eventId": null,
+            "entityId": null,
+            "warpId": null,
+            "triggerId": null,
+            "trainerId": null,
+            "dialogueId": null,
+            "scriptId": null,
+            "outcomeId": null,
+            "flagName": null,
+            "variableName": null
+          },
+          "payload": {
+            "actionKind": null,
+            "message": null,
+            "condition": null,
+            "choiceLabels": [],
+            "params": {}
+          },
+          "metadata": {}
+        },
+        {
+          "id": "source",
+          "type": "reference",
+          "title": "Source",
+          "description": "",
+          "position": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "binding": {
+            "mapId": "Selbrume",
+            "eventId": null,
+            "entityId": "p6_03_intro_sign",
+            "warpId": null,
+            "triggerId": null,
+            "trainerId": null,
+            "dialogueId": null,
+            "scriptId": null,
+            "outcomeId": null,
+            "flagName": null,
+            "variableName": null
+          },
+          "payload": {
+            "actionKind": "sourceEntityInteract",
+            "message": null,
+            "condition": null,
+            "choiceLabels": [],
+            "params": {}
+          },
+          "metadata": {}
+        },
+        {
+          "id": "set_seen_flag",
+          "type": "action",
+          "title": "Mark first interaction seen",
+          "description": "",
+          "position": {
+            "x": 180.0,
+            "y": 0.0
+          },
+          "binding": {
+            "mapId": null,
+            "eventId": null,
+            "entityId": null,
+            "warpId": null,
+            "triggerId": null,
+            "trainerId": null,
+            "dialogueId": null,
+            "scriptId": null,
+            "outcomeId": null,
+            "flagName": "p6.selbrume.first_interaction.seen",
+            "variableName": null
+          },
+          "payload": {
+            "actionKind": "setFlag",
+            "message": null,
+            "condition": null,
+            "choiceLabels": [],
+            "params": {}
+          },
+          "metadata": {}
+        },
+        {
+          "id": "complete_intro_step",
+          "type": "action",
+          "title": "Complete first interaction step",
+          "description": "",
+          "position": {
+            "x": 360.0,
+            "y": 0.0
+          },
+          "binding": {
+            "mapId": null,
+            "eventId": null,
+            "entityId": null,
+            "warpId": null,
+            "triggerId": null,
+            "trainerId": null,
+            "dialogueId": null,
+            "scriptId": null,
+            "outcomeId": null,
+            "flagName": null,
+            "variableName": null
+          },
+          "payload": {
+            "actionKind": "completeStep",
+            "message": null,
+            "condition": null,
+            "choiceLabels": [],
+            "params": {
+              "stepId": "p6.selbrume.first_interaction"
+            }
+          },
+          "metadata": {}
+        },
+        {
+          "id": "show_intro_message",
+          "type": "action",
+          "title": "Show first interaction message",
+          "description": "",
+          "position": {
+            "x": 540.0,
+            "y": 0.0
+          },
+          "binding": {
+            "mapId": null,
+            "eventId": null,
+            "entityId": null,
+            "warpId": null,
+            "triggerId": null,
+            "trainerId": null,
+            "dialogueId": null,
+            "scriptId": null,
+            "outcomeId": null,
+            "flagName": null,
+            "variableName": null
+          },
+          "payload": {
+            "actionKind": "showMessage",
+            "message": "Bienvenue à Selbrume. Ceci est la première interaction narrative du golden slice.",
+            "condition": null,
+            "choiceLabels": [],
+            "params": {}
+          },
+          "metadata": {}
+        },
+        {
+          "id": "end",
+          "type": "end",
+          "title": "End",
+          "description": "",
+          "position": {
+            "x": 720.0,
+            "y": 0.0
+          },
+          "binding": {
+            "mapId": null,
+            "eventId": null,
+            "entityId": null,
+            "warpId": null,
+            "triggerId": null,
+            "trainerId": null,
+            "dialogueId": null,
+            "scriptId": null,
+            "outcomeId": null,
+            "flagName": null,
+            "variableName": null
+          },
+          "payload": {
+            "actionKind": null,
+            "message": null,
+            "condition": null,
+            "choiceLabels": [],
+            "params": {}
+          },
+          "metadata": {}
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge_start_source",
+          "fromNodeId": "start",
+          "toNodeId": "source",
+          "label": "",
+          "kind": "next",
+          "order": 0,
+          "metadata": {}
+        },
+        {
+          "id": "edge_source_set_seen_flag",
+          "fromNodeId": "source",
+          "toNodeId": "set_seen_flag",
+          "label": "",
+          "kind": "next",
+          "order": 0,
+          "metadata": {}
+        },
+        {
+          "id": "edge_set_seen_flag_complete_intro_step",
+          "fromNodeId": "set_seen_flag",
+          "toNodeId": "complete_intro_step",
+          "label": "",
+          "kind": "next",
+          "order": 0,
+          "metadata": {}
+        },
+        {
+          "id": "edge_complete_intro_step_show_intro_message",
+          "fromNodeId": "complete_intro_step",
+          "toNodeId": "show_intro_message",
+          "label": "",
+          "kind": "next",
+          "order": 0,
+          "metadata": {}
+        },
+        {
+          "id": "edge_show_intro_message_end",
+          "fromNodeId": "show_intro_message",
+          "toNodeId": "end",
+          "label": "",
+          "kind": "next",
+          "order": 0,
+          "metadata": {}
+        }
+      ],
+      "metadata": {
+        "phase": "P6-03",
+        "contentStatus": "technical_golden_slice_v0"
+      }
     }
   ],
   "trainers": [

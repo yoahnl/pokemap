@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-04-bis — Selbrume Git Worktree Attribution / Diff Cleanup
+Lot courant : ✅ P6-04-ter — Selbrume Grant Reconciliation / P6-03 Regression Fix
 
-Prochain lot exact : P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
+Prochain lot exact : P6-05 — Selbrume First Trainer Battle Golden Slice V0
 
 Légende :
 
@@ -43,8 +43,8 @@ Suivi des lots :
 - ✅ P6-03 — Selbrume First Narrative Interaction V0
 - ✅ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 - ✅ P6-04-bis — Selbrume Git Worktree Attribution / Diff Cleanup
-- ➡️ P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
-- ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+- ✅ P6-04-ter — Selbrume Grant Reconciliation / P6-03 Regression Fix
+- ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
 - ⏳ P6-07 — Selbrume Beta Validator Pass V0
 - ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
@@ -62,12 +62,14 @@ P6-04 : ✅ terminé
 
 P6-04-bis : ✅ terminé
 
-P6-04-ter : ➡️ prochain lot exact
+P6-04-ter : ✅ terminé
+
+P6-05 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
+P6-05 — Selbrume First Trainer Battle Golden Slice V0
 ```
 
 ## Objectif Phase 6
@@ -335,6 +337,28 @@ Ne pas passer directement à P6-05.
 Le prochain lot exact devient P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix.
 ```
 
+## Résultat P6-04-ter
+
+Grant est confirmé comme contenu utilisateur volontaire fourni par Karim.
+P6-04-ter le conserve et ne modifie pas son trainer, son NPC, son character ou
+son asset.
+
+Corrections réalisées :
+
+```text
+p6_03_first_interaction restauré dans selbrume/project.json
+P6-01 adapté à route 1 contenant désormais l'entité NPC grant
+P6-02, P6-03 et P6-04 relancés sans régression
+```
+
+Décision roadmap :
+
+```text
+Les preuves P6-01/P6-02/P6-03/P6-04 repassent.
+P6-05 peut démarrer explicitement sur Grant ou sur un autre trainer choisi.
+Prochain lot exact : P6-05 — Selbrume First Trainer Battle Golden Slice V0.
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -444,9 +468,9 @@ Décision :
 option B : ne pas démarrer P6-05 avant un correctif P6-04-ter.
 ```
 
-### ➡️ P6-04-ter — Selbrume Grant Diff Attribution / P6-03 Regression Fix
+### ✅ P6-04-ter — Selbrume Grant Reconciliation / P6-03 Regression Fix
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -455,7 +479,16 @@ réconcilier les changements grant avec les contrats P6-01/P6-03 et rétablir le
 preuves cassées avant le premier trainer battle.
 ```
 
-### ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+Preuve :
+
+```text
+packages/map_runtime/test/p6_existing_selbrume_loadability_start_map_contract_test.dart
+packages/map_runtime/test/p6_selbrume_first_narrative_interaction_test.dart
+```
+
+### ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+
+Statut : prochain lot exact.
 
 But :
 
