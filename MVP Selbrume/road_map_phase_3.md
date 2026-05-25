@@ -4,11 +4,11 @@
 
 Phase 3 — Runtime / Application / Flame / Disk Validation
 
-Statut : 🔜 En cours
+Statut : ✅ Clôturée avec réserves mineures
 
-Lot courant : P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+Lot courant : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
 
-Prochain lot exact : P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+Prochain lot exact : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
 
 Suivi des lots :
 
@@ -20,7 +20,7 @@ Suivi des lots :
 - ✅ P3-05 — Fact / World Rule Runtime Projection Validation
 - ✅ P3-06 — Save/Load Narrative State Roundtrip Validation
 - ✅ P3-07 — Playable Runtime Host Narrative Smoke Test
-- 🔜 P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+- ✅ P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
 P3-00 : ✅ terminé
 
@@ -38,7 +38,7 @@ P3-06 : ✅ terminé
 
 P3-07 : ✅ terminé
 
-P3-CHECKPOINT-01 : 🔜 prochain lot exact
+P3-CHECKPOINT-01 : ✅ terminé
 
 ## 2. Objectif de la Phase 3
 
@@ -494,7 +494,7 @@ P3-CHECKPOINT-01 devient le prochain lot exact, car P3-07 a prouvé le lien
 minimal host / `PlayableMapGame` / scenario runtime / projection sans ouvrir UI,
 Selbrume, rewards, money ou XP.
 
-### P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+### ✅ P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
 Objectif :
 Clôturer Phase 3, vérifier les preuves runtime/disk et décider le passage vers
@@ -502,6 +502,40 @@ Phase 4.
 
 Résultat attendu :
 Verdict Phase 3, roadmaps mises à jour, prochain lot exact fixé.
+
+Résultat P3-CHECKPOINT-01 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_checkpoint_01_runtime_disk_readiness_review.md` ;
+- verdict :
+  Phase 3 clôturée avec réserves mineures ;
+- Phase suivante :
+  Phase 4 — Authoring Workflows Minimal ;
+- roadmap Phase 4 créée :
+  `MVP Selbrume/road_map_phase_4.md` ;
+- prochain lot exact :
+  P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit ;
+- preuves confirmées :
+  - `project.json -> RuntimeMapBundle -> PlayableMapGame` prouvé de manière
+    partielle mais suffisante pour passer à l'authoring minimal ;
+  - `ScenarioAsset` chargé depuis disque et exécuté via
+    `ScenarioRuntimeExecutor` ;
+  - sources runtime `mapEnter`, `triggerEnter`, `entityInteract` et
+    `outcomeReceived` validées sur fixture disque ;
+  - `emitOutcome -> outcomeReceived` automatique validé au niveau executor ;
+  - `startTrainerBattle`, flags `battle:*` et `dispatchContinuation` validés
+    sans lancer un vrai combat complet ;
+  - projections passives `visibilityRule`, `conditionalDialogues`,
+    Step Studio world presence et `chapterCompleted` dérivé validées ;
+  - roundtrip save/load disque des vérités narratives techniques validé ;
+  - smoke host narratif minimal avec `PlayableMapGame.onLoad` validé ;
+- réserves maintenues :
+  - pas de preuve UI ou authoring ;
+  - pas de boucle joueur/input complète ;
+  - pas de combat complet ni rewards / money / XP ;
+  - pas de Selbrume final ;
+  - les preuves restent des slices techniques ciblées, pas un end-to-end
+    produit complet.
 
 ## 8. Critères de sortie Phase 3
 
@@ -537,5 +571,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
 ```

@@ -6,21 +6,22 @@ Roadmap globale : active
 
 Bloc NS-GS-01 → NS-GS-18 : ✅ terminé comme bloc mechanics-first Level 2 Application
 
-Phase courante : Phase 3 — Runtime / Application / Flame / Disk Validation
+Phase courante : Phase 4 — Authoring Workflows Minimal
 
-Roadmap de phase courante : `MVP Selbrume/road_map_phase_3.md`
+Roadmap de phase courante : `MVP Selbrume/road_map_phase_4.md`
 
-Lot courant : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+Lot courant : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
 
-Prochain lot exact : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+Prochain lot exact : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
 
 Suivi global :
 
 - ROADMAP-GLOBAL-00 : ✅ terminé
 - Phase 1 — Canonical Product Model / Narrative Studio Foundations : ✅ clôturée avec réserves mineures
 - Phase 2 — Domain Model & Contracts : ✅ clôturée avec réserves mineures
-- Phase 3 — Runtime / Application / Flame / Disk Validation : 🔜 phase courante
-- P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit : 🔜 prochain lot exact
+- Phase 3 — Runtime / Application / Flame / Disk Validation : ✅ clôturée avec réserves mineures
+- Phase 4 — Authoring Workflows Minimal : 🔜 phase courante
+- P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit : 🔜 prochain lot exact
 
 ## 2. Objectif final de PokeMap
 
@@ -95,7 +96,10 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 → source de vérité détaillée pour la Phase 2 clôturée.
 
 `MVP Selbrume/road_map_phase_3.md`
-→ source de vérité détaillée pour la Phase 3 courante.
+→ source de vérité détaillée pour la Phase 3 clôturée.
+
+`MVP Selbrume/road_map_phase_4.md`
+→ source de vérité détaillée pour la Phase 4 courante.
 
 `MVP Selbrume/road_map.md`
 → roadmap historique NS-GS clôturée, conservée comme archive de preuves et contexte.
@@ -114,8 +118,8 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 - ✅ Phase 0 — Audit global & roadmap reset
 - ✅ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 - ✅ Phase 2 — Domain Model & Contracts
-- 🔜 Phase 3 — Runtime / Application / Flame / Disk Validation
-- Phase 4 — Authoring Workflows Minimal
+- ✅ Phase 3 — Runtime / Application / Flame / Disk Validation
+- 🔜 Phase 4 — Authoring Workflows Minimal
 - Phase 5 — Gameplay Gaps Prioritaires
 - Phase 6 — Selbrume Golden Slice réel
 - Phase 7 — UI / UX moderne finale
@@ -377,10 +381,20 @@ Critères de sortie :
 
 Checkpoint final :
 
-- P3-CHECKPOINT-01 — Runtime / Disk Golden Path Review
+- P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
 Statut :
-future.
+✅ clôturée avec réserves mineures.
+
+Résultat de clôture :
+
+- `project.json -> RuntimeMapBundle -> PlayableMapGame` prouvé par slices
+  techniques ciblées ;
+- `ScenarioAsset` chargé depuis disque et exécuté ;
+- sources Event runtime, continuation outcome / battle outcome, projections
+  passives, save/load narratif et smoke host minimal validés ;
+- réserves conservées : pas d'UI authoring, pas de boucle joueur complète,
+  pas de combat complet, pas de rewards / money / XP, pas de Selbrume final.
 
 ## 10. Phase 4 — Authoring Workflows Minimal
 
@@ -395,7 +409,7 @@ prouvées sans éditer du JSON brut ni manipuler des IDs techniques partout.
 Préconditions :
 
 - Phase 1 terminée ;
-- Phase 2 et Phase 3 suffisamment avancées ou gaps explicitement acceptés.
+- Phase 2 et Phase 3 clôturées avec réserves mineures.
 
 Périmètre :
 
@@ -429,7 +443,7 @@ Checkpoint final :
 - P4-CHECKPOINT-01 — Minimal Authoring Workflow Review
 
 Statut :
-future.
+🔜 phase courante.
 
 ## 11. Phase 5 — Gameplay Gaps Prioritaires
 
@@ -594,30 +608,30 @@ future tardive.
 ## 14. Phase courante
 
 Phase courante :
-Phase 3 — Runtime / Application / Flame / Disk Validation
+Phase 4 — Authoring Workflows Minimal
 
 Roadmap de phase :
-`MVP Selbrume/road_map_phase_3.md`
+`MVP Selbrume/road_map_phase_4.md`
 
 Prochain lot de la phase :
-P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
 
 Note :
-P2-CHECKPOINT-01 a clôturé Phase 2 et créé la roadmap vivante Phase 3. Il ne
-démarre pas P3-00.
+P3-CHECKPOINT-01 a clôturé Phase 3 et créé la roadmap vivante Phase 4. Il ne
+démarre pas P4-00.
 
 ## 15. Prochain lot exact
 
-P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
 
-P3-00 doit rester audit-first et documentaire / cadrage runtime-disk. Il doit
-inventorier les preuves runtime, les chemins de chargement projet disque, les
-bridges ScenarioAsset/runtime et les smoke tests possibles avant toute
-implémentation de Phase 3.
+P4-00 doit rester audit-first et documentaire / cadrage authoring minimal. Il
+doit inventorier les workflows auteur existants, les pickers/read models
+disponibles, les diagnostics utilisables et les gaps d'authoring avant toute
+implémentation UI.
 
-P3-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l’UI
+P4-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l'UI
 premium, ne doit pas ouvrir les gaps gameplay Phase 5 et ne doit pas transformer
-la roadmap Phase 3 en implémentation runtime.
+la roadmap Phase 4 en Scene Builder complet.
 
 ## 16. Critères de changement de phase
 
@@ -679,8 +693,8 @@ ou si l’utilisateur le demande explicitement.
 ## 19. Gaps globaux suivis
 
 - Level 3 Flame / PlayableMapGame Golden Slice complet : non entièrement prouvé.
-- Level 4 projet disque / vrai projet créé dans l’éditeur : non prouvé pour le
-  Golden Slice narratif complet.
+- Level 4 projet disque / host narratif technique : prouvé partiellement en
+  Phase 3 ; vrai projet créé dans l'éditeur non prouvé.
 - Storyline / Chapter / Story Step contract ou descriptor : décision Phase 2 faite, picker reporté Phase 4.
 - Event authoring source contract : décision Phase 2 faite, picker reporté Phase 4.
 - Scene / ScenarioAsset adapter : décision Phase 2 faite, preuve runtime Phase 3.
@@ -714,3 +728,13 @@ ou si l’utilisateur le demande explicitement.
   Roadmap de phase courante fixée à `MVP Selbrume/road_map_phase_3.md`.
   Prochain lot exact fixé à P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk
   Validation Audit.
+- 2026-05-25 — P3-CHECKPOINT-01 — Phase 3 clôturée avec réserves mineures.
+  La Phase 3 a prouvé le chemin runtime/disk par slices techniques :
+  `ScenarioAsset` depuis `project.json`, sources Event runtime, continuation
+  outcome / battle outcome, projections passives, save/load narratif et smoke
+  host minimal `PlayableMapGame`. Les réserves restantes concernent l'UI
+  authoring, l'input joueur complet, le combat complet, rewards / money / XP et
+  Selbrume final. Phase courante mise à jour vers Phase 4 — Authoring Workflows
+  Minimal. Roadmap de phase courante fixée à
+  `MVP Selbrume/road_map_phase_4.md`. Prochain lot exact fixé à P4-00 — Phase 4
+  Roadmap Bootstrap / Authoring Workflow Audit.
