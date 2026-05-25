@@ -1,0 +1,102 @@
+{
+  "id": "infernape",
+  "slug": "infernape",
+  "nationalDex": 392,
+  "names": {
+    "ja_hrkt": "ゴウカザル",
+    "ja_roma": "Gōkazaru",
+    "ko": "초염몽",
+    "zh_hant": "烈焰猴",
+    "fr": "Simiabraz",
+    "de": "Panferno",
+    "es": "Infernape",
+    "it": "Infernape",
+    "en": "Infernape",
+    "ja": "ゴウカザル",
+    "zh_hans": "烈焰猴"
+  },
+  "speciesName": {
+    "ja_hrkt": "かえんポケモン",
+    "ko": "화염포켓몬",
+    "zh_hant": "火焰寶可夢",
+    "fr": "Pokémon Flamme",
+    "de": "Flamme",
+    "es": "Pokémon Llama",
+    "it": "Pokémon Fiamma",
+    "en": "Flame Pokémon",
+    "ja": "かえんポケモン",
+    "zh_hans": "火焰宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "fire",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 76,
+    "atk": 104,
+    "def": 71,
+    "spa": 104,
+    "spd": 71,
+    "spe": 108,
+    "bst": 534
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 240,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "infernape",
+    "evolution": "infernape",
+    "media": "infernape"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 55.0,
+    "color": "brown",
+    "flavorText": "It uses a special kind of martial arts involving all its limbs. Its fire never goes out."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

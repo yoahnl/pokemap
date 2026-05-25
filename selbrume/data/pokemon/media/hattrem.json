@@ -1,0 +1,18 @@
+{
+  "speciesId": "hattrem",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hattrem/front.png",
+      "backStatic": "assets/pokemon/sprites/hattrem/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hattrem/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hattrem/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hattrem.png",
+      "cry": "assets/pokemon/cries/hattrem.ogg",
+      "animations": {}
+    }
+  }
+}

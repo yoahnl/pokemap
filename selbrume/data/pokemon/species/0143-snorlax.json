@@ -1,0 +1,100 @@
+{
+  "id": "snorlax",
+  "slug": "snorlax",
+  "nationalDex": 143,
+  "names": {
+    "ja_hrkt": "カビゴン",
+    "ja_roma": "Kabigon",
+    "ko": "잠만보",
+    "zh_hant": "卡比獸",
+    "fr": "Ronflex",
+    "de": "Relaxo",
+    "es": "Snorlax",
+    "it": "Snorlax",
+    "en": "Snorlax",
+    "ja": "カビゴン",
+    "zh_hans": "卡比兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "いねむりポケモン",
+    "ko": "졸음포켓몬",
+    "zh_hant": "瞌睡寶可夢",
+    "fr": "Pokémon Pionceur",
+    "de": "Tagträumer-Pokémon",
+    "es": "Pokémon Dormir",
+    "it": "Pokémon Sonno",
+    "en": "Sleeping Pokémon",
+    "ja": "いねむりポケモン",
+    "zh_hans": "瞌睡宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 160,
+    "atk": 110,
+    "def": 65,
+    "spa": 65,
+    "spd": 110,
+    "spe": 30,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "immunity",
+    "secondary": "thick_fat",
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 189,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "snorlax",
+    "evolution": "snorlax",
+    "media": "snorlax"
+  },
+  "dexContent": {
+    "heightM": 2.1,
+    "weightKg": 460.0,
+    "color": "black",
+    "flavorText": "Very lazy. Just eats and sleeps. As its rotund bulk builds, it becomes steadily more slothful."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

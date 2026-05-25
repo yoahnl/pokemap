@@ -1,0 +1,18 @@
+{
+  "speciesId": "golduck",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/golduck/front.png",
+      "backStatic": "assets/pokemon/sprites/golduck/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/golduck/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/golduck/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/golduck.png",
+      "cry": "assets/pokemon/cries/golduck.ogg",
+      "animations": {}
+    }
+  }
+}

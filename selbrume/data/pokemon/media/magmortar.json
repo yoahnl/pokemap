@@ -1,0 +1,18 @@
+{
+  "speciesId": "magmortar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magmortar/front.png",
+      "backStatic": "assets/pokemon/sprites/magmortar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magmortar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magmortar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magmortar.png",
+      "cry": "assets/pokemon/cries/magmortar.ogg",
+      "animations": {}
+    }
+  }
+}

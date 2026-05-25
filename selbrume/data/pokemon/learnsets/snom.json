@@ -1,0 +1,177 @@
+{
+  "speciesId": "snom",
+  "startingMoves": [
+    "powder_snow",
+    "struggle_bug"
+  ],
+  "relearnMoves": [
+    "powder_snow",
+    "struggle_bug"
+  ],
+  "levelUp": [
+    {
+      "moveId": "powder_snow",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "powder_snow",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "struggle_bug",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "struggle_bug",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "icicle_spear",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "icicle_spear",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "lunge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "pounce",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "skitter_smack",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "struggle_bug",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "skitter_smack",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fairy_wind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fairy_wind",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mirror_coat",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "mirror_coat",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

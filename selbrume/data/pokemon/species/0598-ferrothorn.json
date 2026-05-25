@@ -1,0 +1,99 @@
+{
+  "id": "ferrothorn",
+  "slug": "ferrothorn",
+  "nationalDex": 598,
+  "names": {
+    "ja_hrkt": "ナットレイ",
+    "ja_roma": "Nutrey",
+    "ko": "너트령",
+    "zh_hant": "堅果啞鈴",
+    "fr": "Noacier",
+    "de": "Tentantel",
+    "es": "Ferrothorn",
+    "it": "Ferrothorn",
+    "en": "Ferrothorn",
+    "ja": "ナットレイ",
+    "zh_hans": "坚果哑铃"
+  },
+  "speciesName": {
+    "ja_hrkt": "とげだまポケモン",
+    "ko": "가시공포켓몬",
+    "zh_hant": "刺球寶可夢",
+    "fr": "Pokémon Boule Épine",
+    "de": "Dornkugel-Pokémon",
+    "es": "Pokémon Bola Espina",
+    "it": "Pokémon Spinasfere",
+    "en": "Thorn Pod Pokémon",
+    "ja": "とげだまポケモン",
+    "zh_hans": "刺球宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 74,
+    "atk": 94,
+    "def": 131,
+    "spa": 54,
+    "spd": 116,
+    "spe": 20,
+    "bst": 489
+  },
+  "abilities": {
+    "primary": "iron_barbs",
+    "secondary": null,
+    "hidden": "anticipation"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 171,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ferrothorn",
+    "evolution": "ferrothorn",
+    "media": "ferrothorn"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 110.0,
+    "color": "gray",
+    "flavorText": "It fights by swinging around its three spiky feelers. A hit from these steel spikes can reduce a boulder to rubble."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

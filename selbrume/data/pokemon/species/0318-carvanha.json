@@ -1,0 +1,98 @@
+{
+  "id": "carvanha",
+  "slug": "carvanha",
+  "nationalDex": 318,
+  "names": {
+    "ja_hrkt": "キバニア",
+    "ja_roma": "Kibanha",
+    "ko": "샤프니아",
+    "zh_hant": "利牙魚",
+    "fr": "Carvanha",
+    "de": "Kanivanha",
+    "es": "Carvanha",
+    "it": "Carvanha",
+    "en": "Carvanha",
+    "ja": "キバニア",
+    "zh_hans": "利牙鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "どうもうポケモン",
+    "ko": "사나움포켓몬",
+    "zh_hant": "凶猛寶可夢",
+    "fr": "Pokémon Féroce",
+    "de": "Gnadenlos-Pokémon",
+    "es": "Pokémon Feroz",
+    "it": "Pokémon Feroce",
+    "en": "Savage Pokémon",
+    "ja": "どうもうポケモン",
+    "zh_hans": "凶猛宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 90,
+    "def": 20,
+    "spa": 65,
+    "spd": 20,
+    "spe": 65,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "rough_skin",
+    "secondary": null,
+    "hidden": "speed_boost"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 61,
+    "catchRate": 225,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "carvanha",
+    "evolution": "carvanha",
+    "media": "carvanha"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 20.8,
+    "color": "red",
+    "flavorText": "CARVANHA’s strongly developed jaws and its sharply pointed fangs pack the destructive power to rip out boat hulls. Many boats have been attacked and sunk by this POKéMON."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

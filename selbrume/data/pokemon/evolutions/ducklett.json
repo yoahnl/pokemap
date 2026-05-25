@@ -1,0 +1,14 @@
+{
+  "speciesId": "ducklett",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "swanna",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "id": "victini",
+  "slug": "victini",
+  "nationalDex": 494,
+  "names": {
+    "ja_hrkt": "ビクティニ",
+    "ja_roma": "Victini",
+    "ko": "비크티니",
+    "zh_hant": "比克提尼",
+    "fr": "Victini",
+    "de": "Victini",
+    "es": "Victini",
+    "it": "Victini",
+    "en": "Victini",
+    "ja": "ビクティニ",
+    "zh_hans": "比克提尼"
+  },
+  "speciesName": {
+    "ja_hrkt": "しょうりポケモン",
+    "ko": "승리포켓몬",
+    "zh_hant": "勝利寶可夢",
+    "fr": "Pokémon Victoire",
+    "de": "Triumph-Pokémon",
+    "es": "Pokémon Victoria",
+    "it": "Pokémon Vittoria",
+    "en": "Victory Pokémon",
+    "ja": "しょうりポケモン",
+    "zh_hans": "胜利宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "psychic",
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 100,
+    "def": 100,
+    "spa": 100,
+    "spd": 100,
+    "spe": 100,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "victory_star",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "victini",
+    "evolution": "victini",
+    "media": "victini"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.0,
+    "color": "yellow",
+    "flavorText": "This Pokémon brings victory. It is said that Trainers with Victini always win, regardless of the type of encounter."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

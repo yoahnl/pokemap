@@ -1,0 +1,22 @@
+{
+  "speciesId": "yamask",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "cofagrigus",
+      "method": "level_up",
+      "minLevel": 34,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "runerigus",
+      "method": "take_damage",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

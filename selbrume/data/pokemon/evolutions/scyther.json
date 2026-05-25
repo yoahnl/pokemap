@@ -1,0 +1,24 @@
+{
+  "speciesId": "scyther",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "kleavor",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "black-augurite",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "scizor",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: metal-coat"
+      }
+    }
+  ]
+}

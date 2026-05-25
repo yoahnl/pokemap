@@ -1,0 +1,18 @@
+{
+  "speciesId": "caterpie",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/caterpie/front.png",
+      "backStatic": "assets/pokemon/sprites/caterpie/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/caterpie/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/caterpie/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/caterpie.png",
+      "cry": "assets/pokemon/cries/caterpie.ogg",
+      "animations": {}
+    }
+  }
+}

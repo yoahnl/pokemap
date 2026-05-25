@@ -1,0 +1,98 @@
+{
+  "id": "smoochum",
+  "slug": "smoochum",
+  "nationalDex": 238,
+  "names": {
+    "ja_hrkt": "ムチュール",
+    "ja_roma": "Muchul",
+    "ko": "뽀뽀라",
+    "zh_hant": "迷唇娃",
+    "fr": "Lippouti",
+    "de": "Kussilla",
+    "es": "Smoochum",
+    "it": "Smoochum",
+    "en": "Smoochum",
+    "ja": "ムチュール",
+    "zh_hans": "迷唇娃"
+  },
+  "speciesName": {
+    "ja_hrkt": "くちづけポケモン",
+    "ko": "뽀뽀포켓몬",
+    "zh_hant": "親吻寶可夢",
+    "fr": "Pokémon Bisou",
+    "de": "Kuss-Pokémon",
+    "es": "Pokémon Beso",
+    "it": "Pokémon Bacio",
+    "en": "Kiss Pokémon",
+    "ja": "くちづけポケモン",
+    "zh_hans": "亲吻宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "ice",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 30,
+    "def": 15,
+    "spa": 85,
+    "spd": 65,
+    "spe": 65,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "forewarn",
+    "hidden": "hydration"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "smoochum",
+    "evolution": "smoochum",
+    "media": "smoochum"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.0,
+    "color": "pink",
+    "flavorText": "Its lips are the most sensitive parts on its body. It always uses its lips first to examine things."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

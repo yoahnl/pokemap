@@ -1,0 +1,18 @@
+{
+  "speciesId": "slaking",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/slaking/front.png",
+      "backStatic": "assets/pokemon/sprites/slaking/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/slaking/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/slaking/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/slaking.png",
+      "cry": "assets/pokemon/cries/slaking.ogg",
+      "animations": {}
+    }
+  }
+}

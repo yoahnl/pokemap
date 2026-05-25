@@ -1,0 +1,1361 @@
+{
+  "speciesId": "decidueye",
+  "startingMoves": [
+    "astonish",
+    "growl",
+    "leaf_storm",
+    "leafage",
+    "peck",
+    "phantom_force",
+    "shadow_sneak",
+    "spirit_shackle",
+    "spite",
+    "tackle",
+    "u_turn"
+  ],
+  "relearnMoves": [
+    "astonish",
+    "growl",
+    "leaf_storm",
+    "leafage",
+    "peck",
+    "phantom_force",
+    "shadow_sneak",
+    "spirit_shackle",
+    "spite",
+    "tackle",
+    "u_turn"
+  ],
+  "levelUp": [
+    {
+      "moveId": "astonish",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "astonish",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "growl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "growl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "growl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "growl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "leaf_storm",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leaf_storm",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leaf_storm",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "leafage",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leafage",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "leafage",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leafage",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "peck",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "peck",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "phantom_force",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "phantom_force",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "phantom_force",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "shadow_sneak",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "spirit_shackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "spirit_shackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "spirit_shackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "spirit_shackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "spirit_shackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "spirit_shackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "spirit_shackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "spite",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "spite",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "u_turn",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "u_turn",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "u_turn",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "growl",
+      "level": 4,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "growl",
+      "level": 4,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "peck",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "peck",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "peck",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "peck",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "astonish",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "astonish",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "shadow_sneak",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "shadow_sneak",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ominous_wind",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "foresight",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "foresight",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "synthesis",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "synthesis",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "pluck",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "pluck",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "pluck",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "pluck",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "synthesis",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "synthesis",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "nasty_plot",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "nasty_plot",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fury_attack",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fury_attack",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sucker_punch",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sucker_punch",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sucker_punch",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sucker_punch",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "leaf_blade",
+      "level": 44,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leaf_blade",
+      "level": 44,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "leaf_blade",
+      "level": 44,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leaf_blade",
+      "level": 44,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "feather_dance",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "feather_dance",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "feather_dance",
+      "level": 51,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "feather_dance",
+      "level": 51,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brave_bird",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "brave_bird",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "brave_bird",
+      "level": 58,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "brave_bird",
+      "level": 58,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "nasty_plot",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "nasty_plot",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "air_cutter",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "air_slash",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "air_slash",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "aura_sphere",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "baton_pass",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "baton_pass",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brave_bird",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "brave_bird",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bulk_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bullet_seed",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "close_combat",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "coaching",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "confuse_ray",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dual_wingbeat",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "false_swipe",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "false_swipe",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "false_swipe",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "false_swipe",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "feather_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "frenzy_plant",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "grass_pledge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_terrain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "haze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hex",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hex",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hurricane",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hurricane",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "imprison",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "imprison",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leaf_blade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leaf_storm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leaf_storm",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "low_kick",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "low_sweep",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "low_sweep",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "low_sweep",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "low_sweep",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "magical_leaf",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "nasty_plot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "nasty_plot",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "nature_power",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "nature_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "night_shade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "phantom_force",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "phantom_force",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "poltergeist",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "psycho_cut",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "reversal",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "scary_face",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "seed_bomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "seed_bomb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "skitter_smack",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "solar_blade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_blade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "spite",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "trailblaze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "upper_hand",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "work_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "work_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "work_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "covet",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "defog",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dual_wingbeat",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "frenzy_plant",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "frenzy_plant",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "frenzy_plant",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "grass_pledge",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "grass_pledge",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grass_pledge",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "laser_focus",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "poltergeist",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "seed_bomb",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "skitter_smack",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sky_attack",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "spite",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "synthesis",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "worry_seed",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "confuse_ray",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "defog",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

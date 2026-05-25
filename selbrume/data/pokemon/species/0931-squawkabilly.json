@@ -1,0 +1,99 @@
+{
+  "id": "squawkabilly",
+  "slug": "squawkabilly",
+  "nationalDex": 931,
+  "names": {
+    "ja_hrkt": "イキリンコ",
+    "ja_roma": "Ikirinko",
+    "ko": "시비꼬",
+    "zh_hant": "怒鸚哥",
+    "fr": "Tapatoès",
+    "de": "Krawalloro",
+    "es": "Squawkabilly",
+    "it": "Squawkabilly",
+    "en": "Squawkabilly",
+    "ja": "イキリンコ",
+    "zh_hans": "怒鹦哥"
+  },
+  "speciesName": {
+    "ja_hrkt": "インコポケモン",
+    "ko": "잉꼬포켓몬",
+    "zh_hant": "鸚鵡寶可夢",
+    "fr": "Perroquet",
+    "de": "Sittich",
+    "en": "Parrot Pokémon",
+    "zh_hans": "鹦鹉宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 82,
+    "atk": 96,
+    "def": 51,
+    "spa": 45,
+    "spd": 51,
+    "spe": 92,
+    "bst": 417
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "hustle",
+    "hidden": "guts"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 0,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "squawkabilly-blue",
+      "squawkabilly-white",
+      "squawkabilly-yellow"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "squawkabilly",
+    "evolution": "squawkabilly",
+    "media": "squawkabilly"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 2.4,
+    "color": "green",
+    "flavorText": "These Pokémon prefer to live in cities. They form flocks based on the color of their feathers, and they fight over territory."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "raboot",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/raboot/front.png",
+      "backStatic": "assets/pokemon/sprites/raboot/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/raboot/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/raboot/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/raboot.png",
+      "cry": "assets/pokemon/cries/raboot.ogg",
+      "animations": {}
+    }
+  }
+}

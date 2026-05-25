@@ -1,0 +1,30 @@
+{
+  "speciesId": "manectric",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/manectric/front.png",
+      "backStatic": "assets/pokemon/sprites/manectric/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/manectric/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/manectric/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/manectric.png",
+      "cry": "assets/pokemon/cries/manectric.ogg",
+      "animations": {}
+    },
+    "manectric-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

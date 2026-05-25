@@ -1,0 +1,18 @@
+{
+  "speciesId": "simisear",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/simisear/front.png",
+      "backStatic": "assets/pokemon/sprites/simisear/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/simisear/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/simisear/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/simisear.png",
+      "cry": "assets/pokemon/cries/simisear.ogg",
+      "animations": {}
+    }
+  }
+}

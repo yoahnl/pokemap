@@ -1,0 +1,18 @@
+{
+  "speciesId": "ralts",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ralts/front.png",
+      "backStatic": "assets/pokemon/sprites/ralts/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ralts/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ralts/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ralts.png",
+      "cry": "assets/pokemon/cries/ralts.ogg",
+      "animations": {}
+    }
+  }
+}

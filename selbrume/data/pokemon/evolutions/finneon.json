@@ -1,0 +1,14 @@
+{
+  "speciesId": "finneon",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lumineon",
+      "method": "level_up",
+      "minLevel": 31,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

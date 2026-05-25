@@ -1,0 +1,210 @@
+{
+  "speciesId": "dubwool",
+  "startingMoves": [
+    "copycat",
+    "defense_curl",
+    "growl",
+    "tackle"
+  ],
+  "relearnMoves": [
+    "copycat",
+    "defense_curl",
+    "growl",
+    "tackle"
+  ],
+  "levelUp": [
+    {
+      "moveId": "copycat",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "growl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "double_kick",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "headbutt",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "take_down",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "guard_swap",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "reversal",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "cotton_guard",
+      "level": 44,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "last_resort",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "agility",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "baton_pass",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_press",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "bounce",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "electro_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "guard_swap",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mega_kick",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "payback",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "retaliate",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "reversal",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "zen_headbutt",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

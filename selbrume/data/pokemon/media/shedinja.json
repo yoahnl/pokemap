@@ -1,0 +1,18 @@
+{
+  "speciesId": "shedinja",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shedinja/front.png",
+      "backStatic": "assets/pokemon/sprites/shedinja/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shedinja/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shedinja/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shedinja.png",
+      "cry": "assets/pokemon/cries/shedinja.ogg",
+      "animations": {}
+    }
+  }
+}

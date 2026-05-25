@@ -1,0 +1,97 @@
+{
+  "id": "krabby",
+  "slug": "krabby",
+  "nationalDex": 98,
+  "names": {
+    "ja_hrkt": "クラブ",
+    "ja_roma": "Crab",
+    "ko": "크랩",
+    "zh_hant": "大鉗蟹",
+    "fr": "Krabby",
+    "de": "Krabby",
+    "es": "Krabby",
+    "it": "Krabby",
+    "en": "Krabby",
+    "ja": "クラブ",
+    "zh_hans": "大钳蟹"
+  },
+  "speciesName": {
+    "ja_hrkt": "さわがにポケモン",
+    "ko": "게포켓몬",
+    "zh_hant": "清水蟹寶可夢",
+    "fr": "Pokémon Doux Crabe",
+    "de": "Krabben-Pokémon",
+    "es": "Pokémon Cangrejo",
+    "it": "Pokémon Granchio",
+    "en": "River Crab Pokémon",
+    "ja": "さわがにポケモン",
+    "zh_hans": "清水蟹宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 30,
+    "atk": 105,
+    "def": 90,
+    "spa": 25,
+    "spd": 25,
+    "spe": 50,
+    "bst": 325
+  },
+  "abilities": {
+    "primary": "hyper_cutter",
+    "secondary": "shell_armor",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 65,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "krabby",
+    "evolution": "krabby",
+    "media": "krabby"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.5,
+    "color": "red",
+    "flavorText": "Its pincers are not only powerful weapons, they are used for balance when walking sideways."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

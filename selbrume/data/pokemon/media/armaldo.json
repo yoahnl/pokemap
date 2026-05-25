@@ -1,0 +1,18 @@
+{
+  "speciesId": "armaldo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/armaldo/front.png",
+      "backStatic": "assets/pokemon/sprites/armaldo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/armaldo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/armaldo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/armaldo.png",
+      "cry": "assets/pokemon/cries/armaldo.ogg",
+      "animations": {}
+    }
+  }
+}

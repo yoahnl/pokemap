@@ -1,0 +1,30 @@
+{
+  "speciesId": "zorua",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zorua/front.png",
+      "backStatic": "assets/pokemon/sprites/zorua/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zorua/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zorua/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zorua.png",
+      "cry": "assets/pokemon/cries/zorua.ogg",
+      "animations": {}
+    },
+    "zorua-hisui": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

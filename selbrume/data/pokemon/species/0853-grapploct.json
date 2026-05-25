@@ -1,0 +1,98 @@
+{
+  "id": "grapploct",
+  "slug": "grapploct",
+  "nationalDex": 853,
+  "names": {
+    "ja_hrkt": "オトスパス",
+    "ja_roma": "Otosupus",
+    "ko": "케오퍼스",
+    "zh_hant": "八爪武師",
+    "fr": "Krakos",
+    "de": "Kaocto",
+    "es": "Grapploct",
+    "it": "Grapploct",
+    "en": "Grapploct",
+    "ja": "オトスパス",
+    "zh_hans": "八爪武师"
+  },
+  "speciesName": {
+    "ja_hrkt": "じゅうじゅつポケモン",
+    "ko": "유술포켓몬",
+    "zh_hant": "柔術寶可夢",
+    "fr": "Pokémon Jujitsu",
+    "de": "Jiu-Jitsu-Pokémon",
+    "es": "Pokémon Jiu-Jitsu",
+    "it": "Pokémon Jujitsu",
+    "en": "Jujitsu Pokémon",
+    "ja": "じゅうじゅつポケモン",
+    "zh_hans": "柔术宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 118,
+    "def": 90,
+    "spa": 70,
+    "spd": 80,
+    "spe": 42,
+    "bst": 480
+  },
+  "abilities": {
+    "primary": "limber",
+    "secondary": null,
+    "hidden": "technician"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 168,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "grapploct",
+    "evolution": "grapploct",
+    "media": "grapploct"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 39.0,
+    "color": "blue",
+    "flavorText": "A body made up of nothing but muscle makes the grappling moves this Pokémon performs with its tentacles tremendously powerful."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

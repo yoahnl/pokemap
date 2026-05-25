@@ -1,0 +1,18 @@
+{
+  "speciesId": "girafarig",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/girafarig/front.png",
+      "backStatic": "assets/pokemon/sprites/girafarig/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/girafarig/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/girafarig/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/girafarig.png",
+      "cry": "assets/pokemon/cries/girafarig.ogg",
+      "animations": {}
+    }
+  }
+}

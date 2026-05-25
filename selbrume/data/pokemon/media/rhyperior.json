@@ -1,0 +1,18 @@
+{
+  "speciesId": "rhyperior",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rhyperior/front.png",
+      "backStatic": "assets/pokemon/sprites/rhyperior/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rhyperior/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rhyperior/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rhyperior.png",
+      "cry": "assets/pokemon/cries/rhyperior.ogg",
+      "animations": {}
+    }
+  }
+}

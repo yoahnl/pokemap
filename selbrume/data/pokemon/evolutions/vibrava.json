@@ -1,0 +1,14 @@
+{
+  "speciesId": "vibrava",
+  "preEvolution": "trapinch",
+  "evolutions": [
+    {
+      "targetSpeciesId": "flygon",
+      "method": "level_up",
+      "minLevel": 45,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

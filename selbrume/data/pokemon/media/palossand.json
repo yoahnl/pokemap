@@ -1,0 +1,18 @@
+{
+  "speciesId": "palossand",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/palossand/front.png",
+      "backStatic": "assets/pokemon/sprites/palossand/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/palossand/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/palossand/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/palossand.png",
+      "cry": "assets/pokemon/cries/palossand.ogg",
+      "animations": {}
+    }
+  }
+}

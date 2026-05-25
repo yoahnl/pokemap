@@ -1,0 +1,102 @@
+{
+  "id": "hoopa",
+  "slug": "hoopa",
+  "nationalDex": 720,
+  "names": {
+    "ja_hrkt": "フーパ",
+    "ja_roma": "Hoopa",
+    "ko": "후파",
+    "zh_hant": "胡帕",
+    "fr": "Hoopa",
+    "de": "Hoopa",
+    "es": "Hoopa",
+    "it": "Hoopa",
+    "en": "Hoopa",
+    "ja": "フーパ",
+    "zh_hans": "胡帕"
+  },
+  "speciesName": {
+    "ja_hrkt": "いたずらポケモン",
+    "ko": "장난포켓몬",
+    "zh_hant": "頑童寶可夢",
+    "fr": "Pokémon Chenapan",
+    "de": "Schabernack",
+    "es": "Pokémon Travesura",
+    "it": "Pokémon Birba",
+    "en": "Mischief Pokémon",
+    "ja": "いたずらポケモン",
+    "zh_hans": "顽童宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "psychic",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 110,
+    "def": 60,
+    "spa": 150,
+    "spd": 130,
+    "spe": 70,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "magician",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "hoopa-unbound"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hoopa",
+    "evolution": "hoopa",
+    "media": "hoopa"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.0,
+    "color": "purple",
+    "flavorText": "This troublemaker sends anything and everything to faraway places using its loop, which can warp space."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

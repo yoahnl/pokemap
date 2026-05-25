@@ -1,0 +1,18 @@
+{
+  "speciesId": "grubbin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/grubbin/front.png",
+      "backStatic": "assets/pokemon/sprites/grubbin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/grubbin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/grubbin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/grubbin.png",
+      "cry": "assets/pokemon/cries/grubbin.ogg",
+      "animations": {}
+    }
+  }
+}

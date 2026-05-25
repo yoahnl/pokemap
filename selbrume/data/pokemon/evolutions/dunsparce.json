@@ -1,0 +1,14 @@
+{
+  "speciesId": "dunsparce",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dudunsparce",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "hyper_drill",
+      "conditionText": {}
+    }
+  ]
+}

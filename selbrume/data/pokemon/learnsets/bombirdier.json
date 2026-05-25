@@ -1,0 +1,322 @@
+{
+  "speciesId": "bombirdier",
+  "startingMoves": [
+    "hone_claws",
+    "leer",
+    "memento",
+    "peck",
+    "wing_attack"
+  ],
+  "relearnMoves": [
+    "hone_claws",
+    "leer",
+    "memento",
+    "peck",
+    "wing_attack"
+  ],
+  "levelUp": [
+    {
+      "moveId": "hone_claws",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "memento",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "peck",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thief",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_throw",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "whirlwind",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "pluck",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "torment",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_tomb",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "payback",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dual_wingbeat",
+      "level": 42,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_slide",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "knock_off",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "parting_shot",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "air_cutter",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "air_slash",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "brave_bird",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dark_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "drill_run",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dual_wingbeat",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "feather_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "foul_play",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hurricane",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_voice",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "lash_out",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "nasty_plot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "power_gem",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "psych_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "scary_face",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "snarl",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stealth_rock",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [],
+  "egg": [
+    {
+      "moveId": "feather_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "power_trip",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sky_attack",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

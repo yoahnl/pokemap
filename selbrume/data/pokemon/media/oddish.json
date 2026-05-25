@@ -1,0 +1,18 @@
+{
+  "speciesId": "oddish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/oddish/front.png",
+      "backStatic": "assets/pokemon/sprites/oddish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/oddish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/oddish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/oddish.png",
+      "cry": "assets/pokemon/cries/oddish.ogg",
+      "animations": {}
+    }
+  }
+}

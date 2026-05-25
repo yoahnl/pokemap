@@ -1,0 +1,366 @@
+{
+  "speciesId": "runerigus",
+  "startingMoves": [
+    "astonish",
+    "haze",
+    "night_shade",
+    "protect",
+    "scary_face",
+    "shadow_claw"
+  ],
+  "relearnMoves": [
+    "astonish",
+    "haze",
+    "night_shade",
+    "protect",
+    "scary_face",
+    "shadow_claw"
+  ],
+  "levelUp": [
+    {
+      "moveId": "astonish",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "haze",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "night_shade",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "scary_face",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_claw",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_claw",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "disable",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brutal_swing",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "crafty_shield",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hex",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mean_look",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "slam",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "curse",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_ball",
+      "level": 44,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "earthquake",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "power_split",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "destiny_bond",
+      "level": 62,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "ally_switch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "amnesia",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_press",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brutal_swing",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dark_pulse",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "earth_power",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fake_tears",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "guard_swap",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hex",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "imprison",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "iron_defense",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "nasty_plot",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "payback",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "phantom_force",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "power_swap",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "revenge",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_blast",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sand_tomb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "scary_face",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "skill_swap",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stealth_rock",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "toxic_spikes",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "trick",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "trick_room",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "wonder_room",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "zen_headbutt",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "poltergeist",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

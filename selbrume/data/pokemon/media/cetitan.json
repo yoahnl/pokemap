@@ -1,0 +1,18 @@
+{
+  "speciesId": "cetitan",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cetitan/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/cetitan/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cetitan.png",
+      "cry": "assets/pokemon/cries/cetitan.ogg",
+      "animations": {}
+    }
+  }
+}

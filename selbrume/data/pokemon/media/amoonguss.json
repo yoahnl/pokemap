@@ -1,0 +1,18 @@
+{
+  "speciesId": "amoonguss",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/amoonguss/front.png",
+      "backStatic": "assets/pokemon/sprites/amoonguss/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/amoonguss/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/amoonguss/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/amoonguss.png",
+      "cry": "assets/pokemon/cries/amoonguss.ogg",
+      "animations": {}
+    }
+  }
+}

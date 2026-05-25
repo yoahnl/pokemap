@@ -1,0 +1,30 @@
+{
+  "speciesId": "rapidash",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rapidash/front.png",
+      "backStatic": "assets/pokemon/sprites/rapidash/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rapidash/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rapidash/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rapidash.png",
+      "cry": "assets/pokemon/cries/rapidash.ogg",
+      "animations": {}
+    },
+    "rapidash-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

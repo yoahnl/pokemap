@@ -1,0 +1,14 @@
+{
+  "speciesId": "tinkatuff",
+  "preEvolution": "tinkatink",
+  "evolutions": [
+    {
+      "targetSpeciesId": "tinkaton",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

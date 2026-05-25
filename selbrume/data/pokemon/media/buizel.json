@@ -1,0 +1,18 @@
+{
+  "speciesId": "buizel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/buizel/front.png",
+      "backStatic": "assets/pokemon/sprites/buizel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/buizel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/buizel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/buizel.png",
+      "cry": "assets/pokemon/cries/buizel.ogg",
+      "animations": {}
+    }
+  }
+}

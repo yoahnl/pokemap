@@ -1,0 +1,102 @@
+{
+  "id": "articuno",
+  "slug": "articuno",
+  "nationalDex": 144,
+  "names": {
+    "ja_hrkt": "フリーザー",
+    "ja_roma": "Freezer",
+    "ko": "프리져",
+    "zh_hant": "急凍鳥",
+    "fr": "Artikodin",
+    "de": "Arktos",
+    "es": "Articuno",
+    "it": "Articuno",
+    "en": "Articuno",
+    "ja": "フリーザー",
+    "zh_hans": "急冻鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "れいとうポケモン",
+    "ko": "냉동포켓몬",
+    "zh_hant": "冰凍寶可夢",
+    "fr": "Pokémon Glaciaire",
+    "de": "Eis-Pokémon",
+    "es": "Pokémon Congelar",
+    "it": "Pokémon Gelo",
+    "en": "Freeze Pokémon",
+    "ja": "れいとうポケモン",
+    "zh_hans": "冰冻宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ice",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 85,
+    "def": 100,
+    "spa": 95,
+    "spd": 125,
+    "spe": 85,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "snow_cloak"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "articuno-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "articuno",
+    "evolution": "articuno",
+    "media": "articuno"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 55.4,
+    "color": "blue",
+    "flavorText": "A legendary bird POKéMON that is said to appear to doomed people who are lost in icy mountains."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

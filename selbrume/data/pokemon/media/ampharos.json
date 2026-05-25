@@ -1,0 +1,30 @@
+{
+  "speciesId": "ampharos",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ampharos/front.png",
+      "backStatic": "assets/pokemon/sprites/ampharos/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ampharos/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ampharos/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ampharos.png",
+      "cry": "assets/pokemon/cries/ampharos.ogg",
+      "animations": {}
+    },
+    "ampharos-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

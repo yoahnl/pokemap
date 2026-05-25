@@ -1,0 +1,18 @@
+{
+  "speciesId": "nihilego",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nihilego/front.png",
+      "backStatic": "assets/pokemon/sprites/nihilego/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/nihilego/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/nihilego/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nihilego.png",
+      "cry": "assets/pokemon/cries/nihilego.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "hydreigon",
+  "slug": "hydreigon",
+  "nationalDex": 635,
+  "names": {
+    "ja_hrkt": "サザンドラ",
+    "ja_roma": "Sazandora",
+    "ko": "삼삼드래",
+    "zh_hant": "三首惡龍",
+    "fr": "Trioxhydre",
+    "de": "Trikephalo",
+    "es": "Hydreigon",
+    "it": "Hydreigon",
+    "en": "Hydreigon",
+    "ja": "サザンドラ",
+    "zh_hans": "三首恶龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "きょうぼうポケモン",
+    "ko": "난폭포켓몬",
+    "zh_hant": "凶暴寶可夢",
+    "fr": "Pokémon Brutal",
+    "de": "Brutal-Pokémon",
+    "es": "Pokémon Voraz",
+    "it": "Pokémon Brutale",
+    "en": "Brutal Pokémon",
+    "ja": "きょうぼうポケモン",
+    "zh_hans": "凶暴宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dark",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 92,
+    "atk": 105,
+    "def": 90,
+    "spa": 125,
+    "spd": 90,
+    "spe": 98,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hydreigon",
+    "evolution": "hydreigon",
+    "media": "hydreigon"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 160.0,
+    "color": "blue",
+    "flavorText": "This brutal Pokémon travels the skies on its six wings. Anything that moves seems like a foe to it, triggering its attack."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

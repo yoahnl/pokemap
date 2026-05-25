@@ -1,0 +1,97 @@
+{
+  "id": "duskull",
+  "slug": "duskull",
+  "nationalDex": 355,
+  "names": {
+    "ja_hrkt": "ヨマワル",
+    "ja_roma": "Yomawaru",
+    "ko": "해골몽",
+    "zh_hant": "夜巡靈",
+    "fr": "Skelénox",
+    "de": "Zwirrlicht",
+    "es": "Duskull",
+    "it": "Duskull",
+    "en": "Duskull",
+    "ja": "ヨマワル",
+    "zh_hans": "夜巡灵"
+  },
+  "speciesName": {
+    "ja_hrkt": "おむかえポケモン",
+    "ko": "마중포켓몬",
+    "zh_hant": "渡魂寶可夢",
+    "fr": "Pokémon Requiem",
+    "de": "Requiem-Pokémon",
+    "es": "Pokémon Réquiem",
+    "it": "Pokémon Requiem",
+    "en": "Requiem Pokémon",
+    "ja": "おむかえポケモン",
+    "zh_hans": "渡魂宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 20,
+    "atk": 40,
+    "def": 90,
+    "spa": 30,
+    "spd": 90,
+    "spe": 25,
+    "bst": 295
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 59,
+    "catchRate": 190,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "duskull",
+    "evolution": "duskull",
+    "media": "duskull"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 15.0,
+    "color": "black",
+    "flavorText": "DUSKULL can pass through any wall no matter how thick it may be. Once this POKéMON chooses a target, it will doggedly pursue the intended victim until the break of dawn."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

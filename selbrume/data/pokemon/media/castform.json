@@ -1,0 +1,54 @@
+{
+  "speciesId": "castform",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/castform/front.png",
+      "backStatic": "assets/pokemon/sprites/castform/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/castform/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/castform/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/castform.png",
+      "cry": "assets/pokemon/cries/castform.ogg",
+      "animations": {}
+    },
+    "castform-rainy": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "castform-snowy": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "castform-sunny": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

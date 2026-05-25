@@ -1,0 +1,98 @@
+{
+  "id": "probopass",
+  "slug": "probopass",
+  "nationalDex": 476,
+  "names": {
+    "ja_hrkt": "ダイノーズ",
+    "ja_roma": "Dainose",
+    "ko": "대코파스",
+    "zh_hant": "大朝北鼻",
+    "fr": "Tarinorme",
+    "de": "Voluminas",
+    "es": "Probopass",
+    "it": "Probopass",
+    "en": "Probopass",
+    "ja": "ダイノーズ",
+    "zh_hans": "大朝北鼻"
+  },
+  "speciesName": {
+    "ja_hrkt": "コンパスポケモン",
+    "ko": "콤파스포켓몬",
+    "zh_hant": "羅盤寶可夢",
+    "fr": "Pokémon Boussole",
+    "de": "Kompass",
+    "es": "Pokémon Brújula",
+    "it": "Pokémon Bussola",
+    "en": "Compass Pokémon",
+    "ja": "コンパスポケモン",
+    "zh_hans": "罗盘宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "rock",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 55,
+    "def": 145,
+    "spa": 75,
+    "spd": 150,
+    "spe": 40,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": "magnet_pull",
+    "hidden": "sand_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 184,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "probopass",
+    "evolution": "probopass",
+    "media": "probopass"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 340.0,
+    "color": "gray",
+    "flavorText": "It freely controls three small units called Mini-Noses using magnetic force."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

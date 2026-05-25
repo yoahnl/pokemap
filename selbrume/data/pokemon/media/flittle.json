@@ -1,0 +1,18 @@
+{
+  "speciesId": "flittle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/flittle/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/flittle/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/flittle.png",
+      "cry": "assets/pokemon/cries/flittle.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "cubchoo",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "beartic",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

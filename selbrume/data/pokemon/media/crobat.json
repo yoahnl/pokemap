@@ -1,0 +1,18 @@
+{
+  "speciesId": "crobat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/crobat/front.png",
+      "backStatic": "assets/pokemon/sprites/crobat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/crobat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/crobat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/crobat.png",
+      "cry": "assets/pokemon/cries/crobat.ogg",
+      "animations": {}
+    }
+  }
+}

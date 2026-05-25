@@ -1,0 +1,18 @@
+{
+  "speciesId": "munna",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/munna/front.png",
+      "backStatic": "assets/pokemon/sprites/munna/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/munna/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/munna/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/munna.png",
+      "cry": "assets/pokemon/cries/munna.ogg",
+      "animations": {}
+    }
+  }
+}

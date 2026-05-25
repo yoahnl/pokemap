@@ -1,0 +1,18 @@
+{
+  "speciesId": "mudkip",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mudkip/front.png",
+      "backStatic": "assets/pokemon/sprites/mudkip/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mudkip/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mudkip/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mudkip.png",
+      "cry": "assets/pokemon/cries/mudkip.ogg",
+      "animations": {}
+    }
+  }
+}

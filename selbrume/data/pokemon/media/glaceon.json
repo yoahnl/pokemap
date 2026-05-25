@@ -1,0 +1,18 @@
+{
+  "speciesId": "glaceon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/glaceon/front.png",
+      "backStatic": "assets/pokemon/sprites/glaceon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/glaceon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/glaceon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/glaceon.png",
+      "cry": "assets/pokemon/cries/glaceon.ogg",
+      "animations": {}
+    }
+  }
+}

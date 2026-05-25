@@ -1,0 +1,30 @@
+{
+  "speciesId": "sandshrew",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sandshrew/front.png",
+      "backStatic": "assets/pokemon/sprites/sandshrew/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sandshrew/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sandshrew/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sandshrew.png",
+      "cry": "assets/pokemon/cries/sandshrew.ogg",
+      "animations": {}
+    },
+    "sandshrew-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

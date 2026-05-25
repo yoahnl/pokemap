@@ -1,0 +1,99 @@
+{
+  "id": "manectric",
+  "slug": "manectric",
+  "nationalDex": 310,
+  "names": {
+    "ja_hrkt": "ライボルト",
+    "ja_roma": "Livolt",
+    "ko": "썬더볼트",
+    "zh_hant": "雷電獸",
+    "fr": "Élecsprint",
+    "de": "Voltenso",
+    "es": "Manectric",
+    "it": "Manectric",
+    "en": "Manectric",
+    "ja": "ライボルト",
+    "zh_hans": "雷电兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほうでんポケモン",
+    "ko": "방전포켓몬",
+    "zh_hant": "放電寶可夢",
+    "fr": "Pokémon Décharge",
+    "de": "Entladungs-Pokémon",
+    "es": "Pokémon Descarga",
+    "it": "Pokémon Scossa",
+    "en": "Discharge Pokémon",
+    "ja": "ほうでんポケモン",
+    "zh_hans": "放电宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 75,
+    "def": 60,
+    "spa": 105,
+    "spd": 60,
+    "spe": 105,
+    "bst": 475
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": "lightning_rod",
+    "hidden": "minus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 166,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "manectric-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "manectric",
+    "evolution": "manectric",
+    "media": "manectric"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 40.2,
+    "color": "yellow",
+    "flavorText": "MANECTRIC is constantly discharging electricity from its mane. The sparks sometimes ignite forest fires. When it enters a battle, this POKéMON creates thunderclouds."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

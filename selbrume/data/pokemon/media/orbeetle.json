@@ -1,0 +1,18 @@
+{
+  "speciesId": "orbeetle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/orbeetle/front.png",
+      "backStatic": "assets/pokemon/sprites/orbeetle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/orbeetle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/orbeetle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/orbeetle.png",
+      "cry": "assets/pokemon/cries/orbeetle.ogg",
+      "animations": {}
+    }
+  }
+}

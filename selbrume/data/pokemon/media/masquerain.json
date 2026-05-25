@@ -1,0 +1,18 @@
+{
+  "speciesId": "masquerain",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/masquerain/front.png",
+      "backStatic": "assets/pokemon/sprites/masquerain/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/masquerain/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/masquerain/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/masquerain.png",
+      "cry": "assets/pokemon/cries/masquerain.ogg",
+      "animations": {}
+    }
+  }
+}

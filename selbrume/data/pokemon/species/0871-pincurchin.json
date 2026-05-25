@@ -1,0 +1,98 @@
+{
+  "id": "pincurchin",
+  "slug": "pincurchin",
+  "nationalDex": 871,
+  "names": {
+    "ja_hrkt": "バチンウニ",
+    "ja_roma": "Bachinuni",
+    "ko": "찌르성게",
+    "zh_hant": "啪嚓海膽",
+    "fr": "Wattapik",
+    "de": "Britzigel",
+    "es": "Pincurchin",
+    "it": "Pincurchin",
+    "en": "Pincurchin",
+    "ja": "バチンウニ",
+    "zh_hans": "啪嚓海胆"
+  },
+  "speciesName": {
+    "ja_hrkt": "うにポケモン",
+    "ko": "성게포켓몬",
+    "zh_hant": "海膽寶可夢",
+    "fr": "Pokémon Oursin",
+    "de": "Seeigel-Pokémon",
+    "es": "Pokémon Erizo de Mar",
+    "it": "Pokémon Echino",
+    "en": "Sea Urchin Pokémon",
+    "ja": "うにポケモン",
+    "zh_hans": "海胆宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 48,
+    "atk": 101,
+    "def": 95,
+    "spa": 91,
+    "spd": 85,
+    "spe": 15,
+    "bst": 435
+  },
+  "abilities": {
+    "primary": "lightning_rod",
+    "secondary": null,
+    "hidden": "electric_surge"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 152,
+    "catchRate": 75,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pincurchin",
+    "evolution": "pincurchin",
+    "media": "pincurchin"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.0,
+    "color": "purple",
+    "flavorText": "It feeds on seaweed, using its teeth to scrape it off rocks. Electric current flows from the tips of its spines."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

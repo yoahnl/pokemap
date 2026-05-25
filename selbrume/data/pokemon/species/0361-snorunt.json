@@ -1,0 +1,98 @@
+{
+  "id": "snorunt",
+  "slug": "snorunt",
+  "nationalDex": 361,
+  "names": {
+    "ja_hrkt": "ユキワラシ",
+    "ja_roma": "Yukiwarashi",
+    "ko": "눈꼬마",
+    "zh_hant": "雪童子",
+    "fr": "Stalgamin",
+    "de": "Schneppke",
+    "es": "Snorunt",
+    "it": "Snorunt",
+    "en": "Snorunt",
+    "ja": "ユキワラシ",
+    "zh_hans": "雪童子"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゆきかさポケモン",
+    "ko": "눈우산포켓몬",
+    "zh_hant": "雪笠寶可夢",
+    "fr": "Pokémon Capuche",
+    "de": "Schneehut-Pokémon",
+    "es": "Pokémon Gorro Nieve",
+    "it": "Pokémon Cappelneve",
+    "en": "Snow Hat Pokémon",
+    "ja": "ゆきかさポケモン",
+    "zh_hans": "雪笠宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 50,
+    "def": 50,
+    "spa": 50,
+    "spd": 50,
+    "spe": 50,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "inner_focus",
+    "secondary": "ice_body",
+    "hidden": "moody"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 60,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "snorunt",
+    "evolution": "snorunt",
+    "media": "snorunt"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 16.8,
+    "color": "gray",
+    "flavorText": "SNORUNT live in regions with heavy snowfall. In seasons without snow, such as spring and summer, this POKéMON steals away to live quietly among stalactites and stalagmites deep in caverns."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

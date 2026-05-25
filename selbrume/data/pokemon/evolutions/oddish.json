@@ -1,0 +1,14 @@
+{
+  "speciesId": "oddish",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "gloom",
+      "method": "level_up",
+      "minLevel": 21,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

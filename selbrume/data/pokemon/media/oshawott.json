@@ -1,0 +1,18 @@
+{
+  "speciesId": "oshawott",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/oshawott/front.png",
+      "backStatic": "assets/pokemon/sprites/oshawott/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/oshawott/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/oshawott/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/oshawott.png",
+      "cry": "assets/pokemon/cries/oshawott.ogg",
+      "animations": {}
+    }
+  }
+}

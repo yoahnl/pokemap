@@ -1,0 +1,18 @@
+{
+  "speciesId": "bronzor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bronzor/front.png",
+      "backStatic": "assets/pokemon/sprites/bronzor/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bronzor/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bronzor/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bronzor.png",
+      "cry": "assets/pokemon/cries/bronzor.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "speciesId": "lilligant",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lilligant/front.png",
+      "backStatic": "assets/pokemon/sprites/lilligant/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lilligant/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lilligant/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lilligant.png",
+      "cry": "assets/pokemon/cries/lilligant.ogg",
+      "animations": {}
+    },
+    "lilligant-hisui": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

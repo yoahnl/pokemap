@@ -1,0 +1,14 @@
+{
+  "speciesId": "slugma",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "magcargo",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

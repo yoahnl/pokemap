@@ -1,0 +1,98 @@
+{
+  "id": "nidoqueen",
+  "slug": "nidoqueen",
+  "nationalDex": 31,
+  "names": {
+    "ja_hrkt": "ニドクイン",
+    "ja_roma": "Nidoqueen",
+    "ko": "니드퀸",
+    "zh_hant": "尼多后",
+    "fr": "Nidoqueen",
+    "de": "Nidoqueen",
+    "es": "Nidoqueen",
+    "it": "Nidoqueen",
+    "en": "Nidoqueen",
+    "ja": "ニドクイン",
+    "zh_hans": "尼多后"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドリルポケモン",
+    "ko": "드릴포켓몬",
+    "zh_hant": "鑽錐寶可夢",
+    "fr": "Pokémon Perceur",
+    "de": "Bohrer-Pokémon",
+    "es": "Pokémon Taladro",
+    "it": "Pokémon Trapano",
+    "en": "Drill Pokémon",
+    "ja": "ドリルポケモン",
+    "zh_hans": "钻锥宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "poison",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 92,
+    "def": 87,
+    "spa": 75,
+    "spd": 85,
+    "spe": 76,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "poison_point",
+    "secondary": "rivalry",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 227,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nidoqueen",
+    "evolution": "nidoqueen",
+    "media": "nidoqueen"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 60.0,
+    "color": "blue",
+    "flavorText": "Its hard scales provide strong protection. It uses its hefty bulk to execute powerful moves."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

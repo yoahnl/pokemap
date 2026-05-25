@@ -1,0 +1,18 @@
+{
+  "speciesId": "seadra",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/seadra/front.png",
+      "backStatic": "assets/pokemon/sprites/seadra/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/seadra/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/seadra/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/seadra.png",
+      "cry": "assets/pokemon/cries/seadra.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "flaaffy",
+  "slug": "flaaffy",
+  "nationalDex": 180,
+  "names": {
+    "ja_hrkt": "モココ",
+    "ja_roma": "Mokoko",
+    "ko": "보송송",
+    "zh_hant": "茸茸羊",
+    "fr": "Lainergie",
+    "de": "Waaty",
+    "es": "Flaaffy",
+    "it": "Flaaffy",
+    "en": "Flaaffy",
+    "ja": "モココ",
+    "zh_hans": "茸茸羊"
+  },
+  "speciesName": {
+    "ja_hrkt": "わたげポケモン",
+    "ko": "솜털포켓몬",
+    "zh_hant": "綿毛寶可夢",
+    "fr": "Pokémon Laine",
+    "de": "Wolle",
+    "es": "Pokémon Lana",
+    "it": "Pokémon Lana",
+    "en": "Wool Pokémon",
+    "ja": "わたげポケモン",
+    "zh_hans": "绵毛宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 55,
+    "def": 55,
+    "spa": 80,
+    "spd": 60,
+    "spe": 45,
+    "bst": 365
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": null,
+    "hidden": "plus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 128,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "flaaffy",
+    "evolution": "flaaffy",
+    "media": "flaaffy"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 13.3,
+    "color": "pink",
+    "flavorText": "As a result of storing too much electricity, it developed patches where even downy wool won't grow."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

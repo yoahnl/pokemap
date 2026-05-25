@@ -1,0 +1,101 @@
+{
+  "id": "croconaw",
+  "slug": "croconaw",
+  "nationalDex": 159,
+  "names": {
+    "ja_hrkt": "アリゲイツ",
+    "ja_roma": "Alligates",
+    "ko": "엘리게이",
+    "zh_hant": "藍鱷",
+    "fr": "Crocrodil",
+    "de": "Tyracroc",
+    "es": "Croconaw",
+    "it": "Croconaw",
+    "en": "Croconaw",
+    "ja": "アリゲイツ",
+    "zh_hans": "蓝鳄"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおあごポケモン",
+    "ko": "큰턱포켓몬",
+    "zh_hant": "大顎寶可夢",
+    "fr": "Pokémon Mâchoire",
+    "de": "Großmaul",
+    "es": "Pokémon Fauces",
+    "it": "Pokémon Mascellone",
+    "en": "Big Jaw Pokémon",
+    "ja": "おおあごポケモン",
+    "zh_hans": "大颚宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 80,
+    "def": 80,
+    "spa": 59,
+    "spd": 63,
+    "spe": 58,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "croconaw",
+    "evolution": "croconaw",
+    "media": "croconaw"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 25.0,
+    "color": "blue",
+    "flavorText": "If it loses a fang, a new one grows back in its place. There are always 48 fangs lining its mouth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "speciesId": "phione",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "manaphy",
+      "method": "unknown",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Evolution condition unspecified in source payload."
+      }
+    }
+  ]
+}

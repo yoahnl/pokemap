@@ -1,0 +1,18 @@
+{
+  "speciesId": "clefairy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/clefairy/front.png",
+      "backStatic": "assets/pokemon/sprites/clefairy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/clefairy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/clefairy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/clefairy.png",
+      "cry": "assets/pokemon/cries/clefairy.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,434 @@
+{
+  "speciesId": "barraskewda",
+  "startingMoves": [
+    "aqua_jet",
+    "bite",
+    "fury_attack",
+    "peck",
+    "throat_chop"
+  ],
+  "relearnMoves": [
+    "aqua_jet",
+    "bite",
+    "fury_attack",
+    "peck",
+    "throat_chop"
+  ],
+  "levelUp": [
+    {
+      "moveId": "aqua_jet",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "aqua_jet",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "bite",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bite",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fury_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fury_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "peck",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "peck",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "throat_chop",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "throat_chop",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "agility",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "agility",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dive",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dive",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "focus_energy",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "laser_focus",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "crunch",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "crunch",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "liquidation",
+      "level": 48,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "liquidation",
+      "level": 48,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "agility",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "agility",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "assurance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bounce",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "chilling_water",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "close_combat",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "close_combat",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "crunch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "crunch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "drill_run",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "drill_run",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flip_turn",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "focus_energy",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hydro_pump",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hydro_pump",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ice_fang",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ice_fang",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "liquidation",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "liquidation",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "poison_jab",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "poison_jab",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "psychic_fangs",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "psychic_fangs",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "scald",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "scale_shot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "scary_face",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "scary_face",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "throat_chop",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "throat_chop",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "whirlpool",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "whirlpool",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "flip_turn",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "scale_shot",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

@@ -1,0 +1,100 @@
+{
+  "id": "staraptor",
+  "slug": "staraptor",
+  "nationalDex": 398,
+  "names": {
+    "ja_hrkt": "ムクホーク",
+    "ja_roma": "Mukuhawk",
+    "ko": "찌르호크",
+    "zh_hant": "姆克鷹",
+    "fr": "Étouraptor",
+    "de": "Staraptor",
+    "es": "Staraptor",
+    "it": "Staraptor",
+    "en": "Staraptor",
+    "ja": "ムクホーク",
+    "zh_hans": "姆克鹰"
+  },
+  "speciesName": {
+    "ja_hrkt": "もうきんポケモン",
+    "ko": "맹금포켓몬",
+    "zh_hant": "猛禽寶可夢",
+    "fr": "Pokémon Rapace",
+    "de": "Raubtier",
+    "es": "Pokémon Depredador",
+    "it": "Pokémon Rapace",
+    "en": "Predator Pokémon",
+    "ja": "もうきんポケモン",
+    "zh_hans": "猛禽宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 120,
+    "def": 70,
+    "spa": 50,
+    "spd": 60,
+    "spe": 100,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": null,
+    "hidden": "reckless"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 218,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "staraptor-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "staraptor",
+    "evolution": "staraptor",
+    "media": "staraptor"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 24.9,
+    "color": "brown",
+    "flavorText": "It has a savage nature. It will courageously challenge foes that are much larger."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

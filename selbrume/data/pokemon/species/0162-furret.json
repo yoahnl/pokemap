@@ -1,0 +1,97 @@
+{
+  "id": "furret",
+  "slug": "furret",
+  "nationalDex": 162,
+  "names": {
+    "ja_hrkt": "オオタチ",
+    "ja_roma": "Ootachi",
+    "ko": "다꼬리",
+    "zh_hant": "大尾立",
+    "fr": "Fouinar",
+    "de": "Wiesenior",
+    "es": "Furret",
+    "it": "Furret",
+    "en": "Furret",
+    "ja": "オオタチ",
+    "zh_hans": "大尾立"
+  },
+  "speciesName": {
+    "ja_hrkt": "どうながポケモン",
+    "ko": "긴몸통포켓몬",
+    "zh_hant": "長軀幹寶可夢",
+    "fr": "Pokémon Allongé",
+    "de": "Langleib",
+    "es": "Pokémon Alargado",
+    "it": "Pokémon Lungocorpo",
+    "en": "Long Body Pokémon",
+    "ja": "どうながポケモン",
+    "zh_hans": "长躯干宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 76,
+    "def": 64,
+    "spa": 45,
+    "spd": 55,
+    "spe": 90,
+    "bst": 415
+  },
+  "abilities": {
+    "primary": "run_away",
+    "secondary": "keen_eye",
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 145,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "furret",
+    "evolution": "furret",
+    "media": "furret"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 32.5,
+    "color": "brown",
+    "flavorText": "It makes a nest to suit its long and skinny body. The nest is impossible for other POKéMON to enter."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

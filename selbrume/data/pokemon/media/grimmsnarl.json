@@ -1,0 +1,18 @@
+{
+  "speciesId": "grimmsnarl",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/grimmsnarl/front.png",
+      "backStatic": "assets/pokemon/sprites/grimmsnarl/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/grimmsnarl/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/grimmsnarl/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/grimmsnarl.png",
+      "cry": "assets/pokemon/cries/grimmsnarl.ogg",
+      "animations": {}
+    }
+  }
+}

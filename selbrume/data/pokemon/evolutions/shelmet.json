@@ -1,0 +1,16 @@
+{
+  "speciesId": "shelmet",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "accelgor",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Trade species: karrablast"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "litten",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "torracat",
+      "method": "level_up",
+      "minLevel": 17,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

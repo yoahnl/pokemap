@@ -1,0 +1,18 @@
+{
+  "speciesId": "spheal",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spheal/front.png",
+      "backStatic": "assets/pokemon/sprites/spheal/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spheal/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spheal/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spheal.png",
+      "cry": "assets/pokemon/cries/spheal.ogg",
+      "animations": {}
+    }
+  }
+}

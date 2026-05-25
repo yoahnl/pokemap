@@ -1,0 +1,100 @@
+{
+  "id": "marshadow",
+  "slug": "marshadow",
+  "nationalDex": 802,
+  "names": {
+    "ja_hrkt": "マーシャドー",
+    "ja_roma": "Marshadow",
+    "ko": "마샤도",
+    "zh_hant": "瑪夏多",
+    "fr": "Marshadow",
+    "de": "Marshadow",
+    "es": "Marshadow",
+    "it": "Marshadow",
+    "en": "Marshadow",
+    "ja": "マーシャドー",
+    "zh_hans": "玛夏多"
+  },
+  "speciesName": {
+    "ja_hrkt": "かげすみポケモン",
+    "ko": "그림자살이포켓몬",
+    "zh_hant": "棲影寶可夢",
+    "fr": "Pokémon Ombrefuge",
+    "de": "Dunkelwesen-Pokémon",
+    "es": "Pokémon Morasombra",
+    "it": "Pokémon Vivinombra",
+    "en": "Gloomdweller Pokémon",
+    "ja": "かげすみポケモン",
+    "zh_hans": "栖影宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fighting",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 125,
+    "def": 80,
+    "spa": 90,
+    "spd": 90,
+    "spe": 125,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "technician",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "marshadow",
+    "evolution": "marshadow",
+    "media": "marshadow"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 22.2,
+    "color": "gray",
+    "flavorText": "Able to conceal itself in shadows, it never appears before humans, so its very existence was the stuff of myth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

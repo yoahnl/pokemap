@@ -1,0 +1,101 @@
+{
+  "id": "serperior",
+  "slug": "serperior",
+  "nationalDex": 497,
+  "names": {
+    "ja_hrkt": "ジャローダ",
+    "ja_roma": "Jalorda",
+    "ko": "샤로다",
+    "zh_hant": "君主蛇",
+    "fr": "Majaspic",
+    "de": "Serpiroyal",
+    "es": "Serperior",
+    "it": "Serperior",
+    "en": "Serperior",
+    "ja": "ジャローダ",
+    "zh_hans": "君主蛇"
+  },
+  "speciesName": {
+    "ja_hrkt": "ロイヤルポケモン",
+    "ko": "로열포켓몬",
+    "zh_hant": "皇家寶可夢",
+    "fr": "Pokémon Majestueux",
+    "de": "Hoheit",
+    "es": "Pokémon Realeza",
+    "it": "Pokémon Regale",
+    "en": "Regal Pokémon",
+    "ja": "ロイヤルポケモン",
+    "zh_hans": "皇家宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 75,
+    "def": 95,
+    "spa": 75,
+    "spd": 95,
+    "spe": 113,
+    "bst": 528
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "contrary"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 238,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "serperior",
+    "evolution": "serperior",
+    "media": "serperior"
+  },
+  "dexContent": {
+    "heightM": 3.3,
+    "weightKg": 63.0,
+    "color": "green",
+    "flavorText": "It can stop its opponents’ movements with just a glare. It takes in solar energy and boosts it internally."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

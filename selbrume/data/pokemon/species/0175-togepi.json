@@ -1,0 +1,100 @@
+{
+  "id": "togepi",
+  "slug": "togepi",
+  "nationalDex": 175,
+  "names": {
+    "ja_hrkt": "トゲピー",
+    "ja_roma": "Togepy",
+    "ko": "토게피",
+    "zh_hant": "波克比",
+    "fr": "Togepi",
+    "de": "Togepi",
+    "es": "Togepi",
+    "it": "Togepi",
+    "en": "Togepi",
+    "ja": "トゲピー",
+    "zh_hans": "波克比"
+  },
+  "speciesName": {
+    "ja_hrkt": "はりたまポケモン",
+    "ko": "바늘알포켓몬",
+    "zh_hant": "針球寶可夢",
+    "fr": "Pokémon Balle Pic",
+    "de": "Zackenball-Pokémon",
+    "es": "Pokémon Bolaclavos",
+    "it": "Pokémon Pallapunte",
+    "en": "Spike Ball Pokémon",
+    "ja": "はりたまポケモン",
+    "zh_hans": "针球宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 20,
+    "def": 65,
+    "spa": 40,
+    "spd": 65,
+    "spe": 20,
+    "bst": 245
+  },
+  "abilities": {
+    "primary": "hustle",
+    "secondary": "serene_grace",
+    "hidden": "super_luck"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 49,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "togepi",
+    "evolution": "togepi",
+    "media": "togepi"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.5,
+    "color": "white",
+    "flavorText": "The shell seems to be filled with joy. It is said that it will share good luck when treated kindly."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

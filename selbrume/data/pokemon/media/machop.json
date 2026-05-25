@@ -1,0 +1,18 @@
+{
+  "speciesId": "machop",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/machop/front.png",
+      "backStatic": "assets/pokemon/sprites/machop/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/machop/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/machop/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/machop.png",
+      "cry": "assets/pokemon/cries/machop.ogg",
+      "animations": {}
+    }
+  }
+}

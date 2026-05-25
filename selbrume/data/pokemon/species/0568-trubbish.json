@@ -1,0 +1,97 @@
+{
+  "id": "trubbish",
+  "slug": "trubbish",
+  "nationalDex": 568,
+  "names": {
+    "ja_hrkt": "ヤブクロン",
+    "ja_roma": "Yabukuron",
+    "ko": "깨봉이",
+    "zh_hant": "破破袋",
+    "fr": "Miamiasme",
+    "de": "Unratütox",
+    "es": "Trubbish",
+    "it": "Trubbish",
+    "en": "Trubbish",
+    "ja": "ヤブクロン",
+    "zh_hans": "破破袋"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゴミぶくろポケモン",
+    "ko": "쓰레기봉투포켓몬",
+    "zh_hant": "垃圾袋寶可夢",
+    "fr": "Pokémon Sac Poubelle",
+    "de": "Mülltüten-Pokémon",
+    "es": "Pokémon Bolsa Basura",
+    "it": "Pokémon Spazzatura",
+    "en": "Trash Bag Pokémon",
+    "ja": "ゴミぶくろポケモン",
+    "zh_hans": "垃圾袋宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 50,
+    "def": 62,
+    "spa": 40,
+    "spd": 62,
+    "spe": 65,
+    "bst": 329
+  },
+  "abilities": {
+    "primary": "stench",
+    "secondary": "sticky_hold",
+    "hidden": "aftermath"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 66,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "trubbish",
+    "evolution": "trubbish",
+    "media": "trubbish"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 31.0,
+    "color": "green",
+    "flavorText": "Inhaling the gas they belch will make you sleep for a week. They prefer unsanitary places."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

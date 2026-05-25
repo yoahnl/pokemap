@@ -1,0 +1,530 @@
+{
+  "speciesId": "blacephalon",
+  "startingMoves": [
+    "astonish",
+    "ember",
+    "fire_spin"
+  ],
+  "relearnMoves": [
+    "astonish",
+    "ember",
+    "fire_spin"
+  ],
+  "levelUp": [
+    {
+      "moveId": "astonish",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "astonish",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "ember",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_spin",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "magic_coat",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "ember",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stored_power",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "night_shade",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flame_burst",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "confuse_ray",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "night_shade",
+      "level": 23,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "magic_coat",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "incinerate",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "calm_mind",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hypnosis",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_blast",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "mystical_fire",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_ball",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "shadow_ball",
+      "level": 45,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "trick",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "calm_mind",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mind_blown",
+      "level": 59,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "trick",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_blast",
+      "level": 65,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mind_blown",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dark_pulse",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dark_pulse",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "explosion",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_spin",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "foul_play",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "mystical_fire",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "payback",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "payback",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "quash",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rock_blast",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "self_destruct",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_ball",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stored_power",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "torment",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "trick",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "zen_headbutt",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "after_you",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "expanding_force",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "foul_play",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "last_resort",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "pain_split",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "recycle",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "spite",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "trick",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

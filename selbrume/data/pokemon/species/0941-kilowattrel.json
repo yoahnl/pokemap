@@ -1,0 +1,96 @@
+{
+  "id": "kilowattrel",
+  "slug": "kilowattrel",
+  "nationalDex": 941,
+  "names": {
+    "ja_hrkt": "タイカイデン",
+    "ja_roma": "Taikaiden",
+    "ko": "찌리비크",
+    "zh_hant": "大電海燕",
+    "fr": "Fulgulairo",
+    "de": "Voltrean",
+    "es": "Kilowattrel",
+    "it": "Kilowattrel",
+    "en": "Kilowattrel",
+    "ja": "タイカイデン",
+    "zh_hans": "大电海燕"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぐんかんどりポケモン",
+    "ko": "군함조포켓몬",
+    "zh_hant": "軍艦鳥寶可夢",
+    "fr": "Frégate",
+    "de": "Fregattvogel",
+    "en": "Frigatebird Pokémon",
+    "zh_hans": "军舰鸟宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "electric",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 70,
+    "def": 60,
+    "spa": 105,
+    "spd": 60,
+    "spe": 125,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "wind_power",
+    "secondary": "volt_absorb",
+    "hidden": "competitive"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 172,
+    "catchRate": 90,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "kilowattrel",
+    "evolution": "kilowattrel",
+    "media": "kilowattrel"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 38.6,
+    "color": "yellow",
+    "flavorText": "Kilowattrel inflates its throat sac to amplify its electricity. By riding the wind, this Pokémon can fly over 430 miles in a day."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

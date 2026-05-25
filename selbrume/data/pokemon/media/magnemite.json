@@ -1,0 +1,18 @@
+{
+  "speciesId": "magnemite",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magnemite/front.png",
+      "backStatic": "assets/pokemon/sprites/magnemite/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magnemite/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magnemite/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magnemite.png",
+      "cry": "assets/pokemon/cries/magnemite.ogg",
+      "animations": {}
+    }
+  }
+}

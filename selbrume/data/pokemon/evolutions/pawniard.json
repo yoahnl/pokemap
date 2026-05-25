@@ -1,0 +1,14 @@
+{
+  "speciesId": "pawniard",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "bisharp",
+      "method": "level_up",
+      "minLevel": 52,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

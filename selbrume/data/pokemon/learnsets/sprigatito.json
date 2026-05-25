@@ -1,0 +1,256 @@
+{
+  "speciesId": "sprigatito",
+  "startingMoves": [
+    "leafage",
+    "scratch",
+    "tail_whip"
+  ],
+  "relearnMoves": [
+    "leafage",
+    "scratch",
+    "tail_whip"
+  ],
+  "levelUp": [
+    {
+      "moveId": "leafage",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "scratch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bite",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hone_claws",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "magical_leaf",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "quick_attack",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "seed_bomb",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "worry_seed",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "slash",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "energy_ball",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "play_rough",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "agility",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bullet_seed",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "charm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "disarming_voice",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fake_tears",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grass_pledge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_terrain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leaf_storm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "magical_leaf",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "mud_slap",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "nasty_plot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "petal_blizzard",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "play_rough",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "seed_bomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "shadow_claw",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "trailblaze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [],
+  "egg": [
+    {
+      "moveId": "ally_switch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "copycat",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leech_seed",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "petal_blizzard",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

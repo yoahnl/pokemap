@@ -1,0 +1,98 @@
+{
+  "id": "corphish",
+  "slug": "corphish",
+  "nationalDex": 341,
+  "names": {
+    "ja_hrkt": "ヘイガニ",
+    "ja_roma": "Heigani",
+    "ko": "가재군",
+    "zh_hant": "龍蝦小兵",
+    "fr": "Écrapince",
+    "de": "Krebscorps",
+    "es": "Corphish",
+    "it": "Corphish",
+    "en": "Corphish",
+    "ja": "ヘイガニ",
+    "zh_hans": "龙虾小兵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ごろつきポケモン",
+    "ko": "건달포켓몬",
+    "zh_hant": "無賴寶可夢",
+    "fr": "Pokémon Brute",
+    "de": "Grobian-Pokémon",
+    "es": "Pokémon Rufián",
+    "it": "Pokémon Birbone",
+    "en": "Ruffian Pokémon",
+    "ja": "ごろつきポケモン",
+    "zh_hans": "无赖宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 43,
+    "atk": 80,
+    "def": 65,
+    "spa": 50,
+    "spd": 35,
+    "spe": 35,
+    "bst": 308
+  },
+  "abilities": {
+    "primary": "hyper_cutter",
+    "secondary": "shell_armor",
+    "hidden": "adaptability"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 62,
+    "catchRate": 205,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "corphish",
+    "evolution": "corphish",
+    "media": "corphish"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 11.5,
+    "color": "red",
+    "flavorText": "Its hardy vitality enables it to adapt to any environment. Its pincers will never release prey."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

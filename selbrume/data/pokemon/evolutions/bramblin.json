@@ -1,0 +1,14 @@
+{
+  "speciesId": "bramblin",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "brambleghast",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "speciesId": "voltorb",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "electrode",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "electrode",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "leaf-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

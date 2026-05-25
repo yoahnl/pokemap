@@ -1,0 +1,18 @@
+{
+  "speciesId": "rufflet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rufflet/front.png",
+      "backStatic": "assets/pokemon/sprites/rufflet/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rufflet/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rufflet/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rufflet.png",
+      "cry": "assets/pokemon/cries/rufflet.ogg",
+      "animations": {}
+    }
+  }
+}

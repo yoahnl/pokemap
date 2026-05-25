@@ -1,0 +1,18 @@
+{
+  "speciesId": "luxio",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/luxio/front.png",
+      "backStatic": "assets/pokemon/sprites/luxio/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/luxio/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/luxio/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/luxio.png",
+      "cry": "assets/pokemon/cries/luxio.ogg",
+      "animations": {}
+    }
+  }
+}

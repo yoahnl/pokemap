@@ -1,0 +1,101 @@
+{
+  "id": "dragalge",
+  "slug": "dragalge",
+  "nationalDex": 691,
+  "names": {
+    "ja_hrkt": "ドラミドロ",
+    "ja_roma": "Dramidoro",
+    "ko": "드래캄",
+    "zh_hant": "毒藻龍",
+    "fr": "Kravarech",
+    "de": "Tandrak",
+    "es": "Dragalge",
+    "it": "Dragalge",
+    "en": "Dragalge",
+    "ja": "ドラミドロ",
+    "zh_hans": "毒藻龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "クサモドキポケモン",
+    "ko": "풀모방포켓몬",
+    "zh_hant": "似草寶可夢",
+    "fr": "Pokémon Simulalgue",
+    "de": "Tangmimikry-Pokémon",
+    "es": "Pokémon Pseudoalga",
+    "it": "Pokémon Similalga",
+    "en": "Mock Kelp Pokémon",
+    "ja": "クサモドキポケモン",
+    "zh_hans": "似草宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "poison",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 75,
+    "def": 90,
+    "spa": 97,
+    "spd": 123,
+    "spe": 44,
+    "bst": 494
+  },
+  "abilities": {
+    "primary": "poison_point",
+    "secondary": "poison_touch",
+    "hidden": "adaptability"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 173,
+    "catchRate": 55,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "dragalge-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dragalge",
+    "evolution": "dragalge",
+    "media": "dragalge"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 81.5,
+    "color": "brown",
+    "flavorText": "Their poison is strong enough to eat through the hull of a tanker, and they spit it indiscriminately at anything that enters their territory."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

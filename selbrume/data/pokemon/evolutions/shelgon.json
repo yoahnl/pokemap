@@ -1,0 +1,14 @@
+{
+  "speciesId": "shelgon",
+  "preEvolution": "bagon",
+  "evolutions": [
+    {
+      "targetSpeciesId": "salamence",
+      "method": "level_up",
+      "minLevel": 50,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

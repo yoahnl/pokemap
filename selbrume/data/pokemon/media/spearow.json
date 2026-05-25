@@ -1,0 +1,18 @@
+{
+  "speciesId": "spearow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spearow/front.png",
+      "backStatic": "assets/pokemon/sprites/spearow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spearow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spearow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spearow.png",
+      "cry": "assets/pokemon/cries/spearow.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "grovyle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/grovyle/front.png",
+      "backStatic": "assets/pokemon/sprites/grovyle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/grovyle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/grovyle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/grovyle.png",
+      "cry": "assets/pokemon/cries/grovyle.ogg",
+      "animations": {}
+    }
+  }
+}

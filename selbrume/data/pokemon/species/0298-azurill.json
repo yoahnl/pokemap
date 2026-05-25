@@ -1,0 +1,101 @@
+{
+  "id": "azurill",
+  "slug": "azurill",
+  "nationalDex": 298,
+  "names": {
+    "ja_hrkt": "ルリリ",
+    "ja_roma": "Ruriri",
+    "ko": "루리리",
+    "zh_hant": "露力麗",
+    "fr": "Azurill",
+    "de": "Azurill",
+    "es": "Azurill",
+    "it": "Azurill",
+    "en": "Azurill",
+    "ja": "ルリリ",
+    "zh_hans": "露力丽"
+  },
+  "speciesName": {
+    "ja_hrkt": "みずたまポケモン",
+    "ko": "물방울포켓몬",
+    "zh_hant": "水珠寶可夢",
+    "fr": "Pokémon Point Polka",
+    "de": "Gepunktet-Pokémon",
+    "es": "Pokémon A Topos",
+    "it": "Pokémon Pois",
+    "en": "Polka Dot Pokémon",
+    "ja": "みずたまポケモン",
+    "zh_hans": "水珠宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 20,
+    "def": 40,
+    "spa": 20,
+    "spd": 40,
+    "spe": 20,
+    "bst": 190
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "huge_power",
+    "hidden": "sap_sipper"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 38,
+    "catchRate": 150,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "azurill",
+    "evolution": "azurill",
+    "media": "azurill"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 2.0,
+    "color": "blue",
+    "flavorText": "A Pokémon that lives by water. It moves quickly on land by bouncing on its big tail."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

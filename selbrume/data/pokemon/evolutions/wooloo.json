@@ -1,0 +1,14 @@
+{
+  "speciesId": "wooloo",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dubwool",
+      "method": "level_up",
+      "minLevel": 24,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

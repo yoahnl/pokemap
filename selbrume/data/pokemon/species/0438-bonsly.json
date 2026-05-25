@@ -1,0 +1,97 @@
+{
+  "id": "bonsly",
+  "slug": "bonsly",
+  "nationalDex": 438,
+  "names": {
+    "ja_hrkt": "ウソハチ",
+    "ja_roma": "Usohachi",
+    "ko": "꼬지지",
+    "zh_hant": "盆才怪",
+    "fr": "Manzaï",
+    "de": "Mobai",
+    "es": "Bonsly",
+    "it": "Bonsly",
+    "en": "Bonsly",
+    "ja": "ウソハチ",
+    "zh_hans": "盆才怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぼんさいポケモン",
+    "ko": "분재포켓몬",
+    "zh_hant": "盆栽寶可夢",
+    "fr": "Pokémon Bonsaï",
+    "de": "Bonsai-Pokémon",
+    "es": "Pokémon Bonsái",
+    "it": "Pokémon Bonsai",
+    "en": "Bonsai Pokémon",
+    "ja": "ぼんさいポケモン",
+    "zh_hans": "盆栽宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 80,
+    "def": 95,
+    "spa": 10,
+    "spd": 45,
+    "spe": 10,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": "rock_head",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 58,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "bonsly",
+    "evolution": "bonsly",
+    "media": "bonsly"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 15.0,
+    "color": "brown",
+    "flavorText": "It looks as if it is always crying. It is actually adjusting its body’s fluid levels by eliminating excess."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

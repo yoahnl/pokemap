@@ -1,0 +1,18 @@
+{
+  "speciesId": "bisharp",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bisharp/front.png",
+      "backStatic": "assets/pokemon/sprites/bisharp/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bisharp/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bisharp/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bisharp.png",
+      "cry": "assets/pokemon/cries/bisharp.ogg",
+      "animations": {}
+    }
+  }
+}

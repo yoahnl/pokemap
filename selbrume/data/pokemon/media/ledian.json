@@ -1,0 +1,18 @@
+{
+  "speciesId": "ledian",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ledian/front.png",
+      "backStatic": "assets/pokemon/sprites/ledian/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ledian/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ledian/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ledian.png",
+      "cry": "assets/pokemon/cries/ledian.ogg",
+      "animations": {}
+    }
+  }
+}

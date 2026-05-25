@@ -1,0 +1,16 @@
+{
+  "speciesId": "swirlix",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "slurpuff",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: whipped-dream"
+      }
+    }
+  ]
+}

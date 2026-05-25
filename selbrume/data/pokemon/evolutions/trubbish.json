@@ -1,0 +1,14 @@
+{
+  "speciesId": "trubbish",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "garbodor",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

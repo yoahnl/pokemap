@@ -1,0 +1,18 @@
+{
+  "speciesId": "hatterene",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hatterene/front.png",
+      "backStatic": "assets/pokemon/sprites/hatterene/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hatterene/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hatterene/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hatterene.png",
+      "cry": "assets/pokemon/cries/hatterene.ogg",
+      "animations": {}
+    }
+  }
+}

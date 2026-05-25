@@ -1,0 +1,98 @@
+{
+  "id": "tentacruel",
+  "slug": "tentacruel",
+  "nationalDex": 73,
+  "names": {
+    "ja_hrkt": "ドククラゲ",
+    "ja_roma": "Dokukurage",
+    "ko": "독파리",
+    "zh_hant": "毒刺水母",
+    "fr": "Tentacruel",
+    "de": "Tentoxa",
+    "es": "Tentacruel",
+    "it": "Tentacruel",
+    "en": "Tentacruel",
+    "ja": "ドククラゲ",
+    "zh_hans": "毒刺水母"
+  },
+  "speciesName": {
+    "ja_hrkt": "くらげポケモン",
+    "ko": "해파리포켓몬",
+    "zh_hant": "水母寶可夢",
+    "fr": "Pokémon Mollusque",
+    "de": "Quallen-Pokémon",
+    "es": "Pokémon Medusa",
+    "it": "Pokémon Medusa",
+    "en": "Jellyfish Pokémon",
+    "ja": "くらげポケモン",
+    "zh_hans": "水母宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 70,
+    "def": 65,
+    "spa": 80,
+    "spd": 120,
+    "spe": 100,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": "liquid_ooze",
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 180,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tentacruel",
+    "evolution": "tentacruel",
+    "media": "tentacruel"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 55.0,
+    "color": "blue",
+    "flavorText": "The tentacles are normally kept short. On hunts, they are extended to ensnare and immobilize prey."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

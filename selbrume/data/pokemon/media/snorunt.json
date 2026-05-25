@@ -1,0 +1,18 @@
+{
+  "speciesId": "snorunt",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/snorunt/front.png",
+      "backStatic": "assets/pokemon/sprites/snorunt/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/snorunt/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/snorunt/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/snorunt.png",
+      "cry": "assets/pokemon/cries/snorunt.ogg",
+      "animations": {}
+    }
+  }
+}

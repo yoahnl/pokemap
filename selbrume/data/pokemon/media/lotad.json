@@ -1,0 +1,18 @@
+{
+  "speciesId": "lotad",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lotad/front.png",
+      "backStatic": "assets/pokemon/sprites/lotad/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lotad/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lotad/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lotad.png",
+      "cry": "assets/pokemon/cries/lotad.ogg",
+      "animations": {}
+    }
+  }
+}

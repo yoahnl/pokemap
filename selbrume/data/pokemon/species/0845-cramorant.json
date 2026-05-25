@@ -1,0 +1,102 @@
+{
+  "id": "cramorant",
+  "slug": "cramorant",
+  "nationalDex": 845,
+  "names": {
+    "ja_hrkt": "ウッウ",
+    "ja_roma": "Uu",
+    "ko": "윽우지",
+    "zh_hant": "古月鳥",
+    "fr": "Nigosier",
+    "de": "Urgl",
+    "es": "Cramorant",
+    "it": "Cramorant",
+    "en": "Cramorant",
+    "ja": "ウッウ",
+    "zh_hans": "古月鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "うのみポケモン",
+    "ko": "그대로삼키기포켓몬",
+    "zh_hant": "一口吞寶可夢",
+    "fr": "Pokémon Avaltouron",
+    "de": "Schling-Pokémon",
+    "es": "Pokémon Tragón",
+    "it": "Pokémon Inghiottone",
+    "en": "Gulp Pokémon",
+    "ja": "うのみポケモン",
+    "zh_hans": "一口吞宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "flying",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 85,
+    "def": 55,
+    "spa": 85,
+    "spd": 95,
+    "spe": 85,
+    "bst": 475
+  },
+  "abilities": {
+    "primary": "gulp_missile",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 166,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "cramorant-gorging",
+      "cramorant-gulping"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cramorant",
+    "evolution": "cramorant",
+    "media": "cramorant"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 18.0,
+    "color": "blue",
+    "flavorText": "It’s so strong that it can knock out some opponents in a single hit, but it also may forget what it’s battling midfight."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

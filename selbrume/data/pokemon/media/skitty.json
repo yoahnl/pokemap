@@ -1,0 +1,18 @@
+{
+  "speciesId": "skitty",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skitty/front.png",
+      "backStatic": "assets/pokemon/sprites/skitty/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/skitty/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/skitty/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skitty.png",
+      "cry": "assets/pokemon/cries/skitty.ogg",
+      "animations": {}
+    }
+  }
+}

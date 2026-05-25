@@ -1,0 +1,18 @@
+{
+  "speciesId": "aron",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/aron/front.png",
+      "backStatic": "assets/pokemon/sprites/aron/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/aron/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/aron/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/aron.png",
+      "cry": "assets/pokemon/cries/aron.ogg",
+      "animations": {}
+    }
+  }
+}

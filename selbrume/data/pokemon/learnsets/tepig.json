@@ -1,0 +1,1921 @@
+{
+  "speciesId": "tepig",
+  "startingMoves": [
+    "tackle"
+  ],
+  "relearnMoves": [
+    "tackle"
+  ],
+  "levelUp": [
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 3,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 3,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 3,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 3,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 3,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 3,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 3,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "ember",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "endure",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "odor_sleuth",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "odor_sleuth",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "odor_sleuth",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "odor_sleuth",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "odor_sleuth",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "odor_sleuth",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "defense_curl",
+      "level": 13,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flame_charge",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "flame_charge",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "flame_charge",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flame_charge",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flame_charge",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "flame_charge",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flame_charge",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "smog",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "smog",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "smog",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "smog",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "smog",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "smog",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "smog",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rollout",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rollout",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rollout",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rollout",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rollout",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rollout",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rollout",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "take_down",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "take_down",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "take_down",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "take_down",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "take_down",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "take_down",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "heat_crash",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "heat_crash",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "heat_crash",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "heat_crash",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heat_crash",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "heat_crash",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "heat_crash",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "assurance",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "assurance",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "assurance",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "assurance",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "assurance",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "assurance",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "assurance",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flamethrower",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "flamethrower",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "flamethrower",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flamethrower",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flamethrower",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "head_smash",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "head_smash",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "head_smash",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "head_smash",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "head_smash",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "head_smash",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "head_smash",
+      "level": 37,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "roar",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "roar",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "roar",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "roar",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roar",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "roar",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "roar",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flare_blitz",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "flare_blitz",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "flare_blitz",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flare_blitz",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flare_blitz",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "flare_blitz",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flare_blitz",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "attract",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "echoed_voice",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "fire_pledge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_spin",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flame_charge",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flare_blitz",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "heat_crash",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "mud_slap",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "overheat",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "stomping_tantrum",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "temper_flare",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "trailblaze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "will_o_wisp",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "work_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "work_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "zen_headbutt",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "covet",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_pledge",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fire_pledge",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "fire_pledge",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fire_pledge",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fire_pledge",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_pledge",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "stomping_tantrum",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "zen_headbutt",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "zen_headbutt",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "body_slam",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "burn_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "magnitude",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "magnitude",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "magnitude",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "magnitude",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "magnitude",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "magnitude",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thrash",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thrash",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thrash",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thrash",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thrash",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thrash",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thrash",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "yawn",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "yawn",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "yawn",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "yawn",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "yawn",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "yawn",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "yawn",
+      "versionGroup": "x-y"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

@@ -1,0 +1,102 @@
+{
+  "id": "relicanth",
+  "slug": "relicanth",
+  "nationalDex": 369,
+  "names": {
+    "ja_hrkt": "ジーランス",
+    "ja_roma": "Glanth",
+    "ko": "시라칸",
+    "zh_hant": "古空棘魚",
+    "fr": "Relicanth",
+    "de": "Relicanth",
+    "es": "Relicanth",
+    "it": "Relicanth",
+    "en": "Relicanth",
+    "ja": "ジーランス",
+    "zh_hans": "古空棘鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "ちょうじゅポケモン",
+    "ko": "장수포켓몬",
+    "zh_hant": "長壽寶可夢",
+    "fr": "Pokémon Longévité",
+    "de": "Bestand-Pokémon",
+    "es": "Pokémon Longevo",
+    "it": "Pokémon Longevità",
+    "en": "Longevity Pokémon",
+    "ja": "ちょうじゅポケモン",
+    "zh_hans": "长寿宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 90,
+    "def": 130,
+    "spa": 45,
+    "spd": 65,
+    "spe": 55,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "rock_head",
+    "hidden": "sturdy"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 170,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "relicanth",
+    "evolution": "relicanth",
+    "media": "relicanth"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 23.4,
+    "color": "gray",
+    "flavorText": "RELICANTH is a POKéMON species that existed for a hundred million years without ever changing its form. This ancient POKéMON feeds on microscopic organisms with its toothless mouth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

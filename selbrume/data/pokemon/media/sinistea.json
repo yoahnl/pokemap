@@ -1,0 +1,30 @@
+{
+  "speciesId": "sinistea",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sinistea/front.png",
+      "backStatic": "assets/pokemon/sprites/sinistea/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sinistea/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sinistea/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sinistea.png",
+      "cry": "assets/pokemon/cries/sinistea.ogg",
+      "animations": {}
+    },
+    "sinistea-antique": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

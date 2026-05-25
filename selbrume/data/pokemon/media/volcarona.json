@@ -1,0 +1,18 @@
+{
+  "speciesId": "volcarona",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/volcarona/front.png",
+      "backStatic": "assets/pokemon/sprites/volcarona/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/volcarona/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/volcarona/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/volcarona.png",
+      "cry": "assets/pokemon/cries/volcarona.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "magby",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magby/front.png",
+      "backStatic": "assets/pokemon/sprites/magby/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magby/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magby/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magby.png",
+      "cry": "assets/pokemon/cries/magby.ogg",
+      "animations": {}
+    }
+  }
+}

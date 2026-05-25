@@ -1,0 +1,18 @@
+{
+  "speciesId": "roselia",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/roselia/front.png",
+      "backStatic": "assets/pokemon/sprites/roselia/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/roselia/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/roselia/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/roselia.png",
+      "cry": "assets/pokemon/cries/roselia.ogg",
+      "animations": {}
+    }
+  }
+}

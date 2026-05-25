@@ -1,0 +1,489 @@
+{
+  "speciesId": "thwackey",
+  "startingMoves": [
+    "branch_poke",
+    "double_hit",
+    "growl",
+    "scratch",
+    "taunt"
+  ],
+  "relearnMoves": [
+    "branch_poke",
+    "double_hit",
+    "growl",
+    "scratch",
+    "taunt"
+  ],
+  "levelUp": [
+    {
+      "moveId": "branch_poke",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "branch_poke",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "double_hit",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_hit",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "double_hit",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "growl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "growl",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "scratch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "scratch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "taunt",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "screech",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "screech",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "knock_off",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "knock_off",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "slam",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "slam",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "uproar",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "uproar",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "wood_hammer",
+      "level": 42,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wood_hammer",
+      "level": 42,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endeavor",
+      "level": 48,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endeavor",
+      "level": 48,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "assurance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bullet_seed",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "false_swipe",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "false_swipe",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "focus_energy",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grass_pledge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_terrain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leaf_storm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "low_kick",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "low_kick",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "magical_leaf",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "magical_leaf",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mega_kick",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mega_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "scary_face",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "seed_bomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "solar_blade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_blade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "taunt",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "trailblaze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "work_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "grass_pledge",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "fake_out",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "growth",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hammer_arm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leech_seed",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "worry_seed",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

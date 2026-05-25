@@ -1,0 +1,104 @@
+{
+  "id": "zygarde",
+  "slug": "zygarde",
+  "nationalDex": 718,
+  "names": {
+    "ja_hrkt": "ジガルデ",
+    "ja_roma": "Zygarde",
+    "ko": "지가르데",
+    "zh_hant": "基格爾德",
+    "fr": "Zygarde",
+    "de": "Zygarde",
+    "es": "Zygarde",
+    "it": "Zygarde",
+    "en": "Zygarde",
+    "ja": "ジガルデ",
+    "zh_hans": "基格尔德"
+  },
+  "speciesName": {
+    "ja_hrkt": "ちつじょポケモン",
+    "ko": "질서포켓몬",
+    "zh_hant": "秩序寶可夢",
+    "fr": "Pokémon Équilibre",
+    "de": "Ordnungs-Pokémon",
+    "es": "Pokémon Equilibrio",
+    "it": "Pokémon Equilibrio",
+    "en": "Order Pokémon",
+    "ja": "ちつじょポケモン",
+    "zh_hans": "秩序宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "dragon",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 108,
+    "atk": 100,
+    "def": 121,
+    "spa": 81,
+    "spd": 95,
+    "spe": 95,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "aura_break",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "zygarde-10",
+      "zygarde-complete",
+      "zygarde-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "zygarde",
+    "evolution": "zygarde",
+    "media": "zygarde"
+  },
+  "dexContent": {
+    "heightM": 5.0,
+    "weightKg": 305.0,
+    "color": "green",
+    "flavorText": "When the Kalos region’s ecosystem falls into disarray, it appears and reveals its secret power."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

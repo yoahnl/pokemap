@@ -1,0 +1,100 @@
+{
+  "id": "marowak",
+  "slug": "marowak",
+  "nationalDex": 105,
+  "names": {
+    "ja_hrkt": "ガラガラ",
+    "ja_roma": "Garagara",
+    "ko": "텅구리",
+    "zh_hant": "嘎啦嘎啦",
+    "fr": "Ossatueur",
+    "de": "Knogga",
+    "es": "Marowak",
+    "it": "Marowak",
+    "en": "Marowak",
+    "ja": "ガラガラ",
+    "zh_hans": "嘎啦嘎啦"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほねずきポケモン",
+    "ko": "뼈다귀포켓몬",
+    "zh_hant": "愛骨寶可夢",
+    "fr": "Pokémon Gard’Os",
+    "de": "Knochenfan-Pokémon",
+    "es": "Pokémon Apilahueso",
+    "it": "Pokémon Guardaossi",
+    "en": "Bone Keeper Pokémon",
+    "ja": "ほねずきポケモン",
+    "zh_hans": "爱骨宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 80,
+    "def": 110,
+    "spa": 50,
+    "spd": 80,
+    "spe": 45,
+    "bst": 425
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": "lightning_rod",
+    "hidden": "battle_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 149,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "marowak-alola",
+      "marowak-alola-totem"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "marowak",
+    "evolution": "marowak",
+    "media": "marowak"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 45.0,
+    "color": "brown",
+    "flavorText": "The bone it holds is its key weapon. It throws the bone skillfully like a boomerang to KO targets."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

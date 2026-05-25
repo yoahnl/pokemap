@@ -1,0 +1,18 @@
+{
+  "speciesId": "nidorino",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nidorino/front.png",
+      "backStatic": "assets/pokemon/sprites/nidorino/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/nidorino/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/nidorino/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nidorino.png",
+      "cry": "assets/pokemon/cries/nidorino.ogg",
+      "animations": {}
+    }
+  }
+}

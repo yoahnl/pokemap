@@ -1,0 +1,18 @@
+{
+  "speciesId": "spoink",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spoink/front.png",
+      "backStatic": "assets/pokemon/sprites/spoink/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spoink/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spoink/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spoink.png",
+      "cry": "assets/pokemon/cries/spoink.ogg",
+      "animations": {}
+    }
+  }
+}

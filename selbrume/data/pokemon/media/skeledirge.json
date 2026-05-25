@@ -1,0 +1,18 @@
+{
+  "speciesId": "skeledirge",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skeledirge/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/skeledirge/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skeledirge.png",
+      "cry": "assets/pokemon/cries/skeledirge.ogg",
+      "animations": {}
+    }
+  }
+}

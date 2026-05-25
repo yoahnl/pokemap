@@ -1,0 +1,14 @@
+{
+  "speciesId": "corphish",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "crawdaunt",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

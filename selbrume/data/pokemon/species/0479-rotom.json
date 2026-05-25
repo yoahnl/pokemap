@@ -1,0 +1,106 @@
+{
+  "id": "rotom",
+  "slug": "rotom",
+  "nationalDex": 479,
+  "names": {
+    "ja_hrkt": "ロトム",
+    "ja_roma": "Rotom",
+    "ko": "로토무",
+    "zh_hant": "洛托姆",
+    "fr": "Motisma",
+    "de": "Rotom",
+    "es": "Rotom",
+    "it": "Rotom",
+    "en": "Rotom",
+    "ja": "ロトム",
+    "zh_hans": "洛托姆"
+  },
+  "speciesName": {
+    "ja_hrkt": "プラズマポケモン",
+    "ko": "플라스마포켓몬",
+    "zh_hant": "等離子寶可夢",
+    "fr": "Pokémon Plasma",
+    "de": "Plasma-Pokémon",
+    "es": "Pokémon Plasma",
+    "it": "Pokémon Plasma",
+    "en": "Plasma Pokémon",
+    "ja": "プラズマポケモン",
+    "zh_hans": "等离子宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "electric",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 50,
+    "def": 77,
+    "spa": 95,
+    "spd": 77,
+    "spe": 91,
+    "bst": 440
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 154,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "rotom-fan",
+      "rotom-frost",
+      "rotom-heat",
+      "rotom-mow",
+      "rotom-wash"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rotom",
+    "evolution": "rotom",
+    "media": "rotom"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.3,
+    "color": "red",
+    "flavorText": "Its body is composed of plasma. It is known to infiltrate electronic devices and wreak havoc."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

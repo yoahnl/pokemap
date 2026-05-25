@@ -1,0 +1,99 @@
+{
+  "id": "skrelp",
+  "slug": "skrelp",
+  "nationalDex": 690,
+  "names": {
+    "ja_hrkt": "クズモー",
+    "ja_roma": "Kuzumo",
+    "ko": "수레기",
+    "zh_hant": "垃垃藻",
+    "fr": "Venalgue",
+    "de": "Algitt",
+    "es": "Skrelp",
+    "it": "Skrelp",
+    "en": "Skrelp",
+    "ja": "クズモー",
+    "zh_hans": "垃垃藻"
+  },
+  "speciesName": {
+    "ja_hrkt": "クサモドキポケモン",
+    "ko": "풀모방포켓몬",
+    "zh_hant": "似草寶可夢",
+    "fr": "Pokémon Simulalgue",
+    "de": "Tangmimikry-Pokémon",
+    "es": "Pokémon Pseudoalga",
+    "it": "Pokémon Similalga",
+    "en": "Mock Kelp Pokémon",
+    "ja": "クサモドキポケモン",
+    "zh_hans": "似草宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "poison",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 60,
+    "def": 60,
+    "spa": 60,
+    "spd": 60,
+    "spe": 30,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "poison_point",
+    "secondary": "poison_touch",
+    "hidden": "adaptability"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 64,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "skrelp",
+    "evolution": "skrelp",
+    "media": "skrelp"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 7.3,
+    "color": "brown",
+    "flavorText": "Camouflaged as rotten kelp, they spray liquid poison on prey that approaches unawares and then finish it off."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

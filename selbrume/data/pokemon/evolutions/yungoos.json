@@ -1,0 +1,16 @@
+{
+  "speciesId": "yungoos",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "gumshoos",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: day"
+      }
+    }
+  ]
+}

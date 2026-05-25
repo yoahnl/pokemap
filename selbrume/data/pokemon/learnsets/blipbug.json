@@ -1,0 +1,39 @@
+{
+  "speciesId": "blipbug",
+  "startingMoves": [
+    "struggle_bug"
+  ],
+  "relearnMoves": [
+    "struggle_bug"
+  ],
+  "levelUp": [
+    {
+      "moveId": "struggle_bug",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [],
+  "tutor": [],
+  "egg": [
+    {
+      "moveId": "infestation",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "recover",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sticky_web",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "supersonic",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

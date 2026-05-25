@@ -1,0 +1,18 @@
+{
+  "speciesId": "clawitzer",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/clawitzer/front.png",
+      "backStatic": "assets/pokemon/sprites/clawitzer/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/clawitzer/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/clawitzer/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/clawitzer.png",
+      "cry": "assets/pokemon/cries/clawitzer.ogg",
+      "animations": {}
+    }
+  }
+}

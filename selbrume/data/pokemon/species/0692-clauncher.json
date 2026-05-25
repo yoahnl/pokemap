@@ -1,0 +1,98 @@
+{
+  "id": "clauncher",
+  "slug": "clauncher",
+  "nationalDex": 692,
+  "names": {
+    "ja_hrkt": "ウデッポウ",
+    "ja_roma": "Udeppou",
+    "ko": "완철포",
+    "zh_hant": "鐵臂槍蝦",
+    "fr": "Flingouste",
+    "de": "Scampisto",
+    "es": "Clauncher",
+    "it": "Clauncher",
+    "en": "Clauncher",
+    "ja": "ウデッポウ",
+    "zh_hans": "铁臂枪虾"
+  },
+  "speciesName": {
+    "ja_hrkt": "みずでっぽうポケモン",
+    "ko": "물대포포켓몬",
+    "zh_hant": "水槍寶可夢",
+    "fr": "Pokémon Lance à Eau",
+    "de": "Aquapistolen-Pokémon",
+    "es": "Pokémon Proyectagua",
+    "it": "Pokémon Zampillo",
+    "en": "Water Gun Pokémon",
+    "ja": "みずでっぽうポケモン",
+    "zh_hans": "水枪宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 53,
+    "def": 62,
+    "spa": 58,
+    "spd": 63,
+    "spe": 44,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "mega_launcher",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 66,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "clauncher",
+    "evolution": "clauncher",
+    "media": "clauncher"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 8.3,
+    "color": "blue",
+    "flavorText": "They knock down flying prey by firing compressed water from their massive claws like shooting a pistol."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

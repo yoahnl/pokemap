@@ -1,0 +1,14 @@
+{
+  "speciesId": "marshtomp",
+  "preEvolution": "mudkip",
+  "evolutions": [
+    {
+      "targetSpeciesId": "swampert",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

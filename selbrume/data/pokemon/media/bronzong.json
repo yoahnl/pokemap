@@ -1,0 +1,18 @@
+{
+  "speciesId": "bronzong",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bronzong/front.png",
+      "backStatic": "assets/pokemon/sprites/bronzong/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bronzong/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bronzong/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bronzong.png",
+      "cry": "assets/pokemon/cries/bronzong.ogg",
+      "animations": {}
+    }
+  }
+}

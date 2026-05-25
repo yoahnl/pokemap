@@ -1,0 +1,18 @@
+{
+  "speciesId": "trubbish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/trubbish/front.png",
+      "backStatic": "assets/pokemon/sprites/trubbish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/trubbish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/trubbish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/trubbish.png",
+      "cry": "assets/pokemon/cries/trubbish.ogg",
+      "animations": {}
+    }
+  }
+}

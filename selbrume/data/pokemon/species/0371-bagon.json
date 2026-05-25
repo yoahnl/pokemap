@@ -1,0 +1,97 @@
+{
+  "id": "bagon",
+  "slug": "bagon",
+  "nationalDex": 371,
+  "names": {
+    "ja_hrkt": "タツベイ",
+    "ja_roma": "Tatsubay",
+    "ko": "아공이",
+    "zh_hant": "寶貝龍",
+    "fr": "Draby",
+    "de": "Kindwurm",
+    "es": "Bagon",
+    "it": "Bagon",
+    "en": "Bagon",
+    "ja": "タツベイ",
+    "zh_hans": "宝贝龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "いしあたまポケモン",
+    "ko": "돌머리포켓몬",
+    "zh_hant": "堅硬腦袋寶可夢",
+    "fr": "Pokémon Tête de Roc",
+    "de": "Steinhaupt-Pokémon",
+    "es": "Pokémon Cabeza Roca",
+    "it": "Pokémon Rocciotesta",
+    "en": "Rock Head Pokémon",
+    "ja": "いしあたまポケモン",
+    "zh_hans": "坚硬脑袋宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 75,
+    "def": 60,
+    "spa": 40,
+    "spd": 30,
+    "spe": 50,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": null,
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bagon",
+    "evolution": "bagon",
+    "media": "bagon"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 42.1,
+    "color": "blue",
+    "flavorText": "Dreaming of one day flying, it practices by leaping off cliffs every day."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

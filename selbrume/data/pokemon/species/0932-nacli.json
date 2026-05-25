@@ -1,0 +1,94 @@
+{
+  "id": "nacli",
+  "slug": "nacli",
+  "nationalDex": 932,
+  "names": {
+    "ja_hrkt": "コジオ",
+    "ja_roma": "Kojio",
+    "ko": "베베솔트",
+    "zh_hant": "鹽石寶",
+    "fr": "Selutin",
+    "de": "Geosali",
+    "es": "Nacli",
+    "it": "Nacli",
+    "en": "Nacli",
+    "ja": "コジオ",
+    "zh_hans": "盐石宝"
+  },
+  "speciesName": {
+    "ja_hrkt": "がんえんポケモン",
+    "ko": "암염포켓몬",
+    "zh_hant": "岩鹽寶可夢",
+    "fr": "Halite",
+    "de": "Steinsalz",
+    "en": "Rock Salt Pokémon",
+    "zh_hans": "岩盐宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 55,
+    "def": 75,
+    "spa": 35,
+    "spd": 35,
+    "spe": 25,
+    "bst": 280
+  },
+  "abilities": {
+    "primary": "purifying_salt",
+    "secondary": "sturdy",
+    "hidden": "clear_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 56,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nacli",
+    "evolution": "nacli",
+    "media": "nacli"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 16.0,
+    "color": "brown",
+    "flavorText": "It was born in a layer of rock salt deep under the earth. This species was particularly treasured in the old days, as they would share precious salt."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

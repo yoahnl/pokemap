@@ -1,0 +1,14 @@
+{
+  "speciesId": "magikarp",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "gyarados",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

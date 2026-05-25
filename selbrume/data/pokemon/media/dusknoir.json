@@ -1,0 +1,18 @@
+{
+  "speciesId": "dusknoir",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dusknoir/front.png",
+      "backStatic": "assets/pokemon/sprites/dusknoir/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dusknoir/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dusknoir/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dusknoir.png",
+      "cry": "assets/pokemon/cries/dusknoir.ogg",
+      "animations": {}
+    }
+  }
+}

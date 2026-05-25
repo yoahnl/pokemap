@@ -1,0 +1,100 @@
+{
+  "id": "luvdisc",
+  "slug": "luvdisc",
+  "nationalDex": 370,
+  "names": {
+    "ja_hrkt": "ラブカス",
+    "ja_roma": "Lovecus",
+    "ko": "사랑동이",
+    "zh_hant": "愛心魚",
+    "fr": "Lovdisc",
+    "de": "Liebiskus",
+    "es": "Luvdisc",
+    "it": "Luvdisc",
+    "en": "Luvdisc",
+    "ja": "ラブカス",
+    "zh_hans": "爱心鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "ランデブーポケモン",
+    "ko": "랑데부포켓몬",
+    "zh_hant": "相隨寶可夢",
+    "fr": "Pokémon Rendezvous",
+    "de": "Rendezvous",
+    "es": "Pokémon Cita",
+    "it": "Pokémon Rendezvous",
+    "en": "Rendezvous Pokémon",
+    "ja": "ランデブーポケモン",
+    "zh_hans": "相随宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 43,
+    "atk": 30,
+    "def": 55,
+    "spa": 40,
+    "spd": 65,
+    "spe": 97,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": null,
+    "hidden": "hydration"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 116,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "luvdisc",
+    "evolution": "luvdisc",
+    "media": "luvdisc"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.7,
+    "color": "pink",
+    "flavorText": "LUVDISC live in shallow seas in the tropics. This heart-shaped POKéMON earned its name by swimming after loving couples it spotted in the ocean’s waves."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

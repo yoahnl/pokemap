@@ -1,0 +1,94 @@
+{
+  "id": "wiglett",
+  "slug": "wiglett",
+  "nationalDex": 960,
+  "names": {
+    "ja_hrkt": "ウミディグダ",
+    "ja_roma": "Umidigda",
+    "ko": "바다그다",
+    "zh_hant": "海地鼠",
+    "fr": "Taupikeau",
+    "de": "Schligda",
+    "es": "Wiglett",
+    "it": "Wiglett",
+    "en": "Wiglett",
+    "ja": "ウミディグダ",
+    "zh_hans": "海地鼠"
+  },
+  "speciesName": {
+    "ja_hrkt": "あなごポケモン",
+    "ko": "정원장어포켓몬",
+    "zh_hant": "糯鰻寶可夢",
+    "fr": "Congre",
+    "de": "Meeraal",
+    "en": "Garden Eel Pokémon",
+    "zh_hans": "糯鳗宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 10,
+    "atk": 55,
+    "def": 25,
+    "spa": 35,
+    "spd": 25,
+    "spe": 95,
+    "bst": 245
+  },
+  "abilities": {
+    "primary": "gooey",
+    "secondary": "rattled",
+    "hidden": "sand_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 49,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wiglett",
+    "evolution": "wiglett",
+    "media": "wiglett"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 1.8,
+    "color": "white",
+    "flavorText": "This Pokémon can pick up the scent of a Veluza just over 65 feet away and will hide itself in the sand."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

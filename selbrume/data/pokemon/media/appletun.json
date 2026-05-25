@@ -1,0 +1,18 @@
+{
+  "speciesId": "appletun",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/appletun/front.png",
+      "backStatic": "assets/pokemon/sprites/appletun/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/appletun/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/appletun/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/appletun.png",
+      "cry": "assets/pokemon/cries/appletun.ogg",
+      "animations": {}
+    }
+  }
+}

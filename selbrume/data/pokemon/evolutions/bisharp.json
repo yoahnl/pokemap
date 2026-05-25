@@ -1,0 +1,14 @@
+{
+  "speciesId": "bisharp",
+  "preEvolution": "pawniard",
+  "evolutions": [
+    {
+      "targetSpeciesId": "kingambit",
+      "method": "three_defeated_bisharp",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

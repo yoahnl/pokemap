@@ -1,0 +1,98 @@
+{
+  "id": "whiscash",
+  "slug": "whiscash",
+  "nationalDex": 340,
+  "names": {
+    "ja_hrkt": "ナマズン",
+    "ja_roma": "Namazun",
+    "ko": "메깅",
+    "zh_hant": "鯰魚王",
+    "fr": "Barbicha",
+    "de": "Welsar",
+    "es": "Whiscash",
+    "it": "Whiscash",
+    "en": "Whiscash",
+    "ja": "ナマズン",
+    "zh_hans": "鲶鱼王"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひげうおポケモン",
+    "ko": "수염물고기포켓몬",
+    "zh_hant": "鬚魚寶可夢",
+    "fr": "Pokémon Barbillon",
+    "de": "Barthaar-Pokémon",
+    "es": "Pokémon Bigotudo",
+    "it": "Pokémon Baffetti",
+    "en": "Whiskers Pokémon",
+    "ja": "ひげうおポケモン",
+    "zh_hans": "须鱼宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 110,
+    "atk": 78,
+    "def": 73,
+    "spa": 76,
+    "spd": 71,
+    "spe": 60,
+    "bst": 468
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "anticipation",
+    "hidden": "hydration"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 164,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "whiscash",
+    "evolution": "whiscash",
+    "media": "whiscash"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 23.6,
+    "color": "blue",
+    "flavorText": "WHISCASH is extremely territorial. Just one of these POKéMON will claim a large pond as its exclusive territory. If a foe approaches it, it thrashes about and triggers a massive earthquake."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

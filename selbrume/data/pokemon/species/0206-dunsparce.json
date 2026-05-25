@@ -1,0 +1,97 @@
+{
+  "id": "dunsparce",
+  "slug": "dunsparce",
+  "nationalDex": 206,
+  "names": {
+    "ja_hrkt": "ノコッチ",
+    "ja_roma": "Nokocchi",
+    "ko": "노고치",
+    "zh_hant": "土龍弟弟",
+    "fr": "Insolourdo",
+    "de": "Dummisel",
+    "es": "Dunsparce",
+    "it": "Dunsparce",
+    "en": "Dunsparce",
+    "ja": "ノコッチ",
+    "zh_hans": "土龙弟弟"
+  },
+  "speciesName": {
+    "ja_hrkt": "つちへびポケモン",
+    "ko": "땅뱀포켓몬",
+    "zh_hant": "地蛇寶可夢",
+    "fr": "Pokémon Serpent",
+    "de": "Schlangen-Pokémon",
+    "es": "Pokémon Serpiente Tierra",
+    "it": "Pokémon Terraserpe",
+    "en": "Land Snake Pokémon",
+    "ja": "つちへびポケモン",
+    "zh_hans": "地蛇宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 70,
+    "def": 70,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45,
+    "bst": 415
+  },
+  "abilities": {
+    "primary": "serene_grace",
+    "secondary": "run_away",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 145,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dunsparce",
+    "evolution": "dunsparce",
+    "media": "dunsparce"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 14.0,
+    "color": "yellow",
+    "flavorText": "When spotted, this POKéMON escapes backward by furi­ ously boring into the ground with its tail."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

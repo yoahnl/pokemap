@@ -1,0 +1,18 @@
+{
+  "speciesId": "snover",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/snover/front.png",
+      "backStatic": "assets/pokemon/sprites/snover/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/snover/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/snover/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/snover.png",
+      "cry": "assets/pokemon/cries/snover.ogg",
+      "animations": {}
+    }
+  }
+}

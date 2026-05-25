@@ -1,0 +1,14 @@
+{
+  "speciesId": "nuzleaf",
+  "preEvolution": "seedot",
+  "evolutions": [
+    {
+      "targetSpeciesId": "shiftry",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "leaf-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

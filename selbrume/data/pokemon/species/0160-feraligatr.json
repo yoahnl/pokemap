@@ -1,0 +1,103 @@
+{
+  "id": "feraligatr",
+  "slug": "feraligatr",
+  "nationalDex": 160,
+  "names": {
+    "ja_hrkt": "オーダイル",
+    "ja_roma": "Ordile",
+    "ko": "장크로다일",
+    "zh_hant": "大力鱷",
+    "fr": "Aligatueur",
+    "de": "Impergator",
+    "es": "Feraligatr",
+    "it": "Feraligatr",
+    "en": "Feraligatr",
+    "ja": "オーダイル",
+    "zh_hans": "大力鳄"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおあごポケモン",
+    "ko": "큰턱포켓몬",
+    "zh_hant": "大顎寶可夢",
+    "fr": "Pokémon Mâchoire",
+    "de": "Großmaul",
+    "es": "Pokémon Fauces",
+    "it": "Pokémon Mascellone",
+    "en": "Big Jaw Pokémon",
+    "ja": "おおあごポケモン",
+    "zh_hans": "大颚宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 105,
+    "def": 100,
+    "spa": 79,
+    "spd": 83,
+    "spe": 78,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 239,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "feraligatr-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "feraligatr",
+    "evolution": "feraligatr",
+    "media": "feraligatr"
+  },
+  "dexContent": {
+    "heightM": 2.3,
+    "weightKg": 88.8,
+    "color": "blue",
+    "flavorText": "When it bites with its massive and powerful jaws, it shakes its head and savagely tears its victim up."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "bunnelby",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bunnelby/front.png",
+      "backStatic": "assets/pokemon/sprites/bunnelby/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bunnelby/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bunnelby/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bunnelby.png",
+      "cry": "assets/pokemon/cries/bunnelby.ogg",
+      "animations": {}
+    }
+  }
+}

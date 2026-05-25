@@ -1,0 +1,94 @@
+{
+  "id": "nymble",
+  "slug": "nymble",
+  "nationalDex": 919,
+  "names": {
+    "ja_hrkt": "マメバッタ",
+    "ja_roma": "Mamebatta",
+    "ko": "콩알뚜기",
+    "zh_hant": "豆蟋蟀",
+    "fr": "Lilliterelle",
+    "de": "Micrick",
+    "es": "Nymble",
+    "it": "Nymble",
+    "en": "Nymble",
+    "ja": "マメバッタ",
+    "zh_hans": "豆蟋蟀"
+  },
+  "speciesName": {
+    "ja_hrkt": "バッタポケモン",
+    "ko": "메뚜기포켓몬",
+    "zh_hant": "蝗蟲寶可夢",
+    "fr": "Sauterelle",
+    "de": "Heuschrecke",
+    "en": "Grasshopper Pokémon",
+    "zh_hans": "蝗虫宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 33,
+    "atk": 46,
+    "def": 40,
+    "spa": 21,
+    "spd": 25,
+    "spe": 45,
+    "bst": 210
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": null,
+    "hidden": "tinted_lens"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 42,
+    "catchRate": 190,
+    "baseFriendship": 20
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nymble",
+    "evolution": "nymble",
+    "media": "nymble"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 1.0,
+    "color": "gray",
+    "flavorText": "It has its third set of legs folded up. When it’s in a tough spot, this Pokémon jumps over 30 feet using the strength of its legs."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

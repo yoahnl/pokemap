@@ -1,0 +1,95 @@
+{
+  "id": "poltchageist",
+  "slug": "poltchageist",
+  "nationalDex": 1012,
+  "names": {
+    "ja_hrkt": "チャデス",
+    "ko": "차데스",
+    "zh_hant": "斯魔茶",
+    "fr": "Poltchageist",
+    "de": "Mortcha",
+    "es": "Poltchageist",
+    "it": "Poltchageist",
+    "en": "Poltchageist",
+    "ja": "チャデス",
+    "zh_hans": "斯魔茶"
+  },
+  "speciesName": {
+    "ko": "말차포켓몬",
+    "fr": "Matcha",
+    "en": "Matcha Pokémon"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "grass",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 45,
+    "def": 45,
+    "spa": 74,
+    "spd": 54,
+    "spe": 50,
+    "bst": 308
+  },
+  "abilities": {
+    "primary": "hospitality",
+    "secondary": null,
+    "hidden": "heatproof"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 62,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "poltchageist-artisan"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "poltchageist",
+    "evolution": "poltchageist",
+    "media": "poltchageist"
+  },
+  "dexContent": {
+    "heightM": 0.1,
+    "weightKg": 1.1,
+    "color": "green",
+    "flavorText": "Supposedly, the regrets of a tea ceremony master who died before perfecting his craft lingered in some matcha and became a Pokémon."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

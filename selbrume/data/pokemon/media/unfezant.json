@@ -1,0 +1,18 @@
+{
+  "speciesId": "unfezant",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/unfezant/front.png",
+      "backStatic": "assets/pokemon/sprites/unfezant/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/unfezant/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/unfezant/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/unfezant.png",
+      "cry": "assets/pokemon/cries/unfezant.ogg",
+      "animations": {}
+    }
+  }
+}

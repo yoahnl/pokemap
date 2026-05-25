@@ -1,0 +1,98 @@
+{
+  "id": "larvitar",
+  "slug": "larvitar",
+  "nationalDex": 246,
+  "names": {
+    "ja_hrkt": "ヨーギラス",
+    "ja_roma": "Yogiras",
+    "ko": "애버라스",
+    "zh_hant": "幼基拉斯",
+    "fr": "Embrylex",
+    "de": "Larvitar",
+    "es": "Larvitar",
+    "it": "Larvitar",
+    "en": "Larvitar",
+    "ja": "ヨーギラス",
+    "zh_hans": "幼基拉斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "いわはだポケモン",
+    "ko": "바위표면포켓몬",
+    "zh_hant": "岩石膚寶可夢",
+    "fr": "Pokémon Peaupierre",
+    "de": "Felshaut-Pokémon",
+    "es": "Pokémon Piel Roca",
+    "it": "Pokémon Peldisasso",
+    "en": "Rock Skin Pokémon",
+    "ja": "いわはだポケモン",
+    "zh_hans": "岩石肤宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "rock",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 64,
+    "def": 50,
+    "spa": 45,
+    "spd": 50,
+    "spe": 41,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": null,
+    "hidden": "sand_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "larvitar",
+    "evolution": "larvitar",
+    "media": "larvitar"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 72.0,
+    "color": "green",
+    "flavorText": "It feeds on soil. After it has eaten a large mountain, it will fall asleep so it can grow."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

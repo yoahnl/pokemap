@@ -1,0 +1,1724 @@
+{
+  "speciesId": "diancie",
+  "startingMoves": [
+    "diamond_storm",
+    "harden",
+    "rock_throw",
+    "tackle"
+  ],
+  "relearnMoves": [
+    "diamond_storm",
+    "harden",
+    "rock_throw",
+    "tackle"
+  ],
+  "levelUp": [
+    {
+      "moveId": "diamond_storm",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_throw",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rock_throw",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_throw",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_throw",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sharpen",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sharpen",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sharpen",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sharpen",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "smack_down",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "smack_down",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "reflect",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "reflect",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "smack_down",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "smack_down",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "smack_down",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "smack_down",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "reflect",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "reflect",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "stealth_rock",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "stealth_rock",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flail",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flail",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "stealth_rock",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "stealth_rock",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "guard_split",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flail",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "flail",
+      "level": 31,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flail",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flail",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_polish",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_polish",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "skill_swap",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "skill_swap",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "power_gem",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "power_gem",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "skill_swap",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "skill_swap",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 42,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 42,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "trick_room",
+      "level": 46,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "trick_room",
+      "level": 46,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "trick_room",
+      "level": 46,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "trick_room",
+      "level": 46,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_slide",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_slide",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stone_edge",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "stone_edge",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "stone_edge",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "stone_edge",
+      "level": 49,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "diamond_storm",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "diamond_storm",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "diamond_storm",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "diamond_storm",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "moonblast",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "moonblast",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "moonblast",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "moonblast",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "skill_swap",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "skill_swap",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "power_gem",
+      "level": 63,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "power_gem",
+      "level": 63,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "stealth_rock",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stealth_rock",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "moonblast",
+      "level": 77,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "moonblast",
+      "level": 77,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stone_edge",
+      "level": 84,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stone_edge",
+      "level": 84,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "diamond_storm",
+      "level": 91,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "ally_switch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "amnesia",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "amnesia",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "baton_pass",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "baton_pass",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_press",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "body_press",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "charm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "charm",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dazzling_gleam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dazzling_gleam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dazzling_gleam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dazzling_gleam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dazzling_gleam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dazzling_gleam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "draining_kiss",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "draining_kiss",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "earth_power",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "earth_power",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "explosion",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "explosion",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "explosion",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "explosion",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "fake_tears",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fake_tears",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flash_cannon",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "gravity",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "guard_swap",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "iron_defense",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "iron_defense",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "meteor_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "metronome",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "metronome",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "misty_explosion",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "mystical_fire",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "nature_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "nature_power",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "nature_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "nature_power",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "play_rough",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "play_rough",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "power_gem",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "power_gem",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "psych_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "psych_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "psych_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "psych_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "psych_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "psychic",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "psyshock",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_polish",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_polish",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rock_polish",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rock_polish",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sand_tomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sand_tomb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "scorching_sands",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "skill_swap",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "skill_swap",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "smack_down",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snowscape",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "spikes",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stealth_rock",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stealth_rock",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "stored_power",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stored_power",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "trick_room",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "trick_room",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "trick_room",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "trick_room",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "trick_room",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "trick_room",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "wonder_room",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "after_you",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "after_you",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "covet",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "earth_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "earth_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "endeavor",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "gravity",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "gravity",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "heal_bell",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "heal_bell",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "iron_defense",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "iron_defense",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "last_resort",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "last_resort",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "magnet_rise",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "magnet_rise",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "meteor_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "misty_explosion",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "skill_swap",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "skill_swap",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "stealth_rock",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "stealth_rock",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "telekinesis",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "terrain_pulse",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "wonder_room",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "wonder_room",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

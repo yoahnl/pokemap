@@ -1,0 +1,18 @@
+{
+  "speciesId": "smoliv",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/smoliv/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/smoliv/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/smoliv.png",
+      "cry": "assets/pokemon/cries/smoliv.ogg",
+      "animations": {}
+    }
+  }
+}

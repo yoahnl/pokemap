@@ -1,0 +1,30 @@
+{
+  "speciesId": "scizor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/scizor/front.png",
+      "backStatic": "assets/pokemon/sprites/scizor/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/scizor/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/scizor/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/scizor.png",
+      "cry": "assets/pokemon/cries/scizor.ogg",
+      "animations": {}
+    },
+    "scizor-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

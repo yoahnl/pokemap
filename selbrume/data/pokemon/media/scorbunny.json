@@ -1,0 +1,18 @@
+{
+  "speciesId": "scorbunny",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/scorbunny/front.png",
+      "backStatic": "assets/pokemon/sprites/scorbunny/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/scorbunny/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/scorbunny/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/scorbunny.png",
+      "cry": "assets/pokemon/cries/scorbunny.ogg",
+      "animations": {}
+    }
+  }
+}

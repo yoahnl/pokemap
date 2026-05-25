@@ -1,0 +1,97 @@
+{
+  "id": "shelgon",
+  "slug": "shelgon",
+  "nationalDex": 372,
+  "names": {
+    "ja_hrkt": "コモルー",
+    "ja_roma": "Komoruu",
+    "ko": "쉘곤",
+    "zh_hant": "甲殼龍",
+    "fr": "Drackhaus",
+    "de": "Draschel",
+    "es": "Shelgon",
+    "it": "Shelgon",
+    "en": "Shelgon",
+    "ja": "コモルー",
+    "zh_hans": "甲壳龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "にんたいポケモン",
+    "ko": "인내포켓몬",
+    "zh_hant": "耐力寶可夢",
+    "fr": "Pokémon Endurant",
+    "de": "Durchsteher-Pokémon",
+    "es": "Pokémon Resistencia",
+    "it": "Pokémon Resistenza",
+    "en": "Endurance Pokémon",
+    "ja": "にんたいポケモン",
+    "zh_hans": "耐力宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 95,
+    "def": 100,
+    "spa": 60,
+    "spd": 50,
+    "spe": 50,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": null,
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 147,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shelgon",
+    "evolution": "shelgon",
+    "media": "shelgon"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 110.5,
+    "color": "white",
+    "flavorText": "Inside SHELGON’s armor-like shell, cells are in the midst of transformation to create an entirely new body. This POKéMON’s shell is extremely heavy, making its movements sluggish."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

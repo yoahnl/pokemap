@@ -1,0 +1,18 @@
+{
+  "speciesId": "hippopotas",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hippopotas/front.png",
+      "backStatic": "assets/pokemon/sprites/hippopotas/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hippopotas/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hippopotas/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hippopotas.png",
+      "cry": "assets/pokemon/cries/hippopotas.ogg",
+      "animations": {}
+    }
+  }
+}

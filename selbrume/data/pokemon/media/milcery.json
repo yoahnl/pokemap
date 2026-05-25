@@ -1,0 +1,18 @@
+{
+  "speciesId": "milcery",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/milcery/front.png",
+      "backStatic": "assets/pokemon/sprites/milcery/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/milcery/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/milcery/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/milcery.png",
+      "cry": "assets/pokemon/cries/milcery.ogg",
+      "animations": {}
+    }
+  }
+}

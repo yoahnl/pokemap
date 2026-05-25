@@ -1,0 +1,18 @@
+{
+  "speciesId": "shroomish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shroomish/front.png",
+      "backStatic": "assets/pokemon/sprites/shroomish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shroomish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shroomish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shroomish.png",
+      "cry": "assets/pokemon/cries/shroomish.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "speciesId": "porygon",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "porygon2",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: up-grade"
+      }
+    }
+  ]
+}

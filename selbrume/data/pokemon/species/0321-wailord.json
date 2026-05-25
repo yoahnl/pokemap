@@ -1,0 +1,98 @@
+{
+  "id": "wailord",
+  "slug": "wailord",
+  "nationalDex": 321,
+  "names": {
+    "ja_hrkt": "ホエルオー",
+    "ja_roma": "Whaloh",
+    "ko": "고래왕",
+    "zh_hant": "吼鯨王",
+    "fr": "Wailord",
+    "de": "Wailord",
+    "es": "Wailord",
+    "it": "Wailord",
+    "en": "Wailord",
+    "ja": "ホエルオー",
+    "zh_hans": "吼鲸王"
+  },
+  "speciesName": {
+    "ja_hrkt": "うきくじらポケモン",
+    "ko": "뜸고래포켓몬",
+    "zh_hant": "浮鯨寶可夢",
+    "fr": "Pokémon Cachabouée",
+    "de": "Flutwal-Pokémon",
+    "es": "Pokémon Ballenaflot",
+    "it": "Pokémon Megabalena",
+    "en": "Float Whale Pokémon",
+    "ja": "うきくじらポケモン",
+    "zh_hans": "浮鲸宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 170,
+    "atk": 90,
+    "def": 45,
+    "spa": 90,
+    "spd": 45,
+    "spe": 60,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "water_veil",
+    "secondary": "oblivious",
+    "hidden": "pressure"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 175,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wailord",
+    "evolution": "wailord",
+    "media": "wailord"
+  },
+  "dexContent": {
+    "heightM": 14.5,
+    "weightKg": 398.0,
+    "color": "blue",
+    "flavorText": "WAILORD is the largest of all identified POKéMON up to now. This giant POKéMON swims languorously in the vast open sea, eating massive amounts of food at once with its enormous mouth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

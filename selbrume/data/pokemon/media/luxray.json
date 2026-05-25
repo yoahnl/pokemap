@@ -1,0 +1,18 @@
+{
+  "speciesId": "luxray",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/luxray/front.png",
+      "backStatic": "assets/pokemon/sprites/luxray/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/luxray/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/luxray/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/luxray.png",
+      "cry": "assets/pokemon/cries/luxray.ogg",
+      "animations": {}
+    }
+  }
+}

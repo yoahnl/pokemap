@@ -1,0 +1,100 @@
+{
+  "id": "cobalion",
+  "slug": "cobalion",
+  "nationalDex": 638,
+  "names": {
+    "ja_hrkt": "コバルオン",
+    "ja_roma": "Cobalon",
+    "ko": "코바르온",
+    "zh_hant": "勾帕路翁",
+    "fr": "Cobaltium",
+    "de": "Kobalium",
+    "es": "Cobalion",
+    "it": "Cobalion",
+    "en": "Cobalion",
+    "ja": "コバルオン",
+    "zh_hans": "勾帕路翁"
+  },
+  "speciesName": {
+    "ja_hrkt": "てっしんポケモン",
+    "ko": "철심포켓몬",
+    "zh_hant": "鐵心寶可夢",
+    "fr": "Pokémon Cœur de Fer",
+    "de": "Eisenkern-Pokémon",
+    "es": "Pokémon Tesón Acero",
+    "it": "Pokémon Metalcuore",
+    "en": "Iron Will Pokémon",
+    "ja": "てっしんポケモン",
+    "zh_hans": "铁心宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "steel",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 91,
+    "atk": 90,
+    "def": 129,
+    "spa": 90,
+    "spd": 72,
+    "spe": 108,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "justified",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cobalion",
+    "evolution": "cobalion",
+    "media": "cobalion"
+  },
+  "dexContent": {
+    "heightM": 2.1,
+    "weightKg": 250.0,
+    "color": "blue",
+    "flavorText": "This legendary Pokémon battled against humans to protect Pokémon. Its personality is calm and composed."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

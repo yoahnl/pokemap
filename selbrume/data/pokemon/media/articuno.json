@@ -1,0 +1,30 @@
+{
+  "speciesId": "articuno",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/articuno/front.png",
+      "backStatic": "assets/pokemon/sprites/articuno/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/articuno/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/articuno/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/articuno.png",
+      "cry": "assets/pokemon/cries/articuno.ogg",
+      "animations": {}
+    },
+    "articuno-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

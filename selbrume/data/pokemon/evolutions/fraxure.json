@@ -1,0 +1,14 @@
+{
+  "speciesId": "fraxure",
+  "preEvolution": "axew",
+  "evolutions": [
+    {
+      "targetSpeciesId": "haxorus",
+      "method": "level_up",
+      "minLevel": 48,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

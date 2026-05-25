@@ -1,0 +1,18 @@
+{
+  "speciesId": "vanilluxe",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vanilluxe/front.png",
+      "backStatic": "assets/pokemon/sprites/vanilluxe/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vanilluxe/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vanilluxe/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vanilluxe.png",
+      "cry": "assets/pokemon/cries/vanilluxe.ogg",
+      "animations": {}
+    }
+  }
+}

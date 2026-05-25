@@ -1,0 +1,30 @@
+{
+  "speciesId": "swampert",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swampert/front.png",
+      "backStatic": "assets/pokemon/sprites/swampert/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swampert/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swampert/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swampert.png",
+      "cry": "assets/pokemon/cries/swampert.ogg",
+      "animations": {}
+    },
+    "swampert-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

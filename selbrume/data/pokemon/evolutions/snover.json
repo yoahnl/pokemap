@@ -1,0 +1,14 @@
+{
+  "speciesId": "snover",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "abomasnow",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

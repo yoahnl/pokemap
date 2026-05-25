@@ -1,0 +1,101 @@
+{
+  "id": "darkrai",
+  "slug": "darkrai",
+  "nationalDex": 491,
+  "names": {
+    "ja_hrkt": "ダークライ",
+    "ja_roma": "Darkrai",
+    "ko": "다크라이",
+    "zh_hant": "達克萊伊",
+    "fr": "Darkrai",
+    "de": "Darkrai",
+    "es": "Darkrai",
+    "it": "Darkrai",
+    "en": "Darkrai",
+    "ja": "ダークライ",
+    "zh_hans": "达克莱伊"
+  },
+  "speciesName": {
+    "ja_hrkt": "あんこくポケモン",
+    "ko": "암흑포켓몬",
+    "zh_hant": "暗黑寶可夢",
+    "fr": "Pokémon Noirtotal",
+    "de": "Dunkelnacht",
+    "es": "Pokémon Oscuridad",
+    "it": "Pokémon Neropesto",
+    "en": "Pitch-Black Pokémon",
+    "ja": "あんこくポケモン",
+    "zh_hans": "暗黑宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 90,
+    "def": 90,
+    "spa": 135,
+    "spd": 90,
+    "spe": 125,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "bad_dreams",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "darkrai-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "darkrai",
+    "evolution": "darkrai",
+    "media": "darkrai"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 50.5,
+    "color": "black",
+    "flavorText": "It can lull people to sleep and make them dream. It is active during nights of the new moon."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

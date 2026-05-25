@@ -1,0 +1,18 @@
+{
+  "speciesId": "empoleon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/empoleon/front.png",
+      "backStatic": "assets/pokemon/sprites/empoleon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/empoleon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/empoleon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/empoleon.png",
+      "cry": "assets/pokemon/cries/empoleon.ogg",
+      "animations": {}
+    }
+  }
+}

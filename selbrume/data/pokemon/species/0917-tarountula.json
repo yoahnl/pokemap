@@ -1,0 +1,94 @@
+{
+  "id": "tarountula",
+  "slug": "tarountula",
+  "nationalDex": 917,
+  "names": {
+    "de": "Tarundel",
+    "ja_hrkt": "タマンチュラ",
+    "ja_roma": "Tamantula",
+    "ko": "타랜툴라",
+    "zh_hant": "團珠蛛",
+    "fr": "Tissenboule",
+    "es": "Tarountula",
+    "it": "Tarountula",
+    "en": "Tarountula",
+    "ja": "タマンチュラ",
+    "zh_hans": "团珠蛛"
+  },
+  "speciesName": {
+    "de": "Fadenkugel",
+    "ja_hrkt": "いとだまポケモン",
+    "ko": "실타래포켓몬",
+    "zh_hant": "線球寶可夢",
+    "fr": "Boule de Fil",
+    "en": "String Ball Pokémon",
+    "zh_hans": "线球宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 41,
+    "def": 45,
+    "spa": 29,
+    "spd": 40,
+    "spe": 20,
+    "bst": 210
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": null,
+    "hidden": "stakeout"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 42,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tarountula",
+    "evolution": "tarountula",
+    "media": "tarountula"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 4.0,
+    "color": "white",
+    "flavorText": "The ball of threads wrapped around its body is elastic enough to deflect the scythes of Scyther, this Pokémon’s natural enemy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "onix",
+  "slug": "onix",
+  "nationalDex": 95,
+  "names": {
+    "ja_hrkt": "イワーク",
+    "ja_roma": "Iwark",
+    "ko": "롱스톤",
+    "zh_hant": "大岩蛇",
+    "fr": "Onix",
+    "de": "Onix",
+    "es": "Onix",
+    "it": "Onix",
+    "en": "Onix",
+    "ja": "イワーク",
+    "zh_hans": "大岩蛇"
+  },
+  "speciesName": {
+    "ja_hrkt": "いわへびポケモン",
+    "ko": "돌뱀포켓몬",
+    "zh_hant": "岩蛇寶可夢",
+    "fr": "Pokémon Serpenroc",
+    "de": "Felsnatter-Pokémon",
+    "es": "Pokémon Serpiente Roca",
+    "it": "Pokémon Serpesasso",
+    "en": "Rock Snake Pokémon",
+    "ja": "いわへびポケモン",
+    "zh_hans": "岩蛇宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "rock",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 45,
+    "def": 160,
+    "spa": 30,
+    "spd": 45,
+    "spe": 70,
+    "bst": 385
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": "sturdy",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 77,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "onix",
+    "evolution": "onix",
+    "media": "onix"
+  },
+  "dexContent": {
+    "heightM": 8.8,
+    "weightKg": 210.0,
+    "color": "gray",
+    "flavorText": "As it grows, the stone portions of its body harden to become similar to a diamond, but colored black."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

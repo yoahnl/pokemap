@@ -1,0 +1,97 @@
+{
+  "id": "sudowoodo",
+  "slug": "sudowoodo",
+  "nationalDex": 185,
+  "names": {
+    "ja_hrkt": "ウソッキー",
+    "ja_roma": "Usokkie",
+    "ko": "꼬지모",
+    "zh_hant": "樹才怪",
+    "fr": "Simularbre",
+    "de": "Mogelbaum",
+    "es": "Sudowoodo",
+    "it": "Sudowoodo",
+    "en": "Sudowoodo",
+    "ja": "ウソッキー",
+    "zh_hans": "树才怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "まねポケモン",
+    "ko": "흉내포켓몬",
+    "zh_hant": "模仿寶可夢",
+    "fr": "Pokémon Imitation",
+    "de": "Imitations-Pokémon",
+    "es": "Pokémon Imitación",
+    "it": "Pokémon Imitazione",
+    "en": "Imitation Pokémon",
+    "ja": "まねポケモン",
+    "zh_hans": "模仿宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 100,
+    "def": 115,
+    "spa": 30,
+    "spd": 65,
+    "spe": 30,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": "rock_head",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 144,
+    "catchRate": 65,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sudowoodo",
+    "evolution": "sudowoodo",
+    "media": "sudowoodo"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 38.0,
+    "color": "brown",
+    "flavorText": "Although it always pretends to be a tree, its composi­ tion appears to be closer to a rock than a plant."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

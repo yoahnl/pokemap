@@ -1,0 +1,18 @@
+{
+  "speciesId": "quilladin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/quilladin/front.png",
+      "backStatic": "assets/pokemon/sprites/quilladin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/quilladin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/quilladin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/quilladin.png",
+      "cry": "assets/pokemon/cries/quilladin.ogg",
+      "animations": {}
+    }
+  }
+}

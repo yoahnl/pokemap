@@ -1,0 +1,14 @@
+{
+  "speciesId": "sprigatito",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "floragato",
+      "method": "level_up",
+      "minLevel": 16,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

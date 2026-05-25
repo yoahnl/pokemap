@@ -1,0 +1,18 @@
+{
+  "speciesId": "volbeat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/volbeat/front.png",
+      "backStatic": "assets/pokemon/sprites/volbeat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/volbeat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/volbeat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/volbeat.png",
+      "cry": "assets/pokemon/cries/volbeat.ogg",
+      "animations": {}
+    }
+  }
+}

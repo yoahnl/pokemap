@@ -1,0 +1,18 @@
+{
+  "speciesId": "inkay",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/inkay/front.png",
+      "backStatic": "assets/pokemon/sprites/inkay/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/inkay/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/inkay/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/inkay.png",
+      "cry": "assets/pokemon/cries/inkay.ogg",
+      "animations": {}
+    }
+  }
+}

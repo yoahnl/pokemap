@@ -1,0 +1,14 @@
+{
+  "speciesId": "pineco",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "forretress",
+      "method": "level_up",
+      "minLevel": 31,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

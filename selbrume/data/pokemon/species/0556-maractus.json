@@ -1,0 +1,97 @@
+{
+  "id": "maractus",
+  "slug": "maractus",
+  "nationalDex": 556,
+  "names": {
+    "ja_hrkt": "マラカッチ",
+    "ja_roma": "Maracacchi",
+    "ko": "마라카치",
+    "zh_hant": "沙鈴仙人掌",
+    "fr": "Maracachi",
+    "de": "Maracamba",
+    "es": "Maractus",
+    "it": "Maractus",
+    "en": "Maractus",
+    "ja": "マラカッチ",
+    "zh_hans": "沙铃仙人掌"
+  },
+  "speciesName": {
+    "ja_hrkt": "サボテンポケモン",
+    "ko": "선인장포켓몬",
+    "zh_hant": "仙人掌寶可夢",
+    "fr": "Pokémon Cactus",
+    "de": "Kaktus-Pokémon",
+    "es": "Pokémon Cactus",
+    "it": "Pokémon Cactus",
+    "en": "Cactus Pokémon",
+    "ja": "サボテンポケモン",
+    "zh_hans": "仙人掌宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 86,
+    "def": 67,
+    "spa": 106,
+    "spd": 67,
+    "spe": 60,
+    "bst": 461
+  },
+  "abilities": {
+    "primary": "water_absorb",
+    "secondary": "chlorophyll",
+    "hidden": "storm_drain"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 161,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "maractus",
+    "evolution": "maractus",
+    "media": "maractus"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 28.0,
+    "color": "green",
+    "flavorText": "It uses an up-tempo song and dance to drive away the bird Pokémon that prey on its flower seeds."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

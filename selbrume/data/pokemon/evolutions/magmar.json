@@ -1,0 +1,16 @@
+{
+  "speciesId": "magmar",
+  "preEvolution": "magby",
+  "evolutions": [
+    {
+      "targetSpeciesId": "magmortar",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: magmarizer"
+      }
+    }
+  ]
+}

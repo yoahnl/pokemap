@@ -1,0 +1,90 @@
+{
+  "id": "fezandipiti",
+  "slug": "fezandipiti",
+  "nationalDex": 1016,
+  "names": {
+    "ja_hrkt": "キチキギス",
+    "ko": "기로치",
+    "zh_hant": "吉雉雞",
+    "fr": "Favianos",
+    "de": "Beatori",
+    "es": "Fezandipiti",
+    "it": "Fezandipiti",
+    "en": "Fezandipiti",
+    "ja": "キチキギス",
+    "zh_hans": "吉雉鸡"
+  },
+  "speciesName": {
+    "ko": "수하포켓몬",
+    "fr": "Serviteur",
+    "en": "Retainer Pokémon"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "poison",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 88,
+    "atk": 91,
+    "def": 82,
+    "spa": 70,
+    "spd": 125,
+    "spe": 99,
+    "bst": 555
+  },
+  "abilities": {
+    "primary": "toxic_chain",
+    "secondary": null,
+    "hidden": "technician"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 278,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "fezandipiti",
+    "evolution": "fezandipiti",
+    "media": "fezandipiti"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 30.1,
+    "color": "black",
+    "flavorText": "Fezandipiti owes its beautiful looks and lovely voice to the toxic stimulants emanating from the chain wrapped around its body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "torkoal",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/torkoal/front.png",
+      "backStatic": "assets/pokemon/sprites/torkoal/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/torkoal/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/torkoal/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/torkoal.png",
+      "cry": "assets/pokemon/cries/torkoal.ogg",
+      "animations": {}
+    }
+  }
+}

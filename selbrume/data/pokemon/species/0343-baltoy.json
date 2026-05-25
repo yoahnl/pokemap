@@ -1,0 +1,100 @@
+{
+  "id": "baltoy",
+  "slug": "baltoy",
+  "nationalDex": 343,
+  "names": {
+    "ja_hrkt": "ヤジロン",
+    "ja_roma": "Yajilon",
+    "ko": "오뚝군",
+    "zh_hant": "天秤偶",
+    "fr": "Balbuto",
+    "de": "Puppance",
+    "es": "Baltoy",
+    "it": "Baltoy",
+    "en": "Baltoy",
+    "ja": "ヤジロン",
+    "zh_hans": "天秤偶"
+  },
+  "speciesName": {
+    "ja_hrkt": "どぐうポケモン",
+    "ko": "토우포켓몬",
+    "zh_hant": "泥偶寶可夢",
+    "fr": "Pokémon Poupargile",
+    "de": "Lehmpuppen-Pokémon",
+    "es": "Pokémon Muñeca Barro",
+    "it": "Pokémon Argilla",
+    "en": "Clay Doll Pokémon",
+    "ja": "どぐうポケモン",
+    "zh_hans": "泥偶宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ground",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 40,
+    "def": 55,
+    "spa": 40,
+    "spd": 70,
+    "spe": 55,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 60,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "baltoy",
+    "evolution": "baltoy",
+    "media": "baltoy"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 21.5,
+    "color": "brown",
+    "flavorText": "BALTOY moves while spinning around on its one foot. Primitive wall paintings depicting this POKéMON living among people were discovered in some ancient ruins."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

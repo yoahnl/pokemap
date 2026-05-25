@@ -1,0 +1,14 @@
+{
+  "speciesId": "whirlipede",
+  "preEvolution": "venipede",
+  "evolutions": [
+    {
+      "targetSpeciesId": "scolipede",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

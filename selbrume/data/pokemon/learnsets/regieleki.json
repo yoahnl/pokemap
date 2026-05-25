@@ -1,0 +1,440 @@
+{
+  "speciesId": "regieleki",
+  "startingMoves": [
+    "rapid_spin",
+    "thunder_shock"
+  ],
+  "relearnMoves": [
+    "rapid_spin",
+    "thunder_shock"
+  ],
+  "levelUp": [
+    {
+      "moveId": "rapid_spin",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rapid_spin",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_shock",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_shock",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "electroweb",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "electroweb",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shock_wave",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "shock_wave",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "extreme_speed",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "extreme_speed",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_cage",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_cage",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunderbolt",
+      "level": 42,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunderbolt",
+      "level": 42,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "magnet_rise",
+      "level": 48,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "magnet_rise",
+      "level": 48,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thrash",
+      "level": 54,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thrash",
+      "level": 54,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "lock_on",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "lock_on",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "zap_cannon",
+      "level": 66,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "zap_cannon",
+      "level": 66,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 72,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 72,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "explosion",
+      "level": 78,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "explosion",
+      "level": 78,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "agility",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "agility",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "assurance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "bounce",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "charge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "charge_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "eerie_impulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "eerie_impulse",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "electric_terrain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "electric_terrain",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "electro_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "electro_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "electroweb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "electroweb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "self_destruct",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "supercell_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "volt_switch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "volt_switch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "rising_voltage",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

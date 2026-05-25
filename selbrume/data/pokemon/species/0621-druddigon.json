@@ -1,0 +1,98 @@
+{
+  "id": "druddigon",
+  "slug": "druddigon",
+  "nationalDex": 621,
+  "names": {
+    "ja_hrkt": "クリムガン",
+    "ja_roma": "Crimgan",
+    "ko": "크리만",
+    "zh_hant": "赤面龍",
+    "fr": "Drakkarmin",
+    "de": "Shardrago",
+    "es": "Druddigon",
+    "it": "Druddigon",
+    "en": "Druddigon",
+    "ja": "クリムガン",
+    "zh_hans": "赤面龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほらあなポケモン",
+    "ko": "동굴포켓몬",
+    "zh_hant": "洞穴寶可夢",
+    "fr": "Pokémon Caverne",
+    "de": "Höhlen-Pokémon",
+    "es": "Pokémon Cueva",
+    "it": "Pokémon Grotta",
+    "en": "Cave Pokémon",
+    "ja": "ほらあなポケモン",
+    "zh_hans": "洞穴宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 77,
+    "atk": 120,
+    "def": 90,
+    "spa": 60,
+    "spd": 90,
+    "spe": 48,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "rough_skin",
+    "secondary": "sheer_force",
+    "hidden": "mold_breaker"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon",
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 170,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "druddigon",
+    "evolution": "druddigon",
+    "media": "druddigon"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 139.0,
+    "color": "red",
+    "flavorText": "It warms its body by absorbing sunlight with its wings. When its body temperature falls, it can no longer move."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

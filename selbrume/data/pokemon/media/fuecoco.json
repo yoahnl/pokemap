@@ -1,0 +1,18 @@
+{
+  "speciesId": "fuecoco",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/fuecoco/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/fuecoco/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/fuecoco.png",
+      "cry": "assets/pokemon/cries/fuecoco.ogg",
+      "animations": {}
+    }
+  }
+}

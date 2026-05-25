@@ -1,0 +1,98 @@
+{
+  "id": "oranguru",
+  "slug": "oranguru",
+  "nationalDex": 765,
+  "names": {
+    "ja_hrkt": "ヤレユータン",
+    "ja_roma": "Yareyuutan",
+    "ko": "하랑우탄",
+    "zh_hant": "智揮猩",
+    "fr": "Gouroutan",
+    "de": "Kommandutan",
+    "es": "Oranguru",
+    "it": "Oranguru",
+    "en": "Oranguru",
+    "ja": "ヤレユータン",
+    "zh_hans": "智挥猩"
+  },
+  "speciesName": {
+    "ja_hrkt": "けんじゃポケモン",
+    "ko": "현자포켓몬",
+    "zh_hant": "賢者寶可夢",
+    "fr": "Pokémon Grand Sage",
+    "de": "Weisheits-Pokémon",
+    "es": "Pokémon Sabio",
+    "it": "Pokémon Saggio",
+    "en": "Sage Pokémon",
+    "ja": "けんじゃポケモン",
+    "zh_hans": "贤者宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 60,
+    "def": 80,
+    "spa": 90,
+    "spd": 110,
+    "spe": 60,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "inner_focus",
+    "secondary": "telepathy",
+    "hidden": "symbiosis"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "oranguru",
+    "evolution": "oranguru",
+    "media": "oranguru"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 76.0,
+    "color": "white",
+    "flavorText": "Known for its extreme intelligence, this Pokémon will look down on inexperienced Trainers, so it’s best suited to veteran Trainers."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

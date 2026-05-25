@@ -1,0 +1,18 @@
+{
+  "speciesId": "hoppip",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hoppip/front.png",
+      "backStatic": "assets/pokemon/sprites/hoppip/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hoppip/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hoppip/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hoppip.png",
+      "cry": "assets/pokemon/cries/hoppip.ogg",
+      "animations": {}
+    }
+  }
+}

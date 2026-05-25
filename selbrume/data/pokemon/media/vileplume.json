@@ -1,0 +1,18 @@
+{
+  "speciesId": "vileplume",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vileplume/front.png",
+      "backStatic": "assets/pokemon/sprites/vileplume/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vileplume/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vileplume/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vileplume.png",
+      "cry": "assets/pokemon/cries/vileplume.ogg",
+      "animations": {}
+    }
+  }
+}

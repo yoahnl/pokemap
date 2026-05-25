@@ -1,0 +1,18 @@
+{
+  "speciesId": "tynamo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tynamo/front.png",
+      "backStatic": "assets/pokemon/sprites/tynamo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tynamo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tynamo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tynamo.png",
+      "cry": "assets/pokemon/cries/tynamo.ogg",
+      "animations": {}
+    }
+  }
+}

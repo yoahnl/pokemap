@@ -1,0 +1,14 @@
+{
+  "speciesId": "toxel",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "toxtricity",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

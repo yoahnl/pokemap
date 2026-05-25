@@ -1,0 +1,30 @@
+{
+  "speciesId": "ninetales",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ninetales/front.png",
+      "backStatic": "assets/pokemon/sprites/ninetales/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ninetales/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ninetales/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ninetales.png",
+      "cry": "assets/pokemon/cries/ninetales.ogg",
+      "animations": {}
+    },
+    "ninetales-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

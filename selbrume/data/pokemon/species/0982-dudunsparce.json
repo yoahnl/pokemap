@@ -1,0 +1,96 @@
+{
+  "id": "dudunsparce",
+  "slug": "dudunsparce",
+  "nationalDex": 982,
+  "names": {
+    "ja_hrkt": "ノココッチ",
+    "ja_roma": "Nokokocchi",
+    "ko": "노고고치",
+    "zh_hant": "土龍節節",
+    "fr": "Deusolourdo",
+    "de": "Dummimisel",
+    "es": "Dudunsparce",
+    "it": "Dudunsparce",
+    "en": "Dudunsparce",
+    "ja": "ノココッチ",
+    "zh_hans": "土龙节节"
+  },
+  "speciesName": {
+    "ja_hrkt": "つちへびポケモン",
+    "ko": "땅뱀포켓몬",
+    "zh_hant": "地蛇寶可夢",
+    "fr": "Serpent",
+    "de": "Erdschlange",
+    "en": "Land Snake Pokémon",
+    "zh_hans": "地蛇宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 125,
+    "atk": 100,
+    "def": 80,
+    "spa": 85,
+    "spd": 75,
+    "spe": 55,
+    "bst": 520
+  },
+  "abilities": {
+    "primary": "serene_grace",
+    "secondary": "run_away",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 0,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "dudunsparce-three-segment"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dudunsparce",
+    "evolution": "dudunsparce",
+    "media": "dudunsparce"
+  },
+  "dexContent": {
+    "heightM": 3.6,
+    "weightKg": 39.2,
+    "color": "yellow",
+    "flavorText": "This Pokémon uses its hard tail to make its nest by boring holes into bedrock deep underground. The nest can reach lengths of over six miles."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

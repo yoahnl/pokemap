@@ -1,0 +1,194 @@
+{
+  "speciesId": "meltan",
+  "startingMoves": [
+    "harden",
+    "headbutt",
+    "thunder_shock"
+  ],
+  "relearnMoves": [
+    "harden",
+    "headbutt",
+    "thunder_shock"
+  ],
+  "levelUp": [
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "headbutt",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_shock",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "headbutt",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_shock",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "acid_armor",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "acid_armor",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "flash_cannon",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flash_cannon",
+      "level": 45,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flash_cannon",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "flash_cannon",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "iron_defense",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "steel_beam",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

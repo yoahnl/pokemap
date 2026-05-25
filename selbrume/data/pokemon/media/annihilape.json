@@ -1,0 +1,18 @@
+{
+  "speciesId": "annihilape",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/annihilape/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/annihilape/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/annihilape.png",
+      "cry": "assets/pokemon/cries/annihilape.ogg",
+      "animations": {}
+    }
+  }
+}

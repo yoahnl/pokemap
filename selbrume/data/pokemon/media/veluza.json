@@ -1,0 +1,18 @@
+{
+  "speciesId": "veluza",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/veluza/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/veluza/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/veluza.png",
+      "cry": "assets/pokemon/cries/veluza.ogg",
+      "animations": {}
+    }
+  }
+}

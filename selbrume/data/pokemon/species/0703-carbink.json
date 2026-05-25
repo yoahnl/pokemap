@@ -1,0 +1,101 @@
+{
+  "id": "carbink",
+  "slug": "carbink",
+  "nationalDex": 703,
+  "names": {
+    "ja_hrkt": "メレシー",
+    "ja_roma": "Melecie",
+    "ko": "멜리시",
+    "zh_hant": "小碎鑽",
+    "fr": "Strassie",
+    "de": "Rocara",
+    "es": "Carbink",
+    "it": "Carbink",
+    "en": "Carbink",
+    "ja": "メレシー",
+    "zh_hans": "小碎钻"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほうせきポケモン",
+    "ko": "보석포켓몬",
+    "zh_hant": "寶石寶可夢",
+    "fr": "Pokémon Joyau",
+    "de": "Edelstein-Pokémon",
+    "es": "Pokémon Joya",
+    "it": "Pokémon Gemma",
+    "en": "Jewel Pokémon",
+    "ja": "ほうせきポケモン",
+    "zh_hans": "宝石宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "rock",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 50,
+    "def": 150,
+    "spa": 50,
+    "spd": 150,
+    "spe": 50,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": null,
+    "hidden": "sturdy"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "fairy",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 100,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "carbink",
+    "evolution": "carbink",
+    "media": "carbink"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 5.7,
+    "color": "gray",
+    "flavorText": "Born from the temperatures and pressures deep underground, it fires beams from the stone in its head."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

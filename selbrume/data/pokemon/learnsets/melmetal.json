@@ -1,0 +1,452 @@
+{
+  "speciesId": "melmetal",
+  "startingMoves": [
+    "harden",
+    "headbutt",
+    "tail_whip",
+    "thunder_punch",
+    "thunder_shock",
+    "thunder_wave"
+  ],
+  "relearnMoves": [
+    "harden",
+    "headbutt",
+    "tail_whip",
+    "thunder_punch",
+    "thunder_shock",
+    "thunder_wave"
+  ],
+  "levelUp": [
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "harden",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "headbutt",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "headbutt",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_shock",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "tail_whip",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 18,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_shock",
+      "level": 27,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "acid_armor",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "acid_armor",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "flash_cannon",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flash_cannon",
+      "level": 45,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "mega_punch",
+      "level": 48,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mega_punch",
+      "level": 54,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "protect",
+      "level": 56,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "level": 63,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "discharge",
+      "level": 64,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "double_iron_bash",
+      "level": 72,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "dynamic_punch",
+      "level": 72,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "superpower",
+      "level": 80,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "superpower",
+      "level": 81,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "double_iron_bash",
+      "level": 88,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 90,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 96,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "body_press",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brutal_swing",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "darkest_lariat",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "electric_terrain",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flash_cannon",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "flash_cannon",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "high_horsepower",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "iron_defense",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mega_kick",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mega_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "self_destruct",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "self_destruct",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "steel_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "steel_roller",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

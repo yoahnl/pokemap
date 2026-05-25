@@ -1,0 +1,18 @@
+{
+  "speciesId": "glimmet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/glimmet/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/glimmet/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/glimmet.png",
+      "cry": "assets/pokemon/cries/glimmet.ogg",
+      "animations": {}
+    }
+  }
+}

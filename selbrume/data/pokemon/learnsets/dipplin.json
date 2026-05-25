@@ -1,0 +1,260 @@
+{
+  "speciesId": "dipplin",
+  "startingMoves": [
+    "astonish",
+    "double_hit",
+    "recycle",
+    "sweet_scent",
+    "withdraw"
+  ],
+  "relearnMoves": [
+    "astonish",
+    "double_hit",
+    "recycle",
+    "sweet_scent",
+    "withdraw"
+  ],
+  "levelUp": [
+    {
+      "moveId": "astonish",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_hit",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "recycle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sweet_scent",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "withdraw",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 4,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "growth",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_breath",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bullet_seed",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "syrup_bomb",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "recover",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "energy_ball",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "level": 44,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "body_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bullet_seed",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_cheer",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "grassy_terrain",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leaf_storm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "pollen_puff",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "pounce",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "seed_bomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [],
+  "egg": [
+    {
+      "moveId": "defense_curl",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "infestation",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "recycle",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rollout",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sucker_punch",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

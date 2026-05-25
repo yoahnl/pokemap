@@ -1,0 +1,100 @@
+{
+  "id": "basculin",
+  "slug": "basculin",
+  "nationalDex": 550,
+  "names": {
+    "ja_hrkt": "バスラオ",
+    "ja_roma": "Bassrao",
+    "ko": "배쓰나이",
+    "zh_hant": "野蠻鱸魚",
+    "fr": "Bargantua",
+    "de": "Barschuft",
+    "es": "Basculin",
+    "it": "Basculin",
+    "en": "Basculin",
+    "ja": "バスラオ",
+    "zh_hans": "野蛮鲈鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "らんぼうポケモン",
+    "ko": "흉포포켓몬",
+    "zh_hant": "粗暴寶可夢",
+    "fr": "Pokémon Violent",
+    "de": "Grobheits-Pokémon",
+    "es": "Pokémon Violento",
+    "it": "Pokémon Irruenza",
+    "en": "Hostile Pokémon",
+    "ja": "らんぼうポケモン",
+    "zh_hans": "粗暴宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 92,
+    "def": 65,
+    "spa": 80,
+    "spd": 55,
+    "spe": 98,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "reckless",
+    "secondary": "adaptability",
+    "hidden": "mold_breaker"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 0,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "basculin-blue-striped",
+      "basculin-white-striped"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "basculin",
+    "evolution": "basculin",
+    "media": "basculin"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 18.0,
+    "color": "green",
+    "flavorText": "Red and blue Basculin get along so poorly, they’ll start fighting instantly. These Pokémon are very hostile."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

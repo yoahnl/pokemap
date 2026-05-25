@@ -1,0 +1,97 @@
+{
+  "id": "slakoth",
+  "slug": "slakoth",
+  "nationalDex": 287,
+  "names": {
+    "ja_hrkt": "ナマケロ",
+    "ja_roma": "Namakero",
+    "ko": "게을로",
+    "zh_hant": "懶人獺",
+    "fr": "Parecool",
+    "de": "Bummelz",
+    "es": "Slakoth",
+    "it": "Slakoth",
+    "en": "Slakoth",
+    "ja": "ナマケロ",
+    "zh_hans": "懒人獭"
+  },
+  "speciesName": {
+    "ja_hrkt": "なまけものポケモン",
+    "ko": "게으름뱅이포켓몬",
+    "zh_hant": "懶人寶可夢",
+    "fr": "Pokémon Flâneur",
+    "de": "Faulpelz",
+    "es": "Pokémon Gandul",
+    "it": "Pokémon Ozioso",
+    "en": "Slacker Pokémon",
+    "ja": "なまけものポケモン",
+    "zh_hans": "懒人宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 60,
+    "def": 60,
+    "spa": 35,
+    "spd": 35,
+    "spe": 30,
+    "bst": 280
+  },
+  "abilities": {
+    "primary": "truant",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 56,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "slakoth",
+    "evolution": "slakoth",
+    "media": "slakoth"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 24.0,
+    "color": "brown",
+    "flavorText": "SLAKOTH lolls around for over twenty hours every day. Because it moves so little, it does not need much food. This POKéMON’s sole daily meal consists of just three leaves."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

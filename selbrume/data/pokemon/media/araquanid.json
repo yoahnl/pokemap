@@ -1,0 +1,30 @@
+{
+  "speciesId": "araquanid",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/araquanid/front.png",
+      "backStatic": "assets/pokemon/sprites/araquanid/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/araquanid/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/araquanid/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/araquanid.png",
+      "cry": "assets/pokemon/cries/araquanid.ogg",
+      "animations": {}
+    },
+    "araquanid-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

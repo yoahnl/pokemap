@@ -1,0 +1,18 @@
+{
+  "speciesId": "natu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/natu/front.png",
+      "backStatic": "assets/pokemon/sprites/natu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/natu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/natu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/natu.png",
+      "cry": "assets/pokemon/cries/natu.ogg",
+      "animations": {}
+    }
+  }
+}

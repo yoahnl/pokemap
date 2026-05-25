@@ -1,0 +1,30 @@
+{
+  "speciesId": "sliggoo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sliggoo/front.png",
+      "backStatic": "assets/pokemon/sprites/sliggoo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sliggoo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sliggoo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sliggoo.png",
+      "cry": "assets/pokemon/cries/sliggoo.ogg",
+      "animations": {}
+    },
+    "sliggoo-hisui": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

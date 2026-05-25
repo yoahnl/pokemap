@@ -1,0 +1,98 @@
+{
+  "id": "mienshao",
+  "slug": "mienshao",
+  "nationalDex": 620,
+  "names": {
+    "ja_hrkt": "コジョンド",
+    "ja_roma": "Kojondo",
+    "ko": "비조도",
+    "zh_hant": "師父鼬",
+    "fr": "Shaofouine",
+    "de": "Wie-Shu",
+    "es": "Mienshao",
+    "it": "Mienshao",
+    "en": "Mienshao",
+    "ja": "コジョンド",
+    "zh_hans": "师父鼬"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぶじゅつポケモン",
+    "ko": "무술포켓몬",
+    "zh_hant": "武術寶可夢",
+    "fr": "Pokémon Art Martial",
+    "de": "Kampfkünste-Pokémon",
+    "es": "Pokémon Arte Marcial",
+    "it": "Pokémon Marziale",
+    "en": "Martial Arts Pokémon",
+    "ja": "ぶじゅつポケモン",
+    "zh_hans": "武术宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 125,
+    "def": 60,
+    "spa": 95,
+    "spd": 60,
+    "spe": 105,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "inner_focus",
+    "secondary": "regenerator",
+    "hidden": "reckless"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 179,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mienshao",
+    "evolution": "mienshao",
+    "media": "mienshao"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 35.5,
+    "color": "purple",
+    "flavorText": "It wields the fur on its arms like a whip. Its arm attacks come with such rapidity that they cannot even be seen."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "id": "keldeo",
+  "slug": "keldeo",
+  "nationalDex": 647,
+  "names": {
+    "ja_hrkt": "ケルディオ",
+    "ja_roma": "Keldeo",
+    "ko": "케르디오",
+    "zh_hant": "凱路迪歐",
+    "fr": "Keldeo",
+    "de": "Keldeo",
+    "es": "Keldeo",
+    "it": "Keldeo",
+    "en": "Keldeo",
+    "ja": "ケルディオ",
+    "zh_hans": "凯路迪欧"
+  },
+  "speciesName": {
+    "ja_hrkt": "わかごまポケモン",
+    "ko": "망아지포켓몬",
+    "zh_hant": "幼馬寶可夢",
+    "fr": "Pokémon Poulain",
+    "de": "Fohlen-Pokémon",
+    "es": "Pokémon Potro",
+    "it": "Pokémon Puledro",
+    "en": "Colt Pokémon",
+    "ja": "わかごまポケモン",
+    "zh_hans": "幼马宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "water",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 91,
+    "atk": 72,
+    "def": 90,
+    "spa": 129,
+    "spd": 90,
+    "spe": 108,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "justified",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "keldeo-resolute"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "keldeo",
+    "evolution": "keldeo",
+    "media": "keldeo"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 48.5,
+    "color": "yellow",
+    "flavorText": "By blasting water from its hooves, it can glide across water. It excels at using leg moves while battling."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

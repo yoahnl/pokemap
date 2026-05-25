@@ -1,0 +1,97 @@
+{
+  "id": "skwovet",
+  "slug": "skwovet",
+  "nationalDex": 819,
+  "names": {
+    "ja_hrkt": "ホシガリス",
+    "ja_roma": "Hoshigarisu",
+    "ko": "탐리스",
+    "zh_hant": "貪心栗鼠",
+    "fr": "Rongourmand",
+    "de": "Raffel",
+    "es": "Skwovet",
+    "it": "Skwovet",
+    "en": "Skwovet",
+    "ja": "ホシガリス",
+    "zh_hans": "贪心栗鼠"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほおばりポケモン",
+    "ko": "볼가득포켓몬",
+    "zh_hant": "貪吃寶可夢",
+    "fr": "Pokémon Joufflu",
+    "de": "Raffbacken-Pokémon",
+    "es": "Pokémon Abazón",
+    "it": "Pokémon Guancepiene",
+    "en": "Cheeky Pokémon",
+    "ja": "ほおばりポケモン",
+    "zh_hans": "贪吃宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 55,
+    "def": 55,
+    "spa": 35,
+    "spd": 35,
+    "spe": 25,
+    "bst": 275
+  },
+  "abilities": {
+    "primary": "cheek_pouch",
+    "secondary": null,
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 55,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "skwovet",
+    "evolution": "skwovet",
+    "media": "skwovet"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 2.5,
+    "color": "brown",
+    "flavorText": "Found throughout the Galar region, this Pokémon becomes uneasy if its cheeks are ever completely empty of berries."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

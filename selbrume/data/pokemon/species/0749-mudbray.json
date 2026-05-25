@@ -1,0 +1,97 @@
+{
+  "id": "mudbray",
+  "slug": "mudbray",
+  "nationalDex": 749,
+  "names": {
+    "ja_hrkt": "ドロバンコ",
+    "ja_roma": "Dorobanko",
+    "ko": "머드나기",
+    "zh_hant": "泥驢仔",
+    "fr": "Tiboudet",
+    "de": "Pampuli",
+    "es": "Mudbray",
+    "it": "Mudbray",
+    "en": "Mudbray",
+    "ja": "ドロバンコ",
+    "zh_hans": "泥驴仔"
+  },
+  "speciesName": {
+    "ja_hrkt": "うさぎうまポケモン",
+    "ko": "당나귀포켓몬",
+    "zh_hant": "驢寶可夢",
+    "fr": "Pokémon Âne",
+    "de": "Packesel-Pokémon",
+    "es": "Pokémon Asno",
+    "it": "Pokémon Ciuconiglio",
+    "en": "Donkey Pokémon",
+    "ja": "うさぎうまポケモン",
+    "zh_hans": "驴宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 100,
+    "def": 70,
+    "spa": 45,
+    "spd": 55,
+    "spe": 45,
+    "bst": 385
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "stamina",
+    "hidden": "inner_focus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 77,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mudbray",
+    "evolution": "mudbray",
+    "media": "mudbray"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 110.0,
+    "color": "brown",
+    "flavorText": "The mud stuck to Mudbray’s hooves enhances its grip and its powerful running gait."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

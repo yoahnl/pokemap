@@ -1,0 +1,14 @@
+{
+  "speciesId": "drowzee",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "hypno",
+      "method": "level_up",
+      "minLevel": 26,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

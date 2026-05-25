@@ -1,0 +1,18 @@
+{
+  "speciesId": "vigoroth",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vigoroth/front.png",
+      "backStatic": "assets/pokemon/sprites/vigoroth/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vigoroth/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vigoroth/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vigoroth.png",
+      "cry": "assets/pokemon/cries/vigoroth.ogg",
+      "animations": {}
+    }
+  }
+}

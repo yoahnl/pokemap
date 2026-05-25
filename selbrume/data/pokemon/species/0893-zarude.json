@@ -1,0 +1,102 @@
+{
+  "id": "zarude",
+  "slug": "zarude",
+  "nationalDex": 893,
+  "names": {
+    "ja_hrkt": "ザルード",
+    "ja_roma": "Zarude",
+    "ko": "자루도",
+    "zh_hant": "薩戮德",
+    "fr": "Zarude",
+    "de": "Zarude",
+    "es": "Zarude",
+    "it": "Zarude",
+    "en": "Zarude",
+    "ja": "ザルード",
+    "zh_hans": "萨戮德"
+  },
+  "speciesName": {
+    "ja_hrkt": "わるざるポケモン",
+    "ko": "나쁜원숭이포켓몬",
+    "zh_hant": "惡猿寶可夢",
+    "fr": "Pokémon Vilain Singe",
+    "de": "Finsteraffen-Pokémon",
+    "es": "Pokémon Simiestro",
+    "it": "Pokémon Scimmialigna",
+    "en": "Rogue Monkey Pokémon",
+    "ja": "わるざるポケモン",
+    "zh_hans": "恶猿宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "dark",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 105,
+    "atk": 120,
+    "def": 105,
+    "spa": 70,
+    "spd": 95,
+    "spe": 105,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "leaf_guard",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 300,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "zarude-dada"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "zarude",
+    "evolution": "zarude",
+    "media": "zarude"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 70.0,
+    "color": "green",
+    "flavorText": "Within dense forests, this Pokémon lives in a pack with others of its kind. It’s incredibly aggressive, and the other Pokémon of the forest fear it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

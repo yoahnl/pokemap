@@ -1,0 +1,18 @@
+{
+  "speciesId": "pachirisu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pachirisu/front.png",
+      "backStatic": "assets/pokemon/sprites/pachirisu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pachirisu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pachirisu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pachirisu.png",
+      "cry": "assets/pokemon/cries/pachirisu.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "garbodor",
+  "slug": "garbodor",
+  "nationalDex": 569,
+  "names": {
+    "ja_hrkt": "ダストダス",
+    "ja_roma": "Dustdas",
+    "ko": "더스트나",
+    "zh_hant": "灰塵山",
+    "fr": "Miasmax",
+    "de": "Deponitox",
+    "es": "Garbodor",
+    "it": "Garbodor",
+    "en": "Garbodor",
+    "ja": "ダストダス",
+    "zh_hans": "灰尘山"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゴミすてばポケモン",
+    "ko": "쓰레기장포켓몬",
+    "zh_hant": "垃圾場寶可夢",
+    "fr": "Pokémon Dépotoir",
+    "de": "Müllhalden-Pokémon",
+    "es": "Pokémon Vertedero",
+    "it": "Pokémon Discarica",
+    "en": "Trash Heap Pokémon",
+    "ja": "ゴミすてばポケモン",
+    "zh_hans": "垃圾场宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 95,
+    "def": 82,
+    "spa": 60,
+    "spd": 82,
+    "spe": 75,
+    "bst": 474
+  },
+  "abilities": {
+    "primary": "stench",
+    "secondary": "weak_armor",
+    "hidden": "aftermath"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 166,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "garbodor",
+    "evolution": "garbodor",
+    "media": "garbodor"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 107.3,
+    "color": "green",
+    "flavorText": "It clenches opponents with its left arm and finishes them off with foul-smelling poison gas belched from its mouth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

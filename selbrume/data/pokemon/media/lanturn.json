@@ -1,0 +1,18 @@
+{
+  "speciesId": "lanturn",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lanturn/front.png",
+      "backStatic": "assets/pokemon/sprites/lanturn/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lanturn/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lanturn/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lanturn.png",
+      "cry": "assets/pokemon/cries/lanturn.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "speciesId": "gimmighoul",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gimmighoul/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/gimmighoul/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gimmighoul.png",
+      "cry": "assets/pokemon/cries/gimmighoul.ogg",
+      "animations": {}
+    },
+    "gimmighoul-roaming": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "yungoos",
+  "slug": "yungoos",
+  "nationalDex": 734,
+  "names": {
+    "ja_hrkt": "ヤングース",
+    "ja_roma": "Youngoose",
+    "ko": "영구스",
+    "zh_hant": "貓鼬少",
+    "fr": "Manglouton",
+    "de": "Mangunior",
+    "es": "Yungoos",
+    "it": "Yungoos",
+    "en": "Yungoos",
+    "ja": "ヤングース",
+    "zh_hans": "猫鼬少"
+  },
+  "speciesName": {
+    "ja_hrkt": "うろつきポケモン",
+    "ko": "순회포켓몬",
+    "zh_hant": "巡迴寶可夢",
+    "fr": "Pokémon Patrouille",
+    "de": "Patrouille",
+    "es": "Pokémon Patrulla",
+    "it": "Pokémon Pattuglia",
+    "en": "Loitering Pokémon",
+    "ja": "うろつきポケモン",
+    "zh_hans": "巡回宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 48,
+    "atk": 70,
+    "def": 30,
+    "spa": 30,
+    "spd": 30,
+    "spe": 45,
+    "bst": 253
+  },
+  "abilities": {
+    "primary": "stakeout",
+    "secondary": "strong_jaw",
+    "hidden": "adaptability"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 51,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "yungoos",
+    "evolution": "yungoos",
+    "media": "yungoos"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.0,
+    "color": "brown",
+    "flavorText": "With its sharp fangs, it will bite anything. It did not originally live in Alola but was imported from another region."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "sprigatito",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sprigatito/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/sprigatito/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sprigatito.png",
+      "cry": "assets/pokemon/cries/sprigatito.ogg",
+      "animations": {}
+    }
+  }
+}

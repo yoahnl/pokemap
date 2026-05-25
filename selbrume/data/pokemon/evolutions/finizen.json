@@ -1,0 +1,14 @@
+{
+  "speciesId": "finizen",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "palafin",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

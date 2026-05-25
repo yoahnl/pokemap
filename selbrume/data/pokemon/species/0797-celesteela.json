@@ -1,0 +1,100 @@
+{
+  "id": "celesteela",
+  "slug": "celesteela",
+  "nationalDex": 797,
+  "names": {
+    "ja_hrkt": "テッカグヤ",
+    "ja_roma": "Tekkaguya",
+    "ko": "철화구야",
+    "zh_hant": "鐵火輝夜",
+    "fr": "Bamboiselle",
+    "de": "Kaguron",
+    "es": "Celesteela",
+    "it": "Celesteela",
+    "en": "Celesteela",
+    "ja": "テッカグヤ",
+    "zh_hans": "铁火辉夜"
+  },
+  "speciesName": {
+    "ja_hrkt": "うちあげポケモン",
+    "ko": "쏴올리기포켓몬",
+    "zh_hant": "發射寶可夢",
+    "fr": "Pokémon Décollage",
+    "de": "Raketenstart-Pokémon",
+    "es": "Pokémon Lanzamiento",
+    "it": "Pokémon Decollo",
+    "en": "Launch Pokémon",
+    "ja": "うちあげポケモン",
+    "zh_hans": "发射宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "steel",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 97,
+    "atk": 101,
+    "def": 103,
+    "spa": 107,
+    "spd": 101,
+    "spe": 61,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "celesteela",
+    "evolution": "celesteela",
+    "media": "celesteela"
+  },
+  "dexContent": {
+    "heightM": 9.2,
+    "weightKg": 999.9,
+    "color": "green",
+    "flavorText": "It appeared from the Ultra Wormhole. Witnesses observed it flying across the sky at high speed."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

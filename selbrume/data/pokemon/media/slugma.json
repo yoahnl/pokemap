@@ -1,0 +1,18 @@
+{
+  "speciesId": "slugma",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/slugma/front.png",
+      "backStatic": "assets/pokemon/sprites/slugma/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/slugma/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/slugma/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/slugma.png",
+      "cry": "assets/pokemon/cries/slugma.ogg",
+      "animations": {}
+    }
+  }
+}

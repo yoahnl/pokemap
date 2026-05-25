@@ -1,0 +1,100 @@
+{
+  "id": "leafeon",
+  "slug": "leafeon",
+  "nationalDex": 470,
+  "names": {
+    "ja_hrkt": "リーフィア",
+    "ja_roma": "Leafia",
+    "ko": "리피아",
+    "zh_hant": "葉伊布",
+    "fr": "Phyllali",
+    "de": "Folipurba",
+    "es": "Leafeon",
+    "it": "Leafeon",
+    "en": "Leafeon",
+    "ja": "リーフィア",
+    "zh_hans": "叶伊布"
+  },
+  "speciesName": {
+    "ja_hrkt": "しんりょくポケモン",
+    "ko": "심록포켓몬",
+    "zh_hant": "新綠寶可夢",
+    "fr": "Pokémon Verdoyant",
+    "de": "Unreif-Pokémon",
+    "es": "Pokémon Verdor",
+    "it": "Pokémon Rigoglioso",
+    "en": "Verdant Pokémon",
+    "ja": "しんりょくポケモン",
+    "zh_hans": "新绿宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 110,
+    "def": 130,
+    "spa": 60,
+    "spd": 65,
+    "spe": 95,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "leaf_guard",
+    "secondary": null,
+    "hidden": "chlorophyll"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 184,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "leafeon",
+    "evolution": "leafeon",
+    "media": "leafeon"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 25.5,
+    "color": "green",
+    "flavorText": "Just like a plant, it uses photosynthesis. As a result, it is always enveloped in clear air."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

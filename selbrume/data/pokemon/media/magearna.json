@@ -1,0 +1,54 @@
+{
+  "speciesId": "magearna",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magearna/front.png",
+      "backStatic": "assets/pokemon/sprites/magearna/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magearna/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magearna/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magearna.png",
+      "cry": "assets/pokemon/cries/magearna.ogg",
+      "animations": {}
+    },
+    "magearna-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "magearna-original": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "magearna-original-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

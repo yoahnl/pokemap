@@ -1,0 +1,30 @@
+{
+  "speciesId": "groudon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/groudon/front.png",
+      "backStatic": "assets/pokemon/sprites/groudon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/groudon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/groudon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/groudon.png",
+      "cry": "assets/pokemon/cries/groudon.ogg",
+      "animations": {}
+    },
+    "groudon-primal": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

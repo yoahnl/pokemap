@@ -1,0 +1,14 @@
+{
+  "speciesId": "floragato",
+  "preEvolution": "sprigatito",
+  "evolutions": [
+    {
+      "targetSpeciesId": "meowscarada",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "id": "lunala",
+  "slug": "lunala",
+  "nationalDex": 792,
+  "names": {
+    "ja_hrkt": "ルナアーラ",
+    "ja_roma": "Lunala",
+    "ko": "루나아라",
+    "zh_hant": "露奈雅拉",
+    "fr": "Lunala",
+    "de": "Lunala",
+    "es": "Lunala",
+    "it": "Lunala",
+    "en": "Lunala",
+    "ja": "ルナアーラ",
+    "zh_hans": "露奈雅拉"
+  },
+  "speciesName": {
+    "ja_hrkt": "がちりんポケモン",
+    "ko": "월륜포켓몬",
+    "zh_hant": "月輪寶可夢",
+    "fr": "Pokémon Halo Lunaire",
+    "de": "Mondscheiben-Pokémon",
+    "es": "Pokémon Corona Lunar",
+    "it": "Pokémon Lunare",
+    "en": "Moone Pokémon",
+    "ja": "がちりんポケモン",
+    "zh_hans": "月轮宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "psychic",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 137,
+    "atk": 113,
+    "def": 89,
+    "spa": 137,
+    "spd": 107,
+    "spe": 97,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "shadow_shield",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lunala",
+    "evolution": "lunala",
+    "media": "lunala"
+  },
+  "dexContent": {
+    "heightM": 4.0,
+    "weightKg": 120.0,
+    "color": "purple",
+    "flavorText": "It is said to be a female evolution of Cosmog. When its third eye activates, away it flies to another world."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

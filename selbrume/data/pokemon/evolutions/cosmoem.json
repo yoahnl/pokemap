@@ -1,0 +1,22 @@
+{
+  "speciesId": "cosmoem",
+  "preEvolution": "cosmog",
+  "evolutions": [
+    {
+      "targetSpeciesId": "lunala",
+      "method": "level_up",
+      "minLevel": 53,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "solgaleo",
+      "method": "level_up",
+      "minLevel": 53,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

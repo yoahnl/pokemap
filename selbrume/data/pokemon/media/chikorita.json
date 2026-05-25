@@ -1,0 +1,18 @@
+{
+  "speciesId": "chikorita",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chikorita/front.png",
+      "backStatic": "assets/pokemon/sprites/chikorita/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chikorita/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chikorita/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chikorita.png",
+      "cry": "assets/pokemon/cries/chikorita.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "remoraid",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/remoraid/front.png",
+      "backStatic": "assets/pokemon/sprites/remoraid/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/remoraid/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/remoraid/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/remoraid.png",
+      "cry": "assets/pokemon/cries/remoraid.ogg",
+      "animations": {}
+    }
+  }
+}

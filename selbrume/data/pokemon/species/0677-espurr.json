@@ -1,0 +1,97 @@
+{
+  "id": "espurr",
+  "slug": "espurr",
+  "nationalDex": 677,
+  "names": {
+    "ja_hrkt": "ニャスパー",
+    "ja_roma": "Nyasper",
+    "ko": "냐스퍼",
+    "zh_hant": "妙喵",
+    "fr": "Psystigri",
+    "de": "Psiau",
+    "es": "Espurr",
+    "it": "Espurr",
+    "en": "Espurr",
+    "ja": "ニャスパー",
+    "zh_hans": "妙喵"
+  },
+  "speciesName": {
+    "ja_hrkt": "じせいポケモン",
+    "ko": "자제포켓몬",
+    "zh_hant": "自制寶可夢",
+    "fr": "Pokémon Retenue",
+    "de": "Zügelungs-Pokémon",
+    "es": "Pokémon Moderación",
+    "it": "Pokémon Moderazione",
+    "en": "Restraint Pokémon",
+    "ja": "じせいポケモン",
+    "zh_hans": "自制宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 62,
+    "atk": 48,
+    "def": 54,
+    "spa": 63,
+    "spd": 60,
+    "spe": 68,
+    "bst": 355
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "infiltrator",
+    "hidden": "own_tempo"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 71,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "espurr",
+    "evolution": "espurr",
+    "media": "espurr"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 3.5,
+    "color": "gray",
+    "flavorText": "The organ that emits its intense psychic power is sheltered by its ears to keep power from leaking out."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "sandygast",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "palossand",
+      "method": "level_up",
+      "minLevel": 42,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

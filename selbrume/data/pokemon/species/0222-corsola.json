@@ -1,0 +1,104 @@
+{
+  "id": "corsola",
+  "slug": "corsola",
+  "nationalDex": 222,
+  "names": {
+    "ja_hrkt": "サニーゴ",
+    "ja_roma": "Sunnygo",
+    "ko": "코산호",
+    "zh_hant": "太陽珊瑚",
+    "fr": "Corayon",
+    "de": "Corasonn",
+    "es": "Corsola",
+    "it": "Corsola",
+    "en": "Corsola",
+    "ja": "サニーゴ",
+    "zh_hans": "太阳珊瑚"
+  },
+  "speciesName": {
+    "ja_hrkt": "さんごポケモン",
+    "ko": "산호포켓몬",
+    "zh_hant": "珊瑚寶可夢",
+    "fr": "Pokémon Corail",
+    "de": "Korallen-Pokémon",
+    "es": "Pokémon Coral",
+    "it": "Pokémon Corallo",
+    "en": "Coral Pokémon",
+    "ja": "さんごポケモン",
+    "zh_hans": "珊瑚宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 55,
+    "def": 95,
+    "spa": 65,
+    "spd": 95,
+    "spe": 35,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "hustle",
+    "secondary": "natural_cure",
+    "hidden": "regenerator"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "water1",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 144,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "corsola-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "corsola",
+    "evolution": "corsola",
+    "media": "corsola"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 5.0,
+    "color": "pink",
+    "flavorText": "It continuously sheds and grows. The tip of its head is prized as a treasure for its beauty."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

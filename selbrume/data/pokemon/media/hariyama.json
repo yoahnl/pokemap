@@ -1,0 +1,18 @@
+{
+  "speciesId": "hariyama",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hariyama/front.png",
+      "backStatic": "assets/pokemon/sprites/hariyama/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hariyama/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hariyama/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hariyama.png",
+      "cry": "assets/pokemon/cries/hariyama.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "pignite",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pignite/front.png",
+      "backStatic": "assets/pokemon/sprites/pignite/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pignite/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pignite/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pignite.png",
+      "cry": "assets/pokemon/cries/pignite.ogg",
+      "animations": {}
+    }
+  }
+}

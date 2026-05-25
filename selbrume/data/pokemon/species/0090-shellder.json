@@ -1,0 +1,97 @@
+{
+  "id": "shellder",
+  "slug": "shellder",
+  "nationalDex": 90,
+  "names": {
+    "ja_hrkt": "シェルダー",
+    "ja_roma": "Shellder",
+    "ko": "셀러",
+    "zh_hant": "大舌貝",
+    "fr": "Kokiyas",
+    "de": "Muschas",
+    "es": "Shellder",
+    "it": "Shellder",
+    "en": "Shellder",
+    "ja": "シェルダー",
+    "zh_hans": "大舌贝"
+  },
+  "speciesName": {
+    "ja_hrkt": "２まいがいポケモン",
+    "ko": "두조개포켓몬",
+    "zh_hant": "雙殼貝寶可夢",
+    "fr": "Pokémon Bivalve",
+    "de": "Muschel-Pokémon",
+    "es": "Pokémon Bivalvo",
+    "it": "Pokémon Bivalve",
+    "en": "Bivalve Pokémon",
+    "ja": "２まいがいポケモン",
+    "zh_hans": "双壳贝宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 30,
+    "atk": 65,
+    "def": 100,
+    "spa": 45,
+    "spd": 25,
+    "spe": 40,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "shell_armor",
+    "secondary": "skill_link",
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 61,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shellder",
+    "evolution": "shellder",
+    "media": "shellder"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 4.0,
+    "color": "purple",
+    "flavorText": "Its hard shell repels any kind of attack. It is vulnerable only when its shell is open."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

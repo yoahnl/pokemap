@@ -1,0 +1,18 @@
+{
+  "speciesId": "piplup",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/piplup/front.png",
+      "backStatic": "assets/pokemon/sprites/piplup/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/piplup/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/piplup/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/piplup.png",
+      "cry": "assets/pokemon/cries/piplup.ogg",
+      "animations": {}
+    }
+  }
+}

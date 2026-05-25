@@ -1,0 +1,97 @@
+{
+  "id": "poliwhirl",
+  "slug": "poliwhirl",
+  "nationalDex": 61,
+  "names": {
+    "ja_hrkt": "ニョロゾ",
+    "ja_roma": "Nyorozo",
+    "ko": "슈륙챙이",
+    "zh_hant": "蚊香君",
+    "fr": "Têtarte",
+    "de": "Quaputzi",
+    "es": "Poliwhirl",
+    "it": "Poliwhirl",
+    "en": "Poliwhirl",
+    "ja": "ニョロゾ",
+    "zh_hans": "蚊香君"
+  },
+  "speciesName": {
+    "ja_hrkt": "おたまポケモン",
+    "ko": "올챙이포켓몬",
+    "zh_hant": "蝌蚪寶可夢",
+    "fr": "Pokémon Têtard",
+    "de": "Kaulquappen-Pokémon",
+    "es": "Pokémon Renacuajo",
+    "it": "Pokémon Girino",
+    "en": "Tadpole Pokémon",
+    "ja": "おたまポケモン",
+    "zh_hans": "蝌蚪宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 65,
+    "def": 65,
+    "spa": 50,
+    "spd": 50,
+    "spe": 90,
+    "bst": 385
+  },
+  "abilities": {
+    "primary": "water_absorb",
+    "secondary": "damp",
+    "hidden": "swift_swim"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 135,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "poliwhirl",
+    "evolution": "poliwhirl",
+    "media": "poliwhirl"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 20.0,
+    "color": "blue",
+    "flavorText": "Capable of living in or out of water. When out of water, it sweats to keep its body slimy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

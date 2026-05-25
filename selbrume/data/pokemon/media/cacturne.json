@@ -1,0 +1,18 @@
+{
+  "speciesId": "cacturne",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cacturne/front.png",
+      "backStatic": "assets/pokemon/sprites/cacturne/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cacturne/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cacturne/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cacturne.png",
+      "cry": "assets/pokemon/cries/cacturne.ogg",
+      "animations": {}
+    }
+  }
+}

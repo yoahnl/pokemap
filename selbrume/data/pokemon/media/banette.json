@@ -1,0 +1,30 @@
+{
+  "speciesId": "banette",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/banette/front.png",
+      "backStatic": "assets/pokemon/sprites/banette/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/banette/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/banette/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/banette.png",
+      "cry": "assets/pokemon/cries/banette.ogg",
+      "animations": {}
+    },
+    "banette-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

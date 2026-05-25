@@ -1,0 +1,99 @@
+{
+  "id": "enamorus",
+  "slug": "enamorus",
+  "nationalDex": 905,
+  "names": {
+    "ja_hrkt": "ラブトロス",
+    "ja_roma": "Lovetolos",
+    "ko": "러브로스",
+    "zh_hant": "眷戀雲",
+    "fr": "Amovénus",
+    "de": "Cupidos",
+    "es": "Enamorus",
+    "it": "Enamorus",
+    "en": "Enamorus",
+    "ja": "ラブトロス",
+    "zh_hans": "眷恋云"
+  },
+  "speciesName": {
+    "ja_hrkt": "あいぞうポケモン",
+    "ko": "애증포켓몬",
+    "zh_hant": "愛憎寶可夢",
+    "fr": "Pokémon Hainamour",
+    "de": "Hassliebe-Pokémon",
+    "it": "Pokémon Amoreodio",
+    "en": "Love-Hate Pokémon",
+    "ja": "あいぞうポケモン",
+    "zh_hans": "爱憎宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fairy",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 74,
+    "atk": 115,
+    "def": 70,
+    "spa": 135,
+    "spd": 80,
+    "spe": 106,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": null,
+    "hidden": "contrary"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "enamorus-therian"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "enamorus",
+    "evolution": "enamorus",
+    "media": "enamorus"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 48.0,
+    "color": "pink",
+    "flavorText": "When it flies to this land from across the sea, the bitter winter comes to an end. According to legend, this Pokémon's love gives rise to the budding of fresh life across Hisui."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "serperior",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/serperior/front.png",
+      "backStatic": "assets/pokemon/sprites/serperior/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/serperior/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/serperior/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/serperior.png",
+      "cry": "assets/pokemon/cries/serperior.ogg",
+      "animations": {}
+    }
+  }
+}

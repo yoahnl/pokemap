@@ -1,0 +1,18 @@
+{
+  "speciesId": "torterra",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/torterra/front.png",
+      "backStatic": "assets/pokemon/sprites/torterra/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/torterra/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/torterra/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/torterra.png",
+      "cry": "assets/pokemon/cries/torterra.ogg",
+      "animations": {}
+    }
+  }
+}

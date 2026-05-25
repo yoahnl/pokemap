@@ -1,0 +1,301 @@
+{
+  "speciesId": "terapagos",
+  "startingMoves": [
+    "rapid_spin",
+    "tri_attack",
+    "withdraw"
+  ],
+  "relearnMoves": [
+    "rapid_spin",
+    "tri_attack",
+    "withdraw"
+  ],
+  "levelUp": [
+    {
+      "moveId": "rapid_spin",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tri_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "withdraw",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ancient_power",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "headbutt",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "earth_power",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heavy_slam",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "tera_starstorm",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_polish",
+      "level": 80,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "gyro_ball",
+      "level": 90,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "aura_sphere",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "body_press",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "calm_mind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "crunch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dark_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dazzling_gleam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "earth_power",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flare_blitz",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flash_cannon",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "gravity",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "gyro_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heat_crash",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heavy_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ice_spinner",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "meteor_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "power_gem",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "scorching_sands",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stealth_rock",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stored_power",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "supercell_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "weather_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wild_charge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "zen_headbutt",
+      "versionGroup": "scarlet-violet"
+    }
+  ],
+  "tutor": [],
+  "egg": [],
+  "event": [],
+  "transfer": []
+}

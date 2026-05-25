@@ -1,0 +1,97 @@
+{
+  "id": "phanpy",
+  "slug": "phanpy",
+  "nationalDex": 231,
+  "names": {
+    "ja_hrkt": "ゴマゾウ",
+    "ja_roma": "Gomazou",
+    "ko": "코코리",
+    "zh_hant": "小小象",
+    "fr": "Phanpy",
+    "de": "Phanpy",
+    "es": "Phanpy",
+    "it": "Phanpy",
+    "en": "Phanpy",
+    "ja": "ゴマゾウ",
+    "zh_hans": "小小象"
+  },
+  "speciesName": {
+    "ja_hrkt": "ながはなポケモン",
+    "ko": "긴코포켓몬",
+    "zh_hant": "長鼻寶可夢",
+    "fr": "Pokémon Long-Nez",
+    "de": "Langrüssel",
+    "es": "Pokémon Narizotas",
+    "it": "Pokémon Nasone",
+    "en": "Long Nose Pokémon",
+    "ja": "ながはなポケモン",
+    "zh_hans": "长鼻宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 60,
+    "def": 60,
+    "spa": 40,
+    "spd": 40,
+    "spe": 40,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": null,
+    "hidden": "sand_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 66,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "phanpy",
+    "evolution": "phanpy",
+    "media": "phanpy"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 33.5,
+    "color": "blue",
+    "flavorText": "It swings its long snout around play­ fully, but because it is so strong, that can be dan­ gerous."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

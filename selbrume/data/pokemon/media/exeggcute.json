@@ -1,0 +1,18 @@
+{
+  "speciesId": "exeggcute",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/exeggcute/front.png",
+      "backStatic": "assets/pokemon/sprites/exeggcute/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/exeggcute/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/exeggcute/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/exeggcute.png",
+      "cry": "assets/pokemon/cries/exeggcute.ogg",
+      "animations": {}
+    }
+  }
+}

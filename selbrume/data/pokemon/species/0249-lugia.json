@@ -1,0 +1,100 @@
+{
+  "id": "lugia",
+  "slug": "lugia",
+  "nationalDex": 249,
+  "names": {
+    "ja_hrkt": "ルギア",
+    "ja_roma": "Lugia",
+    "ko": "루기아",
+    "zh_hant": "洛奇亞",
+    "fr": "Lugia",
+    "de": "Lugia",
+    "es": "Lugia",
+    "it": "Lugia",
+    "en": "Lugia",
+    "ja": "ルギア",
+    "zh_hans": "洛奇亚"
+  },
+  "speciesName": {
+    "ja_hrkt": "せんすいポケモン",
+    "ko": "잠수포켓몬",
+    "zh_hant": "潛水寶可夢",
+    "fr": "Pokémon Plongeon",
+    "de": "Taucher-Pokémon",
+    "es": "Pokémon Buceo",
+    "it": "Pokémon Immersione",
+    "en": "Diving Pokémon",
+    "ja": "せんすいポケモン",
+    "zh_hans": "潜水宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "psychic",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 106,
+    "atk": 90,
+    "def": 130,
+    "spa": 90,
+    "spd": 154,
+    "spe": 110,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "multiscale"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lugia",
+    "evolution": "lugia",
+    "media": "lugia"
+  },
+  "dexContent": {
+    "heightM": 5.2,
+    "weightKg": 216.0,
+    "color": "white",
+    "flavorText": "It is said that it quietly spends its time deep at the bottom of the sea because its powers are too strong."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

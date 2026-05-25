@@ -1,0 +1,18 @@
+{
+  "speciesId": "bidoof",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bidoof/front.png",
+      "backStatic": "assets/pokemon/sprites/bidoof/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bidoof/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bidoof/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bidoof.png",
+      "cry": "assets/pokemon/cries/bidoof.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "sinistea",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "polteageist",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "cracked-pot",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

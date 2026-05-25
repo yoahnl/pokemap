@@ -1,0 +1,14 @@
+{
+  "speciesId": "yamper",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "boltund",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

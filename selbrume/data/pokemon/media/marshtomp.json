@@ -1,0 +1,18 @@
+{
+  "speciesId": "marshtomp",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/marshtomp/front.png",
+      "backStatic": "assets/pokemon/sprites/marshtomp/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/marshtomp/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/marshtomp/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/marshtomp.png",
+      "cry": "assets/pokemon/cries/marshtomp.ogg",
+      "animations": {}
+    }
+  }
+}

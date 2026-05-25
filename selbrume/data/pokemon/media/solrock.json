@@ -1,0 +1,18 @@
+{
+  "speciesId": "solrock",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/solrock/front.png",
+      "backStatic": "assets/pokemon/sprites/solrock/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/solrock/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/solrock/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/solrock.png",
+      "cry": "assets/pokemon/cries/solrock.ogg",
+      "animations": {}
+    }
+  }
+}

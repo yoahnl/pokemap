@@ -1,0 +1,18 @@
+{
+  "speciesId": "duraludon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/duraludon/front.png",
+      "backStatic": "assets/pokemon/sprites/duraludon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/duraludon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/duraludon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/duraludon.png",
+      "cry": "assets/pokemon/cries/duraludon.ogg",
+      "animations": {}
+    }
+  }
+}

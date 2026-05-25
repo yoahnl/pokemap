@@ -1,0 +1,14 @@
+{
+  "speciesId": "numel",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "camerupt",
+      "method": "level_up",
+      "minLevel": 33,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

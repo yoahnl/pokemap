@@ -1,0 +1,97 @@
+{
+  "id": "metapod",
+  "slug": "metapod",
+  "nationalDex": 11,
+  "names": {
+    "ja_hrkt": "トランセル",
+    "ja_roma": "Trancell",
+    "ko": "단데기",
+    "zh_hant": "鐵甲蛹",
+    "fr": "Chrysacier",
+    "de": "Safcon",
+    "es": "Metapod",
+    "it": "Metapod",
+    "en": "Metapod",
+    "ja": "トランセル",
+    "zh_hans": "铁甲蛹"
+  },
+  "speciesName": {
+    "ja_hrkt": "さなぎポケモン",
+    "ko": "번데기포켓몬",
+    "zh_hant": "蛹寶可夢",
+    "fr": "Pokémon Cocon",
+    "de": "Kokon-Pokémon",
+    "es": "Pokémon Capullo",
+    "it": "Pokémon Bozzolo",
+    "en": "Cocoon Pokémon",
+    "ja": "さなぎポケモン",
+    "zh_hans": "蛹宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 20,
+    "def": 55,
+    "spa": 25,
+    "spd": 25,
+    "spe": 30,
+    "bst": 205
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 72,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "metapod",
+    "evolution": "metapod",
+    "media": "metapod"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 9.9,
+    "color": "green",
+    "flavorText": "This POKéMON is vulnerable to attack while its shell is soft, exposing its weak and tender body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

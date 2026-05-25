@@ -1,0 +1,18 @@
+{
+  "speciesId": "rookidee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rookidee/front.png",
+      "backStatic": "assets/pokemon/sprites/rookidee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rookidee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rookidee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rookidee.png",
+      "cry": "assets/pokemon/cries/rookidee.ogg",
+      "animations": {}
+    }
+  }
+}

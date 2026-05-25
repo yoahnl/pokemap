@@ -1,0 +1,103 @@
+{
+  "id": "aerodactyl",
+  "slug": "aerodactyl",
+  "nationalDex": 142,
+  "names": {
+    "ja_hrkt": "プテラ",
+    "ja_roma": "Ptera",
+    "ko": "프테라",
+    "zh_hant": "化石翼龍",
+    "fr": "Ptéra",
+    "de": "Aerodactyl",
+    "es": "Aerodactyl",
+    "it": "Aerodactyl",
+    "en": "Aerodactyl",
+    "ja": "プテラ",
+    "zh_hans": "化石翼龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "かせきポケモン",
+    "ko": "화석포켓몬",
+    "zh_hant": "化石寶可夢",
+    "fr": "Pokémon Fossile",
+    "de": "Fossil-Pokémon",
+    "es": "Pokémon Fósil",
+    "it": "Pokémon Fossile",
+    "en": "Fossil Pokémon",
+    "ja": "かせきポケモン",
+    "zh_hans": "化石宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "rock",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 105,
+    "def": 65,
+    "spa": 60,
+    "spd": 75,
+    "spe": 130,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": "pressure",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 180,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "aerodactyl-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "aerodactyl",
+    "evolution": "aerodactyl",
+    "media": "aerodactyl"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 59.0,
+    "color": "purple",
+    "flavorText": "A Pokémon that roamed the skies in the dinosaur era. Its teeth are like saw blades."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

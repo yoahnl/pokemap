@@ -1,0 +1,207 @@
+{
+  "speciesId": "gossifleur",
+  "startingMoves": [
+    "leafage",
+    "sing"
+  ],
+  "relearnMoves": [
+    "leafage",
+    "sing"
+  ],
+  "levelUp": [
+    {
+      "moveId": "leafage",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sing",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rapid_spin",
+      "level": 4,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sweet_scent",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "razor_leaf",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "level": 16,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leaf_tornado",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "synthesis",
+      "level": 24,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_voice",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "aromatherapy",
+      "level": 32,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leaf_storm",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "bullet_seed",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "charm",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "energy_ball",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grass_knot",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "grassy_terrain",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_voice",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leaf_storm",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "magical_leaf",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "pollen_puff",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "grassy_glide",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "growth",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leech_seed",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "poison_powder",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_powder",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stun_spore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "worry_seed",
+      "versionGroup": "sword-shield"
+    }
+  ],
+  "event": [],
+  "transfer": []
+}

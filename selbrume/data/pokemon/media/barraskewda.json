@@ -1,0 +1,18 @@
+{
+  "speciesId": "barraskewda",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/barraskewda/front.png",
+      "backStatic": "assets/pokemon/sprites/barraskewda/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/barraskewda/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/barraskewda/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/barraskewda.png",
+      "cry": "assets/pokemon/cries/barraskewda.ogg",
+      "animations": {}
+    }
+  }
+}

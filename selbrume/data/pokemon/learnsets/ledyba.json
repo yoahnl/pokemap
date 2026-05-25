@@ -1,0 +1,3894 @@
+{
+  "speciesId": "ledyba",
+  "startingMoves": [
+    "tackle"
+  ],
+  "relearnMoves": [
+    "tackle"
+  ],
+  "levelUp": [
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "tackle",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 6,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "supersonic",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "swift",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "swift",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swift",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 9,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "reflect",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "reflect",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "reflect",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 12,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "reflect",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "reflect",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "reflect",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "reflect",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "reflect",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "reflect",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "reflect",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "mach_punch",
+      "level": 17,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "roost",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 19,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "comet_punch",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "light_screen",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "reflect",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "reflect",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "reflect",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "reflect",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "reflect",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "reflect",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "reflect",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "struggle_bug",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "silver_wind",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 26,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 26,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 26,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "agility",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "agility",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "agility",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "baton_pass",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "agility",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "agility",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "agility",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "agility",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "agility",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "agility",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "agility",
+      "level": 30,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swift",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "swift",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "swift",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "swift",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "swift",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "swift",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "swift",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "air_slash",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "air_slash",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "air_slash",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swift",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "swift",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "swift",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "swift",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "swift",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "swift",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "swift",
+      "level": 36,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "bug_buzz",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "agility",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "agility",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "agility",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "agility",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "agility",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "agility",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "agility",
+      "level": 43,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "double_edge",
+      "level": 50,
+      "source": "level_up",
+      "versionGroup": "xd"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "acrobatics",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "captivate",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "captivate",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "captivate",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dig",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "dynamic_punch",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "dynamic_punch",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flash",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "infestation",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "infestation",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "infestation",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "infestation",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "natural_gift",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "natural_gift",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "natural_gift",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "power_up_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "power_up_punch",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "rollout",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "rollout",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "solar_beam",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "struggle_bug",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "struggle_bug",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "struggle_bug",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "struggle_bug",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sweet_scent",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "sweet_scent",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thief",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "u_turn",
+      "versionGroup": "x-y"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "air_cutter",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "air_cutter",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dynamic_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "giga_drain",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "mega_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "mega_punch",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "ominous_wind",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "ominous_wind",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rollout",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "rollout",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "rollout",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "string_shot",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "swords_dance",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "uproar",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "egg": [
+    {
+      "moveId": "bide",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "bug_bite",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "bug_buzz",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "counter",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "counter",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dizzy_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dizzy_punch",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dizzy_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dizzy_punch",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dizzy_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dizzy_punch",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "drain_punch",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "knock_off",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "screech",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "silver_wind",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "x-y"
+    }
+  ],
+  "event": [
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "psybeam",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "refresh",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "supersonic",
+      "versionGroup": "xd"
+    }
+  ],
+  "transfer": []
+}

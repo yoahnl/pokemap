@@ -1,0 +1,100 @@
+{
+  "id": "solgaleo",
+  "slug": "solgaleo",
+  "nationalDex": 791,
+  "names": {
+    "ja_hrkt": "ソルガレオ",
+    "ja_roma": "Solgaleo",
+    "ko": "솔가레오",
+    "zh_hant": "索爾迦雷歐",
+    "fr": "Solgaleo",
+    "de": "Solgaleo",
+    "es": "Solgaleo",
+    "it": "Solgaleo",
+    "en": "Solgaleo",
+    "ja": "ソルガレオ",
+    "zh_hans": "索尔迦雷欧"
+  },
+  "speciesName": {
+    "ja_hrkt": "にちりんポケモン",
+    "ko": "일륜포켓몬",
+    "zh_hant": "日輪寶可夢",
+    "fr": "Pokémon Halo Solaire",
+    "de": "Sonnenkreis-Pokémon",
+    "es": "Pokémon Corona Solar",
+    "it": "Pokémon Solare",
+    "en": "Sunne Pokémon",
+    "ja": "にちりんポケモン",
+    "zh_hans": "日轮宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "psychic",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 137,
+    "atk": 137,
+    "def": 107,
+    "spa": 113,
+    "spd": 89,
+    "spe": 97,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "full_metal_body",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "solgaleo",
+    "evolution": "solgaleo",
+    "media": "solgaleo"
+  },
+  "dexContent": {
+    "heightM": 3.4,
+    "weightKg": 230.0,
+    "color": "white",
+    "flavorText": "It is said to live in another world. The intense light it radiates from the surface of its body can make the darkest of nights light up like midday."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

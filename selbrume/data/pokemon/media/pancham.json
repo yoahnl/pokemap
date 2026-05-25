@@ -1,0 +1,18 @@
+{
+  "speciesId": "pancham",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pancham/front.png",
+      "backStatic": "assets/pokemon/sprites/pancham/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pancham/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pancham/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pancham.png",
+      "cry": "assets/pokemon/cries/pancham.ogg",
+      "animations": {}
+    }
+  }
+}

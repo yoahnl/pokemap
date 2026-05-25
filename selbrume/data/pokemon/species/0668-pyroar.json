@@ -1,0 +1,103 @@
+{
+  "id": "pyroar",
+  "slug": "pyroar",
+  "nationalDex": 668,
+  "names": {
+    "ja_hrkt": "カエンジシ",
+    "ja_roma": "Kaenjishi",
+    "ko": "화염레오",
+    "zh_hant": "火炎獅",
+    "fr": "Némélios",
+    "de": "Pyroleo",
+    "es": "Pyroar",
+    "it": "Pyroar",
+    "en": "Pyroar",
+    "ja": "カエンジシ",
+    "zh_hans": "火炎狮"
+  },
+  "speciesName": {
+    "ja_hrkt": "おうじゃポケモン",
+    "ko": "임금포켓몬",
+    "zh_hant": "王者寶可夢",
+    "fr": "Pokémon Royal",
+    "de": "Monarch",
+    "es": "Pokémon Regio",
+    "it": "Pokémon Reale",
+    "en": "Royal Pokémon",
+    "ja": "おうじゃポケモン",
+    "zh_hans": "王者宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fire",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 86,
+    "atk": 68,
+    "def": 72,
+    "spa": 109,
+    "spd": 66,
+    "spe": 106,
+    "bst": 507
+  },
+  "abilities": {
+    "primary": "rivalry",
+    "secondary": "unnerve",
+    "hidden": "moxie"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.125,
+      "female": 0.875
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 0,
+    "catchRate": 65,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "pyroar-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pyroar",
+    "evolution": "pyroar",
+    "media": "pyroar"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 81.5,
+    "color": "brown",
+    "flavorText": "The male with the largest mane of fire is the leader of the pride."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

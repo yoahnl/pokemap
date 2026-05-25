@@ -1,0 +1,18 @@
+{
+  "speciesId": "delibird",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/delibird/front.png",
+      "backStatic": "assets/pokemon/sprites/delibird/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/delibird/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/delibird/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/delibird.png",
+      "cry": "assets/pokemon/cries/delibird.ogg",
+      "animations": {}
+    }
+  }
+}

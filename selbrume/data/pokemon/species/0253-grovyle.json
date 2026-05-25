@@ -1,0 +1,101 @@
+{
+  "id": "grovyle",
+  "slug": "grovyle",
+  "nationalDex": 253,
+  "names": {
+    "ja_hrkt": "ジュプトル",
+    "ja_roma": "Juptile",
+    "ko": "나무돌이",
+    "zh_hant": "森林蜥蜴",
+    "fr": "Massko",
+    "de": "Reptain",
+    "es": "Grovyle",
+    "it": "Grovyle",
+    "en": "Grovyle",
+    "ja": "ジュプトル",
+    "zh_hans": "森林蜥蜴"
+  },
+  "speciesName": {
+    "ja_hrkt": "もりトカゲポケモン",
+    "ko": "숲도마뱀포켓몬",
+    "zh_hant": "林蜥寶可夢",
+    "fr": "Pokémon Bois Gecko",
+    "de": "Waldgecko-Pokémon",
+    "es": "Pokémon Geco Bosque",
+    "it": "Pokémon Legnogeco",
+    "en": "Wood Gecko Pokémon",
+    "ja": "もりトカゲポケモン",
+    "zh_hans": "林蜥宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 65,
+    "def": 45,
+    "spa": 85,
+    "spd": 65,
+    "spe": 95,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "unburden"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "grovyle",
+    "evolution": "grovyle",
+    "media": "grovyle"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 21.6,
+    "color": "green",
+    "flavorText": "The leaves growing out of GROVYLE’s body are convenient for camouflaging it from enemies in the forest. This POKéMON is a master at climbing trees in jungles."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

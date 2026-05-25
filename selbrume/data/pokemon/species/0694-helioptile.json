@@ -1,0 +1,99 @@
+{
+  "id": "helioptile",
+  "slug": "helioptile",
+  "nationalDex": 694,
+  "names": {
+    "ja_hrkt": "エリキテル",
+    "ja_roma": "Erikiteru",
+    "ko": "목도리키텔",
+    "zh_hant": "傘電蜥",
+    "fr": "Galvaran",
+    "de": "Eguana",
+    "es": "Helioptile",
+    "it": "Helioptile",
+    "en": "Helioptile",
+    "ja": "エリキテル",
+    "zh_hans": "伞电蜥"
+  },
+  "speciesName": {
+    "ja_hrkt": "はつでんポケモン",
+    "ko": "발전포켓몬",
+    "zh_hant": "發電寶可夢",
+    "fr": "Pokémon Générateur",
+    "de": "Generatoren-Pokémon",
+    "es": "Pokémon Generador",
+    "it": "Pokémon Generatore",
+    "en": "Generator Pokémon",
+    "ja": "はつでんポケモン",
+    "zh_hans": "发电宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "electric",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 44,
+    "atk": 38,
+    "def": 33,
+    "spa": 61,
+    "spd": 43,
+    "spe": 70,
+    "bst": 289
+  },
+  "abilities": {
+    "primary": "dry_skin",
+    "secondary": "sand_veil",
+    "hidden": "solar_power"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 58,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "helioptile",
+    "evolution": "helioptile",
+    "media": "helioptile"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 6.0,
+    "color": "yellow",
+    "flavorText": "They make their home in deserts. They can generate their energy from basking in the sun, so eating food is not a requirement."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

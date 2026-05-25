@@ -1,0 +1,99 @@
+{
+  "id": "runerigus",
+  "slug": "runerigus",
+  "nationalDex": 867,
+  "names": {
+    "ja_hrkt": "デスバーン",
+    "ja_roma": "Deathbarn",
+    "ko": "데스판",
+    "zh_hant": "死神板",
+    "fr": "Tutétékri",
+    "de": "Oghnatoll",
+    "es": "Runerigus",
+    "it": "Runerigus",
+    "en": "Runerigus",
+    "ja": "デスバーン",
+    "zh_hans": "迭失板"
+  },
+  "speciesName": {
+    "ja_hrkt": "おんねんポケモン",
+    "ko": "원념포켓몬",
+    "zh_hant": "怨念寶可夢",
+    "fr": "Pokémon Rancune",
+    "de": "Gram-Pokémon",
+    "es": "Pokémon Resquemor",
+    "it": "Pokémon Rancore",
+    "en": "Grudge Pokémon",
+    "ja": "おんねんポケモン",
+    "zh_hans": "怨念宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "ground",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 58,
+    "atk": 95,
+    "def": 145,
+    "spa": 50,
+    "spd": 105,
+    "spe": 30,
+    "bst": 483
+  },
+  "abilities": {
+    "primary": "wandering_spirit",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 169,
+    "catchRate": 90,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "runerigus",
+    "evolution": "runerigus",
+    "media": "runerigus"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 66.6,
+    "color": "gray",
+    "flavorText": "A powerful curse was woven into an ancient painting. After absorbing the spirit of a Yamask, the painting began to move."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "snorlax",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/snorlax/front.png",
+      "backStatic": "assets/pokemon/sprites/snorlax/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/snorlax/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/snorlax/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/snorlax.png",
+      "cry": "assets/pokemon/cries/snorlax.ogg",
+      "animations": {}
+    }
+  }
+}

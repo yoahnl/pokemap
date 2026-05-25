@@ -1,0 +1,99 @@
+{
+  "id": "regice",
+  "slug": "regice",
+  "nationalDex": 378,
+  "names": {
+    "ja_hrkt": "レジアイス",
+    "ja_roma": "Regice",
+    "ko": "레지아이스",
+    "zh_hant": "雷吉艾斯",
+    "fr": "Regice",
+    "de": "Regice",
+    "es": "Regice",
+    "it": "Regice",
+    "en": "Regice",
+    "ja": "レジアイス",
+    "zh_hans": "雷吉艾斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひょうざんポケモン",
+    "ko": "빙산포켓몬",
+    "zh_hant": "冰山寶可夢",
+    "fr": "Pokémon Iceberg",
+    "de": "Eisberg-Pokémon",
+    "es": "Pokémon Iceberg",
+    "it": "Pokémon Iceberg",
+    "en": "Iceberg Pokémon",
+    "ja": "ひょうざんポケモン",
+    "zh_hans": "冰山宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 50,
+    "def": 100,
+    "spa": 100,
+    "spd": 200,
+    "spe": 50,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": null,
+    "hidden": "ice_body"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "regice",
+    "evolution": "regice",
+    "media": "regice"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 175.0,
+    "color": "blue",
+    "flavorText": "REGICE’s body was made during an ice age. The deep-frozen body can’t be melted, even by fire. This POKéMON controls frigid air of minus 328 degrees F."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

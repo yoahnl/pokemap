@@ -1,0 +1,14 @@
+{
+  "speciesId": "varoom",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "revavroom",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

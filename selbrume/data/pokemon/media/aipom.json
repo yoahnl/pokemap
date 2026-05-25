@@ -1,0 +1,18 @@
+{
+  "speciesId": "aipom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/aipom/front.png",
+      "backStatic": "assets/pokemon/sprites/aipom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/aipom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/aipom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/aipom.png",
+      "cry": "assets/pokemon/cries/aipom.ogg",
+      "animations": {}
+    }
+  }
+}

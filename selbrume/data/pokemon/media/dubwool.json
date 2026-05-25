@@ -1,0 +1,18 @@
+{
+  "speciesId": "dubwool",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dubwool/front.png",
+      "backStatic": "assets/pokemon/sprites/dubwool/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dubwool/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dubwool/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dubwool.png",
+      "cry": "assets/pokemon/cries/dubwool.ogg",
+      "animations": {}
+    }
+  }
+}

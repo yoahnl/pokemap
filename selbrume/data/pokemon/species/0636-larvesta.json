@@ -1,0 +1,98 @@
+{
+  "id": "larvesta",
+  "slug": "larvesta",
+  "nationalDex": 636,
+  "names": {
+    "ja_hrkt": "メラルバ",
+    "ja_roma": "Merlarva",
+    "ko": "활화르바",
+    "zh_hant": "燃燒蟲",
+    "fr": "Pyronille",
+    "de": "Ignivor",
+    "es": "Larvesta",
+    "it": "Larvesta",
+    "en": "Larvesta",
+    "ja": "メラルバ",
+    "zh_hans": "燃烧虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "たいまつポケモン",
+    "ko": "횃불포켓몬",
+    "zh_hant": "火炬寶可夢",
+    "fr": "Pokémon Torche",
+    "de": "Fackel-Pokémon",
+    "es": "Pokémon Antorcha",
+    "it": "Pokémon Torcia",
+    "en": "Torch Pokémon",
+    "ja": "たいまつポケモン",
+    "zh_hans": "火炬宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 85,
+    "def": 55,
+    "spa": 50,
+    "spd": 55,
+    "spe": 60,
+    "bst": 360
+  },
+  "abilities": {
+    "primary": "flame_body",
+    "secondary": null,
+    "hidden": "swarm"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 72,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "larvesta",
+    "evolution": "larvesta",
+    "media": "larvesta"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 28.8,
+    "color": "white",
+    "flavorText": "This Pokémon was believed to have been born from the sun. When it evolves, its entire body is engulfed in flames."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

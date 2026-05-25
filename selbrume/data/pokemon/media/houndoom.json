@@ -1,0 +1,30 @@
+{
+  "speciesId": "houndoom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/houndoom/front.png",
+      "backStatic": "assets/pokemon/sprites/houndoom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/houndoom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/houndoom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/houndoom.png",
+      "cry": "assets/pokemon/cries/houndoom.ogg",
+      "animations": {}
+    },
+    "houndoom-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

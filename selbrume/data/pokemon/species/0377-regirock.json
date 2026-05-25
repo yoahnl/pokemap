@@ -1,0 +1,99 @@
+{
+  "id": "regirock",
+  "slug": "regirock",
+  "nationalDex": 377,
+  "names": {
+    "ja_hrkt": "レジロック",
+    "ja_roma": "Regirock",
+    "ko": "레지락",
+    "zh_hant": "雷吉洛克",
+    "fr": "Regirock",
+    "de": "Regirock",
+    "es": "Regirock",
+    "it": "Regirock",
+    "en": "Regirock",
+    "ja": "レジロック",
+    "zh_hans": "雷吉洛克"
+  },
+  "speciesName": {
+    "ja_hrkt": "いわやまポケモン",
+    "ko": "바위산포켓몬",
+    "zh_hant": "岩山寶可夢",
+    "fr": "Pokémon Pic Rocheux",
+    "de": "Steingipfel-Pokémon",
+    "es": "Pokémon Pico Roca",
+    "it": "Pokémon Picco",
+    "en": "Rock Peak Pokémon",
+    "ja": "いわやまポケモン",
+    "zh_hans": "岩山宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 100,
+    "def": 200,
+    "spa": 50,
+    "spd": 100,
+    "spe": 50,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": null,
+    "hidden": "sturdy"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "regirock",
+    "evolution": "regirock",
+    "media": "regirock"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 230.0,
+    "color": "brown",
+    "flavorText": "Its entire body is made of rock. If any part chips off in battle, it attaches rocks to repair itself."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "speciesId": "golurk",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/golurk/front.png",
+      "backStatic": "assets/pokemon/sprites/golurk/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/golurk/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/golurk/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/golurk.png",
+      "cry": "assets/pokemon/cries/golurk.ogg",
+      "animations": {}
+    },
+    "golurk-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "lombre",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lombre/front.png",
+      "backStatic": "assets/pokemon/sprites/lombre/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lombre/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lombre/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lombre.png",
+      "cry": "assets/pokemon/cries/lombre.ogg",
+      "animations": {}
+    }
+  }
+}

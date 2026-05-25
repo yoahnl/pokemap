@@ -1,0 +1,97 @@
+{
+  "id": "bounsweet",
+  "slug": "bounsweet",
+  "nationalDex": 761,
+  "names": {
+    "ja_hrkt": "アマカジ",
+    "ja_roma": "Amakaji",
+    "ko": "달콤아",
+    "zh_hant": "甜竹竹",
+    "fr": "Croquine",
+    "de": "Frubberl",
+    "es": "Bounsweet",
+    "it": "Bounsweet",
+    "en": "Bounsweet",
+    "ja": "アマカジ",
+    "zh_hans": "甜竹竹"
+  },
+  "speciesName": {
+    "ja_hrkt": "フルーツポケモン",
+    "ko": "후르츠포켓몬",
+    "zh_hant": "水果寶可夢",
+    "fr": "Pokémon Fruit",
+    "de": "Obst-Pokémon",
+    "es": "Pokémon Fruto",
+    "it": "Pokémon Frutto",
+    "en": "Fruit Pokémon",
+    "ja": "フルーツポケモン",
+    "zh_hans": "水果宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 42,
+    "atk": 30,
+    "def": 38,
+    "spa": 30,
+    "spd": 38,
+    "spe": 32,
+    "bst": 210
+  },
+  "abilities": {
+    "primary": "leaf_guard",
+    "secondary": "oblivious",
+    "hidden": "sweet_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 42,
+    "catchRate": 235,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bounsweet",
+    "evolution": "bounsweet",
+    "media": "bounsweet"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 3.2,
+    "color": "purple",
+    "flavorText": "A delectable aroma pours from its body. They are often swallowed whole by Toucannon lured by that wafting deliciousness."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

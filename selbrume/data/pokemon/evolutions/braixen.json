@@ -1,0 +1,14 @@
+{
+  "speciesId": "braixen",
+  "preEvolution": "fennekin",
+  "evolutions": [
+    {
+      "targetSpeciesId": "delphox",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

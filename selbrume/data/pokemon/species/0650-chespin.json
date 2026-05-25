@@ -1,0 +1,100 @@
+{
+  "id": "chespin",
+  "slug": "chespin",
+  "nationalDex": 650,
+  "names": {
+    "ja_hrkt": "ハリマロン",
+    "ja_roma": "Harimaron",
+    "ko": "도치마론",
+    "zh_hant": "哈力栗",
+    "fr": "Marisson",
+    "de": "Igamaro",
+    "es": "Chespin",
+    "it": "Chespin",
+    "en": "Chespin",
+    "ja": "ハリマロン",
+    "zh_hans": "哈力栗"
+  },
+  "speciesName": {
+    "ja_hrkt": "いがぐりポケモン",
+    "ko": "밤송이포켓몬",
+    "zh_hant": "刺栗寶可夢",
+    "fr": "Pokémon Bogue",
+    "de": "Stachelkopf",
+    "es": "Pokémon Erizo",
+    "it": "Pokémon Castanriccio",
+    "en": "Spiny Nut Pokémon",
+    "ja": "いがぐりポケモン",
+    "zh_hans": "刺栗宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 56,
+    "atk": 61,
+    "def": 65,
+    "spa": 48,
+    "spd": 45,
+    "spe": 38,
+    "bst": 313
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "bulletproof"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 63,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "chespin",
+    "evolution": "chespin",
+    "media": "chespin"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 9.0,
+    "color": "green",
+    "flavorText": "The quills on its head are usually soft. When it flexes them, the points become so hard and sharp that they can pierce rock."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

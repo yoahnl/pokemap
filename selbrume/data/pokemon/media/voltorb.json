@@ -1,0 +1,30 @@
+{
+  "speciesId": "voltorb",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/voltorb/front.png",
+      "backStatic": "assets/pokemon/sprites/voltorb/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/voltorb/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/voltorb/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/voltorb.png",
+      "cry": "assets/pokemon/cries/voltorb.ogg",
+      "animations": {}
+    },
+    "voltorb-hisui": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

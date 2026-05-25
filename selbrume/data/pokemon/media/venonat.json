@@ -1,0 +1,18 @@
+{
+  "speciesId": "venonat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/venonat/front.png",
+      "backStatic": "assets/pokemon/sprites/venonat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/venonat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/venonat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/venonat.png",
+      "cry": "assets/pokemon/cries/venonat.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "klinklang",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/klinklang/front.png",
+      "backStatic": "assets/pokemon/sprites/klinklang/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/klinklang/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/klinklang/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/klinklang.png",
+      "cry": "assets/pokemon/cries/klinklang.ogg",
+      "animations": {}
+    }
+  }
+}

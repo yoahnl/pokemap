@@ -1,0 +1,99 @@
+{
+  "id": "dugtrio",
+  "slug": "dugtrio",
+  "nationalDex": 51,
+  "names": {
+    "ja_hrkt": "ダグトリオ",
+    "ja_roma": "Dugtrio",
+    "ko": "닥트리오",
+    "zh_hant": "三地鼠",
+    "fr": "Triopikeur",
+    "de": "Digdri",
+    "es": "Dugtrio",
+    "it": "Dugtrio",
+    "en": "Dugtrio",
+    "ja": "ダグトリオ",
+    "zh_hans": "三地鼠"
+  },
+  "speciesName": {
+    "ja_hrkt": "もぐらポケモン",
+    "ko": "두더지포켓몬",
+    "zh_hant": "鼴鼠寶可夢",
+    "fr": "Pokémon Taupe",
+    "de": "Maulwurf-Pokémon",
+    "es": "Pokémon Topo",
+    "it": "Pokémon Talpa",
+    "en": "Mole Pokémon",
+    "ja": "もぐらポケモン",
+    "zh_hans": "鼹鼠宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 100,
+    "def": 50,
+    "spa": 50,
+    "spd": 70,
+    "spe": 120,
+    "bst": 425
+  },
+  "abilities": {
+    "primary": "sand_veil",
+    "secondary": "arena_trap",
+    "hidden": "sand_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 149,
+    "catchRate": 50,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "dugtrio-alola"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dugtrio",
+    "evolution": "dugtrio",
+    "media": "dugtrio"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 33.3,
+    "color": "brown",
+    "flavorText": "A team of DIGLETT triplets. It triggers huge earthquakes by burrowing 60 miles underground."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "combee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/combee/front.png",
+      "backStatic": "assets/pokemon/sprites/combee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/combee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/combee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/combee.png",
+      "cry": "assets/pokemon/cries/combee.ogg",
+      "animations": {}
+    }
+  }
+}

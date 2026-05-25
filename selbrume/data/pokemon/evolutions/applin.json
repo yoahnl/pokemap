@@ -1,0 +1,30 @@
+{
+  "speciesId": "applin",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "appletun",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "sweet-apple",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "dipplin",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "syrupy-apple",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "flapple",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "tart-apple",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

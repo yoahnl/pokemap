@@ -1,0 +1,18 @@
+{
+  "speciesId": "talonflame",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/talonflame/front.png",
+      "backStatic": "assets/pokemon/sprites/talonflame/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/talonflame/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/talonflame/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/talonflame.png",
+      "cry": "assets/pokemon/cries/talonflame.ogg",
+      "animations": {}
+    }
+  }
+}

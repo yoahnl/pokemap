@@ -1,0 +1,30 @@
+{
+  "speciesId": "baxcalibur",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/baxcalibur/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/baxcalibur/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/baxcalibur.png",
+      "cry": "assets/pokemon/cries/baxcalibur.ogg",
+      "animations": {}
+    },
+    "baxcalibur-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

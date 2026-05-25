@@ -1,0 +1,18 @@
+{
+  "speciesId": "pheromosa",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pheromosa/front.png",
+      "backStatic": "assets/pokemon/sprites/pheromosa/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pheromosa/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pheromosa/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pheromosa.png",
+      "cry": "assets/pokemon/cries/pheromosa.ogg",
+      "animations": {}
+    }
+  }
+}

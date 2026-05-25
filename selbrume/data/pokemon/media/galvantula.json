@@ -1,0 +1,18 @@
+{
+  "speciesId": "galvantula",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/galvantula/front.png",
+      "backStatic": "assets/pokemon/sprites/galvantula/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/galvantula/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/galvantula/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/galvantula.png",
+      "cry": "assets/pokemon/cries/galvantula.ogg",
+      "animations": {}
+    }
+  }
+}

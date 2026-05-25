@@ -1,0 +1,100 @@
+{
+  "id": "simisage",
+  "slug": "simisage",
+  "nationalDex": 512,
+  "names": {
+    "ja_hrkt": "ヤナッキー",
+    "ja_roma": "Yanakkie",
+    "ko": "야나키",
+    "zh_hant": "花椰猿",
+    "fr": "Feuiloutan",
+    "de": "Vegichita",
+    "es": "Simisage",
+    "it": "Simisage",
+    "en": "Simisage",
+    "ja": "ヤナッキー",
+    "zh_hans": "花椰猿"
+  },
+  "speciesName": {
+    "ja_hrkt": "とげざるポケモン",
+    "ko": "가시원숭이포켓몬",
+    "zh_hant": "刺猴寶可夢",
+    "fr": "Pokémon Singépine",
+    "de": "Stachelaffe",
+    "es": "Pokémon Mono Pincho",
+    "it": "Pokémon Spinpanzé",
+    "en": "Thorn Monkey Pokémon",
+    "ja": "とげざるポケモン",
+    "zh_hans": "刺猴宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 98,
+    "def": 63,
+    "spa": 98,
+    "spd": 63,
+    "spe": 101,
+    "bst": 498
+  },
+  "abilities": {
+    "primary": "gluttony",
+    "secondary": null,
+    "hidden": "overgrow"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 174,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "simisage",
+    "evolution": "simisage",
+    "media": "simisage"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 30.5,
+    "color": "green",
+    "flavorText": "Ill tempered, it fights by swinging its barbed tail around wildly. The leaf growing on its head is very bitter."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

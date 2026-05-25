@@ -1,0 +1,98 @@
+{
+  "id": "fletchinder",
+  "slug": "fletchinder",
+  "nationalDex": 662,
+  "names": {
+    "ja_hrkt": "ヒノヤコマ",
+    "ja_roma": "Hinoyakoma",
+    "ko": "불화살빈",
+    "zh_hant": "火箭雀",
+    "fr": "Braisillon",
+    "de": "Dartignis",
+    "es": "Fletchinder",
+    "it": "Fletchinder",
+    "en": "Fletchinder",
+    "ja": "ヒノヤコマ",
+    "zh_hans": "火箭雀"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひのこポケモン",
+    "ko": "불티포켓몬",
+    "zh_hant": "火花寶可夢",
+    "fr": "Pokémon Braise",
+    "de": "Funkenregen-Pokémon",
+    "es": "Pokémon Lumbre",
+    "it": "Pokémon Sfavillante",
+    "en": "Ember Pokémon",
+    "ja": "ひのこポケモン",
+    "zh_hans": "火花宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fire",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 62,
+    "atk": 73,
+    "def": 55,
+    "spa": 56,
+    "spd": 52,
+    "spe": 84,
+    "bst": 382
+  },
+  "abilities": {
+    "primary": "flame_body",
+    "secondary": null,
+    "hidden": "gale_wings"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 134,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "fletchinder",
+    "evolution": "fletchinder",
+    "media": "fletchinder"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 16.0,
+    "color": "red",
+    "flavorText": "From its beak, it expels embers that set the tall grass on fire. Then it pounces on the bewildered prey that pop out of the grass."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

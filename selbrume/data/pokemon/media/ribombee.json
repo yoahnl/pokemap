@@ -1,0 +1,30 @@
+{
+  "speciesId": "ribombee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ribombee/front.png",
+      "backStatic": "assets/pokemon/sprites/ribombee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ribombee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ribombee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ribombee.png",
+      "cry": "assets/pokemon/cries/ribombee.ogg",
+      "animations": {}
+    },
+    "ribombee-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

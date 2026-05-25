@@ -1,0 +1,18 @@
+{
+  "speciesId": "cobalion",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cobalion/front.png",
+      "backStatic": "assets/pokemon/sprites/cobalion/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cobalion/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cobalion/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cobalion.png",
+      "cry": "assets/pokemon/cries/cobalion.ogg",
+      "animations": {}
+    }
+  }
+}

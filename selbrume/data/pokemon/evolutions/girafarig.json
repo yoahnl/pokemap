@@ -1,0 +1,14 @@
+{
+  "speciesId": "girafarig",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "farigiraf",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "twin_beam",
+      "conditionText": {}
+    }
+  ]
+}

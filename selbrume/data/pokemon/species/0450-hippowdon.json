@@ -1,0 +1,97 @@
+{
+  "id": "hippowdon",
+  "slug": "hippowdon",
+  "nationalDex": 450,
+  "names": {
+    "ja_hrkt": "カバルドン",
+    "ja_roma": "Kabarudon",
+    "ko": "하마돈",
+    "zh_hant": "河馬獸",
+    "fr": "Hippodocus",
+    "de": "Hippoterus",
+    "es": "Hippowdon",
+    "it": "Hippowdon",
+    "en": "Hippowdon",
+    "ja": "カバルドン",
+    "zh_hans": "河马兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "じゅうりょうポケモン",
+    "ko": "중량포켓몬",
+    "zh_hant": "重量寶可夢",
+    "fr": "Pokémon Poids Lourd",
+    "de": "Schwergewichts-Pokémon",
+    "es": "Pokémon Peso Pesado",
+    "it": "Pokémon Grandepeso",
+    "en": "Heavyweight Pokémon",
+    "ja": "じゅうりょうポケモン",
+    "zh_hans": "重量宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 108,
+    "atk": 112,
+    "def": 118,
+    "spa": 68,
+    "spd": 72,
+    "spe": 47,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "sand_stream",
+    "secondary": null,
+    "hidden": "sand_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 184,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hippowdon",
+    "evolution": "hippowdon",
+    "media": "hippowdon"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 300.0,
+    "color": "brown",
+    "flavorText": "It blasts internally stored sand from ports on its body to create a towering twister for attack."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

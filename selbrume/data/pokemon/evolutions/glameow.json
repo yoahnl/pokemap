@@ -1,0 +1,14 @@
+{
+  "speciesId": "glameow",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "purugly",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

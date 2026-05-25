@@ -1,0 +1,18 @@
+{
+  "speciesId": "archen",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/archen/front.png",
+      "backStatic": "assets/pokemon/sprites/archen/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/archen/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/archen/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/archen.png",
+      "cry": "assets/pokemon/cries/archen.ogg",
+      "animations": {}
+    }
+  }
+}

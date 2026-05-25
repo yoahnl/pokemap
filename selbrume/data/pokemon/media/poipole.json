@@ -1,0 +1,18 @@
+{
+  "speciesId": "poipole",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/poipole/front.png",
+      "backStatic": "assets/pokemon/sprites/poipole/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/poipole/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/poipole/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/poipole.png",
+      "cry": "assets/pokemon/cries/poipole.ogg",
+      "animations": {}
+    }
+  }
+}

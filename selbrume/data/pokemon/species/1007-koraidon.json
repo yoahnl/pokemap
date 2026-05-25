@@ -1,0 +1,97 @@
+{
+  "id": "koraidon",
+  "slug": "koraidon",
+  "nationalDex": 1007,
+  "names": {
+    "ja_hrkt": "コライドン",
+    "ja_roma": "Koraidon",
+    "ko": "코라이돈",
+    "zh_hant": "故勒頓",
+    "fr": "Koraidon",
+    "de": "Koraidon",
+    "es": "Koraidon",
+    "it": "Koraidon",
+    "en": "Koraidon",
+    "ja": "コライドン",
+    "zh_hans": "故勒顿"
+  },
+  "speciesName": {
+    "ja_hrkt": "パラドックスポケモン",
+    "ko": "패러독스포켓몬",
+    "zh_hant": "悖謬寶可夢",
+    "fr": "Paradoxe",
+    "de": "Paradox",
+    "en": "Paradox Pokémon",
+    "zh_hans": "悖谬宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fighting",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 135,
+    "def": 115,
+    "spa": 85,
+    "spd": 100,
+    "spe": 135,
+    "bst": 670
+  },
+  "abilities": {
+    "primary": "orichalcum_pulse",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 335,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "koraidon",
+    "evolution": "koraidon",
+    "media": "koraidon"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 303.0,
+    "color": "red",
+    "flavorText": "This seems to be the Winged King mentioned in an old expedition journal. It was said to have split the land with its bare fists."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

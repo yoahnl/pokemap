@@ -1,0 +1,18 @@
+{
+  "speciesId": "pidove",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pidove/front.png",
+      "backStatic": "assets/pokemon/sprites/pidove/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pidove/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pidove/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pidove.png",
+      "cry": "assets/pokemon/cries/pidove.ogg",
+      "animations": {}
+    }
+  }
+}

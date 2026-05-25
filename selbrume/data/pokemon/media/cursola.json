@@ -1,0 +1,18 @@
+{
+  "speciesId": "cursola",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cursola/front.png",
+      "backStatic": "assets/pokemon/sprites/cursola/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cursola/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cursola/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cursola.png",
+      "cry": "assets/pokemon/cries/cursola.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "speciesId": "crabrawler",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "crabominable",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: mount-lanakila"
+      }
+    },
+    {
+      "targetSpeciesId": "crabominable",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "ice-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

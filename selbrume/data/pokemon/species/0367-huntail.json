@@ -1,0 +1,97 @@
+{
+  "id": "huntail",
+  "slug": "huntail",
+  "nationalDex": 367,
+  "names": {
+    "ja_hrkt": "ハンテール",
+    "ja_roma": "Huntail",
+    "ko": "헌테일",
+    "zh_hant": "獵斑魚",
+    "fr": "Serpang",
+    "de": "Aalabyss",
+    "es": "Huntail",
+    "it": "Huntail",
+    "en": "Huntail",
+    "ja": "ハンテール",
+    "zh_hans": "猎斑鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "しんかいポケモン",
+    "ko": "깊은바다포켓몬",
+    "zh_hant": "深海寶可夢",
+    "fr": "Pokémon Abysse",
+    "de": "Tiefsee",
+    "es": "Pokémon Abisal",
+    "it": "Pokémon Abissi",
+    "en": "Deep Sea Pokémon",
+    "ja": "しんかいポケモン",
+    "zh_hans": "深海宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 104,
+    "def": 105,
+    "spa": 94,
+    "spd": 75,
+    "spe": 52,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": null,
+    "hidden": "water_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 170,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "huntail",
+    "evolution": "huntail",
+    "media": "huntail"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 27.0,
+    "color": "blue",
+    "flavorText": "HUNTAIL’s presence went unnoticed by people for a long time because it lives at extreme depths in the sea. This POKéMON’s eyes can see clearly even in the murky dark depths of the ocean."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

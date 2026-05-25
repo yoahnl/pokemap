@@ -1,0 +1,100 @@
+{
+  "id": "jirachi",
+  "slug": "jirachi",
+  "nationalDex": 385,
+  "names": {
+    "ja_hrkt": "ジラーチ",
+    "ja_roma": "Jirachi",
+    "ko": "지라치",
+    "zh_hant": "基拉祈",
+    "fr": "Jirachi",
+    "de": "Jirachi",
+    "es": "Jirachi",
+    "it": "Jirachi",
+    "en": "Jirachi",
+    "ja": "ジラーチ",
+    "zh_hans": "基拉祈"
+  },
+  "speciesName": {
+    "ja_hrkt": "ねがいごとポケモン",
+    "ko": "희망사항포켓몬",
+    "zh_hant": "祈願寶可夢",
+    "fr": "Pokémon Souhait",
+    "de": "Wünscher-Pokémon",
+    "es": "Pokémon Deseo",
+    "it": "Pokémon Desiderio",
+    "en": "Wish Pokémon",
+    "ja": "ねがいごとポケモン",
+    "zh_hans": "祈愿宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "steel",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 100,
+    "def": 100,
+    "spa": 100,
+    "spd": 100,
+    "spe": 100,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "serene_grace",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "jirachi",
+    "evolution": "jirachi",
+    "media": "jirachi"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.1,
+    "color": "yellow",
+    "flavorText": "A legend states that JIRACHI will make true any wish that is written on notes attached to its head when it awakens. If this POKéMON senses danger, it will fight without awakening."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

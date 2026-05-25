@@ -1,0 +1,98 @@
+{
+  "id": "trapinch",
+  "slug": "trapinch",
+  "nationalDex": 328,
+  "names": {
+    "ja_hrkt": "ナックラー",
+    "ja_roma": "Nuckrar",
+    "ko": "톱치",
+    "zh_hant": "大顎蟻",
+    "fr": "Kraknoix",
+    "de": "Knacklion",
+    "es": "Trapinch",
+    "it": "Trapinch",
+    "en": "Trapinch",
+    "ja": "ナックラー",
+    "zh_hans": "大颚蚁"
+  },
+  "speciesName": {
+    "ja_hrkt": "ありじごくポケモン",
+    "ko": "개미지옥포켓몬",
+    "zh_hant": "蟻獅寶可夢",
+    "fr": "Pokémon Piégeur",
+    "de": "Ameisenlöwen-Pokémon",
+    "es": "Pokémon Hormiga León",
+    "it": "Pokémon Trappola",
+    "en": "Ant Pit Pokémon",
+    "ja": "ありじごくポケモン",
+    "zh_hans": "蚁狮宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 100,
+    "def": 45,
+    "spa": 45,
+    "spd": 45,
+    "spe": 10,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "hyper_cutter",
+    "secondary": "arena_trap",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 58,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "trapinch",
+    "evolution": "trapinch",
+    "media": "trapinch"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 15.0,
+    "color": "brown",
+    "flavorText": "TRAPINCH’s nest is a sloped, bowl-like pit dug in sand. This POKéMON patiently waits for prey to tumble down the pit. Its giant jaws have enough strength to crush even boulders."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

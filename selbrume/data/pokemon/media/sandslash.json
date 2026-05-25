@@ -1,0 +1,30 @@
+{
+  "speciesId": "sandslash",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sandslash/front.png",
+      "backStatic": "assets/pokemon/sprites/sandslash/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sandslash/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sandslash/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sandslash.png",
+      "cry": "assets/pokemon/cries/sandslash.ogg",
+      "animations": {}
+    },
+    "sandslash-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

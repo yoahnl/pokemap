@@ -1,0 +1,95 @@
+{
+  "id": "veluza",
+  "slug": "veluza",
+  "nationalDex": 976,
+  "names": {
+    "ja_hrkt": "ミガルーサ",
+    "ja_roma": "Migalusa",
+    "ko": "가비루사",
+    "zh_hant": "輕身鱈",
+    "fr": "Délestin",
+    "de": "Agiluza",
+    "es": "Veluza",
+    "it": "Veluza",
+    "en": "Veluza",
+    "ja": "ミガルーサ",
+    "zh_hans": "轻身鳕"
+  },
+  "speciesName": {
+    "ja_hrkt": "きりはなしポケモン",
+    "ko": "분리포켓몬",
+    "zh_hant": "卸除寶可夢",
+    "fr": "Décharné",
+    "de": "Abtrennung",
+    "en": "Jettison Pokémon",
+    "zh_hans": "卸除宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "water",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 102,
+    "def": 73,
+    "spa": 78,
+    "spd": 65,
+    "spe": 70,
+    "bst": 478
+  },
+  "abilities": {
+    "primary": "mold_breaker",
+    "secondary": null,
+    "hidden": "sharpness"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 167,
+    "catchRate": 100,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "veluza",
+    "evolution": "veluza",
+    "media": "veluza"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 90.0,
+    "color": "gray",
+    "flavorText": "When Veluza discards unnecessary flesh, its mind becomes honed and its psychic power increases. The spare flesh has a mild but delicious flavor."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

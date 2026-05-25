@@ -1,0 +1,97 @@
+{
+  "id": "hattrem",
+  "slug": "hattrem",
+  "nationalDex": 857,
+  "names": {
+    "ja_hrkt": "テブリム",
+    "ja_roma": "Tebrim",
+    "ko": "손지브림",
+    "zh_hant": "提布莉姆",
+    "fr": "Chapotus",
+    "de": "Brimano",
+    "es": "Hattrem",
+    "it": "Hattrem",
+    "en": "Hattrem",
+    "ja": "テブリム",
+    "zh_hans": "提布莉姆"
+  },
+  "speciesName": {
+    "ja_hrkt": "せいしゅくポケモン",
+    "ko": "정숙포켓몬",
+    "zh_hant": "肅靜寶可夢",
+    "fr": "Pokémon Serein",
+    "de": "Ruhe-Pokémon",
+    "es": "Pokémon Serenidad",
+    "it": "Pokémon Quiete",
+    "en": "Serene Pokémon",
+    "ja": "せいしゅくポケモン",
+    "zh_hans": "肃静宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 57,
+    "atk": 40,
+    "def": 65,
+    "spa": 86,
+    "spd": 73,
+    "spe": 49,
+    "bst": 370
+  },
+  "abilities": {
+    "primary": "healer",
+    "secondary": "anticipation",
+    "hidden": "magic_bounce"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 130,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hattrem",
+    "evolution": "hattrem",
+    "media": "hattrem"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 4.8,
+    "color": "pink",
+    "flavorText": "No matter who you are, if you bring strong emotions near this Pokémon, it will silence you violently."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

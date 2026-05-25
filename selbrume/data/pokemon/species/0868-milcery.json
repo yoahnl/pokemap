@@ -1,0 +1,98 @@
+{
+  "id": "milcery",
+  "slug": "milcery",
+  "nationalDex": 868,
+  "names": {
+    "ja_hrkt": "マホミル",
+    "ja_roma": "Mahomil",
+    "ko": "마빌크",
+    "zh_hant": "小仙奶",
+    "fr": "Crèmy",
+    "de": "Hokumil",
+    "es": "Milcery",
+    "it": "Milcery",
+    "en": "Milcery",
+    "ja": "マホミル",
+    "zh_hans": "小仙奶"
+  },
+  "speciesName": {
+    "ja_hrkt": "クリームポケモン",
+    "ko": "크림포켓몬",
+    "zh_hant": "鮮奶油寶可夢",
+    "fr": "Pokémon Crème",
+    "de": "Sahne-Pokémon",
+    "es": "Pokémon Nata",
+    "it": "Pokémon Pannafresca",
+    "en": "Cream Pokémon",
+    "ja": "クリームポケモン",
+    "zh_hans": "鲜奶油宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 40,
+    "def": 40,
+    "spa": 50,
+    "spd": 61,
+    "spe": 34,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "sweet_veil",
+    "secondary": null,
+    "hidden": "aroma_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 54,
+    "catchRate": 200,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "milcery",
+    "evolution": "milcery",
+    "media": "milcery"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 0.3,
+    "color": "white",
+    "flavorText": "This Pokémon was born from sweet-smelling particles in the air. Its body is made of cream."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

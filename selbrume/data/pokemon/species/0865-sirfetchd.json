@@ -1,0 +1,98 @@
+{
+  "id": "sirfetchd",
+  "slug": "sirfetchd",
+  "nationalDex": 865,
+  "names": {
+    "ja_hrkt": "ネギガナイト",
+    "ja_roma": "Negigaknight",
+    "ko": "창파나이트",
+    "zh_hant": "蔥遊兵",
+    "fr": "Palarticho",
+    "de": "Lauchzelot",
+    "es": "Sirfetch’d",
+    "it": "Sirfetch’d",
+    "en": "Sirfetch’d",
+    "ja": "ネギガナイト",
+    "zh_hans": "葱游兵"
+  },
+  "speciesName": {
+    "ja_hrkt": "かるがもポケモン",
+    "ko": "청둥오리포켓몬",
+    "zh_hant": "黃嘴鴨寶可夢",
+    "fr": "Pokémon Canard Fou",
+    "de": "Wildenten-Pokémon",
+    "es": "Pokémon Pato Salvaje",
+    "it": "Pokémon Selvanatra",
+    "en": "Wild Duck Pokémon",
+    "ja": "かるがもポケモン",
+    "zh_hans": "黄嘴鸭宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 62,
+    "atk": 135,
+    "def": 95,
+    "spa": 68,
+    "spd": 82,
+    "spe": 65,
+    "bst": 507
+  },
+  "abilities": {
+    "primary": "steadfast",
+    "secondary": null,
+    "hidden": "scrappy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 177,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sirfetchd",
+    "evolution": "sirfetchd",
+    "media": "sirfetchd"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 117.0,
+    "color": "white",
+    "flavorText": "Only Farfetch’d that have survived many battles can attain this evolution. When this Pokémon’s leek withers, it will retire from combat."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

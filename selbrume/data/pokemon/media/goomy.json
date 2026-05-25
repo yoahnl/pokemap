@@ -1,0 +1,18 @@
+{
+  "speciesId": "goomy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/goomy/front.png",
+      "backStatic": "assets/pokemon/sprites/goomy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/goomy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/goomy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/goomy.png",
+      "cry": "assets/pokemon/cries/goomy.ogg",
+      "animations": {}
+    }
+  }
+}

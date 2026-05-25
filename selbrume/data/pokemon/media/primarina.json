@@ -1,0 +1,18 @@
+{
+  "speciesId": "primarina",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/primarina/front.png",
+      "backStatic": "assets/pokemon/sprites/primarina/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/primarina/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/primarina/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/primarina.png",
+      "cry": "assets/pokemon/cries/primarina.ogg",
+      "animations": {}
+    }
+  }
+}

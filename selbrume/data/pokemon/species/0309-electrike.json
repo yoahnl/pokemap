@@ -1,0 +1,97 @@
+{
+  "id": "electrike",
+  "slug": "electrike",
+  "nationalDex": 309,
+  "names": {
+    "ja_hrkt": "ラクライ",
+    "ja_roma": "Rakurai",
+    "ko": "썬더라이",
+    "zh_hant": "落雷獸",
+    "fr": "Dynavolt",
+    "de": "Frizelbliz",
+    "es": "Electrike",
+    "it": "Electrike",
+    "en": "Electrike",
+    "ja": "ラクライ",
+    "zh_hans": "落雷兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "いなずまポケモン",
+    "ko": "천둥번개포켓몬",
+    "zh_hant": "閃電寶可夢",
+    "fr": "Pokémon Orage",
+    "de": "Gewitter-Pokémon",
+    "es": "Pokémon Calambre",
+    "it": "Pokémon Lampo",
+    "en": "Lightning Pokémon",
+    "ja": "いなずまポケモン",
+    "zh_hans": "闪电宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 45,
+    "def": 40,
+    "spa": 65,
+    "spd": 40,
+    "spe": 65,
+    "bst": 295
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": "lightning_rod",
+    "hidden": "minus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 59,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "electrike",
+    "evolution": "electrike",
+    "media": "electrike"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 15.2,
+    "color": "green",
+    "flavorText": "ELECTRIKE stores electricity in its long body hair. This POKéMON stimulates its leg muscles with electric charges. These jolts of power give its legs explosive acceleration performance."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

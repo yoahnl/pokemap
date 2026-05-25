@@ -1,0 +1,101 @@
+{
+  "id": "combee",
+  "slug": "combee",
+  "nationalDex": 415,
+  "names": {
+    "ja_hrkt": "ミツハニー",
+    "ja_roma": "Mitsuhoney",
+    "ko": "세꿀버리",
+    "zh_hant": "三蜜蜂",
+    "fr": "Apitrini",
+    "de": "Wadribie",
+    "es": "Combee",
+    "it": "Combee",
+    "en": "Combee",
+    "ja": "ミツハニー",
+    "zh_hans": "三蜜蜂"
+  },
+  "speciesName": {
+    "ja_hrkt": "はちのこポケモン",
+    "ko": "꼬마벌포켓몬",
+    "zh_hant": "幼蜂寶可夢",
+    "fr": "Pokémon Miniabeille",
+    "de": "Kleinbienen-Pokémon",
+    "es": "Pokémon Abejita",
+    "it": "Pokémon Apetta",
+    "en": "Tiny Bee Pokémon",
+    "ja": "はちのこポケモン",
+    "zh_hans": "幼蜂宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 30,
+    "atk": 30,
+    "def": 42,
+    "spa": 30,
+    "spd": 42,
+    "spe": 70,
+    "bst": 244
+  },
+  "abilities": {
+    "primary": "honey_gather",
+    "secondary": null,
+    "hidden": "hustle"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 49,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "combee",
+    "evolution": "combee",
+    "media": "combee"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 5.5,
+    "color": "yellow",
+    "flavorText": "A Pokémon formed by three others. It busily carries sweet floral honey to VESPIQUEN."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

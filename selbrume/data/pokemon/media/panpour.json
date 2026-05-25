@@ -1,0 +1,18 @@
+{
+  "speciesId": "panpour",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/panpour/front.png",
+      "backStatic": "assets/pokemon/sprites/panpour/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/panpour/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/panpour/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/panpour.png",
+      "cry": "assets/pokemon/cries/panpour.ogg",
+      "animations": {}
+    }
+  }
+}

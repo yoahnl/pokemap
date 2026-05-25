@@ -1,0 +1,98 @@
+{
+  "id": "cofagrigus",
+  "slug": "cofagrigus",
+  "nationalDex": 563,
+  "names": {
+    "ja_hrkt": "デスカーン",
+    "ja_roma": "Desukarn",
+    "ko": "데스니칸",
+    "zh_hant": "死神棺",
+    "fr": "Tutankafer",
+    "de": "Echnatoll",
+    "es": "Cofagrigus",
+    "it": "Cofagrigus",
+    "en": "Cofagrigus",
+    "ja": "デスカーン",
+    "zh_hans": "迭失棺"
+  },
+  "speciesName": {
+    "ja_hrkt": "かんおけポケモン",
+    "ko": "관포켓몬",
+    "zh_hant": "棺木寶可夢",
+    "fr": "Pokémon Cercueil",
+    "de": "Sarkophag-Pokémon",
+    "es": "Pokémon Sepultura",
+    "it": "Pokémon Bara",
+    "en": "Coffin Pokémon",
+    "ja": "かんおけポケモン",
+    "zh_hans": "棺木宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 58,
+    "atk": 50,
+    "def": 145,
+    "spa": 95,
+    "spd": 105,
+    "spe": 30,
+    "bst": 483
+  },
+  "abilities": {
+    "primary": "mummy",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 169,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cofagrigus",
+    "evolution": "cofagrigus",
+    "media": "cofagrigus"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 76.5,
+    "color": "yellow",
+    "flavorText": "It has been said that they swallow those who get too close and turn them into mummies. They like to eat gold nuggets."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "swalot",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swalot/front.png",
+      "backStatic": "assets/pokemon/sprites/swalot/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swalot/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swalot/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swalot.png",
+      "cry": "assets/pokemon/cries/swalot.ogg",
+      "animations": {}
+    }
+  }
+}

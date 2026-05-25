@@ -1,0 +1,95 @@
+{
+  "id": "rabsca",
+  "slug": "rabsca",
+  "nationalDex": 954,
+  "names": {
+    "ja_hrkt": "ベラカス",
+    "ja_roma": "Beracas",
+    "ko": "베라카스",
+    "zh_hant": "蟲甲聖",
+    "fr": "Bérasca",
+    "de": "Skarabaks",
+    "es": "Rabsca",
+    "it": "Rabsca",
+    "en": "Rabsca",
+    "ja": "ベラカス",
+    "zh_hans": "虫甲圣"
+  },
+  "speciesName": {
+    "ja_hrkt": "ころがしポケモン",
+    "ko": "굴리기포켓몬",
+    "zh_hant": "滾動寶可夢",
+    "fr": "Rouleur",
+    "de": "Wälz",
+    "en": "Rolling Pokémon",
+    "zh_hans": "滚动宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "bug",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 50,
+    "def": 85,
+    "spa": 115,
+    "spd": 100,
+    "spe": 45,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "synchronize",
+    "secondary": null,
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 165,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rabsca",
+    "evolution": "rabsca",
+    "media": "rabsca"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 3.5,
+    "color": "green",
+    "flavorText": "The body that supports the ball barely moves. Therefore, it is thought that the true body of this Pokémon is actually inside the ball."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

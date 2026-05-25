@@ -1,0 +1,97 @@
+{
+  "id": "stoutland",
+  "slug": "stoutland",
+  "nationalDex": 508,
+  "names": {
+    "ja_hrkt": "ムーランド",
+    "ja_roma": "Mooland",
+    "ko": "바랜드",
+    "zh_hant": "長毛狗",
+    "fr": "Mastouffe",
+    "de": "Bissbark",
+    "es": "Stoutland",
+    "it": "Stoutland",
+    "en": "Stoutland",
+    "ja": "ムーランド",
+    "zh_hans": "长毛狗"
+  },
+  "speciesName": {
+    "ja_hrkt": "かんだいポケモン",
+    "ko": "관대포켓몬",
+    "zh_hant": "寬大寶可夢",
+    "fr": "Pokémon Magnanime",
+    "de": "Großmut-Pokémon",
+    "es": "Pokémon Magnánimo",
+    "it": "Pokémon Generosità",
+    "en": "Big-Hearted Pokémon",
+    "ja": "かんだいポケモン",
+    "zh_hans": "宽大宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 110,
+    "def": 90,
+    "spa": 45,
+    "spd": 90,
+    "spe": 80,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "sand_rush",
+    "hidden": "scrappy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 225,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "stoutland",
+    "evolution": "stoutland",
+    "media": "stoutland"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 61.0,
+    "color": "gray",
+    "flavorText": "It rescues people stranded by blizzards in the mountains. Its shaggy fur shields it from the cold."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

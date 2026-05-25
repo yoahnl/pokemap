@@ -1,0 +1,100 @@
+{
+  "id": "beldum",
+  "slug": "beldum",
+  "nationalDex": 374,
+  "names": {
+    "ja_hrkt": "ダンバル",
+    "ja_roma": "Dumbber",
+    "ko": "메탕",
+    "zh_hant": "鐵啞鈴",
+    "fr": "Terhal",
+    "de": "Tanhel",
+    "es": "Beldum",
+    "it": "Beldum",
+    "en": "Beldum",
+    "ja": "ダンバル",
+    "zh_hans": "铁哑铃"
+  },
+  "speciesName": {
+    "ja_hrkt": "てっきゅうポケモン",
+    "ko": "철공포켓몬",
+    "zh_hant": "鐵球寶可夢",
+    "fr": "Pokémon Boulefer",
+    "de": "Eisenkugel-Pokémon",
+    "es": "Pokémon Bola Hierro",
+    "it": "Pokémon Ferrosfera",
+    "en": "Iron Ball Pokémon",
+    "ja": "てっきゅうポケモン",
+    "zh_hans": "铁球宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "steel",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 55,
+    "def": 80,
+    "spa": 35,
+    "spd": 60,
+    "spe": 30,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": null,
+    "hidden": "light_metal"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "beldum",
+    "evolution": "beldum",
+    "media": "beldum"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 95.2,
+    "color": "blue",
+    "flavorText": "Instead of blood, a powerful magnetic force courses throughout BELDUM’s body. This POKéMON communicates with others by sending controlled pulses of magnetism."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "spiritomb",
+  "slug": "spiritomb",
+  "nationalDex": 442,
+  "names": {
+    "ja_hrkt": "ミカルゲ",
+    "ja_roma": "Mikaruge",
+    "ko": "화강돌",
+    "zh_hant": "花岩怪",
+    "fr": "Spiritomb",
+    "de": "Kryppuk",
+    "es": "Spiritomb",
+    "it": "Spiritomb",
+    "en": "Spiritomb",
+    "ja": "ミカルゲ",
+    "zh_hans": "花岩怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふういんポケモン",
+    "ko": "봉인포켓몬",
+    "zh_hant": "封印寶可夢",
+    "fr": "Pokémon Interdit",
+    "de": "Verboten-Pokémon",
+    "es": "Pokémon Prohibido",
+    "it": "Pokémon Proibito",
+    "en": "Forbidden Pokémon",
+    "ja": "ふういんポケモン",
+    "zh_hans": "封印宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ghost",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 92,
+    "def": 108,
+    "spa": 92,
+    "spd": 108,
+    "spe": 35,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "infiltrator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 170,
+    "catchRate": 100,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spiritomb",
+    "evolution": "spiritomb",
+    "media": "spiritomb"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 108.0,
+    "color": "purple",
+    "flavorText": "A Pokémon that was formed by 108 spirits. It is bound to a fissure in an odd keystone."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

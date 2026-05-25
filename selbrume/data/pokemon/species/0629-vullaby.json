@@ -1,0 +1,98 @@
+{
+  "id": "vullaby",
+  "slug": "vullaby",
+  "nationalDex": 629,
+  "names": {
+    "ja_hrkt": "バルチャイ",
+    "ja_roma": "Valchai",
+    "ko": "벌차이",
+    "zh_hant": "禿鷹丫頭",
+    "fr": "Vostourno",
+    "de": "Skallyk",
+    "es": "Vullaby",
+    "it": "Vullaby",
+    "en": "Vullaby",
+    "ja": "バルチャイ",
+    "zh_hans": "秃鹰丫头"
+  },
+  "speciesName": {
+    "ja_hrkt": "おむつポケモン",
+    "ko": "기저귀포켓몬",
+    "zh_hant": "尿布寶可夢",
+    "fr": "Pokémon Couche",
+    "de": "Windel-Pokémon",
+    "es": "Pokémon Pañal",
+    "it": "Pokémon Pannolino",
+    "en": "Diapered Pokémon",
+    "ja": "おむつポケモン",
+    "zh_hans": "尿布宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dark",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 55,
+    "def": 75,
+    "spa": 45,
+    "spd": 65,
+    "spe": 60,
+    "bst": 370
+  },
+  "abilities": {
+    "primary": "big_pecks",
+    "secondary": "overcoat",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 74,
+    "catchRate": 190,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vullaby",
+    "evolution": "vullaby",
+    "media": "vullaby"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.0,
+    "color": "brown",
+    "flavorText": "Their wings are too tiny to allow them to fly. They guard their posteriors with bones that were gathered by Mandibuzz."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "id": "revavroom",
+  "slug": "revavroom",
+  "nationalDex": 966,
+  "names": {
+    "ja_hrkt": "ブロロローム",
+    "ja_roma": "Burororoom",
+    "ko": "부르르룸",
+    "zh_hant": "普隆隆姆",
+    "fr": "Vrombotor",
+    "de": "Knattatox",
+    "es": "Revavroom",
+    "it": "Revavroom",
+    "en": "Revavroom",
+    "ja": "ブロロローム",
+    "zh_hans": "普隆隆姆"
+  },
+  "speciesName": {
+    "ja_hrkt": "たきとうポケモン",
+    "ko": "다기통포켓몬",
+    "zh_hant": "多汽缸寶可夢",
+    "fr": "Polycylindre",
+    "de": "Mehrzylinder",
+    "en": "Multi-Cyl Pokémon",
+    "zh_hans": "多汽缸宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "steel",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 119,
+    "def": 90,
+    "spa": 54,
+    "spd": 67,
+    "spe": 90,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "overcoat",
+    "secondary": null,
+    "hidden": "filter"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 175,
+    "catchRate": 75,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "revavroom",
+    "evolution": "revavroom",
+    "media": "revavroom"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 120.0,
+    "color": "gray",
+    "flavorText": "It creates a gas out of poison and minerals from rocks. It then detonates the gas in its cylinders—now numbering eight—to generate energy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

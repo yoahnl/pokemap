@@ -1,0 +1,97 @@
+{
+  "id": "tympole",
+  "slug": "tympole",
+  "nationalDex": 535,
+  "names": {
+    "ja_hrkt": "オタマロ",
+    "ja_roma": "Otamaro",
+    "ko": "동챙이",
+    "zh_hant": "圓蝌蚪",
+    "fr": "Tritonde",
+    "de": "Schallquap",
+    "es": "Tympole",
+    "it": "Tympole",
+    "en": "Tympole",
+    "ja": "オタマロ",
+    "zh_hans": "圆蝌蚪"
+  },
+  "speciesName": {
+    "ja_hrkt": "おたまポケモン",
+    "ko": "올챙이포켓몬",
+    "zh_hant": "蝌蚪寶可夢",
+    "fr": "Pokémon Têtard",
+    "de": "Kaulquappen-Pokémon",
+    "es": "Pokémon Renacuajo",
+    "it": "Pokémon Girino",
+    "en": "Tadpole Pokémon",
+    "ja": "おたまポケモン",
+    "zh_hans": "蝌蚪宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 50,
+    "def": 40,
+    "spa": 50,
+    "spd": 40,
+    "spe": 64,
+    "bst": 294
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "hydration",
+    "hidden": "water_absorb"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 59,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tympole",
+    "evolution": "tympole",
+    "media": "tympole"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 4.5,
+    "color": "blue",
+    "flavorText": "They warn others of danger by vibrating their cheeks to create a high-pitched sound."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "simisage",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/simisage/front.png",
+      "backStatic": "assets/pokemon/sprites/simisage/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/simisage/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/simisage/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/simisage.png",
+      "cry": "assets/pokemon/cries/simisage.ogg",
+      "animations": {}
+    }
+  }
+}

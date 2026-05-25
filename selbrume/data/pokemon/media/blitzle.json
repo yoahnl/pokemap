@@ -1,0 +1,18 @@
+{
+  "speciesId": "blitzle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/blitzle/front.png",
+      "backStatic": "assets/pokemon/sprites/blitzle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/blitzle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/blitzle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/blitzle.png",
+      "cry": "assets/pokemon/cries/blitzle.ogg",
+      "animations": {}
+    }
+  }
+}

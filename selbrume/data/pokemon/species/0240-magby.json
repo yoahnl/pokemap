@@ -1,0 +1,100 @@
+{
+  "id": "magby",
+  "slug": "magby",
+  "nationalDex": 240,
+  "names": {
+    "ja_hrkt": "ブビィ",
+    "ja_roma": "Buby",
+    "ko": "마그비",
+    "zh_hant": "鴨嘴寶寶",
+    "fr": "Magby",
+    "de": "Magby",
+    "es": "Magby",
+    "it": "Magby",
+    "en": "Magby",
+    "ja": "ブビィ",
+    "zh_hans": "鸭嘴宝宝"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひだねポケモン",
+    "ko": "불씨포켓몬",
+    "zh_hant": "火種寶可夢",
+    "fr": "Pokémon Charbon",
+    "de": "Glutherd-Pokémon",
+    "es": "Pokémon Ascuas",
+    "it": "Pokémon Carbonvivo",
+    "en": "Live Coal Pokémon",
+    "ja": "ひだねポケモン",
+    "zh_hans": "火种宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 75,
+    "def": 37,
+    "spa": 70,
+    "spd": 55,
+    "spe": 83,
+    "bst": 365
+  },
+  "abilities": {
+    "primary": "flame_body",
+    "secondary": null,
+    "hidden": "vital_spirit"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 73,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "magby",
+    "evolution": "magby",
+    "media": "magby"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 21.4,
+    "color": "red",
+    "flavorText": "Each and every time it inhales and exhales, hot embers dribble out of its mouth and nostrils."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

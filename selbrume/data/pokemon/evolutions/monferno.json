@@ -1,0 +1,14 @@
+{
+  "speciesId": "monferno",
+  "preEvolution": "chimchar",
+  "evolutions": [
+    {
+      "targetSpeciesId": "infernape",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

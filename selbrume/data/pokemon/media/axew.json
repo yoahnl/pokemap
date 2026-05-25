@@ -1,0 +1,18 @@
+{
+  "speciesId": "axew",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/axew/front.png",
+      "backStatic": "assets/pokemon/sprites/axew/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/axew/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/axew/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/axew.png",
+      "cry": "assets/pokemon/cries/axew.ogg",
+      "animations": {}
+    }
+  }
+}

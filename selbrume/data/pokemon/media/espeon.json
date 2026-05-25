@@ -1,0 +1,18 @@
+{
+  "speciesId": "espeon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/espeon/front.png",
+      "backStatic": "assets/pokemon/sprites/espeon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/espeon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/espeon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/espeon.png",
+      "cry": "assets/pokemon/cries/espeon.ogg",
+      "animations": {}
+    }
+  }
+}

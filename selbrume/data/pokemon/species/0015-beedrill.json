@@ -1,0 +1,100 @@
+{
+  "id": "beedrill",
+  "slug": "beedrill",
+  "nationalDex": 15,
+  "names": {
+    "ja_hrkt": "スピアー",
+    "ja_roma": "Spear",
+    "ko": "독침붕",
+    "zh_hant": "大針蜂",
+    "fr": "Dardargnan",
+    "de": "Bibor",
+    "es": "Beedrill",
+    "it": "Beedrill",
+    "en": "Beedrill",
+    "ja": "スピアー",
+    "zh_hans": "大针蜂"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくばちポケモン",
+    "ko": "독벌포켓몬",
+    "zh_hant": "毒蜂寶可夢",
+    "fr": "Pokémon Guêpoison",
+    "de": "Giftbiene",
+    "es": "Pokémon Abeja Veneno",
+    "it": "Pokémon Velenape",
+    "en": "Poison Bee Pokémon",
+    "ja": "どくばちポケモン",
+    "zh_hans": "毒蜂宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 90,
+    "def": 40,
+    "spa": 45,
+    "spd": 80,
+    "spe": 75,
+    "bst": 395
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": null,
+    "hidden": "sniper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 178,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "beedrill-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "beedrill",
+    "evolution": "beedrill",
+    "media": "beedrill"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 29.5,
+    "color": "yellow",
+    "flavorText": "It has three poisonous stingers on its forelegs and its tail. They are used to jab its enemy repeatedly."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

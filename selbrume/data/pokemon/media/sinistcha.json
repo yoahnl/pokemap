@@ -1,0 +1,30 @@
+{
+  "speciesId": "sinistcha",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sinistcha/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/sinistcha/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sinistcha.png",
+      "cry": "assets/pokemon/cries/sinistcha.ogg",
+      "animations": {}
+    },
+    "sinistcha-masterpiece": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

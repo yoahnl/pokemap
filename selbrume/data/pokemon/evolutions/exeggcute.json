@@ -1,0 +1,22 @@
+{
+  "speciesId": "exeggcute",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "exeggutor",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "leaf-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "exeggutor",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "leaf-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

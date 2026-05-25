@@ -1,0 +1,99 @@
+{
+  "id": "gabite",
+  "slug": "gabite",
+  "nationalDex": 444,
+  "names": {
+    "ja_hrkt": "ガバイト",
+    "ja_roma": "Gabite",
+    "ko": "한바이트",
+    "zh_hant": "尖牙陸鯊",
+    "fr": "Carmache",
+    "de": "Knarksel",
+    "es": "Gabite",
+    "it": "Gabite",
+    "en": "Gabite",
+    "ja": "ガバイト",
+    "zh_hans": "尖牙陆鲨"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほらあなポケモン",
+    "ko": "동굴포켓몬",
+    "zh_hant": "洞穴寶可夢",
+    "fr": "Pokémon Caverne",
+    "de": "Höhlen-Pokémon",
+    "es": "Pokémon Cueva",
+    "it": "Pokémon Grotta",
+    "en": "Cave Pokémon",
+    "ja": "ほらあなポケモン",
+    "zh_hans": "洞穴宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "dragon",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 68,
+    "atk": 90,
+    "def": 65,
+    "spa": 50,
+    "spd": 55,
+    "spe": 82,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "sand_veil",
+    "secondary": null,
+    "hidden": "rough_skin"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 144,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gabite",
+    "evolution": "gabite",
+    "media": "gabite"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 56.0,
+    "color": "blue",
+    "flavorText": "There is a long-held belief that medicine made from its scales will heal even incurable illnesses."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

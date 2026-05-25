@@ -1,0 +1,100 @@
+{
+  "id": "tyranitar",
+  "slug": "tyranitar",
+  "nationalDex": 248,
+  "names": {
+    "ja_hrkt": "バンギラス",
+    "ja_roma": "Bangiras",
+    "ko": "마기라스",
+    "zh_hant": "班基拉斯",
+    "fr": "Tyranocif",
+    "de": "Despotar",
+    "es": "Tyranitar",
+    "it": "Tyranitar",
+    "en": "Tyranitar",
+    "ja": "バンギラス",
+    "zh_hans": "班基拉斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "よろいポケモン",
+    "ko": "갑옷포켓몬",
+    "zh_hant": "鎧甲寶可夢",
+    "fr": "Pokémon Armure",
+    "de": "Panzer-Pokémon",
+    "es": "Pokémon Coraza",
+    "it": "Pokémon Armatura",
+    "en": "Armor Pokémon",
+    "ja": "よろいポケモン",
+    "zh_hans": "铠甲宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "rock",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 134,
+    "def": 110,
+    "spa": 95,
+    "spd": 100,
+    "spe": 61,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "sand_stream",
+    "secondary": null,
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "tyranitar-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tyranitar",
+    "evolution": "tyranitar",
+    "media": "tyranitar"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 202.0,
+    "color": "green",
+    "flavorText": "Its body can't be harmed by any sort of attack, so it is very eager to make challenges against enemies."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

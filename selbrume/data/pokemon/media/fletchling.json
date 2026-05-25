@@ -1,0 +1,18 @@
+{
+  "speciesId": "fletchling",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/fletchling/front.png",
+      "backStatic": "assets/pokemon/sprites/fletchling/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/fletchling/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/fletchling/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/fletchling.png",
+      "cry": "assets/pokemon/cries/fletchling.ogg",
+      "animations": {}
+    }
+  }
+}

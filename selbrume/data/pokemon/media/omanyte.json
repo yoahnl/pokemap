@@ -1,0 +1,18 @@
+{
+  "speciesId": "omanyte",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/omanyte/front.png",
+      "backStatic": "assets/pokemon/sprites/omanyte/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/omanyte/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/omanyte/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/omanyte.png",
+      "cry": "assets/pokemon/cries/omanyte.ogg",
+      "animations": {}
+    }
+  }
+}

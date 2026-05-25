@@ -1,0 +1,18 @@
+{
+  "speciesId": "regirock",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/regirock/front.png",
+      "backStatic": "assets/pokemon/sprites/regirock/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/regirock/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/regirock/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/regirock.png",
+      "cry": "assets/pokemon/cries/regirock.ogg",
+      "animations": {}
+    }
+  }
+}

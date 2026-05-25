@@ -1,0 +1,22 @@
+{
+  "speciesId": "dartrix",
+  "preEvolution": "rowlet",
+  "evolutions": [
+    {
+      "targetSpeciesId": "decidueye",
+      "method": "level_up",
+      "minLevel": 34,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "decidueye",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

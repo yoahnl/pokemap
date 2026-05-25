@@ -1,0 +1,14 @@
+{
+  "speciesId": "bonsly",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sudowoodo",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "mimic",
+      "conditionText": {}
+    }
+  ]
+}

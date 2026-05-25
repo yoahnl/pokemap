@@ -1,0 +1,102 @@
+{
+  "id": "typhlosion",
+  "slug": "typhlosion",
+  "nationalDex": 157,
+  "names": {
+    "ja_hrkt": "バクフーン",
+    "ja_roma": "Bakphoon",
+    "ko": "블레이범",
+    "zh_hant": "火爆獸",
+    "fr": "Typhlosion",
+    "de": "Tornupto",
+    "es": "Typhlosion",
+    "it": "Typhlosion",
+    "en": "Typhlosion",
+    "ja": "バクフーン",
+    "zh_hans": "火暴兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "かざんポケモン",
+    "ko": "화산포켓몬",
+    "zh_hant": "火山寶可夢",
+    "fr": "Pokémon Volcan",
+    "de": "Vulkan",
+    "es": "Pokémon Volcán",
+    "it": "Pokémon Vulcano",
+    "en": "Volcano Pokémon",
+    "ja": "かざんポケモン",
+    "zh_hans": "火山宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 84,
+    "def": 78,
+    "spa": 109,
+    "spd": 85,
+    "spe": 100,
+    "bst": 534
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "flash_fire"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 240,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "typhlosion-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "typhlosion",
+    "evolution": "typhlosion",
+    "media": "typhlosion"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 79.5,
+    "color": "yellow",
+    "flavorText": "If its rage peaks, it becomes so hot that anything that touches it will instantly go up in flames."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

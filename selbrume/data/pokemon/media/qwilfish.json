@@ -1,0 +1,30 @@
+{
+  "speciesId": "qwilfish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/qwilfish/front.png",
+      "backStatic": "assets/pokemon/sprites/qwilfish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/qwilfish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/qwilfish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/qwilfish.png",
+      "cry": "assets/pokemon/cries/qwilfish.ogg",
+      "animations": {}
+    },
+    "qwilfish-hisui": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "servine",
+  "preEvolution": "snivy",
+  "evolutions": [
+    {
+      "targetSpeciesId": "serperior",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

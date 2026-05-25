@@ -1,0 +1,30 @@
+{
+  "speciesId": "lurantis",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lurantis/front.png",
+      "backStatic": "assets/pokemon/sprites/lurantis/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lurantis/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lurantis/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lurantis.png",
+      "cry": "assets/pokemon/cries/lurantis.ogg",
+      "animations": {}
+    },
+    "lurantis-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

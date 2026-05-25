@@ -1,0 +1,97 @@
+{
+  "id": "blissey",
+  "slug": "blissey",
+  "nationalDex": 242,
+  "names": {
+    "ja_hrkt": "ハピナス",
+    "ja_roma": "Happinas",
+    "ko": "해피너스",
+    "zh_hant": "幸福蛋",
+    "fr": "Leuphorie",
+    "de": "Heiteira",
+    "es": "Blissey",
+    "it": "Blissey",
+    "en": "Blissey",
+    "ja": "ハピナス",
+    "zh_hans": "幸福蛋"
+  },
+  "speciesName": {
+    "ja_hrkt": "しあわせポケモン",
+    "ko": "행복포켓몬",
+    "zh_hant": "幸福寶可夢",
+    "fr": "Pokémon Bonheur",
+    "de": "Freuden-Pokémon",
+    "es": "Pokémon Felicidad",
+    "it": "Pokémon Felicità",
+    "en": "Happiness Pokémon",
+    "ja": "しあわせポケモン",
+    "zh_hans": "幸福宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 255,
+    "atk": 10,
+    "def": 10,
+    "spa": 75,
+    "spd": 135,
+    "spe": 55,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "natural_cure",
+    "secondary": "serene_grace",
+    "hidden": "healer"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 608,
+    "catchRate": 30,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "blissey",
+    "evolution": "blissey",
+    "media": "blissey"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 46.8,
+    "color": "pink",
+    "flavorText": "Anyone who takes even one bite of BLISSEY's egg be­ comes unfailingly caring and pleas­ ant to everyone."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

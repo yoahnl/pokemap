@@ -1,0 +1,100 @@
+{
+  "id": "magnezone",
+  "slug": "magnezone",
+  "nationalDex": 462,
+  "names": {
+    "ja_hrkt": "ジバコイル",
+    "ja_roma": "Jibacoil",
+    "ko": "자포코일",
+    "zh_hant": "自爆磁怪",
+    "fr": "Magnézone",
+    "de": "Magnezone",
+    "es": "Magnezone",
+    "it": "Magnezone",
+    "en": "Magnezone",
+    "ja": "ジバコイル",
+    "zh_hans": "自爆磁怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "じばポケモン",
+    "ko": "자기장포켓몬",
+    "zh_hant": "磁場寶可夢",
+    "fr": "Pokémon Aimant",
+    "de": "Magnetgebiets-Pokémon",
+    "es": "Pokémon Magnético",
+    "it": "Pokémon Magnetico",
+    "en": "Magnet Area Pokémon",
+    "ja": "じばポケモン",
+    "zh_hans": "磁场宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "electric",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 70,
+    "def": 115,
+    "spa": 130,
+    "spd": 90,
+    "spe": 60,
+    "bst": 535
+  },
+  "abilities": {
+    "primary": "magnet_pull",
+    "secondary": "sturdy",
+    "hidden": "analytic"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 241,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "magnezone",
+    "evolution": "magnezone",
+    "media": "magnezone"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 180.0,
+    "color": "gray",
+    "flavorText": "It evolved from exposure to a special magnetic field. Three units generate magnetism."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

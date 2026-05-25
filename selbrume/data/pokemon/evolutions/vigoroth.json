@@ -1,0 +1,14 @@
+{
+  "speciesId": "vigoroth",
+  "preEvolution": "slakoth",
+  "evolutions": [
+    {
+      "targetSpeciesId": "slaking",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

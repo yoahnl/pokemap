@@ -1,0 +1,14 @@
+{
+  "speciesId": "meditite",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "medicham",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

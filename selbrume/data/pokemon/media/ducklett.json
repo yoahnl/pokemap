@@ -1,0 +1,18 @@
+{
+  "speciesId": "ducklett",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ducklett/front.png",
+      "backStatic": "assets/pokemon/sprites/ducklett/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ducklett/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ducklett/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ducklett.png",
+      "cry": "assets/pokemon/cries/ducklett.ogg",
+      "animations": {}
+    }
+  }
+}

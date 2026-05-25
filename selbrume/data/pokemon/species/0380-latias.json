@@ -1,0 +1,100 @@
+{
+  "id": "latias",
+  "slug": "latias",
+  "nationalDex": 380,
+  "names": {
+    "ja_hrkt": "ラティアス",
+    "ja_roma": "Latias",
+    "ko": "라티아스",
+    "zh_hant": "拉帝亞斯",
+    "fr": "Latias",
+    "de": "Latias",
+    "es": "Latias",
+    "it": "Latias",
+    "en": "Latias",
+    "ja": "ラティアス",
+    "zh_hans": "拉帝亚斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "むげんポケモン",
+    "ko": "무한포켓몬",
+    "zh_hant": "無限寶可夢",
+    "fr": "Pokémon Éon",
+    "de": "Äon-Pokémon",
+    "es": "Pokémon Eón",
+    "it": "Pokémon Eone",
+    "en": "Eon Pokémon",
+    "ja": "むげんポケモン",
+    "zh_hans": "无限宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dragon",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 80,
+    "def": 90,
+    "spa": 110,
+    "spd": 130,
+    "spe": 110,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 90
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "latias-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "latias",
+    "evolution": "latias",
+    "media": "latias"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 40.0,
+    "color": "red",
+    "flavorText": "LATIAS is highly sensitive to the emotions of people. If it senses any hostility, this POKéMON ruffles the feathers all over its body and cries shrilly to intimidate the foe."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

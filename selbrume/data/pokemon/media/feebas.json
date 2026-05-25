@@ -1,0 +1,18 @@
+{
+  "speciesId": "feebas",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/feebas/front.png",
+      "backStatic": "assets/pokemon/sprites/feebas/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/feebas/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/feebas/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/feebas.png",
+      "cry": "assets/pokemon/cries/feebas.ogg",
+      "animations": {}
+    }
+  }
+}

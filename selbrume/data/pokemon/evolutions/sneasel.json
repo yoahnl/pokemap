@@ -1,0 +1,26 @@
+{
+  "speciesId": "sneasel",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sneasler",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: day. Hold item: razor-claw"
+      }
+    },
+    {
+      "targetSpeciesId": "weavile",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night. Hold item: razor-claw"
+      }
+    }
+  ]
+}

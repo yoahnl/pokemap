@@ -1,0 +1,14 @@
+{
+  "speciesId": "dipplin",
+  "preEvolution": "applin",
+  "evolutions": [
+    {
+      "targetSpeciesId": "hydrapple",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "dragon_cheer",
+      "conditionText": {}
+    }
+  ]
+}

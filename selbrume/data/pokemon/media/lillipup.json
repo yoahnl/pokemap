@@ -1,0 +1,18 @@
+{
+  "speciesId": "lillipup",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lillipup/front.png",
+      "backStatic": "assets/pokemon/sprites/lillipup/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lillipup/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lillipup/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lillipup.png",
+      "cry": "assets/pokemon/cries/lillipup.ogg",
+      "animations": {}
+    }
+  }
+}

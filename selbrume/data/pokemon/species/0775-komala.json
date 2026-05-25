@@ -1,0 +1,97 @@
+{
+  "id": "komala",
+  "slug": "komala",
+  "nationalDex": 775,
+  "names": {
+    "ja_hrkt": "ネッコアラ",
+    "ja_roma": "Nekkoara",
+    "ko": "자말라",
+    "zh_hant": "樹枕尾熊",
+    "fr": "Dodoala",
+    "de": "Koalelu",
+    "es": "Komala",
+    "it": "Komala",
+    "en": "Komala",
+    "ja": "ネッコアラ",
+    "zh_hans": "树枕尾熊"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゆめうつつポケモン",
+    "ko": "꿈결포켓몬",
+    "zh_hant": "半夢半醒寶可夢",
+    "fr": "Pokémon Rêveur",
+    "de": "Halbschlaf",
+    "es": "Pokémon Duermevela",
+    "it": "Pokémon Dormiveglia",
+    "en": "Drowsing Pokémon",
+    "ja": "ゆめうつつポケモン",
+    "zh_hans": "半梦半醒宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 115,
+    "def": 65,
+    "spa": 75,
+    "spd": 95,
+    "spe": 65,
+    "bst": 480
+  },
+  "abilities": {
+    "primary": "comatose",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 168,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "komala",
+    "evolution": "komala",
+    "media": "komala"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 19.9,
+    "color": "blue",
+    "flavorText": "It is born asleep, and it dies asleep. All its movements are apparently no more than the results of it tossing and turning in its dreams."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

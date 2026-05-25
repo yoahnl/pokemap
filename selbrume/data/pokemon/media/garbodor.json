@@ -1,0 +1,18 @@
+{
+  "speciesId": "garbodor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/garbodor/front.png",
+      "backStatic": "assets/pokemon/sprites/garbodor/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/garbodor/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/garbodor/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/garbodor.png",
+      "cry": "assets/pokemon/cries/garbodor.ogg",
+      "animations": {}
+    }
+  }
+}

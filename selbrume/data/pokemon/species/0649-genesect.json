@@ -1,0 +1,105 @@
+{
+  "id": "genesect",
+  "slug": "genesect",
+  "nationalDex": 649,
+  "names": {
+    "ja_hrkt": "ゲノセクト",
+    "ja_roma": "Genesect",
+    "ko": "게노세크트",
+    "zh_hant": "蓋諾賽克特",
+    "fr": "Genesect",
+    "de": "Genesect",
+    "es": "Genesect",
+    "it": "Genesect",
+    "en": "Genesect",
+    "ja": "ゲノセクト",
+    "zh_hans": "盖诺赛克特"
+  },
+  "speciesName": {
+    "ja_hrkt": "こせいだいポケモン",
+    "ko": "고생대포켓몬",
+    "zh_hant": "古生代寶可夢",
+    "fr": "Pokémon Paléozoïque",
+    "de": "Paläozoikums-Pokémon",
+    "es": "Pokémon Paleozoico",
+    "it": "Pokémon Paleozoico",
+    "en": "Paleozoic Pokémon",
+    "ja": "こせいだいポケモン",
+    "zh_hans": "古生代宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 71,
+    "atk": 120,
+    "def": 95,
+    "spa": 120,
+    "spd": 95,
+    "spe": 99,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "download",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "genesect-burn",
+      "genesect-chill",
+      "genesect-douse",
+      "genesect-shock"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "genesect",
+    "evolution": "genesect",
+    "media": "genesect"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 82.5,
+    "color": "purple",
+    "flavorText": "Over 300 million years ago, it was feared as the strongest of hunters. It has been modified by Team Plasma."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

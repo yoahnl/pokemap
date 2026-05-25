@@ -1,0 +1,102 @@
+{
+  "id": "raichu",
+  "slug": "raichu",
+  "nationalDex": 26,
+  "names": {
+    "ja_hrkt": "ライチュウ",
+    "ja_roma": "Raichu",
+    "ko": "라이츄",
+    "zh_hant": "雷丘",
+    "fr": "Raichu",
+    "de": "Raichu",
+    "es": "Raichu",
+    "it": "Raichu",
+    "en": "Raichu",
+    "ja": "ライチュウ",
+    "zh_hans": "雷丘"
+  },
+  "speciesName": {
+    "ja_hrkt": "ねずみポケモン",
+    "ko": "쥐포켓몬",
+    "zh_hant": "鼠寶可夢",
+    "fr": "Pokémon Souris",
+    "de": "Maus-Pokémon",
+    "es": "Pokémon Ratón",
+    "it": "Pokémon Topo",
+    "en": "Mouse Pokémon",
+    "ja": "ねずみポケモン",
+    "zh_hans": "鼠宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 90,
+    "def": 55,
+    "spa": 90,
+    "spd": 80,
+    "spe": 110,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": null,
+    "hidden": "lightning_rod"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 218,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "raichu-alola",
+      "raichu-mega-x",
+      "raichu-mega-y"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "raichu",
+    "evolution": "raichu",
+    "media": "raichu"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 30.0,
+    "color": "yellow",
+    "flavorText": "Its long tail serves as a ground to protect itself from its own high-voltage power."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

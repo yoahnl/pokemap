@@ -1,0 +1,14 @@
+{
+  "speciesId": "remoraid",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "octillery",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

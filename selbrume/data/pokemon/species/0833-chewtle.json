@@ -1,0 +1,98 @@
+{
+  "id": "chewtle",
+  "slug": "chewtle",
+  "nationalDex": 833,
+  "names": {
+    "ja_hrkt": "カムカメ",
+    "ja_roma": "Kamukame",
+    "ko": "깨물부기",
+    "zh_hant": "咬咬龜",
+    "fr": "Khélocrok",
+    "de": "Kamehaps",
+    "es": "Chewtle",
+    "it": "Chewtle",
+    "en": "Chewtle",
+    "ja": "カムカメ",
+    "zh_hans": "咬咬龟"
+  },
+  "speciesName": {
+    "ja_hrkt": "くいつきポケモン",
+    "ko": "물고늘어지기포켓몬",
+    "zh_hant": "咬住寶可夢",
+    "fr": "Pokémon Mordillage",
+    "de": "Schnapp-Pokémon",
+    "es": "Pokémon Mordedura",
+    "it": "Pokémon Mordace",
+    "en": "Snapping Pokémon",
+    "ja": "くいつきポケモン",
+    "zh_hans": "咬住宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 64,
+    "def": 50,
+    "spa": 38,
+    "spd": 38,
+    "spe": 44,
+    "bst": 284
+  },
+  "abilities": {
+    "primary": "strong_jaw",
+    "secondary": "shell_armor",
+    "hidden": "swift_swim"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 57,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "chewtle",
+    "evolution": "chewtle",
+    "media": "chewtle"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 8.5,
+    "color": "green",
+    "flavorText": "Apparently the itch of its teething impels it to snap its jaws at anything in front of it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

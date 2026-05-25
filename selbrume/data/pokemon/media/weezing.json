@@ -1,0 +1,30 @@
+{
+  "speciesId": "weezing",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/weezing/front.png",
+      "backStatic": "assets/pokemon/sprites/weezing/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/weezing/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/weezing/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/weezing.png",
+      "cry": "assets/pokemon/cries/weezing.ogg",
+      "animations": {}
+    },
+    "weezing-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "spinda",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spinda/front.png",
+      "backStatic": "assets/pokemon/sprites/spinda/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spinda/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spinda/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spinda.png",
+      "cry": "assets/pokemon/cries/spinda.ogg",
+      "animations": {}
+    }
+  }
+}

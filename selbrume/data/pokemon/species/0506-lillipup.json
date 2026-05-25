@@ -1,0 +1,97 @@
+{
+  "id": "lillipup",
+  "slug": "lillipup",
+  "nationalDex": 506,
+  "names": {
+    "ja_hrkt": "ヨーテリー",
+    "ja_roma": "Yorterrie",
+    "ko": "요테리",
+    "zh_hant": "小約克",
+    "fr": "Ponchiot",
+    "de": "Yorkleff",
+    "es": "Lillipup",
+    "it": "Lillipup",
+    "en": "Lillipup",
+    "ja": "ヨーテリー",
+    "zh_hans": "小约克"
+  },
+  "speciesName": {
+    "ja_hrkt": "こいぬポケモン",
+    "ko": "강아지포켓몬",
+    "zh_hant": "小狗寶可夢",
+    "fr": "Pokémon Chiot",
+    "de": "Welpen-Pokémon",
+    "es": "Pokémon Perrito",
+    "it": "Pokémon Cagnolino",
+    "en": "Puppy Pokémon",
+    "ja": "こいぬポケモン",
+    "zh_hans": "小狗宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 60,
+    "def": 45,
+    "spa": 25,
+    "spd": 45,
+    "spe": 55,
+    "bst": 275
+  },
+  "abilities": {
+    "primary": "vital_spirit",
+    "secondary": "pickup",
+    "hidden": "run_away"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 55,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lillipup",
+    "evolution": "lillipup",
+    "media": "lillipup"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.1,
+    "color": "brown",
+    "flavorText": "It faces strong opponents with great courage. But, when at a disadvantage in a fight, this intelligent Pokémon flees."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

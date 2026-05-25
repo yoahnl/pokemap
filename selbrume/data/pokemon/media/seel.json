@@ -1,0 +1,18 @@
+{
+  "speciesId": "seel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/seel/front.png",
+      "backStatic": "assets/pokemon/sprites/seel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/seel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/seel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/seel.png",
+      "cry": "assets/pokemon/cries/seel.ogg",
+      "animations": {}
+    }
+  }
+}

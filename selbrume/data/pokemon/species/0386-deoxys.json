@@ -1,0 +1,103 @@
+{
+  "id": "deoxys",
+  "slug": "deoxys",
+  "nationalDex": 386,
+  "names": {
+    "ja_hrkt": "デオキシス",
+    "ja_roma": "Deoxys",
+    "ko": "테오키스",
+    "zh_hant": "代歐奇希斯",
+    "fr": "Deoxys",
+    "de": "Deoxys",
+    "es": "Deoxys",
+    "it": "Deoxys",
+    "en": "Deoxys",
+    "ja": "デオキシス",
+    "zh_hans": "代欧奇希斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "ＤＮＡポケモン",
+    "ko": "DNA포켓몬",
+    "zh_hant": "ＤＮＡ寶可夢",
+    "fr": "Pokémon ADN",
+    "de": "DNS",
+    "es": "Pokémon ADN",
+    "it": "Pokémon DNA",
+    "en": "DNA Pokémon",
+    "ja": "ＤＮＡポケモン",
+    "zh_hans": "ＤＮＡ宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 150,
+    "def": 50,
+    "spa": 150,
+    "spd": 50,
+    "spe": 150,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "deoxys-attack",
+      "deoxys-defense",
+      "deoxys-speed"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "deoxys",
+    "evolution": "deoxys",
+    "media": "deoxys"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 60.8,
+    "color": "red",
+    "flavorText": "The DNA of a space virus underwent a sudden mutation upon exposure to a laser beam and resulted in DEOXYS. The crystalline organ on this POKéMON’s chest appears to be its brain."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

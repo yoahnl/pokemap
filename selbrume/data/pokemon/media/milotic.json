@@ -1,0 +1,18 @@
+{
+  "speciesId": "milotic",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/milotic/front.png",
+      "backStatic": "assets/pokemon/sprites/milotic/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/milotic/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/milotic/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/milotic.png",
+      "cry": "assets/pokemon/cries/milotic.ogg",
+      "animations": {}
+    }
+  }
+}

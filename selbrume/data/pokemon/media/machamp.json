@@ -1,0 +1,18 @@
+{
+  "speciesId": "machamp",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/machamp/front.png",
+      "backStatic": "assets/pokemon/sprites/machamp/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/machamp/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/machamp/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/machamp.png",
+      "cry": "assets/pokemon/cries/machamp.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "yveltal",
+  "slug": "yveltal",
+  "nationalDex": 717,
+  "names": {
+    "ja_hrkt": "イベルタル",
+    "ja_roma": "Yveltal",
+    "ko": "이벨타르",
+    "zh_hant": "伊裴爾塔爾",
+    "fr": "Yveltal",
+    "de": "Yveltal",
+    "es": "Yveltal",
+    "it": "Yveltal",
+    "en": "Yveltal",
+    "ja": "イベルタル",
+    "zh_hans": "伊裴尔塔尔"
+  },
+  "speciesName": {
+    "ja_hrkt": "はかいポケモン",
+    "ko": "파괴포켓몬",
+    "zh_hant": "破壞寶可夢",
+    "fr": "Pokémon Annihilation",
+    "de": "Zerstörungs-Pokémon",
+    "es": "Pokémon Destrucción",
+    "it": "Pokémon Distruzione",
+    "en": "Destruction Pokémon",
+    "ja": "はかいポケモン",
+    "zh_hans": "破坏宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "dark",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 126,
+    "atk": 131,
+    "def": 95,
+    "spa": 131,
+    "spd": 98,
+    "spe": 99,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "dark_aura",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "yveltal",
+    "evolution": "yveltal",
+    "media": "yveltal"
+  },
+  "dexContent": {
+    "heightM": 5.8,
+    "weightKg": 203.0,
+    "color": "red",
+    "flavorText": "When this legendary Pokémon’s wings and tail feathers spread wide and glow red, it absorbs the life force of living creatures."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

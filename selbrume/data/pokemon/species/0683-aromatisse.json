@@ -1,0 +1,97 @@
+{
+  "id": "aromatisse",
+  "slug": "aromatisse",
+  "nationalDex": 683,
+  "names": {
+    "ja_hrkt": "フレフワン",
+    "ja_roma": "Frefuwan",
+    "ko": "프레프티르",
+    "zh_hant": "芳香精",
+    "fr": "Cocotine",
+    "de": "Parfinesse",
+    "es": "Aromatisse",
+    "it": "Aromatisse",
+    "en": "Aromatisse",
+    "ja": "フレフワン",
+    "zh_hans": "芳香精"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほうこうポケモン",
+    "ko": "방향포켓몬",
+    "zh_hant": "芳香寶可夢",
+    "fr": "Pokémon Parfum",
+    "de": "Duft-Pokémon",
+    "es": "Pokémon Fragancia",
+    "it": "Pokémon Fragranza",
+    "en": "Fragrance Pokémon",
+    "ja": "ほうこうポケモン",
+    "zh_hans": "芳香宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 101,
+    "atk": 72,
+    "def": 72,
+    "spa": 99,
+    "spd": 89,
+    "spe": 29,
+    "bst": 462
+  },
+  "abilities": {
+    "primary": "healer",
+    "secondary": null,
+    "hidden": "aroma_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 162,
+    "catchRate": 140,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "aromatisse",
+    "evolution": "aromatisse",
+    "media": "aromatisse"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 15.5,
+    "color": "pink",
+    "flavorText": "It devises various scents, pleasant and unpleasant, and emits scents that its enemies dislike in order to gain an edge in battle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

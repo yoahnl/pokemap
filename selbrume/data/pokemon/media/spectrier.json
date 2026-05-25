@@ -1,0 +1,18 @@
+{
+  "speciesId": "spectrier",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spectrier/front.png",
+      "backStatic": "assets/pokemon/sprites/spectrier/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spectrier/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spectrier/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spectrier.png",
+      "cry": "assets/pokemon/cries/spectrier.ogg",
+      "animations": {}
+    }
+  }
+}

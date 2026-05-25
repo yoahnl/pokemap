@@ -1,0 +1,18 @@
+{
+  "speciesId": "drakloak",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/drakloak/front.png",
+      "backStatic": "assets/pokemon/sprites/drakloak/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/drakloak/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/drakloak/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/drakloak.png",
+      "cry": "assets/pokemon/cries/drakloak.ogg",
+      "animations": {}
+    }
+  }
+}

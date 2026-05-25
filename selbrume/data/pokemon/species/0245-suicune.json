@@ -1,0 +1,99 @@
+{
+  "id": "suicune",
+  "slug": "suicune",
+  "nationalDex": 245,
+  "names": {
+    "ja_hrkt": "スイクン",
+    "ja_roma": "Suikun",
+    "ko": "스이쿤",
+    "zh_hant": "水君",
+    "fr": "Suicune",
+    "de": "Suicune",
+    "es": "Suicune",
+    "it": "Suicune",
+    "en": "Suicune",
+    "ja": "スイクン",
+    "zh_hans": "水君"
+  },
+  "speciesName": {
+    "ja_hrkt": "オーロラポケモン",
+    "ko": "오로라포켓몬",
+    "zh_hant": "極光寶可夢",
+    "fr": "Pokémon Aurore",
+    "de": "Polarlicht-Pokémon",
+    "es": "Pokémon Aurora",
+    "it": "Pokémon Aurora",
+    "en": "Aurora Pokémon",
+    "ja": "オーロラポケモン",
+    "zh_hans": "极光宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 75,
+    "def": 115,
+    "spa": 90,
+    "spd": 115,
+    "spe": 85,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "inner_focus"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "suicune",
+    "evolution": "suicune",
+    "media": "suicune"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 187.0,
+    "color": "blue",
+    "flavorText": "It races around the world to purify fouled water. It dashes away with the north wind."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

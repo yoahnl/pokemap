@@ -1,0 +1,18 @@
+{
+  "speciesId": "guzzlord",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/guzzlord/front.png",
+      "backStatic": "assets/pokemon/sprites/guzzlord/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/guzzlord/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/guzzlord/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/guzzlord.png",
+      "cry": "assets/pokemon/cries/guzzlord.ogg",
+      "animations": {}
+    }
+  }
+}

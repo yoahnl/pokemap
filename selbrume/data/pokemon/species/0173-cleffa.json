@@ -1,0 +1,100 @@
+{
+  "id": "cleffa",
+  "slug": "cleffa",
+  "nationalDex": 173,
+  "names": {
+    "ja_hrkt": "ピィ",
+    "ja_roma": "Py",
+    "ko": "삐",
+    "zh_hant": "皮寶寶",
+    "fr": "Mélo",
+    "de": "Pii",
+    "es": "Cleffa",
+    "it": "Cleffa",
+    "en": "Cleffa",
+    "ja": "ピィ",
+    "zh_hans": "皮宝宝"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほしがたポケモン",
+    "ko": "별포켓몬",
+    "zh_hant": "星形寶可夢",
+    "fr": "Pokémon Étoile",
+    "de": "Sternform-Pokémon",
+    "es": "Pokémon Estrella",
+    "it": "Pokémon Stella",
+    "en": "Star Shape Pokémon",
+    "ja": "ほしがたポケモン",
+    "zh_hans": "星形宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 25,
+    "def": 28,
+    "spa": 45,
+    "spd": 55,
+    "spe": 15,
+    "bst": 218
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "magic_guard",
+    "hidden": "friend_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 44,
+    "catchRate": 150,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "cleffa",
+    "evolution": "cleffa",
+    "media": "cleffa"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 3.0,
+    "color": "pink",
+    "flavorText": "Because of its unusual, star-like silhouette, people believe that it came here on a meteor."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

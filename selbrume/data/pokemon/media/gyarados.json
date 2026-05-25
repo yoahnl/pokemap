@@ -1,0 +1,30 @@
+{
+  "speciesId": "gyarados",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gyarados/front.png",
+      "backStatic": "assets/pokemon/sprites/gyarados/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gyarados/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gyarados/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gyarados.png",
+      "cry": "assets/pokemon/cries/gyarados.ogg",
+      "animations": {}
+    },
+    "gyarados-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "xerneas",
+  "slug": "xerneas",
+  "nationalDex": 716,
+  "names": {
+    "ja_hrkt": "ゼルネアス",
+    "ja_roma": "Xerneas",
+    "ko": "제르네아스",
+    "zh_hant": "哲爾尼亞斯",
+    "fr": "Xerneas",
+    "de": "Xerneas",
+    "es": "Xerneas",
+    "it": "Xerneas",
+    "en": "Xerneas",
+    "ja": "ゼルネアス",
+    "zh_hans": "哲尔尼亚斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "せいめいポケモン",
+    "ko": "생명포켓몬",
+    "zh_hant": "生命寶可夢",
+    "fr": "Pokémon Existence",
+    "de": "Lebens-Pokémon",
+    "es": "Pokémon Creación",
+    "it": "Pokémon Creazione",
+    "en": "Life Pokémon",
+    "ja": "せいめいポケモン",
+    "zh_hans": "生命宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 126,
+    "atk": 131,
+    "def": 95,
+    "spa": 131,
+    "spd": 98,
+    "spe": 99,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "fairy_aura",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "xerneas-neutral"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "xerneas",
+    "evolution": "xerneas",
+    "media": "xerneas"
+  },
+  "dexContent": {
+    "heightM": 3.0,
+    "weightKg": 215.0,
+    "color": "blue",
+    "flavorText": "Legends say it can share eternal life. It slept for a thousand years in the form of a tree before its revival."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

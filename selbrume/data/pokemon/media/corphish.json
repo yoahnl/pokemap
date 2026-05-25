@@ -1,0 +1,18 @@
+{
+  "speciesId": "corphish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/corphish/front.png",
+      "backStatic": "assets/pokemon/sprites/corphish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/corphish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/corphish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/corphish.png",
+      "cry": "assets/pokemon/cries/corphish.ogg",
+      "animations": {}
+    }
+  }
+}

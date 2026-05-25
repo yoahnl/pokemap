@@ -1,0 +1,18 @@
+{
+  "speciesId": "charmeleon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/charmeleon/front.png",
+      "backStatic": "assets/pokemon/sprites/charmeleon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/charmeleon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/charmeleon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/charmeleon.png",
+      "cry": "assets/pokemon/cries/charmeleon.ogg",
+      "animations": {}
+    }
+  }
+}

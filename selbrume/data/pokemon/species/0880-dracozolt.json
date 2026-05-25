@@ -1,0 +1,100 @@
+{
+  "id": "dracozolt",
+  "slug": "dracozolt",
+  "nationalDex": 880,
+  "names": {
+    "ja_hrkt": "パッチラゴン",
+    "ja_roma": "Patchiragon",
+    "ko": "파치래곤",
+    "zh_hant": "雷鳥龍",
+    "fr": "Galvagon",
+    "de": "Lectragon",
+    "es": "Dracozolt",
+    "it": "Dracozolt",
+    "en": "Dracozolt",
+    "ja": "パッチラゴン",
+    "zh_hans": "雷鸟龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "かせきポケモン",
+    "ko": "화석포켓몬",
+    "zh_hant": "化石寶可夢",
+    "fr": "Pokémon Fossile",
+    "de": "Fossil-Pokémon",
+    "es": "Pokémon Fósil",
+    "it": "Pokémon Fossile",
+    "en": "Fossil Pokémon",
+    "ja": "かせきポケモン",
+    "zh_hans": "化石宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "electric",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 100,
+    "def": 90,
+    "spa": 80,
+    "spd": 70,
+    "spe": 75,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "volt_absorb",
+    "secondary": "hustle",
+    "hidden": "sand_rush"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 177,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dracozolt",
+    "evolution": "dracozolt",
+    "media": "dracozolt"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 190.0,
+    "color": "green",
+    "flavorText": "In ancient times, it was unbeatable thanks to its powerful lower body, but it went extinct anyway after it depleted all its plant-based food sources."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

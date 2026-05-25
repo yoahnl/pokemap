@@ -1,0 +1,98 @@
+{
+  "id": "stufful",
+  "slug": "stufful",
+  "nationalDex": 759,
+  "names": {
+    "ja_hrkt": "ヌイコグマ",
+    "ja_roma": "Nuikoguma",
+    "ko": "포곰곰",
+    "zh_hant": "童偶熊",
+    "fr": "Nounourson",
+    "de": "Velursi",
+    "es": "Stufful",
+    "it": "Stufful",
+    "en": "Stufful",
+    "ja": "ヌイコグマ",
+    "zh_hans": "童偶熊"
+  },
+  "speciesName": {
+    "ja_hrkt": "じたばたポケモン",
+    "ko": "바둥바둥포켓몬",
+    "zh_hant": "抓狂寶可夢",
+    "fr": "Pokémon Gigoteur",
+    "de": "Wildfang-Pokémon",
+    "es": "Pokémon Rabieta",
+    "it": "Pokémon Bizzoso",
+    "en": "Flailing Pokémon",
+    "ja": "じたばたポケモン",
+    "zh_hans": "抓狂宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 75,
+    "def": 50,
+    "spa": 45,
+    "spd": 50,
+    "spe": 50,
+    "bst": 340
+  },
+  "abilities": {
+    "primary": "fluffy",
+    "secondary": "klutz",
+    "hidden": "cute_charm"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 68,
+    "catchRate": 140,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "stufful",
+    "evolution": "stufful",
+    "media": "stufful"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 6.8,
+    "color": "pink",
+    "flavorText": "Despite its adorable appearance, when it gets angry and flails about, its arms and legs could knock a pro wrestler sprawling."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

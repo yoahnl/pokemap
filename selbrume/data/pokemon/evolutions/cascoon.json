@@ -1,0 +1,14 @@
+{
+  "speciesId": "cascoon",
+  "preEvolution": "wurmple",
+  "evolutions": [
+    {
+      "targetSpeciesId": "dustox",
+      "method": "level_up",
+      "minLevel": 10,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

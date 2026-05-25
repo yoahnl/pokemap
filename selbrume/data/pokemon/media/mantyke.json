@@ -1,0 +1,18 @@
+{
+  "speciesId": "mantyke",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mantyke/front.png",
+      "backStatic": "assets/pokemon/sprites/mantyke/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mantyke/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mantyke/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mantyke.png",
+      "cry": "assets/pokemon/cries/mantyke.ogg",
+      "animations": {}
+    }
+  }
+}

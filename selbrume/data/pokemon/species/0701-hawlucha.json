@@ -1,0 +1,101 @@
+{
+  "id": "hawlucha",
+  "slug": "hawlucha",
+  "nationalDex": 701,
+  "names": {
+    "ja_hrkt": "ルチャブル",
+    "ja_roma": "Luchabull",
+    "ko": "루차불",
+    "zh_hant": "摔角鷹人",
+    "fr": "Brutalibré",
+    "de": "Resladero",
+    "es": "Hawlucha",
+    "it": "Hawlucha",
+    "en": "Hawlucha",
+    "ja": "ルチャブル",
+    "zh_hans": "摔角鹰人"
+  },
+  "speciesName": {
+    "ja_hrkt": "レスリングポケモン",
+    "ko": "레슬링포켓몬",
+    "zh_hant": "摔角寶可夢",
+    "fr": "Pokémon Catcheur",
+    "de": "Wrestling-Pokémon",
+    "es": "Pokémon Lucha Libre",
+    "it": "Pokémon Lottalibera",
+    "en": "Wrestling Pokémon",
+    "ja": "レスリングポケモン",
+    "zh_hans": "摔角宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fighting",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 92,
+    "def": 75,
+    "spa": 74,
+    "spd": 63,
+    "spe": 118,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "limber",
+    "secondary": "unburden",
+    "hidden": "mold_breaker"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 175,
+    "catchRate": 100,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "hawlucha-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hawlucha",
+    "evolution": "hawlucha",
+    "media": "hawlucha"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 21.5,
+    "color": "green",
+    "flavorText": "Although its body is small, its proficient fighting skills enable it to keep up with big bruisers like Machamp and Hariyama."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

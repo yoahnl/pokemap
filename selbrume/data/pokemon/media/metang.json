@@ -1,0 +1,18 @@
+{
+  "speciesId": "metang",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/metang/front.png",
+      "backStatic": "assets/pokemon/sprites/metang/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/metang/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/metang/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/metang.png",
+      "cry": "assets/pokemon/cries/metang.ogg",
+      "animations": {}
+    }
+  }
+}

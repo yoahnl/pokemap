@@ -1,0 +1,95 @@
+{
+  "id": "toedscruel",
+  "slug": "toedscruel",
+  "nationalDex": 949,
+  "names": {
+    "ja_hrkt": "リククラゲ",
+    "ja_roma": "Rikukurage",
+    "ko": "육파리",
+    "zh_hant": "陸地水母",
+    "fr": "Terracruel",
+    "de": "Tenterra",
+    "es": "Toedscruel",
+    "it": "Toedscruel",
+    "en": "Toedscruel",
+    "ja": "リククラゲ",
+    "zh_hans": "陆地水母"
+  },
+  "speciesName": {
+    "ja_hrkt": "きくらげポケモン",
+    "ko": "목이버섯포켓몬",
+    "zh_hant": "木耳寶可夢",
+    "fr": "Champiméduse",
+    "de": "Quallenpilz",
+    "en": "Woodear Pokémon",
+    "zh_hans": "木耳宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "ground",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 70,
+    "def": 65,
+    "spa": 80,
+    "spd": 120,
+    "spe": 100,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "mycelium_might",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 180,
+    "catchRate": 90,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "toedscruel",
+    "evolution": "toedscruel",
+    "media": "toedscruel"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 58.0,
+    "color": "black",
+    "flavorText": "These Pokémon gather into groups and form colonies deep within forests. They absolutely hate it when strangers approach."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

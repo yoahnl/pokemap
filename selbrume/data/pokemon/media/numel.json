@@ -1,0 +1,18 @@
+{
+  "speciesId": "numel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/numel/front.png",
+      "backStatic": "assets/pokemon/sprites/numel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/numel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/numel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/numel.png",
+      "cry": "assets/pokemon/cries/numel.ogg",
+      "animations": {}
+    }
+  }
+}

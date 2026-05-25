@@ -1,0 +1,97 @@
+{
+  "id": "thievul",
+  "slug": "thievul",
+  "nationalDex": 828,
+  "names": {
+    "ja_hrkt": "フォクスライ",
+    "ja_roma": "Foxly",
+    "ko": "폭슬라이",
+    "zh_hant": "狐大盜",
+    "fr": "Roublenard",
+    "de": "Gaunux",
+    "es": "Thievul",
+    "it": "Thievul",
+    "en": "Thievul",
+    "ja": "フォクスライ",
+    "zh_hans": "猾大狐"
+  },
+  "speciesName": {
+    "ja_hrkt": "きつねポケモン",
+    "ko": "여우포켓몬",
+    "zh_hant": "狐狸寶可夢",
+    "fr": "Pokémon Renard",
+    "de": "Fuchs-Pokémon",
+    "es": "Pokémon Zorro",
+    "it": "Pokémon Volpe",
+    "en": "Fox Pokémon",
+    "ja": "きつねポケモン",
+    "zh_hans": "狐狸宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 58,
+    "def": 58,
+    "spa": 87,
+    "spd": 92,
+    "spe": 90,
+    "bst": 455
+  },
+  "abilities": {
+    "primary": "run_away",
+    "secondary": "unburden",
+    "hidden": "stakeout"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 159,
+    "catchRate": 127,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "thievul",
+    "evolution": "thievul",
+    "media": "thievul"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 19.9,
+    "color": "brown",
+    "flavorText": "It secretly marks potential targets with a scent. By following the scent, it stalks its targets and steals from them when they least expect it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

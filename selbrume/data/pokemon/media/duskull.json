@@ -1,0 +1,18 @@
+{
+  "speciesId": "duskull",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/duskull/front.png",
+      "backStatic": "assets/pokemon/sprites/duskull/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/duskull/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/duskull/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/duskull.png",
+      "cry": "assets/pokemon/cries/duskull.ogg",
+      "animations": {}
+    }
+  }
+}

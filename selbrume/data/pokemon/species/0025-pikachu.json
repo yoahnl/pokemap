@@ -1,0 +1,114 @@
+{
+  "id": "pikachu",
+  "slug": "pikachu",
+  "nationalDex": 25,
+  "names": {
+    "ja_hrkt": "ピカチュウ",
+    "ja_roma": "Pikachu",
+    "ko": "피카츄",
+    "zh_hant": "皮卡丘",
+    "fr": "Pikachu",
+    "de": "Pikachu",
+    "es": "Pikachu",
+    "it": "Pikachu",
+    "en": "Pikachu",
+    "ja": "ピカチュウ",
+    "zh_hans": "皮卡丘"
+  },
+  "speciesName": {
+    "ja_hrkt": "ねずみポケモン",
+    "ko": "쥐포켓몬",
+    "zh_hant": "鼠寶可夢",
+    "fr": "Pokémon Souris",
+    "de": "Maus-Pokémon",
+    "es": "Pokémon Ratón",
+    "it": "Pokémon Topo",
+    "en": "Mouse Pokémon",
+    "ja": "ねずみポケモン",
+    "zh_hans": "鼠宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 55,
+    "def": 40,
+    "spa": 50,
+    "spd": 50,
+    "spe": 90,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": null,
+    "hidden": "lightning_rod"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 112,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "pikachu-alola",
+      "pikachu-belle",
+      "pikachu-cosplay",
+      "pikachu-hoenn",
+      "pikachu-kalos",
+      "pikachu-libre",
+      "pikachu-original",
+      "pikachu-partner",
+      "pikachu-phd",
+      "pikachu-pop-star",
+      "pikachu-rock-star",
+      "pikachu-sinnoh",
+      "pikachu-starter",
+      "pikachu-unova",
+      "pikachu-world"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pikachu",
+    "evolution": "pikachu",
+    "media": "pikachu"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.0,
+    "color": "yellow",
+    "flavorText": "When several of these POKéMON gather, their electricity could build and cause lightning storms."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

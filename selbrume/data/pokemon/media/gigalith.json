@@ -1,0 +1,18 @@
+{
+  "speciesId": "gigalith",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gigalith/front.png",
+      "backStatic": "assets/pokemon/sprites/gigalith/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gigalith/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gigalith/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gigalith.png",
+      "cry": "assets/pokemon/cries/gigalith.ogg",
+      "animations": {}
+    }
+  }
+}

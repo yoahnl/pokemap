@@ -1,0 +1,16 @@
+{
+  "speciesId": "pancham",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "pangoro",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Party type: dark"
+      }
+    }
+  ]
+}

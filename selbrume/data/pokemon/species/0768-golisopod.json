@@ -1,0 +1,101 @@
+{
+  "id": "golisopod",
+  "slug": "golisopod",
+  "nationalDex": 768,
+  "names": {
+    "ja_hrkt": "グソクムシャ",
+    "ja_roma": "Gusokumusha",
+    "ko": "갑주무사",
+    "zh_hant": "具甲武者",
+    "fr": "Sarmuraï",
+    "de": "Tectass",
+    "es": "Golisopod",
+    "it": "Golisopod",
+    "en": "Golisopod",
+    "ja": "グソクムシャ",
+    "zh_hans": "具甲武者"
+  },
+  "speciesName": {
+    "ja_hrkt": "そうこうポケモン",
+    "ko": "장갑포켓몬",
+    "zh_hant": "裝甲寶可夢",
+    "fr": "Pokémon Blindé",
+    "de": "Rüstungs-Pokémon",
+    "es": "Pokémon Blindaje",
+    "it": "Pokémon Blindato",
+    "en": "Hard Scale Pokémon",
+    "ja": "そうこうポケモン",
+    "zh_hans": "装甲宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "bug",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 125,
+    "def": 140,
+    "spa": 60,
+    "spd": 90,
+    "spe": 40,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "emergency_exit",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 186,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "golisopod-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "golisopod",
+    "evolution": "golisopod",
+    "media": "golisopod"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 108.0,
+    "color": "gray",
+    "flavorText": "With a flashing slash of its giant sharp claws, it cleaves seawater—or even air—right in two."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

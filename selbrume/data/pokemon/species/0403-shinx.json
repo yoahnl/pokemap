@@ -1,0 +1,97 @@
+{
+  "id": "shinx",
+  "slug": "shinx",
+  "nationalDex": 403,
+  "names": {
+    "ja_hrkt": "コリンク",
+    "ja_roma": "Kolink",
+    "ko": "꼬링크",
+    "zh_hant": "小貓怪",
+    "fr": "Lixy",
+    "de": "Sheinux",
+    "es": "Shinx",
+    "it": "Shinx",
+    "en": "Shinx",
+    "ja": "コリンク",
+    "zh_hans": "小猫怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "せんこうポケモン",
+    "ko": "섬광포켓몬",
+    "zh_hant": "閃光寶可夢",
+    "fr": "Pokémon Flash",
+    "de": "Flacker-Pokémon",
+    "es": "Pokémon Flash",
+    "it": "Pokémon Baleno",
+    "en": "Flash Pokémon",
+    "ja": "せんこうポケモン",
+    "zh_hans": "闪光宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 65,
+    "def": 34,
+    "spa": 40,
+    "spd": 34,
+    "spe": 45,
+    "bst": 263
+  },
+  "abilities": {
+    "primary": "rivalry",
+    "secondary": "intimidate",
+    "hidden": "guts"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 53,
+    "catchRate": 235,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shinx",
+    "evolution": "shinx",
+    "media": "shinx"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.5,
+    "color": "blue",
+    "flavorText": "All of its fur dazzles if danger is sensed. It flees while the foe is momentarily blinded."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "arboliva",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/arboliva/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/arboliva/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/arboliva.png",
+      "cry": "assets/pokemon/cries/arboliva.ogg",
+      "animations": {}
+    }
+  }
+}

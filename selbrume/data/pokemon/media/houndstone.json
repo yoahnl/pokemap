@@ -1,0 +1,18 @@
+{
+  "speciesId": "houndstone",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/houndstone/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/houndstone/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/houndstone.png",
+      "cry": "assets/pokemon/cries/houndstone.ogg",
+      "animations": {}
+    }
+  }
+}

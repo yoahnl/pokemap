@@ -1,0 +1,98 @@
+{
+  "id": "shroomish",
+  "slug": "shroomish",
+  "nationalDex": 285,
+  "names": {
+    "ja_hrkt": "キノココ",
+    "ja_roma": "Kinococo",
+    "ko": "버섯꼬",
+    "zh_hant": "蘑蘑菇",
+    "fr": "Balignon",
+    "de": "Knilz",
+    "es": "Shroomish",
+    "it": "Shroomish",
+    "en": "Shroomish",
+    "ja": "キノココ",
+    "zh_hans": "蘑蘑菇"
+  },
+  "speciesName": {
+    "ja_hrkt": "きのこポケモン",
+    "ko": "버섯포켓몬",
+    "zh_hant": "蘑菇寶可夢",
+    "fr": "Pokémon Champignon",
+    "de": "Pilz",
+    "es": "Pokémon Hongo",
+    "it": "Pokémon Fungo",
+    "en": "Mushroom Pokémon",
+    "ja": "きのこポケモン",
+    "zh_hans": "蘑菇宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 40,
+    "def": 60,
+    "spa": 40,
+    "spd": 60,
+    "spe": 35,
+    "bst": 295
+  },
+  "abilities": {
+    "primary": "effect_spore",
+    "secondary": "poison_heal",
+    "hidden": "quick_feet"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 59,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shroomish",
+    "evolution": "shroomish",
+    "media": "shroomish"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.5,
+    "color": "brown",
+    "flavorText": "SHROOMISH live in damp soil in the dark depths of forests. They are often found keeping still under fallen leaves. This POKéMON feeds on compost that is made up of fallen, rotted leaves."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

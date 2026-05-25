@@ -1,0 +1,98 @@
+{
+  "id": "vespiquen",
+  "slug": "vespiquen",
+  "nationalDex": 416,
+  "names": {
+    "ja_hrkt": "ビークイン",
+    "ja_roma": "Beequeen",
+    "ko": "비퀸",
+    "zh_hant": "蜂女王",
+    "fr": "Apireine",
+    "de": "Honweisel",
+    "es": "Vespiquen",
+    "it": "Vespiquen",
+    "en": "Vespiquen",
+    "ja": "ビークイン",
+    "zh_hans": "蜂女王"
+  },
+  "speciesName": {
+    "ja_hrkt": "はちのすポケモン",
+    "ko": "벌집포켓몬",
+    "zh_hant": "蜂巢寶可夢",
+    "fr": "Pokémon Ruche",
+    "de": "Bienenstock-Pokémon",
+    "es": "Pokémon Colmena",
+    "it": "Pokémon Alveare",
+    "en": "Beehive Pokémon",
+    "ja": "はちのすポケモン",
+    "zh_hans": "蜂巢宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 80,
+    "def": 102,
+    "spa": 80,
+    "spd": 102,
+    "spe": 40,
+    "bst": 474
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 166,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vespiquen",
+    "evolution": "vespiquen",
+    "media": "vespiquen"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 38.5,
+    "color": "yellow",
+    "flavorText": "Its abdomen is a honeycomb for grubs. It raises its grubs on honey collected by COMBEE."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

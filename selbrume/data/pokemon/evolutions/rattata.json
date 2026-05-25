@@ -1,0 +1,24 @@
+{
+  "speciesId": "rattata",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "raticate",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "raticate",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night"
+      }
+    }
+  ]
+}

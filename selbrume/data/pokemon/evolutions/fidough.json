@@ -1,0 +1,14 @@
+{
+  "speciesId": "fidough",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dachsbun",
+      "method": "level_up",
+      "minLevel": 26,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

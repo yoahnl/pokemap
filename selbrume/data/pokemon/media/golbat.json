@@ -1,0 +1,18 @@
+{
+  "speciesId": "golbat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/golbat/front.png",
+      "backStatic": "assets/pokemon/sprites/golbat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/golbat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/golbat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/golbat.png",
+      "cry": "assets/pokemon/cries/golbat.ogg",
+      "animations": {}
+    }
+  }
+}

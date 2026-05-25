@@ -1,0 +1,18 @@
+{
+  "speciesId": "arctozolt",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/arctozolt/front.png",
+      "backStatic": "assets/pokemon/sprites/arctozolt/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/arctozolt/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/arctozolt/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/arctozolt.png",
+      "cry": "assets/pokemon/cries/arctozolt.ogg",
+      "animations": {}
+    }
+  }
+}

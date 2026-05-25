@@ -1,0 +1,98 @@
+{
+  "id": "pancham",
+  "slug": "pancham",
+  "nationalDex": 674,
+  "names": {
+    "ja_hrkt": "ヤンチャム",
+    "ja_roma": "Yancham",
+    "ko": "판짱",
+    "zh_hant": "頑皮熊貓",
+    "fr": "Pandespiègle",
+    "de": "Pam-Pam",
+    "es": "Pancham",
+    "it": "Pancham",
+    "en": "Pancham",
+    "ja": "ヤンチャム",
+    "zh_hans": "顽皮熊猫"
+  },
+  "speciesName": {
+    "ja_hrkt": "やんちゃポケモン",
+    "ko": "개구쟁이포켓몬",
+    "zh_hant": "頑皮寶可夢",
+    "fr": "Pokémon Garnement",
+    "de": "Verspielt-Pokémon",
+    "es": "Pokémon Juguetón",
+    "it": "Pokémon Briccone",
+    "en": "Playful Pokémon",
+    "ja": "やんちゃポケモン",
+    "zh_hans": "顽皮宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 67,
+    "atk": 82,
+    "def": 62,
+    "spa": 46,
+    "spd": 48,
+    "spe": 43,
+    "bst": 348
+  },
+  "abilities": {
+    "primary": "iron_fist",
+    "secondary": "mold_breaker",
+    "hidden": "scrappy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 70,
+    "catchRate": 220,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pancham",
+    "evolution": "pancham",
+    "media": "pancham"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.0,
+    "color": "white",
+    "flavorText": "It does its best to be taken seriously by its enemies, but its glare is not sufficiently intimidating. Chewing on a leaf is its trademark."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

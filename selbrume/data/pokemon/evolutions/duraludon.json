@@ -1,0 +1,14 @@
+{
+  "speciesId": "duraludon",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "archaludon",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "metal-alloy",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

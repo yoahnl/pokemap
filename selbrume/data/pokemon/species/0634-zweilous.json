@@ -1,0 +1,98 @@
+{
+  "id": "zweilous",
+  "slug": "zweilous",
+  "nationalDex": 634,
+  "names": {
+    "ja_hrkt": "ジヘッド",
+    "ja_roma": "Dihead",
+    "ko": "디헤드",
+    "zh_hant": "雙首暴龍",
+    "fr": "Diamat",
+    "de": "Duodino",
+    "es": "Zweilous",
+    "it": "Zweilous",
+    "en": "Zweilous",
+    "ja": "ジヘッド",
+    "zh_hans": "双首暴龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "らんぼうポケモン",
+    "ko": "흉포포켓몬",
+    "zh_hant": "粗暴寶可夢",
+    "fr": "Pokémon Violent",
+    "de": "Grobheits-Pokémon",
+    "es": "Pokémon Violento",
+    "it": "Pokémon Irruenza",
+    "en": "Hostile Pokémon",
+    "ja": "らんぼうポケモン",
+    "zh_hans": "粗暴宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dark",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 72,
+    "atk": 85,
+    "def": 70,
+    "spa": 65,
+    "spd": 70,
+    "spe": 58,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "hustle",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 147,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "zweilous",
+    "evolution": "zweilous",
+    "media": "zweilous"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 50.0,
+    "color": "blue",
+    "flavorText": "After it has eaten up all the food in its territory, it moves to another area. Its two heads do not get along."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

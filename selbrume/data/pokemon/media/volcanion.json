@@ -1,0 +1,18 @@
+{
+  "speciesId": "volcanion",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/volcanion/front.png",
+      "backStatic": "assets/pokemon/sprites/volcanion/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/volcanion/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/volcanion/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/volcanion.png",
+      "cry": "assets/pokemon/cries/volcanion.ogg",
+      "animations": {}
+    }
+  }
+}

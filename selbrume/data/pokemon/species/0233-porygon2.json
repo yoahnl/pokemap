@@ -1,0 +1,99 @@
+{
+  "id": "porygon2",
+  "slug": "porygon2",
+  "nationalDex": 233,
+  "names": {
+    "ja_hrkt": "ポリゴン２",
+    "ja_roma": "Porygon2",
+    "ko": "폴리곤2",
+    "zh_hant": "多邊獸Ⅱ",
+    "fr": "Porygon2",
+    "de": "Porygon2",
+    "es": "Porygon2",
+    "it": "Porygon2",
+    "en": "Porygon2",
+    "ja": "ポリゴン２",
+    "zh_hans": "多边兽２型"
+  },
+  "speciesName": {
+    "ja_hrkt": "バーチャルポケモン",
+    "ko": "가상포켓몬",
+    "zh_hant": "虛擬寶可夢",
+    "fr": "Pokémon Virtuel",
+    "de": "Virtuell-Pokémon",
+    "es": "Pokémon Virtual",
+    "it": "Pokémon Virtuale",
+    "en": "Virtual Pokémon",
+    "ja": "バーチャルポケモン",
+    "zh_hans": "虚拟宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 80,
+    "def": 90,
+    "spa": 105,
+    "spd": 95,
+    "spe": 60,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "trace",
+    "secondary": "download",
+    "hidden": "analytic"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 180,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "porygon2",
+    "evolution": "porygon2",
+    "media": "porygon2"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 32.5,
+    "color": "red",
+    "flavorText": "This upgraded version of PORYGON is designed for space exploration. It can't fly, though."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

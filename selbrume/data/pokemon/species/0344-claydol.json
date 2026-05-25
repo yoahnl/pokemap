@@ -1,0 +1,100 @@
+{
+  "id": "claydol",
+  "slug": "claydol",
+  "nationalDex": 344,
+  "names": {
+    "ja_hrkt": "ネンドール",
+    "ja_roma": "Nendoll",
+    "ko": "점토도리",
+    "zh_hant": "念力土偶",
+    "fr": "Kaorine",
+    "de": "Lepumentas",
+    "es": "Claydol",
+    "it": "Claydol",
+    "en": "Claydol",
+    "ja": "ネンドール",
+    "zh_hans": "念力土偶"
+  },
+  "speciesName": {
+    "ja_hrkt": "どぐうポケモン",
+    "ko": "토우포켓몬",
+    "zh_hant": "泥偶寶可夢",
+    "fr": "Pokémon Poupargile",
+    "de": "Lehmpuppen-Pokémon",
+    "es": "Pokémon Muñeca Barro",
+    "it": "Pokémon Argilla",
+    "en": "Clay Doll Pokémon",
+    "ja": "どぐうポケモン",
+    "zh_hans": "泥偶宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ground",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 70,
+    "def": 105,
+    "spa": 70,
+    "spd": 120,
+    "spe": 75,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 175,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "claydol",
+    "evolution": "claydol",
+    "media": "claydol"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 108.0,
+    "color": "black",
+    "flavorText": "CLAYDOL are said to be dolls of mud made by primitive humans and brought to life by exposure to a mysterious ray. This POKéMON moves about while levitating."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

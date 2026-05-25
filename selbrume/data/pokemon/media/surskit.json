@@ -1,0 +1,18 @@
+{
+  "speciesId": "surskit",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/surskit/front.png",
+      "backStatic": "assets/pokemon/sprites/surskit/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/surskit/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/surskit/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/surskit.png",
+      "cry": "assets/pokemon/cries/surskit.ogg",
+      "animations": {}
+    }
+  }
+}

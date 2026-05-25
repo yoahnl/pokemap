@@ -1,0 +1,16 @@
+{
+  "speciesId": "swadloon",
+  "preEvolution": "sewaddle",
+  "evolutions": [
+    {
+      "targetSpeciesId": "leavanny",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 220"
+      }
+    }
+  ]
+}

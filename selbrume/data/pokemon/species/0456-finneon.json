@@ -1,0 +1,97 @@
+{
+  "id": "finneon",
+  "slug": "finneon",
+  "nationalDex": 456,
+  "names": {
+    "ja_hrkt": "ケイコウオ",
+    "ja_roma": "Keikouo",
+    "ko": "형광어",
+    "zh_hant": "螢光魚",
+    "fr": "Écayon",
+    "de": "Finneon",
+    "es": "Finneon",
+    "it": "Finneon",
+    "en": "Finneon",
+    "ja": "ケイコウオ",
+    "zh_hans": "荧光鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "はねうおポケモン",
+    "ko": "비어포켓몬",
+    "zh_hant": "飛翅魚寶可夢",
+    "fr": "Pokémon Poisson Ailé",
+    "de": "Flügelfisch",
+    "es": "Pokémon Pez Ala",
+    "it": "Pokémon Pescealato",
+    "en": "Wing Fish Pokémon",
+    "ja": "はねうおポケモン",
+    "zh_hans": "飞翅鱼宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 49,
+    "atk": 49,
+    "def": 56,
+    "spa": 49,
+    "spd": 61,
+    "spe": 66,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "storm_drain",
+    "hidden": "water_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 66,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "finneon",
+    "evolution": "finneon",
+    "media": "finneon"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 7.0,
+    "color": "blue",
+    "flavorText": "After long exposure to sunlight, the patterns on its tail fins shine vividly when darkness arrives."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "dreepy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dreepy/front.png",
+      "backStatic": "assets/pokemon/sprites/dreepy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dreepy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dreepy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dreepy.png",
+      "cry": "assets/pokemon/cries/dreepy.ogg",
+      "animations": {}
+    }
+  }
+}

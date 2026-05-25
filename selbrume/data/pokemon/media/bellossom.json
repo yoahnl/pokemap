@@ -1,0 +1,18 @@
+{
+  "speciesId": "bellossom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bellossom/front.png",
+      "backStatic": "assets/pokemon/sprites/bellossom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bellossom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bellossom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bellossom.png",
+      "cry": "assets/pokemon/cries/bellossom.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "poochyena",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/poochyena/front.png",
+      "backStatic": "assets/pokemon/sprites/poochyena/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/poochyena/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/poochyena/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/poochyena.png",
+      "cry": "assets/pokemon/cries/poochyena.ogg",
+      "animations": {}
+    }
+  }
+}

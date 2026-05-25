@@ -1,0 +1,18 @@
+{
+  "speciesId": "skiddo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skiddo/front.png",
+      "backStatic": "assets/pokemon/sprites/skiddo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/skiddo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/skiddo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skiddo.png",
+      "cry": "assets/pokemon/cries/skiddo.ogg",
+      "animations": {}
+    }
+  }
+}

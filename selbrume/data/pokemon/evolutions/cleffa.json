@@ -1,0 +1,16 @@
+{
+  "speciesId": "cleffa",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "clefairy",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160"
+      }
+    }
+  ]
+}

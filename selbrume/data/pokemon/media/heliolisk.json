@@ -1,0 +1,18 @@
+{
+  "speciesId": "heliolisk",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/heliolisk/front.png",
+      "backStatic": "assets/pokemon/sprites/heliolisk/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/heliolisk/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/heliolisk/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/heliolisk.png",
+      "cry": "assets/pokemon/cries/heliolisk.ogg",
+      "animations": {}
+    }
+  }
+}

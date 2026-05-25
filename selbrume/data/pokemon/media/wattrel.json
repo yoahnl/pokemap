@@ -1,0 +1,18 @@
+{
+  "speciesId": "wattrel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wattrel/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/wattrel/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wattrel.png",
+      "cry": "assets/pokemon/cries/wattrel.ogg",
+      "animations": {}
+    }
+  }
+}

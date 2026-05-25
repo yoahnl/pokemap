@@ -1,0 +1,14 @@
+{
+  "speciesId": "deino",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "zweilous",
+      "method": "level_up",
+      "minLevel": 50,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

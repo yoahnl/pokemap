@@ -1,0 +1,98 @@
+{
+  "id": "trumbeak",
+  "slug": "trumbeak",
+  "nationalDex": 732,
+  "names": {
+    "ja_hrkt": "ケララッパ",
+    "ja_roma": "Kerarappa",
+    "ko": "크라파",
+    "zh_hant": "喇叭啄鳥",
+    "fr": "Piclairon",
+    "de": "Trompeck",
+    "es": "Trumbeak",
+    "it": "Trumbeak",
+    "en": "Trumbeak",
+    "ja": "ケララッパ",
+    "zh_hans": "喇叭啄鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "ラッパぐちポケモン",
+    "ko": "나팔입포켓몬",
+    "zh_hant": "喇叭喙寶可夢",
+    "fr": "Pokémon Bec Clairon",
+    "de": "Trompete",
+    "es": "Pokémon Trompeta",
+    "it": "Pokémon Trombecco",
+    "en": "Bugle Beak Pokémon",
+    "ja": "ラッパぐちポケモン",
+    "zh_hans": "喇叭喙宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 85,
+    "def": 50,
+    "spa": 40,
+    "spd": 50,
+    "spe": 75,
+    "bst": 355
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "skill_link",
+    "hidden": "pickup"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 124,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "trumbeak",
+    "evolution": "trumbeak",
+    "media": "trumbeak"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 14.8,
+    "color": "black",
+    "flavorText": "It eats berries and stores their seeds in its beak. When it encounters enemies or prey, it fires off all the seeds in a burst."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "mienfoo",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "mienshao",
+      "method": "level_up",
+      "minLevel": 50,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

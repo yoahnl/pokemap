@@ -1,0 +1,99 @@
+{
+  "id": "impidimp",
+  "slug": "impidimp",
+  "nationalDex": 859,
+  "names": {
+    "ja_hrkt": "ベロバー",
+    "ja_roma": "Beroba",
+    "ko": "메롱꿍",
+    "zh_hant": "搗蛋小妖",
+    "fr": "Grimalin",
+    "de": "Bähmon",
+    "es": "Impidimp",
+    "it": "Impidimp",
+    "en": "Impidimp",
+    "ja": "ベロバー",
+    "zh_hans": "捣蛋小妖"
+  },
+  "speciesName": {
+    "ja_hrkt": "いじわるポケモン",
+    "ko": "꾀부리기포켓몬",
+    "zh_hant": "捉弄寶可夢",
+    "fr": "Pokémon Malin",
+    "de": "Hinterlist-Pokémon",
+    "es": "Pokémon Astuto",
+    "it": "Pokémon Scaltro",
+    "en": "Wily Pokémon",
+    "ja": "いじわるポケモン",
+    "zh_hans": "捉弄宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "dark",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 45,
+    "def": 30,
+    "spa": 55,
+    "spd": 40,
+    "spe": 50,
+    "bst": 265
+  },
+  "abilities": {
+    "primary": "prankster",
+    "secondary": "frisk",
+    "hidden": "pickpocket"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 53,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "impidimp",
+    "evolution": "impidimp",
+    "media": "impidimp"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 5.5,
+    "color": "pink",
+    "flavorText": "Through its nose, it sucks in the emanations produced by people and Pokémon when they feel annoyed. It thrives off this negative energy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

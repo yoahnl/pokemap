@@ -1,0 +1,18 @@
+{
+  "speciesId": "fennekin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/fennekin/front.png",
+      "backStatic": "assets/pokemon/sprites/fennekin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/fennekin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/fennekin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/fennekin.png",
+      "cry": "assets/pokemon/cries/fennekin.ogg",
+      "animations": {}
+    }
+  }
+}

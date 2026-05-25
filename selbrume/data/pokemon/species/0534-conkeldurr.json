@@ -1,0 +1,100 @@
+{
+  "id": "conkeldurr",
+  "slug": "conkeldurr",
+  "nationalDex": 534,
+  "names": {
+    "ja_hrkt": "ローブシン",
+    "ja_roma": "Roubushin",
+    "ko": "노보청",
+    "zh_hant": "修建老匠",
+    "fr": "Bétochef",
+    "de": "Meistagrif",
+    "es": "Conkeldurr",
+    "it": "Conkeldurr",
+    "en": "Conkeldurr",
+    "ja": "ローブシン",
+    "zh_hans": "修建老匠"
+  },
+  "speciesName": {
+    "ja_hrkt": "きんこつポケモン",
+    "ko": "근골포켓몬",
+    "zh_hant": "筋骨寶可夢",
+    "fr": "Pokémon Costaud",
+    "de": "Muskel-Pokémon",
+    "es": "Pokémon Musculoso",
+    "it": "Pokémon Forzaimmane",
+    "en": "Muscular Pokémon",
+    "ja": "きんこつポケモン",
+    "zh_hans": "筋骨宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 105,
+    "atk": 140,
+    "def": 95,
+    "spa": 55,
+    "spd": 65,
+    "spe": 45,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": "sheer_force",
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 227,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "conkeldurr",
+    "evolution": "conkeldurr",
+    "media": "conkeldurr"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 87.0,
+    "color": "brown",
+    "flavorText": "It is thought that Conkeldurr taught humans how to make concrete more than 2,000 years ago."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

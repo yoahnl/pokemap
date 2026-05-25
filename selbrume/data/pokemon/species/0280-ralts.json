@@ -1,0 +1,99 @@
+{
+  "id": "ralts",
+  "slug": "ralts",
+  "nationalDex": 280,
+  "names": {
+    "ja_hrkt": "ラルトス",
+    "ja_roma": "Ralts",
+    "ko": "랄토스",
+    "zh_hant": "拉魯拉絲",
+    "fr": "Tarsal",
+    "de": "Trasla",
+    "es": "Ralts",
+    "it": "Ralts",
+    "en": "Ralts",
+    "ja": "ラルトス",
+    "zh_hans": "拉鲁拉丝"
+  },
+  "speciesName": {
+    "ja_hrkt": "きもちポケモン",
+    "ko": "느낌포켓몬",
+    "zh_hant": "心情寶可夢",
+    "fr": "Pokémon Sentiment",
+    "de": "Gefühls-Pokémon",
+    "es": "Pokémon Sensible",
+    "it": "Pokémon Sensazione",
+    "en": "Feeling Pokémon",
+    "ja": "きもちポケモン",
+    "zh_hans": "心情宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "psychic",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 28,
+    "atk": 25,
+    "def": 25,
+    "spa": 45,
+    "spd": 35,
+    "spe": 40,
+    "bst": 198
+  },
+  "abilities": {
+    "primary": "synchronize",
+    "secondary": "trace",
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 40,
+    "catchRate": 235,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ralts",
+    "evolution": "ralts",
+    "media": "ralts"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.6,
+    "color": "white",
+    "flavorText": "RALTS senses the emotions of people using the horns on its head. This POKéMON rarely appears before people. But when it does, it draws closer if it senses that the person has a positive disposition."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

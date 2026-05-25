@@ -1,0 +1,18 @@
+{
+  "speciesId": "chansey",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chansey/front.png",
+      "backStatic": "assets/pokemon/sprites/chansey/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chansey/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chansey/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chansey.png",
+      "cry": "assets/pokemon/cries/chansey.ogg",
+      "animations": {}
+    }
+  }
+}

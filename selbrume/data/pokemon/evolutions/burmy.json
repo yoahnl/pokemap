@@ -1,0 +1,26 @@
+{
+  "speciesId": "burmy",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "mothim",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Gender: male"
+      }
+    },
+    {
+      "targetSpeciesId": "wormadam",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Gender: female"
+      }
+    }
+  ]
+}

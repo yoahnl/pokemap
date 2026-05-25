@@ -1,0 +1,18 @@
+{
+  "speciesId": "parasect",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/parasect/front.png",
+      "backStatic": "assets/pokemon/sprites/parasect/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/parasect/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/parasect/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/parasect.png",
+      "cry": "assets/pokemon/cries/parasect.ogg",
+      "animations": {}
+    }
+  }
+}

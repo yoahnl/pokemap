@@ -1,0 +1,97 @@
+{
+  "id": "spoink",
+  "slug": "spoink",
+  "nationalDex": 325,
+  "names": {
+    "ja_hrkt": "バネブー",
+    "ja_roma": "Baneboo",
+    "ko": "피그점프",
+    "zh_hant": "跳跳豬",
+    "fr": "Spoink",
+    "de": "Spoink",
+    "es": "Spoink",
+    "it": "Spoink",
+    "en": "Spoink",
+    "ja": "バネブー",
+    "zh_hans": "跳跳猪"
+  },
+  "speciesName": {
+    "ja_hrkt": "とびはねポケモン",
+    "ko": "튀다포켓몬",
+    "zh_hant": "彈跳寶可夢",
+    "fr": "Pokémon Rebond",
+    "de": "Sprungfeder",
+    "es": "Pokémon Saltarín",
+    "it": "Pokémon Molla",
+    "en": "Bounce Pokémon",
+    "ja": "とびはねポケモン",
+    "zh_hans": "弹跳宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 25,
+    "def": 35,
+    "spa": 70,
+    "spd": 80,
+    "spe": 60,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "own_tempo",
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 66,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spoink",
+    "evolution": "spoink",
+    "media": "spoink"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 30.6,
+    "color": "black",
+    "flavorText": "SPOINK bounces around on its tail. The shock of its bouncing makes its heart pump. As a result, this POKéMON cannot afford to stop bouncing - if it stops, its heart will stop."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "id": "falinks",
+  "slug": "falinks",
+  "nationalDex": 870,
+  "names": {
+    "ja_hrkt": "タイレーツ",
+    "ja_roma": "Tairetsu",
+    "ko": "대여르",
+    "zh_hant": "列陣兵",
+    "fr": "Hexadron",
+    "de": "Legios",
+    "es": "Falinks",
+    "it": "Falinks",
+    "en": "Falinks",
+    "ja": "タイレーツ",
+    "zh_hans": "列阵兵"
+  },
+  "speciesName": {
+    "ja_hrkt": "じんけいポケモン",
+    "ko": "진형포켓몬",
+    "zh_hant": "陣形寶可夢",
+    "fr": "Pokémon Escadron",
+    "de": "Formations-Pokémon",
+    "es": "Pokémon Formación",
+    "it": "Pokémon Schieramento",
+    "en": "Formation Pokémon",
+    "ja": "じんけいポケモン",
+    "zh_hans": "阵形宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 100,
+    "def": 100,
+    "spa": 70,
+    "spd": 60,
+    "spe": 75,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "battle_armor",
+    "secondary": null,
+    "hidden": "defiant"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "fairy",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 165,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "falinks-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "falinks",
+    "evolution": "falinks",
+    "media": "falinks"
+  },
+  "dexContent": {
+    "heightM": 3.0,
+    "weightKg": 62.0,
+    "color": "yellow",
+    "flavorText": "Five of them are troopers, and one is the brass. The brass’s orders are absolute."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

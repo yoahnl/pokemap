@@ -1,0 +1,14 @@
+{
+  "speciesId": "elekid",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "electabuzz",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

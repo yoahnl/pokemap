@@ -1,0 +1,98 @@
+{
+  "id": "toxel",
+  "slug": "toxel",
+  "nationalDex": 848,
+  "names": {
+    "ja_hrkt": "エレズン",
+    "ja_roma": "Eleson",
+    "ko": "일레즌",
+    "zh_hant": "毒電嬰",
+    "fr": "Toxizap",
+    "de": "Toxel",
+    "es": "Toxel",
+    "it": "Toxel",
+    "en": "Toxel",
+    "ja": "エレズン",
+    "zh_hans": "电音婴"
+  },
+  "speciesName": {
+    "ja_hrkt": "あかごポケモン",
+    "ko": "젖먹이포켓몬",
+    "zh_hant": "嬰兒寶可夢",
+    "fr": "Pokémon Poupon",
+    "de": "Baby-Pokémon",
+    "es": "Pokémon Retoño",
+    "it": "Pokémon Bebè",
+    "en": "Baby Pokémon",
+    "ja": "あかごポケモン",
+    "zh_hans": "婴儿宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "electric",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 38,
+    "def": 35,
+    "spa": 54,
+    "spd": 35,
+    "spe": 40,
+    "bst": 242
+  },
+  "abilities": {
+    "primary": "rattled",
+    "secondary": "static",
+    "hidden": "klutz"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 48,
+    "catchRate": 75,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "toxel",
+    "evolution": "toxel",
+    "media": "toxel"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 11.0,
+    "color": "purple",
+    "flavorText": "It stores poison in an internal poison sac and secretes that poison through its skin. If you touch this Pokémon, a tingling sensation follows."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "croagunk",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "toxicroak",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

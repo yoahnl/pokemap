@@ -1,0 +1,97 @@
+{
+  "id": "mismagius",
+  "slug": "mismagius",
+  "nationalDex": 429,
+  "names": {
+    "ja_hrkt": "ムウマージ",
+    "ja_roma": "Mumage",
+    "ko": "무우마직",
+    "zh_hant": "夢妖魔",
+    "fr": "Magirêve",
+    "de": "Traunmagil",
+    "es": "Mismagius",
+    "it": "Mismagius",
+    "en": "Mismagius",
+    "ja": "ムウマージ",
+    "zh_hans": "梦妖魔"
+  },
+  "speciesName": {
+    "ja_hrkt": "マジカルポケモン",
+    "ko": "매지컬포켓몬",
+    "zh_hant": "魔法寶可夢",
+    "fr": "Pokémon Magique",
+    "de": "Magisch",
+    "es": "Pokémon Mágico",
+    "it": "Pokémon Stregone",
+    "en": "Magical Pokémon",
+    "ja": "マジカルポケモン",
+    "zh_hans": "魔法宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 60,
+    "def": 60,
+    "spa": 105,
+    "spd": 105,
+    "spe": 105,
+    "bst": 495
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 173,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mismagius",
+    "evolution": "mismagius",
+    "media": "mismagius"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 4.4,
+    "color": "purple",
+    "flavorText": "Its cries sound like incantations. Those hearing it are tormented by headaches and hallucinations."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

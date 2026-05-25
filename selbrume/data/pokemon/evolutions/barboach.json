@@ -1,0 +1,14 @@
+{
+  "speciesId": "barboach",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "whiscash",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

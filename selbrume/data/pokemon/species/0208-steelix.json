@@ -1,0 +1,100 @@
+{
+  "id": "steelix",
+  "slug": "steelix",
+  "nationalDex": 208,
+  "names": {
+    "ja_hrkt": "ハガネール",
+    "ja_roma": "Haganeil",
+    "ko": "강철톤",
+    "zh_hant": "大鋼蛇",
+    "fr": "Steelix",
+    "de": "Stahlos",
+    "es": "Steelix",
+    "it": "Steelix",
+    "en": "Steelix",
+    "ja": "ハガネール",
+    "zh_hans": "大钢蛇"
+  },
+  "speciesName": {
+    "ja_hrkt": "てつへびポケモン",
+    "ko": "철뱀포켓몬",
+    "zh_hant": "鐵蛇寶可夢",
+    "fr": "Pokémon Serpenfer",
+    "de": "Stahlboa-Pokémon",
+    "es": "Pokémon Serpiente Férrea",
+    "it": "Pokémon Ferroserpe",
+    "en": "Iron Snake Pokémon",
+    "ja": "てつへびポケモン",
+    "zh_hans": "铁蛇宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "steel",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 85,
+    "def": 200,
+    "spa": 55,
+    "spd": 65,
+    "spe": 30,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": "sturdy",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 179,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "steelix-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "steelix",
+    "evolution": "steelix",
+    "media": "steelix"
+  },
+  "dexContent": {
+    "heightM": 9.2,
+    "weightKg": 400.0,
+    "color": "gray",
+    "flavorText": "It is thought its body transformed as a result of iron accumulating internally from swallowing soil."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

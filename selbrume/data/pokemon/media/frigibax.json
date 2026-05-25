@@ -1,0 +1,18 @@
+{
+  "speciesId": "frigibax",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/frigibax/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/frigibax/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/frigibax.png",
+      "cry": "assets/pokemon/cries/frigibax.ogg",
+      "animations": {}
+    }
+  }
+}

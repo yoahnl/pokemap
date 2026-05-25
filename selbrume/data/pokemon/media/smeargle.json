@@ -1,0 +1,18 @@
+{
+  "speciesId": "smeargle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/smeargle/front.png",
+      "backStatic": "assets/pokemon/sprites/smeargle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/smeargle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/smeargle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/smeargle.png",
+      "cry": "assets/pokemon/cries/smeargle.ogg",
+      "animations": {}
+    }
+  }
+}

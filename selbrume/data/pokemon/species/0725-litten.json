@@ -1,0 +1,100 @@
+{
+  "id": "litten",
+  "slug": "litten",
+  "nationalDex": 725,
+  "names": {
+    "ja_hrkt": "ニャビー",
+    "ja_roma": "Nyabby",
+    "ko": "냐오불",
+    "zh_hant": "火斑喵",
+    "fr": "Flamiaou",
+    "de": "Flamiau",
+    "es": "Litten",
+    "it": "Litten",
+    "en": "Litten",
+    "ja": "ニャビー",
+    "zh_hans": "火斑喵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひねこポケモン",
+    "ko": "불고양이포켓몬",
+    "zh_hant": "火貓寶可夢",
+    "fr": "Pokémon Chat Feu",
+    "de": "Feuerkatzen-Pokémon",
+    "es": "Pokémon Gato Fuego",
+    "it": "Pokémon Pirofelino",
+    "en": "Fire Cat Pokémon",
+    "ja": "ひねこポケモン",
+    "zh_hans": "火猫宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 65,
+    "def": 40,
+    "spa": 60,
+    "spd": 40,
+    "spe": 70,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "intimidate"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "litten",
+    "evolution": "litten",
+    "media": "litten"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.3,
+    "color": "red",
+    "flavorText": "While grooming itself, it builds up fur inside its stomach. It sets the fur alight and spews fiery attacks, which change based on how it coughs."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "xatu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/xatu/front.png",
+      "backStatic": "assets/pokemon/sprites/xatu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/xatu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/xatu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/xatu.png",
+      "cry": "assets/pokemon/cries/xatu.ogg",
+      "animations": {}
+    }
+  }
+}

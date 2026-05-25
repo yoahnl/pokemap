@@ -1,0 +1,18 @@
+{
+  "speciesId": "horsea",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/horsea/front.png",
+      "backStatic": "assets/pokemon/sprites/horsea/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/horsea/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/horsea/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/horsea.png",
+      "cry": "assets/pokemon/cries/horsea.ogg",
+      "animations": {}
+    }
+  }
+}

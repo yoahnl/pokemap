@@ -1,0 +1,14 @@
+{
+  "speciesId": "archen",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "archeops",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

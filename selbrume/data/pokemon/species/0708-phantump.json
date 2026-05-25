@@ -1,0 +1,99 @@
+{
+  "id": "phantump",
+  "slug": "phantump",
+  "nationalDex": 708,
+  "names": {
+    "ja_hrkt": "ボクレー",
+    "ja_roma": "Bokurei",
+    "ko": "나목령",
+    "zh_hant": "小木靈",
+    "fr": "Brocélôme",
+    "de": "Paragoni",
+    "es": "Phantump",
+    "it": "Phantump",
+    "en": "Phantump",
+    "ja": "ボクレー",
+    "zh_hans": "小木灵"
+  },
+  "speciesName": {
+    "ja_hrkt": "きりかぶポケモン",
+    "ko": "그루터기포켓몬",
+    "zh_hant": "樹樁寶可夢",
+    "fr": "Pokémon Souche",
+    "de": "Baumstumpf-Pokémon",
+    "es": "Pokémon Tocón",
+    "it": "Pokémon Ceppo",
+    "en": "Stump Pokémon",
+    "ja": "きりかぶポケモン",
+    "zh_hans": "树桩宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "ghost",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 43,
+    "atk": 70,
+    "def": 48,
+    "spa": 50,
+    "spd": 60,
+    "spe": 38,
+    "bst": 309
+  },
+  "abilities": {
+    "primary": "natural_cure",
+    "secondary": "frisk",
+    "hidden": "harvest"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 62,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "phantump",
+    "evolution": "phantump",
+    "media": "phantump"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 7.0,
+    "color": "brown",
+    "flavorText": "These Pokémon are created when spirits possess rotten tree stumps. They prefer to live in abandoned forests."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

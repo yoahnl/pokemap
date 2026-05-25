@@ -1,0 +1,16 @@
+{
+  "speciesId": "linoone",
+  "preEvolution": "zigzagoon",
+  "evolutions": [
+    {
+      "targetSpeciesId": "obstagoon",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night"
+      }
+    }
+  ]
+}

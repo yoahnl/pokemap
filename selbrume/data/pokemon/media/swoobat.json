@@ -1,0 +1,18 @@
+{
+  "speciesId": "swoobat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swoobat/front.png",
+      "backStatic": "assets/pokemon/sprites/swoobat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swoobat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swoobat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swoobat.png",
+      "cry": "assets/pokemon/cries/swoobat.ogg",
+      "animations": {}
+    }
+  }
+}

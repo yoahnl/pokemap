@@ -1,0 +1,22 @@
+{
+  "speciesId": "koffing",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "weezing",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "weezing",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

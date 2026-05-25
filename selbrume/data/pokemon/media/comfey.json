@@ -1,0 +1,18 @@
+{
+  "speciesId": "comfey",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/comfey/front.png",
+      "backStatic": "assets/pokemon/sprites/comfey/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/comfey/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/comfey/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/comfey.png",
+      "cry": "assets/pokemon/cries/comfey.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "comfey",
+  "slug": "comfey",
+  "nationalDex": 764,
+  "names": {
+    "ja_hrkt": "キュワワー",
+    "ja_roma": "Cuwawa",
+    "ko": "큐아링",
+    "zh_hant": "花療環環",
+    "fr": "Guérilande",
+    "de": "Curelei",
+    "es": "Comfey",
+    "it": "Comfey",
+    "en": "Comfey",
+    "ja": "キュワワー",
+    "zh_hans": "花疗环环"
+  },
+  "speciesName": {
+    "ja_hrkt": "はなつみポケモン",
+    "ko": "꽃따기포켓몬",
+    "zh_hant": "摘花寶可夢",
+    "fr": "Pokémon Tressefleur",
+    "de": "Blumenkranz-Pokémon",
+    "es": "Pokémon Recogeflores",
+    "it": "Pokémon Ghirlanda",
+    "en": "Posy Picker Pokémon",
+    "ja": "はなつみポケモン",
+    "zh_hans": "摘花宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 51,
+    "atk": 52,
+    "def": 90,
+    "spa": 82,
+    "spd": 110,
+    "spe": 100,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "flower_veil",
+    "secondary": "triage",
+    "hidden": "natural_cure"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 170,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "comfey",
+    "evolution": "comfey",
+    "media": "comfey"
+  },
+  "dexContent": {
+    "heightM": 0.1,
+    "weightKg": 0.3,
+    "color": "green",
+    "flavorText": "It attaches flowers to its highly nutritious vine. This revitalizes the flowers, and they give off an aromatic scent."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

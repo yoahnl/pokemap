@@ -1,0 +1,100 @@
+{
+  "id": "espeon",
+  "slug": "espeon",
+  "nationalDex": 196,
+  "names": {
+    "ja_hrkt": "エーフィ",
+    "ja_roma": "Eifie",
+    "ko": "에브이",
+    "zh_hant": "太陽伊布",
+    "fr": "Mentali",
+    "de": "Psiana",
+    "es": "Espeon",
+    "it": "Espeon",
+    "en": "Espeon",
+    "ja": "エーフィ",
+    "zh_hans": "太阳伊布"
+  },
+  "speciesName": {
+    "ja_hrkt": "たいようポケモン",
+    "ko": "태양포켓몬",
+    "zh_hant": "太陽寶可夢",
+    "fr": "Pokémon Soleil",
+    "de": "Sonnen-Pokémon",
+    "es": "Pokémon Sol",
+    "it": "Pokémon Sole",
+    "en": "Sun Pokémon",
+    "ja": "たいようポケモン",
+    "zh_hans": "太阳宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 65,
+    "def": 60,
+    "spa": 130,
+    "spd": 95,
+    "spe": 110,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "synchronize",
+    "secondary": null,
+    "hidden": "magic_bounce"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 184,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "espeon",
+    "evolution": "espeon",
+    "media": "espeon"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 26.5,
+    "color": "purple",
+    "flavorText": "It uses the fine hair that covers its body to sense air currents and predict its ene­ my's actions."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

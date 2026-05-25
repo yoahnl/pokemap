@@ -1,0 +1,101 @@
+{
+  "id": "abomasnow",
+  "slug": "abomasnow",
+  "nationalDex": 460,
+  "names": {
+    "ja_hrkt": "ユキノオー",
+    "ja_roma": "Yukinooh",
+    "ko": "눈설왕",
+    "zh_hant": "暴雪王",
+    "fr": "Blizzaroi",
+    "de": "Rexblisar",
+    "es": "Abomasnow",
+    "it": "Abomasnow",
+    "en": "Abomasnow",
+    "ja": "ユキノオー",
+    "zh_hans": "暴雪王"
+  },
+  "speciesName": {
+    "ja_hrkt": "じゅひょうポケモン",
+    "ko": "얼음나무포켓몬",
+    "zh_hant": "樹冰寶可夢",
+    "fr": "Pokémon Arbregelé",
+    "de": "Frostbaum-Pokémon",
+    "es": "Pokémon Árbol Nieve",
+    "it": "Pokémon Albergelo",
+    "en": "Frost Tree Pokémon",
+    "ja": "じゅひょうポケモン",
+    "zh_hans": "树冰宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "grass",
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 92,
+    "def": 75,
+    "spa": 92,
+    "spd": 85,
+    "spe": 60,
+    "bst": 494
+  },
+  "abilities": {
+    "primary": "snow_warning",
+    "secondary": null,
+    "hidden": "soundproof"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 173,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "abomasnow-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "abomasnow",
+    "evolution": "abomasnow",
+    "media": "abomasnow"
+  },
+  "dexContent": {
+    "heightM": 2.2,
+    "weightKg": 135.5,
+    "color": "white",
+    "flavorText": "It whips up blizzards in mountains that are always buried in snow. It is the abominable snowman."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

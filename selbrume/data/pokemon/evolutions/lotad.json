@@ -1,0 +1,14 @@
+{
+  "speciesId": "lotad",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lombre",
+      "method": "level_up",
+      "minLevel": 14,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

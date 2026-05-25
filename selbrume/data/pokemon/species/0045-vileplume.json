@@ -1,0 +1,98 @@
+{
+  "id": "vileplume",
+  "slug": "vileplume",
+  "nationalDex": 45,
+  "names": {
+    "ja_hrkt": "ラフレシア",
+    "ja_roma": "Ruffresia",
+    "ko": "라플레시아",
+    "zh_hant": "霸王花",
+    "fr": "Rafflesia",
+    "de": "Giflor",
+    "es": "Vileplume",
+    "it": "Vileplume",
+    "en": "Vileplume",
+    "ja": "ラフレシア",
+    "zh_hans": "霸王花"
+  },
+  "speciesName": {
+    "ja_hrkt": "フラワーポケモン",
+    "ko": "꽃포켓몬",
+    "zh_hant": "花寶可夢",
+    "fr": "Pokémon Fleur",
+    "de": "Blumen-Pokémon",
+    "es": "Pokémon Flor",
+    "it": "Pokémon Fiore",
+    "en": "Flower Pokémon",
+    "ja": "フラワーポケモン",
+    "zh_hans": "花宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 80,
+    "def": 85,
+    "spa": 110,
+    "spd": 90,
+    "spe": 50,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": null,
+    "hidden": "effect_spore"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 221,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vileplume",
+    "evolution": "vileplume",
+    "media": "vileplume"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 18.6,
+    "color": "red",
+    "flavorText": "It has the world’s largest petals. With every step, the petals shake out heavy clouds of toxic pollen."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

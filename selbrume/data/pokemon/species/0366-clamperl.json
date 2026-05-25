@@ -1,0 +1,97 @@
+{
+  "id": "clamperl",
+  "slug": "clamperl",
+  "nationalDex": 366,
+  "names": {
+    "ja_hrkt": "パールル",
+    "ja_roma": "Pearlulu",
+    "ko": "진주몽",
+    "zh_hant": "珍珠貝",
+    "fr": "Coquiperl",
+    "de": "Perlu",
+    "es": "Clamperl",
+    "it": "Clamperl",
+    "en": "Clamperl",
+    "ja": "パールル",
+    "zh_hans": "珍珠贝"
+  },
+  "speciesName": {
+    "ja_hrkt": "２まいがいポケモン",
+    "ko": "두조개포켓몬",
+    "zh_hant": "雙殼貝寶可夢",
+    "fr": "Pokémon Bivalve",
+    "de": "Muschel",
+    "es": "Pokémon Bivalvo",
+    "it": "Pokémon Bivalve",
+    "en": "Bivalve Pokémon",
+    "ja": "２まいがいポケモン",
+    "zh_hans": "双壳贝宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 64,
+    "def": 85,
+    "spa": 74,
+    "spd": 55,
+    "spe": 32,
+    "bst": 345
+  },
+  "abilities": {
+    "primary": "shell_armor",
+    "secondary": null,
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 69,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "clamperl",
+    "evolution": "clamperl",
+    "media": "clamperl"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 52.5,
+    "color": "blue",
+    "flavorText": "CLAMPERL’s sturdy shell is not only good for protection - it is also used for clamping and catching prey. A fully grown CLAMPERL’s shell will be scored with nicks and scratches all over."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

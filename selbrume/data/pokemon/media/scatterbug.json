@@ -1,0 +1,18 @@
+{
+  "speciesId": "scatterbug",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/scatterbug/front.png",
+      "backStatic": "assets/pokemon/sprites/scatterbug/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/scatterbug/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/scatterbug/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/scatterbug.png",
+      "cry": "assets/pokemon/cries/scatterbug.ogg",
+      "animations": {}
+    }
+  }
+}

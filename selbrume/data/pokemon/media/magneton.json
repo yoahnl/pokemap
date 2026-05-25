@@ -1,0 +1,18 @@
+{
+  "speciesId": "magneton",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magneton/front.png",
+      "backStatic": "assets/pokemon/sprites/magneton/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magneton/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magneton/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magneton.png",
+      "cry": "assets/pokemon/cries/magneton.ogg",
+      "animations": {}
+    }
+  }
+}

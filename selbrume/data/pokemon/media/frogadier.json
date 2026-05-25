@@ -1,0 +1,18 @@
+{
+  "speciesId": "frogadier",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/frogadier/front.png",
+      "backStatic": "assets/pokemon/sprites/frogadier/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/frogadier/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/frogadier/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/frogadier.png",
+      "cry": "assets/pokemon/cries/frogadier.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "sealeo",
+  "preEvolution": "spheal",
+  "evolutions": [
+    {
+      "targetSpeciesId": "walrein",
+      "method": "level_up",
+      "minLevel": 44,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

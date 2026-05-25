@@ -1,0 +1,94 @@
+{
+  "id": "garganacl",
+  "slug": "garganacl",
+  "nationalDex": 934,
+  "names": {
+    "ja_hrkt": "キョジオーン",
+    "ja_roma": "Kyojiohn",
+    "ko": "콜로솔트",
+    "zh_hant": "鹽石巨靈",
+    "fr": "Gigansel",
+    "de": "Saltigant",
+    "es": "Garganacl",
+    "it": "Garganacl",
+    "en": "Garganacl",
+    "ja": "キョジオーン",
+    "zh_hans": "盐石巨灵"
+  },
+  "speciesName": {
+    "ja_hrkt": "がんえんポケモン",
+    "ko": "암염포켓몬",
+    "zh_hant": "岩鹽寶可夢",
+    "fr": "Halite",
+    "de": "Steinsalz",
+    "en": "Rock Salt Pokémon",
+    "zh_hans": "岩盐宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 100,
+    "def": 130,
+    "spa": 45,
+    "spd": 90,
+    "spe": 35,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "purifying_salt",
+    "secondary": "sturdy",
+    "hidden": "clear_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 250,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "garganacl",
+    "evolution": "garganacl",
+    "media": "garganacl"
+  },
+  "dexContent": {
+    "heightM": 2.3,
+    "weightKg": 240.0,
+    "color": "brown",
+    "flavorText": "Garganacl will rub its fingertips together and sprinkle injured Pokémon with salt. Even severe wounds will promptly heal afterward."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

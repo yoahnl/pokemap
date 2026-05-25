@@ -1,0 +1,30 @@
+{
+  "speciesId": "dugtrio",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dugtrio/front.png",
+      "backStatic": "assets/pokemon/sprites/dugtrio/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dugtrio/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dugtrio/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dugtrio.png",
+      "cry": "assets/pokemon/cries/dugtrio.ogg",
+      "animations": {}
+    },
+    "dugtrio-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

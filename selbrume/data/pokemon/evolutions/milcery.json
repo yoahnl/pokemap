@@ -1,0 +1,14 @@
+{
+  "speciesId": "milcery",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "alcremie",
+      "method": "spin",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

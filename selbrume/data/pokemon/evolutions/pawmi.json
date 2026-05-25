@@ -1,0 +1,14 @@
+{
+  "speciesId": "pawmi",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "pawmo",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

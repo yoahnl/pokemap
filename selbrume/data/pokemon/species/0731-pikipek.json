@@ -1,0 +1,98 @@
+{
+  "id": "pikipek",
+  "slug": "pikipek",
+  "nationalDex": 731,
+  "names": {
+    "ja_hrkt": "ツツケラ",
+    "ja_roma": "Tsutsukera",
+    "ko": "콕코구리",
+    "zh_hant": "小篤兒",
+    "fr": "Picassaut",
+    "de": "Peppeck",
+    "es": "Pikipek",
+    "it": "Pikipek",
+    "en": "Pikipek",
+    "ja": "ツツケラ",
+    "zh_hans": "小笃儿"
+  },
+  "speciesName": {
+    "ja_hrkt": "きつつきポケモン",
+    "ko": "딱따구리포켓몬",
+    "zh_hant": "啄木鳥寶可夢",
+    "fr": "Pokémon Pivert",
+    "de": "Specht",
+    "es": "Pokémon Carpintero",
+    "it": "Pokémon Picchio",
+    "en": "Woodpecker Pokémon",
+    "ja": "きつつきポケモン",
+    "zh_hans": "啄木鸟宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 75,
+    "def": 30,
+    "spa": 30,
+    "spd": 30,
+    "spe": 65,
+    "bst": 265
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "skill_link",
+    "hidden": "pickup"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 53,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pikipek",
+    "evolution": "pikipek",
+    "media": "pikipek"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.2,
+    "color": "black",
+    "flavorText": "It can peck at a rate of 16 times a second to drill holes in trees. It uses the holes for food storage and for nesting."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

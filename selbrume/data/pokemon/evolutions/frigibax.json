@@ -1,0 +1,14 @@
+{
+  "speciesId": "frigibax",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "arctibax",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

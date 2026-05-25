@@ -1,0 +1,97 @@
+{
+  "id": "tynamo",
+  "slug": "tynamo",
+  "nationalDex": 602,
+  "names": {
+    "ja_hrkt": "シビシラス",
+    "ja_roma": "Shibishirasu",
+    "ko": "저리어",
+    "zh_hant": "麻麻小魚",
+    "fr": "Anchwatt",
+    "de": "Zapplardin",
+    "es": "Tynamo",
+    "it": "Tynamo",
+    "en": "Tynamo",
+    "ja": "シビシラス",
+    "zh_hans": "麻麻小鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんきうおポケモン",
+    "ko": "전기물고기포켓몬",
+    "zh_hant": "電魚寶可夢",
+    "fr": "Pokémon Électrophore",
+    "de": "Stromfisch",
+    "es": "Pokémon Electropez",
+    "it": "Pokémon Elettropesce",
+    "en": "EleFish Pokémon",
+    "ja": "でんきうおポケモン",
+    "zh_hans": "电鱼宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 55,
+    "def": 40,
+    "spa": 45,
+    "spd": 40,
+    "spe": 60,
+    "bst": 275
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 55,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tynamo",
+    "evolution": "tynamo",
+    "media": "tynamo"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 0.3,
+    "color": "white",
+    "flavorText": "While one alone doesn’t have much power, a chain of many Tynamo can be as powerful as lightning."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

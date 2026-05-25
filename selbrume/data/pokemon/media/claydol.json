@@ -1,0 +1,18 @@
+{
+  "speciesId": "claydol",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/claydol/front.png",
+      "backStatic": "assets/pokemon/sprites/claydol/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/claydol/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/claydol/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/claydol.png",
+      "cry": "assets/pokemon/cries/claydol.ogg",
+      "animations": {}
+    }
+  }
+}

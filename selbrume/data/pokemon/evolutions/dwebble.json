@@ -1,0 +1,14 @@
+{
+  "speciesId": "dwebble",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "crustle",
+      "method": "level_up",
+      "minLevel": 34,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "piloswine",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/piloswine/front.png",
+      "backStatic": "assets/pokemon/sprites/piloswine/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/piloswine/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/piloswine/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/piloswine.png",
+      "cry": "assets/pokemon/cries/piloswine.ogg",
+      "animations": {}
+    }
+  }
+}

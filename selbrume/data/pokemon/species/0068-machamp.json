@@ -1,0 +1,100 @@
+{
+  "id": "machamp",
+  "slug": "machamp",
+  "nationalDex": 68,
+  "names": {
+    "ja_hrkt": "カイリキー",
+    "ja_roma": "Kairiky",
+    "ko": "괴력몬",
+    "zh_hant": "怪力",
+    "fr": "Mackogneur",
+    "de": "Machomei",
+    "es": "Machamp",
+    "it": "Machamp",
+    "en": "Machamp",
+    "ja": "カイリキー",
+    "zh_hans": "怪力"
+  },
+  "speciesName": {
+    "ja_hrkt": "かいりきポケモン",
+    "ko": "괴력포켓몬",
+    "zh_hant": "怪力寶可夢",
+    "fr": "Pokémon Colosse",
+    "de": "Kraftprotz-Pokémon",
+    "es": "Pokémon Superpoder",
+    "it": "Pokémon Megaforza",
+    "en": "Superpower Pokémon",
+    "ja": "かいりきポケモン",
+    "zh_hans": "怪力宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 130,
+    "def": 80,
+    "spa": 65,
+    "spd": 85,
+    "spe": 55,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": "no_guard",
+    "hidden": "steadfast"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 227,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "machamp",
+    "evolution": "machamp",
+    "media": "machamp"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 130.0,
+    "color": "gray",
+    "flavorText": "Using its heavy muscles, it throws powerful punches that can send the victim clear over the horizon."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

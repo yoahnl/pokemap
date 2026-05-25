@@ -1,0 +1,30 @@
+{
+  "speciesId": "darumaka",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/darumaka/front.png",
+      "backStatic": "assets/pokemon/sprites/darumaka/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/darumaka/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/darumaka/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/darumaka.png",
+      "cry": "assets/pokemon/cries/darumaka.ogg",
+      "animations": {}
+    },
+    "darumaka-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "bunnelby",
+  "slug": "bunnelby",
+  "nationalDex": 659,
+  "names": {
+    "ja_hrkt": "ホルビー",
+    "ja_roma": "Horubee",
+    "ko": "파르빗",
+    "zh_hant": "掘掘兔",
+    "fr": "Sapereau",
+    "de": "Scoppel",
+    "es": "Bunnelby",
+    "it": "Bunnelby",
+    "en": "Bunnelby",
+    "ja": "ホルビー",
+    "zh_hans": "掘掘兔"
+  },
+  "speciesName": {
+    "ja_hrkt": "あなほりポケモン",
+    "ko": "땅구멍파기포켓몬",
+    "zh_hant": "挖洞寶可夢",
+    "fr": "Pokémon Fouisseur",
+    "de": "Baugräber-Pokémon",
+    "es": "Pokémon Excavador",
+    "it": "Pokémon Scavabuche",
+    "en": "Digging Pokémon",
+    "ja": "あなほりポケモン",
+    "zh_hans": "挖洞宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 38,
+    "atk": 36,
+    "def": 38,
+    "spa": 32,
+    "spd": 36,
+    "spe": 57,
+    "bst": 237
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "cheek_pouch",
+    "hidden": "huge_power"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 47,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bunnelby",
+    "evolution": "bunnelby",
+    "media": "bunnelby"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 5.0,
+    "color": "brown",
+    "flavorText": "They use their large ears to dig burrows. They will dig the whole night through."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

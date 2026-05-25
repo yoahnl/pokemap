@@ -1,0 +1,18 @@
+{
+  "speciesId": "electivire",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/electivire/front.png",
+      "backStatic": "assets/pokemon/sprites/electivire/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/electivire/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/electivire/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/electivire.png",
+      "cry": "assets/pokemon/cries/electivire.ogg",
+      "animations": {}
+    }
+  }
+}

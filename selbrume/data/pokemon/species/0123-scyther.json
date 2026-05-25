@@ -1,0 +1,98 @@
+{
+  "id": "scyther",
+  "slug": "scyther",
+  "nationalDex": 123,
+  "names": {
+    "ja_hrkt": "ストライク",
+    "ja_roma": "Strike",
+    "ko": "스라크",
+    "zh_hant": "飛天螳螂",
+    "fr": "Insécateur",
+    "de": "Sichlor",
+    "es": "Scyther",
+    "it": "Scyther",
+    "en": "Scyther",
+    "ja": "ストライク",
+    "zh_hans": "飞天螳螂"
+  },
+  "speciesName": {
+    "ja_hrkt": "かまきりポケモン",
+    "ko": "버마재비포켓몬",
+    "zh_hant": "螳螂寶可夢",
+    "fr": "Pokémon Mante",
+    "de": "Mantis-Pokémon",
+    "es": "Pokémon Mantis",
+    "it": "Pokémon Mantide",
+    "en": "Mantis Pokémon",
+    "ja": "かまきりポケモン",
+    "zh_hans": "螳螂宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 110,
+    "def": 80,
+    "spa": 55,
+    "spd": 80,
+    "spe": 105,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "technician",
+    "hidden": "steadfast"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 100,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "scyther",
+    "evolution": "scyther",
+    "media": "scyther"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 56.0,
+    "color": "green",
+    "flavorText": "With ninja-like agility and speed, it can create the illusion that there is more than one."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

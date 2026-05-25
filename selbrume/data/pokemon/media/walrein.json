@@ -1,0 +1,18 @@
+{
+  "speciesId": "walrein",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/walrein/front.png",
+      "backStatic": "assets/pokemon/sprites/walrein/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/walrein/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/walrein/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/walrein.png",
+      "cry": "assets/pokemon/cries/walrein.ogg",
+      "animations": {}
+    }
+  }
+}

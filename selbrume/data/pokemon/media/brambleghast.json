@@ -1,0 +1,18 @@
+{
+  "speciesId": "brambleghast",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/brambleghast/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/brambleghast/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/brambleghast.png",
+      "cry": "assets/pokemon/cries/brambleghast.ogg",
+      "animations": {}
+    }
+  }
+}

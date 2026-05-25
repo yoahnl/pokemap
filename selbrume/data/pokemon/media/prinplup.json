@@ -1,0 +1,18 @@
+{
+  "speciesId": "prinplup",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/prinplup/front.png",
+      "backStatic": "assets/pokemon/sprites/prinplup/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/prinplup/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/prinplup/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/prinplup.png",
+      "cry": "assets/pokemon/cries/prinplup.ogg",
+      "animations": {}
+    }
+  }
+}

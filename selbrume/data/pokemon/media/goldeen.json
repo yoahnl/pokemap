@@ -1,0 +1,18 @@
+{
+  "speciesId": "goldeen",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/goldeen/front.png",
+      "backStatic": "assets/pokemon/sprites/goldeen/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/goldeen/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/goldeen/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/goldeen.png",
+      "cry": "assets/pokemon/cries/goldeen.ogg",
+      "animations": {}
+    }
+  }
+}

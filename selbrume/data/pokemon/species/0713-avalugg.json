@@ -1,0 +1,100 @@
+{
+  "id": "avalugg",
+  "slug": "avalugg",
+  "nationalDex": 713,
+  "names": {
+    "ja_hrkt": "クレベース",
+    "ja_roma": "Crebase",
+    "ko": "크레베이스",
+    "zh_hant": "冰岩怪",
+    "fr": "Séracrawl",
+    "de": "Arktilas",
+    "es": "Avalugg",
+    "it": "Avalugg",
+    "en": "Avalugg",
+    "ja": "クレベース",
+    "zh_hans": "冰岩怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひょうざんポケモン",
+    "ko": "빙산포켓몬",
+    "zh_hant": "冰山寶可夢",
+    "fr": "Pokémon Iceberg",
+    "de": "Eisberg-Pokémon",
+    "es": "Pokémon Iceberg",
+    "it": "Pokémon Iceberg",
+    "en": "Iceberg Pokémon",
+    "ja": "ひょうざんポケモン",
+    "zh_hans": "冰山宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 117,
+    "def": 184,
+    "spa": 44,
+    "spd": 46,
+    "spe": 28,
+    "bst": 514
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "ice_body",
+    "hidden": "sturdy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 180,
+    "catchRate": 55,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "avalugg-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "avalugg",
+    "evolution": "avalugg",
+    "media": "avalugg"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 505.0,
+    "color": "blue",
+    "flavorText": "Its ice-covered body is as hard as steel. Its cumbersome frame crushes anything that stands in its way."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

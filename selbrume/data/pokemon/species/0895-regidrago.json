@@ -1,0 +1,99 @@
+{
+  "id": "regidrago",
+  "slug": "regidrago",
+  "nationalDex": 895,
+  "names": {
+    "ja_hrkt": "レジドラゴ",
+    "ja_roma": "Regidorago",
+    "ko": "레지드래고",
+    "zh_hant": "雷吉鐸拉戈",
+    "fr": "Regidrago",
+    "de": "Regidrago",
+    "es": "Regidrago",
+    "it": "Regidrago",
+    "en": "Regidrago",
+    "ja": "レジドラゴ",
+    "zh_hans": "雷吉铎拉戈"
+  },
+  "speciesName": {
+    "ja_hrkt": "りゅうぎょくポケモン",
+    "ko": "용옥포켓몬",
+    "zh_hant": "龍玉寶可夢",
+    "fr": "Pokémon Boule Dragon",
+    "de": "Drachenkugel-Pokémon",
+    "es": "Pokémon Dragosfera",
+    "it": "Pokémon Dracosfera",
+    "en": "Dragon Orb Pokémon",
+    "ja": "りゅうぎょくポケモン",
+    "zh_hans": "龙玉宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 200,
+    "atk": 100,
+    "def": 50,
+    "spa": 100,
+    "spd": 50,
+    "spe": 80,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "dragons_maw",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 290,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "regidrago",
+    "evolution": "regidrago",
+    "media": "regidrago"
+  },
+  "dexContent": {
+    "heightM": 2.1,
+    "weightKg": 200.0,
+    "color": "green",
+    "flavorText": "An academic theory proposes that Regidrago’s arms were once the head of an ancient dragon Pokémon. The theory remains unproven."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

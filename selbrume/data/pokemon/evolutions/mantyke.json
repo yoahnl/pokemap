@@ -1,0 +1,16 @@
+{
+  "speciesId": "mantyke",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "mantine",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Party species: remoraid"
+      }
+    }
+  ]
+}

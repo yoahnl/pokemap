@@ -1,0 +1,18 @@
+{
+  "speciesId": "rellor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rellor/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/rellor/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rellor.png",
+      "cry": "assets/pokemon/cries/rellor.ogg",
+      "animations": {}
+    }
+  }
+}

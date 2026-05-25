@@ -1,0 +1,30 @@
+{
+  "speciesId": "slowking",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/slowking/front.png",
+      "backStatic": "assets/pokemon/sprites/slowking/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/slowking/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/slowking/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/slowking.png",
+      "cry": "assets/pokemon/cries/slowking.ogg",
+      "animations": {}
+    },
+    "slowking-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

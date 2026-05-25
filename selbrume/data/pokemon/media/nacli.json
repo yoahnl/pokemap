@@ -1,0 +1,18 @@
+{
+  "speciesId": "nacli",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nacli/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/nacli/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nacli.png",
+      "cry": "assets/pokemon/cries/nacli.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "id": "decidueye",
+  "slug": "decidueye",
+  "nationalDex": 724,
+  "names": {
+    "ja_hrkt": "ジュナイパー",
+    "ja_roma": "Junaiper",
+    "ko": "모크나이퍼",
+    "zh_hant": "狙射樹梟",
+    "fr": "Archéduc",
+    "de": "Silvarro",
+    "es": "Decidueye",
+    "it": "Decidueye",
+    "en": "Decidueye",
+    "ja": "ジュナイパー",
+    "zh_hans": "狙射树枭"
+  },
+  "speciesName": {
+    "ja_hrkt": "やばねポケモン",
+    "ko": "화살깃포켓몬",
+    "zh_hant": "箭羽寶可夢",
+    "fr": "Pokémon Plumeflèche",
+    "de": "Pfeilflügel-Pokémon",
+    "es": "Pokémon Pluma Flecha",
+    "it": "Pokémon Alifreccia",
+    "en": "Arrow Quill Pokémon",
+    "ja": "やばねポケモン",
+    "zh_hans": "箭羽宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "grass",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 107,
+    "def": 75,
+    "spa": 100,
+    "spd": 100,
+    "spe": 70,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "long_reach"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 239,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "decidueye-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "decidueye",
+    "evolution": "decidueye",
+    "media": "decidueye"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 36.6,
+    "color": "brown",
+    "flavorText": "It fires arrow quills from its wings with such precision, they can pierce a pebble at distances over a hundred yards."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

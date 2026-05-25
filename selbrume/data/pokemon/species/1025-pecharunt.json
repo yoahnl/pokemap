@@ -1,0 +1,94 @@
+{
+  "id": "pecharunt",
+  "slug": "pecharunt",
+  "nationalDex": 1025,
+  "names": {
+    "ja_hrkt": "モモワロウ",
+    "ko": "복숭악동",
+    "zh_hant": "桃歹郎",
+    "fr": "Pêchaminus",
+    "de": "Infamomo",
+    "es": "Pecharunt",
+    "it": "Pecharunt",
+    "en": "Pecharunt",
+    "ja": "モモワロウ",
+    "zh_hans": "桃歹郎"
+  },
+  "speciesName": {
+    "ja_hrkt": "しはいポケモン",
+    "ko": "지배포켓몬",
+    "fr": "Emprise",
+    "en": "Subjugation Pokémon",
+    "ja": "しはいポケモン"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "poison",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 88,
+    "atk": 88,
+    "def": 160,
+    "spa": 88,
+    "spd": 88,
+    "spe": 88,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "poison_puppeteer",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 300,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pecharunt",
+    "evolution": "pecharunt",
+    "media": "pecharunt"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.3,
+    "color": "purple",
+    "flavorText": "It feeds others toxic mochi that draw out desires and capabilities. Those who eat the mochi fall under Pecharunt’s control, chained to its will."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

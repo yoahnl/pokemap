@@ -1,0 +1,98 @@
+{
+  "id": "murkrow",
+  "slug": "murkrow",
+  "nationalDex": 198,
+  "names": {
+    "ja_hrkt": "ヤミカラス",
+    "ja_roma": "Yamikarasu",
+    "ko": "니로우",
+    "zh_hant": "黑暗鴉",
+    "fr": "Cornèbre",
+    "de": "Kramurx",
+    "es": "Murkrow",
+    "it": "Murkrow",
+    "en": "Murkrow",
+    "ja": "ヤミカラス",
+    "zh_hans": "黑暗鸦"
+  },
+  "speciesName": {
+    "ja_hrkt": "くらやみポケモン",
+    "ko": "어둠포켓몬",
+    "zh_hant": "黑暗寶可夢",
+    "fr": "Pokémon Obscurité",
+    "de": "Finsternis",
+    "es": "Pokémon Oscuridad",
+    "it": "Pokémon Oscurità",
+    "en": "Darkness Pokémon",
+    "ja": "くらやみポケモン",
+    "zh_hans": "黑暗宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "dark",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 85,
+    "def": 42,
+    "spa": 85,
+    "spd": 42,
+    "spe": 91,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": "super_luck",
+    "hidden": "prankster"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 81,
+    "catchRate": 30,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "murkrow",
+    "evolution": "murkrow",
+    "media": "murkrow"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 2.1,
+    "color": "black",
+    "flavorText": "Feared and loathed by many, it is believed to bring misfortune to all those who see it at night."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

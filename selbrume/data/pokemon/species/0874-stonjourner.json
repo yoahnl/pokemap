@@ -1,0 +1,97 @@
+{
+  "id": "stonjourner",
+  "slug": "stonjourner",
+  "nationalDex": 874,
+  "names": {
+    "ja_hrkt": "イシヘンジン",
+    "ja_roma": "Ishihengin",
+    "ko": "돌헨진",
+    "zh_hant": "巨石丁",
+    "fr": "Dolman",
+    "de": "Humanolith",
+    "es": "Stonjourner",
+    "it": "Stonjourner",
+    "en": "Stonjourner",
+    "ja": "イシヘンジン",
+    "zh_hans": "巨石丁"
+  },
+  "speciesName": {
+    "ja_hrkt": "きょせきポケモン",
+    "ko": "거석포켓몬",
+    "zh_hant": "巨石寶可夢",
+    "fr": "Pokémon Mégalithe",
+    "de": "Megalithen-Pokémon",
+    "es": "Pokémon Megalito",
+    "it": "Pokémon Megalito",
+    "en": "Big Rock Pokémon",
+    "ja": "きょせきポケモン",
+    "zh_hans": "巨石宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 125,
+    "def": 135,
+    "spa": 20,
+    "spd": 20,
+    "spe": 70,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "power_spot",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 165,
+    "catchRate": 60,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "stonjourner",
+    "evolution": "stonjourner",
+    "media": "stonjourner"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 520.0,
+    "color": "gray",
+    "flavorText": "It stands in grasslands, watching the sun’s descent from zenith to horizon. This Pokémon has a talent for delivering dynamic kicks."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

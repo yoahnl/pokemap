@@ -1,0 +1,18 @@
+{
+  "speciesId": "rowlet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rowlet/front.png",
+      "backStatic": "assets/pokemon/sprites/rowlet/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rowlet/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rowlet/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rowlet.png",
+      "cry": "assets/pokemon/cries/rowlet.ogg",
+      "animations": {}
+    }
+  }
+}

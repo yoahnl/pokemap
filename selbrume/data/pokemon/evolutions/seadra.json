@@ -1,0 +1,16 @@
+{
+  "speciesId": "seadra",
+  "preEvolution": "horsea",
+  "evolutions": [
+    {
+      "targetSpeciesId": "kingdra",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: dragon-scale"
+      }
+    }
+  ]
+}

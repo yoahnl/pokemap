@@ -1,0 +1,99 @@
+{
+  "id": "drapion",
+  "slug": "drapion",
+  "nationalDex": 452,
+  "names": {
+    "ja_hrkt": "ドラピオン",
+    "ja_roma": "Dorapion",
+    "ko": "드래피온",
+    "zh_hant": "龍王蠍",
+    "fr": "Drascore",
+    "de": "Piondragi",
+    "es": "Drapion",
+    "it": "Drapion",
+    "en": "Drapion",
+    "ja": "ドラピオン",
+    "zh_hans": "龙王蝎"
+  },
+  "speciesName": {
+    "ja_hrkt": "ばけさそりポケモン",
+    "ko": "요괴전갈포켓몬",
+    "zh_hant": "蠍怪寶可夢",
+    "fr": "Pokémon Scorpogre",
+    "de": "Ogerskorpion-Pokémon",
+    "es": "Pokémon Escorpiogro",
+    "it": "Pokémon Scorpiaccio",
+    "en": "Ogre Scorpion Pokémon",
+    "ja": "ばけさそりポケモン",
+    "zh_hans": "蝎怪宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "poison",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 90,
+    "def": 110,
+    "spa": 60,
+    "spd": 75,
+    "spe": 95,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "battle_armor",
+    "secondary": "sniper",
+    "hidden": "keen_eye"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 175,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "drapion",
+    "evolution": "drapion",
+    "media": "drapion"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 61.5,
+    "color": "purple",
+    "flavorText": "It has the power in its clawed arms to make scrap of a car. The tips of its claws release poison."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

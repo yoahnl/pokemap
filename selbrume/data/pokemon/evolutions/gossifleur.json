@@ -1,0 +1,14 @@
+{
+  "speciesId": "gossifleur",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "eldegoss",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

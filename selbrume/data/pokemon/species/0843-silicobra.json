@@ -1,0 +1,98 @@
+{
+  "id": "silicobra",
+  "slug": "silicobra",
+  "nationalDex": 843,
+  "names": {
+    "ja_hrkt": "スナヘビ",
+    "ja_roma": "Sunahebi",
+    "ko": "모래뱀",
+    "zh_hant": "沙包蛇",
+    "fr": "Dunaja",
+    "de": "Salanga",
+    "es": "Silicobra",
+    "it": "Silicobra",
+    "en": "Silicobra",
+    "ja": "スナヘビ",
+    "zh_hans": "沙包蛇"
+  },
+  "speciesName": {
+    "ja_hrkt": "すなへびポケモン",
+    "ko": "모래뱀포켓몬",
+    "zh_hant": "沙蛇寶可夢",
+    "fr": "Pokémon Serpensable",
+    "de": "Sandschlangen-Pokémon",
+    "es": "Pokémon Serp. Arena",
+    "it": "Pokémon Sabbiaserpe",
+    "en": "Sand Snake Pokémon",
+    "ja": "すなへびポケモン",
+    "zh_hans": "沙蛇宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 52,
+    "atk": 57,
+    "def": 75,
+    "spa": 35,
+    "spd": 50,
+    "spe": 46,
+    "bst": 315
+  },
+  "abilities": {
+    "primary": "sand_spit",
+    "secondary": "shed_skin",
+    "hidden": "sand_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 63,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "silicobra",
+    "evolution": "silicobra",
+    "media": "silicobra"
+  },
+  "dexContent": {
+    "heightM": 2.2,
+    "weightKg": 7.6,
+    "color": "green",
+    "flavorText": "As it digs, it swallows sand and stores it in its neck pouch. The pouch can hold more than 17 pounds of sand."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "speciesId": "chingling",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "chimecho",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 220. Time: night"
+      }
+    }
+  ]
+}

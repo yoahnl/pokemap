@@ -1,0 +1,18 @@
+{
+  "speciesId": "dhelmise",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dhelmise/front.png",
+      "backStatic": "assets/pokemon/sprites/dhelmise/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dhelmise/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dhelmise/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dhelmise.png",
+      "cry": "assets/pokemon/cries/dhelmise.ogg",
+      "animations": {}
+    }
+  }
+}

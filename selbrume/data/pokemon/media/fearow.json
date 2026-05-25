@@ -1,0 +1,18 @@
+{
+  "speciesId": "fearow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/fearow/front.png",
+      "backStatic": "assets/pokemon/sprites/fearow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/fearow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/fearow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/fearow.png",
+      "cry": "assets/pokemon/cries/fearow.ogg",
+      "animations": {}
+    }
+  }
+}

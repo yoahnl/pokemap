@@ -1,0 +1,102 @@
+{
+  "id": "moltres",
+  "slug": "moltres",
+  "nationalDex": 146,
+  "names": {
+    "ja_hrkt": "ファイヤー",
+    "ja_roma": "Fire",
+    "ko": "파이어",
+    "zh_hant": "火焰鳥",
+    "fr": "Sulfura",
+    "de": "Lavados",
+    "es": "Moltres",
+    "it": "Moltres",
+    "en": "Moltres",
+    "ja": "ファイヤー",
+    "zh_hans": "火焰鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "かえんポケモン",
+    "ko": "화염포켓몬",
+    "zh_hant": "火焰寶可夢",
+    "fr": "Pokémon Flamme",
+    "de": "Flammen-Pokémon",
+    "es": "Pokémon Llama",
+    "it": "Pokémon Fiamma",
+    "en": "Flame Pokémon",
+    "ja": "かえんポケモン",
+    "zh_hans": "火焰宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 100,
+    "def": 90,
+    "spa": 125,
+    "spd": 85,
+    "spe": 90,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "flame_body"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "moltres-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "moltres",
+    "evolution": "moltres",
+    "media": "moltres"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 60.0,
+    "color": "yellow",
+    "flavorText": "Known as the legendary bird of fire. Every flap of its wings creates a dazzling flash of flames."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "lilligant",
+  "slug": "lilligant",
+  "nationalDex": 549,
+  "names": {
+    "ja_hrkt": "ドレディア",
+    "ja_roma": "Dredear",
+    "ko": "드레디어",
+    "zh_hant": "裙兒小姐",
+    "fr": "Fragilady",
+    "de": "Dressella",
+    "es": "Lilligant",
+    "it": "Lilligant",
+    "en": "Lilligant",
+    "ja": "ドレディア",
+    "zh_hans": "裙儿小姐"
+  },
+  "speciesName": {
+    "ja_hrkt": "はなかざりポケモン",
+    "ko": "꽃장식포켓몬",
+    "zh_hant": "花飾寶可夢",
+    "fr": "Pokémon Chef-Fleur",
+    "de": "Blumenzier-Pokémon",
+    "es": "Pokémon Adornofloral",
+    "it": "Pokémon Fiorfronzolo",
+    "en": "Flowering Pokémon",
+    "ja": "はなかざりポケモン",
+    "zh_hans": "花饰宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 60,
+    "def": 75,
+    "spa": 110,
+    "spd": 75,
+    "spe": 90,
+    "bst": 480
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "own_tempo",
+    "hidden": "leaf_guard"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 168,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "lilligant-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lilligant",
+    "evolution": "lilligant",
+    "media": "lilligant"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 16.3,
+    "color": "green",
+    "flavorText": "Even veteran Trainers face a challenge in getting its beautiful flower to bloom. This Pokémon is popular with celebrities."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

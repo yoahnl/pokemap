@@ -1,0 +1,98 @@
+{
+  "id": "mantyke",
+  "slug": "mantyke",
+  "nationalDex": 458,
+  "names": {
+    "ja_hrkt": "タマンタ",
+    "ja_roma": "Tamanta",
+    "ko": "타만타",
+    "zh_hant": "小球飛魚",
+    "fr": "Babimanta",
+    "de": "Mantirps",
+    "es": "Mantyke",
+    "it": "Mantyke",
+    "en": "Mantyke",
+    "ja": "タマンタ",
+    "zh_hans": "小球飞鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "カイトポケモン",
+    "ko": "연포켓몬",
+    "zh_hant": "風箏寶可夢",
+    "fr": "Pokémon Cervolant",
+    "de": "Flugrochen-Pokémon",
+    "es": "Pokémon Milano",
+    "it": "Pokémon Aquilone",
+    "en": "Kite Pokémon",
+    "ja": "カイトポケモン",
+    "zh_hans": "风筝宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 20,
+    "def": 50,
+    "spa": 60,
+    "spd": 120,
+    "spe": 50,
+    "bst": 345
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "water_absorb",
+    "hidden": "water_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 69,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "mantyke",
+    "evolution": "mantyke",
+    "media": "mantyke"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 65.0,
+    "color": "blue",
+    "flavorText": "A friendly Pokémon that captures the subtle flows of seawater using its two antennae."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "speciesId": "nosepass",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "probopass",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: blush-mountain"
+      }
+    },
+    {
+      "targetSpeciesId": "probopass",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: chargestone-cave"
+      }
+    },
+    {
+      "targetSpeciesId": "probopass",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: kalos-route-13"
+      }
+    },
+    {
+      "targetSpeciesId": "probopass",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: mt-coronet"
+      }
+    },
+    {
+      "targetSpeciesId": "probopass",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: vast-poni-canyon"
+      }
+    },
+    {
+      "targetSpeciesId": "probopass",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

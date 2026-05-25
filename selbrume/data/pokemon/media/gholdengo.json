@@ -1,0 +1,18 @@
+{
+  "speciesId": "gholdengo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gholdengo/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/gholdengo/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gholdengo.png",
+      "cry": "assets/pokemon/cries/gholdengo.ogg",
+      "animations": {}
+    }
+  }
+}

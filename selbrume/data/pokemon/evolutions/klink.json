@@ -1,0 +1,14 @@
+{
+  "speciesId": "klink",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "klang",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

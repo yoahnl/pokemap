@@ -1,0 +1,18 @@
+{
+  "speciesId": "spinarak",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spinarak/front.png",
+      "backStatic": "assets/pokemon/sprites/spinarak/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spinarak/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spinarak/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spinarak.png",
+      "cry": "assets/pokemon/cries/spinarak.ogg",
+      "animations": {}
+    }
+  }
+}

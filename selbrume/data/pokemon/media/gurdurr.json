@@ -1,0 +1,18 @@
+{
+  "speciesId": "gurdurr",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gurdurr/front.png",
+      "backStatic": "assets/pokemon/sprites/gurdurr/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gurdurr/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gurdurr/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gurdurr.png",
+      "cry": "assets/pokemon/cries/gurdurr.ogg",
+      "animations": {}
+    }
+  }
+}

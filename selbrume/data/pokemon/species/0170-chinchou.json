@@ -1,0 +1,98 @@
+{
+  "id": "chinchou",
+  "slug": "chinchou",
+  "nationalDex": 170,
+  "names": {
+    "ko": "초라기",
+    "ja_hrkt": "チョンチー",
+    "ja_roma": "Chonchie",
+    "zh_hant": "燈籠魚",
+    "fr": "Loupio",
+    "de": "Lampi",
+    "es": "Chinchou",
+    "it": "Chinchou",
+    "en": "Chinchou",
+    "ja": "チョンチー",
+    "zh_hans": "灯笼鱼"
+  },
+  "speciesName": {
+    "ko": "아귀포켓몬",
+    "ja_hrkt": "あんこうポケモン",
+    "zh_hant": "琵琶魚寶可夢",
+    "fr": "Pokémon Poisson",
+    "de": "Angler-Pokémon",
+    "es": "Pokémon Rape",
+    "it": "Pokémon Pescatore",
+    "en": "Angler Pokémon",
+    "ja": "あんこうポケモン",
+    "zh_hans": "琵琶鱼宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water",
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 38,
+    "def": 38,
+    "spa": 56,
+    "spd": 56,
+    "spe": 67,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "volt_absorb",
+    "secondary": "illuminate",
+    "hidden": "water_absorb"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 66,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "chinchou",
+    "evolution": "chinchou",
+    "media": "chinchou"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 12.0,
+    "color": "blue",
+    "flavorText": "Chinchou blink their shining antennae at one another to claim their respective turf."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

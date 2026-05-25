@@ -1,0 +1,102 @@
+{
+  "id": "eternatus",
+  "slug": "eternatus",
+  "nationalDex": 890,
+  "names": {
+    "ja_hrkt": "ムゲンダイナ",
+    "ja_roma": "Mugendina",
+    "ko": "무한다이노",
+    "zh_hant": "無極汰那",
+    "fr": "Éthernatos",
+    "de": "Endynalos",
+    "es": "Eternatus",
+    "it": "Eternatus",
+    "en": "Eternatus",
+    "ja": "ムゲンダイナ",
+    "zh_hans": "无极汰那"
+  },
+  "speciesName": {
+    "ja_hrkt": "キョダイポケモン",
+    "ko": "거대포켓몬",
+    "zh_hant": "超極巨寶可夢",
+    "fr": "Pokémon Giga",
+    "de": "Giganten-Pokémon",
+    "es": "Pokémon Gigantesco",
+    "it": "Pokémon Gigante",
+    "en": "Gigantic Pokémon",
+    "ja": "キョダイポケモン",
+    "zh_hans": "超极巨宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "poison",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 140,
+    "atk": 85,
+    "def": 95,
+    "spa": 145,
+    "spd": 95,
+    "spe": 130,
+    "bst": 690
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 345,
+    "catchRate": 255,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "eternatus-eternamax"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "eternatus",
+    "evolution": "eternatus",
+    "media": "eternatus"
+  },
+  "dexContent": {
+    "heightM": 20.0,
+    "weightKg": 950.0,
+    "color": "purple",
+    "flavorText": "The core on its chest absorbs energy emanating from the lands of the Galar region. This energy is what allows Eternatus to stay active."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

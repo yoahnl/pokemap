@@ -1,0 +1,18 @@
+{
+  "speciesId": "swellow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swellow/front.png",
+      "backStatic": "assets/pokemon/sprites/swellow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swellow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swellow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swellow.png",
+      "cry": "assets/pokemon/cries/swellow.ogg",
+      "animations": {}
+    }
+  }
+}

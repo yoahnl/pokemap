@@ -1,0 +1,100 @@
+{
+  "id": "lycanroc",
+  "slug": "lycanroc",
+  "nationalDex": 745,
+  "names": {
+    "ja_hrkt": "ルガルガン",
+    "ja_roma": "Lugarugan",
+    "ko": "루가루암",
+    "zh_hant": "鬃岩狼人",
+    "fr": "Lougaroc",
+    "de": "Wolwerock",
+    "es": "Lycanroc",
+    "it": "Lycanroc",
+    "en": "Lycanroc",
+    "ja": "ルガルガン",
+    "zh_hans": "鬃岩狼人"
+  },
+  "speciesName": {
+    "ja_hrkt": "オオカミポケモン",
+    "ko": "늑대포켓몬",
+    "zh_hant": "狼寶可夢",
+    "fr": "Pokémon Loup",
+    "de": "Wolfs-Pokémon",
+    "es": "Pokémon Lobo",
+    "it": "Pokémon Lupo",
+    "en": "Wolf Pokémon",
+    "ja": "オオカミポケモン",
+    "zh_hans": "狼宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 115,
+    "def": 65,
+    "spa": 55,
+    "spd": 65,
+    "spe": 112,
+    "bst": 487
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "sand_rush",
+    "hidden": "steadfast"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 0,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "lycanroc-dusk",
+      "lycanroc-midnight"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lycanroc",
+    "evolution": "lycanroc",
+    "media": "lycanroc"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 25.0,
+    "color": "brown",
+    "flavorText": "Its quick movements confuse its enemies. Well equipped with claws and fangs, it also uses the sharp rocks in its mane as weapons."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

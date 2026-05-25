@@ -1,0 +1,18 @@
+{
+  "speciesId": "elekid",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/elekid/front.png",
+      "backStatic": "assets/pokemon/sprites/elekid/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/elekid/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/elekid/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/elekid.png",
+      "cry": "assets/pokemon/cries/elekid.ogg",
+      "animations": {}
+    }
+  }
+}

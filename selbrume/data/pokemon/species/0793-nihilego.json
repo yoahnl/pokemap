@@ -1,0 +1,100 @@
+{
+  "id": "nihilego",
+  "slug": "nihilego",
+  "nationalDex": 793,
+  "names": {
+    "ja_hrkt": "ウツロイド",
+    "ja_roma": "Uturoid",
+    "ko": "텅비드",
+    "zh_hant": "虛吾伊德",
+    "fr": "Zéroïd",
+    "de": "Anego",
+    "es": "Nihilego",
+    "it": "Nihilego",
+    "en": "Nihilego",
+    "ja": "ウツロイド",
+    "zh_hans": "虚吾伊德"
+  },
+  "speciesName": {
+    "ja_hrkt": "きせいポケモン",
+    "ko": "기생포켓몬",
+    "zh_hant": "寄生寶可夢",
+    "fr": "Pokémon Parasite",
+    "de": "Parasiten-Pokémon",
+    "es": "Pokémon Parásito",
+    "it": "Pokémon Parassita",
+    "en": "Parasite Pokémon",
+    "ja": "きせいポケモン",
+    "zh_hans": "寄生宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "rock",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 109,
+    "atk": 53,
+    "def": 47,
+    "spa": 127,
+    "spd": 131,
+    "spe": 103,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nihilego",
+    "evolution": "nihilego",
+    "media": "nihilego"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 55.5,
+    "color": "white",
+    "flavorText": "One of several mysterious Ultra Beasts. People on the street report observing those infested by it suddenly becoming violent."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

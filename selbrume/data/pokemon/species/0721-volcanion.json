@@ -1,0 +1,100 @@
+{
+  "id": "volcanion",
+  "slug": "volcanion",
+  "nationalDex": 721,
+  "names": {
+    "ja_hrkt": "ボルケニオン",
+    "ja_roma": "Volcanion",
+    "ko": "볼케니온",
+    "zh_hant": "波爾凱尼恩",
+    "fr": "Volcanion",
+    "de": "Volcanion",
+    "es": "Volcanion",
+    "it": "Volcanion",
+    "en": "Volcanion",
+    "ja": "ボルケニオン",
+    "zh_hans": "波尔凯尼恩"
+  },
+  "speciesName": {
+    "ja_hrkt": "スチームポケモン",
+    "ko": "스팀포켓몬",
+    "zh_hant": "蒸汽寶可夢",
+    "fr": "Pokémon Vapeur",
+    "de": "Dampf-Pokémon",
+    "es": "Pokémon Vapor",
+    "it": "Pokémon Vapore",
+    "en": "Steam Pokémon",
+    "ja": "スチームポケモン",
+    "zh_hans": "蒸汽宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fire",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 110,
+    "def": 120,
+    "spa": 130,
+    "spd": 90,
+    "spe": 70,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "water_absorb",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "volcanion",
+    "evolution": "volcanion",
+    "media": "volcanion"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 195.0,
+    "color": "brown",
+    "flavorText": "It lets out billows of steam and disappears into the dense fog. It’s said to live in mountains where humans do not tread."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

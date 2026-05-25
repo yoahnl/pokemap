@@ -1,0 +1,18 @@
+{
+  "speciesId": "treecko",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/treecko/front.png",
+      "backStatic": "assets/pokemon/sprites/treecko/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/treecko/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/treecko/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/treecko.png",
+      "cry": "assets/pokemon/cries/treecko.ogg",
+      "animations": {}
+    }
+  }
+}

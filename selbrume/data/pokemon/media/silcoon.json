@@ -1,0 +1,18 @@
+{
+  "speciesId": "silcoon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/silcoon/front.png",
+      "backStatic": "assets/pokemon/sprites/silcoon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/silcoon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/silcoon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/silcoon.png",
+      "cry": "assets/pokemon/cries/silcoon.ogg",
+      "animations": {}
+    }
+  }
+}

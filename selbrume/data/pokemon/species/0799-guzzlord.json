@@ -1,0 +1,100 @@
+{
+  "id": "guzzlord",
+  "slug": "guzzlord",
+  "nationalDex": 799,
+  "names": {
+    "ja_hrkt": "アクジキング",
+    "ja_roma": "Akuziking",
+    "ko": "악식킹",
+    "zh_hant": "惡食大王",
+    "fr": "Engloutyran",
+    "de": "Schlingking",
+    "es": "Guzzlord",
+    "it": "Guzzlord",
+    "en": "Guzzlord",
+    "ja": "アクジキング",
+    "zh_hans": "恶食大王"
+  },
+  "speciesName": {
+    "ja_hrkt": "あくじきポケモン",
+    "ko": "악식성포켓몬",
+    "zh_hant": "異食寶可夢",
+    "fr": "Pokémon Bizarrovore",
+    "de": "Gaumenfolter-Pokémon",
+    "es": "Pokémon Tragaldabas",
+    "it": "Pokémon Divoratutto",
+    "en": "Junkivore Pokémon",
+    "ja": "あくじきポケモン",
+    "zh_hans": "异食宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "dark",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 223,
+    "atk": 101,
+    "def": 53,
+    "spa": 97,
+    "spd": 53,
+    "spe": 43,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "guzzlord",
+    "evolution": "guzzlord",
+    "media": "guzzlord"
+  },
+  "dexContent": {
+    "heightM": 5.5,
+    "weightKg": 888.0,
+    "color": "black",
+    "flavorText": "It has gobbled mountains and swallowed whole buildings, according to reports. It’s one of the Ultra Beasts."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "mantine",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mantine/front.png",
+      "backStatic": "assets/pokemon/sprites/mantine/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mantine/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mantine/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mantine.png",
+      "cry": "assets/pokemon/cries/mantine.ogg",
+      "animations": {}
+    }
+  }
+}

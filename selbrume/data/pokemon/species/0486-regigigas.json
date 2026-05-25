@@ -1,0 +1,99 @@
+{
+  "id": "regigigas",
+  "slug": "regigigas",
+  "nationalDex": 486,
+  "names": {
+    "ja_hrkt": "レジギガス",
+    "ja_roma": "Regigigas",
+    "ko": "레지기가스",
+    "zh_hant": "雷吉奇卡斯",
+    "fr": "Regigigas",
+    "de": "Regigigas",
+    "es": "Regigigas",
+    "it": "Regigigas",
+    "en": "Regigigas",
+    "ja": "レジギガス",
+    "zh_hans": "雷吉奇卡斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "きょだいポケモン",
+    "ko": "거대포켓몬",
+    "zh_hant": "巨大寶可夢",
+    "fr": "Pokémon Prodigieux",
+    "de": "Kolossal-Pokémon",
+    "es": "Pokémon Colosal",
+    "it": "Pokémon Colossale",
+    "en": "Colossal Pokémon",
+    "ja": "きょだいポケモン",
+    "zh_hans": "巨大宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 110,
+    "atk": 160,
+    "def": 110,
+    "spa": 80,
+    "spd": 110,
+    "spe": 100,
+    "bst": 670
+  },
+  "abilities": {
+    "primary": "slow_start",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 302,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "regigigas",
+    "evolution": "regigigas",
+    "media": "regigigas"
+  },
+  "dexContent": {
+    "heightM": 3.7,
+    "weightKg": 420.0,
+    "color": "white",
+    "flavorText": "There is an enduring legend that states this Pokémon towed continents with ropes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

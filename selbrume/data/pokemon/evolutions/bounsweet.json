@@ -1,0 +1,14 @@
+{
+  "speciesId": "bounsweet",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "steenee",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

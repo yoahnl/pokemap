@@ -1,0 +1,18 @@
+{
+  "speciesId": "meltan",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/meltan/front.png",
+      "backStatic": "assets/pokemon/sprites/meltan/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/meltan/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/meltan/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/meltan.png",
+      "cry": "assets/pokemon/cries/meltan.ogg",
+      "animations": {}
+    }
+  }
+}

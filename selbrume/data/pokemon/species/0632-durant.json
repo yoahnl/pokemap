@@ -1,0 +1,98 @@
+{
+  "id": "durant",
+  "slug": "durant",
+  "nationalDex": 632,
+  "names": {
+    "ja_hrkt": "アイアント",
+    "ja_roma": "Aiant",
+    "ko": "아이앤트",
+    "zh_hant": "鐵蟻",
+    "fr": "Fermite",
+    "de": "Fermicula",
+    "es": "Durant",
+    "it": "Durant",
+    "en": "Durant",
+    "ja": "アイアント",
+    "zh_hans": "铁蚁"
+  },
+  "speciesName": {
+    "ja_hrkt": "てつアリポケモン",
+    "ko": "철개미포켓몬",
+    "zh_hant": "鐵蟻寶可夢",
+    "fr": "Pokémon Fourmi Dure",
+    "de": "Eisenameisen-Pokémon",
+    "es": "Pokémon Hormigacero",
+    "it": "Pokémon Ferformica",
+    "en": "Iron Ant Pokémon",
+    "ja": "てつアリポケモン",
+    "zh_hans": "铁蚁宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 58,
+    "atk": 109,
+    "def": 112,
+    "spa": 48,
+    "spd": 48,
+    "spe": 109,
+    "bst": 484
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "hustle",
+    "hidden": "truant"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 169,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "durant",
+    "evolution": "durant",
+    "media": "durant"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 33.0,
+    "color": "gray",
+    "flavorText": "They attack in groups, covering themselves in steel armor to protect themselves from Heatmor."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

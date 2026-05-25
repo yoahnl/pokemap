@@ -1,0 +1,14 @@
+{
+  "speciesId": "flittle",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "espathra",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "id": "psyduck",
+  "slug": "psyduck",
+  "nationalDex": 54,
+  "names": {
+    "ja_hrkt": "コダック",
+    "ja_roma": "Koduck",
+    "ko": "고라파덕",
+    "zh_hant": "可達鴨",
+    "fr": "Psykokwak",
+    "de": "Enton",
+    "es": "Psyduck",
+    "it": "Psyduck",
+    "en": "Psyduck",
+    "ja": "コダック",
+    "zh_hans": "可达鸭"
+  },
+  "speciesName": {
+    "ja_hrkt": "あひるポケモン",
+    "ko": "오리포켓몬",
+    "zh_hant": "鴨寶可夢",
+    "fr": "Pokémon Canard",
+    "de": "Enten-Pokémon",
+    "es": "Pokémon Pato",
+    "it": "Pokémon Papero",
+    "en": "Duck Pokémon",
+    "ja": "あひるポケモン",
+    "zh_hans": "鸭宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 52,
+    "def": 48,
+    "spa": 65,
+    "spd": 50,
+    "spe": 55,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "damp",
+    "secondary": "cloud_nine",
+    "hidden": "swift_swim"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 64,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "psyduck",
+    "evolution": "psyduck",
+    "media": "psyduck"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 19.6,
+    "color": "yellow",
+    "flavorText": "While lulling its enemies with its vacant look, this wily POKéMON will use psychokinetic powers."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

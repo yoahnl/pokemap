@@ -1,0 +1,18 @@
+{
+  "speciesId": "lileep",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lileep/front.png",
+      "backStatic": "assets/pokemon/sprites/lileep/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lileep/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lileep/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lileep.png",
+      "cry": "assets/pokemon/cries/lileep.ogg",
+      "animations": {}
+    }
+  }
+}

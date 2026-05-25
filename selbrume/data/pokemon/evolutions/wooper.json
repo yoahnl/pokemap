@@ -1,0 +1,22 @@
+{
+  "speciesId": "wooper",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "clodsire",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "quagsire",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

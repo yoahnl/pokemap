@@ -1,0 +1,14 @@
+{
+  "speciesId": "wailmer",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "wailord",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

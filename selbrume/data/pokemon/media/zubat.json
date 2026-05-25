@@ -1,0 +1,18 @@
+{
+  "speciesId": "zubat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zubat/front.png",
+      "backStatic": "assets/pokemon/sprites/zubat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zubat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zubat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zubat.png",
+      "cry": "assets/pokemon/cries/zubat.ogg",
+      "animations": {}
+    }
+  }
+}

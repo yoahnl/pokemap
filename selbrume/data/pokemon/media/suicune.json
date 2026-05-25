@@ -1,0 +1,18 @@
+{
+  "speciesId": "suicune",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/suicune/front.png",
+      "backStatic": "assets/pokemon/sprites/suicune/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/suicune/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/suicune/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/suicune.png",
+      "cry": "assets/pokemon/cries/suicune.ogg",
+      "animations": {}
+    }
+  }
+}

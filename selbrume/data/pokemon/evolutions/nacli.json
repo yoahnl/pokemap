@@ -1,0 +1,14 @@
+{
+  "speciesId": "nacli",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "naclstack",
+      "method": "level_up",
+      "minLevel": 24,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

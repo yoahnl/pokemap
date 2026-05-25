@@ -1,0 +1,98 @@
+{
+  "id": "forretress",
+  "slug": "forretress",
+  "nationalDex": 205,
+  "names": {
+    "ja_hrkt": "フォレトス",
+    "ja_roma": "Foretos",
+    "ko": "쏘콘",
+    "zh_hant": "佛烈托斯",
+    "fr": "Foretress",
+    "de": "Forstellka",
+    "es": "Forretress",
+    "it": "Forretress",
+    "en": "Forretress",
+    "ja": "フォレトス",
+    "zh_hans": "佛烈托斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "みのむしポケモン",
+    "ko": "도롱이벌레포켓몬",
+    "zh_hant": "蓑衣蟲寶可夢",
+    "fr": "Pokémon Ver Caché",
+    "de": "Beutelwurm",
+    "es": "Pokémon Larva",
+    "it": "Pokémon Larva",
+    "en": "Bagworm Pokémon",
+    "ja": "みのむしポケモン",
+    "zh_hans": "蓑衣虫宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "bug",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 90,
+    "def": 140,
+    "spa": 60,
+    "spd": 60,
+    "spe": 40,
+    "bst": 465
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": null,
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 163,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "forretress",
+    "evolution": "forretress",
+    "media": "forretress"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 125.8,
+    "color": "purple",
+    "flavorText": "Its entire body is shielded by a steel-hard shell. What lurks inside the armor is a total mystery."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

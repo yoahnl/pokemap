@@ -1,0 +1,18 @@
+{
+  "speciesId": "octillery",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/octillery/front.png",
+      "backStatic": "assets/pokemon/sprites/octillery/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/octillery/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/octillery/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/octillery.png",
+      "cry": "assets/pokemon/cries/octillery.ogg",
+      "animations": {}
+    }
+  }
+}

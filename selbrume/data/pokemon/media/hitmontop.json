@@ -1,0 +1,18 @@
+{
+  "speciesId": "hitmontop",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hitmontop/front.png",
+      "backStatic": "assets/pokemon/sprites/hitmontop/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hitmontop/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hitmontop/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hitmontop.png",
+      "cry": "assets/pokemon/cries/hitmontop.ogg",
+      "animations": {}
+    }
+  }
+}

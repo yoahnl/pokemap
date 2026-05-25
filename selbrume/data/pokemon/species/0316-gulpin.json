@@ -1,0 +1,97 @@
+{
+  "id": "gulpin",
+  "slug": "gulpin",
+  "nationalDex": 316,
+  "names": {
+    "ja_hrkt": "ゴクリン",
+    "ja_roma": "Gokulin",
+    "ko": "꼴깍몬",
+    "zh_hant": "溶食獸",
+    "fr": "Gloupti",
+    "de": "Schluppuck",
+    "es": "Gulpin",
+    "it": "Gulpin",
+    "en": "Gulpin",
+    "ja": "ゴクリン",
+    "zh_hans": "溶食兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "いぶくろポケモン",
+    "ko": "밥통포켓몬",
+    "zh_hant": "胃袋寶可夢",
+    "fr": "Pokémon Estomac",
+    "de": "Magen",
+    "es": "Pokémon Estómago",
+    "it": "Pokémon Stomaco",
+    "en": "Stomach Pokémon",
+    "ja": "いぶくろポケモン",
+    "zh_hans": "胃袋宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 43,
+    "def": 53,
+    "spa": 43,
+    "spd": 53,
+    "spe": 40,
+    "bst": 302
+  },
+  "abilities": {
+    "primary": "liquid_ooze",
+    "secondary": "sticky_hold",
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 60,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gulpin",
+    "evolution": "gulpin",
+    "media": "gulpin"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 10.3,
+    "color": "green",
+    "flavorText": "Virtually all of GULPIN’s body is its stomach. As a result, it can swallow something its own size. This POKéMON’s stomach contains a special fluid that digests anything."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

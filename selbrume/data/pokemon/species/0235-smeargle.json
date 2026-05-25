@@ -1,0 +1,97 @@
+{
+  "id": "smeargle",
+  "slug": "smeargle",
+  "nationalDex": 235,
+  "names": {
+    "ja_hrkt": "ドーブル",
+    "ja_roma": "Doble",
+    "ko": "루브도",
+    "zh_hant": "圖圖犬",
+    "fr": "Queulorior",
+    "de": "Farbeagle",
+    "es": "Smeargle",
+    "it": "Smeargle",
+    "en": "Smeargle",
+    "ja": "ドーブル",
+    "zh_hans": "图图犬"
+  },
+  "speciesName": {
+    "ja_hrkt": "えかきポケモン",
+    "ko": "그림장이포켓몬",
+    "zh_hant": "畫畫寶可夢",
+    "fr": "Pokémon Peintre",
+    "de": "Maler",
+    "es": "Pokémon Pintor",
+    "it": "Pokémon Pittore",
+    "en": "Painter Pokémon",
+    "ja": "えかきポケモン",
+    "zh_hans": "画画宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 20,
+    "def": 35,
+    "spa": 20,
+    "spd": 45,
+    "spe": 75,
+    "bst": 250
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "technician",
+    "hidden": "moody"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 88,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "smeargle",
+    "evolution": "smeargle",
+    "media": "smeargle"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 58.0,
+    "color": "white",
+    "flavorText": "A special fluid oozes from the tip of its tail. It paints the fluid everywhere to mark its territory."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

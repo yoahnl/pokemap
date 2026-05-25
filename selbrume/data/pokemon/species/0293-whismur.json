@@ -1,0 +1,98 @@
+{
+  "id": "whismur",
+  "slug": "whismur",
+  "nationalDex": 293,
+  "names": {
+    "ja_hrkt": "ゴニョニョ",
+    "ja_roma": "Gonyonyo",
+    "ko": "소곤룡",
+    "zh_hant": "咕妞妞",
+    "fr": "Chuchmur",
+    "de": "Flurmel",
+    "es": "Whismur",
+    "it": "Whismur",
+    "en": "Whismur",
+    "ja": "ゴニョニョ",
+    "zh_hans": "咕妞妞"
+  },
+  "speciesName": {
+    "ja_hrkt": "ささやきポケモン",
+    "ko": "속삭임포켓몬",
+    "zh_hant": "細語寶可夢",
+    "fr": "Pokémon Chuchoteur",
+    "de": "Flüster-Pokémon",
+    "es": "Pokémon Susurro",
+    "it": "Pokémon Sussurro",
+    "en": "Whisper Pokémon",
+    "ja": "ささやきポケモン",
+    "zh_hans": "细语宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 64,
+    "atk": 51,
+    "def": 23,
+    "spa": 51,
+    "spd": 23,
+    "spe": 28,
+    "bst": 240
+  },
+  "abilities": {
+    "primary": "soundproof",
+    "secondary": null,
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 48,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "whismur",
+    "evolution": "whismur",
+    "media": "whismur"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 16.3,
+    "color": "pink",
+    "flavorText": "Normally, WHISMUR’s voice is very quiet - it is barely audible even if one is paying close attention. However, if this POKéMON senses danger, it starts crying at an earsplitting volume."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

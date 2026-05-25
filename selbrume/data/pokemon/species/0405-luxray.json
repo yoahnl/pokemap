@@ -1,0 +1,97 @@
+{
+  "id": "luxray",
+  "slug": "luxray",
+  "nationalDex": 405,
+  "names": {
+    "ja_hrkt": "レントラー",
+    "ja_roma": "Rentorar",
+    "ko": "렌트라",
+    "zh_hant": "倫琴貓",
+    "fr": "Luxray",
+    "de": "Luxtra",
+    "es": "Luxray",
+    "it": "Luxray",
+    "en": "Luxray",
+    "ja": "レントラー",
+    "zh_hans": "伦琴猫"
+  },
+  "speciesName": {
+    "ja_hrkt": "がんこうポケモン",
+    "ko": "안광포켓몬",
+    "zh_hant": "目光寶可夢",
+    "fr": "Pokémon Brillœil",
+    "de": "Glühaugen-Pokémon",
+    "es": "Pokémon Chispa Ojos",
+    "it": "Pokémon Occhiluce",
+    "en": "Gleam Eyes Pokémon",
+    "ja": "がんこうポケモン",
+    "zh_hans": "目光宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 120,
+    "def": 79,
+    "spa": 95,
+    "spd": 79,
+    "spe": 70,
+    "bst": 523
+  },
+  "abilities": {
+    "primary": "rivalry",
+    "secondary": "intimidate",
+    "hidden": "guts"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 235,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "luxray",
+    "evolution": "luxray",
+    "media": "luxray"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 42.0,
+    "color": "blue",
+    "flavorText": "It has eyes that can see through anything. It spots and captures prey hiding behind objects."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "naganadel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/naganadel/front.png",
+      "backStatic": "assets/pokemon/sprites/naganadel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/naganadel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/naganadel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/naganadel.png",
+      "cry": "assets/pokemon/cries/naganadel.ogg",
+      "animations": {}
+    }
+  }
+}

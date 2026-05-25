@@ -1,0 +1,18 @@
+{
+  "speciesId": "escavalier",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/escavalier/front.png",
+      "backStatic": "assets/pokemon/sprites/escavalier/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/escavalier/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/escavalier/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/escavalier.png",
+      "cry": "assets/pokemon/cries/escavalier.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "smoochum",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/smoochum/front.png",
+      "backStatic": "assets/pokemon/sprites/smoochum/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/smoochum/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/smoochum/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/smoochum.png",
+      "cry": "assets/pokemon/cries/smoochum.ogg",
+      "animations": {}
+    }
+  }
+}

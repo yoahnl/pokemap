@@ -1,0 +1,14 @@
+{
+  "speciesId": "kricketot",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "kricketune",
+      "method": "level_up",
+      "minLevel": 10,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

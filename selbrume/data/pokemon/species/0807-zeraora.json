@@ -1,0 +1,101 @@
+{
+  "id": "zeraora",
+  "slug": "zeraora",
+  "nationalDex": 807,
+  "names": {
+    "ja_hrkt": "ゼラオラ",
+    "ja_roma": "Zeraora",
+    "ko": "제라오라",
+    "zh_hant": "捷拉奧拉",
+    "fr": "Zeraora",
+    "de": "Zeraora",
+    "es": "Zeraora",
+    "it": "Zeraora",
+    "en": "Zeraora",
+    "ja": "ゼラオラ",
+    "zh_hans": "捷拉奥拉"
+  },
+  "speciesName": {
+    "ja_hrkt": "じんらいポケモン",
+    "ko": "신뢰포켓몬",
+    "zh_hant": "奔雷寶可夢",
+    "fr": "Pokémon Vif Éclair",
+    "de": "Blitzsturm-Pokémon",
+    "es": "Pokémon Fulgor",
+    "it": "Pokémon Fulmirapido",
+    "en": "Thunderclap Pokémon",
+    "ja": "じんらいポケモン",
+    "zh_hans": "奔雷宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 88,
+    "atk": 112,
+    "def": 75,
+    "spa": 102,
+    "spd": 80,
+    "spe": 143,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "volt_absorb",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "zeraora-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "zeraora",
+    "evolution": "zeraora",
+    "media": "zeraora"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 44.5,
+    "color": "yellow",
+    "flavorText": "It electrifies its claws and tears its opponents apart with them. Even if they dodge its attack, they’ll be electrocuted by the flying sparks."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

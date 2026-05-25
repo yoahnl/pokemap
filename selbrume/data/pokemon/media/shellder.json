@@ -1,0 +1,18 @@
+{
+  "speciesId": "shellder",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shellder/front.png",
+      "backStatic": "assets/pokemon/sprites/shellder/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shellder/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shellder/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shellder.png",
+      "cry": "assets/pokemon/cries/shellder.ogg",
+      "animations": {}
+    }
+  }
+}

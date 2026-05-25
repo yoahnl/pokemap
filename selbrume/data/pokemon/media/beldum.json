@@ -1,0 +1,18 @@
+{
+  "speciesId": "beldum",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/beldum/front.png",
+      "backStatic": "assets/pokemon/sprites/beldum/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/beldum/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/beldum/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/beldum.png",
+      "cry": "assets/pokemon/cries/beldum.ogg",
+      "animations": {}
+    }
+  }
+}

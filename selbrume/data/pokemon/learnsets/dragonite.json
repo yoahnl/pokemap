@@ -1,0 +1,7221 @@
+{
+  "speciesId": "dragonite",
+  "startingMoves": [
+    "agility",
+    "aqua_jet",
+    "dragon_rage",
+    "extreme_speed",
+    "fire_punch",
+    "hurricane",
+    "leer",
+    "mist",
+    "roost",
+    "thunder_punch",
+    "thunder_wave",
+    "twister",
+    "wing_attack",
+    "wrap"
+  ],
+  "relearnMoves": [
+    "agility",
+    "aqua_jet",
+    "dragon_rage",
+    "extreme_speed",
+    "fire_punch",
+    "hurricane",
+    "leer",
+    "mist",
+    "roost",
+    "thunder_punch",
+    "thunder_wave",
+    "twister",
+    "wing_attack",
+    "wrap"
+  ],
+  "levelUp": [
+    {
+      "moveId": "agility",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "agility",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "agility",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "agility",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "aqua_jet",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "extreme_speed",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "extreme_speed",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "extreme_speed",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "leer",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "mist",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "roost",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder_punch",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "twister",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "wrap",
+      "level": 1,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 5,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 7,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 8,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "thunder_wave",
+      "level": 10,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "twister",
+      "level": 11,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 14,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "twister",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "twister",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "twister",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "twister",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "twister",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "twister",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "twister",
+      "level": 15,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "agility",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "agility",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "agility",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "agility",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "agility",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "agility",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "agility",
+      "level": 20,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "agility",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "slam",
+      "level": 21,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 22,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "agility",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "slam",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "slam",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "slam",
+      "level": 25,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 28,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "slam",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "slam",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "slam",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "slam",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "slam",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "slam",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "slam",
+      "level": 29,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dragon_tail",
+      "level": 33,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "slam",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "slam",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "slam",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "slam",
+      "level": 35,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "agility",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "agility",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "agility",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "agility",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "agility",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "agility",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "agility",
+      "level": 38,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "aqua_tail",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 39,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "slam",
+      "level": 40,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "outrage",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "outrage",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "outrage",
+      "level": 41,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 45,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 45,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 45,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "dragon_rage",
+      "level": 45,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 46,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 46,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 46,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dragon_rush",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 47,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "outrage",
+      "level": 52,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rain_dance",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "rain_dance",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rain_dance",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "level": 53,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "wing_attack",
+      "level": 55,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 60,
+      "source": "level_up",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "outrage",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "outrage",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "outrage",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "outrage",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "outrage",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "outrage",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "outrage",
+      "level": 61,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 62,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 62,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_dance",
+      "level": 62,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "outrage",
+      "level": 64,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "outrage",
+      "level": 64,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "outrage",
+      "level": 64,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "outrage",
+      "level": 67,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "outrage",
+      "level": 67,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "outrage",
+      "level": 67,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "outrage",
+      "level": 67,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "outrage",
+      "level": 67,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "outrage",
+      "level": 67,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 70,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 73,
+      "source": "level_up",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 73,
+      "source": "level_up",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 73,
+      "source": "level_up",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 75,
+      "source": "level_up",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 80,
+      "source": "level_up",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 80,
+      "source": "level_up",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "level": 80,
+      "source": "level_up",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 81,
+      "source": "level_up",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 81,
+      "source": "level_up",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 81,
+      "source": "level_up",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 81,
+      "source": "level_up",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 81,
+      "source": "level_up",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hurricane",
+      "level": 81,
+      "source": "level_up",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "roost",
+      "level": 88,
+      "source": "level_up",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    }
+  ],
+  "tm": [
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "aerial_ace",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "agility",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "agility",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "air_cutter",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "air_slash",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "air_slash",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "attract",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "bide",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "blizzard",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "body_press",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "body_press",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "breaking_swipe",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "breaking_swipe",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "brick_break",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "brutal_swing",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "brutal_swing",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "brutal_swing",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "bubble_beam",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "bubble_beam",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "bubble_beam",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "bubble_beam",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "bulldoze",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "captivate",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "captivate",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "captivate",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "chilling_water",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "confide",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "curse",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "cut",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "defog",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "defog",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "defog",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "detect",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "detect",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "double_team",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_breath",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "dragon_breath",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "dragon_cheer",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dragon_claw",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "dragon_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dragon_rage",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "dragon_rage",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "dragon_rage",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "dragon_rage",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dragon_tail",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dynamic_punch",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "dynamic_punch",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "encore",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "facade",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "fire_blast",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fire_spin",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fire_spin",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fling",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "fly",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "focus_blast",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "frustration",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "fury_cutter",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "fury_cutter",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "giga_impact",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hail",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "haze",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "helping_hand",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hidden_power",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "hone_claws",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hone_claws",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hone_claws",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hone_claws",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "horn_drill",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "horn_drill",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "horn_drill",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "horn_drill",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "hurricane",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hurricane",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hydro_pump",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hydro_pump",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "ice_spinner",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "incinerate",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "light_screen",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "low_kick",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "mega_kick",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "mega_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "metronome",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "mud_slap",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "mud_slap",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "natural_gift",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "natural_gift",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "natural_gift",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "power_up_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "power_up_punch",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "protect",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "rage",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "rage",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "rage",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "rage",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rain_dance",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "razor_wind",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "razor_wind",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "razor_wind",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "razor_wind",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "reflect",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "rest",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "return",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "roar",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rock_slide",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_smash",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "rock_tomb",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "round",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "safeguard",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sandstorm",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "scale_shot",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "scary_face",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "secret_power",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "skull_bash",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "skull_bash",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "skull_bash",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "skull_bash",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "sky_drop",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sky_drop",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "sky_drop",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sky_drop",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sky_drop",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sky_drop",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "snowscape",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "steel_wing",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "stomping_tantrum",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "stone_edge",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "strength",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "sunny_day",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "surf",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "take_down",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "tera_blast",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "thunder",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "toxic",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "water_gun",
+      "versionGroup": "blue-japan"
+    },
+    {
+      "moveId": "water_gun",
+      "versionGroup": "red-blue"
+    },
+    {
+      "moveId": "water_gun",
+      "versionGroup": "red-green-japan"
+    },
+    {
+      "moveId": "water_gun",
+      "versionGroup": "yellow"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "colosseum"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "lets-go-pikachu-lets-go-eevee"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "ruby-sapphire"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "waterfall",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "weather_ball",
+      "versionGroup": "scarlet-violet"
+    },
+    {
+      "moveId": "whirlpool",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "whirlpool",
+      "versionGroup": "gold-silver"
+    },
+    {
+      "moveId": "whirlpool",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "whirlpool",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "zap_cannon",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "zap_cannon",
+      "versionGroup": "gold-silver"
+    }
+  ],
+  "tutor": [
+    {
+      "moveId": "air_cutter",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "air_cutter",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "aqua_tail",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "aqua_tail",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "aqua_tail",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "aqua_tail",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "aqua_tail",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "bind",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "bind",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "bind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "body_slam",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "defog",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "dive",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "double_edge",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "black-white"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "brilliant-diamond-shining-pearl"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "diamond-pearl"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "sun-moon"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "draco_meteor",
+      "versionGroup": "x-y"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "dragon_pulse",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "dual_wingbeat",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "dynamic_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "endure",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "fire_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "flamethrower",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "focus_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "fury_cutter",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "fury_cutter",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "fury_cutter",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "headbutt",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "heat_wave",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "ice_beam",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "ice_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "icy_wind",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "iron_head",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "iron_tail",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "mimic",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "mud_slap",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "mud_slap",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "mud_slap",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "ominous_wind",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "ominous_wind",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "outrage",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "roost",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "scale_shot",
+      "versionGroup": "sword-shield"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "shock_wave",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "sleep_talk",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "snore",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "substitute",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "superpower",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "swagger",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "swift",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "tailwind",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "black-2-white-2"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "thunder_punch",
+      "versionGroup": "ultra-sun-ultra-moon"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "emerald"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "firered-leafgreen"
+    },
+    {
+      "moveId": "thunder_wave",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "thunderbolt",
+      "versionGroup": "crystal"
+    },
+    {
+      "moveId": "twister",
+      "versionGroup": "heartgold-soulsilver"
+    },
+    {
+      "moveId": "twister",
+      "versionGroup": "platinum"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "omega-ruby-alpha-sapphire"
+    },
+    {
+      "moveId": "water_pulse",
+      "versionGroup": "ultra-sun-ultra-moon"
+    }
+  ],
+  "egg": [],
+  "event": [
+    {
+      "moveId": "dragon_dance",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "earthquake",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "heal_bell",
+      "versionGroup": "xd"
+    },
+    {
+      "moveId": "hyper_beam",
+      "versionGroup": "xd"
+    }
+  ],
+  "transfer": []
+}

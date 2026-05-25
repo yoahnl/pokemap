@@ -1,0 +1,18 @@
+{
+  "speciesId": "bonsly",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bonsly/front.png",
+      "backStatic": "assets/pokemon/sprites/bonsly/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bonsly/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bonsly/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bonsly.png",
+      "cry": "assets/pokemon/cries/bonsly.ogg",
+      "animations": {}
+    }
+  }
+}

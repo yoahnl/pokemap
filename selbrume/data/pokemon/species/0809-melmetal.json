@@ -1,0 +1,99 @@
+{
+  "id": "melmetal",
+  "slug": "melmetal",
+  "nationalDex": 809,
+  "names": {
+    "ja_hrkt": "メルメタル",
+    "ja_roma": "Melmetal",
+    "ko": "멜메탈",
+    "zh_hant": "美錄梅塔",
+    "fr": "Melmetal",
+    "de": "Melmetal",
+    "es": "Melmetal",
+    "it": "Melmetal",
+    "en": "Melmetal",
+    "ja": "メルメタル",
+    "zh_hans": "美录梅塔"
+  },
+  "speciesName": {
+    "ja_hrkt": "ナットポケモン",
+    "ko": "너트포켓몬",
+    "zh_hant": "螺帽寶可夢",
+    "fr": "Pokémon Écrou",
+    "de": "Mutter-Pokémon",
+    "es": "Pokémon Tuerca",
+    "it": "Pokémon Bullone",
+    "en": "Hex Nut Pokémon",
+    "ja": "ナットポケモン",
+    "zh_hans": "螺帽宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 135,
+    "atk": 143,
+    "def": 143,
+    "spa": 80,
+    "spd": 65,
+    "spe": 34,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "iron_fist",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "melmetal",
+    "evolution": "melmetal",
+    "media": "melmetal"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 800.0,
+    "color": "gray",
+    "flavorText": "Revered long ago for its capacity to create iron from nothing, for some reason it has come back to life after 3,000 years."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

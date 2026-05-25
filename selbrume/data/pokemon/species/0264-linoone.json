@@ -1,0 +1,99 @@
+{
+  "id": "linoone",
+  "slug": "linoone",
+  "nationalDex": 264,
+  "names": {
+    "ja_hrkt": "マッスグマ",
+    "ja_roma": "Massuguma",
+    "ko": "직구리",
+    "zh_hant": "直衝熊",
+    "fr": "Linéon",
+    "de": "Geradaks",
+    "es": "Linoone",
+    "it": "Linoone",
+    "en": "Linoone",
+    "ja": "マッスグマ",
+    "zh_hans": "直冲熊"
+  },
+  "speciesName": {
+    "ja_hrkt": "とっしんポケモン",
+    "ko": "돌진포켓몬",
+    "zh_hant": "猛衝寶可夢",
+    "fr": "Pokémon Fonceur",
+    "de": "Sprinter-Pokémon",
+    "es": "Pokémon Lanzado",
+    "it": "Pokémon Sfrecciante",
+    "en": "Rushing Pokémon",
+    "ja": "とっしんポケモン",
+    "zh_hans": "猛冲宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 70,
+    "def": 61,
+    "spa": 50,
+    "spd": 61,
+    "spe": 100,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "gluttony",
+    "hidden": "quick_feet"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 147,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "linoone-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "linoone",
+    "evolution": "linoone",
+    "media": "linoone"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 32.5,
+    "color": "white",
+    "flavorText": "LINOONE always runs full speed and only in straight lines. If facing an obstacle, it makes a right-angle turn to evade it. This POKéMON is very challenged by gently curving roads."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

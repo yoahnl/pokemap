@@ -1,0 +1,18 @@
+{
+  "speciesId": "sandile",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sandile/front.png",
+      "backStatic": "assets/pokemon/sprites/sandile/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sandile/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sandile/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sandile.png",
+      "cry": "assets/pokemon/cries/sandile.ogg",
+      "animations": {}
+    }
+  }
+}

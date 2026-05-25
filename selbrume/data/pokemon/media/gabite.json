@@ -1,0 +1,18 @@
+{
+  "speciesId": "gabite",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gabite/front.png",
+      "backStatic": "assets/pokemon/sprites/gabite/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gabite/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gabite/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gabite.png",
+      "cry": "assets/pokemon/cries/gabite.ogg",
+      "animations": {}
+    }
+  }
+}

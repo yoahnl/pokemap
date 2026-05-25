@@ -1,0 +1,18 @@
+{
+  "speciesId": "nidoking",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nidoking/front.png",
+      "backStatic": "assets/pokemon/sprites/nidoking/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/nidoking/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/nidoking/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nidoking.png",
+      "cry": "assets/pokemon/cries/nidoking.ogg",
+      "animations": {}
+    }
+  }
+}

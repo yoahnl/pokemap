@@ -1,0 +1,18 @@
+{
+  "speciesId": "phantump",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/phantump/front.png",
+      "backStatic": "assets/pokemon/sprites/phantump/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/phantump/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/phantump/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/phantump.png",
+      "cry": "assets/pokemon/cries/phantump.ogg",
+      "animations": {}
+    }
+  }
+}

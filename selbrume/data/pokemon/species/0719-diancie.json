@@ -1,0 +1,102 @@
+{
+  "id": "diancie",
+  "slug": "diancie",
+  "nationalDex": 719,
+  "names": {
+    "ja_hrkt": "ディアンシー",
+    "ja_roma": "Diancie",
+    "ko": "디안시",
+    "zh_hant": "蒂安希",
+    "fr": "Diancie",
+    "de": "Diancie",
+    "es": "Diancie",
+    "it": "Diancie",
+    "en": "Diancie",
+    "ja": "ディアンシー",
+    "zh_hans": "蒂安希"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほうせきポケモン",
+    "ko": "보석포켓몬",
+    "zh_hant": "寶石寶可夢",
+    "fr": "Pokémon Joyau",
+    "de": "Edelstein-Pokémon",
+    "es": "Pokémon Joya",
+    "it": "Pokémon Gemma",
+    "en": "Jewel Pokémon",
+    "ja": "ほうせきポケモン",
+    "zh_hans": "宝石宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "rock",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 100,
+    "def": 150,
+    "spa": 100,
+    "spd": 150,
+    "spe": 50,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "diancie-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "diancie",
+    "evolution": "diancie",
+    "media": "diancie"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 8.8,
+    "color": "pink",
+    "flavorText": "A sudden transformation of Carbink, its pink, glimmering body is said to be the loveliest sight in the whole world."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

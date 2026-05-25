@@ -1,0 +1,16 @@
+{
+  "speciesId": "ursaring",
+  "preEvolution": "teddiursa",
+  "evolutions": [
+    {
+      "targetSpeciesId": "ursaluna",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "peat-block",
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: full-moon"
+      }
+    }
+  ]
+}

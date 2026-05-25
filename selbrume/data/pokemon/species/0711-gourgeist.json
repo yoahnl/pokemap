@@ -1,0 +1,102 @@
+{
+  "id": "gourgeist",
+  "slug": "gourgeist",
+  "nationalDex": 711,
+  "names": {
+    "ja_hrkt": "パンプジン",
+    "ja_roma": "Pumpjin",
+    "ko": "펌킨인",
+    "zh_hant": "南瓜怪人",
+    "fr": "Banshitrouye",
+    "de": "Pumpdjinn",
+    "es": "Gourgeist",
+    "it": "Gourgeist",
+    "en": "Gourgeist",
+    "ja": "パンプジン",
+    "zh_hans": "南瓜怪人"
+  },
+  "speciesName": {
+    "ja_hrkt": "かぼちゃポケモン",
+    "ko": "호박포켓몬",
+    "zh_hant": "南瓜寶可夢",
+    "fr": "Pokémon Citrouille",
+    "de": "Kürbis-Pokémon",
+    "es": "Pokémon Calabaza",
+    "it": "Pokémon Zucca",
+    "en": "Pumpkin Pokémon",
+    "ja": "かぼちゃポケモン",
+    "zh_hans": "南瓜宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "ghost",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 90,
+    "def": 122,
+    "spa": 58,
+    "spd": 75,
+    "spe": 84,
+    "bst": 494
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "frisk",
+    "hidden": "insomnia"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 0,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "gourgeist-large",
+      "gourgeist-small",
+      "gourgeist-super"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gourgeist",
+    "evolution": "gourgeist",
+    "media": "gourgeist"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 12.5,
+    "color": "brown",
+    "flavorText": "Singing in eerie voices, they wander town streets on the night of the new moon. Anyone who hears their song is cursed."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

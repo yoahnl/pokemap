@@ -1,0 +1,18 @@
+{
+  "speciesId": "umbreon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/umbreon/front.png",
+      "backStatic": "assets/pokemon/sprites/umbreon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/umbreon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/umbreon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/umbreon.png",
+      "cry": "assets/pokemon/cries/umbreon.ogg",
+      "animations": {}
+    }
+  }
+}

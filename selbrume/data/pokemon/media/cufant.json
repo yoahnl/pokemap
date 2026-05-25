@@ -1,0 +1,18 @@
+{
+  "speciesId": "cufant",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cufant/front.png",
+      "backStatic": "assets/pokemon/sprites/cufant/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cufant/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cufant/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cufant.png",
+      "cry": "assets/pokemon/cries/cufant.ogg",
+      "animations": {}
+    }
+  }
+}

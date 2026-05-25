@@ -1,0 +1,97 @@
+{
+  "id": "gorebyss",
+  "slug": "gorebyss",
+  "nationalDex": 368,
+  "names": {
+    "ja_hrkt": "サクラビス",
+    "ja_roma": "Sakurabyss",
+    "ko": "분홍장이",
+    "zh_hant": "櫻花魚",
+    "fr": "Rosabyss",
+    "de": "Saganabyss",
+    "es": "Gorebyss",
+    "it": "Gorebyss",
+    "en": "Gorebyss",
+    "ja": "サクラビス",
+    "zh_hans": "樱花鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "なんかいポケモン",
+    "ko": "남해포켓몬",
+    "zh_hant": "南海寶可夢",
+    "fr": "Pokémon Mer du Sud",
+    "de": "Südsee",
+    "es": "Pokémon Mar del Sur",
+    "it": "Pokémon Sudmarino",
+    "en": "South Sea Pokémon",
+    "ja": "なんかいポケモン",
+    "zh_hans": "南海宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 84,
+    "def": 105,
+    "spa": 114,
+    "spd": 75,
+    "spe": 52,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": null,
+    "hidden": "hydration"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 170,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gorebyss",
+    "evolution": "gorebyss",
+    "media": "gorebyss"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 22.6,
+    "color": "pink",
+    "flavorText": "GOREBYSS lives in the southern seas at extreme depths. Its body is built to withstand the enormous pressure of water at incredible depths. Because of this, this POKéMON’s body is unharmed by ordinary attacks."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

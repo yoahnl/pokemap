@@ -1,0 +1,18 @@
+{
+  "speciesId": "cacnea",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cacnea/front.png",
+      "backStatic": "assets/pokemon/sprites/cacnea/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cacnea/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cacnea/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cacnea.png",
+      "cry": "assets/pokemon/cries/cacnea.ogg",
+      "animations": {}
+    }
+  }
+}

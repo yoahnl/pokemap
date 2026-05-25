@@ -1,0 +1,98 @@
+{
+  "id": "swinub",
+  "slug": "swinub",
+  "nationalDex": 220,
+  "names": {
+    "ja_hrkt": "ウリムー",
+    "ja_roma": "Urimoo",
+    "ko": "꾸꾸리",
+    "zh_hant": "小山豬",
+    "fr": "Marcacrin",
+    "de": "Quiekel",
+    "es": "Swinub",
+    "it": "Swinub",
+    "en": "Swinub",
+    "ja": "ウリムー",
+    "zh_hans": "小山猪"
+  },
+  "speciesName": {
+    "ja_hrkt": "いのぶたポケモン",
+    "ko": "산돼지포켓몬",
+    "zh_hant": "小豬寶可夢",
+    "fr": "Pokémon Cochon",
+    "de": "Ferkel-Pokémon",
+    "es": "Pokémon Cerdo",
+    "it": "Pokémon Maiale",
+    "en": "Pig Pokémon",
+    "ja": "いのぶたポケモン",
+    "zh_hans": "小猪宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "ice",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 50,
+    "def": 40,
+    "spa": 30,
+    "spd": 30,
+    "spe": 50,
+    "bst": 250
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "snow_cloak",
+    "hidden": "thick_fat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 50,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "swinub",
+    "evolution": "swinub",
+    "media": "swinub"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.5,
+    "color": "brown",
+    "flavorText": "It rubs its snout on the ground to find and dig up food. It sometimes discovers hot springs."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

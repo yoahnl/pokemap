@@ -1,0 +1,14 @@
+{
+  "speciesId": "trapinch",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "vibrava",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "primeape",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/primeape/front.png",
+      "backStatic": "assets/pokemon/sprites/primeape/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/primeape/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/primeape/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/primeape.png",
+      "cry": "assets/pokemon/cries/primeape.ogg",
+      "animations": {}
+    }
+  }
+}

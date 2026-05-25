@@ -1,0 +1,97 @@
+{
+  "id": "scatterbug",
+  "slug": "scatterbug",
+  "nationalDex": 664,
+  "names": {
+    "ja_hrkt": "コフキムシ",
+    "ja_roma": "Kofukimushi",
+    "ko": "분이벌레",
+    "zh_hant": "粉蝶蟲",
+    "fr": "Lépidonille",
+    "de": "Purmel",
+    "es": "Scatterbug",
+    "it": "Scatterbug",
+    "en": "Scatterbug",
+    "ja": "コフキムシ",
+    "zh_hans": "粉蝶虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "こなふきポケモン",
+    "ko": "가루뿜기포켓몬",
+    "zh_hant": "噴粉寶可夢",
+    "fr": "Pokémon Exhalécaille",
+    "de": "Puderinsekt",
+    "es": "Pokémon Tiraescamas",
+    "it": "Pokémon Tirascaglie",
+    "en": "Scatterdust Pokémon",
+    "ja": "こなふきポケモン",
+    "zh_hans": "喷粉宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 38,
+    "atk": 35,
+    "def": 40,
+    "spa": 27,
+    "spd": 25,
+    "spe": 35,
+    "bst": 200
+  },
+  "abilities": {
+    "primary": "shield_dust",
+    "secondary": "compound_eyes",
+    "hidden": "friend_guard"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 40,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "scatterbug",
+    "evolution": "scatterbug",
+    "media": "scatterbug"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 2.5,
+    "color": "black",
+    "flavorText": "When under attack from bird Pokémon, it spews a poisonous black powder that causes paralysis on contact."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

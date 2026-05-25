@@ -1,0 +1,18 @@
+{
+  "speciesId": "cranidos",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cranidos/front.png",
+      "backStatic": "assets/pokemon/sprites/cranidos/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cranidos/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cranidos/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cranidos.png",
+      "cry": "assets/pokemon/cries/cranidos.ogg",
+      "animations": {}
+    }
+  }
+}

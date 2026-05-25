@@ -1,0 +1,94 @@
+{
+  "id": "dondozo",
+  "slug": "dondozo",
+  "nationalDex": 977,
+  "names": {
+    "ja_hrkt": "ヘイラッシャ",
+    "ja_roma": "Heyrusher",
+    "ko": "어써러셔",
+    "zh_hant": "吃吼霸",
+    "fr": "Oyacata",
+    "de": "Heerashai",
+    "es": "Dondozo",
+    "it": "Dondozo",
+    "en": "Dondozo",
+    "ja": "ヘイラッシャ",
+    "zh_hans": "吃吼霸"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおなまずポケモン",
+    "ko": "큰메기포켓몬",
+    "zh_hant": "大鯰寶可夢",
+    "fr": "Grand Silure",
+    "de": "Großwels",
+    "en": "Big Catfish Pokémon",
+    "zh_hans": "大鲶宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 150,
+    "atk": 100,
+    "def": 115,
+    "spa": 65,
+    "spd": 65,
+    "spe": 35,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "unaware",
+    "secondary": "oblivious",
+    "hidden": "water_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 265,
+    "catchRate": 25,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dondozo",
+    "evolution": "dondozo",
+    "media": "dondozo"
+  },
+  "dexContent": {
+    "heightM": 12.0,
+    "weightKg": 220.0,
+    "color": "blue",
+    "flavorText": "This Pokémon is a glutton, but it’s bad at getting food. It teams up with a Tatsugiri to catch prey."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

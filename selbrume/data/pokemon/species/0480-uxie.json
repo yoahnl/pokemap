@@ -1,0 +1,99 @@
+{
+  "id": "uxie",
+  "slug": "uxie",
+  "nationalDex": 480,
+  "names": {
+    "ja_hrkt": "ユクシー",
+    "ja_roma": "Yuxie",
+    "ko": "유크시",
+    "zh_hant": "由克希",
+    "fr": "Créhelf",
+    "de": "Selfe",
+    "es": "Uxie",
+    "it": "Uxie",
+    "en": "Uxie",
+    "ja": "ユクシー",
+    "zh_hans": "由克希"
+  },
+  "speciesName": {
+    "ja_hrkt": "ちしきポケモン",
+    "ko": "지식포켓몬",
+    "zh_hant": "知識寶可夢",
+    "fr": "Pokémon Savoir",
+    "de": "Wissens-Pokémon",
+    "es": "Pokémon Sabiduría",
+    "it": "Pokémon Sapienza",
+    "en": "Knowledge Pokémon",
+    "ja": "ちしきポケモン",
+    "zh_hans": "知识宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 75,
+    "def": 130,
+    "spa": 75,
+    "spd": 130,
+    "spe": 95,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "uxie",
+    "evolution": "uxie",
+    "media": "uxie"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.3,
+    "color": "yellow",
+    "flavorText": "Known as “The Being of Knowledge.” It is said that it can wipe out the memory of those who see its eyes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "carvanha",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sharpedo",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

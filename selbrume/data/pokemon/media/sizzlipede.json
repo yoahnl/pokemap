@@ -1,0 +1,18 @@
+{
+  "speciesId": "sizzlipede",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sizzlipede/front.png",
+      "backStatic": "assets/pokemon/sprites/sizzlipede/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sizzlipede/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sizzlipede/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sizzlipede.png",
+      "cry": "assets/pokemon/cries/sizzlipede.ogg",
+      "animations": {}
+    }
+  }
+}

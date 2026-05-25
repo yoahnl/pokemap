@@ -1,0 +1,18 @@
+{
+  "speciesId": "mienfoo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mienfoo/front.png",
+      "backStatic": "assets/pokemon/sprites/mienfoo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mienfoo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mienfoo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mienfoo.png",
+      "cry": "assets/pokemon/cries/mienfoo.ogg",
+      "animations": {}
+    }
+  }
+}

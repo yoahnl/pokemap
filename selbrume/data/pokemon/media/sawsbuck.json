@@ -1,0 +1,54 @@
+{
+  "speciesId": "sawsbuck",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sawsbuck/front.png",
+      "backStatic": "assets/pokemon/sprites/sawsbuck/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sawsbuck/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sawsbuck/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sawsbuck.png",
+      "cry": "assets/pokemon/cries/sawsbuck.ogg",
+      "animations": {}
+    },
+    "sawsbuck-autumn": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "sawsbuck-summer": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "sawsbuck-winter": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "goodra",
+  "slug": "goodra",
+  "nationalDex": 706,
+  "names": {
+    "ja_hrkt": "ヌメルゴン",
+    "ja_roma": "Numelgon",
+    "ko": "미끄래곤",
+    "zh_hant": "黏美龍",
+    "fr": "Muplodocus",
+    "de": "Viscogon",
+    "es": "Goodra",
+    "it": "Goodra",
+    "en": "Goodra",
+    "ja": "ヌメルゴン",
+    "zh_hans": "黏美龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドラゴンポケモン",
+    "ko": "드래곤포켓몬",
+    "zh_hant": "龍寶可夢",
+    "fr": "Pokémon Dragon",
+    "de": "Drachen-Pokémon",
+    "es": "Pokémon Dragón",
+    "it": "Pokémon Drago",
+    "en": "Dragon Pokémon",
+    "ja": "ドラゴンポケモン",
+    "zh_hans": "龙宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 100,
+    "def": 70,
+    "spa": 110,
+    "spd": 150,
+    "spe": 80,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "sap_sipper",
+    "secondary": "hydration",
+    "hidden": "gooey"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "goodra-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "goodra",
+    "evolution": "goodra",
+    "media": "goodra"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 150.5,
+    "color": "purple",
+    "flavorText": "This very friendly Dragon-type Pokémon will hug its beloved Trainer, leaving that Trainer covered in sticky slime."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

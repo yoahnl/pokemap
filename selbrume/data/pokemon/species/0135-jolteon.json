@@ -1,0 +1,100 @@
+{
+  "id": "jolteon",
+  "slug": "jolteon",
+  "nationalDex": 135,
+  "names": {
+    "ja_hrkt": "サンダース",
+    "ja_roma": "Thunders",
+    "ko": "쥬피썬더",
+    "zh_hant": "雷伊布",
+    "fr": "Voltali",
+    "de": "Blitza",
+    "es": "Jolteon",
+    "it": "Jolteon",
+    "en": "Jolteon",
+    "ja": "サンダース",
+    "zh_hans": "雷伊布"
+  },
+  "speciesName": {
+    "ja_hrkt": "かみなりポケモン",
+    "ko": "번개포켓몬",
+    "zh_hant": "雷寶可夢",
+    "fr": "Pokémon Orage",
+    "de": "Blitz-Pokémon",
+    "es": "Pokémon Relámpago",
+    "it": "Pokémon Luminoso",
+    "en": "Lightning Pokémon",
+    "ja": "かみなりポケモン",
+    "zh_hans": "雷宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 65,
+    "def": 60,
+    "spa": 110,
+    "spd": 95,
+    "spe": 130,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "volt_absorb",
+    "secondary": null,
+    "hidden": "quick_feet"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 184,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "jolteon",
+    "evolution": "jolteon",
+    "media": "jolteon"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 24.5,
+    "color": "yellow",
+    "flavorText": "It accumulates negative ions in the atmosphere to blast out 10000- volt lightning bolts."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

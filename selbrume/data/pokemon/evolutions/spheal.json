@@ -1,0 +1,14 @@
+{
+  "speciesId": "spheal",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sealeo",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "speciesId": "salandit",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "salazzle",
+      "method": "level_up",
+      "minLevel": 33,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Gender: female"
+      }
+    }
+  ]
+}

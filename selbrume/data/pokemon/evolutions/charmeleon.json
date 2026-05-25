@@ -1,0 +1,14 @@
+{
+  "speciesId": "charmeleon",
+  "preEvolution": "charmander",
+  "evolutions": [
+    {
+      "targetSpeciesId": "charizard",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

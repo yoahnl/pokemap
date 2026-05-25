@@ -1,0 +1,18 @@
+{
+  "speciesId": "victini",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/victini/front.png",
+      "backStatic": "assets/pokemon/sprites/victini/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/victini/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/victini/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/victini.png",
+      "cry": "assets/pokemon/cries/victini.ogg",
+      "animations": {}
+    }
+  }
+}

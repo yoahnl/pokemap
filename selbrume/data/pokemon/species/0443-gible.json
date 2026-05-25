@@ -1,0 +1,99 @@
+{
+  "id": "gible",
+  "slug": "gible",
+  "nationalDex": 443,
+  "names": {
+    "ja_hrkt": "フカマル",
+    "ja_roma": "Fukamaru",
+    "ko": "딥상어동",
+    "zh_hant": "圓陸鯊",
+    "fr": "Griknot",
+    "de": "Kaumalat",
+    "es": "Gible",
+    "it": "Gible",
+    "en": "Gible",
+    "ja": "フカマル",
+    "zh_hans": "圆陆鲨"
+  },
+  "speciesName": {
+    "ja_hrkt": "りくザメポケモン",
+    "ko": "육지상어포켓몬",
+    "zh_hant": "陸鯊寶可夢",
+    "fr": "Pokémon Terrequin",
+    "de": "Landhai-Pokémon",
+    "es": "Pokémon Terrascualo",
+    "it": "Pokémon Squaloterra",
+    "en": "Land Shark Pokémon",
+    "ja": "りくザメポケモン",
+    "zh_hans": "陆鲨宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "dragon",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 58,
+    "atk": 70,
+    "def": 45,
+    "spa": 40,
+    "spd": 45,
+    "spe": 42,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "sand_veil",
+    "secondary": null,
+    "hidden": "rough_skin"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gible",
+    "evolution": "gible",
+    "media": "gible"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 20.5,
+    "color": "blue",
+    "flavorText": "It nests in small, horizontal holes in cave walls. It pounces to catch prey that stray too close."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

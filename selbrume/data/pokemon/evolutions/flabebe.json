@@ -1,0 +1,14 @@
+{
+  "speciesId": "flabebe",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "floette",
+      "method": "level_up",
+      "minLevel": 19,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "id": "honchkrow",
+  "slug": "honchkrow",
+  "nationalDex": 430,
+  "names": {
+    "ja_hrkt": "ドンカラス",
+    "ja_roma": "Donkarasu",
+    "ko": "돈크로우",
+    "zh_hant": "烏鴉頭頭",
+    "fr": "Corboss",
+    "de": "Kramshef",
+    "es": "Honchkrow",
+    "it": "Honchkrow",
+    "en": "Honchkrow",
+    "ja": "ドンカラス",
+    "zh_hans": "乌鸦头头"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおボスポケモン",
+    "ko": "큰형님포켓몬",
+    "zh_hant": "大頭目寶可夢",
+    "fr": "Pokémon Big Boss",
+    "de": "Anführer",
+    "es": "Pokémon Gran Jefe",
+    "it": "Pokémon Grancapo",
+    "en": "Big Boss Pokémon",
+    "ja": "おおボスポケモン",
+    "zh_hans": "大头目宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "dark",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 125,
+    "def": 52,
+    "spa": 105,
+    "spd": 52,
+    "spe": 71,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": "super_luck",
+    "hidden": "moxie"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 177,
+    "catchRate": 30,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "honchkrow",
+    "evolution": "honchkrow",
+    "media": "honchkrow"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 27.3,
+    "color": "black",
+    "flavorText": "Becoming active at night, it is known to swarm with numerous MURKROW in tow."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

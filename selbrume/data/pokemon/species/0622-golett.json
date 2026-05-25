@@ -1,0 +1,100 @@
+{
+  "id": "golett",
+  "slug": "golett",
+  "nationalDex": 622,
+  "names": {
+    "ja_hrkt": "ゴビット",
+    "ja_roma": "Gobit",
+    "ko": "골비람",
+    "zh_hant": "泥偶小人",
+    "fr": "Gringolem",
+    "de": "Golbit",
+    "es": "Golett",
+    "it": "Golett",
+    "en": "Golett",
+    "ja": "ゴビット",
+    "zh_hans": "泥偶小人"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゴーレムポケモン",
+    "ko": "골렘포켓몬",
+    "zh_hant": "魔像寶可夢",
+    "fr": "Pokémon Golem Ancien",
+    "de": "Urgolem-Pokémon",
+    "es": "Pokémon Autómata",
+    "it": "Pokémon Statuanimata",
+    "en": "Automaton Pokémon",
+    "ja": "ゴーレムポケモン",
+    "zh_hans": "魔像宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ground",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 59,
+    "atk": 74,
+    "def": 50,
+    "spa": 35,
+    "spd": 50,
+    "spe": 35,
+    "bst": 303
+  },
+  "abilities": {
+    "primary": "iron_fist",
+    "secondary": "klutz",
+    "hidden": "no_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "golett",
+    "evolution": "golett",
+    "media": "golett"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 92.0,
+    "color": "green",
+    "flavorText": "The energy that burns inside it enables it to move, but no one has yet been able to identify this energy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

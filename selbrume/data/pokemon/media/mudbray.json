@@ -1,0 +1,18 @@
+{
+  "speciesId": "mudbray",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mudbray/front.png",
+      "backStatic": "assets/pokemon/sprites/mudbray/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mudbray/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mudbray/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mudbray.png",
+      "cry": "assets/pokemon/cries/mudbray.ogg",
+      "animations": {}
+    }
+  }
+}

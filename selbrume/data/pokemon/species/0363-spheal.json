@@ -1,0 +1,99 @@
+{
+  "id": "spheal",
+  "slug": "spheal",
+  "nationalDex": 363,
+  "names": {
+    "ja_hrkt": "タマザラシ",
+    "ja_roma": "Tamazarashi",
+    "ko": "대굴레오",
+    "zh_hant": "海豹球",
+    "fr": "Obalie",
+    "de": "Seemops",
+    "es": "Spheal",
+    "it": "Spheal",
+    "en": "Spheal",
+    "ja": "タマザラシ",
+    "zh_hans": "海豹球"
+  },
+  "speciesName": {
+    "ja_hrkt": "てたたきポケモン",
+    "ko": "손뼉포켓몬",
+    "zh_hant": "拍手寶可夢",
+    "fr": "Pokémon Clap Clap",
+    "de": "Applaus-Pokémon",
+    "es": "Pokémon Aplauso",
+    "it": "Pokémon Rotolante",
+    "en": "Clap Pokémon",
+    "ja": "てたたきポケモン",
+    "zh_hans": "拍手宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ice",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 40,
+    "def": 50,
+    "spa": 55,
+    "spd": 50,
+    "spe": 25,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "ice_body",
+    "hidden": "oblivious"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 58,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spheal",
+    "evolution": "spheal",
+    "media": "spheal"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 39.5,
+    "color": "blue",
+    "flavorText": "SPHEAL is much faster rolling than walking to get around. When groups of this POKéMON eat, they all clap at once to show their pleasure. Because of this, their mealtimes are noisy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

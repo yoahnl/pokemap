@@ -1,0 +1,99 @@
+{
+  "id": "tornadus",
+  "slug": "tornadus",
+  "nationalDex": 641,
+  "names": {
+    "ja_hrkt": "トルネロス",
+    "ja_roma": "Tornelos",
+    "ko": "토네로스",
+    "zh_hant": "龍捲雲",
+    "fr": "Boréas",
+    "de": "Boreos",
+    "es": "Tornadus",
+    "it": "Tornadus",
+    "en": "Tornadus",
+    "ja": "トルネロス",
+    "zh_hans": "龙卷云"
+  },
+  "speciesName": {
+    "ja_hrkt": "せんぷうポケモン",
+    "ko": "선풍포켓몬",
+    "zh_hant": "旋風寶可夢",
+    "fr": "Pokémon Tornade",
+    "de": "Wirbelsturm-Pokémon",
+    "es": "Pokémon Torbellino",
+    "it": "Pokémon Turbinio",
+    "en": "Cyclone Pokémon",
+    "ja": "せんぷうポケモン",
+    "zh_hans": "旋风宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 79,
+    "atk": 115,
+    "def": 70,
+    "spa": 125,
+    "spd": 80,
+    "spe": 111,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "prankster",
+    "secondary": null,
+    "hidden": "defiant"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 90
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "tornadus-therian"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tornadus",
+    "evolution": "tornadus",
+    "media": "tornadus"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 63.0,
+    "color": "green",
+    "flavorText": "The lower half of its body is wrapped in a cloud of energy. It zooms through the sky at 200 mph."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

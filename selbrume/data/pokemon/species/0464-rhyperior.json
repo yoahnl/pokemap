@@ -1,0 +1,99 @@
+{
+  "id": "rhyperior",
+  "slug": "rhyperior",
+  "nationalDex": 464,
+  "names": {
+    "ja_hrkt": "ドサイドン",
+    "ja_roma": "Dosydon",
+    "ko": "거대코뿌리",
+    "zh_hant": "超甲狂犀",
+    "fr": "Rhinastoc",
+    "de": "Rihornior",
+    "es": "Rhyperior",
+    "it": "Rhyperior",
+    "en": "Rhyperior",
+    "ja": "ドサイドン",
+    "zh_hans": "超甲狂犀"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドリルポケモン",
+    "ko": "드릴포켓몬",
+    "zh_hant": "鑽錐寶可夢",
+    "fr": "Pokémon Perceur",
+    "de": "Bohrer-Pokémon",
+    "es": "Pokémon Taladro",
+    "it": "Pokémon Trapano",
+    "en": "Drill Pokémon",
+    "ja": "ドリルポケモン",
+    "zh_hans": "钻锥宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ground",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 115,
+    "atk": 140,
+    "def": 130,
+    "spa": 55,
+    "spd": 55,
+    "spe": 40,
+    "bst": 535
+  },
+  "abilities": {
+    "primary": "lightning_rod",
+    "secondary": "solid_rock",
+    "hidden": "reckless"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 241,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rhyperior",
+    "evolution": "rhyperior",
+    "media": "rhyperior"
+  },
+  "dexContent": {
+    "heightM": 2.4,
+    "weightKg": 282.8,
+    "color": "gray",
+    "flavorText": "It puts rocks in holes in its palms and uses its muscles to shoot them. GEODUDE are shot at rare times."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

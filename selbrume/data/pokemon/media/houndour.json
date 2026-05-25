@@ -1,0 +1,18 @@
+{
+  "speciesId": "houndour",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/houndour/front.png",
+      "backStatic": "assets/pokemon/sprites/houndour/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/houndour/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/houndour/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/houndour.png",
+      "cry": "assets/pokemon/cries/houndour.ogg",
+      "animations": {}
+    }
+  }
+}

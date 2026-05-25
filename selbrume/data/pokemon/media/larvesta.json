@@ -1,0 +1,18 @@
+{
+  "speciesId": "larvesta",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/larvesta/front.png",
+      "backStatic": "assets/pokemon/sprites/larvesta/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/larvesta/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/larvesta/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/larvesta.png",
+      "cry": "assets/pokemon/cries/larvesta.ogg",
+      "animations": {}
+    }
+  }
+}

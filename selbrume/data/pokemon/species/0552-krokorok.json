@@ -1,0 +1,98 @@
+{
+  "id": "krokorok",
+  "slug": "krokorok",
+  "nationalDex": 552,
+  "names": {
+    "ja_hrkt": "ワルビル",
+    "ja_roma": "Waruvile",
+    "ko": "악비르",
+    "zh_hant": "混混鱷",
+    "fr": "Escroco",
+    "de": "Rokkaiman",
+    "es": "Krokorok",
+    "it": "Krokorok",
+    "en": "Krokorok",
+    "ja": "ワルビル",
+    "zh_hans": "混混鳄"
+  },
+  "speciesName": {
+    "ja_hrkt": "さばくワニポケモン",
+    "ko": "사막악어포켓몬",
+    "zh_hant": "沙漠鱷魚寶可夢",
+    "fr": "Pokémon Croco Sable",
+    "de": "Wüstenkroko-Pokémon",
+    "es": "Pokémon Desierdrilo",
+    "it": "Pokémon Sabbiadrillo",
+    "en": "Desert Croc Pokémon",
+    "ja": "さばくワニポケモン",
+    "zh_hans": "沙漠鳄鱼宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ground",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 82,
+    "def": 45,
+    "spa": 45,
+    "spd": 45,
+    "spe": 74,
+    "bst": 351
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "moxie",
+    "hidden": "anger_point"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 123,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "krokorok",
+    "evolution": "krokorok",
+    "media": "krokorok"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 33.4,
+    "color": "brown",
+    "flavorText": "They live in groups of a few individuals. Protective membranes shield their eyes from sandstorms."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

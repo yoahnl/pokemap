@@ -1,0 +1,18 @@
+{
+  "speciesId": "impidimp",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/impidimp/front.png",
+      "backStatic": "assets/pokemon/sprites/impidimp/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/impidimp/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/impidimp/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/impidimp.png",
+      "cry": "assets/pokemon/cries/impidimp.ogg",
+      "animations": {}
+    }
+  }
+}

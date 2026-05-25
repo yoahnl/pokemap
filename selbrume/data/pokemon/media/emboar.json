@@ -1,0 +1,30 @@
+{
+  "speciesId": "emboar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/emboar/front.png",
+      "backStatic": "assets/pokemon/sprites/emboar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/emboar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/emboar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/emboar.png",
+      "cry": "assets/pokemon/cries/emboar.ogg",
+      "animations": {}
+    },
+    "emboar-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

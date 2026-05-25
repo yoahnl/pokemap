@@ -1,0 +1,98 @@
+{
+  "id": "yanma",
+  "slug": "yanma",
+  "nationalDex": 193,
+  "names": {
+    "ja_hrkt": "ヤンヤンマ",
+    "ja_roma": "Yanyanma",
+    "ko": "왕자리",
+    "zh_hant": "蜻蜻蜓",
+    "fr": "Yanma",
+    "de": "Yanma",
+    "es": "Yanma",
+    "it": "Yanma",
+    "en": "Yanma",
+    "ja": "ヤンヤンマ",
+    "zh_hans": "蜻蜻蜓"
+  },
+  "speciesName": {
+    "ja_hrkt": "うすばねポケモン",
+    "ko": "얇은날개포켓몬",
+    "zh_hant": "薄翼寶可夢",
+    "fr": "Pokémon Translaile",
+    "de": "Libelle",
+    "es": "Pokémon Ala Clara",
+    "it": "Pokémon Alachiara",
+    "en": "Clear Wing Pokémon",
+    "ja": "うすばねポケモン",
+    "zh_hans": "薄翼宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 65,
+    "def": 45,
+    "spa": 75,
+    "spd": 45,
+    "spe": 95,
+    "bst": 390
+  },
+  "abilities": {
+    "primary": "speed_boost",
+    "secondary": "compound_eyes",
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 78,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "yanma",
+    "evolution": "yanma",
+    "media": "yanma"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 38.0,
+    "color": "red",
+    "flavorText": "If it flaps its wings really fast, it can generate shock waves that will shatter win­ dows in the area."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

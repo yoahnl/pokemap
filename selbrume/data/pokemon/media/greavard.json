@@ -1,0 +1,18 @@
+{
+  "speciesId": "greavard",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/greavard/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/greavard/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/greavard.png",
+      "cry": "assets/pokemon/cries/greavard.ogg",
+      "animations": {}
+    }
+  }
+}

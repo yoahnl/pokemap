@@ -1,0 +1,14 @@
+{
+  "speciesId": "basculin",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "basculegion",
+      "method": "recoil_damage",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "id": "beartic",
+  "slug": "beartic",
+  "nationalDex": 614,
+  "names": {
+    "ja_hrkt": "ツンベアー",
+    "ja_roma": "Tunbear",
+    "ko": "툰베어",
+    "zh_hant": "凍原熊",
+    "fr": "Polagriffe",
+    "de": "Siberio",
+    "es": "Beartic",
+    "it": "Beartic",
+    "en": "Beartic",
+    "ja": "ツンベアー",
+    "zh_hans": "冻原熊"
+  },
+  "speciesName": {
+    "ja_hrkt": "とうけつポケモン",
+    "ko": "동결포켓몬",
+    "zh_hant": "凍結寶可夢",
+    "fr": "Pokémon Congelé",
+    "de": "Packeis-Pokémon",
+    "es": "Pokémon Glaciación",
+    "it": "Pokémon Glaciale",
+    "en": "Freezing Pokémon",
+    "ja": "とうけつポケモン",
+    "zh_hans": "冻结宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 130,
+    "def": 80,
+    "spa": 70,
+    "spd": 80,
+    "spe": 50,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "snow_cloak",
+    "secondary": "slush_rush",
+    "hidden": "swift_swim"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 177,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "beartic",
+    "evolution": "beartic",
+    "media": "beartic"
+  },
+  "dexContent": {
+    "heightM": 2.6,
+    "weightKg": 260.0,
+    "color": "white",
+    "flavorText": "It can make its breath freeze at will. Very able in the water, it swims around in northern seas and catches prey."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

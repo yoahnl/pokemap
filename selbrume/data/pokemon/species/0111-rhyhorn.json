@@ -1,0 +1,99 @@
+{
+  "id": "rhyhorn",
+  "slug": "rhyhorn",
+  "nationalDex": 111,
+  "names": {
+    "ja_hrkt": "サイホーン",
+    "ja_roma": "Sihorn",
+    "ko": "뿔카노",
+    "zh_hant": "獨角犀牛",
+    "fr": "Rhinocorne",
+    "de": "Rihorn",
+    "es": "Rhyhorn",
+    "it": "Rhyhorn",
+    "en": "Rhyhorn",
+    "ja": "サイホーン",
+    "zh_hans": "独角犀牛"
+  },
+  "speciesName": {
+    "ja_hrkt": "とげとげポケモン",
+    "ko": "뿔포켓몬",
+    "zh_hant": "尖尖寶可夢",
+    "fr": "Pokémon Piquant",
+    "de": "Stachler-Pokémon",
+    "es": "Pokémon Clavos",
+    "it": "Pokémon Punzoni",
+    "en": "Spikes Pokémon",
+    "ja": "とげとげポケモン",
+    "zh_hans": "尖尖宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ground",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 85,
+    "def": 95,
+    "spa": 30,
+    "spd": 30,
+    "spe": 25,
+    "bst": 345
+  },
+  "abilities": {
+    "primary": "lightning_rod",
+    "secondary": "rock_head",
+    "hidden": "reckless"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 69,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rhyhorn",
+    "evolution": "rhyhorn",
+    "media": "rhyhorn"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 115.0,
+    "color": "gray",
+    "flavorText": "A POKéMON with a one-track mind. Once it charges, it won't stop running until it falls asleep."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

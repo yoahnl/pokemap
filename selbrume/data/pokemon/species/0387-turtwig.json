@@ -1,0 +1,101 @@
+{
+  "id": "turtwig",
+  "slug": "turtwig",
+  "nationalDex": 387,
+  "names": {
+    "ja_hrkt": "ナエトル",
+    "ja_roma": "Naetle",
+    "ko": "모부기",
+    "zh_hant": "草苗龜",
+    "fr": "Tortipouss",
+    "de": "Chelast",
+    "es": "Turtwig",
+    "it": "Turtwig",
+    "en": "Turtwig",
+    "ja": "ナエトル",
+    "zh_hans": "草苗龟"
+  },
+  "speciesName": {
+    "ja_hrkt": "わかばポケモン",
+    "ko": "어린잎포켓몬",
+    "zh_hant": "嫩葉寶可夢",
+    "fr": "Pokémon Minifeuille",
+    "de": "Winziglaub",
+    "es": "Pokémon Hojita",
+    "it": "Pokémon Fogliolina",
+    "en": "Tiny Leaf Pokémon",
+    "ja": "わかばポケモン",
+    "zh_hans": "嫩叶宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 68,
+    "def": 64,
+    "spa": 45,
+    "spd": 55,
+    "spe": 31,
+    "bst": 318
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "shell_armor"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "turtwig",
+    "evolution": "turtwig",
+    "media": "turtwig"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 10.2,
+    "color": "green",
+    "flavorText": "Made from soil, the shell on its back hardens when it drinks water. It lives along lakes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

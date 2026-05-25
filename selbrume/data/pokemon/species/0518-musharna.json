@@ -1,0 +1,97 @@
+{
+  "id": "musharna",
+  "slug": "musharna",
+  "nationalDex": 518,
+  "names": {
+    "ja_hrkt": "ムシャーナ",
+    "ja_roma": "Musharna",
+    "ko": "몽얌나",
+    "zh_hant": "夢夢蝕",
+    "fr": "Mushana",
+    "de": "Somnivora",
+    "es": "Musharna",
+    "it": "Musharna",
+    "en": "Musharna",
+    "ja": "ムシャーナ",
+    "zh_hans": "梦梦蚀"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゆめうつつポケモン",
+    "ko": "꿈결포켓몬",
+    "zh_hant": "半夢半醒寶可夢",
+    "fr": "Pokémon Rêveur",
+    "de": "Halbschlaf-Pokémon",
+    "es": "Pokémon Duermevela",
+    "it": "Pokémon Dormiveglia",
+    "en": "Drowsing Pokémon",
+    "ja": "ゆめうつつポケモン",
+    "zh_hans": "半梦半醒宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 116,
+    "atk": 55,
+    "def": 85,
+    "spa": 107,
+    "spd": 95,
+    "spe": 29,
+    "bst": 487
+  },
+  "abilities": {
+    "primary": "forewarn",
+    "secondary": "synchronize",
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 170,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "musharna",
+    "evolution": "musharna",
+    "media": "musharna"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 60.5,
+    "color": "pink",
+    "flavorText": "The mist emanating from their foreheads is packed with the dreams of people and Pokémon."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

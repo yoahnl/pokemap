@@ -1,0 +1,18 @@
+{
+  "speciesId": "flaaffy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/flaaffy/front.png",
+      "backStatic": "assets/pokemon/sprites/flaaffy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/flaaffy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/flaaffy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/flaaffy.png",
+      "cry": "assets/pokemon/cries/flaaffy.ogg",
+      "animations": {}
+    }
+  }
+}

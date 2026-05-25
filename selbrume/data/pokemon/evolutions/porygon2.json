@@ -1,0 +1,16 @@
+{
+  "speciesId": "porygon2",
+  "preEvolution": "porygon",
+  "evolutions": [
+    {
+      "targetSpeciesId": "porygon-z",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: dubious-disc"
+      }
+    }
+  ]
+}

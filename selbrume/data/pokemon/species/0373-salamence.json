@@ -1,0 +1,100 @@
+{
+  "id": "salamence",
+  "slug": "salamence",
+  "nationalDex": 373,
+  "names": {
+    "ja_hrkt": "ボーマンダ",
+    "ja_roma": "Bohmander",
+    "ko": "보만다",
+    "zh_hant": "暴飛龍",
+    "fr": "Drattak",
+    "de": "Brutalanda",
+    "es": "Salamence",
+    "it": "Salamence",
+    "en": "Salamence",
+    "ja": "ボーマンダ",
+    "zh_hans": "暴飞龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドラゴンポケモン",
+    "ko": "드래곤포켓몬",
+    "zh_hant": "龍寶可夢",
+    "fr": "Pokémon Dragon",
+    "de": "Drachen-Pokémon",
+    "es": "Pokémon Dragón",
+    "it": "Pokémon Drago",
+    "en": "Dragon Pokémon",
+    "ja": "ドラゴンポケモン",
+    "zh_hans": "龙宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dragon",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 135,
+    "def": 80,
+    "spa": 110,
+    "spd": 80,
+    "spe": 100,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": null,
+    "hidden": "moxie"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "salamence-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "salamence",
+    "evolution": "salamence",
+    "media": "salamence"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 102.6,
+    "color": "blue",
+    "flavorText": "SALAMENCE came about as a result of a strong, long-held dream of growing wings. It is said that this powerful desire triggered a sudden mutation in this POKéMON’s cells, causing it to sprout its magnificent wings."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

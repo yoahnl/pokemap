@@ -1,0 +1,98 @@
+{
+  "id": "morelull",
+  "slug": "morelull",
+  "nationalDex": 755,
+  "names": {
+    "ja_hrkt": "ネマシュ",
+    "ja_roma": "Nemasyu",
+    "ko": "자마슈",
+    "zh_hant": "睡睡菇",
+    "fr": "Spododo",
+    "de": "Bubungus",
+    "es": "Morelull",
+    "it": "Morelull",
+    "en": "Morelull",
+    "ja": "ネマシュ",
+    "zh_hans": "睡睡菇"
+  },
+  "speciesName": {
+    "ja_hrkt": "はっこうポケモン",
+    "ko": "발광포켓몬",
+    "zh_hant": "發光寶可夢",
+    "fr": "Pokémon Luminescent",
+    "de": "Lumineszenz-Pokémon",
+    "es": "Pokémon Luminiscente",
+    "it": "Pokémon Luminescenza",
+    "en": "Illuminating Pokémon",
+    "ja": "はっこうポケモン",
+    "zh_hans": "发光宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "grass",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 35,
+    "def": 55,
+    "spa": 65,
+    "spd": 75,
+    "spe": 15,
+    "bst": 285
+  },
+  "abilities": {
+    "primary": "illuminate",
+    "secondary": "effect_spore",
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 57,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "morelull",
+    "evolution": "morelull",
+    "media": "morelull"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 1.5,
+    "color": "purple",
+    "flavorText": "It scatters spores that flicker and glow. Anyone seeing these lights falls into a deep slumber."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

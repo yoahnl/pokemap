@@ -1,0 +1,14 @@
+{
+  "speciesId": "rolycoly",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "carkol",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

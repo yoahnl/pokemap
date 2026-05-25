@@ -1,0 +1,18 @@
+{
+  "speciesId": "cutiefly",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cutiefly/front.png",
+      "backStatic": "assets/pokemon/sprites/cutiefly/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cutiefly/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cutiefly/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cutiefly.png",
+      "cry": "assets/pokemon/cries/cutiefly.ogg",
+      "animations": {}
+    }
+  }
+}

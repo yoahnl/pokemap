@@ -1,0 +1,18 @@
+{
+  "speciesId": "psyduck",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/psyduck/front.png",
+      "backStatic": "assets/pokemon/sprites/psyduck/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/psyduck/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/psyduck/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/psyduck.png",
+      "cry": "assets/pokemon/cries/psyduck.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "flapple",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/flapple/front.png",
+      "backStatic": "assets/pokemon/sprites/flapple/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/flapple/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/flapple/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/flapple.png",
+      "cry": "assets/pokemon/cries/flapple.ogg",
+      "animations": {}
+    }
+  }
+}

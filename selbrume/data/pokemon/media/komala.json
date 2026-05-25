@@ -1,0 +1,18 @@
+{
+  "speciesId": "komala",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/komala/front.png",
+      "backStatic": "assets/pokemon/sprites/komala/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/komala/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/komala/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/komala.png",
+      "cry": "assets/pokemon/cries/komala.ogg",
+      "animations": {}
+    }
+  }
+}

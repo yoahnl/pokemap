@@ -1,0 +1,18 @@
+{
+  "speciesId": "trumbeak",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/trumbeak/front.png",
+      "backStatic": "assets/pokemon/sprites/trumbeak/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/trumbeak/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/trumbeak/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/trumbeak.png",
+      "cry": "assets/pokemon/cries/trumbeak.ogg",
+      "animations": {}
+    }
+  }
+}

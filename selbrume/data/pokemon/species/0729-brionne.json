@@ -1,0 +1,101 @@
+{
+  "id": "brionne",
+  "slug": "brionne",
+  "nationalDex": 729,
+  "names": {
+    "ja_hrkt": "オシャマリ",
+    "ja_roma": "Osyamari",
+    "ko": "키요공",
+    "zh_hant": "花漾海獅",
+    "fr": "Otarlette",
+    "de": "Marikeck",
+    "es": "Brionne",
+    "it": "Brionne",
+    "en": "Brionne",
+    "ja": "オシャマリ",
+    "zh_hans": "花漾海狮"
+  },
+  "speciesName": {
+    "ja_hrkt": "アイドルポケモン",
+    "ko": "아이돌포켓몬",
+    "zh_hant": "偶像寶可夢",
+    "fr": "Pokémon Starlette",
+    "de": "Popsternchen-Pokémon",
+    "es": "Pokémon Fama",
+    "it": "Pokémon Pop Star",
+    "en": "Pop Star Pokémon",
+    "ja": "アイドルポケモン",
+    "zh_hans": "偶像宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 69,
+    "def": 69,
+    "spa": 91,
+    "spd": 81,
+    "spe": 50,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "liquid_voice"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 147,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "brionne",
+    "evolution": "brionne",
+    "media": "brionne"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 17.5,
+    "color": "blue",
+    "flavorText": "A skillful dancer, it creates a sequence of water balloons as it dances, and briskly bombards its enemies."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

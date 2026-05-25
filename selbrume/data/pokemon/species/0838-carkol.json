@@ -1,0 +1,98 @@
+{
+  "id": "carkol",
+  "slug": "carkol",
+  "nationalDex": 838,
+  "names": {
+    "ja_hrkt": "トロッゴン",
+    "ja_roma": "Toroggon",
+    "ko": "탄차곤",
+    "zh_hant": "大炭車",
+    "fr": "Wagomine",
+    "de": "Wagong",
+    "es": "Carkol",
+    "it": "Carkol",
+    "en": "Carkol",
+    "ja": "トロッゴン",
+    "zh_hans": "大炭车"
+  },
+  "speciesName": {
+    "ja_hrkt": "せきたんポケモン",
+    "ko": "석탄포켓몬",
+    "zh_hant": "煤炭寶可夢",
+    "fr": "Pokémon Charbon",
+    "de": "Kohle-Pokémon",
+    "es": "Pokémon Carbón",
+    "it": "Pokémon Carbone",
+    "en": "Coal Pokémon",
+    "ja": "せきたんポケモン",
+    "zh_hans": "煤炭宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "rock",
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 60,
+    "def": 90,
+    "spa": 60,
+    "spd": 70,
+    "spe": 50,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "steam_engine",
+    "secondary": "flame_body",
+    "hidden": "flash_fire"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 144,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "carkol",
+    "evolution": "carkol",
+    "media": "carkol"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 78.0,
+    "color": "black",
+    "flavorText": "It forms coal inside its body. Coal dropped by this Pokémon once helped fuel the lives of people in the Galar region."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

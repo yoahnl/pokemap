@@ -1,0 +1,100 @@
+{
+  "id": "reshiram",
+  "slug": "reshiram",
+  "nationalDex": 643,
+  "names": {
+    "ja_hrkt": "レシラム",
+    "ja_roma": "Reshiram",
+    "ko": "레시라무",
+    "zh_hant": "萊希拉姆",
+    "fr": "Reshiram",
+    "de": "Reshiram",
+    "es": "Reshiram",
+    "it": "Reshiram",
+    "en": "Reshiram",
+    "ja": "レシラム",
+    "zh_hans": "莱希拉姆"
+  },
+  "speciesName": {
+    "ja_hrkt": "はくようポケモン",
+    "ko": "백양포켓몬",
+    "zh_hant": "白陽寶可夢",
+    "fr": "Pokémon Blanc Réel",
+    "de": "Wahres Weiß-Pokémon",
+    "es": "Pokémon Blanco Veraz",
+    "it": "Pokémon Bianco Verità",
+    "en": "Vast White Pokémon",
+    "ja": "はくようポケモン",
+    "zh_hans": "白阳宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dragon",
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 120,
+    "def": 100,
+    "spa": 150,
+    "spd": 120,
+    "spe": 90,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "turboblaze",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "reshiram",
+    "evolution": "reshiram",
+    "media": "reshiram"
+  },
+  "dexContent": {
+    "heightM": 3.2,
+    "weightKg": 330.0,
+    "color": "white",
+    "flavorText": "This Pokémon appears in legends. It sends flames into the air from its tail, burning up everything around it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

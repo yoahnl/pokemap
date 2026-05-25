@@ -1,0 +1,100 @@
+{
+  "id": "scolipede",
+  "slug": "scolipede",
+  "nationalDex": 545,
+  "names": {
+    "ja_hrkt": "ペンドラー",
+    "ja_roma": "Pendror",
+    "ko": "펜드라",
+    "zh_hant": "蜈蚣王",
+    "fr": "Brutapode",
+    "de": "Cerapendra",
+    "es": "Scolipede",
+    "it": "Scolipede",
+    "en": "Scolipede",
+    "ja": "ペンドラー",
+    "zh_hans": "蜈蚣王"
+  },
+  "speciesName": {
+    "ja_hrkt": "メガムカデポケモン",
+    "ko": "메가지네포켓몬",
+    "zh_hant": "巨蜈蚣寶可夢",
+    "fr": "Pokémon Mégaplopode",
+    "de": "Riesenfüßer-Pokémon",
+    "es": "Pokémon Megaciempiés",
+    "it": "Pokémon Megapede",
+    "en": "Megapede Pokémon",
+    "ja": "メガムカデポケモン",
+    "zh_hans": "巨蜈蚣宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 100,
+    "def": 89,
+    "spa": 55,
+    "spd": 69,
+    "spe": 112,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "poison_point",
+    "secondary": "swarm",
+    "hidden": "speed_boost"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 218,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "scolipede-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "scolipede",
+    "evolution": "scolipede",
+    "media": "scolipede"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 200.5,
+    "color": "red",
+    "flavorText": "With quick movements, it chases down its foes, attacking relentlessly with its horns until it prevails."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

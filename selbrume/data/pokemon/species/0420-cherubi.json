@@ -1,0 +1,98 @@
+{
+  "id": "cherubi",
+  "slug": "cherubi",
+  "nationalDex": 420,
+  "names": {
+    "ja_hrkt": "チェリンボ",
+    "ja_roma": "Cherinbo",
+    "ko": "체리버",
+    "zh_hant": "櫻花寶",
+    "fr": "Ceribou",
+    "de": "Kikugi",
+    "es": "Cherubi",
+    "it": "Cherubi",
+    "en": "Cherubi",
+    "ja": "チェリンボ",
+    "zh_hans": "樱花宝"
+  },
+  "speciesName": {
+    "ja_hrkt": "さくらんぼポケモン",
+    "ko": "버찌포켓몬",
+    "zh_hant": "櫻桃寶可夢",
+    "fr": "Pokémon Cerise",
+    "de": "Kirschen-Pokémon",
+    "es": "Pokémon Cereza",
+    "it": "Pokémon Ciliegia",
+    "en": "Cherry Pokémon",
+    "ja": "さくらんぼポケモン",
+    "zh_hans": "樱桃宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 35,
+    "def": 45,
+    "spa": 62,
+    "spd": 53,
+    "spe": 35,
+    "bst": 275
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 55,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cherubi",
+    "evolution": "cherubi",
+    "media": "cherubi"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 3.3,
+    "color": "pink",
+    "flavorText": "The small ball holds the nutrients needed for evolution. Apparently, it is very sweet and tasty."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

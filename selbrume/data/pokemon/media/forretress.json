@@ -1,0 +1,18 @@
+{
+  "speciesId": "forretress",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/forretress/front.png",
+      "backStatic": "assets/pokemon/sprites/forretress/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/forretress/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/forretress/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/forretress.png",
+      "cry": "assets/pokemon/cries/forretress.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "baltoy",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "claydol",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

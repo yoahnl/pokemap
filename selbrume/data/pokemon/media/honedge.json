@@ -1,0 +1,18 @@
+{
+  "speciesId": "honedge",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/honedge/front.png",
+      "backStatic": "assets/pokemon/sprites/honedge/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/honedge/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/honedge/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/honedge.png",
+      "cry": "assets/pokemon/cries/honedge.ogg",
+      "animations": {}
+    }
+  }
+}

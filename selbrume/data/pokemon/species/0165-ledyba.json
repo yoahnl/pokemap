@@ -1,0 +1,98 @@
+{
+  "id": "ledyba",
+  "slug": "ledyba",
+  "nationalDex": 165,
+  "names": {
+    "ja_hrkt": "レディバ",
+    "ja_roma": "Rediba",
+    "ko": "레디바",
+    "zh_hant": "芭瓢蟲",
+    "fr": "Coxy",
+    "de": "Ledyba",
+    "es": "Ledyba",
+    "it": "Ledyba",
+    "en": "Ledyba",
+    "ja": "レディバ",
+    "zh_hans": "芭瓢虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "いつつぼしポケモン",
+    "ko": "별다섯포켓몬",
+    "zh_hant": "五星寶可夢",
+    "fr": "Pokémon 5 Étoiles",
+    "de": "Fünf-Punkt",
+    "es": "Pokémon 5 Estrellas",
+    "it": "Pokémon Pentastra",
+    "en": "Five Star Pokémon",
+    "ja": "いつつぼしポケモン",
+    "zh_hans": "五星宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 20,
+    "def": 30,
+    "spa": 40,
+    "spd": 80,
+    "spe": 55,
+    "bst": 265
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "early_bird",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 53,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ledyba",
+    "evolution": "ledyba",
+    "media": "ledyba"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 10.8,
+    "color": "red",
+    "flavorText": "It is very timid. It will be afraid to move if it is alone. But it will be active if it is in a group."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

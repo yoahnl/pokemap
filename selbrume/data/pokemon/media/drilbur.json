@@ -1,0 +1,18 @@
+{
+  "speciesId": "drilbur",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/drilbur/front.png",
+      "backStatic": "assets/pokemon/sprites/drilbur/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/drilbur/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/drilbur/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/drilbur.png",
+      "cry": "assets/pokemon/cries/drilbur.ogg",
+      "animations": {}
+    }
+  }
+}

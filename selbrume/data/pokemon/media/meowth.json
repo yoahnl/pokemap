@@ -1,0 +1,42 @@
+{
+  "speciesId": "meowth",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/meowth/front.png",
+      "backStatic": "assets/pokemon/sprites/meowth/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/meowth/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/meowth/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/meowth.png",
+      "cry": "assets/pokemon/cries/meowth.ogg",
+      "animations": {}
+    },
+    "meowth-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "meowth-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

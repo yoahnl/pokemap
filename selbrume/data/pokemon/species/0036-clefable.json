@@ -1,0 +1,102 @@
+{
+  "id": "clefable",
+  "slug": "clefable",
+  "nationalDex": 36,
+  "names": {
+    "ja_hrkt": "ピクシー",
+    "ja_roma": "Pixy",
+    "ko": "픽시",
+    "zh_hant": "皮可西",
+    "fr": "Mélodelfe",
+    "de": "Pixi",
+    "es": "Clefable",
+    "it": "Clefable",
+    "en": "Clefable",
+    "ja": "ピクシー",
+    "zh_hans": "皮可西"
+  },
+  "speciesName": {
+    "ja_hrkt": "ようせいポケモン",
+    "ko": "요정포켓몬",
+    "zh_hant": "妖精寶可夢",
+    "fr": "Pokémon Fée",
+    "de": "Feen-Pokémon",
+    "es": "Pokémon Hada",
+    "it": "Pokémon Fata",
+    "en": "Fairy Pokémon",
+    "ja": "ようせいポケモン",
+    "zh_hans": "妖精宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 70,
+    "def": 73,
+    "spa": 95,
+    "spd": 90,
+    "spe": 60,
+    "bst": 483
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "magic_guard",
+    "hidden": "unaware"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 217,
+    "catchRate": 25,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "clefable-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "clefable",
+    "evolution": "clefable",
+    "media": "clefable"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 40.0,
+    "color": "pink",
+    "flavorText": "A timid fairy POKéMON that is rarely seen. It will run and hide the moment it senses people."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

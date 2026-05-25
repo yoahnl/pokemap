@@ -1,0 +1,18 @@
+{
+  "speciesId": "politoed",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/politoed/front.png",
+      "backStatic": "assets/pokemon/sprites/politoed/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/politoed/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/politoed/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/politoed.png",
+      "cry": "assets/pokemon/cries/politoed.ogg",
+      "animations": {}
+    }
+  }
+}

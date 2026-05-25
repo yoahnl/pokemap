@@ -1,0 +1,18 @@
+{
+  "speciesId": "blissey",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/blissey/front.png",
+      "backStatic": "assets/pokemon/sprites/blissey/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/blissey/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/blissey/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/blissey.png",
+      "cry": "assets/pokemon/cries/blissey.ogg",
+      "animations": {}
+    }
+  }
+}

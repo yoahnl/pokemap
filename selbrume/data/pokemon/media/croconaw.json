@@ -1,0 +1,18 @@
+{
+  "speciesId": "croconaw",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/croconaw/front.png",
+      "backStatic": "assets/pokemon/sprites/croconaw/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/croconaw/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/croconaw/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/croconaw.png",
+      "cry": "assets/pokemon/cries/croconaw.ogg",
+      "animations": {}
+    }
+  }
+}

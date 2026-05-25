@@ -1,0 +1,18 @@
+{
+  "speciesId": "patrat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/patrat/front.png",
+      "backStatic": "assets/pokemon/sprites/patrat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/patrat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/patrat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/patrat.png",
+      "cry": "assets/pokemon/cries/patrat.ogg",
+      "animations": {}
+    }
+  }
+}

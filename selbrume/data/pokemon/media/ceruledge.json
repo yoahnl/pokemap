@@ -1,0 +1,18 @@
+{
+  "speciesId": "ceruledge",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ceruledge/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/ceruledge/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ceruledge.png",
+      "cry": "assets/pokemon/cries/ceruledge.ogg",
+      "animations": {}
+    }
+  }
+}

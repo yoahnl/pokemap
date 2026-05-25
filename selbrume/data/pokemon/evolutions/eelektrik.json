@@ -1,0 +1,14 @@
+{
+  "speciesId": "eelektrik",
+  "preEvolution": "tynamo",
+  "evolutions": [
+    {
+      "targetSpeciesId": "eelektross",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

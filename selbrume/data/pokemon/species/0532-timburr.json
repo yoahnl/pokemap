@@ -1,0 +1,100 @@
+{
+  "id": "timburr",
+  "slug": "timburr",
+  "nationalDex": 532,
+  "names": {
+    "ja_hrkt": "ドッコラー",
+    "ja_roma": "Dokkorer",
+    "ko": "으랏차",
+    "zh_hant": "搬運小匠",
+    "fr": "Charpenti",
+    "de": "Praktibalk",
+    "es": "Timburr",
+    "it": "Timburr",
+    "en": "Timburr",
+    "ja": "ドッコラー",
+    "zh_hans": "搬运小匠"
+  },
+  "speciesName": {
+    "ja_hrkt": "きんこつポケモン",
+    "ko": "근골포켓몬",
+    "zh_hant": "筋骨寶可夢",
+    "fr": "Pokémon Costaud",
+    "de": "Muskel-Pokémon",
+    "es": "Pokémon Musculoso",
+    "it": "Pokémon Forzaimmane",
+    "en": "Muscular Pokémon",
+    "ja": "きんこつポケモン",
+    "zh_hans": "筋骨宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 80,
+    "def": 55,
+    "spa": 25,
+    "spd": 35,
+    "spe": 35,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": "sheer_force",
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 61,
+    "catchRate": 180,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "timburr",
+    "evolution": "timburr",
+    "media": "timburr"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 12.5,
+    "color": "gray",
+    "flavorText": "It fights by swinging a piece of lumber around. It is close to evolving when it can handle the lumber without difficulty."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

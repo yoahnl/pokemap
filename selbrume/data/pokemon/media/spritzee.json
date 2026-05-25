@@ -1,0 +1,18 @@
+{
+  "speciesId": "spritzee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spritzee/front.png",
+      "backStatic": "assets/pokemon/sprites/spritzee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spritzee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spritzee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spritzee.png",
+      "cry": "assets/pokemon/cries/spritzee.ogg",
+      "animations": {}
+    }
+  }
+}

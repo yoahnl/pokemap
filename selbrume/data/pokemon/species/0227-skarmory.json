@@ -1,0 +1,100 @@
+{
+  "id": "skarmory",
+  "slug": "skarmory",
+  "nationalDex": 227,
+  "names": {
+    "ja_hrkt": "エアームド",
+    "ja_roma": "Airmd",
+    "ko": "무장조",
+    "zh_hant": "盔甲鳥",
+    "fr": "Airmure",
+    "de": "Panzaeron",
+    "es": "Skarmory",
+    "it": "Skarmory",
+    "en": "Skarmory",
+    "ja": "エアームド",
+    "zh_hans": "盔甲鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "よろいどりポケモン",
+    "ko": "갑옷새포켓몬",
+    "zh_hant": "鋼甲鳥寶可夢",
+    "fr": "Pokémon Armoiseau",
+    "de": "Flugstahl-Pokémon",
+    "es": "Pokémon Coraza Ave",
+    "it": "Pokémon Armuccello",
+    "en": "Armor Bird Pokémon",
+    "ja": "よろいどりポケモン",
+    "zh_hans": "钢甲鸟宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "steel",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 80,
+    "def": 140,
+    "spa": 40,
+    "spd": 70,
+    "spe": 70,
+    "bst": 465
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "sturdy",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 163,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "skarmory-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "skarmory",
+    "evolution": "skarmory",
+    "media": "skarmory"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 50.5,
+    "color": "gray",
+    "flavorText": "Its sturdy wings look heavy, but they are actually hollow and light, allowing it to fly freely in the sky."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "heracross",
+  "slug": "heracross",
+  "nationalDex": 214,
+  "names": {
+    "ja_hrkt": "ヘラクロス",
+    "ja_roma": "Heracros",
+    "ko": "헤라크로스",
+    "zh_hant": "赫拉克羅斯",
+    "fr": "Scarhino",
+    "de": "Skaraborn",
+    "es": "Heracross",
+    "it": "Heracross",
+    "en": "Heracross",
+    "ja": "ヘラクロス",
+    "zh_hans": "赫拉克罗斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "１ぽんヅノポケモン",
+    "ko": "외뿔포켓몬",
+    "zh_hant": "獨角寶可夢",
+    "fr": "Pokémon Unicorne",
+    "de": "Einzelhorn-Pokémon",
+    "es": "Pokémon Cuerno",
+    "it": "Pokémon Monocorno",
+    "en": "Single Horn Pokémon",
+    "ja": "１ぽんヅノポケモン",
+    "zh_hans": "独角宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "bug",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 125,
+    "def": 75,
+    "spa": 40,
+    "spd": 95,
+    "spe": 85,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "guts",
+    "hidden": "moxie"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 175,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "heracross-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "heracross",
+    "evolution": "heracross",
+    "media": "heracross"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 54.0,
+    "color": "blue",
+    "flavorText": "It is usually docile, but if it is disturbed while sipping honey, it chases off the intruder with its horn."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

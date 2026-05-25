@@ -1,0 +1,18 @@
+{
+  "speciesId": "noibat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/noibat/front.png",
+      "backStatic": "assets/pokemon/sprites/noibat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/noibat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/noibat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/noibat.png",
+      "cry": "assets/pokemon/cries/noibat.ogg",
+      "animations": {}
+    }
+  }
+}

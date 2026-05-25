@@ -1,0 +1,18 @@
+{
+  "speciesId": "drapion",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/drapion/front.png",
+      "backStatic": "assets/pokemon/sprites/drapion/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/drapion/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/drapion/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/drapion.png",
+      "cry": "assets/pokemon/cries/drapion.ogg",
+      "animations": {}
+    }
+  }
+}

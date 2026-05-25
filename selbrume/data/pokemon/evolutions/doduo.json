@@ -1,0 +1,14 @@
+{
+  "speciesId": "doduo",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dodrio",
+      "method": "level_up",
+      "minLevel": 31,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

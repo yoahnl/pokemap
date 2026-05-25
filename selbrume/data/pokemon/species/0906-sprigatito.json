@@ -1,0 +1,97 @@
+{
+  "id": "sprigatito",
+  "slug": "sprigatito",
+  "nationalDex": 906,
+  "names": {
+    "ja_hrkt": "ニャオハ",
+    "ja_roma": "Nyahoja",
+    "ko": "나오하",
+    "zh_hant": "新葉喵",
+    "fr": "Poussacha",
+    "de": "Felori",
+    "es": "Sprigatito",
+    "it": "Sprigatito",
+    "en": "Sprigatito",
+    "ja": "ニャオハ",
+    "zh_hans": "新叶喵"
+  },
+  "speciesName": {
+    "ja_hrkt": "くさねこポケモン",
+    "ko": "풀고양이포켓몬",
+    "zh_hant": "草貓寶可夢",
+    "fr": "Chat Plante",
+    "en": "Grass Cat Pokémon",
+    "zh_hans": "草猫宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 61,
+    "def": 54,
+    "spa": 45,
+    "spd": 45,
+    "spe": 65,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "protean"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sprigatito",
+    "evolution": "sprigatito",
+    "media": "sprigatito"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.1,
+    "color": "green",
+    "flavorText": "Its fluffy fur is similar in composition to plants. This Pokémon frequently washes its face to keep it from drying out."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

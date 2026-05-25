@@ -1,0 +1,99 @@
+{
+  "id": "ursaluna",
+  "slug": "ursaluna",
+  "nationalDex": 901,
+  "names": {
+    "ja_hrkt": "ガチグマ",
+    "ja_roma": "Gachiguma",
+    "ko": "다투곰",
+    "zh_hant": "月月熊",
+    "fr": "Ursaking",
+    "de": "Ursaluna",
+    "es": "Ursaluna",
+    "it": "Ursaluna",
+    "en": "Ursaluna",
+    "ja": "ガチグマ",
+    "zh_hans": "月月熊"
+  },
+  "speciesName": {
+    "ja_hrkt": "でいたんポケモン",
+    "ko": "이탄포켓몬",
+    "zh_hant": "泥炭寶可夢",
+    "fr": "Pokémon Tourbe",
+    "de": "Torf-Pokémon",
+    "it": "Pokémon Torba",
+    "en": "Peat Pokémon",
+    "ja": "でいたんポケモン",
+    "zh_hans": "泥炭宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "ground",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 130,
+    "atk": 140,
+    "def": 105,
+    "spa": 45,
+    "spd": 80,
+    "spe": 50,
+    "bst": 550
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": "bulletproof",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 275,
+    "catchRate": 75,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "ursaluna-bloodmoon"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ursaluna",
+    "evolution": "ursaluna",
+    "media": "ursaluna"
+  },
+  "dexContent": {
+    "heightM": 2.4,
+    "weightKg": 290.0,
+    "color": "brown",
+    "flavorText": "I believe it was Hisui's swampy terrain that gave Ursaluna its burly physique and newfound capacity to manipulate peat at will."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

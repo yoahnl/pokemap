@@ -1,0 +1,30 @@
+{
+  "speciesId": "linoone",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/linoone/front.png",
+      "backStatic": "assets/pokemon/sprites/linoone/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/linoone/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/linoone/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/linoone.png",
+      "cry": "assets/pokemon/cries/linoone.ogg",
+      "animations": {}
+    },
+    "linoone-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

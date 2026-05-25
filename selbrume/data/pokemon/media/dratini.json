@@ -1,0 +1,18 @@
+{
+  "speciesId": "dratini",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dratini/front.png",
+      "backStatic": "assets/pokemon/sprites/dratini/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dratini/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dratini/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dratini.png",
+      "cry": "assets/pokemon/cries/dratini.ogg",
+      "animations": {}
+    }
+  }
+}

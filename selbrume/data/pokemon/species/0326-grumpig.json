@@ -1,0 +1,97 @@
+{
+  "id": "grumpig",
+  "slug": "grumpig",
+  "nationalDex": 326,
+  "names": {
+    "ja_hrkt": "ブーピッグ",
+    "ja_roma": "Boopig",
+    "ko": "피그킹",
+    "zh_hant": "噗噗豬",
+    "fr": "Groret",
+    "de": "Groink",
+    "es": "Grumpig",
+    "it": "Grumpig",
+    "en": "Grumpig",
+    "ja": "ブーピッグ",
+    "zh_hans": "噗噗猪"
+  },
+  "speciesName": {
+    "ja_hrkt": "あやつりポケモン",
+    "ko": "조작포켓몬",
+    "zh_hant": "操縱寶可夢",
+    "fr": "Pokémon Magouilleur",
+    "de": "Manipulator",
+    "es": "Pokémon Manipulador",
+    "it": "Pokémon Raggiro",
+    "en": "Manipulate Pokémon",
+    "ja": "あやつりポケモン",
+    "zh_hans": "操纵宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 45,
+    "def": 65,
+    "spa": 90,
+    "spd": 110,
+    "spe": 80,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "own_tempo",
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 165,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "grumpig",
+    "evolution": "grumpig",
+    "media": "grumpig"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 71.5,
+    "color": "purple",
+    "flavorText": "GRUMPIG uses the black pearls on its body to amplify its psychic power waves for gaining total control over its foe. When this POKéMON uses its special power, its snorting breath grows labored."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "crocalor",
+  "preEvolution": "fuecoco",
+  "evolutions": [
+    {
+      "targetSpeciesId": "skeledirge",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

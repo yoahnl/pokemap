@@ -1,0 +1,100 @@
+{
+  "id": "braixen",
+  "slug": "braixen",
+  "nationalDex": 654,
+  "names": {
+    "ja_hrkt": "テールナー",
+    "ja_roma": "Tairenar",
+    "ko": "테르나",
+    "zh_hant": "長尾火狐",
+    "fr": "Roussil",
+    "de": "Rutena",
+    "es": "Braixen",
+    "it": "Braixen",
+    "en": "Braixen",
+    "ja": "テールナー",
+    "zh_hans": "长尾火狐"
+  },
+  "speciesName": {
+    "ja_hrkt": "キツネポケモン",
+    "ko": "여우포켓몬",
+    "zh_hant": "狐狸寶可夢",
+    "fr": "Pokémon Renard",
+    "de": "Fuchs",
+    "es": "Pokémon Zorro",
+    "it": "Pokémon Volpe",
+    "en": "Fox Pokémon",
+    "ja": "キツネポケモン",
+    "zh_hans": "狐狸宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 59,
+    "atk": 59,
+    "def": 58,
+    "spa": 90,
+    "spd": 70,
+    "spe": 73,
+    "bst": 409
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "magician"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 143,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "braixen",
+    "evolution": "braixen",
+    "media": "braixen"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 14.5,
+    "color": "red",
+    "flavorText": "It has a twig stuck in its tail. With friction from its tail fur, it sets the twig on fire and launches into battle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

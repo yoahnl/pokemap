@@ -1,0 +1,18 @@
+{
+  "speciesId": "loudred",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/loudred/front.png",
+      "backStatic": "assets/pokemon/sprites/loudred/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/loudred/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/loudred/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/loudred.png",
+      "cry": "assets/pokemon/cries/loudred.ogg",
+      "animations": {}
+    }
+  }
+}

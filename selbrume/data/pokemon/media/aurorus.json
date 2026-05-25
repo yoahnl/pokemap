@@ -1,0 +1,18 @@
+{
+  "speciesId": "aurorus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/aurorus/front.png",
+      "backStatic": "assets/pokemon/sprites/aurorus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/aurorus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/aurorus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/aurorus.png",
+      "cry": "assets/pokemon/cries/aurorus.ogg",
+      "animations": {}
+    }
+  }
+}

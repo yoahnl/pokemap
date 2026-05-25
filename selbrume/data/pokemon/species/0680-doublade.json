@@ -1,0 +1,98 @@
+{
+  "id": "doublade",
+  "slug": "doublade",
+  "nationalDex": 680,
+  "names": {
+    "ja_hrkt": "ニダンギル",
+    "ja_roma": "Nidangill",
+    "ko": "쌍검킬",
+    "zh_hant": "雙劍鞘",
+    "fr": "Dimoclès",
+    "de": "Duokles",
+    "es": "Doublade",
+    "it": "Doublade",
+    "en": "Doublade",
+    "ja": "ニダンギル",
+    "zh_hans": "双剑鞘"
+  },
+  "speciesName": {
+    "ja_hrkt": "とうけんポケモン",
+    "ko": "도검포켓몬",
+    "zh_hant": "刀劍寶可夢",
+    "fr": "Pokémon Glaive",
+    "de": "Klingenkraft-Pokémon",
+    "es": "Pokémon Tizona",
+    "it": "Pokémon Armabianca",
+    "en": "Sword Pokémon",
+    "ja": "とうけんポケモン",
+    "zh_hans": "刀剑宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "steel",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 59,
+    "atk": 110,
+    "def": 150,
+    "spa": 45,
+    "spd": 49,
+    "spe": 35,
+    "bst": 448
+  },
+  "abilities": {
+    "primary": "no_guard",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 157,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "doublade",
+    "evolution": "doublade",
+    "media": "doublade"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 4.5,
+    "color": "brown",
+    "flavorText": "When Honedge evolves, it divides into two swords, which cooperate via telepathy to coordinate attacks and slash their enemies to ribbons."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

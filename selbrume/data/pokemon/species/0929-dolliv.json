@@ -1,0 +1,95 @@
+{
+  "id": "dolliv",
+  "slug": "dolliv",
+  "nationalDex": 929,
+  "names": {
+    "ja_hrkt": "オリーニョ",
+    "ja_roma": "Olinyo",
+    "ko": "올리뇨",
+    "zh_hant": "奧利紐",
+    "fr": "Olivado",
+    "de": "Olivinio",
+    "es": "Dolliv",
+    "it": "Dolliv",
+    "en": "Dolliv",
+    "ja": "オリーニョ",
+    "zh_hans": "奥利纽"
+  },
+  "speciesName": {
+    "ja_hrkt": "オリーブポケモン",
+    "ko": "올리브포켓몬",
+    "zh_hant": "橄欖寶可夢",
+    "fr": "Olive",
+    "de": "Olive",
+    "en": "Olive Pokémon",
+    "zh_hans": "橄榄宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "grass",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 52,
+    "atk": 53,
+    "def": 60,
+    "spa": 78,
+    "spd": 78,
+    "spe": 33,
+    "bst": 354
+  },
+  "abilities": {
+    "primary": "early_bird",
+    "secondary": null,
+    "hidden": "harvest"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 124,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dolliv",
+    "evolution": "dolliv",
+    "media": "dolliv"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 11.9,
+    "color": "green",
+    "flavorText": "Dolliv shares its tasty, fresh-scented oil with others. This species has coexisted with humans since times long gone."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

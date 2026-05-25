@@ -1,0 +1,14 @@
+{
+  "speciesId": "boldore",
+  "preEvolution": "roggenrola",
+  "evolutions": [
+    {
+      "targetSpeciesId": "gigalith",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

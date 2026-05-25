@@ -1,0 +1,94 @@
+{
+  "id": "capsakid",
+  "slug": "capsakid",
+  "nationalDex": 951,
+  "names": {
+    "ja_hrkt": "カプサイジ",
+    "ja_roma": "Capsaiji",
+    "ko": "캡싸이",
+    "zh_hant": "熱辣娃",
+    "fr": "Pimito",
+    "de": "Chilingel",
+    "es": "Capsakid",
+    "it": "Capsakid",
+    "en": "Capsakid",
+    "ja": "カプサイジ",
+    "zh_hans": "热辣娃"
+  },
+  "speciesName": {
+    "ja_hrkt": "ハバネロポケモン",
+    "ko": "하바네로포켓몬",
+    "zh_hant": "熱辣寶可夢",
+    "fr": "Habanero",
+    "de": "Habanero",
+    "en": "Spicy Pepper Pokémon",
+    "zh_hans": "热辣宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 62,
+    "def": 40,
+    "spa": 62,
+    "spd": 40,
+    "spe": 50,
+    "bst": 304
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "insomnia",
+    "hidden": "klutz"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "capsakid",
+    "evolution": "capsakid",
+    "media": "capsakid"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 3.0,
+    "color": "green",
+    "flavorText": "The more sunlight this Pokémon bathes in, the more spicy chemicals are produced by its body, and thus the spicier its moves become."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

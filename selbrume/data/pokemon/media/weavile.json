@@ -1,0 +1,18 @@
+{
+  "speciesId": "weavile",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/weavile/front.png",
+      "backStatic": "assets/pokemon/sprites/weavile/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/weavile/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/weavile/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/weavile.png",
+      "cry": "assets/pokemon/cries/weavile.ogg",
+      "animations": {}
+    }
+  }
+}

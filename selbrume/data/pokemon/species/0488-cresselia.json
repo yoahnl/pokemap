@@ -1,0 +1,97 @@
+{
+  "id": "cresselia",
+  "slug": "cresselia",
+  "nationalDex": 488,
+  "names": {
+    "ja_hrkt": "クレセリア",
+    "ja_roma": "Crecelia",
+    "ko": "크레세리아",
+    "zh_hant": "克雷色利亞",
+    "fr": "Cresselia",
+    "de": "Cresselia",
+    "es": "Cresselia",
+    "it": "Cresselia",
+    "en": "Cresselia",
+    "ja": "クレセリア",
+    "zh_hans": "克雷色利亚"
+  },
+  "speciesName": {
+    "ja_hrkt": "みかづきポケモン",
+    "ko": "초승달포켓몬",
+    "zh_hant": "新月寶可夢",
+    "fr": "Pokémon Lunaire",
+    "de": "Lunar-Pokémon",
+    "es": "Pokémon Lunar",
+    "it": "Pokémon Falcato",
+    "en": "Lunar Pokémon",
+    "ja": "みかづきポケモン",
+    "zh_hans": "新月宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 120,
+    "atk": 70,
+    "def": 110,
+    "spa": 75,
+    "spd": 120,
+    "spe": 85,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cresselia",
+    "evolution": "cresselia",
+    "media": "cresselia"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 85.6,
+    "color": "yellow",
+    "flavorText": "Shiny particles are released from its wings like a veil. It is said to represent the crescent moon."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

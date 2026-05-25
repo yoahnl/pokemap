@@ -1,0 +1,98 @@
+{
+  "id": "haunter",
+  "slug": "haunter",
+  "nationalDex": 93,
+  "names": {
+    "ja_hrkt": "ゴースト",
+    "ja_roma": "Ghost",
+    "ko": "고우스트",
+    "zh_hant": "鬼斯通",
+    "fr": "Spectrum",
+    "de": "Alpollo",
+    "es": "Haunter",
+    "it": "Haunter",
+    "en": "Haunter",
+    "ja": "ゴースト",
+    "zh_hans": "鬼斯通"
+  },
+  "speciesName": {
+    "ja_hrkt": "ガスじょうポケモン",
+    "ko": "가스포켓몬",
+    "zh_hant": "氣體狀寶可夢",
+    "fr": "Pokémon Gaz",
+    "de": "Gas-Pokémon",
+    "es": "Pokémon Gas",
+    "it": "Pokémon Gas",
+    "en": "Gas Pokémon",
+    "ja": "ガスじょうポケモン",
+    "zh_hans": "气体状宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ghost",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 50,
+    "def": 45,
+    "spa": 115,
+    "spd": 55,
+    "spe": 95,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "haunter",
+    "evolution": "haunter",
+    "media": "haunter"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 0.1,
+    "color": "purple",
+    "flavorText": "Because of its ability to slip through block walls, it is said to be from an­ other dimension."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

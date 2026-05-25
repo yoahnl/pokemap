@@ -1,0 +1,14 @@
+{
+  "speciesId": "machoke",
+  "preEvolution": "machop",
+  "evolutions": [
+    {
+      "targetSpeciesId": "machamp",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

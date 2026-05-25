@@ -1,0 +1,101 @@
+{
+  "id": "scorbunny",
+  "slug": "scorbunny",
+  "nationalDex": 813,
+  "names": {
+    "ja_hrkt": "ヒバニー",
+    "ja_roma": "Hibanny",
+    "ko": "염버니",
+    "zh_hant": "炎兔兒",
+    "fr": "Flambino",
+    "de": "Hopplo",
+    "es": "Scorbunny",
+    "it": "Scorbunny",
+    "en": "Scorbunny",
+    "ja": "ヒバニー",
+    "zh_hans": "炎兔儿"
+  },
+  "speciesName": {
+    "ja_hrkt": "うさぎポケモン",
+    "ko": "토끼포켓몬",
+    "zh_hant": "兔子寶可夢",
+    "fr": "Pokémon Lapin",
+    "de": "Hasen-Pokémon",
+    "es": "Pokémon Conejo",
+    "it": "Pokémon Coniglio",
+    "en": "Rabbit Pokémon",
+    "ja": "うさぎポケモン",
+    "zh_hans": "兔子宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 71,
+    "def": 40,
+    "spa": 40,
+    "spd": 40,
+    "spe": 69,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "libero"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "scorbunny",
+    "evolution": "scorbunny",
+    "media": "scorbunny"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 4.5,
+    "color": "white",
+    "flavorText": "A warm-up of running around gets fire energy coursing through this Pokémon’s body. Once that happens, it’s ready to fight at full power."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

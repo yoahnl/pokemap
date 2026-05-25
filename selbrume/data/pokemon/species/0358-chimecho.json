@@ -1,0 +1,99 @@
+{
+  "id": "chimecho",
+  "slug": "chimecho",
+  "nationalDex": 358,
+  "names": {
+    "ja_hrkt": "チリーン",
+    "ja_roma": "Chirean",
+    "ko": "치렁",
+    "zh_hant": "風鈴鈴",
+    "fr": "Éoko",
+    "de": "Palimpalim",
+    "es": "Chimecho",
+    "it": "Chimecho",
+    "en": "Chimecho",
+    "ja": "チリーン",
+    "zh_hans": "风铃铃"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふうりんポケモン",
+    "ko": "풍경포켓몬",
+    "zh_hant": "風鈴寶可夢",
+    "fr": "Pokémon Carillon",
+    "de": "Windspiel",
+    "es": "Pokémon Sonido Aire",
+    "it": "Pokémon Vencampana",
+    "en": "Wind Chime Pokémon",
+    "ja": "ふうりんポケモン",
+    "zh_hans": "风铃宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 50,
+    "def": 80,
+    "spa": 95,
+    "spd": 90,
+    "spe": 65,
+    "bst": 455
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 159,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "chimecho-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "chimecho",
+    "evolution": "chimecho",
+    "media": "chimecho"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 1.0,
+    "color": "blue",
+    "flavorText": "CHIMECHO makes its cries echo inside its hollow body. When this POKéMON becomes enraged, its cries result in ultrasonic waves that have the power to knock foes flying."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

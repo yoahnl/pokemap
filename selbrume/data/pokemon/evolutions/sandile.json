@@ -1,0 +1,14 @@
+{
+  "speciesId": "sandile",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "krokorok",
+      "method": "level_up",
+      "minLevel": 29,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

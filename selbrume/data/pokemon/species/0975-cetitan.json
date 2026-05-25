@@ -1,0 +1,94 @@
+{
+  "id": "cetitan",
+  "slug": "cetitan",
+  "nationalDex": 975,
+  "names": {
+    "ja_hrkt": "ハルクジラ",
+    "ja_roma": "Hulkujira",
+    "ko": "우락고래",
+    "zh_hant": "浩大鯨",
+    "fr": "Balbalèze",
+    "de": "Kolowal",
+    "es": "Cetitan",
+    "it": "Cetitan",
+    "en": "Cetitan",
+    "ja": "ハルクジラ",
+    "zh_hans": "浩大鲸"
+  },
+  "speciesName": {
+    "ja_hrkt": "りくくじらポケモン",
+    "ko": "육지고래포켓몬",
+    "zh_hant": "陸鯨寶可夢",
+    "fr": "Baleinapied",
+    "de": "Landwal",
+    "en": "Terra Whale Pokémon",
+    "zh_hans": "陆鲸宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 170,
+    "atk": 113,
+    "def": 65,
+    "spa": 45,
+    "spd": 55,
+    "spe": 73,
+    "bst": 521
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "slush_rush",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 182,
+    "catchRate": 50,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cetitan",
+    "evolution": "cetitan",
+    "media": "cetitan"
+  },
+  "dexContent": {
+    "heightM": 4.5,
+    "weightKg": 700.0,
+    "color": "white",
+    "flavorText": "This Pokémon wanders around snowy, icy areas. It protects its body with powerful muscles and a thick layer of fat under its skin."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

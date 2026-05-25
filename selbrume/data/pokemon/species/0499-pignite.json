@@ -1,0 +1,101 @@
+{
+  "id": "pignite",
+  "slug": "pignite",
+  "nationalDex": 499,
+  "names": {
+    "ja_hrkt": "チャオブー",
+    "ja_roma": "Chaoboo",
+    "ko": "차오꿀",
+    "zh_hant": "炒炒豬",
+    "fr": "Grotichon",
+    "de": "Ferkokel",
+    "es": "Pignite",
+    "it": "Pignite",
+    "en": "Pignite",
+    "ja": "チャオブー",
+    "zh_hans": "炒炒猪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひぶたポケモン",
+    "ko": "불돼지포켓몬",
+    "zh_hant": "火豬寶可夢",
+    "fr": "Pokémon Cochon Feu",
+    "de": "Feuerferkel",
+    "es": "Pokémon Cerdo Fuego",
+    "it": "Pokémon Suinfuoco",
+    "en": "Fire Pig Pokémon",
+    "ja": "ひぶたポケモン",
+    "zh_hans": "火猪宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fire",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 93,
+    "def": 55,
+    "spa": 70,
+    "spd": 55,
+    "spe": 55,
+    "bst": 418
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "thick_fat"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 146,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pignite",
+    "evolution": "pignite",
+    "media": "pignite"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 55.5,
+    "color": "red",
+    "flavorText": "When its internal fire flares up, its movements grow sharper and faster. When in trouble, it emits smoke."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "wigglytuff",
+  "slug": "wigglytuff",
+  "nationalDex": 40,
+  "names": {
+    "ja_hrkt": "プクリン",
+    "ja_roma": "Pukurin",
+    "ko": "푸크린",
+    "zh_hant": "胖可丁",
+    "fr": "Grodoudou",
+    "de": "Knuddeluff",
+    "es": "Wigglytuff",
+    "it": "Wigglytuff",
+    "en": "Wigglytuff",
+    "ja": "プクリン",
+    "zh_hans": "胖可丁"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふうせんポケモン",
+    "ko": "풍선포켓몬",
+    "zh_hant": "氣球寶可夢",
+    "fr": "Pokémon Bouboule",
+    "de": "Ballon-Pokémon",
+    "es": "Pokémon Globo",
+    "it": "Pokémon Pallone",
+    "en": "Balloon Pokémon",
+    "ja": "ふうせんポケモン",
+    "zh_hans": "气球宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 140,
+    "atk": 70,
+    "def": 45,
+    "spa": 85,
+    "spd": 50,
+    "spe": 45,
+    "bst": 435
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "competitive",
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 196,
+    "catchRate": 50,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wigglytuff",
+    "evolution": "wigglytuff",
+    "media": "wigglytuff"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 12.0,
+    "color": "pink",
+    "flavorText": "The body is soft and rubbery. When angered, it will suck in air and inflate itself to an enormous size."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

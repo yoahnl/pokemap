@@ -1,0 +1,97 @@
+{
+  "id": "gholdengo",
+  "slug": "gholdengo",
+  "nationalDex": 1000,
+  "names": {
+    "ja_hrkt": "サーフゴー",
+    "ja_roma": "Surfugo",
+    "ko": "타부자고",
+    "zh_hant": "賽富豪",
+    "fr": "Gromago",
+    "de": "Monetigo",
+    "es": "Gholdengo",
+    "it": "Gholdengo",
+    "en": "Gholdengo",
+    "ja": "サーフゴー",
+    "zh_hans": "赛富豪"
+  },
+  "speciesName": {
+    "ja_hrkt": "たからものポケモン",
+    "ko": "보물생명체포켓몬",
+    "zh_hant": "寶者寶可夢",
+    "fr": "Trésor Animé",
+    "de": "Schatzwesen",
+    "en": "Coin Entity Pokémon",
+    "zh_hans": "宝者宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "steel",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 87,
+    "atk": 60,
+    "def": 95,
+    "spa": 133,
+    "spd": 91,
+    "spe": 84,
+    "bst": 550
+  },
+  "abilities": {
+    "primary": "good_as_gold",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 275,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gholdengo",
+    "evolution": "gholdengo",
+    "media": "gholdengo"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 30.0,
+    "color": "yellow",
+    "flavorText": "Its body seems to be made up of 1,000 coins. This Pokémon gets along well with others and is quick to make friends with anybody."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

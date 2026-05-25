@@ -1,0 +1,18 @@
+{
+  "speciesId": "corviknight",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/corviknight/front.png",
+      "backStatic": "assets/pokemon/sprites/corviknight/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/corviknight/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/corviknight/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/corviknight.png",
+      "cry": "assets/pokemon/cries/corviknight.ogg",
+      "animations": {}
+    }
+  }
+}

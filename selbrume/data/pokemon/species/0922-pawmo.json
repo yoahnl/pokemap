@@ -1,0 +1,95 @@
+{
+  "id": "pawmo",
+  "slug": "pawmo",
+  "nationalDex": 922,
+  "names": {
+    "ja_hrkt": "パモット",
+    "ja_roma": "Pamot",
+    "ko": "빠모트",
+    "zh_hant": "布土撥",
+    "fr": "Pohmotte",
+    "de": "Pamamo",
+    "es": "Pawmo",
+    "it": "Pawmo",
+    "en": "Pawmo",
+    "ja": "パモット",
+    "zh_hans": "布土拨"
+  },
+  "speciesName": {
+    "ja_hrkt": "ねずみポケモン",
+    "ko": "쥐포켓몬",
+    "zh_hant": "鼠寶可夢",
+    "fr": "Souris",
+    "de": "Maus",
+    "en": "Mouse Pokémon",
+    "zh_hans": "鼠宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "electric",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 75,
+    "def": 40,
+    "spa": 50,
+    "spd": 40,
+    "spe": 85,
+    "bst": 350
+  },
+  "abilities": {
+    "primary": "volt_absorb",
+    "secondary": "natural_cure",
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 123,
+    "catchRate": 80,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pawmo",
+    "evolution": "pawmo",
+    "media": "pawmo"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.5,
+    "color": "yellow",
+    "flavorText": "When its group is attacked, Pawmo is the first to leap into battle, defeating enemies with a fighting technique that utilizes electric shocks."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "blitzle",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "zebstrika",
+      "method": "level_up",
+      "minLevel": 27,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

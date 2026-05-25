@@ -1,0 +1,18 @@
+{
+  "speciesId": "pupitar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pupitar/front.png",
+      "backStatic": "assets/pokemon/sprites/pupitar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pupitar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pupitar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pupitar.png",
+      "cry": "assets/pokemon/cries/pupitar.ogg",
+      "animations": {}
+    }
+  }
+}

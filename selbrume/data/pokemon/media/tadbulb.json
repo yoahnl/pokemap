@@ -1,0 +1,18 @@
+{
+  "speciesId": "tadbulb",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tadbulb/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/tadbulb/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tadbulb.png",
+      "cry": "assets/pokemon/cries/tadbulb.ogg",
+      "animations": {}
+    }
+  }
+}

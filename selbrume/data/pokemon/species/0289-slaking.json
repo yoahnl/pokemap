@@ -1,0 +1,97 @@
+{
+  "id": "slaking",
+  "slug": "slaking",
+  "nationalDex": 289,
+  "names": {
+    "ja_hrkt": "ケッキング",
+    "ja_roma": "Kekking",
+    "ko": "게을킹",
+    "zh_hant": "請假王",
+    "fr": "Monaflèmit",
+    "de": "Letarking",
+    "es": "Slaking",
+    "it": "Slaking",
+    "en": "Slaking",
+    "ja": "ケッキング",
+    "zh_hans": "请假王"
+  },
+  "speciesName": {
+    "ja_hrkt": "ものぐさポケモン",
+    "ko": "나태함포켓몬",
+    "zh_hant": "怕麻煩寶可夢",
+    "fr": "Pokémon Fainéant",
+    "de": "Müßig",
+    "es": "Pokémon Holgazán",
+    "it": "Pokémon Pigrizia",
+    "en": "Lazy Pokémon",
+    "ja": "ものぐさポケモン",
+    "zh_hans": "怕麻烦宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 150,
+    "atk": 160,
+    "def": 100,
+    "spa": 95,
+    "spd": 65,
+    "spe": 100,
+    "bst": 670
+  },
+  "abilities": {
+    "primary": "truant",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 252,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "slaking",
+    "evolution": "slaking",
+    "media": "slaking"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 130.5,
+    "color": "brown",
+    "flavorText": "SLAKING spends all day lying down and lolling about. It eats grass growing within its reach. If it eats all the grass it can reach, this POKéMON reluctantly moves to another spot."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

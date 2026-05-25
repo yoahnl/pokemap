@@ -1,0 +1,18 @@
+{
+  "speciesId": "palpitoad",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/palpitoad/front.png",
+      "backStatic": "assets/pokemon/sprites/palpitoad/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/palpitoad/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/palpitoad/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/palpitoad.png",
+      "cry": "assets/pokemon/cries/palpitoad.ogg",
+      "animations": {}
+    }
+  }
+}

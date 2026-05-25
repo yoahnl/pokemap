@@ -1,0 +1,95 @@
+{
+  "id": "finizen",
+  "slug": "finizen",
+  "nationalDex": 963,
+  "names": {
+    "ja_hrkt": "ナミイルカ",
+    "ja_roma": "Namiiruka",
+    "ko": "맨돌핀",
+    "zh_hant": "波普海豚",
+    "fr": "Dofin",
+    "de": "Normifin",
+    "es": "Finizen",
+    "it": "Finizen",
+    "en": "Finizen",
+    "ja": "ナミイルカ",
+    "zh_hans": "波普海豚"
+  },
+  "speciesName": {
+    "ja_hrkt": "イルカポケモン",
+    "ko": "돌고래포켓몬",
+    "zh_hant": "海豚寶可夢",
+    "fr": "Dauphin",
+    "de": "Delfin",
+    "en": "Dolphin Pokémon",
+    "zh_hans": "海豚宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 45,
+    "def": 40,
+    "spa": 45,
+    "spd": 40,
+    "spe": 75,
+    "bst": 315
+  },
+  "abilities": {
+    "primary": "water_veil",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 63,
+    "catchRate": 200,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "finizen",
+    "evolution": "finizen",
+    "media": "finizen"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 60.2,
+    "color": "blue",
+    "flavorText": "It likes playing with others of its kind using the water ring on its tail. It uses ultrasonic waves to sense the emotions of other living creatures."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

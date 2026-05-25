@@ -1,0 +1,18 @@
+{
+  "speciesId": "bruxish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bruxish/front.png",
+      "backStatic": "assets/pokemon/sprites/bruxish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bruxish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bruxish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bruxish.png",
+      "cry": "assets/pokemon/cries/bruxish.ogg",
+      "animations": {}
+    }
+  }
+}

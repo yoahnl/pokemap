@@ -1,0 +1,30 @@
+{
+  "speciesId": "vulpix",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vulpix/front.png",
+      "backStatic": "assets/pokemon/sprites/vulpix/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vulpix/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vulpix/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vulpix.png",
+      "cry": "assets/pokemon/cries/vulpix.ogg",
+      "animations": {}
+    },
+    "vulpix-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

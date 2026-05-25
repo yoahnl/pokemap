@@ -1,0 +1,18 @@
+{
+  "speciesId": "bulbasaur",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bulbasaur/front.png",
+      "backStatic": "assets/pokemon/sprites/bulbasaur/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bulbasaur/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bulbasaur/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bulbasaur.png",
+      "cry": "assets/pokemon/cries/bulbasaur.ogg",
+      "animations": {}
+    }
+  }
+}

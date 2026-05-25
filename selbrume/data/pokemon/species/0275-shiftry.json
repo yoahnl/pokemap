@@ -1,0 +1,99 @@
+{
+  "id": "shiftry",
+  "slug": "shiftry",
+  "nationalDex": 275,
+  "names": {
+    "ja_hrkt": "ダーテング",
+    "ja_roma": "Dirteng",
+    "ko": "다탱구",
+    "zh_hant": "狡猾天狗",
+    "fr": "Tengalice",
+    "de": "Tengulist",
+    "es": "Shiftry",
+    "it": "Shiftry",
+    "en": "Shiftry",
+    "ja": "ダーテング",
+    "zh_hans": "狡猾天狗"
+  },
+  "speciesName": {
+    "ja_hrkt": "よこしまポケモン",
+    "ko": "부정하기포켓몬",
+    "zh_hant": "邪惡寶可夢",
+    "fr": "Pokémon Malveillant",
+    "de": "Verschlagen-Pokémon",
+    "es": "Pokémon Malvado",
+    "it": "Pokémon Burbero",
+    "en": "Wicked Pokémon",
+    "ja": "よこしまポケモン",
+    "zh_hans": "邪恶宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "grass",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 100,
+    "def": 60,
+    "spa": 90,
+    "spd": 60,
+    "spe": 80,
+    "bst": 480
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "wind_rider",
+    "hidden": "pickpocket"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 216,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shiftry",
+    "evolution": "shiftry",
+    "media": "shiftry"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 59.6,
+    "color": "brown",
+    "flavorText": "It lives quietly in the deep forest. It is said to create chilly winter winds with the fans it holds."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

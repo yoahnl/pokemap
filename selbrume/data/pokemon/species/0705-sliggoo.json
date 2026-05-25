@@ -1,0 +1,99 @@
+{
+  "id": "sliggoo",
+  "slug": "sliggoo",
+  "nationalDex": 705,
+  "names": {
+    "ja_hrkt": "ヌメイル",
+    "ja_roma": "Numeil",
+    "ko": "미끄네일",
+    "zh_hant": "黏美兒",
+    "fr": "Colimucus",
+    "de": "Viscargot",
+    "es": "Sliggoo",
+    "it": "Sliggoo",
+    "en": "Sliggoo",
+    "ja": "ヌメイル",
+    "zh_hans": "黏美儿"
+  },
+  "speciesName": {
+    "ja_hrkt": "なんたいポケモン",
+    "ko": "연체포켓몬",
+    "zh_hant": "軟體生物寶可夢",
+    "fr": "Pokémon Mollusque",
+    "de": "Schneckedei-Pokémon",
+    "es": "Pokémon Molusco",
+    "it": "Pokémon Mollusco",
+    "en": "Soft Tissue Pokémon",
+    "ja": "なんたいポケモン",
+    "zh_hans": "软体生物宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 68,
+    "atk": 75,
+    "def": 53,
+    "spa": 83,
+    "spd": 113,
+    "spe": 60,
+    "bst": 452
+  },
+  "abilities": {
+    "primary": "sap_sipper",
+    "secondary": "hydration",
+    "hidden": "gooey"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 158,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "sliggoo-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sliggoo",
+    "evolution": "sliggoo",
+    "media": "sliggoo"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 17.5,
+    "color": "purple",
+    "flavorText": "It drives away opponents by excreting a sticky liquid that can dissolve anything. Its eyes devolved, so it can’t see anything."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

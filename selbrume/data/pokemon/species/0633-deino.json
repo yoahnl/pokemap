@@ -1,0 +1,98 @@
+{
+  "id": "deino",
+  "slug": "deino",
+  "nationalDex": 633,
+  "names": {
+    "ja_hrkt": "モノズ",
+    "ja_roma": "Monozu",
+    "ko": "모노두",
+    "zh_hant": "單首龍",
+    "fr": "Solochi",
+    "de": "Kapuno",
+    "es": "Deino",
+    "it": "Deino",
+    "en": "Deino",
+    "ja": "モノズ",
+    "zh_hans": "单首龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "そぼうポケモン",
+    "ko": "폭거포켓몬",
+    "zh_hant": "粗魯寶可夢",
+    "fr": "Pokémon Rude",
+    "de": "Haudrauf-Pokémon",
+    "es": "Pokémon Tosco",
+    "it": "Pokémon Impeto",
+    "en": "Irate Pokémon",
+    "ja": "そぼうポケモン",
+    "zh_hans": "粗鲁宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dark",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 52,
+    "atk": 65,
+    "def": 50,
+    "spa": 45,
+    "spd": 50,
+    "spe": 38,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "hustle",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "deino",
+    "evolution": "deino",
+    "media": "deino"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 17.3,
+    "color": "blue",
+    "flavorText": "It tends to bite everything, and it is not a picky eater. Approaching it carelessly is dangerous."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

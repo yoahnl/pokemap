@@ -1,0 +1,18 @@
+{
+  "speciesId": "seismitoad",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/seismitoad/front.png",
+      "backStatic": "assets/pokemon/sprites/seismitoad/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/seismitoad/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/seismitoad/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/seismitoad.png",
+      "cry": "assets/pokemon/cries/seismitoad.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "hatenna",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "hattrem",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

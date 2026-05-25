@@ -1,0 +1,14 @@
+{
+  "speciesId": "cherubi",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "cherrim",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

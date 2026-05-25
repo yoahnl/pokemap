@@ -1,0 +1,18 @@
+{
+  "speciesId": "sandygast",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sandygast/front.png",
+      "backStatic": "assets/pokemon/sprites/sandygast/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sandygast/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sandygast/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sandygast.png",
+      "cry": "assets/pokemon/cries/sandygast.ogg",
+      "animations": {}
+    }
+  }
+}

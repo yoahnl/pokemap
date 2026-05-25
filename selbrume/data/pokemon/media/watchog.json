@@ -1,0 +1,18 @@
+{
+  "speciesId": "watchog",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/watchog/front.png",
+      "backStatic": "assets/pokemon/sprites/watchog/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/watchog/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/watchog/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/watchog.png",
+      "cry": "assets/pokemon/cries/watchog.ogg",
+      "animations": {}
+    }
+  }
+}

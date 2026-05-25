@@ -1,0 +1,100 @@
+{
+  "id": "sylveon",
+  "slug": "sylveon",
+  "nationalDex": 700,
+  "names": {
+    "ja_hrkt": "ニンフィア",
+    "ja_roma": "Nymphia",
+    "ko": "님피아",
+    "zh_hant": "仙子伊布",
+    "fr": "Nymphali",
+    "de": "Feelinara",
+    "es": "Sylveon",
+    "it": "Sylveon",
+    "en": "Sylveon",
+    "ja": "ニンフィア",
+    "zh_hans": "仙子伊布"
+  },
+  "speciesName": {
+    "ja_hrkt": "むすびつきポケモン",
+    "ko": "연결포켓몬",
+    "zh_hant": "連結寶可夢",
+    "fr": "Pokémon Attachant",
+    "de": "Bindungs-Pokémon",
+    "es": "Pokémon Vínculo",
+    "it": "Pokémon Legame",
+    "en": "Intertwining Pokémon",
+    "ja": "むすびつきポケモン",
+    "zh_hans": "连结宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 65,
+    "def": 65,
+    "spa": 110,
+    "spd": 130,
+    "spe": 60,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": null,
+    "hidden": "pixilate"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 184,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sylveon",
+    "evolution": "sylveon",
+    "media": "sylveon"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 23.5,
+    "color": "pink",
+    "flavorText": "It sends a soothing aura from its ribbonlike feelers to calm fights."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

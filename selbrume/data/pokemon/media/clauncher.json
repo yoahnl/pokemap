@@ -1,0 +1,18 @@
+{
+  "speciesId": "clauncher",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/clauncher/front.png",
+      "backStatic": "assets/pokemon/sprites/clauncher/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/clauncher/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/clauncher/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/clauncher.png",
+      "cry": "assets/pokemon/cries/clauncher.ogg",
+      "animations": {}
+    }
+  }
+}

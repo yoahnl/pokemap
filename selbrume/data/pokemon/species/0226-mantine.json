@@ -1,0 +1,98 @@
+{
+  "id": "mantine",
+  "slug": "mantine",
+  "nationalDex": 226,
+  "names": {
+    "ja_hrkt": "マンタイン",
+    "ja_roma": "Mantain",
+    "ko": "만타인",
+    "zh_hant": "巨翅飛魚",
+    "fr": "Démanta",
+    "de": "Mantax",
+    "es": "Mantine",
+    "it": "Mantine",
+    "en": "Mantine",
+    "ja": "マンタイン",
+    "zh_hans": "巨翅飞鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "カイトポケモン",
+    "ko": "연포켓몬",
+    "zh_hant": "風箏寶可夢",
+    "fr": "Pokémon Cervolant",
+    "de": "Flugrochen-Pokémon",
+    "es": "Pokémon Milano",
+    "it": "Pokémon Aquilone",
+    "en": "Kite Pokémon",
+    "ja": "カイトポケモン",
+    "zh_hans": "风筝宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 40,
+    "def": 70,
+    "spa": 80,
+    "spd": 140,
+    "spe": 70,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "water_absorb",
+    "hidden": "water_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 170,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mantine",
+    "evolution": "mantine",
+    "media": "mantine"
+  },
+  "dexContent": {
+    "heightM": 2.1,
+    "weightKg": 220.0,
+    "color": "purple",
+    "flavorText": "As it majestically swims, it doesn't care if REMORAID attach to it for scavenging its leftovers."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

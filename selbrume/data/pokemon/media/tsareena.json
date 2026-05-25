@@ -1,0 +1,18 @@
+{
+  "speciesId": "tsareena",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tsareena/front.png",
+      "backStatic": "assets/pokemon/sprites/tsareena/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tsareena/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tsareena/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tsareena.png",
+      "cry": "assets/pokemon/cries/tsareena.ogg",
+      "animations": {}
+    }
+  }
+}

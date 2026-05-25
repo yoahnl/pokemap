@@ -1,0 +1,18 @@
+{
+  "speciesId": "regigigas",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/regigigas/front.png",
+      "backStatic": "assets/pokemon/sprites/regigigas/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/regigigas/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/regigigas/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/regigigas.png",
+      "cry": "assets/pokemon/cries/regigigas.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "staryu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/staryu/front.png",
+      "backStatic": "assets/pokemon/sprites/staryu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/staryu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/staryu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/staryu.png",
+      "cry": "assets/pokemon/cries/staryu.ogg",
+      "animations": {}
+    }
+  }
+}

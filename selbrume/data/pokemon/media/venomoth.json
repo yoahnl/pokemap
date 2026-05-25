@@ -1,0 +1,18 @@
+{
+  "speciesId": "venomoth",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/venomoth/front.png",
+      "backStatic": "assets/pokemon/sprites/venomoth/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/venomoth/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/venomoth/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/venomoth.png",
+      "cry": "assets/pokemon/cries/venomoth.ogg",
+      "animations": {}
+    }
+  }
+}

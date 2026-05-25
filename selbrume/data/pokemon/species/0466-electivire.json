@@ -1,0 +1,100 @@
+{
+  "id": "electivire",
+  "slug": "electivire",
+  "nationalDex": 466,
+  "names": {
+    "ja_hrkt": "エレキブル",
+    "ja_roma": "Elekible",
+    "ko": "에레키블",
+    "zh_hant": "電擊魔獸",
+    "fr": "Élekable",
+    "de": "Elevoltek",
+    "es": "Electivire",
+    "it": "Electivire",
+    "en": "Electivire",
+    "ja": "エレキブル",
+    "zh_hans": "电击魔兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "らいでんポケモン",
+    "ko": "뇌전포켓몬",
+    "zh_hant": "雷電寶可夢",
+    "fr": "Pokémon Foudrélec",
+    "de": "Donnerkeil-Pokémon",
+    "es": "Pokémon Rayo",
+    "it": "Pokémon Saetta",
+    "en": "Thunderbolt Pokémon",
+    "ja": "らいでんポケモン",
+    "zh_hans": "雷电宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 123,
+    "def": 67,
+    "spa": 95,
+    "spd": 85,
+    "spe": 95,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "motor_drive",
+    "secondary": null,
+    "hidden": "vital_spirit"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 243,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "electivire",
+    "evolution": "electivire",
+    "media": "electivire"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 138.6,
+    "color": "yellow",
+    "flavorText": "As its electric charge amplifies, blue sparks begin to crackle between its horns."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

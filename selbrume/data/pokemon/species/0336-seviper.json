@@ -1,0 +1,98 @@
+{
+  "id": "seviper",
+  "slug": "seviper",
+  "nationalDex": 336,
+  "names": {
+    "ja_hrkt": "ハブネーク",
+    "ja_roma": "Habunake",
+    "ko": "세비퍼",
+    "zh_hant": "飯匙蛇",
+    "fr": "Séviper",
+    "de": "Vipitis",
+    "es": "Seviper",
+    "it": "Seviper",
+    "en": "Seviper",
+    "ja": "ハブネーク",
+    "zh_hans": "饭匙蛇"
+  },
+  "speciesName": {
+    "ja_hrkt": "キバへびポケモン",
+    "ko": "송곳뱀포켓몬",
+    "zh_hant": "牙蛇寶可夢",
+    "fr": "Pokémon Serpacroc",
+    "de": "Reißzahn",
+    "es": "Pokémon Colmillos",
+    "it": "Pokémon Zannaserpe",
+    "en": "Fang Snake Pokémon",
+    "ja": "キバへびポケモン",
+    "zh_hans": "牙蛇宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 73,
+    "atk": 100,
+    "def": 60,
+    "spa": 100,
+    "spd": 60,
+    "spe": 65,
+    "bst": 458
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "secondary": null,
+    "hidden": "infiltrator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 160,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "seviper",
+    "evolution": "seviper",
+    "media": "seviper"
+  },
+  "dexContent": {
+    "heightM": 2.7,
+    "weightKg": 52.5,
+    "color": "black",
+    "flavorText": "SEVIPER shares a generations-long feud with ZANGOOSE. The scars on its body are evidence of vicious battles. This POKéMON attacks using its sword- edged tail."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

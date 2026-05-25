@@ -1,0 +1,30 @@
+{
+  "speciesId": "scolipede",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/scolipede/front.png",
+      "backStatic": "assets/pokemon/sprites/scolipede/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/scolipede/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/scolipede/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/scolipede.png",
+      "cry": "assets/pokemon/cries/scolipede.ogg",
+      "animations": {}
+    },
+    "scolipede-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

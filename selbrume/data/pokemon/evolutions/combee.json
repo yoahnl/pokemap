@@ -1,0 +1,16 @@
+{
+  "speciesId": "combee",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "vespiquen",
+      "method": "level_up",
+      "minLevel": 21,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Gender: female"
+      }
+    }
+  ]
+}

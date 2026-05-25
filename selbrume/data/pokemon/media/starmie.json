@@ -1,0 +1,30 @@
+{
+  "speciesId": "starmie",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/starmie/front.png",
+      "backStatic": "assets/pokemon/sprites/starmie/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/starmie/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/starmie/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/starmie.png",
+      "cry": "assets/pokemon/cries/starmie.ogg",
+      "animations": {}
+    },
+    "starmie-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

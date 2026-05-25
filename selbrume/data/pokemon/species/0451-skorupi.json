@@ -1,0 +1,99 @@
+{
+  "id": "skorupi",
+  "slug": "skorupi",
+  "nationalDex": 451,
+  "names": {
+    "ja_hrkt": "スコルピ",
+    "ja_roma": "Scorpi",
+    "ko": "스콜피",
+    "zh_hant": "鉗尾蠍",
+    "fr": "Rapion",
+    "de": "Pionskora",
+    "es": "Skorupi",
+    "it": "Skorupi",
+    "en": "Skorupi",
+    "ja": "スコルピ",
+    "zh_hans": "钳尾蝎"
+  },
+  "speciesName": {
+    "ja_hrkt": "さそりポケモン",
+    "ko": "전갈포켓몬",
+    "zh_hant": "蠍子寶可夢",
+    "fr": "Pokémon Scorpion",
+    "de": "Skorpion-Pokémon",
+    "es": "Pokémon Escorpión",
+    "it": "Pokémon Scorpione",
+    "en": "Scorpion Pokémon",
+    "ja": "さそりポケモン",
+    "zh_hans": "蝎子宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "poison",
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 50,
+    "def": 90,
+    "spa": 30,
+    "spd": 55,
+    "spe": 65,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "battle_armor",
+    "secondary": "sniper",
+    "hidden": "keen_eye"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 66,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "skorupi",
+    "evolution": "skorupi",
+    "media": "skorupi"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 12.0,
+    "color": "purple",
+    "flavorText": "It grips prey with its tail claws and injects poison. It tenaciously hangs on until the poison takes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

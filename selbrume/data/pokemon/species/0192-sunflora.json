@@ -1,0 +1,97 @@
+{
+  "id": "sunflora",
+  "slug": "sunflora",
+  "nationalDex": 192,
+  "names": {
+    "ja_hrkt": "キマワリ",
+    "ja_roma": "Kimawari",
+    "ko": "해루미",
+    "zh_hant": "向日花怪",
+    "fr": "Héliatronc",
+    "de": "Sonnflora",
+    "es": "Sunflora",
+    "it": "Sunflora",
+    "en": "Sunflora",
+    "ja": "キマワリ",
+    "zh_hans": "向日花怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "たいようポケモン",
+    "ko": "태양포켓몬",
+    "zh_hant": "太陽寶可夢",
+    "fr": "Pokémon Soleil",
+    "de": "Sonne",
+    "es": "Pokémon Sol",
+    "it": "Pokémon Sole",
+    "en": "Sun Pokémon",
+    "ja": "たいようポケモン",
+    "zh_hans": "太阳宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 75,
+    "def": 55,
+    "spa": 105,
+    "spd": 85,
+    "spe": 30,
+    "bst": 425
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "solar_power",
+    "hidden": "early_bird"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 149,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sunflora",
+    "evolution": "sunflora",
+    "media": "sunflora"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 8.5,
+    "color": "yellow",
+    "flavorText": "It converts sun­ light into energy. In the darkness after sunset, it closes its petals and becomes still."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

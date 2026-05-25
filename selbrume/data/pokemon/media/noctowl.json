@@ -1,0 +1,18 @@
+{
+  "speciesId": "noctowl",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/noctowl/front.png",
+      "backStatic": "assets/pokemon/sprites/noctowl/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/noctowl/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/noctowl/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/noctowl.png",
+      "cry": "assets/pokemon/cries/noctowl.ogg",
+      "animations": {}
+    }
+  }
+}

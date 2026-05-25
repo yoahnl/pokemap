@@ -1,0 +1,18 @@
+{
+  "speciesId": "eldegoss",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/eldegoss/front.png",
+      "backStatic": "assets/pokemon/sprites/eldegoss/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/eldegoss/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/eldegoss/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/eldegoss.png",
+      "cry": "assets/pokemon/cries/eldegoss.ogg",
+      "animations": {}
+    }
+  }
+}

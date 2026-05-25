@@ -1,0 +1,102 @@
+{
+  "id": "bulbasaur",
+  "slug": "bulbasaur",
+  "nationalDex": 1,
+  "names": {
+    "ja_hrkt": "フシギダネ",
+    "ja_roma": "Fushigidane",
+    "ko": "이상해씨",
+    "zh_hant": "妙蛙種子",
+    "fr": "Bulbizarre",
+    "de": "Bisasam",
+    "es": "Bulbasaur",
+    "it": "Bulbasaur",
+    "en": "Bulbasaur",
+    "ja": "フシギダネ",
+    "zh_hans": "妙蛙种子"
+  },
+  "speciesName": {
+    "ja_hrkt": "たねポケモン",
+    "ko": "씨앗포켓몬",
+    "zh_hant": "種子寶可夢",
+    "fr": "Pokémon Graine",
+    "de": "Samen-Pokémon",
+    "es": "Pokémon Semilla",
+    "it": "Pokémon Seme",
+    "en": "Seed Pokémon",
+    "ja": "たねポケモン",
+    "zh_hans": "种子宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 49,
+    "def": 49,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45,
+    "bst": 318
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "chlorophyll"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bulbasaur",
+    "evolution": "bulbasaur",
+    "media": "bulbasaur"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 6.9,
+    "color": "green",
+    "flavorText": "A strange seed was planted on its back at birth. The plant sprouts and grows with this POKéMON."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

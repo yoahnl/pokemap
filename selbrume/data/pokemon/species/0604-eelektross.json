@@ -1,0 +1,99 @@
+{
+  "id": "eelektross",
+  "slug": "eelektross",
+  "nationalDex": 604,
+  "names": {
+    "ja_hrkt": "シビルドン",
+    "ja_roma": "Shibirudon",
+    "ko": "저리더프",
+    "zh_hant": "麻麻鰻魚王",
+    "fr": "Ohmassacre",
+    "de": "Zapplarang",
+    "es": "Eelektross",
+    "it": "Eelektross",
+    "en": "Eelektross",
+    "ja": "シビルドン",
+    "zh_hans": "麻麻鳗鱼王"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんきうおポケモン",
+    "ko": "전기물고기포켓몬",
+    "zh_hant": "電魚寶可夢",
+    "fr": "Pokémon Électrophore",
+    "de": "Stromfisch",
+    "es": "Pokémon Electropez",
+    "it": "Pokémon Elettropesce",
+    "en": "EleFish Pokémon",
+    "ja": "でんきうおポケモン",
+    "zh_hans": "电鱼宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 115,
+    "def": 80,
+    "spa": 105,
+    "spd": 80,
+    "spe": 50,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 232,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "eelektross-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "eelektross",
+    "evolution": "eelektross",
+    "media": "eelektross"
+  },
+  "dexContent": {
+    "heightM": 2.1,
+    "weightKg": 80.5,
+    "color": "blue",
+    "flavorText": "They crawl out of the ocean using their arms. They will attack prey on shore and immediately drag it into the ocean."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

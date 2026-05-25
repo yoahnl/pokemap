@@ -1,0 +1,18 @@
+{
+  "speciesId": "gossifleur",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gossifleur/front.png",
+      "backStatic": "assets/pokemon/sprites/gossifleur/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gossifleur/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gossifleur/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gossifleur.png",
+      "cry": "assets/pokemon/cries/gossifleur.ogg",
+      "animations": {}
+    }
+  }
+}

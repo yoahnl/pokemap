@@ -1,0 +1,99 @@
+{
+  "id": "rhydon",
+  "slug": "rhydon",
+  "nationalDex": 112,
+  "names": {
+    "ja_hrkt": "サイドン",
+    "ja_roma": "Sidon",
+    "ko": "코뿌리",
+    "zh_hant": "鑽角犀獸",
+    "fr": "Rhinoféros",
+    "de": "Rizeros",
+    "es": "Rhydon",
+    "it": "Rhydon",
+    "en": "Rhydon",
+    "ja": "サイドン",
+    "zh_hans": "钻角犀兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドリルポケモン",
+    "ko": "드릴포켓몬",
+    "zh_hant": "鑽錐寶可夢",
+    "fr": "Pokémon Perceur",
+    "de": "Bohrer-Pokémon",
+    "es": "Pokémon Taladro",
+    "it": "Pokémon Trapano",
+    "en": "Drill Pokémon",
+    "ja": "ドリルポケモン",
+    "zh_hans": "钻锥宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ground",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 105,
+    "atk": 130,
+    "def": 120,
+    "spa": 45,
+    "spd": 45,
+    "spe": 40,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "lightning_rod",
+    "secondary": "rock_head",
+    "hidden": "reckless"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 170,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rhydon",
+    "evolution": "rhydon",
+    "media": "rhydon"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 120.0,
+    "color": "gray",
+    "flavorText": "Protected by an armor-like hide, it is capable of living in molten lava of 3,600 degrees."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

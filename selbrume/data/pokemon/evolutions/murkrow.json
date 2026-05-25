@@ -1,0 +1,14 @@
+{
+  "speciesId": "murkrow",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "honchkrow",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "dusk-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

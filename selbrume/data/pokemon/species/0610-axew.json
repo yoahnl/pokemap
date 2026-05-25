@@ -1,0 +1,98 @@
+{
+  "id": "axew",
+  "slug": "axew",
+  "nationalDex": 610,
+  "names": {
+    "ja_hrkt": "キバゴ",
+    "ja_roma": "Kibago",
+    "ko": "터검니",
+    "zh_hant": "牙牙",
+    "fr": "Coupenotte",
+    "de": "Milza",
+    "es": "Axew",
+    "it": "Axew",
+    "en": "Axew",
+    "ja": "キバゴ",
+    "zh_hans": "牙牙"
+  },
+  "speciesName": {
+    "ja_hrkt": "キバポケモン",
+    "ko": "이빨포켓몬",
+    "zh_hant": "牙寶可夢",
+    "fr": "Pokémon Crocs",
+    "de": "Stoßzahn-Pokémon",
+    "es": "Pokémon Colmillo",
+    "it": "Pokémon Zanna",
+    "en": "Tusk Pokémon",
+    "ja": "キバポケモン",
+    "zh_hans": "牙宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 46,
+    "atk": 87,
+    "def": 60,
+    "spa": 30,
+    "spd": 40,
+    "spe": 57,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "rivalry",
+    "secondary": "mold_breaker",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 64,
+    "catchRate": 75,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "axew",
+    "evolution": "axew",
+    "media": "axew"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 18.0,
+    "color": "green",
+    "flavorText": "They use their tusks to crush the berries they eat. Repeated regrowth makes their tusks strong and sharp."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

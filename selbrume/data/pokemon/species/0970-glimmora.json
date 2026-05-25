@@ -1,0 +1,97 @@
+{
+  "id": "glimmora",
+  "slug": "glimmora",
+  "nationalDex": 970,
+  "names": {
+    "ja_hrkt": "キラフロル",
+    "ja_roma": "Kiraflor",
+    "ko": "킬라플로르",
+    "zh_hant": "晶光花",
+    "fr": "Floréclat",
+    "de": "Lumiflora",
+    "es": "Glimmora",
+    "it": "Glimmora",
+    "en": "Glimmora",
+    "ja": "キラフロル",
+    "zh_hans": "晶光花"
+  },
+  "speciesName": {
+    "ja_hrkt": "こうせきポケモン",
+    "ko": "광석포켓몬",
+    "zh_hant": "礦石寶可夢",
+    "fr": "Minerai",
+    "de": "Erz",
+    "en": "Ore Pokémon",
+    "zh_hans": "矿石宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "rock",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 83,
+    "atk": 55,
+    "def": 90,
+    "spa": 130,
+    "spd": 81,
+    "spe": 86,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "toxic_debris",
+    "secondary": null,
+    "hidden": "corrosion"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 184,
+    "catchRate": 25,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "glimmora-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "glimmora",
+    "evolution": "glimmora",
+    "media": "glimmora"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 45.0,
+    "color": "blue",
+    "flavorText": "When this Pokémon detects danger, it will open up its crystalline petals and fire beams from its conical body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

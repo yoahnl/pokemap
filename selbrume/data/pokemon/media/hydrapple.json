@@ -1,0 +1,18 @@
+{
+  "speciesId": "hydrapple",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hydrapple/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/hydrapple/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hydrapple.png",
+      "cry": "assets/pokemon/cries/hydrapple.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "metang",
+  "preEvolution": "beldum",
+  "evolutions": [
+    {
+      "targetSpeciesId": "metagross",
+      "method": "level_up",
+      "minLevel": 45,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

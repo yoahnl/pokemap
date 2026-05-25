@@ -1,0 +1,102 @@
+{
+  "id": "togetic",
+  "slug": "togetic",
+  "nationalDex": 176,
+  "names": {
+    "ja_hrkt": "トゲチック",
+    "ja_roma": "Togechick",
+    "ko": "토게틱",
+    "zh_hant": "波克基古",
+    "fr": "Togetic",
+    "de": "Togetic",
+    "es": "Togetic",
+    "it": "Togetic",
+    "en": "Togetic",
+    "ja": "トゲチック",
+    "zh_hans": "波克基古"
+  },
+  "speciesName": {
+    "ja_hrkt": "しあわせポケモン",
+    "ko": "행복포켓몬",
+    "zh_hant": "幸福寶可夢",
+    "fr": "Pokémon Bonheur",
+    "de": "Freuden-Pokémon",
+    "es": "Pokémon Felicidad",
+    "it": "Pokémon Felicità",
+    "en": "Happiness Pokémon",
+    "ja": "しあわせポケモン",
+    "zh_hans": "幸福宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fairy",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 40,
+    "def": 85,
+    "spa": 80,
+    "spd": 105,
+    "spe": 40,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "hustle",
+    "secondary": "serene_grace",
+    "hidden": "super_luck"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "flying",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 142,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "togetic",
+    "evolution": "togetic",
+    "media": "togetic"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 3.2,
+    "color": "white",
+    "flavorText": "They say that it will appear before kindhearted, car­ ing people and shower them with happiness."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

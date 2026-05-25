@@ -1,0 +1,101 @@
+{
+  "id": "delcatty",
+  "slug": "delcatty",
+  "nationalDex": 301,
+  "names": {
+    "ja_hrkt": "エネコロロ",
+    "ja_roma": "Enekororo",
+    "ko": "델케티",
+    "zh_hant": "優雅貓",
+    "fr": "Delcatty",
+    "de": "Enekoro",
+    "es": "Delcatty",
+    "it": "Delcatty",
+    "en": "Delcatty",
+    "ja": "エネコロロ",
+    "zh_hans": "优雅猫"
+  },
+  "speciesName": {
+    "ja_hrkt": "おすましポケモン",
+    "ko": "새침떼기포켓몬",
+    "zh_hant": "清高寶可夢",
+    "fr": "Pokémon Guindé",
+    "de": "Eingebildet",
+    "es": "Pokémon Cursi",
+    "it": "Pokémon Finezza",
+    "en": "Prim Pokémon",
+    "ja": "おすましポケモン",
+    "zh_hans": "清高宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 65,
+    "def": 65,
+    "spa": 55,
+    "spd": 55,
+    "spe": 90,
+    "bst": 400
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "normalize",
+    "hidden": "wonder_skin"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "ground",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 140,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "delcatty",
+    "evolution": "delcatty",
+    "media": "delcatty"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 32.6,
+    "color": "purple",
+    "flavorText": "DELCATTY prefers to live an unfettered existence in which it can do as it pleases at its own pace. Because this POKéMON eats and sleeps whenever it decides, its daily routines are completely random."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

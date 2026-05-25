@@ -1,0 +1,100 @@
+{
+  "id": "cranidos",
+  "slug": "cranidos",
+  "nationalDex": 408,
+  "names": {
+    "ja_hrkt": "ズガイドス",
+    "ja_roma": "Zugaidos",
+    "ko": "두개도스",
+    "zh_hant": "頭蓋龍",
+    "fr": "Kranidos",
+    "de": "Koknodon",
+    "es": "Cranidos",
+    "it": "Cranidos",
+    "en": "Cranidos",
+    "ja": "ズガイドス",
+    "zh_hans": "头盖龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ずつきポケモン",
+    "ko": "박치기포켓몬",
+    "zh_hant": "頭錘寶可夢",
+    "fr": "Pokémon Coud’Boule",
+    "de": "Kopfstoß",
+    "es": "Pokémon Cabezazo",
+    "it": "Pokémon Cranioso",
+    "en": "Head Butt Pokémon",
+    "ja": "ずつきポケモン",
+    "zh_hans": "头锤宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 67,
+    "atk": 125,
+    "def": 40,
+    "spa": 30,
+    "spd": 30,
+    "spe": 58,
+    "bst": 350
+  },
+  "abilities": {
+    "primary": "mold_breaker",
+    "secondary": null,
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 70,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cranidos",
+    "evolution": "cranidos",
+    "media": "cranidos"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 31.5,
+    "color": "blue",
+    "flavorText": "It lived in jungles around 100 million years ago. Its skull is as hard as iron."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

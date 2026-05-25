@@ -1,0 +1,14 @@
+{
+  "speciesId": "kadabra",
+  "preEvolution": "abra",
+  "evolutions": [
+    {
+      "targetSpeciesId": "alakazam",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

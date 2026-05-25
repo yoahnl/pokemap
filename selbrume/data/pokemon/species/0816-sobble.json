@@ -1,0 +1,101 @@
+{
+  "id": "sobble",
+  "slug": "sobble",
+  "nationalDex": 816,
+  "names": {
+    "ja_hrkt": "メッソン",
+    "ja_roma": "Messon",
+    "ko": "울머기",
+    "zh_hant": "淚眼蜥",
+    "fr": "Larméléon",
+    "de": "Memmeon",
+    "es": "Sobble",
+    "it": "Sobble",
+    "en": "Sobble",
+    "ja": "メッソン",
+    "zh_hans": "泪眼蜥"
+  },
+  "speciesName": {
+    "ja_hrkt": "みずとかげポケモン",
+    "ko": "물도마뱀포켓몬",
+    "zh_hant": "水蜥寶可夢",
+    "fr": "Pokémon Lézard’Eau",
+    "de": "Wasserechsen-Pokémon",
+    "es": "Pokémon Acuartija",
+    "it": "Pokémon Acquacertola",
+    "en": "Water Lizard Pokémon",
+    "ja": "みずとかげポケモン",
+    "zh_hans": "水蜥宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 40,
+    "def": 40,
+    "spa": 70,
+    "spd": 40,
+    "spe": 70,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "sniper"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sobble",
+    "evolution": "sobble",
+    "media": "sobble"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 4.0,
+    "color": "blue",
+    "flavorText": "When scared, this Pokémon cries. Its tears pack the chemical punch of 100 onions, and attackers won’t be able to resist weeping."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

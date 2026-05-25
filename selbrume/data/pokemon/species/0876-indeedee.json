@@ -1,0 +1,100 @@
+{
+  "id": "indeedee",
+  "slug": "indeedee",
+  "nationalDex": 876,
+  "names": {
+    "ja_hrkt": "イエッサン",
+    "ja_roma": "Yessan",
+    "ko": "에써르",
+    "zh_hant": "愛管侍",
+    "fr": "Wimessir",
+    "de": "Servol",
+    "es": "Indeedee",
+    "it": "Indeedee",
+    "en": "Indeedee",
+    "ja": "イエッサン",
+    "zh_hans": "爱管侍"
+  },
+  "speciesName": {
+    "ja_hrkt": "かんじょうポケモン",
+    "ko": "감정포켓몬",
+    "zh_hant": "感情寶可夢",
+    "fr": "Pokémon Émotion",
+    "de": "Emotions-Pokémon",
+    "es": "Pokémon Sensorio",
+    "it": "Pokémon Emozione",
+    "en": "Emotion Pokémon",
+    "ja": "かんじょうポケモン",
+    "zh_hans": "感情宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "psychic",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 65,
+    "def": 55,
+    "spa": 105,
+    "spd": 95,
+    "spe": 95,
+    "bst": 475
+  },
+  "abilities": {
+    "primary": "inner_focus",
+    "secondary": "synchronize",
+    "hidden": "psychic_surge"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 0,
+    "catchRate": 30,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "indeedee-f"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "indeedee",
+    "evolution": "indeedee",
+    "media": "indeedee"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 28.0,
+    "color": "purple",
+    "flavorText": "It uses the horns on its head to sense the emotions of others. Males will act as valets for those they serve, looking after their every need."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

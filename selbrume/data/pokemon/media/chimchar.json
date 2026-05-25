@@ -1,0 +1,18 @@
+{
+  "speciesId": "chimchar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chimchar/front.png",
+      "backStatic": "assets/pokemon/sprites/chimchar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chimchar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chimchar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chimchar.png",
+      "cry": "assets/pokemon/cries/chimchar.ogg",
+      "animations": {}
+    }
+  }
+}

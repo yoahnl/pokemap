@@ -1,0 +1,102 @@
+{
+  "id": "metagross",
+  "slug": "metagross",
+  "nationalDex": 376,
+  "names": {
+    "ja_hrkt": "メタグロス",
+    "ja_roma": "Metagross",
+    "ko": "메타그로스",
+    "zh_hant": "巨金怪",
+    "fr": "Métalosse",
+    "de": "Metagross",
+    "es": "Metagross",
+    "it": "Metagross",
+    "en": "Metagross",
+    "ja": "メタグロス",
+    "zh_hans": "巨金怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "てつあしポケモン",
+    "ko": "무쇠다리포켓몬",
+    "zh_hant": "鐵足寶可夢",
+    "fr": "Pokémon Pattefer",
+    "de": "Eisenfuß-Pokémon",
+    "es": "Pokémon Pata Hierro",
+    "it": "Pokémon Ferrarto",
+    "en": "Iron Leg Pokémon",
+    "ja": "てつあしポケモン",
+    "zh_hans": "铁足宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "steel",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 135,
+    "def": 130,
+    "spa": 95,
+    "spd": 90,
+    "spe": 70,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": null,
+    "hidden": "light_metal"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "metagross-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "metagross",
+    "evolution": "metagross",
+    "media": "metagross"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 550.0,
+    "color": "blue",
+    "flavorText": "METAGROSS has four brains in total. Combined, the four brains can breeze through difficult calculations faster than a supercomputer. This POKéMON can float in the air by tucking in its four legs."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

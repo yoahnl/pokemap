@@ -1,0 +1,100 @@
+{
+  "id": "gurdurr",
+  "slug": "gurdurr",
+  "nationalDex": 533,
+  "names": {
+    "ja_hrkt": "ドテッコツ",
+    "ja_roma": "Dotekkotsu",
+    "ko": "토쇠골",
+    "zh_hant": "鐵骨土人",
+    "fr": "Ouvrifier",
+    "de": "Strepoli",
+    "es": "Gurdurr",
+    "it": "Gurdurr",
+    "en": "Gurdurr",
+    "ja": "ドテッコツ",
+    "zh_hans": "铁骨土人"
+  },
+  "speciesName": {
+    "ja_hrkt": "きんこつポケモン",
+    "ko": "근골포켓몬",
+    "zh_hant": "筋骨寶可夢",
+    "fr": "Pokémon Costaud",
+    "de": "Muskel-Pokémon",
+    "es": "Pokémon Musculoso",
+    "it": "Pokémon Forzaimmane",
+    "en": "Muscular Pokémon",
+    "ja": "きんこつポケモン",
+    "zh_hans": "筋骨宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 105,
+    "def": 85,
+    "spa": 40,
+    "spd": 50,
+    "spe": 40,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": "sheer_force",
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gurdurr",
+    "evolution": "gurdurr",
+    "media": "gurdurr"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 40.0,
+    "color": "gray",
+    "flavorText": "This Pokémon is so muscular and strongly built that even a group of wrestlers could not make it budge an inch."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

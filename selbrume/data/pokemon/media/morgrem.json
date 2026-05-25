@@ -1,0 +1,18 @@
+{
+  "speciesId": "morgrem",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/morgrem/front.png",
+      "backStatic": "assets/pokemon/sprites/morgrem/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/morgrem/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/morgrem/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/morgrem.png",
+      "cry": "assets/pokemon/cries/morgrem.ogg",
+      "animations": {}
+    }
+  }
+}

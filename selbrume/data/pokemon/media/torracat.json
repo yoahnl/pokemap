@@ -1,0 +1,18 @@
+{
+  "speciesId": "torracat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/torracat/front.png",
+      "backStatic": "assets/pokemon/sprites/torracat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/torracat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/torracat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/torracat.png",
+      "cry": "assets/pokemon/cries/torracat.ogg",
+      "animations": {}
+    }
+  }
+}

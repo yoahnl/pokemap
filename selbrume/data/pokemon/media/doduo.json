@@ -1,0 +1,18 @@
+{
+  "speciesId": "doduo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/doduo/front.png",
+      "backStatic": "assets/pokemon/sprites/doduo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/doduo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/doduo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/doduo.png",
+      "cry": "assets/pokemon/cries/doduo.ogg",
+      "animations": {}
+    }
+  }
+}

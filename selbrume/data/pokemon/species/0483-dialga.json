@@ -1,0 +1,102 @@
+{
+  "id": "dialga",
+  "slug": "dialga",
+  "nationalDex": 483,
+  "names": {
+    "ja_hrkt": "ディアルガ",
+    "ja_roma": "Dialga",
+    "ko": "디아루가",
+    "zh_hant": "帝牙盧卡",
+    "fr": "Dialga",
+    "de": "Dialga",
+    "es": "Dialga",
+    "it": "Dialga",
+    "en": "Dialga",
+    "ja": "ディアルガ",
+    "zh_hans": "帝牙卢卡"
+  },
+  "speciesName": {
+    "ja_hrkt": "じかんポケモン",
+    "ko": "시간포켓몬",
+    "zh_hant": "時間寶可夢",
+    "fr": "Pokémon Temps",
+    "de": "Zeitweilig-Pokémon",
+    "es": "Pokémon Temporal",
+    "it": "Pokémon Tempo",
+    "en": "Temporal Pokémon",
+    "ja": "じかんポケモン",
+    "zh_hans": "时间宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "steel",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 120,
+    "def": 120,
+    "spa": 150,
+    "spd": 100,
+    "spe": 90,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "dialga-origin"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dialga",
+    "evolution": "dialga",
+    "media": "dialga"
+  },
+  "dexContent": {
+    "heightM": 5.4,
+    "weightKg": 683.0,
+    "color": "white",
+    "flavorText": "It has the power to control time. It appears in Sinnoh-region myths as an ancient deity."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

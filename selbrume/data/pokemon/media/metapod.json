@@ -1,0 +1,18 @@
+{
+  "speciesId": "metapod",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/metapod/front.png",
+      "backStatic": "assets/pokemon/sprites/metapod/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/metapod/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/metapod/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/metapod.png",
+      "cry": "assets/pokemon/cries/metapod.ogg",
+      "animations": {}
+    }
+  }
+}

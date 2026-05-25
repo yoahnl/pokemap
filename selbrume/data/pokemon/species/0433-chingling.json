@@ -1,0 +1,97 @@
+{
+  "id": "chingling",
+  "slug": "chingling",
+  "nationalDex": 433,
+  "names": {
+    "ja_hrkt": "リーシャン",
+    "ja_roma": "Lisyan",
+    "ko": "랑딸랑",
+    "zh_hant": "鈴鐺響",
+    "fr": "Korillon",
+    "de": "Klingplim",
+    "es": "Chingling",
+    "it": "Chingling",
+    "en": "Chingling",
+    "ja": "リーシャン",
+    "zh_hans": "铃铛响"
+  },
+  "speciesName": {
+    "ja_hrkt": "すずポケモン",
+    "ko": "방울포켓몬",
+    "zh_hant": "鈴鐺寶可夢",
+    "fr": "Pokémon Clochette",
+    "de": "Glöckchen",
+    "es": "Pokémon Campana",
+    "it": "Pokémon Sonaglio",
+    "en": "Bell Pokémon",
+    "ja": "すずポケモン",
+    "zh_hans": "铃铛宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 30,
+    "def": 50,
+    "spa": 65,
+    "spd": 50,
+    "spe": 45,
+    "bst": 285
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 57,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "chingling",
+    "evolution": "chingling",
+    "media": "chingling"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 0.6,
+    "color": "yellow",
+    "flavorText": "It emits cries by agitating an orb at the back of its throat. It moves with flouncing hops."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

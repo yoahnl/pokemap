@@ -1,0 +1,18 @@
+{
+  "speciesId": "anorith",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/anorith/front.png",
+      "backStatic": "assets/pokemon/sprites/anorith/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/anorith/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/anorith/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/anorith.png",
+      "cry": "assets/pokemon/cries/anorith.ogg",
+      "animations": {}
+    }
+  }
+}

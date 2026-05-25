@@ -1,0 +1,18 @@
+{
+  "speciesId": "beautifly",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/beautifly/front.png",
+      "backStatic": "assets/pokemon/sprites/beautifly/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/beautifly/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/beautifly/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/beautifly.png",
+      "cry": "assets/pokemon/cries/beautifly.ogg",
+      "animations": {}
+    }
+  }
+}

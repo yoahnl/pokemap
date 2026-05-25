@@ -1,0 +1,98 @@
+{
+  "id": "volcarona",
+  "slug": "volcarona",
+  "nationalDex": 637,
+  "names": {
+    "ja_hrkt": "ウルガモス",
+    "ja_roma": "Ulgamoth",
+    "ko": "불카모스",
+    "zh_hant": "火神蛾",
+    "fr": "Pyrax",
+    "de": "Ramoth",
+    "es": "Volcarona",
+    "it": "Volcarona",
+    "en": "Volcarona",
+    "ja": "ウルガモス",
+    "zh_hans": "火神蛾"
+  },
+  "speciesName": {
+    "ja_hrkt": "たいようポケモン",
+    "ko": "태양포켓몬",
+    "zh_hant": "太陽寶可夢",
+    "fr": "Pokémon Soleil",
+    "de": "Sonnen-Pokémon",
+    "es": "Pokémon Sol",
+    "it": "Pokémon Sole",
+    "en": "Sun Pokémon",
+    "ja": "たいようポケモン",
+    "zh_hans": "太阳宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 60,
+    "def": 65,
+    "spa": 135,
+    "spd": 105,
+    "spe": 100,
+    "bst": 550
+  },
+  "abilities": {
+    "primary": "flame_body",
+    "secondary": null,
+    "hidden": "swarm"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 248,
+    "catchRate": 15,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "volcarona",
+    "evolution": "volcarona",
+    "media": "volcarona"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 46.0,
+    "color": "white",
+    "flavorText": "When volcanic ash darkened the atmosphere, it is said that Volcarona’s fire provided a replacement for the sun."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

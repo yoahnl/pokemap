@@ -1,0 +1,98 @@
+{
+  "id": "cloyster",
+  "slug": "cloyster",
+  "nationalDex": 91,
+  "names": {
+    "ja_hrkt": "パルシェン",
+    "ja_roma": "Parshen",
+    "ko": "파르셀",
+    "zh_hant": "刺甲貝",
+    "fr": "Crustabri",
+    "de": "Austos",
+    "es": "Cloyster",
+    "it": "Cloyster",
+    "en": "Cloyster",
+    "ja": "パルシェン",
+    "zh_hans": "刺甲贝"
+  },
+  "speciesName": {
+    "ja_hrkt": "２まいがいポケモン",
+    "ko": "두조개포켓몬",
+    "zh_hant": "雙殼貝寶可夢",
+    "fr": "Pokémon Bivalve",
+    "de": "Muschel-Pokémon",
+    "es": "Pokémon Bivalvo",
+    "it": "Pokémon Bivalve",
+    "en": "Bivalve Pokémon",
+    "ja": "２まいがいポケモン",
+    "zh_hans": "双壳贝宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water",
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 95,
+    "def": 180,
+    "spa": 85,
+    "spd": 45,
+    "spe": 70,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "shell_armor",
+    "secondary": "skill_link",
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 184,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cloyster",
+    "evolution": "cloyster",
+    "media": "cloyster"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 132.5,
+    "color": "purple",
+    "flavorText": "When attacked, it launches its horns in quick volleys. Its innards have never been seen."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "speciesId": "kangaskhan",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kangaskhan/front.png",
+      "backStatic": "assets/pokemon/sprites/kangaskhan/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kangaskhan/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kangaskhan/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kangaskhan.png",
+      "cry": "assets/pokemon/cries/kangaskhan.ogg",
+      "animations": {}
+    },
+    "kangaskhan-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

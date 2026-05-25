@@ -1,0 +1,18 @@
+{
+  "speciesId": "flareon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/flareon/front.png",
+      "backStatic": "assets/pokemon/sprites/flareon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/flareon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/flareon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/flareon.png",
+      "cry": "assets/pokemon/cries/flareon.ogg",
+      "animations": {}
+    }
+  }
+}

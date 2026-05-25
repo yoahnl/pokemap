@@ -1,0 +1,14 @@
+{
+  "speciesId": "skorupi",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "drapion",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "froakie",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "frogadier",
+      "method": "level_up",
+      "minLevel": 16,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

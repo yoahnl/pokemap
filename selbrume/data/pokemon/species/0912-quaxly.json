@@ -1,0 +1,98 @@
+{
+  "id": "quaxly",
+  "slug": "quaxly",
+  "nationalDex": 912,
+  "names": {
+    "ja_hrkt": "クワッス",
+    "ja_roma": "Kuwassu",
+    "ko": "꾸왁스",
+    "zh_hant": "潤水鴨",
+    "fr": "Coiffeton",
+    "de": "Kwaks",
+    "es": "Quaxly",
+    "it": "Quaxly",
+    "en": "Quaxly",
+    "ja": "クワッス",
+    "zh_hans": "润水鸭"
+  },
+  "speciesName": {
+    "ja_hrkt": "こがもポケモン",
+    "ko": "꼬마오리포켓몬",
+    "zh_hant": "小鴨寶可夢",
+    "fr": "Caneton",
+    "de": "Jungente",
+    "en": "Duckling Pokémon",
+    "zh_hans": "小鸭宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 65,
+    "def": 45,
+    "spa": 50,
+    "spd": 45,
+    "spe": 50,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "moxie"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "flying",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "quaxly",
+    "evolution": "quaxly",
+    "media": "quaxly"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 6.1,
+    "color": "white",
+    "flavorText": "This Pokémon migrated to Paldea from distant lands long ago. The gel secreted by its feathers repels water and grime."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

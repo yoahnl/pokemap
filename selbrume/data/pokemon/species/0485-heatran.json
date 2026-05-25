@@ -1,0 +1,100 @@
+{
+  "id": "heatran",
+  "slug": "heatran",
+  "nationalDex": 485,
+  "names": {
+    "ja_hrkt": "ヒードラン",
+    "ja_roma": "Heatran",
+    "ko": "히드런",
+    "zh_hant": "席多藍恩",
+    "fr": "Heatran",
+    "de": "Heatran",
+    "es": "Heatran",
+    "it": "Heatran",
+    "en": "Heatran",
+    "ja": "ヒードラン",
+    "zh_hans": "席多蓝恩"
+  },
+  "speciesName": {
+    "ja_hrkt": "かこうポケモン",
+    "ko": "화구포켓몬",
+    "zh_hant": "火山口寶可夢",
+    "fr": "Pokémon Caldeira",
+    "de": "Lavadom-Pokémon",
+    "es": "Pokémon Domo Lava",
+    "it": "Pokémon Cratere",
+    "en": "Lava Dome Pokémon",
+    "ja": "かこうポケモン",
+    "zh_hans": "火山口宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "fire",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 91,
+    "atk": 90,
+    "def": 106,
+    "spa": 130,
+    "spd": 106,
+    "spe": 77,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "flash_fire",
+    "secondary": null,
+    "hidden": "flame_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "heatran-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "heatran",
+    "evolution": "heatran",
+    "media": "heatran"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 430.0,
+    "color": "brown",
+    "flavorText": "It dwells in volcanic caves. It digs in with its cross-shaped feet to crawl on ceilings and walls."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

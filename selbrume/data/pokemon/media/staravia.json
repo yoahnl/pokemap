@@ -1,0 +1,18 @@
+{
+  "speciesId": "staravia",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/staravia/front.png",
+      "backStatic": "assets/pokemon/sprites/staravia/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/staravia/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/staravia/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/staravia.png",
+      "cry": "assets/pokemon/cries/staravia.ogg",
+      "animations": {}
+    }
+  }
+}

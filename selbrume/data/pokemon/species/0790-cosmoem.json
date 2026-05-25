@@ -1,0 +1,99 @@
+{
+  "id": "cosmoem",
+  "slug": "cosmoem",
+  "nationalDex": 790,
+  "names": {
+    "ja_hrkt": "コスモウム",
+    "ja_roma": "Cosmovum",
+    "ko": "코스모움",
+    "zh_hant": "科斯莫姆",
+    "fr": "Cosmovum",
+    "de": "Cosmovum",
+    "es": "Cosmoem",
+    "it": "Cosmoem",
+    "en": "Cosmoem",
+    "ja": "コスモウム",
+    "zh_hans": "科斯莫姆"
+  },
+  "speciesName": {
+    "ja_hrkt": "げんしせいポケモン",
+    "ko": "원시성포켓몬",
+    "zh_hant": "原始星寶可夢",
+    "fr": "Pokémon Proto-Étoile",
+    "de": "Urgestirns-Pokémon",
+    "es": "Pokémon Protostrella",
+    "it": "Pokémon Protostella",
+    "en": "Protostar Pokémon",
+    "ja": "げんしせいポケモン",
+    "zh_hans": "原始星宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 43,
+    "atk": 29,
+    "def": 131,
+    "spa": 29,
+    "spd": 131,
+    "spe": 37,
+    "bst": 400
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 140,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cosmoem",
+    "evolution": "cosmoem",
+    "media": "cosmoem"
+  },
+  "dexContent": {
+    "heightM": 0.1,
+    "weightKg": 999.9,
+    "color": "blue",
+    "flavorText": "Motionless as if dead, its body is faintly warm to the touch. In the distant past, it was called the cocoon of the stars."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "lampent",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lampent/front.png",
+      "backStatic": "assets/pokemon/sprites/lampent/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lampent/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lampent/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lampent.png",
+      "cry": "assets/pokemon/cries/lampent.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "speciesId": "kyurem",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kyurem/front.png",
+      "backStatic": "assets/pokemon/sprites/kyurem/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kyurem/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kyurem/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kyurem.png",
+      "cry": "assets/pokemon/cries/kyurem.ogg",
+      "animations": {}
+    },
+    "kyurem-black": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "kyurem-white": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

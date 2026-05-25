@@ -1,0 +1,18 @@
+{
+  "speciesId": "carnivine",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/carnivine/front.png",
+      "backStatic": "assets/pokemon/sprites/carnivine/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/carnivine/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/carnivine/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/carnivine.png",
+      "cry": "assets/pokemon/cries/carnivine.ogg",
+      "animations": {}
+    }
+  }
+}

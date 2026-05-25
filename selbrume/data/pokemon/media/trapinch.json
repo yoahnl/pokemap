@@ -1,0 +1,18 @@
+{
+  "speciesId": "trapinch",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/trapinch/front.png",
+      "backStatic": "assets/pokemon/sprites/trapinch/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/trapinch/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/trapinch/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/trapinch.png",
+      "cry": "assets/pokemon/cries/trapinch.ogg",
+      "animations": {}
+    }
+  }
+}

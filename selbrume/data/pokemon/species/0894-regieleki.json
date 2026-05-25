@@ -1,0 +1,99 @@
+{
+  "id": "regieleki",
+  "slug": "regieleki",
+  "nationalDex": 894,
+  "names": {
+    "ja_hrkt": "レジエレキ",
+    "ja_roma": "Regieleki",
+    "ko": "레지에레키",
+    "zh_hant": "雷吉艾勒奇",
+    "fr": "Regieleki",
+    "de": "Regieleki",
+    "es": "Regieleki",
+    "it": "Regieleki",
+    "en": "Regieleki",
+    "ja": "レジエレキ",
+    "zh_hans": "雷吉艾勒奇"
+  },
+  "speciesName": {
+    "ja_hrkt": "エレクトロンポケモン",
+    "ko": "일렉트론포켓몬",
+    "zh_hant": "電子寶可夢",
+    "fr": "Pokémon Électron",
+    "de": "Elektronen-Pokémon",
+    "es": "Pokémon Electrón",
+    "it": "Pokémon Elettrone",
+    "en": "Electron Pokémon",
+    "ja": "エレクトロンポケモン",
+    "zh_hans": "电子宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 100,
+    "def": 50,
+    "spa": 100,
+    "spd": 50,
+    "spe": 200,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "transistor",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 290,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "regieleki",
+    "evolution": "regieleki",
+    "media": "regieleki"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 145.0,
+    "color": "yellow",
+    "flavorText": "This Pokémon is a cluster of electrical energy. It’s said that removing the rings on Regieleki’s body will unleash the Pokémon’s latent power."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

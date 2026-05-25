@@ -1,0 +1,14 @@
+{
+  "speciesId": "joltik",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "galvantula",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

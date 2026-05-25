@@ -1,0 +1,98 @@
+{
+  "id": "milotic",
+  "slug": "milotic",
+  "nationalDex": 350,
+  "names": {
+    "ja_hrkt": "ミロカロス",
+    "ja_roma": "Milokaross",
+    "ko": "밀로틱",
+    "zh_hant": "美納斯",
+    "fr": "Milobellus",
+    "de": "Milotic",
+    "es": "Milotic",
+    "it": "Milotic",
+    "en": "Milotic",
+    "ja": "ミロカロス",
+    "zh_hans": "美纳斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "いつくしみポケモン",
+    "ko": "사랑포켓몬",
+    "zh_hant": "慈愛寶可夢",
+    "fr": "Pokémon Tendre",
+    "de": "Zartheits-Pokémon",
+    "es": "Pokémon Tierno",
+    "it": "Pokémon Tenerezza",
+    "en": "Tender Pokémon",
+    "ja": "いつくしみポケモン",
+    "zh_hans": "慈爱宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 60,
+    "def": 79,
+    "spa": 100,
+    "spd": 125,
+    "spe": 81,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "marvel_scale",
+    "secondary": "competitive",
+    "hidden": "cute_charm"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 189,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "milotic",
+    "evolution": "milotic",
+    "media": "milotic"
+  },
+  "dexContent": {
+    "heightM": 6.2,
+    "weightKg": 162.0,
+    "color": "pink",
+    "flavorText": "Its lovely scales are described as rainbow colored. They change color depending on the viewing angle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "sharpedo",
+  "slug": "sharpedo",
+  "nationalDex": 319,
+  "names": {
+    "ja_hrkt": "サメハダー",
+    "ja_roma": "Samehader",
+    "ko": "샤크니아",
+    "zh_hant": "巨牙鯊",
+    "fr": "Sharpedo",
+    "de": "Tohaido",
+    "es": "Sharpedo",
+    "it": "Sharpedo",
+    "en": "Sharpedo",
+    "ja": "サメハダー",
+    "zh_hans": "巨牙鲨"
+  },
+  "speciesName": {
+    "ja_hrkt": "きょうぼうポケモン",
+    "ko": "난폭포켓몬",
+    "zh_hant": "凶暴寶可夢",
+    "fr": "Pokémon Brutal",
+    "de": "Brutal-Pokémon",
+    "es": "Pokémon Voraz",
+    "it": "Pokémon Brutale",
+    "en": "Brutal Pokémon",
+    "ja": "きょうぼうポケモン",
+    "zh_hans": "凶暴宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 120,
+    "def": 40,
+    "spa": 95,
+    "spd": 40,
+    "spe": 95,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "rough_skin",
+    "secondary": null,
+    "hidden": "speed_boost"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 161,
+    "catchRate": 60,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "sharpedo-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sharpedo",
+    "evolution": "sharpedo",
+    "media": "sharpedo"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 88.8,
+    "color": "blue",
+    "flavorText": "Nicknamed “the bully of the sea,” SHARPEDO is widely feared. Its cruel fangs grow back immediately if they snap off. Just one of these POKéMON can thoroughly tear apart a supertanker."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

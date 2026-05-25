@@ -1,0 +1,101 @@
+{
+  "id": "morpeko",
+  "slug": "morpeko",
+  "nationalDex": 877,
+  "names": {
+    "ja_hrkt": "モルペコ",
+    "ja_roma": "Morpeko",
+    "ko": "모르페코",
+    "zh_hant": "莫魯貝可",
+    "fr": "Morpeko",
+    "de": "Morpeko",
+    "es": "Morpeko",
+    "it": "Morpeko",
+    "en": "Morpeko",
+    "ja": "モルペコ",
+    "zh_hans": "莫鲁贝可"
+  },
+  "speciesName": {
+    "ja_hrkt": "にめんポケモン",
+    "ko": "양면포켓몬",
+    "zh_hant": "雙面寶可夢",
+    "fr": "Pokémon Volt Face",
+    "de": "Alter Ego-Pokémon",
+    "es": "Pokémon Dos Caras",
+    "it": "Pokémon Doppiafaccia",
+    "en": "Two-Sided Pokémon",
+    "ja": "にめんポケモン",
+    "zh_hans": "双面宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "electric",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 58,
+    "atk": 95,
+    "def": 58,
+    "spa": 70,
+    "spd": 58,
+    "spe": 97,
+    "bst": 436
+  },
+  "abilities": {
+    "primary": "hunger_switch",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 0,
+    "catchRate": 180,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "morpeko-hangry"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "morpeko",
+    "evolution": "morpeko",
+    "media": "morpeko"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 3.0,
+    "color": "yellow",
+    "flavorText": "As it eats the seeds stored up in its pocket-like pouches, this Pokémon is not just satisfying its constant hunger. It’s also generating electricity."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

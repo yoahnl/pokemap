@@ -1,0 +1,18 @@
+{
+  "speciesId": "reuniclus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/reuniclus/front.png",
+      "backStatic": "assets/pokemon/sprites/reuniclus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/reuniclus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/reuniclus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/reuniclus.png",
+      "cry": "assets/pokemon/cries/reuniclus.ogg",
+      "animations": {}
+    }
+  }
+}

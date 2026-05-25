@@ -1,0 +1,14 @@
+{
+  "speciesId": "hoppip",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "skiploom",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

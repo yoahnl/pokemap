@@ -1,0 +1,18 @@
+{
+  "speciesId": "toxapex",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/toxapex/front.png",
+      "backStatic": "assets/pokemon/sprites/toxapex/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/toxapex/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/toxapex/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/toxapex.png",
+      "cry": "assets/pokemon/cries/toxapex.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "uxie",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/uxie/front.png",
+      "backStatic": "assets/pokemon/sprites/uxie/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/uxie/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/uxie/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/uxie.png",
+      "cry": "assets/pokemon/cries/uxie.ogg",
+      "animations": {}
+    }
+  }
+}

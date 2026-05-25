@@ -1,0 +1,97 @@
+{
+  "id": "vanillish",
+  "slug": "vanillish",
+  "nationalDex": 583,
+  "names": {
+    "ja_hrkt": "バニリッチ",
+    "ja_roma": "Vanirich",
+    "ko": "바닐리치",
+    "zh_hant": "多多冰",
+    "fr": "Sorboul",
+    "de": "Gelatroppo",
+    "es": "Vanillish",
+    "it": "Vanillish",
+    "en": "Vanillish",
+    "ja": "バニリッチ",
+    "zh_hans": "多多冰"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひょうせつポケモン",
+    "ko": "빙설포켓몬",
+    "zh_hant": "冰雪寶可夢",
+    "fr": "Pokémon Grêle",
+    "de": "Firn-Pokémon",
+    "es": "Pokémon Nieve Helada",
+    "it": "Pokémon Geloneve",
+    "en": "Icy Snow Pokémon",
+    "ja": "ひょうせつポケモン",
+    "zh_hans": "冰雪宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 51,
+    "atk": 65,
+    "def": 65,
+    "spa": 80,
+    "spd": 75,
+    "spe": 59,
+    "bst": 395
+  },
+  "abilities": {
+    "primary": "ice_body",
+    "secondary": "snow_cloak",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 138,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vanillish",
+    "evolution": "vanillish",
+    "media": "vanillish"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 41.0,
+    "color": "white",
+    "flavorText": "Snowy mountains are this Pokémon’s habitat. During an ancient ice age, they moved to southern areas."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

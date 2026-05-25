@@ -1,0 +1,14 @@
+{
+  "speciesId": "machop",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "machoke",
+      "method": "level_up",
+      "minLevel": 28,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

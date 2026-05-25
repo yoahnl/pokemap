@@ -1,0 +1,14 @@
+{
+  "speciesId": "wingull",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "pelipper",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

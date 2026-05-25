@@ -1,0 +1,18 @@
+{
+  "speciesId": "barboach",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/barboach/front.png",
+      "backStatic": "assets/pokemon/sprites/barboach/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/barboach/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/barboach/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/barboach.png",
+      "cry": "assets/pokemon/cries/barboach.ogg",
+      "animations": {}
+    }
+  }
+}

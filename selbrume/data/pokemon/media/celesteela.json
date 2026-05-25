@@ -1,0 +1,18 @@
+{
+  "speciesId": "celesteela",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/celesteela/front.png",
+      "backStatic": "assets/pokemon/sprites/celesteela/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/celesteela/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/celesteela/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/celesteela.png",
+      "cry": "assets/pokemon/cries/celesteela.ogg",
+      "animations": {}
+    }
+  }
+}

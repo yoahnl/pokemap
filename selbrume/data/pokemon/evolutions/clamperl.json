@@ -1,0 +1,26 @@
+{
+  "speciesId": "clamperl",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "gorebyss",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: deep-sea-scale"
+      }
+    },
+    {
+      "targetSpeciesId": "huntail",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: deep-sea-tooth"
+      }
+    }
+  ]
+}

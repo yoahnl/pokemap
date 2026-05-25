@@ -1,0 +1,18 @@
+{
+  "speciesId": "frosmoth",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/frosmoth/front.png",
+      "backStatic": "assets/pokemon/sprites/frosmoth/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/frosmoth/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/frosmoth/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/frosmoth.png",
+      "cry": "assets/pokemon/cries/frosmoth.ogg",
+      "animations": {}
+    }
+  }
+}

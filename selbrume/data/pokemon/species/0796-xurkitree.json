@@ -1,0 +1,99 @@
+{
+  "id": "xurkitree",
+  "slug": "xurkitree",
+  "nationalDex": 796,
+  "names": {
+    "ja_hrkt": "デンジュモク",
+    "ja_roma": "Denjyumoku",
+    "ko": "전수목",
+    "zh_hant": "電束木",
+    "fr": "Câblifère",
+    "de": "Voltriant",
+    "es": "Xurkitree",
+    "it": "Xurkitree",
+    "en": "Xurkitree",
+    "ja": "デンジュモク",
+    "zh_hans": "电束木"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんしょくポケモン",
+    "ko": "전기장식포켓몬",
+    "zh_hant": "燈飾寶可夢",
+    "fr": "Pokémon Luminaire",
+    "de": "Illuminations-Pokémon",
+    "es": "Pokémon Luminaria",
+    "it": "Pokémon Luminaria",
+    "en": "Glowing Pokémon",
+    "ja": "でんしょくポケモン",
+    "zh_hans": "灯饰宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 83,
+    "atk": 89,
+    "def": 71,
+    "spa": 173,
+    "spd": 71,
+    "spe": 83,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "xurkitree",
+    "evolution": "xurkitree",
+    "media": "xurkitree"
+  },
+  "dexContent": {
+    "heightM": 3.8,
+    "weightKg": 100.0,
+    "color": "black",
+    "flavorText": "One of the mysterious life-forms known as Ultra Beasts. Astonishing electric shocks emanate from its entire body, according to witnesses."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

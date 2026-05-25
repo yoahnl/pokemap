@@ -1,0 +1,14 @@
+{
+  "speciesId": "fletchling",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "fletchinder",
+      "method": "level_up",
+      "minLevel": 17,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

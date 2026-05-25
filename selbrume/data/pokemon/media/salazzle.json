@@ -1,0 +1,30 @@
+{
+  "speciesId": "salazzle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/salazzle/front.png",
+      "backStatic": "assets/pokemon/sprites/salazzle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/salazzle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/salazzle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/salazzle.png",
+      "cry": "assets/pokemon/cries/salazzle.ogg",
+      "animations": {}
+    },
+    "salazzle-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

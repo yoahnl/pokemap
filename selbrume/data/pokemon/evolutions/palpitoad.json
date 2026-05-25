@@ -1,0 +1,14 @@
+{
+  "speciesId": "palpitoad",
+  "preEvolution": "tympole",
+  "evolutions": [
+    {
+      "targetSpeciesId": "seismitoad",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

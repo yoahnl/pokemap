@@ -1,0 +1,100 @@
+{
+  "id": "clefairy",
+  "slug": "clefairy",
+  "nationalDex": 35,
+  "names": {
+    "ja_hrkt": "ピッピ",
+    "ja_roma": "Pippi",
+    "ko": "삐삐",
+    "zh_hant": "皮皮",
+    "fr": "Mélofée",
+    "de": "Piepi",
+    "es": "Clefairy",
+    "it": "Clefairy",
+    "en": "Clefairy",
+    "ja": "ピッピ",
+    "zh_hans": "皮皮"
+  },
+  "speciesName": {
+    "ja_hrkt": "ようせいポケモン",
+    "ko": "요정포켓몬",
+    "zh_hant": "妖精寶可夢",
+    "fr": "Pokémon Fée",
+    "de": "Feen-Pokémon",
+    "es": "Pokémon Hada",
+    "it": "Pokémon Fata",
+    "en": "Fairy Pokémon",
+    "ja": "ようせいポケモン",
+    "zh_hans": "妖精宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 45,
+    "def": 48,
+    "spa": 60,
+    "spd": 65,
+    "spe": 35,
+    "bst": 323
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "magic_guard",
+    "hidden": "friend_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 113,
+    "catchRate": 150,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "clefairy",
+    "evolution": "clefairy",
+    "media": "clefairy"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 7.5,
+    "color": "pink",
+    "flavorText": "Its magical and cute appeal has many admirers. It is rare and found only in certain areas."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

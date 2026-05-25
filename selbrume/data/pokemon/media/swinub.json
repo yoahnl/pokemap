@@ -1,0 +1,18 @@
+{
+  "speciesId": "swinub",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swinub/front.png",
+      "backStatic": "assets/pokemon/sprites/swinub/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swinub/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swinub/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swinub.png",
+      "cry": "assets/pokemon/cries/swinub.ogg",
+      "animations": {}
+    }
+  }
+}

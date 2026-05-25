@@ -1,0 +1,18 @@
+{
+  "speciesId": "dewgong",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dewgong/front.png",
+      "backStatic": "assets/pokemon/sprites/dewgong/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dewgong/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dewgong/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dewgong.png",
+      "cry": "assets/pokemon/cries/dewgong.ogg",
+      "animations": {}
+    }
+  }
+}

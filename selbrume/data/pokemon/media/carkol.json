@@ -1,0 +1,18 @@
+{
+  "speciesId": "carkol",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/carkol/front.png",
+      "backStatic": "assets/pokemon/sprites/carkol/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/carkol/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/carkol/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/carkol.png",
+      "cry": "assets/pokemon/cries/carkol.ogg",
+      "animations": {}
+    }
+  }
+}

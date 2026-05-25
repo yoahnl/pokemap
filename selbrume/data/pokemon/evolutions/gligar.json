@@ -1,0 +1,16 @@
+{
+  "speciesId": "gligar",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "gliscor",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night. Hold item: razor-fang"
+      }
+    }
+  ]
+}

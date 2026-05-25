@@ -1,0 +1,14 @@
+{
+  "speciesId": "marill",
+  "preEvolution": "azurill",
+  "evolutions": [
+    {
+      "targetSpeciesId": "azumarill",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

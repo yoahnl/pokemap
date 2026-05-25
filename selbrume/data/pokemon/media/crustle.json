@@ -1,0 +1,18 @@
+{
+  "speciesId": "crustle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/crustle/front.png",
+      "backStatic": "assets/pokemon/sprites/crustle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/crustle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/crustle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/crustle.png",
+      "cry": "assets/pokemon/cries/crustle.ogg",
+      "animations": {}
+    }
+  }
+}

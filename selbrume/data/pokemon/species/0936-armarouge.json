@@ -1,0 +1,95 @@
+{
+  "id": "armarouge",
+  "slug": "armarouge",
+  "nationalDex": 936,
+  "names": {
+    "ja_hrkt": "グレンアルマ",
+    "ja_roma": "Gurenarma",
+    "ko": "카디나르마",
+    "zh_hant": "紅蓮鎧騎",
+    "fr": "Carmadura",
+    "de": "Crimanzo",
+    "es": "Armarouge",
+    "it": "Armarouge",
+    "en": "Armarouge",
+    "ja": "グレンアルマ",
+    "zh_hans": "红莲铠骑"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひのせんしポケモン",
+    "ko": "불의전사포켓몬",
+    "zh_hant": "火戰士寶可夢",
+    "fr": "Feu Guerrier",
+    "de": "Feuerrüstung",
+    "en": "Fire Warrior Pokémon",
+    "zh_hans": "火战士宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fire",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 60,
+    "def": 100,
+    "spa": 125,
+    "spd": 80,
+    "spe": 75,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "flash_fire",
+    "secondary": null,
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 263,
+    "catchRate": 25,
+    "baseFriendship": 20
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "armarouge",
+    "evolution": "armarouge",
+    "media": "armarouge"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 85.0,
+    "color": "red",
+    "flavorText": "Armarouge evolved through the use of a set of armor that belonged to a distinguished warrior. This Pokémon is incredibly loyal."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

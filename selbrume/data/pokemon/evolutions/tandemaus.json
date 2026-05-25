@@ -1,0 +1,14 @@
+{
+  "speciesId": "tandemaus",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "maushold",
+      "method": "other",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

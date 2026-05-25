@@ -1,0 +1,18 @@
+{
+  "speciesId": "arbok",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/arbok/front.png",
+      "backStatic": "assets/pokemon/sprites/arbok/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/arbok/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/arbok/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/arbok.png",
+      "cry": "assets/pokemon/cries/arbok.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "magmortar",
+  "slug": "magmortar",
+  "nationalDex": 467,
+  "names": {
+    "ja_hrkt": "ブーバーン",
+    "ja_roma": "Booburn",
+    "ko": "마그마번",
+    "zh_hant": "鴨嘴炎獸",
+    "fr": "Maganon",
+    "de": "Magbrant",
+    "es": "Magmortar",
+    "it": "Magmortar",
+    "en": "Magmortar",
+    "ja": "ブーバーン",
+    "zh_hans": "鸭嘴炎兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "ばくえんポケモン",
+    "ko": "폭염포켓몬",
+    "zh_hant": "爆炎寶可夢",
+    "fr": "Pokémon Explosion",
+    "de": "Detonations-Pokémon",
+    "es": "Pokémon Explosión",
+    "it": "Pokémon Esplosivo",
+    "en": "Blast Pokémon",
+    "ja": "ばくえんポケモン",
+    "zh_hans": "爆炎宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 95,
+    "def": 67,
+    "spa": 125,
+    "spd": 95,
+    "spe": 83,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "flame_body",
+    "secondary": null,
+    "hidden": "vital_spirit"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 243,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "magmortar",
+    "evolution": "magmortar",
+    "media": "magmortar"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 68.0,
+    "color": "red",
+    "flavorText": "It blasts fireballs of over 3,600 degrees F from the ends of its arms. It lives in volcanic craters."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

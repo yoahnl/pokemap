@@ -1,0 +1,18 @@
+{
+  "speciesId": "onix",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/onix/front.png",
+      "backStatic": "assets/pokemon/sprites/onix/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/onix/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/onix/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/onix.png",
+      "cry": "assets/pokemon/cries/onix.ogg",
+      "animations": {}
+    }
+  }
+}

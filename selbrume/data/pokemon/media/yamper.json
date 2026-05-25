@@ -1,0 +1,18 @@
+{
+  "speciesId": "yamper",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/yamper/front.png",
+      "backStatic": "assets/pokemon/sprites/yamper/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/yamper/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/yamper/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/yamper.png",
+      "cry": "assets/pokemon/cries/yamper.ogg",
+      "animations": {}
+    }
+  }
+}

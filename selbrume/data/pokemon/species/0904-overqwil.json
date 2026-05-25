@@ -1,0 +1,97 @@
+{
+  "id": "overqwil",
+  "slug": "overqwil",
+  "nationalDex": 904,
+  "names": {
+    "ja_hrkt": "ハリーマン",
+    "ja_roma": "Hariman",
+    "ko": "장침바루",
+    "zh_hant": "萬針魚",
+    "fr": "Qwilpik",
+    "de": "Myriador",
+    "es": "Overqwil",
+    "it": "Overqwil",
+    "en": "Overqwil",
+    "ja": "ハリーマン",
+    "zh_hans": "万针鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "けんざんポケモン",
+    "ko": "침붕포켓몬몬",
+    "zh_hant": "劍山寶可夢",
+    "fr": "Pokémon Épineux",
+    "de": "Tausenddorn-Pokémon",
+    "it": "Pokémon Spinoso",
+    "en": "Pin Cluster Pokémon",
+    "ja": "けんざんポケモン",
+    "zh_hans": "剑山宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "dark",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 115,
+    "def": 95,
+    "spa": 65,
+    "spd": 65,
+    "spe": 85,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "poison_point",
+    "secondary": "swift_swim",
+    "hidden": "intimidate"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 179,
+    "catchRate": 135,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "overqwil",
+    "evolution": "overqwil",
+    "media": "overqwil"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 60.5,
+    "color": "black",
+    "flavorText": "Its lancelike spikes and savage temperament have earned it the nickname ”sea fiend.” It slurps up poison to nourish itself."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

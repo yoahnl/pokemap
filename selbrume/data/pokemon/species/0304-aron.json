@@ -1,0 +1,98 @@
+{
+  "id": "aron",
+  "slug": "aron",
+  "nationalDex": 304,
+  "names": {
+    "ja_hrkt": "ココドラ",
+    "ja_roma": "Cokodora",
+    "ko": "가보리",
+    "zh_hant": "可可多拉",
+    "fr": "Galekid",
+    "de": "Stollunior",
+    "es": "Aron",
+    "it": "Aron",
+    "en": "Aron",
+    "ja": "ココドラ",
+    "zh_hans": "可可多拉"
+  },
+  "speciesName": {
+    "ja_hrkt": "てつヨロイポケモン",
+    "ko": "철갑옷포켓몬",
+    "zh_hant": "鐵鎧寶可夢",
+    "fr": "Pokémon Armurfer",
+    "de": "Eisenpanzer-Pokémon",
+    "es": "Pokémon Coraza Férrea",
+    "it": "Pokémon Corazza",
+    "en": "Iron Armor Pokémon",
+    "ja": "てつヨロイポケモン",
+    "zh_hans": "铁铠宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "steel",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 70,
+    "def": 100,
+    "spa": 40,
+    "spd": 40,
+    "spe": 30,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": "rock_head",
+    "hidden": "heavy_metal"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 66,
+    "catchRate": 180,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "aron",
+    "evolution": "aron",
+    "media": "aron"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 60.0,
+    "color": "gray",
+    "flavorText": "This POKéMON has a body of steel. To make its body, ARON feeds on iron ore that it digs from mountains. Occasionally, it causes major trouble by eating bridges and rails."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

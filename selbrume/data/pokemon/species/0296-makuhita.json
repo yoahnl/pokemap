@@ -1,0 +1,100 @@
+{
+  "id": "makuhita",
+  "slug": "makuhita",
+  "nationalDex": 296,
+  "names": {
+    "ja_hrkt": "マクノシタ",
+    "ja_roma": "Makunoshita",
+    "ko": "마크탕",
+    "zh_hant": "幕下力士",
+    "fr": "Makuhita",
+    "de": "Makuhita",
+    "es": "Makuhita",
+    "it": "Makuhita",
+    "en": "Makuhita",
+    "ja": "マクノシタ",
+    "zh_hans": "幕下力士"
+  },
+  "speciesName": {
+    "ja_hrkt": "こんじょうポケモン",
+    "ko": "근성포켓몬",
+    "zh_hant": "毅力寶可夢",
+    "fr": "Pokémon Tenace",
+    "de": "Courage",
+    "es": "Pokémon Valiente",
+    "it": "Pokémon Coraggio",
+    "en": "Guts Pokémon",
+    "ja": "こんじょうポケモン",
+    "zh_hans": "毅力宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 72,
+    "atk": 60,
+    "def": 30,
+    "spa": 20,
+    "spd": 30,
+    "spe": 25,
+    "bst": 237
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "guts",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 47,
+    "catchRate": 180,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "makuhita",
+    "evolution": "makuhita",
+    "media": "makuhita"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 86.4,
+    "color": "yellow",
+    "flavorText": "MAKUHITA is tenacious - it will keep getting up and attacking its foe however many times it is knocked down. Every time it gets back up, this POKéMON stores more energy in its body for evolving."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

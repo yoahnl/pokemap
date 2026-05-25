@@ -1,0 +1,18 @@
+{
+  "speciesId": "toucannon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/toucannon/front.png",
+      "backStatic": "assets/pokemon/sprites/toucannon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/toucannon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/toucannon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/toucannon.png",
+      "cry": "assets/pokemon/cries/toucannon.ogg",
+      "animations": {}
+    }
+  }
+}

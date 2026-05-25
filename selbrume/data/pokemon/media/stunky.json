@@ -1,0 +1,18 @@
+{
+  "speciesId": "stunky",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/stunky/front.png",
+      "backStatic": "assets/pokemon/sprites/stunky/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/stunky/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/stunky/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/stunky.png",
+      "cry": "assets/pokemon/cries/stunky.ogg",
+      "animations": {}
+    }
+  }
+}

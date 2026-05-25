@@ -1,0 +1,18 @@
+{
+  "speciesId": "gogoat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gogoat/front.png",
+      "backStatic": "assets/pokemon/sprites/gogoat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gogoat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gogoat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gogoat.png",
+      "cry": "assets/pokemon/cries/gogoat.ogg",
+      "animations": {}
+    }
+  }
+}

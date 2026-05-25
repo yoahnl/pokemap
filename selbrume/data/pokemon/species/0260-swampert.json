@@ -1,0 +1,104 @@
+{
+  "id": "swampert",
+  "slug": "swampert",
+  "nationalDex": 260,
+  "names": {
+    "ja_hrkt": "ラグラージ",
+    "ja_roma": "Laglarge",
+    "ko": "대짱이",
+    "zh_hant": "巨沼怪",
+    "fr": "Laggron",
+    "de": "Sumpex",
+    "es": "Swampert",
+    "it": "Swampert",
+    "en": "Swampert",
+    "ja": "ラグラージ",
+    "zh_hans": "巨沼怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぬまうおポケモン",
+    "ko": "늪물고기포켓몬",
+    "zh_hant": "沼魚寶可夢",
+    "fr": "Pokémon Poissonboue",
+    "de": "Lehmhüpfer-Pokémon",
+    "es": "Pokémon Pez Lodo",
+    "it": "Pokémon Fango Pesce",
+    "en": "Mud Fish Pokémon",
+    "ja": "ぬまうおポケモン",
+    "zh_hans": "沼鱼宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 110,
+    "def": 90,
+    "spa": 85,
+    "spd": 90,
+    "spe": 60,
+    "bst": 535
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "damp"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 241,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "swampert-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "swampert",
+    "evolution": "swampert",
+    "media": "swampert"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 81.9,
+    "color": "blue",
+    "flavorText": "SWAMPERT is very strong. It has enough power to easily drag a boulder weighing more than a ton. This POKéMON also has powerful vision that lets it see even in murky water."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

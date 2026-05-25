@@ -1,0 +1,22 @@
+{
+  "speciesId": "bergmite",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "avalugg",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "avalugg",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

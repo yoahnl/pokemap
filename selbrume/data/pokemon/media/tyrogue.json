@@ -1,0 +1,18 @@
+{
+  "speciesId": "tyrogue",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tyrogue/front.png",
+      "backStatic": "assets/pokemon/sprites/tyrogue/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tyrogue/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tyrogue/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tyrogue.png",
+      "cry": "assets/pokemon/cries/tyrogue.ogg",
+      "animations": {}
+    }
+  }
+}

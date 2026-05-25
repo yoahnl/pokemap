@@ -1,0 +1,97 @@
+{
+  "id": "swirlix",
+  "slug": "swirlix",
+  "nationalDex": 684,
+  "names": {
+    "ja_hrkt": "ペロッパフ",
+    "ja_roma": "Peroppafu",
+    "ko": "나룸퍼프",
+    "zh_hant": "綿綿泡芙",
+    "fr": "Sucroquin",
+    "de": "Flauschling",
+    "es": "Swirlix",
+    "it": "Swirlix",
+    "en": "Swirlix",
+    "ja": "ペロッパフ",
+    "zh_hans": "绵绵泡芙"
+  },
+  "speciesName": {
+    "ja_hrkt": "わたあめポケモン",
+    "ko": "솜사탕포켓몬",
+    "zh_hant": "棉花糖寶可夢",
+    "fr": "Pokémon Confiserie",
+    "de": "Zuckerwatte-Pokémon",
+    "es": "Pokémon Chuchería",
+    "it": "Pokémon Zuccherino",
+    "en": "Cotton Candy Pokémon",
+    "ja": "わたあめポケモン",
+    "zh_hans": "棉花糖宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 62,
+    "atk": 48,
+    "def": 66,
+    "spa": 59,
+    "spd": 57,
+    "spe": 49,
+    "bst": 341
+  },
+  "abilities": {
+    "primary": "sweet_veil",
+    "secondary": null,
+    "hidden": "unburden"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 68,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "swirlix",
+    "evolution": "swirlix",
+    "media": "swirlix"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 3.5,
+    "color": "white",
+    "flavorText": "To entangle its opponents in battle, it extrudes white threads as sweet and sticky as cotton candy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

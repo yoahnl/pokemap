@@ -1,0 +1,14 @@
+{
+  "speciesId": "ferroseed",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ferrothorn",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

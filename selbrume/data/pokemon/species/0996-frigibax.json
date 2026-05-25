@@ -1,0 +1,96 @@
+{
+  "id": "frigibax",
+  "slug": "frigibax",
+  "nationalDex": 996,
+  "names": {
+    "ja_hrkt": "セビエ",
+    "ja_roma": "Sebie",
+    "ko": "드니차",
+    "zh_hant": "涼脊龍",
+    "fr": "Frigodo",
+    "de": "Frospino",
+    "es": "Frigibax",
+    "it": "Frigibax",
+    "en": "Frigibax",
+    "ja": "セビエ",
+    "zh_hans": "凉脊龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "こおりビレポケモン",
+    "ko": "얼음지느러미포켓몬",
+    "zh_hant": "冰鰭寶可夢",
+    "fr": "Glaçaileron",
+    "de": "Eisfinne",
+    "en": "Ice Fin Pokémon",
+    "zh_hans": "冰鳍宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "dragon",
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 75,
+    "def": 45,
+    "spa": 35,
+    "spd": 45,
+    "spe": 55,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "thermal_exchange",
+    "secondary": null,
+    "hidden": "ice_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "frigibax",
+    "evolution": "frigibax",
+    "media": "frigibax"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 17.0,
+    "color": "gray",
+    "flavorText": "Frigibax absorbs heat through its dorsal fin and converts the heat into ice energy. The higher the temperature, the more energy Frigibax stores."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

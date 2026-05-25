@@ -1,0 +1,18 @@
+{
+  "speciesId": "cosmoem",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cosmoem/front.png",
+      "backStatic": "assets/pokemon/sprites/cosmoem/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cosmoem/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cosmoem/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cosmoem.png",
+      "cry": "assets/pokemon/cries/cosmoem.ogg",
+      "animations": {}
+    }
+  }
+}

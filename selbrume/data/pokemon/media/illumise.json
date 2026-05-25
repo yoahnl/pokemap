@@ -1,0 +1,18 @@
+{
+  "speciesId": "illumise",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/illumise/front.png",
+      "backStatic": "assets/pokemon/sprites/illumise/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/illumise/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/illumise/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/illumise.png",
+      "cry": "assets/pokemon/cries/illumise.ogg",
+      "animations": {}
+    }
+  }
+}

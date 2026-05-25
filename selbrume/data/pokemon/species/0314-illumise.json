@@ -1,0 +1,98 @@
+{
+  "id": "illumise",
+  "slug": "illumise",
+  "nationalDex": 314,
+  "names": {
+    "ja_hrkt": "イルミーゼ",
+    "ja_roma": "Illumise",
+    "ko": "네오비트",
+    "zh_hant": "甜甜螢",
+    "fr": "Lumivole",
+    "de": "Illumise",
+    "es": "Illumise",
+    "it": "Illumise",
+    "en": "Illumise",
+    "ja": "イルミーゼ",
+    "zh_hans": "甜甜萤"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほたるポケモン",
+    "ko": "반딧불포켓몬",
+    "zh_hant": "螢火蟲寶可夢",
+    "fr": "Pokémon Luciole",
+    "de": "Glühwürmchen",
+    "es": "Pokémon Luciérnaga",
+    "it": "Pokémon Lucciola",
+    "en": "Firefly Pokémon",
+    "ja": "ほたるポケモン",
+    "zh_hans": "萤火虫宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 47,
+    "def": 75,
+    "spa": 73,
+    "spd": 85,
+    "spe": 85,
+    "bst": 430
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "tinted_lens",
+    "hidden": "prankster"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 151,
+    "catchRate": 150,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "illumise",
+    "evolution": "illumise",
+    "media": "illumise"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 17.7,
+    "color": "purple",
+    "flavorText": "With its sweet aroma, it guides Volbeat to draw signs with light in the night sky."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

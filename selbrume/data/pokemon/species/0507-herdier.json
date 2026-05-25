@@ -1,0 +1,97 @@
+{
+  "id": "herdier",
+  "slug": "herdier",
+  "nationalDex": 507,
+  "names": {
+    "ja_hrkt": "ハーデリア",
+    "ja_roma": "Herderrie",
+    "ko": "하데리어",
+    "zh_hant": "哈約克",
+    "fr": "Ponchien",
+    "de": "Terribark",
+    "es": "Herdier",
+    "it": "Herdier",
+    "en": "Herdier",
+    "ja": "ハーデリア",
+    "zh_hans": "哈约克"
+  },
+  "speciesName": {
+    "ja_hrkt": "ちゅうけんポケモン",
+    "ko": "충견포켓몬",
+    "zh_hant": "忠犬寶可夢",
+    "fr": "Pokémon Chien Fidèle",
+    "de": "Treuhund-Pokémon",
+    "es": "Pokémon Leal",
+    "it": "Pokémon Fedeltà",
+    "en": "Loyal Dog Pokémon",
+    "ja": "ちゅうけんポケモン",
+    "zh_hans": "忠犬宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 80,
+    "def": 65,
+    "spa": 35,
+    "spd": 65,
+    "spe": 60,
+    "bst": 370
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "sand_rush",
+    "hidden": "scrappy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 130,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "herdier",
+    "evolution": "herdier",
+    "media": "herdier"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 14.7,
+    "color": "gray",
+    "flavorText": "It has black, cape-like fur that is very hard and decreases the amount of damage it receives."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

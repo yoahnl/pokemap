@@ -1,0 +1,14 @@
+{
+  "speciesId": "bunnelby",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "diggersby",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

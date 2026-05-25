@@ -1,0 +1,32 @@
+{
+  "speciesId": "meowth",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "perrserker",
+      "method": "level_up",
+      "minLevel": 28,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "persian",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160"
+      }
+    },
+    {
+      "targetSpeciesId": "persian",
+      "method": "level_up",
+      "minLevel": 28,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

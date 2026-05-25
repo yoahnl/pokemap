@@ -1,0 +1,22 @@
+{
+  "speciesId": "zorua",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "zoroark",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "zoroark",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

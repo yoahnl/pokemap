@@ -1,0 +1,100 @@
+{
+  "id": "cinccino",
+  "slug": "cinccino",
+  "nationalDex": 573,
+  "names": {
+    "ja_hrkt": "チラチーノ",
+    "ja_roma": "Chillaccino",
+    "ko": "치라치노",
+    "zh_hant": "奇諾栗鼠",
+    "fr": "Pashmilla",
+    "de": "Chillabell",
+    "es": "Cinccino",
+    "it": "Cinccino",
+    "en": "Cinccino",
+    "ja": "チラチーノ",
+    "zh_hans": "奇诺栗鼠"
+  },
+  "speciesName": {
+    "ja_hrkt": "スカーフポケモン",
+    "ko": "스카프포켓몬",
+    "zh_hant": "圍巾寶可夢",
+    "fr": "Pokémon Écharpe",
+    "de": "Schal-Pokémon",
+    "es": "Pokémon Estola",
+    "it": "Pokémon Sciarpa",
+    "en": "Scarf Pokémon",
+    "ja": "スカーフポケモン",
+    "zh_hans": "围巾宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 95,
+    "def": 60,
+    "spa": 65,
+    "spd": 60,
+    "spe": 115,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "technician",
+    "hidden": "skill_link"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 165,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cinccino",
+    "evolution": "cinccino",
+    "media": "cinccino"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 7.5,
+    "color": "gray",
+    "flavorText": "Their white fur is coated in a special oil that makes it easy for them to deflect attacks."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

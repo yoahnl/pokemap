@@ -1,0 +1,18 @@
+{
+  "speciesId": "stufful",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/stufful/front.png",
+      "backStatic": "assets/pokemon/sprites/stufful/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/stufful/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/stufful/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/stufful.png",
+      "cry": "assets/pokemon/cries/stufful.ogg",
+      "animations": {}
+    }
+  }
+}

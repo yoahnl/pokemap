@@ -1,0 +1,18 @@
+{
+  "speciesId": "kabuto",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kabuto/front.png",
+      "backStatic": "assets/pokemon/sprites/kabuto/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kabuto/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kabuto/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kabuto.png",
+      "cry": "assets/pokemon/cries/kabuto.ogg",
+      "animations": {}
+    }
+  }
+}

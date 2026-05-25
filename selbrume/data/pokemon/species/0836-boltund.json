@@ -1,0 +1,97 @@
+{
+  "id": "boltund",
+  "slug": "boltund",
+  "nationalDex": 836,
+  "names": {
+    "ja_hrkt": "パルスワン",
+    "ja_roma": "Pulsewan",
+    "ko": "펄스멍",
+    "zh_hant": "逐電犬",
+    "fr": "Fulgudog",
+    "de": "Bellektro",
+    "es": "Boltund",
+    "it": "Boltund",
+    "en": "Boltund",
+    "ja": "パルスワン",
+    "zh_hans": "逐电犬"
+  },
+  "speciesName": {
+    "ja_hrkt": "いぬポケモン",
+    "ko": "개포켓몬",
+    "zh_hant": "狗寶可夢",
+    "fr": "Pokémon Chien",
+    "de": "Hunde-Pokémon",
+    "es": "Pokémon Perro",
+    "it": "Pokémon Cane",
+    "en": "Dog Pokémon",
+    "ja": "いぬポケモン",
+    "zh_hans": "狗宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 69,
+    "atk": 90,
+    "def": 60,
+    "spa": 90,
+    "spd": 60,
+    "spe": 121,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "strong_jaw",
+    "secondary": null,
+    "hidden": "competitive"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "boltund",
+    "evolution": "boltund",
+    "media": "boltund"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 34.0,
+    "color": "yellow",
+    "flavorText": "This Pokémon generates electricity and channels it into its legs to keep them going strong. Boltund can run nonstop for three full days."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

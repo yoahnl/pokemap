@@ -1,0 +1,94 @@
+{
+  "id": "greavard",
+  "slug": "greavard",
+  "nationalDex": 971,
+  "names": {
+    "ja_hrkt": "ボチ",
+    "ja_roma": "Bochi",
+    "ko": "망망이",
+    "zh_hant": "墓仔狗",
+    "fr": "Toutombe",
+    "de": "Gruff",
+    "es": "Greavard",
+    "it": "Greavard",
+    "en": "Greavard",
+    "ja": "ボチ",
+    "zh_hans": "墓仔狗"
+  },
+  "speciesName": {
+    "ja_hrkt": "おばけいぬポケモン",
+    "ko": "유령개포켓몬",
+    "zh_hant": "鬼犬寶可夢",
+    "fr": "Fantôchien",
+    "de": "Geisterhund",
+    "en": "Ghost Dog Pokémon",
+    "zh_hans": "鬼犬宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 61,
+    "def": 60,
+    "spa": 30,
+    "spd": 55,
+    "spe": 34,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": null,
+    "hidden": "fluffy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 58,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "greavard",
+    "evolution": "greavard",
+    "media": "greavard"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 35.0,
+    "color": "white",
+    "flavorText": "It is said that a dog Pokémon that died in the wild without ever interacting with a human was reborn as this Pokémon."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

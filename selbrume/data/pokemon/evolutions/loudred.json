@@ -1,0 +1,14 @@
+{
+  "speciesId": "loudred",
+  "preEvolution": "whismur",
+  "evolutions": [
+    {
+      "targetSpeciesId": "exploud",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

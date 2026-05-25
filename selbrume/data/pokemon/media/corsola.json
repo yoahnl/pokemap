@@ -1,0 +1,30 @@
+{
+  "speciesId": "corsola",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/corsola/front.png",
+      "backStatic": "assets/pokemon/sprites/corsola/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/corsola/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/corsola/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/corsola.png",
+      "cry": "assets/pokemon/cries/corsola.ogg",
+      "animations": {}
+    },
+    "corsola-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

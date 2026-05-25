@@ -1,0 +1,18 @@
+{
+  "speciesId": "dottler",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dottler/front.png",
+      "backStatic": "assets/pokemon/sprites/dottler/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dottler/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dottler/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dottler.png",
+      "cry": "assets/pokemon/cries/dottler.ogg",
+      "animations": {}
+    }
+  }
+}

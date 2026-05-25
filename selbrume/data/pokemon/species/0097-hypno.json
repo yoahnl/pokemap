@@ -1,0 +1,97 @@
+{
+  "id": "hypno",
+  "slug": "hypno",
+  "nationalDex": 97,
+  "names": {
+    "ja_hrkt": "スリーパー",
+    "ja_roma": "Sleeper",
+    "ko": "슬리퍼",
+    "zh_hant": "引夢貘人",
+    "fr": "Hypnomade",
+    "de": "Hypno",
+    "es": "Hypno",
+    "it": "Hypno",
+    "en": "Hypno",
+    "ja": "スリーパー",
+    "zh_hans": "引梦貘人"
+  },
+  "speciesName": {
+    "ja_hrkt": "さいみんポケモン",
+    "ko": "최면포켓몬",
+    "zh_hant": "催眠寶可夢",
+    "fr": "Pokémon Hypnose",
+    "de": "Hypnose",
+    "es": "Pokémon Hipnosis",
+    "it": "Pokémon Ipnosi",
+    "en": "Hypnosis Pokémon",
+    "ja": "さいみんポケモン",
+    "zh_hans": "催眠宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 73,
+    "def": 70,
+    "spa": 73,
+    "spd": 115,
+    "spe": 67,
+    "bst": 483
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": "forewarn",
+    "hidden": "inner_focus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 169,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hypno",
+    "evolution": "hypno",
+    "media": "hypno"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 75.6,
+    "color": "yellow",
+    "flavorText": "When it locks eyes with an enemy, it will use a mix of PSI moves such as HYPNOSIS and CONFUSION."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

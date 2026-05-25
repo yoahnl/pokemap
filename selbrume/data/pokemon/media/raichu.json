@@ -1,0 +1,54 @@
+{
+  "speciesId": "raichu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/raichu/front.png",
+      "backStatic": "assets/pokemon/sprites/raichu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/raichu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/raichu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/raichu.png",
+      "cry": "assets/pokemon/cries/raichu.ogg",
+      "animations": {}
+    },
+    "raichu-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "raichu-mega-x": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "raichu-mega-y": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

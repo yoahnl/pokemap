@@ -1,0 +1,18 @@
+{
+  "speciesId": "furret",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/furret/front.png",
+      "backStatic": "assets/pokemon/sprites/furret/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/furret/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/furret/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/furret.png",
+      "cry": "assets/pokemon/cries/furret.ogg",
+      "animations": {}
+    }
+  }
+}

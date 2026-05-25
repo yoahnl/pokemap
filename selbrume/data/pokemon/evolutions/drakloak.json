@@ -1,0 +1,14 @@
+{
+  "speciesId": "drakloak",
+  "preEvolution": "dreepy",
+  "evolutions": [
+    {
+      "targetSpeciesId": "dragapult",
+      "method": "level_up",
+      "minLevel": 60,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

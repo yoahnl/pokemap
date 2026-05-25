@@ -1,0 +1,18 @@
+{
+  "speciesId": "grookey",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/grookey/front.png",
+      "backStatic": "assets/pokemon/sprites/grookey/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/grookey/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/grookey/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/grookey.png",
+      "cry": "assets/pokemon/cries/grookey.ogg",
+      "animations": {}
+    }
+  }
+}

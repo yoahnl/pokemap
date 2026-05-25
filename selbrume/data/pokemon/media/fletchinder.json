@@ -1,0 +1,18 @@
+{
+  "speciesId": "fletchinder",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/fletchinder/front.png",
+      "backStatic": "assets/pokemon/sprites/fletchinder/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/fletchinder/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/fletchinder/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/fletchinder.png",
+      "cry": "assets/pokemon/cries/fletchinder.ogg",
+      "animations": {}
+    }
+  }
+}

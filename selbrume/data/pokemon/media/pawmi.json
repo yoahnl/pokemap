@@ -1,0 +1,18 @@
+{
+  "speciesId": "pawmi",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pawmi/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/pawmi/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pawmi.png",
+      "cry": "assets/pokemon/cries/pawmi.ogg",
+      "animations": {}
+    }
+  }
+}

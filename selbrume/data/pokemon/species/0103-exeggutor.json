@@ -1,0 +1,100 @@
+{
+  "id": "exeggutor",
+  "slug": "exeggutor",
+  "nationalDex": 103,
+  "names": {
+    "ja_hrkt": "ナッシー",
+    "ja_roma": "Nassy",
+    "ko": "나시",
+    "zh_hant": "椰蛋樹",
+    "fr": "Noadkoko",
+    "de": "Kokowei",
+    "es": "Exeggutor",
+    "it": "Exeggutor",
+    "en": "Exeggutor",
+    "ja": "ナッシー",
+    "zh_hans": "椰蛋树"
+  },
+  "speciesName": {
+    "ja_hrkt": "やしのみポケモン",
+    "ko": "야자열매포켓몬",
+    "zh_hant": "椰子寶可夢",
+    "fr": "Pokémon Fruitpalme",
+    "de": "Palmfrucht-Pokémon",
+    "es": "Pokémon Coco",
+    "it": "Pokémon Nocecocco",
+    "en": "Coconut Pokémon",
+    "ja": "やしのみポケモン",
+    "zh_hans": "椰子宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 95,
+    "def": 85,
+    "spa": 125,
+    "spd": 75,
+    "spe": 55,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": null,
+    "hidden": "harvest"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 186,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "exeggutor-alola"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "exeggutor",
+    "evolution": "exeggutor",
+    "media": "exeggutor"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 120.0,
+    "color": "yellow",
+    "flavorText": "Legend has it that on rare occasions, one of its heads will drop off and continue on as an EXEGGCUTE."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

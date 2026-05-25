@@ -1,0 +1,14 @@
+{
+  "speciesId": "spearow",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "fearow",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

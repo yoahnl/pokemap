@@ -1,0 +1,30 @@
+{
+  "speciesId": "zarude",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zarude/front.png",
+      "backStatic": "assets/pokemon/sprites/zarude/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zarude/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zarude/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zarude.png",
+      "cry": "assets/pokemon/cries/zarude.ogg",
+      "animations": {}
+    },
+    "zarude-dada": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

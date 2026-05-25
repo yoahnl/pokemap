@@ -1,0 +1,101 @@
+{
+  "id": "dragonite",
+  "slug": "dragonite",
+  "nationalDex": 149,
+  "names": {
+    "ja_hrkt": "カイリュー",
+    "ja_roma": "Kairyu",
+    "ko": "망나뇽",
+    "zh_hant": "快龍",
+    "fr": "Dracolosse",
+    "de": "Dragoran",
+    "es": "Dragonite",
+    "it": "Dragonite",
+    "en": "Dragonite",
+    "ja": "カイリュー",
+    "zh_hans": "快龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドラゴンポケモン",
+    "ko": "드래곤포켓몬",
+    "zh_hant": "龍寶可夢",
+    "fr": "Pokémon Dragon",
+    "de": "Drachen-Pokémon",
+    "es": "Pokémon Dragón",
+    "it": "Pokémon Drago",
+    "en": "Dragon Pokémon",
+    "ja": "ドラゴンポケモン",
+    "zh_hans": "龙宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "dragon",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 91,
+    "atk": 134,
+    "def": 95,
+    "spa": 100,
+    "spd": 100,
+    "spe": 80,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "inner_focus",
+    "secondary": null,
+    "hidden": "multiscale"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "dragonite-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dragonite",
+    "evolution": "dragonite",
+    "media": "dragonite"
+  },
+  "dexContent": {
+    "heightM": 2.2,
+    "weightKg": 210.0,
+    "color": "brown",
+    "flavorText": "An extremely rarely seen marine POKéMON. Its intelligence is said to match that of humans."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

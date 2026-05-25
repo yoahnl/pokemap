@@ -1,0 +1,14 @@
+{
+  "speciesId": "nidorino",
+  "preEvolution": "nidoran-m",
+  "evolutions": [
+    {
+      "targetSpeciesId": "nidoking",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "moon-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

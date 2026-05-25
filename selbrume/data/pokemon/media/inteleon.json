@@ -1,0 +1,18 @@
+{
+  "speciesId": "inteleon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/inteleon/front.png",
+      "backStatic": "assets/pokemon/sprites/inteleon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/inteleon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/inteleon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/inteleon.png",
+      "cry": "assets/pokemon/cries/inteleon.ogg",
+      "animations": {}
+    }
+  }
+}

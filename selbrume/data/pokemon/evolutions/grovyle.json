@@ -1,0 +1,14 @@
+{
+  "speciesId": "grovyle",
+  "preEvolution": "treecko",
+  "evolutions": [
+    {
+      "targetSpeciesId": "sceptile",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

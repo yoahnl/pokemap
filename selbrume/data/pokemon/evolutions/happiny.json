@@ -1,0 +1,16 @@
+{
+  "speciesId": "happiny",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "chansey",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: day. Hold item: oval-stone"
+      }
+    }
+  ]
+}

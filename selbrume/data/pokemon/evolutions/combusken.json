@@ -1,0 +1,14 @@
+{
+  "speciesId": "combusken",
+  "preEvolution": "torchic",
+  "evolutions": [
+    {
+      "targetSpeciesId": "blaziken",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

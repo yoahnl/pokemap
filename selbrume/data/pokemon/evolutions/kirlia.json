@@ -1,0 +1,24 @@
+{
+  "speciesId": "kirlia",
+  "preEvolution": "ralts",
+  "evolutions": [
+    {
+      "targetSpeciesId": "gallade",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "dawn-stone",
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Gender: male"
+      }
+    },
+    {
+      "targetSpeciesId": "gardevoir",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

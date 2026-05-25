@@ -1,0 +1,98 @@
+{
+  "id": "gimmighoul",
+  "slug": "gimmighoul",
+  "nationalDex": 999,
+  "names": {
+    "ja_hrkt": "コレクレー",
+    "ja_roma": "Collecurei",
+    "ko": "모으령",
+    "zh_hant": "索財靈",
+    "fr": "Mordudor",
+    "de": "Gierspenst",
+    "es": "Gimmighoul",
+    "it": "Gimmighoul",
+    "en": "Gimmighoul",
+    "ja": "コレクレー",
+    "zh_hans": "索财灵"
+  },
+  "speciesName": {
+    "ja_hrkt": "たからばこポケモン",
+    "ko": "보물상자포켓몬",
+    "zh_hant": "寶箱寶可夢",
+    "fr": "Coffrotrésor/Chassotrésor",
+    "de": "Schatztruhe",
+    "en": "Coin Chest Pokémon",
+    "zh_hans": "宝箱宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 30,
+    "def": 70,
+    "spa": 75,
+    "spd": 70,
+    "spe": 10,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "rattled",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "gimmighoul-roaming"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gimmighoul",
+    "evolution": "gimmighoul",
+    "media": "gimmighoul"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 5.0,
+    "color": "brown",
+    "flavorText": "This Pokémon was born inside a treasure chest about 1,500 years ago. It sucks the life-force out of scoundrels who try to steal the treasure."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

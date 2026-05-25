@@ -1,0 +1,30 @@
+{
+  "speciesId": "barbaracle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/barbaracle/front.png",
+      "backStatic": "assets/pokemon/sprites/barbaracle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/barbaracle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/barbaracle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/barbaracle.png",
+      "cry": "assets/pokemon/cries/barbaracle.ogg",
+      "animations": {}
+    },
+    "barbaracle-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

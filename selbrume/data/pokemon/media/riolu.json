@@ -1,0 +1,18 @@
+{
+  "speciesId": "riolu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/riolu/front.png",
+      "backStatic": "assets/pokemon/sprites/riolu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/riolu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/riolu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/riolu.png",
+      "cry": "assets/pokemon/cries/riolu.ogg",
+      "animations": {}
+    }
+  }
+}

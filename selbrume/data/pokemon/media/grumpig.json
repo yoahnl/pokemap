@@ -1,0 +1,18 @@
+{
+  "speciesId": "grumpig",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/grumpig/front.png",
+      "backStatic": "assets/pokemon/sprites/grumpig/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/grumpig/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/grumpig/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/grumpig.png",
+      "cry": "assets/pokemon/cries/grumpig.ogg",
+      "animations": {}
+    }
+  }
+}

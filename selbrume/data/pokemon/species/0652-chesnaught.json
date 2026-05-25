@@ -1,0 +1,103 @@
+{
+  "id": "chesnaught",
+  "slug": "chesnaught",
+  "nationalDex": 652,
+  "names": {
+    "ja_hrkt": "ブリガロン",
+    "ja_roma": "Brigarron",
+    "ko": "브리가론",
+    "zh_hant": "布里卡隆",
+    "fr": "Blindépique",
+    "de": "Brigaron",
+    "es": "Chesnaught",
+    "it": "Chesnaught",
+    "en": "Chesnaught",
+    "ja": "ブリガロン",
+    "zh_hans": "布里卡隆"
+  },
+  "speciesName": {
+    "ja_hrkt": "とげよろいポケモン",
+    "ko": "가시갑옷포켓몬",
+    "zh_hant": "刺鎧寶可夢",
+    "fr": "Pokémon Épinarmure",
+    "de": "Spitzpanzer",
+    "es": "Pokémon Corazaespín",
+    "it": "Pokémon Spincorazza",
+    "en": "Spiny Armor Pokémon",
+    "ja": "とげよろいポケモン",
+    "zh_hans": "刺铠宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "grass",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 88,
+    "atk": 107,
+    "def": 122,
+    "spa": 74,
+    "spd": 75,
+    "spe": 64,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "bulletproof"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 239,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "chesnaught-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "chesnaught",
+    "evolution": "chesnaught",
+    "media": "chesnaught"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 90.0,
+    "color": "green",
+    "flavorText": "Its Tackle is forceful enough to flip a 50-ton tank. It shields its allies from danger with its own body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "dewpider",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dewpider/front.png",
+      "backStatic": "assets/pokemon/sprites/dewpider/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dewpider/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dewpider/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dewpider.png",
+      "cry": "assets/pokemon/cries/dewpider.ogg",
+      "animations": {}
+    }
+  }
+}

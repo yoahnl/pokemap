@@ -1,0 +1,99 @@
+{
+  "id": "sandslash",
+  "slug": "sandslash",
+  "nationalDex": 28,
+  "names": {
+    "ja_hrkt": "サンドパン",
+    "ja_roma": "Sandpan",
+    "ko": "고지",
+    "zh_hant": "穿山王",
+    "fr": "Sablaireau",
+    "de": "Sandamer",
+    "es": "Sandslash",
+    "it": "Sandslash",
+    "en": "Sandslash",
+    "ja": "サンドパン",
+    "zh_hans": "穿山王"
+  },
+  "speciesName": {
+    "ja_hrkt": "ねずみポケモン",
+    "ko": "쥐포켓몬",
+    "zh_hant": "鼠寶可夢",
+    "fr": "Pokémon Souris",
+    "de": "Maus-Pokémon",
+    "es": "Pokémon Ratón",
+    "it": "Pokémon Topo",
+    "en": "Mouse Pokémon",
+    "ja": "ねずみポケモン",
+    "zh_hans": "鼠宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 100,
+    "def": 110,
+    "spa": 45,
+    "spd": 55,
+    "spe": 65,
+    "bst": 450
+  },
+  "abilities": {
+    "primary": "sand_veil",
+    "secondary": null,
+    "hidden": "sand_rush"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 158,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "sandslash-alola"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sandslash",
+    "evolution": "sandslash",
+    "media": "sandslash"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 29.5,
+    "color": "yellow",
+    "flavorText": "Curls up into a spiny ball when threatened. It can roll while curled up to attack or escape."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

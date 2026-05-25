@@ -1,0 +1,18 @@
+{
+  "speciesId": "brionne",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/brionne/front.png",
+      "backStatic": "assets/pokemon/sprites/brionne/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/brionne/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/brionne/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/brionne.png",
+      "cry": "assets/pokemon/cries/brionne.ogg",
+      "animations": {}
+    }
+  }
+}

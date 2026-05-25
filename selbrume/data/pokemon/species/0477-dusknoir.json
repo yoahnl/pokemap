@@ -1,0 +1,97 @@
+{
+  "id": "dusknoir",
+  "slug": "dusknoir",
+  "nationalDex": 477,
+  "names": {
+    "ja_hrkt": "ヨノワール",
+    "ja_roma": "Yonoir",
+    "ko": "야느와르몽",
+    "zh_hant": "黑夜魔靈",
+    "fr": "Noctunoir",
+    "de": "Zwirrfinst",
+    "es": "Dusknoir",
+    "it": "Dusknoir",
+    "en": "Dusknoir",
+    "ja": "ヨノワール",
+    "zh_hans": "黑夜魔灵"
+  },
+  "speciesName": {
+    "ja_hrkt": "てづかみポケモン",
+    "ko": "움켜쥠포켓몬",
+    "zh_hant": "抓握寶可夢",
+    "fr": "Pokémon Mainpince",
+    "de": "Greifer-Pokémon",
+    "es": "Pokémon Grilletes",
+    "it": "Pokémon Pinza",
+    "en": "Gripper Pokémon",
+    "ja": "てづかみポケモン",
+    "zh_hans": "抓握宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 100,
+    "def": 135,
+    "spa": 65,
+    "spd": 135,
+    "spe": 45,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 236,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dusknoir",
+    "evolution": "dusknoir",
+    "media": "dusknoir"
+  },
+  "dexContent": {
+    "heightM": 2.2,
+    "weightKg": 106.6,
+    "color": "black",
+    "flavorText": "The antenna on its head captures radio waves from the world of spirits that command it to take people there."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

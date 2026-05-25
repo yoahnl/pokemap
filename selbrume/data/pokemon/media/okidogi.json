@@ -1,0 +1,18 @@
+{
+  "speciesId": "okidogi",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/okidogi/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/okidogi/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/okidogi.png",
+      "cry": "assets/pokemon/cries/okidogi.ogg",
+      "animations": {}
+    }
+  }
+}

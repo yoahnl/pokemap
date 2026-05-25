@@ -1,0 +1,18 @@
+{
+  "speciesId": "roggenrola",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/roggenrola/front.png",
+      "backStatic": "assets/pokemon/sprites/roggenrola/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/roggenrola/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/roggenrola/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/roggenrola.png",
+      "cry": "assets/pokemon/cries/roggenrola.ogg",
+      "animations": {}
+    }
+  }
+}

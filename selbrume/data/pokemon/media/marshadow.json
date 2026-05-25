@@ -1,0 +1,18 @@
+{
+  "speciesId": "marshadow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/marshadow/front.png",
+      "backStatic": "assets/pokemon/sprites/marshadow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/marshadow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/marshadow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/marshadow.png",
+      "cry": "assets/pokemon/cries/marshadow.ogg",
+      "animations": {}
+    }
+  }
+}

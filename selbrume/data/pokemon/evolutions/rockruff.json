@@ -1,0 +1,36 @@
+{
+  "speciesId": "rockruff",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lycanroc",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: day"
+      }
+    },
+    {
+      "targetSpeciesId": "lycanroc",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: dusk"
+      }
+    },
+    {
+      "targetSpeciesId": "lycanroc",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night"
+      }
+    }
+  ]
+}

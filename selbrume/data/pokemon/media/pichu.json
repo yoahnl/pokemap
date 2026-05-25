@@ -1,0 +1,30 @@
+{
+  "speciesId": "pichu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pichu/front.png",
+      "backStatic": "assets/pokemon/sprites/pichu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pichu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pichu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pichu.png",
+      "cry": "assets/pokemon/cries/pichu.ogg",
+      "animations": {}
+    },
+    "pichu-spiky-eared": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

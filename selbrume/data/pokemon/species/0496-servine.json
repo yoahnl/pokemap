@@ -1,0 +1,101 @@
+{
+  "id": "servine",
+  "slug": "servine",
+  "nationalDex": 496,
+  "names": {
+    "ja_hrkt": "ジャノビー",
+    "ja_roma": "Janovy",
+    "ko": "샤비",
+    "zh_hant": "青藤蛇",
+    "fr": "Lianaja",
+    "de": "Efoserp",
+    "es": "Servine",
+    "it": "Servine",
+    "en": "Servine",
+    "ja": "ジャノビー",
+    "zh_hans": "青藤蛇"
+  },
+  "speciesName": {
+    "ja_hrkt": "くさへびポケモン",
+    "ko": "풀뱀포켓몬",
+    "zh_hant": "草蛇寶可夢",
+    "fr": "Pokémon Serpenterbe",
+    "de": "Grasschlange",
+    "es": "Pokémon Serp. Hierba",
+    "it": "Pokémon Serperba",
+    "en": "Grass Snake Pokémon",
+    "ja": "くさへびポケモン",
+    "zh_hans": "草蛇宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 60,
+    "def": 75,
+    "spa": 60,
+    "spd": 75,
+    "spe": 83,
+    "bst": 413
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "contrary"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 145,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "servine",
+    "evolution": "servine",
+    "media": "servine"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 16.0,
+    "color": "green",
+    "flavorText": "It moves along the ground as if sliding. Its swift movements befuddle its foes, and it then attacks with a vine whip."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

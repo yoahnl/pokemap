@@ -1,0 +1,18 @@
+{
+  "speciesId": "buzzwole",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/buzzwole/front.png",
+      "backStatic": "assets/pokemon/sprites/buzzwole/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/buzzwole/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/buzzwole/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/buzzwole.png",
+      "cry": "assets/pokemon/cries/buzzwole.ogg",
+      "animations": {}
+    }
+  }
+}

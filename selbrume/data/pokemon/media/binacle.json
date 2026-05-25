@@ -1,0 +1,18 @@
+{
+  "speciesId": "binacle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/binacle/front.png",
+      "backStatic": "assets/pokemon/sprites/binacle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/binacle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/binacle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/binacle.png",
+      "cry": "assets/pokemon/cries/binacle.ogg",
+      "animations": {}
+    }
+  }
+}

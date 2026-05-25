@@ -1,0 +1,18 @@
+{
+  "speciesId": "vespiquen",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vespiquen/front.png",
+      "backStatic": "assets/pokemon/sprites/vespiquen/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vespiquen/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vespiquen/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vespiquen.png",
+      "cry": "assets/pokemon/cries/vespiquen.ogg",
+      "animations": {}
+    }
+  }
+}

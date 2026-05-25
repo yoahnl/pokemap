@@ -1,0 +1,14 @@
+{
+  "speciesId": "toedscool",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "toedscruel",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

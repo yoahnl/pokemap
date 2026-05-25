@@ -1,0 +1,18 @@
+{
+  "speciesId": "gulpin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gulpin/front.png",
+      "backStatic": "assets/pokemon/sprites/gulpin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gulpin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gulpin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gulpin.png",
+      "cry": "assets/pokemon/cries/gulpin.ogg",
+      "animations": {}
+    }
+  }
+}

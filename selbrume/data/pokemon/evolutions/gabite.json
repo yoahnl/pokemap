@@ -1,0 +1,14 @@
+{
+  "speciesId": "gabite",
+  "preEvolution": "gible",
+  "evolutions": [
+    {
+      "targetSpeciesId": "garchomp",
+      "method": "level_up",
+      "minLevel": 48,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

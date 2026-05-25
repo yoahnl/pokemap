@@ -1,0 +1,98 @@
+{
+  "id": "dratini",
+  "slug": "dratini",
+  "nationalDex": 147,
+  "names": {
+    "ja_hrkt": "ミニリュウ",
+    "ja_roma": "Miniryu",
+    "ko": "미뇽",
+    "zh_hant": "迷你龍",
+    "fr": "Minidraco",
+    "de": "Dratini",
+    "es": "Dratini",
+    "it": "Dratini",
+    "en": "Dratini",
+    "ja": "ミニリュウ",
+    "zh_hans": "迷你龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドラゴンポケモン",
+    "ko": "드래곤포켓몬",
+    "zh_hant": "龍寶可夢",
+    "fr": "Pokémon Dragon",
+    "de": "Drachen-Pokémon",
+    "es": "Pokémon Dragón",
+    "it": "Pokémon Drago",
+    "en": "Dragon Pokémon",
+    "ja": "ドラゴンポケモン",
+    "zh_hans": "龙宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 41,
+    "atk": 64,
+    "def": 45,
+    "spa": 50,
+    "spd": 50,
+    "spe": 50,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "secondary": null,
+    "hidden": "marvel_scale"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 60,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dratini",
+    "evolution": "dratini",
+    "media": "dratini"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 3.3,
+    "color": "blue",
+    "flavorText": "Long considered a mythical POKéMON until recently when a small colony was found living underwater."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

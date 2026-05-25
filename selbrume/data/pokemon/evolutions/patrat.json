@@ -1,0 +1,14 @@
+{
+  "speciesId": "patrat",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "watchog",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

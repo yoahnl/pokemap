@@ -1,0 +1,18 @@
+{
+  "speciesId": "gliscor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gliscor/front.png",
+      "backStatic": "assets/pokemon/sprites/gliscor/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gliscor/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gliscor/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gliscor.png",
+      "cry": "assets/pokemon/cries/gliscor.ogg",
+      "animations": {}
+    }
+  }
+}

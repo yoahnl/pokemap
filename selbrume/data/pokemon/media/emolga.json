@@ -1,0 +1,18 @@
+{
+  "speciesId": "emolga",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/emolga/front.png",
+      "backStatic": "assets/pokemon/sprites/emolga/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/emolga/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/emolga/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/emolga.png",
+      "cry": "assets/pokemon/cries/emolga.ogg",
+      "animations": {}
+    }
+  }
+}

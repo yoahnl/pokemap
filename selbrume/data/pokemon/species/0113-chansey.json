@@ -1,0 +1,97 @@
+{
+  "id": "chansey",
+  "slug": "chansey",
+  "nationalDex": 113,
+  "names": {
+    "ja_hrkt": "ラッキー",
+    "ja_roma": "Lucky",
+    "ko": "럭키",
+    "zh_hant": "吉利蛋",
+    "fr": "Leveinard",
+    "de": "Chaneira",
+    "es": "Chansey",
+    "it": "Chansey",
+    "en": "Chansey",
+    "ja": "ラッキー",
+    "zh_hans": "吉利蛋"
+  },
+  "speciesName": {
+    "ja_hrkt": "たまごポケモン",
+    "ko": "알포켓몬",
+    "zh_hant": "蛋寶可夢",
+    "fr": "Pokémon Œuf",
+    "de": "Ei-Pokémon",
+    "es": "Pokémon Huevo",
+    "it": "Pokémon Uovo",
+    "en": "Egg Pokémon",
+    "ja": "たまごポケモン",
+    "zh_hans": "蛋宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 250,
+    "atk": 5,
+    "def": 5,
+    "spa": 35,
+    "spd": 105,
+    "spe": 50,
+    "bst": 450
+  },
+  "abilities": {
+    "primary": "natural_cure",
+    "secondary": "serene_grace",
+    "hidden": "healer"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 395,
+    "catchRate": 30,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "chansey",
+    "evolution": "chansey",
+    "media": "chansey"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 34.6,
+    "color": "pink",
+    "flavorText": "A rare and elusive POKéMON that is said to bring happiness to those who manage to get it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

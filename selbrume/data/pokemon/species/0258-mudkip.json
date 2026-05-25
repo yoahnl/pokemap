@@ -1,0 +1,101 @@
+{
+  "id": "mudkip",
+  "slug": "mudkip",
+  "nationalDex": 258,
+  "names": {
+    "ja_hrkt": "ミズゴロウ",
+    "ja_roma": "Mizugorou",
+    "ko": "물짱이",
+    "zh_hant": "水躍魚",
+    "fr": "Gobou",
+    "de": "Hydropi",
+    "es": "Mudkip",
+    "it": "Mudkip",
+    "en": "Mudkip",
+    "ja": "ミズゴロウ",
+    "zh_hans": "水跃鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぬまうおポケモン",
+    "ko": "늪물고기포켓몬",
+    "zh_hant": "沼魚寶可夢",
+    "fr": "Pokémon Poissonboue",
+    "de": "Lehmhüpfer-Pokémon",
+    "es": "Pokémon Pez Lodo",
+    "it": "Pokémon Fango Pesce",
+    "en": "Mud Fish Pokémon",
+    "ja": "ぬまうおポケモン",
+    "zh_hans": "沼鱼宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 70,
+    "def": 50,
+    "spa": 50,
+    "spd": 50,
+    "spe": 40,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "damp"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mudkip",
+    "evolution": "mudkip",
+    "media": "mudkip"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 7.6,
+    "color": "blue",
+    "flavorText": "The fin on MUDKIP’s head acts as highly sensitive radar. Using this fin to sense movements of water and air, this POKéMON can determine what is taking place around it without using its eyes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

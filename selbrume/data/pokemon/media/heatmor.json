@@ -1,0 +1,18 @@
+{
+  "speciesId": "heatmor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/heatmor/front.png",
+      "backStatic": "assets/pokemon/sprites/heatmor/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/heatmor/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/heatmor/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/heatmor.png",
+      "cry": "assets/pokemon/cries/heatmor.ogg",
+      "animations": {}
+    }
+  }
+}

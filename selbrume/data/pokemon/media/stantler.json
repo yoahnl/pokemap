@@ -1,0 +1,18 @@
+{
+  "speciesId": "stantler",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/stantler/front.png",
+      "backStatic": "assets/pokemon/sprites/stantler/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/stantler/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/stantler/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/stantler.png",
+      "cry": "assets/pokemon/cries/stantler.ogg",
+      "animations": {}
+    }
+  }
+}

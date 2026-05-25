@@ -1,0 +1,97 @@
+{
+  "id": "tsareena",
+  "slug": "tsareena",
+  "nationalDex": 763,
+  "names": {
+    "ja_hrkt": "アマージョ",
+    "ja_roma": "Amajo",
+    "ko": "달코퀸",
+    "zh_hant": "甜冷美后",
+    "fr": "Sucreine",
+    "de": "Fruyal",
+    "es": "Tsareena",
+    "it": "Tsareena",
+    "en": "Tsareena",
+    "ja": "アマージョ",
+    "zh_hans": "甜冷美后"
+  },
+  "speciesName": {
+    "ja_hrkt": "フルーツポケモン",
+    "ko": "후르츠포켓몬",
+    "zh_hant": "水果寶可夢",
+    "fr": "Pokémon Fruit",
+    "de": "Obst-Pokémon",
+    "es": "Pokémon Fruto",
+    "it": "Pokémon Frutto",
+    "en": "Fruit Pokémon",
+    "ja": "フルーツポケモン",
+    "zh_hans": "水果宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 72,
+    "atk": 120,
+    "def": 98,
+    "spa": 50,
+    "spd": 98,
+    "spe": 72,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "leaf_guard",
+    "secondary": "queenly_majesty",
+    "hidden": "sweet_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 230,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tsareena",
+    "evolution": "tsareena",
+    "media": "tsareena"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 21.4,
+    "color": "purple",
+    "flavorText": "Its long, striking legs aren’t just for show but to be used to kick with skill. In victory, it shows off by kicking the defeated, laughing boisterously."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "stakataka",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/stakataka/front.png",
+      "backStatic": "assets/pokemon/sprites/stakataka/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/stakataka/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/stakataka/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/stakataka.png",
+      "cry": "assets/pokemon/cries/stakataka.ogg",
+      "animations": {}
+    }
+  }
+}

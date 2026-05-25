@@ -1,0 +1,99 @@
+{
+  "id": "poipole",
+  "slug": "poipole",
+  "nationalDex": 803,
+  "names": {
+    "ja_hrkt": "ベベノム",
+    "ja_roma": "Bevenom",
+    "ko": "베베놈",
+    "zh_hant": "毒貝比",
+    "fr": "Vémini",
+    "de": "Venicro",
+    "es": "Poipole",
+    "it": "Poipole",
+    "en": "Poipole",
+    "ja": "ベベノム",
+    "zh_hans": "毒贝比"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくばりポケモン",
+    "ko": "독침포켓몬",
+    "zh_hant": "毒針寶可夢",
+    "fr": "Pokémon Vénépic",
+    "de": "Giftdorn-Pokémon",
+    "es": "Pokémon Pin Veneno",
+    "it": "Pokémon Velenago",
+    "en": "Poison Pin Pokémon",
+    "ja": "どくばりポケモン",
+    "zh_hans": "毒针宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 67,
+    "atk": 73,
+    "def": 67,
+    "spa": 73,
+    "spd": 67,
+    "spe": 73,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 189,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "poipole",
+    "evolution": "poipole",
+    "media": "poipole"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 1.8,
+    "color": "purple",
+    "flavorText": "This Ultra Beast is well enough liked to be chosen as a first partner in its own world."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "hitmonchan",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hitmonchan/front.png",
+      "backStatic": "assets/pokemon/sprites/hitmonchan/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hitmonchan/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hitmonchan/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hitmonchan.png",
+      "cry": "assets/pokemon/cries/hitmonchan.ogg",
+      "animations": {}
+    }
+  }
+}

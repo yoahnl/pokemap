@@ -1,0 +1,18 @@
+{
+  "speciesId": "krabby",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/krabby/front.png",
+      "backStatic": "assets/pokemon/sprites/krabby/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/krabby/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/krabby/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/krabby.png",
+      "cry": "assets/pokemon/cries/krabby.ogg",
+      "animations": {}
+    }
+  }
+}

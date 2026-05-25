@@ -1,0 +1,18 @@
+{
+  "speciesId": "noivern",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/noivern/front.png",
+      "backStatic": "assets/pokemon/sprites/noivern/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/noivern/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/noivern/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/noivern.png",
+      "cry": "assets/pokemon/cries/noivern.ogg",
+      "animations": {}
+    }
+  }
+}

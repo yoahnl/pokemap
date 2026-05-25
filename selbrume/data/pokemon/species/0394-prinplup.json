@@ -1,0 +1,101 @@
+{
+  "id": "prinplup",
+  "slug": "prinplup",
+  "nationalDex": 394,
+  "names": {
+    "ja_hrkt": "ポッタイシ",
+    "ja_roma": "Pottaishi",
+    "ko": "팽태자",
+    "zh_hant": "波皇子",
+    "fr": "Prinplouf",
+    "de": "Pliprin",
+    "es": "Prinplup",
+    "it": "Prinplup",
+    "en": "Prinplup",
+    "ja": "ポッタイシ",
+    "zh_hans": "波皇子"
+  },
+  "speciesName": {
+    "ja_hrkt": "ペンギンポケモン",
+    "ko": "펭귄포켓몬",
+    "zh_hant": "企鵝寶可夢",
+    "fr": "Pokémon Pingouin",
+    "de": "Pinguin",
+    "es": "Pokémon Pingüino",
+    "it": "Pokémon Pinguino",
+    "en": "Penguin Pokémon",
+    "ja": "ペンギンポケモン",
+    "zh_hans": "企鹅宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 64,
+    "atk": 66,
+    "def": 68,
+    "spa": 81,
+    "spd": 76,
+    "spe": 50,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "competitive"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "prinplup",
+    "evolution": "prinplup",
+    "media": "prinplup"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 23.0,
+    "color": "blue",
+    "flavorText": "It lives alone, away from others. Apparently, every one of them believes it is the most important."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "pupitar",
+  "slug": "pupitar",
+  "nationalDex": 247,
+  "names": {
+    "ja_hrkt": "サナギラス",
+    "ja_roma": "Sanagiras",
+    "ko": "데기라스",
+    "zh_hant": "沙基拉斯",
+    "fr": "Ymphect",
+    "de": "Pupitar",
+    "es": "Pupitar",
+    "it": "Pupitar",
+    "en": "Pupitar",
+    "ja": "サナギラス",
+    "zh_hans": "沙基拉斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "だんがんポケモン",
+    "ko": "탄환포켓몬",
+    "zh_hant": "子彈寶可夢",
+    "fr": "Pokémon Carapadure",
+    "de": "Hartschalen-Pokémon",
+    "es": "Pokémon Caparazón",
+    "it": "Pokémon Guscioduro",
+    "en": "Hard Shell Pokémon",
+    "ja": "だんがんポケモン",
+    "zh_hans": "子弹宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "rock",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 84,
+    "def": 70,
+    "spa": 65,
+    "spd": 70,
+    "spe": 51,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 144,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pupitar",
+    "evolution": "pupitar",
+    "media": "pupitar"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 152.0,
+    "color": "gray",
+    "flavorText": "Its shell is as hard as sheet rock, and it is also very strong. Its THRASHING can topple a mountain."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

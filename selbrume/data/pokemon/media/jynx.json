@@ -1,0 +1,18 @@
+{
+  "speciesId": "jynx",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/jynx/front.png",
+      "backStatic": "assets/pokemon/sprites/jynx/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/jynx/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/jynx/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/jynx.png",
+      "cry": "assets/pokemon/cries/jynx.ogg",
+      "animations": {}
+    }
+  }
+}

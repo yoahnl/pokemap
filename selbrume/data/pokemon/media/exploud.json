@@ -1,0 +1,18 @@
+{
+  "speciesId": "exploud",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/exploud/front.png",
+      "backStatic": "assets/pokemon/sprites/exploud/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/exploud/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/exploud/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/exploud.png",
+      "cry": "assets/pokemon/cries/exploud.ogg",
+      "animations": {}
+    }
+  }
+}

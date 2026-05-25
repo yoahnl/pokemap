@@ -1,0 +1,101 @@
+{
+  "id": "cinderace",
+  "slug": "cinderace",
+  "nationalDex": 815,
+  "names": {
+    "ja_hrkt": "エースバーン",
+    "ja_roma": "Aceburn",
+    "ko": "에이스번",
+    "zh_hant": "閃焰王牌",
+    "fr": "Pyrobut",
+    "de": "Liberlo",
+    "es": "Cinderace",
+    "it": "Cinderace",
+    "en": "Cinderace",
+    "ja": "エースバーン",
+    "zh_hans": "闪焰王牌"
+  },
+  "speciesName": {
+    "ja_hrkt": "ストライカーポケモン",
+    "ko": "스트라이커포켓몬",
+    "zh_hant": "前鋒寶可夢",
+    "fr": "Pokémon Buteur",
+    "de": "Torschützen-Pokémon",
+    "es": "Pokémon Delantero",
+    "it": "Pokémon Cannoniere",
+    "en": "Striker Pokémon",
+    "ja": "ストライカーポケモン",
+    "zh_hans": "前锋宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 116,
+    "def": 75,
+    "spa": 65,
+    "spd": 75,
+    "spe": 119,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "libero"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 265,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cinderace",
+    "evolution": "cinderace",
+    "media": "cinderace"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 33.0,
+    "color": "white",
+    "flavorText": "It juggles a pebble with its feet, turning it into a burning soccer ball. Its shots strike opponents hard and leave them scorched."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

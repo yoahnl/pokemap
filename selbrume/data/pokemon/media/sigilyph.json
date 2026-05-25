@@ -1,0 +1,18 @@
+{
+  "speciesId": "sigilyph",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sigilyph/front.png",
+      "backStatic": "assets/pokemon/sprites/sigilyph/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sigilyph/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sigilyph/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sigilyph.png",
+      "cry": "assets/pokemon/cries/sigilyph.ogg",
+      "animations": {}
+    }
+  }
+}

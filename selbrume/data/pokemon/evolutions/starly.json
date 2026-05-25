@@ -1,0 +1,14 @@
+{
+  "speciesId": "starly",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "staravia",
+      "method": "level_up",
+      "minLevel": 14,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

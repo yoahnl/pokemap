@@ -1,0 +1,18 @@
+{
+  "speciesId": "rhyhorn",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rhyhorn/front.png",
+      "backStatic": "assets/pokemon/sprites/rhyhorn/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rhyhorn/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rhyhorn/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rhyhorn.png",
+      "cry": "assets/pokemon/cries/rhyhorn.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "whirlipede",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/whirlipede/front.png",
+      "backStatic": "assets/pokemon/sprites/whirlipede/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/whirlipede/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/whirlipede/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/whirlipede.png",
+      "cry": "assets/pokemon/cries/whirlipede.ogg",
+      "animations": {}
+    }
+  }
+}

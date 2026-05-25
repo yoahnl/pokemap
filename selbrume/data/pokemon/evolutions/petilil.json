@@ -1,0 +1,22 @@
+{
+  "speciesId": "petilil",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lilligant",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "sun-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "lilligant",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "sun-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

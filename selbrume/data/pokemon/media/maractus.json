@@ -1,0 +1,18 @@
+{
+  "speciesId": "maractus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/maractus/front.png",
+      "backStatic": "assets/pokemon/sprites/maractus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/maractus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/maractus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/maractus.png",
+      "cry": "assets/pokemon/cries/maractus.ogg",
+      "animations": {}
+    }
+  }
+}

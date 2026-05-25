@@ -1,0 +1,18 @@
+{
+  "speciesId": "baltoy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/baltoy/front.png",
+      "backStatic": "assets/pokemon/sprites/baltoy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/baltoy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/baltoy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/baltoy.png",
+      "cry": "assets/pokemon/cries/baltoy.ogg",
+      "animations": {}
+    }
+  }
+}

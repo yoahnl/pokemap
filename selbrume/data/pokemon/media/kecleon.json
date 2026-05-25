@@ -1,0 +1,18 @@
+{
+  "speciesId": "kecleon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kecleon/front.png",
+      "backStatic": "assets/pokemon/sprites/kecleon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kecleon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kecleon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kecleon.png",
+      "cry": "assets/pokemon/cries/kecleon.ogg",
+      "animations": {}
+    }
+  }
+}

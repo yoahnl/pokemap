@@ -1,0 +1,97 @@
+{
+  "id": "eelektrik",
+  "slug": "eelektrik",
+  "nationalDex": 603,
+  "names": {
+    "ja_hrkt": "シビビール",
+    "ja_roma": "Shibibeel",
+    "ko": "저리릴",
+    "zh_hant": "麻麻鰻",
+    "fr": "Lampéroie",
+    "de": "Zapplalek",
+    "es": "Eelektrik",
+    "it": "Eelektrik",
+    "en": "Eelektrik",
+    "ja": "シビビール",
+    "zh_hans": "麻麻鳗"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんきうおポケモン",
+    "ko": "전기물고기포켓몬",
+    "zh_hant": "電魚寶可夢",
+    "fr": "Pokémon Électrophore",
+    "de": "Stromfisch",
+    "es": "Pokémon Electropez",
+    "it": "Pokémon Elettropesce",
+    "en": "EleFish Pokémon",
+    "ja": "でんきうおポケモン",
+    "zh_hans": "电鱼宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 85,
+    "def": 70,
+    "spa": 75,
+    "spd": 70,
+    "spe": 40,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 142,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "eelektrik",
+    "evolution": "eelektrik",
+    "media": "eelektrik"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 22.0,
+    "color": "blue",
+    "flavorText": "They coil around foes and shock them with electricity-generating organs that seem simply to be circular patterns."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

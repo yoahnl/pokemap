@@ -1,0 +1,18 @@
+{
+  "speciesId": "blacephalon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/blacephalon/front.png",
+      "backStatic": "assets/pokemon/sprites/blacephalon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/blacephalon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/blacephalon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/blacephalon.png",
+      "cry": "assets/pokemon/cries/blacephalon.ogg",
+      "animations": {}
+    }
+  }
+}

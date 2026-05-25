@@ -1,0 +1,18 @@
+{
+  "speciesId": "leavanny",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/leavanny/front.png",
+      "backStatic": "assets/pokemon/sprites/leavanny/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/leavanny/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/leavanny/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/leavanny.png",
+      "cry": "assets/pokemon/cries/leavanny.ogg",
+      "animations": {}
+    }
+  }
+}

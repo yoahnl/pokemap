@@ -1,0 +1,18 @@
+{
+  "speciesId": "cryogonal",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cryogonal/front.png",
+      "backStatic": "assets/pokemon/sprites/cryogonal/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cryogonal/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cryogonal/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cryogonal.png",
+      "cry": "assets/pokemon/cries/cryogonal.ogg",
+      "animations": {}
+    }
+  }
+}

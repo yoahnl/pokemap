@@ -1,0 +1,14 @@
+{
+  "speciesId": "drilbur",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "excadrill",
+      "method": "level_up",
+      "minLevel": 31,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

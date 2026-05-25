@@ -1,0 +1,18 @@
+{
+  "speciesId": "thwackey",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/thwackey/front.png",
+      "backStatic": "assets/pokemon/sprites/thwackey/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/thwackey/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/thwackey/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/thwackey.png",
+      "cry": "assets/pokemon/cries/thwackey.ogg",
+      "animations": {}
+    }
+  }
+}

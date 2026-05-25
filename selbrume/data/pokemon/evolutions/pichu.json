@@ -1,0 +1,16 @@
+{
+  "speciesId": "pichu",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "pikachu",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 220"
+      }
+    }
+  ]
+}

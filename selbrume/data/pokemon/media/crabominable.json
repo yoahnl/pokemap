@@ -1,0 +1,30 @@
+{
+  "speciesId": "crabominable",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/crabominable/front.png",
+      "backStatic": "assets/pokemon/sprites/crabominable/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/crabominable/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/crabominable/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/crabominable.png",
+      "cry": "assets/pokemon/cries/crabominable.ogg",
+      "animations": {}
+    },
+    "crabominable-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

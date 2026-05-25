@@ -1,0 +1,100 @@
+{
+  "id": "virizion",
+  "slug": "virizion",
+  "nationalDex": 640,
+  "names": {
+    "ja_hrkt": "ビリジオン",
+    "ja_roma": "Virizion",
+    "ko": "비리디온",
+    "zh_hant": "畢力吉翁",
+    "fr": "Viridium",
+    "de": "Viridium",
+    "es": "Virizion",
+    "it": "Virizion",
+    "en": "Virizion",
+    "ja": "ビリジオン",
+    "zh_hans": "毕力吉翁"
+  },
+  "speciesName": {
+    "ja_hrkt": "そうげんポケモン",
+    "ko": "초원포켓몬",
+    "zh_hant": "草原寶可夢",
+    "fr": "Pokémon Plaine Verte",
+    "de": "Wiesen-Pokémon",
+    "es": "Pokémon Prado",
+    "it": "Pokémon Prateria",
+    "en": "Grassland Pokémon",
+    "ja": "そうげんポケモン",
+    "zh_hans": "草原宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 91,
+    "atk": 90,
+    "def": 72,
+    "spa": 90,
+    "spd": 129,
+    "spe": 108,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "justified",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "virizion",
+    "evolution": "virizion",
+    "media": "virizion"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 200.0,
+    "color": "green",
+    "flavorText": "This Pokémon fought humans in order to protect its friends. Legends about it continue to be passed down."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

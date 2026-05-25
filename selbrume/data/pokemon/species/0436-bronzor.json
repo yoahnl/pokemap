@@ -1,0 +1,100 @@
+{
+  "id": "bronzor",
+  "slug": "bronzor",
+  "nationalDex": 436,
+  "names": {
+    "ja_hrkt": "ドーミラー",
+    "ja_roma": "Domirror",
+    "ko": "동미러",
+    "zh_hant": "銅鏡怪",
+    "fr": "Archéomire",
+    "de": "Bronzel",
+    "es": "Bronzor",
+    "it": "Bronzor",
+    "en": "Bronzor",
+    "ja": "ドーミラー",
+    "zh_hans": "铜镜怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "せいどうポケモン",
+    "ko": "청동포켓몬",
+    "zh_hant": "青銅寶可夢",
+    "fr": "Pokémon Bronze",
+    "de": "Bronze-Pokémon",
+    "es": "Pokémon Bronce",
+    "it": "Pokémon Bronzo",
+    "en": "Bronze Pokémon",
+    "ja": "せいどうポケモン",
+    "zh_hans": "青铜宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "steel",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 57,
+    "atk": 24,
+    "def": 86,
+    "spa": 24,
+    "spd": 86,
+    "spe": 23,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": "heatproof",
+    "hidden": "heavy_metal"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 60,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bronzor",
+    "evolution": "bronzor",
+    "media": "bronzor"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 60.5,
+    "color": "green",
+    "flavorText": "Implements shaped like it were discovered in ancient tombs. It is unknown if they are related."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

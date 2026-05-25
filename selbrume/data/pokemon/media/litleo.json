@@ -1,0 +1,18 @@
+{
+  "speciesId": "litleo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/litleo/front.png",
+      "backStatic": "assets/pokemon/sprites/litleo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/litleo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/litleo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/litleo.png",
+      "cry": "assets/pokemon/cries/litleo.ogg",
+      "animations": {}
+    }
+  }
+}

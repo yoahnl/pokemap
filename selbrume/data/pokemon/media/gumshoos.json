@@ -1,0 +1,30 @@
+{
+  "speciesId": "gumshoos",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gumshoos/front.png",
+      "backStatic": "assets/pokemon/sprites/gumshoos/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gumshoos/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gumshoos/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gumshoos.png",
+      "cry": "assets/pokemon/cries/gumshoos.ogg",
+      "animations": {}
+    },
+    "gumshoos-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

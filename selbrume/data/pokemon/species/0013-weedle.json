@@ -1,0 +1,98 @@
+{
+  "id": "weedle",
+  "slug": "weedle",
+  "nationalDex": 13,
+  "names": {
+    "ja_hrkt": "ビードル",
+    "ja_roma": "Beedle",
+    "ko": "뿔충이",
+    "zh_hant": "獨角蟲",
+    "fr": "Aspicot",
+    "de": "Hornliu",
+    "es": "Weedle",
+    "it": "Weedle",
+    "en": "Weedle",
+    "ja": "ビードル",
+    "zh_hans": "独角虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "けむしポケモン",
+    "ko": "송충이포켓몬",
+    "zh_hant": "毛毛蟲寶可夢",
+    "fr": "Pokémon Insectopic",
+    "de": "Raupe",
+    "es": "Pokémon Oruga",
+    "it": "Pokémon Millepiedi",
+    "en": "Hairy Bug Pokémon",
+    "ja": "けむしポケモン",
+    "zh_hans": "毛毛虫宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 35,
+    "def": 30,
+    "spa": 20,
+    "spd": 20,
+    "spe": 50,
+    "bst": 195
+  },
+  "abilities": {
+    "primary": "shield_dust",
+    "secondary": null,
+    "hidden": "run_away"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 39,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "weedle",
+    "evolution": "weedle",
+    "media": "weedle"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 3.2,
+    "color": "brown",
+    "flavorText": "Often found in forests, eating leaves. It has a sharp venomous stinger on its head."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

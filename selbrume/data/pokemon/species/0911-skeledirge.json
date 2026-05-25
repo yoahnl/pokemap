@@ -1,0 +1,98 @@
+{
+  "id": "skeledirge",
+  "slug": "skeledirge",
+  "nationalDex": 911,
+  "names": {
+    "ja_hrkt": "ラウドボーン",
+    "ja_roma": "Laudbon",
+    "ko": "라우드본",
+    "zh_hant": "骨紋巨聲鱷",
+    "fr": "Flâmigator",
+    "de": "Skelokrok",
+    "es": "Skeledirge",
+    "it": "Skeledirge",
+    "en": "Skeledirge",
+    "ja": "ラウドボーン",
+    "zh_hans": "骨纹巨声鳄"
+  },
+  "speciesName": {
+    "ja_hrkt": "シンガーポケモン",
+    "ko": "싱어포켓몬",
+    "zh_hant": "歌手寶可夢",
+    "fr": "Chanteur",
+    "de": "Sänger",
+    "en": "Singer Pokémon",
+    "zh_hans": "歌手宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fire",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 104,
+    "atk": 75,
+    "def": 100,
+    "spa": 110,
+    "spd": 75,
+    "spe": 66,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "unaware"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 265,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "skeledirge",
+    "evolution": "skeledirge",
+    "media": "skeledirge"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 326.5,
+    "color": "red",
+    "flavorText": "The fiery bird changes shape when Skeledirge sings. Rumor has it that the bird was born when the fireball on Skeledirge’s head gained a soul."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

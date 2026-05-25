@@ -1,0 +1,18 @@
+{
+  "speciesId": "quilava",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/quilava/front.png",
+      "backStatic": "assets/pokemon/sprites/quilava/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/quilava/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/quilava/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/quilava.png",
+      "cry": "assets/pokemon/cries/quilava.ogg",
+      "animations": {}
+    }
+  }
+}

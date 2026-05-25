@@ -1,0 +1,14 @@
+{
+  "speciesId": "clefairy",
+  "preEvolution": "cleffa",
+  "evolutions": [
+    {
+      "targetSpeciesId": "clefable",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "moon-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

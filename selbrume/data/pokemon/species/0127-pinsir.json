@@ -1,0 +1,99 @@
+{
+  "id": "pinsir",
+  "slug": "pinsir",
+  "nationalDex": 127,
+  "names": {
+    "ja_hrkt": "カイロス",
+    "ja_roma": "Kailios",
+    "ko": "쁘사이저",
+    "zh_hant": "凱羅斯",
+    "fr": "Scarabrute",
+    "de": "Pinsir",
+    "es": "Pinsir",
+    "it": "Pinsir",
+    "en": "Pinsir",
+    "ja": "カイロス",
+    "zh_hans": "凯罗斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "くわがたポケモン",
+    "ko": "뿔집게포켓몬",
+    "zh_hant": "鍬形蟲寶可夢",
+    "fr": "Pokémon Scarabée",
+    "de": "Kneifkäfer-Pokémon",
+    "es": "Pokémon Escarabajo",
+    "it": "Pokémon Cervolante",
+    "en": "Stag Beetle Pokémon",
+    "ja": "くわがたポケモン",
+    "zh_hans": "锹形虫宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 125,
+    "def": 100,
+    "spa": 55,
+    "spd": 70,
+    "spe": 85,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "hyper_cutter",
+    "secondary": "mold_breaker",
+    "hidden": "moxie"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 175,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "pinsir-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pinsir",
+    "evolution": "pinsir",
+    "media": "pinsir"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 55.0,
+    "color": "brown",
+    "flavorText": "If it fails to crush the victim in its pincers, it will swing it around and toss it hard."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

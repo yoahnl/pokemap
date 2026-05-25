@@ -1,0 +1,99 @@
+{
+  "id": "dragapult",
+  "slug": "dragapult",
+  "nationalDex": 887,
+  "names": {
+    "ja_hrkt": "ドラパルト",
+    "ja_roma": "Dorapult",
+    "ko": "드래펄트",
+    "zh_hant": "多龍巴魯托",
+    "fr": "Lanssorien",
+    "de": "Katapuldra",
+    "es": "Dragapult",
+    "it": "Dragapult",
+    "en": "Dragapult",
+    "ja": "ドラパルト",
+    "zh_hans": "多龙巴鲁托"
+  },
+  "speciesName": {
+    "ja_hrkt": "ステルスポケモン",
+    "ko": "스텔스포켓몬",
+    "zh_hant": "隱形寶可夢",
+    "fr": "Pokémon Furtif",
+    "de": "Tarnkünstler-Pokémon",
+    "es": "Pokémon Furtivo",
+    "it": "Pokémon Furtivo",
+    "en": "Stealth Pokémon",
+    "ja": "ステルスポケモン",
+    "zh_hans": "隐形宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "dragon",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 88,
+    "atk": 120,
+    "def": 75,
+    "spa": 100,
+    "spd": 75,
+    "spe": 142,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": "infiltrator",
+    "hidden": "cursed_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 300,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dragapult",
+    "evolution": "dragapult",
+    "media": "dragapult"
+  },
+  "dexContent": {
+    "heightM": 3.0,
+    "weightKg": 50.0,
+    "color": "green",
+    "flavorText": "When it isn’t battling, it keeps Dreepy in the holes on its horns. Once a fight starts, it launches the Dreepy like supersonic missiles."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

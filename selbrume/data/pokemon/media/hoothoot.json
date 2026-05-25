@@ -1,0 +1,18 @@
+{
+  "speciesId": "hoothoot",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hoothoot/front.png",
+      "backStatic": "assets/pokemon/sprites/hoothoot/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hoothoot/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hoothoot/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hoothoot.png",
+      "cry": "assets/pokemon/cries/hoothoot.ogg",
+      "animations": {}
+    }
+  }
+}

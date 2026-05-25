@@ -1,0 +1,18 @@
+{
+  "speciesId": "mankey",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mankey/front.png",
+      "backStatic": "assets/pokemon/sprites/mankey/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mankey/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mankey/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mankey.png",
+      "cry": "assets/pokemon/cries/mankey.ogg",
+      "animations": {}
+    }
+  }
+}

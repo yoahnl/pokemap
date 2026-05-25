@@ -1,0 +1,97 @@
+{
+  "id": "solosis",
+  "slug": "solosis",
+  "nationalDex": 577,
+  "names": {
+    "ja_hrkt": "ユニラン",
+    "ja_roma": "Uniran",
+    "ko": "유니란",
+    "zh_hant": "單卵細胞球",
+    "fr": "Nucléos",
+    "de": "Monozyto",
+    "es": "Solosis",
+    "it": "Solosis",
+    "en": "Solosis",
+    "ja": "ユニラン",
+    "zh_hans": "单卵细胞球"
+  },
+  "speciesName": {
+    "ja_hrkt": "さいぼうポケモン",
+    "ko": "세포포켓몬",
+    "zh_hant": "細胞寶可夢",
+    "fr": "Pokémon Cellule",
+    "de": "Zellen-Pokémon",
+    "es": "Pokémon Célula",
+    "it": "Pokémon Cellula",
+    "en": "Cell Pokémon",
+    "ja": "さいぼうポケモン",
+    "zh_hans": "细胞宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 30,
+    "def": 40,
+    "spa": 105,
+    "spd": 50,
+    "spe": 20,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "overcoat",
+    "secondary": "magic_guard",
+    "hidden": "regenerator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 58,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "solosis",
+    "evolution": "solosis",
+    "media": "solosis"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.0,
+    "color": "green",
+    "flavorText": "They drive away attackers by unleashing psychic power. They can use telepathy to talk with others."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

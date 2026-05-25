@@ -1,0 +1,30 @@
+{
+  "speciesId": "braviary",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/braviary/front.png",
+      "backStatic": "assets/pokemon/sprites/braviary/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/braviary/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/braviary/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/braviary.png",
+      "cry": "assets/pokemon/cries/braviary.ogg",
+      "animations": {}
+    },
+    "braviary-hisui": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

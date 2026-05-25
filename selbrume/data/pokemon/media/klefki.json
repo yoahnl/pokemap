@@ -1,0 +1,18 @@
+{
+  "speciesId": "klefki",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/klefki/front.png",
+      "backStatic": "assets/pokemon/sprites/klefki/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/klefki/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/klefki/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/klefki.png",
+      "cry": "assets/pokemon/cries/klefki.ogg",
+      "animations": {}
+    }
+  }
+}

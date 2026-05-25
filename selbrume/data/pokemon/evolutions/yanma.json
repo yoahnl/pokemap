@@ -1,0 +1,14 @@
+{
+  "speciesId": "yanma",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "yanmega",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "ancient_power",
+      "conditionText": {}
+    }
+  ]
+}

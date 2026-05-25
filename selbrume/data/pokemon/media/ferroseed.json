@@ -1,0 +1,18 @@
+{
+  "speciesId": "ferroseed",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ferroseed/front.png",
+      "backStatic": "assets/pokemon/sprites/ferroseed/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ferroseed/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ferroseed/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ferroseed.png",
+      "cry": "assets/pokemon/cries/ferroseed.ogg",
+      "animations": {}
+    }
+  }
+}

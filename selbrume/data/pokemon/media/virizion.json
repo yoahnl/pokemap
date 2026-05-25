@@ -1,0 +1,18 @@
+{
+  "speciesId": "virizion",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/virizion/front.png",
+      "backStatic": "assets/pokemon/sprites/virizion/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/virizion/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/virizion/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/virizion.png",
+      "cry": "assets/pokemon/cries/virizion.ogg",
+      "animations": {}
+    }
+  }
+}

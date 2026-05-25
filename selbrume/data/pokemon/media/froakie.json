@@ -1,0 +1,18 @@
+{
+  "speciesId": "froakie",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/froakie/front.png",
+      "backStatic": "assets/pokemon/sprites/froakie/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/froakie/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/froakie/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/froakie.png",
+      "cry": "assets/pokemon/cries/froakie.ogg",
+      "animations": {}
+    }
+  }
+}

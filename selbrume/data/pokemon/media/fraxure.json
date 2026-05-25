@@ -1,0 +1,18 @@
+{
+  "speciesId": "fraxure",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/fraxure/front.png",
+      "backStatic": "assets/pokemon/sprites/fraxure/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/fraxure/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/fraxure/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/fraxure.png",
+      "cry": "assets/pokemon/cries/fraxure.ogg",
+      "animations": {}
+    }
+  }
+}

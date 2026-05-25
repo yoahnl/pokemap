@@ -1,0 +1,14 @@
+{
+  "speciesId": "wattrel",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "kilowattrel",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

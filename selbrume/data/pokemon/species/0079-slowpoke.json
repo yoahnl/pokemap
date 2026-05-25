@@ -1,0 +1,101 @@
+{
+  "id": "slowpoke",
+  "slug": "slowpoke",
+  "nationalDex": 79,
+  "names": {
+    "ja_hrkt": "ヤドン",
+    "ja_roma": "Yadon",
+    "ko": "야돈",
+    "zh_hant": "呆呆獸",
+    "fr": "Ramoloss",
+    "de": "Flegmon",
+    "es": "Slowpoke",
+    "it": "Slowpoke",
+    "en": "Slowpoke",
+    "ja": "ヤドン",
+    "zh_hans": "呆呆兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "まぬけポケモン",
+    "ko": "얼간이포켓몬",
+    "zh_hant": "憨憨寶可夢",
+    "fr": "Pokémon Crétin",
+    "de": "Schnarcher-Pokémon",
+    "es": "Pokémon Atontado",
+    "it": "Pokémon Ronfone",
+    "en": "Dopey Pokémon",
+    "ja": "まぬけポケモン",
+    "zh_hans": "憨憨宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 65,
+    "def": 65,
+    "spa": 40,
+    "spd": 40,
+    "spe": 15,
+    "bst": 315
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "own_tempo",
+    "hidden": "regenerator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 63,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "slowpoke-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "slowpoke",
+    "evolution": "slowpoke",
+    "media": "slowpoke"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 36.0,
+    "color": "pink",
+    "flavorText": "Incredibly slow and dopey. It takes 5 seconds for it to feel pain when under attack."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

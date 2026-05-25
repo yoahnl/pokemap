@@ -1,0 +1,18 @@
+{
+  "speciesId": "turtwig",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/turtwig/front.png",
+      "backStatic": "assets/pokemon/sprites/turtwig/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/turtwig/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/turtwig/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/turtwig.png",
+      "cry": "assets/pokemon/cries/turtwig.ogg",
+      "animations": {}
+    }
+  }
+}

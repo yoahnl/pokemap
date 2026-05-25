@@ -1,0 +1,18 @@
+{
+  "speciesId": "cascoon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cascoon/front.png",
+      "backStatic": "assets/pokemon/sprites/cascoon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cascoon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cascoon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cascoon.png",
+      "cry": "assets/pokemon/cries/cascoon.ogg",
+      "animations": {}
+    }
+  }
+}

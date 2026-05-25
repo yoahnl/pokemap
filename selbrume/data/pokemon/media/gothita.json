@@ -1,0 +1,18 @@
+{
+  "speciesId": "gothita",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gothita/front.png",
+      "backStatic": "assets/pokemon/sprites/gothita/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gothita/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gothita/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gothita.png",
+      "cry": "assets/pokemon/cries/gothita.ogg",
+      "animations": {}
+    }
+  }
+}

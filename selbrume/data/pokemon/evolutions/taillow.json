@@ -1,0 +1,14 @@
+{
+  "speciesId": "taillow",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "swellow",
+      "method": "level_up",
+      "minLevel": 22,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

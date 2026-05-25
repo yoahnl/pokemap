@@ -1,0 +1,18 @@
+{
+  "speciesId": "ambipom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ambipom/front.png",
+      "backStatic": "assets/pokemon/sprites/ambipom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ambipom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ambipom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ambipom.png",
+      "cry": "assets/pokemon/cries/ambipom.ogg",
+      "animations": {}
+    }
+  }
+}

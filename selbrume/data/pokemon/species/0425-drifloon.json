@@ -1,0 +1,98 @@
+{
+  "id": "drifloon",
+  "slug": "drifloon",
+  "nationalDex": 425,
+  "names": {
+    "ja_hrkt": "フワンテ",
+    "ja_roma": "Fuwante",
+    "ko": "흔들풍손",
+    "zh_hant": "飄飄球",
+    "fr": "Baudrive",
+    "de": "Driftlon",
+    "es": "Drifloon",
+    "it": "Drifloon",
+    "en": "Drifloon",
+    "ja": "フワンテ",
+    "zh_hans": "飘飘球"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふうせんポケモン",
+    "ko": "풍선포켓몬",
+    "zh_hant": "氣球寶可夢",
+    "fr": "Pokémon Bouboule",
+    "de": "Ballon-Pokémon",
+    "es": "Pokémon Globo",
+    "it": "Pokémon Pallone",
+    "en": "Balloon Pokémon",
+    "ja": "ふうせんポケモン",
+    "zh_hans": "气球宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ghost",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 50,
+    "def": 34,
+    "spa": 60,
+    "spd": 44,
+    "spe": 70,
+    "bst": 348
+  },
+  "abilities": {
+    "primary": "aftermath",
+    "secondary": "unburden",
+    "hidden": "flare_boost"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 70,
+    "catchRate": 125,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "drifloon",
+    "evolution": "drifloon",
+    "media": "drifloon"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 1.2,
+    "color": "purple",
+    "flavorText": "A Pokémon formed by the spirits of people and Pokémon. It loves damp, humid seasons."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

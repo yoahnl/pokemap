@@ -1,0 +1,30 @@
+{
+  "speciesId": "xerneas",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/xerneas/front.png",
+      "backStatic": "assets/pokemon/sprites/xerneas/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/xerneas/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/xerneas/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/xerneas.png",
+      "cry": "assets/pokemon/cries/xerneas.ogg",
+      "animations": {}
+    },
+    "xerneas-neutral": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

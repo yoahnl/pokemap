@@ -1,0 +1,102 @@
+{
+  "id": "starmie",
+  "slug": "starmie",
+  "nationalDex": 121,
+  "names": {
+    "ja_hrkt": "スターミー",
+    "ja_roma": "Starmie",
+    "ko": "아쿠스타",
+    "zh_hant": "寶石海星",
+    "fr": "Staross",
+    "de": "Starmie",
+    "es": "Starmie",
+    "it": "Starmie",
+    "en": "Starmie",
+    "ja": "スターミー",
+    "zh_hans": "宝石海星"
+  },
+  "speciesName": {
+    "ja_hrkt": "なぞのポケモン",
+    "ko": "수수께끼포켓몬",
+    "zh_hant": "謎寶可夢",
+    "fr": "Pokémon Mystérieux",
+    "de": "Mysteriös-Pokémon",
+    "es": "Pokémon Misterioso",
+    "it": "Pokémon Misterioso",
+    "en": "Mysterious Pokémon",
+    "ja": "なぞのポケモン",
+    "zh_hans": "谜宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 75,
+    "def": 85,
+    "spa": 100,
+    "spd": 85,
+    "spe": 115,
+    "bst": 520
+  },
+  "abilities": {
+    "primary": "illuminate",
+    "secondary": "natural_cure",
+    "hidden": "analytic"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 182,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "starmie-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "starmie",
+    "evolution": "starmie",
+    "media": "starmie"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 80.0,
+    "color": "purple",
+    "flavorText": "Its central core glows with the seven colors of the rainbow. Some people value the core as a gem."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

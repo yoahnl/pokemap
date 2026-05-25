@@ -1,0 +1,30 @@
+{
+  "speciesId": "sneasel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sneasel/front.png",
+      "backStatic": "assets/pokemon/sprites/sneasel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sneasel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sneasel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sneasel.png",
+      "cry": "assets/pokemon/cries/sneasel.ogg",
+      "animations": {}
+    },
+    "sneasel-hisui": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

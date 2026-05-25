@@ -1,0 +1,97 @@
+{
+  "id": "elgyem",
+  "slug": "elgyem",
+  "nationalDex": 605,
+  "names": {
+    "ja_hrkt": "リグレー",
+    "ja_roma": "Ligray",
+    "ko": "리그레",
+    "zh_hant": "小灰怪",
+    "fr": "Lewsor",
+    "de": "Pygraulon",
+    "es": "Elgyem",
+    "it": "Elgyem",
+    "en": "Elgyem",
+    "ja": "リグレー",
+    "zh_hans": "小灰怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ブレインポケモン",
+    "ko": "브레인포켓몬",
+    "zh_hant": "腦寶可夢",
+    "fr": "Pokémon Cerveau",
+    "de": "Grips-Pokémon",
+    "es": "Pokémon Cerebro",
+    "it": "Pokémon Cervello",
+    "en": "Cerebral Pokémon",
+    "ja": "ブレインポケモン",
+    "zh_hans": "脑宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 55,
+    "def": 55,
+    "spa": 85,
+    "spd": 55,
+    "spe": 30,
+    "bst": 335
+  },
+  "abilities": {
+    "primary": "telepathy",
+    "secondary": "synchronize",
+    "hidden": "analytic"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 67,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "elgyem",
+    "evolution": "elgyem",
+    "media": "elgyem"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.0,
+    "color": "blue",
+    "flavorText": "It uses its strong psychic power to squeeze its opponent’s brain, causing unendurable headaches."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

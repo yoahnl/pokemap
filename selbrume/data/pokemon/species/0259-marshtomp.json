@@ -1,0 +1,102 @@
+{
+  "id": "marshtomp",
+  "slug": "marshtomp",
+  "nationalDex": 259,
+  "names": {
+    "ja_hrkt": "ヌマクロー",
+    "ja_roma": "Numacraw",
+    "ko": "늪짱이",
+    "zh_hant": "沼躍魚",
+    "fr": "Flobio",
+    "de": "Moorabbel",
+    "es": "Marshtomp",
+    "it": "Marshtomp",
+    "en": "Marshtomp",
+    "ja": "ヌマクロー",
+    "zh_hans": "沼跃鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぬまうおポケモン",
+    "ko": "늪물고기포켓몬",
+    "zh_hant": "沼魚寶可夢",
+    "fr": "Pokémon Poissonboue",
+    "de": "Lehmhüpfer-Pokémon",
+    "es": "Pokémon Pez Lodo",
+    "it": "Pokémon Fango Pesce",
+    "en": "Mud Fish Pokémon",
+    "ja": "ぬまうおポケモン",
+    "zh_hans": "沼鱼宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 85,
+    "def": 70,
+    "spa": 60,
+    "spd": 70,
+    "spe": 50,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "damp"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "marshtomp",
+    "evolution": "marshtomp",
+    "media": "marshtomp"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 28.0,
+    "color": "blue",
+    "flavorText": "The surface of MARSHTOMP’s body is enveloped by a thin, sticky film that enables it to live on land. This POKéMON plays in mud on beaches when the ocean tide is low."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

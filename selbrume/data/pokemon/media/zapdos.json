@@ -1,0 +1,30 @@
+{
+  "speciesId": "zapdos",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zapdos/front.png",
+      "backStatic": "assets/pokemon/sprites/zapdos/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zapdos/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zapdos/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zapdos.png",
+      "cry": "assets/pokemon/cries/zapdos.ogg",
+      "animations": {}
+    },
+    "zapdos-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

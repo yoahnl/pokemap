@@ -1,0 +1,90 @@
+{
+  "id": "munkidori",
+  "slug": "munkidori",
+  "nationalDex": 1015,
+  "names": {
+    "ja_hrkt": "マシマシラ",
+    "ko": "이야후",
+    "zh_hant": "願增猿",
+    "fr": "Fortusimia",
+    "de": "Benesaru",
+    "es": "Munkidori",
+    "it": "Munkidori",
+    "en": "Munkidori",
+    "ja": "マシマシラ",
+    "zh_hans": "愿增猿"
+  },
+  "speciesName": {
+    "ko": "수하포켓몬",
+    "fr": "Serviteur",
+    "en": "Retainer Pokémon"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "poison",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 88,
+    "atk": 75,
+    "def": 66,
+    "spa": 130,
+    "spd": 90,
+    "spe": 106,
+    "bst": 555
+  },
+  "abilities": {
+    "primary": "toxic_chain",
+    "secondary": null,
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 278,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "munkidori",
+    "evolution": "munkidori",
+    "media": "munkidori"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 12.2,
+    "color": "black",
+    "flavorText": "The chain is made from toxins that enhance capabilities. It stimulated Munkidori's brain and caused the Pokémon's psychic powers to bloom."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

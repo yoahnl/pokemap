@@ -1,0 +1,98 @@
+{
+  "id": "galvantula",
+  "slug": "galvantula",
+  "nationalDex": 596,
+  "names": {
+    "ja_hrkt": "デンチュラ",
+    "ja_roma": "Dentula",
+    "ko": "전툴라",
+    "zh_hant": "電蜘蛛",
+    "fr": "Mygavolt",
+    "de": "Voltula",
+    "es": "Galvantula",
+    "it": "Galvantula",
+    "en": "Galvantula",
+    "ja": "デンチュラ",
+    "zh_hans": "电蜘蛛"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんきグモポケモン",
+    "ko": "전기거미포켓몬",
+    "zh_hant": "電蜘蛛寶可夢",
+    "fr": "Pokémon Araclectrik",
+    "de": "Stromspinnen-Pokémon",
+    "es": "Pokémon Electroaraña",
+    "it": "Pokémon Elettroragno",
+    "en": "EleSpider Pokémon",
+    "ja": "でんきグモポケモン",
+    "zh_hans": "电蜘蛛宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 77,
+    "def": 60,
+    "spa": 97,
+    "spd": 60,
+    "spe": 108,
+    "bst": 472
+  },
+  "abilities": {
+    "primary": "compound_eyes",
+    "secondary": "unnerve",
+    "hidden": "swarm"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 165,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "galvantula",
+    "evolution": "galvantula",
+    "media": "galvantula"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 14.3,
+    "color": "yellow",
+    "flavorText": "When attacked, they create an electric barrier by spitting out many electrically charged threads."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

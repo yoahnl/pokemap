@@ -1,0 +1,14 @@
+{
+  "speciesId": "honedge",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "doublade",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

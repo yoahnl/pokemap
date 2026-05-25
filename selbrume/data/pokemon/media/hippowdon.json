@@ -1,0 +1,18 @@
+{
+  "speciesId": "hippowdon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hippowdon/front.png",
+      "backStatic": "assets/pokemon/sprites/hippowdon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hippowdon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hippowdon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hippowdon.png",
+      "cry": "assets/pokemon/cries/hippowdon.ogg",
+      "animations": {}
+    }
+  }
+}

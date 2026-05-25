@@ -1,0 +1,100 @@
+{
+  "id": "kartana",
+  "slug": "kartana",
+  "nationalDex": 798,
+  "names": {
+    "ja_hrkt": "カミツルギ",
+    "ja_roma": "Kamiturugi",
+    "ko": "종이신도",
+    "zh_hant": "紙御劍",
+    "fr": "Katagami",
+    "de": "Katagami",
+    "es": "Kartana",
+    "it": "Kartana",
+    "en": "Kartana",
+    "ja": "カミツルギ",
+    "zh_hans": "纸御剑"
+  },
+  "speciesName": {
+    "ja_hrkt": "ばっとうポケモン",
+    "ko": "발도포켓몬",
+    "zh_hant": "拔刀寶可夢",
+    "fr": "Pokémon Battô",
+    "de": "Schwertkunst-Pokémon",
+    "es": "Pokémon Desenvaine",
+    "it": "Pokémon Spadatratta",
+    "en": "Drawn Sword Pokémon",
+    "ja": "ばっとうポケモン",
+    "zh_hans": "拔刀宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "grass",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 59,
+    "atk": 181,
+    "def": 131,
+    "spa": 59,
+    "spd": 31,
+    "spe": 109,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "kartana",
+    "evolution": "kartana",
+    "media": "kartana"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.1,
+    "color": "white",
+    "flavorText": "This Ultra Beast came from the Ultra Wormhole. It seems not to attack enemies on its own, but its sharp body is a dangerous weapon in itself."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

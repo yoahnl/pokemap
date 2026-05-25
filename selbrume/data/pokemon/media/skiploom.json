@@ -1,0 +1,18 @@
+{
+  "speciesId": "skiploom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skiploom/front.png",
+      "backStatic": "assets/pokemon/sprites/skiploom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/skiploom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/skiploom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skiploom.png",
+      "cry": "assets/pokemon/cries/skiploom.ogg",
+      "animations": {}
+    }
+  }
+}

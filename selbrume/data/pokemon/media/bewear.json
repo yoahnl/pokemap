@@ -1,0 +1,18 @@
+{
+  "speciesId": "bewear",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bewear/front.png",
+      "backStatic": "assets/pokemon/sprites/bewear/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bewear/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bewear/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bewear.png",
+      "cry": "assets/pokemon/cries/bewear.ogg",
+      "animations": {}
+    }
+  }
+}

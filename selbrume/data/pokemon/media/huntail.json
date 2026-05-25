@@ -1,0 +1,18 @@
+{
+  "speciesId": "huntail",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/huntail/front.png",
+      "backStatic": "assets/pokemon/sprites/huntail/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/huntail/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/huntail/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/huntail.png",
+      "cry": "assets/pokemon/cries/huntail.ogg",
+      "animations": {}
+    }
+  }
+}

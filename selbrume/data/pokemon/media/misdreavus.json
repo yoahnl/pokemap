@@ -1,0 +1,18 @@
+{
+  "speciesId": "misdreavus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/misdreavus/front.png",
+      "backStatic": "assets/pokemon/sprites/misdreavus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/misdreavus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/misdreavus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/misdreavus.png",
+      "cry": "assets/pokemon/cries/misdreavus.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "foongus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/foongus/front.png",
+      "backStatic": "assets/pokemon/sprites/foongus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/foongus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/foongus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/foongus.png",
+      "cry": "assets/pokemon/cries/foongus.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "nuzleaf",
+  "slug": "nuzleaf",
+  "nationalDex": 274,
+  "names": {
+    "ja_hrkt": "コノハナ",
+    "ja_roma": "Konohana",
+    "ko": "잎새코",
+    "zh_hant": "長鼻葉",
+    "fr": "Pifeuil",
+    "de": "Blanas",
+    "es": "Nuzleaf",
+    "it": "Nuzleaf",
+    "en": "Nuzleaf",
+    "ja": "コノハナ",
+    "zh_hans": "长鼻叶"
+  },
+  "speciesName": {
+    "ja_hrkt": "いじわるポケモン",
+    "ko": "꾀부리기포켓몬",
+    "zh_hant": "捉弄寶可夢",
+    "fr": "Pokémon Malin",
+    "de": "Hinterlist-Pokémon",
+    "es": "Pokémon Astuto",
+    "it": "Pokémon Scaltro",
+    "en": "Wily Pokémon",
+    "ja": "いじわるポケモン",
+    "zh_hans": "捉弄宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "grass",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 70,
+    "def": 40,
+    "spa": 60,
+    "spd": 40,
+    "spe": 60,
+    "bst": 340
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "early_bird",
+    "hidden": "pickpocket"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 119,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nuzleaf",
+    "evolution": "nuzleaf",
+    "media": "nuzleaf"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 28.0,
+    "color": "brown",
+    "flavorText": "NUZLEAF live in densely overgrown forests. They occasionally venture out of the forest to startle people. This POKéMON dislikes having its long nose pinched."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

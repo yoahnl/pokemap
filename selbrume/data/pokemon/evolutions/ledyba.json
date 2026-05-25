@@ -1,0 +1,14 @@
+{
+  "speciesId": "ledyba",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ledian",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

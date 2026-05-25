@@ -1,0 +1,30 @@
+{
+  "speciesId": "palkia",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/palkia/front.png",
+      "backStatic": "assets/pokemon/sprites/palkia/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/palkia/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/palkia/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/palkia.png",
+      "cry": "assets/pokemon/cries/palkia.ogg",
+      "animations": {}
+    },
+    "palkia-origin": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

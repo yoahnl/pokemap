@@ -1,0 +1,97 @@
+{
+  "id": "lickilicky",
+  "slug": "lickilicky",
+  "nationalDex": 463,
+  "names": {
+    "ja_hrkt": "ベロベルト",
+    "ja_roma": "Beroberto",
+    "ko": "내룸벨트",
+    "zh_hant": "大舌舔",
+    "fr": "Coudlangue",
+    "de": "Schlurplek",
+    "es": "Lickilicky",
+    "it": "Lickilicky",
+    "en": "Lickilicky",
+    "ja": "ベロベルト",
+    "zh_hans": "大舌舔"
+  },
+  "speciesName": {
+    "ja_hrkt": "なめまわしポケモン",
+    "ko": "핥기포켓몬",
+    "zh_hant": "舔舔寶可夢",
+    "fr": "Pokémon Lécheur",
+    "de": "Schlecker-Pokémon",
+    "es": "Pokémon Lametazo",
+    "it": "Pokémon Linguaccia",
+    "en": "Licking Pokémon",
+    "ja": "なめまわしポケモン",
+    "zh_hans": "舔舔宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 110,
+    "atk": 85,
+    "def": 95,
+    "spa": 80,
+    "spd": 95,
+    "spe": 50,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "oblivious",
+    "hidden": "cloud_nine"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 180,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lickilicky",
+    "evolution": "lickilicky",
+    "media": "lickilicky"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 140.0,
+    "color": "pink",
+    "flavorText": "It wraps things with its extensible tongue. Getting too close to it will leave you soaked with drool."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

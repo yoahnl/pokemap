@@ -1,0 +1,97 @@
+{
+  "id": "slurpuff",
+  "slug": "slurpuff",
+  "nationalDex": 685,
+  "names": {
+    "ja_hrkt": "ペロリーム",
+    "ja_roma": "Peroream",
+    "ko": "나루림",
+    "zh_hant": "胖甜妮",
+    "fr": "Cupcanaille",
+    "de": "Sabbaione",
+    "es": "Slurpuff",
+    "it": "Slurpuff",
+    "en": "Slurpuff",
+    "ja": "ペロリーム",
+    "zh_hans": "胖甜妮"
+  },
+  "speciesName": {
+    "ja_hrkt": "ホイップポケモン",
+    "ko": "휩포켓몬",
+    "zh_hant": "泡沫奶油寶可夢",
+    "fr": "Pokémon Mousseline",
+    "de": "Schlagsahne-Pokémon",
+    "es": "Pokémon Nata",
+    "it": "Pokémon Panna",
+    "en": "Meringue Pokémon",
+    "ja": "ホイップポケモン",
+    "zh_hans": "泡沫奶油宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 82,
+    "atk": 80,
+    "def": 86,
+    "spa": 85,
+    "spd": 75,
+    "spe": 72,
+    "bst": 480
+  },
+  "abilities": {
+    "primary": "sweet_veil",
+    "secondary": null,
+    "hidden": "unburden"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 168,
+    "catchRate": 140,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "slurpuff",
+    "evolution": "slurpuff",
+    "media": "slurpuff"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 5.0,
+    "color": "white",
+    "flavorText": "It can distinguish the faintest of scents. It puts its sensitive sense of smell to use by helping pastry chefs in their work."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

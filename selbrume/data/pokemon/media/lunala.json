@@ -1,0 +1,18 @@
+{
+  "speciesId": "lunala",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lunala/front.png",
+      "backStatic": "assets/pokemon/sprites/lunala/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lunala/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lunala/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lunala.png",
+      "cry": "assets/pokemon/cries/lunala.ogg",
+      "animations": {}
+    }
+  }
+}

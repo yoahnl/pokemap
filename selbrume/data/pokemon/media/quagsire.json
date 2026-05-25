@@ -1,0 +1,18 @@
+{
+  "speciesId": "quagsire",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/quagsire/front.png",
+      "backStatic": "assets/pokemon/sprites/quagsire/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/quagsire/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/quagsire/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/quagsire.png",
+      "cry": "assets/pokemon/cries/quagsire.ogg",
+      "animations": {}
+    }
+  }
+}

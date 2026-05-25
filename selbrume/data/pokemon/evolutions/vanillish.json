@@ -1,0 +1,14 @@
+{
+  "speciesId": "vanillish",
+  "preEvolution": "vanillite",
+  "evolutions": [
+    {
+      "targetSpeciesId": "vanilluxe",
+      "method": "level_up",
+      "minLevel": 47,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

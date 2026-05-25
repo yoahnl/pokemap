@@ -1,0 +1,101 @@
+{
+  "id": "tauros",
+  "slug": "tauros",
+  "nationalDex": 128,
+  "names": {
+    "ja_hrkt": "ケンタロス",
+    "ja_roma": "Kentauros",
+    "ko": "켄타로스",
+    "zh_hant": "肯泰羅",
+    "fr": "Tauros",
+    "de": "Tauros",
+    "es": "Tauros",
+    "it": "Tauros",
+    "en": "Tauros",
+    "ja": "ケンタロス",
+    "zh_hans": "肯泰罗"
+  },
+  "speciesName": {
+    "ja_hrkt": "あばれうしポケモン",
+    "ko": "성난소포켓몬",
+    "zh_hant": "暴牛寶可夢",
+    "fr": "Pokémon Buffle",
+    "de": "Wildbullen-Pokémon",
+    "es": "Pokémon Toro Bravo",
+    "it": "Pokémon Torobrado",
+    "en": "Wild Bull Pokémon",
+    "ja": "あばれうしポケモン",
+    "zh_hans": "暴牛宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 100,
+    "def": 95,
+    "spa": 40,
+    "spd": 70,
+    "spe": 110,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "anger_point",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "tauros-paldea-aqua",
+      "tauros-paldea-blaze",
+      "tauros-paldea-combat"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tauros",
+    "evolution": "tauros",
+    "media": "tauros"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 88.4,
+    "color": "brown",
+    "flavorText": "When it targets an enemy, it charges furiously while whipping its body with its long tails."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

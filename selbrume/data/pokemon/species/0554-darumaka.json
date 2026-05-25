@@ -1,0 +1,99 @@
+{
+  "id": "darumaka",
+  "slug": "darumaka",
+  "nationalDex": 554,
+  "names": {
+    "ja_hrkt": "ダルマッカ",
+    "ja_roma": "Darumakka",
+    "ko": "달막화",
+    "zh_hant": "火紅不倒翁",
+    "fr": "Darumarond",
+    "de": "Flampion",
+    "es": "Darumaka",
+    "it": "Darumaka",
+    "en": "Darumaka",
+    "ja": "ダルマッカ",
+    "zh_hans": "火红不倒翁"
+  },
+  "speciesName": {
+    "ja_hrkt": "だるまポケモン",
+    "ko": "달마포켓몬",
+    "zh_hant": "不倒翁寶可夢",
+    "fr": "Pokémon Daruma",
+    "de": "Lampion-Pokémon",
+    "es": "Pokémon Daruma",
+    "it": "Pokémon Daruma",
+    "en": "Zen Charm Pokémon",
+    "ja": "だるまポケモン",
+    "zh_hans": "不倒翁宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 90,
+    "def": 45,
+    "spa": 15,
+    "spd": 45,
+    "spe": 50,
+    "bst": 315
+  },
+  "abilities": {
+    "primary": "hustle",
+    "secondary": null,
+    "hidden": "inner_focus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 63,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "darumaka-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "darumaka",
+    "evolution": "darumaka",
+    "media": "darumaka"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 37.5,
+    "color": "red",
+    "flavorText": "When its internal fire is burning, it cannot calm down and it runs around. When the fire diminishes, it falls asleep."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

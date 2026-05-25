@@ -1,0 +1,30 @@
+{
+  "speciesId": "hawlucha",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hawlucha/front.png",
+      "backStatic": "assets/pokemon/sprites/hawlucha/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hawlucha/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hawlucha/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hawlucha.png",
+      "cry": "assets/pokemon/cries/hawlucha.ogg",
+      "animations": {}
+    },
+    "hawlucha-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

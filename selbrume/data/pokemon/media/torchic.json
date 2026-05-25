@@ -1,0 +1,18 @@
+{
+  "speciesId": "torchic",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/torchic/front.png",
+      "backStatic": "assets/pokemon/sprites/torchic/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/torchic/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/torchic/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/torchic.png",
+      "cry": "assets/pokemon/cries/torchic.ogg",
+      "animations": {}
+    }
+  }
+}

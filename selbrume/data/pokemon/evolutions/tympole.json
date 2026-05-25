@@ -1,0 +1,14 @@
+{
+  "speciesId": "tympole",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "palpitoad",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

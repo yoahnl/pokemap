@@ -1,0 +1,100 @@
+{
+  "id": "landorus",
+  "slug": "landorus",
+  "nationalDex": 645,
+  "names": {
+    "ja_hrkt": "ランドロス",
+    "ja_roma": "Landlos",
+    "ko": "랜드로스",
+    "zh_hant": "土地雲",
+    "fr": "Démétéros",
+    "de": "Demeteros",
+    "es": "Landorus",
+    "it": "Landorus",
+    "en": "Landorus",
+    "ja": "ランドロス",
+    "zh_hans": "土地云"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほうじょうポケモン",
+    "ko": "풍요포켓몬",
+    "zh_hant": "豐饒寶可夢",
+    "fr": "Pokémon Fertilité",
+    "de": "Reichtums-Pokémon",
+    "es": "Pokémon Fertilidad",
+    "it": "Pokémon Fertilità",
+    "en": "Abundance Pokémon",
+    "ja": "ほうじょうポケモン",
+    "zh_hans": "丰饶宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ground",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 89,
+    "atk": 125,
+    "def": 90,
+    "spa": 115,
+    "spd": 80,
+    "spe": 101,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "sand_force",
+    "secondary": null,
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 90
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "landorus-therian"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "landorus",
+    "evolution": "landorus",
+    "media": "landorus"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 68.0,
+    "color": "brown",
+    "flavorText": "Lands visited by Landorus grant such bountiful crops that it has been hailed as “The Guardian of the Fields.”"
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "mothim",
+  "slug": "mothim",
+  "nationalDex": 414,
+  "names": {
+    "ja_hrkt": "ガーメイル",
+    "ja_roma": "Garmeil",
+    "ko": "나메일",
+    "zh_hant": "紳士蛾",
+    "fr": "Papilord",
+    "de": "Moterpel",
+    "es": "Mothim",
+    "it": "Mothim",
+    "en": "Mothim",
+    "ja": "ガーメイル",
+    "zh_hans": "绅士蛾"
+  },
+  "speciesName": {
+    "ja_hrkt": "ミノガポケモン",
+    "ko": "나방포켓몬",
+    "zh_hant": "蓑衣蛾寶可夢",
+    "fr": "Pokémon Phalène",
+    "de": "Motte",
+    "es": "Pokémon Polilla",
+    "it": "Pokémon Falena",
+    "en": "Moth Pokémon",
+    "ja": "ミノガポケモン",
+    "zh_hans": "蓑衣蛾宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 94,
+    "def": 50,
+    "spa": 94,
+    "spd": 50,
+    "spe": 66,
+    "bst": 424
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": null,
+    "hidden": "tinted_lens"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 148,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mothim",
+    "evolution": "mothim",
+    "media": "mothim"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 23.3,
+    "color": "yellow",
+    "flavorText": "It loves the honey of flowers and steals honey collected by COMBEE."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "squirtle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/squirtle/front.png",
+      "backStatic": "assets/pokemon/sprites/squirtle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/squirtle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/squirtle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/squirtle.png",
+      "cry": "assets/pokemon/cries/squirtle.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "buizel",
+  "slug": "buizel",
+  "nationalDex": 418,
+  "names": {
+    "ja_hrkt": "ブイゼル",
+    "ja_roma": "Buoysel",
+    "ko": "브이젤",
+    "zh_hant": "泳圈鼬",
+    "fr": "Mustébouée",
+    "de": "Bamelin",
+    "es": "Buizel",
+    "it": "Buizel",
+    "en": "Buizel",
+    "ja": "ブイゼル",
+    "zh_hans": "泳圈鼬"
+  },
+  "speciesName": {
+    "ja_hrkt": "うみイタチポケモン",
+    "ko": "바다족제비포켓몬",
+    "zh_hant": "海鼬寶可夢",
+    "fr": "Pokémon Aquabelette",
+    "de": "Meereswiesel",
+    "es": "Pokémon Nutria Mar.",
+    "it": "Pokémon Maridonnola",
+    "en": "Sea Weasel Pokémon",
+    "ja": "うみイタチポケモン",
+    "zh_hans": "海鼬宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 65,
+    "def": 35,
+    "spa": 60,
+    "spd": 30,
+    "spe": 85,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": null,
+    "hidden": "water_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 66,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "buizel",
+    "evolution": "buizel",
+    "media": "buizel"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 29.5,
+    "color": "brown",
+    "flavorText": "It has a flotation sac that is like an inflatable collar. It floats on water with its head out."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

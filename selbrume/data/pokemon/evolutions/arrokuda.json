@@ -1,0 +1,14 @@
+{
+  "speciesId": "arrokuda",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "barraskewda",
+      "method": "level_up",
+      "minLevel": 26,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

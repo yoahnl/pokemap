@@ -1,0 +1,18 @@
+{
+  "speciesId": "shieldon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shieldon/front.png",
+      "backStatic": "assets/pokemon/sprites/shieldon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shieldon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shieldon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shieldon.png",
+      "cry": "assets/pokemon/cries/shieldon.ogg",
+      "animations": {}
+    }
+  }
+}

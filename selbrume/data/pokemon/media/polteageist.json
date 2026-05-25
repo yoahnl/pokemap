@@ -1,0 +1,30 @@
+{
+  "speciesId": "polteageist",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/polteageist/front.png",
+      "backStatic": "assets/pokemon/sprites/polteageist/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/polteageist/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/polteageist/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/polteageist.png",
+      "cry": "assets/pokemon/cries/polteageist.ogg",
+      "animations": {}
+    },
+    "polteageist-antique": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

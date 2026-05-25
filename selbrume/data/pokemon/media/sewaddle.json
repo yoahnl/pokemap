@@ -1,0 +1,18 @@
+{
+  "speciesId": "sewaddle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sewaddle/front.png",
+      "backStatic": "assets/pokemon/sprites/sewaddle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sewaddle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sewaddle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sewaddle.png",
+      "cry": "assets/pokemon/cries/sewaddle.ogg",
+      "animations": {}
+    }
+  }
+}

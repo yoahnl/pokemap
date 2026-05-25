@@ -1,0 +1,18 @@
+{
+  "speciesId": "woobat",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/woobat/front.png",
+      "backStatic": "assets/pokemon/sprites/woobat/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/woobat/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/woobat/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/woobat.png",
+      "cry": "assets/pokemon/cries/woobat.ogg",
+      "animations": {}
+    }
+  }
+}

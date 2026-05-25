@@ -1,0 +1,98 @@
+{
+  "id": "fraxure",
+  "slug": "fraxure",
+  "nationalDex": 611,
+  "names": {
+    "ja_hrkt": "オノンド",
+    "ja_roma": "Onondo",
+    "ko": "액슨도",
+    "zh_hant": "斧牙龍",
+    "fr": "Incisache",
+    "de": "Sharfax",
+    "es": "Fraxure",
+    "it": "Fraxure",
+    "en": "Fraxure",
+    "ja": "オノンド",
+    "zh_hans": "斧牙龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "あごオノポケモン",
+    "ko": "도끼턱포켓몬",
+    "zh_hant": "顎斧寶可夢",
+    "fr": "Pokémon Hachomenton",
+    "de": "Beilkiefer-Pokémon",
+    "es": "Pokémon Boca Hacha",
+    "it": "Pokémon Mascellascia",
+    "en": "Axe Jaw Pokémon",
+    "ja": "あごオノポケモン",
+    "zh_hans": "颚斧宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 66,
+    "atk": 117,
+    "def": 70,
+    "spa": 40,
+    "spd": 50,
+    "spe": 67,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "rivalry",
+    "secondary": "mold_breaker",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 144,
+    "catchRate": 60,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "fraxure",
+    "evolution": "fraxure",
+    "media": "fraxure"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 36.0,
+    "color": "green",
+    "flavorText": "Since a broken tusk will not grow back, they diligently sharpen their tusks on river rocks after they’ve been fighting."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

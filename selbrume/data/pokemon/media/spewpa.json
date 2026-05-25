@@ -1,0 +1,18 @@
+{
+  "speciesId": "spewpa",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spewpa/front.png",
+      "backStatic": "assets/pokemon/sprites/spewpa/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spewpa/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spewpa/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spewpa.png",
+      "cry": "assets/pokemon/cries/spewpa.ogg",
+      "animations": {}
+    }
+  }
+}

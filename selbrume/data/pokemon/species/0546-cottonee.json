@@ -1,0 +1,99 @@
+{
+  "id": "cottonee",
+  "slug": "cottonee",
+  "nationalDex": 546,
+  "names": {
+    "ja_hrkt": "モンメン",
+    "ja_roma": "Monmen",
+    "ko": "소미안",
+    "zh_hant": "木棉球",
+    "fr": "Doudouvet",
+    "de": "Waumboll",
+    "es": "Cottonee",
+    "it": "Cottonee",
+    "en": "Cottonee",
+    "ja": "モンメン",
+    "zh_hans": "木棉球"
+  },
+  "speciesName": {
+    "ja_hrkt": "わたたまポケモン",
+    "ko": "솜뭉치포켓몬",
+    "zh_hant": "棉球寶可夢",
+    "fr": "Pokémon Boule Coton",
+    "de": "Wattebausch-Pokémon",
+    "es": "Pokémon Bolalgodón",
+    "it": "Pokémon Cotonpalla",
+    "en": "Cotton Puff Pokémon",
+    "ja": "わたたまポケモン",
+    "zh_hans": "棉球宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 27,
+    "def": 60,
+    "spa": 37,
+    "spd": 50,
+    "spe": 66,
+    "bst": 280
+  },
+  "abilities": {
+    "primary": "prankster",
+    "secondary": "infiltrator",
+    "hidden": "chlorophyll"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 56,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cottonee",
+    "evolution": "cottonee",
+    "media": "cottonee"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.6,
+    "color": "green",
+    "flavorText": "When attacked, it escapes by shooting cotton from its body. The cotton serves as a decoy to distract the attacker."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

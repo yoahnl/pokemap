@@ -1,0 +1,18 @@
+{
+  "speciesId": "happiny",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/happiny/front.png",
+      "backStatic": "assets/pokemon/sprites/happiny/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/happiny/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/happiny/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/happiny.png",
+      "cry": "assets/pokemon/cries/happiny.ogg",
+      "animations": {}
+    }
+  }
+}

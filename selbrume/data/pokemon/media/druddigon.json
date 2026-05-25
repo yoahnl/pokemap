@@ -1,0 +1,18 @@
+{
+  "speciesId": "druddigon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/druddigon/front.png",
+      "backStatic": "assets/pokemon/sprites/druddigon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/druddigon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/druddigon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/druddigon.png",
+      "cry": "assets/pokemon/cries/druddigon.ogg",
+      "animations": {}
+    }
+  }
+}

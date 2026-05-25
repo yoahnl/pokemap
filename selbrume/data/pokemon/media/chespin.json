@@ -1,0 +1,18 @@
+{
+  "speciesId": "chespin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chespin/front.png",
+      "backStatic": "assets/pokemon/sprites/chespin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chespin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chespin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chespin.png",
+      "cry": "assets/pokemon/cries/chespin.ogg",
+      "animations": {}
+    }
+  }
+}

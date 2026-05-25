@@ -1,0 +1,99 @@
+{
+  "id": "cutiefly",
+  "slug": "cutiefly",
+  "nationalDex": 742,
+  "names": {
+    "ja_hrkt": "アブリー",
+    "ja_roma": "Abuly",
+    "ko": "에블리",
+    "zh_hant": "萌虻",
+    "fr": "Bombydou",
+    "de": "Wommel",
+    "es": "Cutiefly",
+    "it": "Cutiefly",
+    "en": "Cutiefly",
+    "ja": "アブリー",
+    "zh_hans": "萌虻"
+  },
+  "speciesName": {
+    "ja_hrkt": "ツリアブポケモン",
+    "ko": "재니등에포켓몬",
+    "zh_hant": "蜂虻寶可夢",
+    "fr": "Pokémon Bombyle",
+    "de": "Hummelfliegen-Pokémon",
+    "es": "Pokémon Mosca Abeja",
+    "it": "Pokémon Bombilide",
+    "en": "Bee Fly Pokémon",
+    "ja": "ツリアブポケモン",
+    "zh_hans": "蜂虻宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "bug",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 45,
+    "def": 40,
+    "spa": 55,
+    "spd": 40,
+    "spe": 84,
+    "bst": 304
+  },
+  "abilities": {
+    "primary": "honey_gather",
+    "secondary": "shield_dust",
+    "hidden": "sweet_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cutiefly",
+    "evolution": "cutiefly",
+    "media": "cutiefly"
+  },
+  "dexContent": {
+    "heightM": 0.1,
+    "weightKg": 0.2,
+    "color": "yellow",
+    "flavorText": "It feeds on the nectar and pollen of flowers. Because it’s able to sense auras, it can identify which flowers are about to bloom."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

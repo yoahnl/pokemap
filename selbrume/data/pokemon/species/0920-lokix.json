@@ -1,0 +1,95 @@
+{
+  "id": "lokix",
+  "slug": "lokix",
+  "nationalDex": 920,
+  "names": {
+    "ja_hrkt": "エクスレッグ",
+    "ja_roma": "Exleg",
+    "ko": "엑스레그",
+    "zh_hant": "烈腿蝗",
+    "fr": "Gambex",
+    "de": "Lextremo",
+    "es": "Lokix",
+    "it": "Lokix",
+    "en": "Lokix",
+    "ja": "エクスレッグ",
+    "zh_hans": "烈腿蝗"
+  },
+  "speciesName": {
+    "ja_hrkt": "バッタポケモン",
+    "ko": "메뚜기포켓몬",
+    "zh_hant": "蝗蟲寶可夢",
+    "fr": "Sauterelle",
+    "de": "Heuschrecke",
+    "en": "Grasshopper Pokémon",
+    "zh_hans": "蝗虫宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "bug",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 71,
+    "atk": 102,
+    "def": 78,
+    "spa": 52,
+    "spd": 55,
+    "spe": 92,
+    "bst": 450
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": null,
+    "hidden": "tinted_lens"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 158,
+    "catchRate": 30,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lokix",
+    "evolution": "lokix",
+    "media": "lokix"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 17.5,
+    "color": "gray",
+    "flavorText": "When it decides to fight all out, it stands on its previously folded legs to enter Showdown Mode. It neutralizes its enemies in short order."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

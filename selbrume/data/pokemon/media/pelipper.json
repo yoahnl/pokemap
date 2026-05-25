@@ -1,0 +1,18 @@
+{
+  "speciesId": "pelipper",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pelipper/front.png",
+      "backStatic": "assets/pokemon/sprites/pelipper/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pelipper/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pelipper/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pelipper.png",
+      "cry": "assets/pokemon/cries/pelipper.ogg",
+      "animations": {}
+    }
+  }
+}

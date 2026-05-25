@@ -1,0 +1,18 @@
+{
+  "speciesId": "lumineon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lumineon/front.png",
+      "backStatic": "assets/pokemon/sprites/lumineon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lumineon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lumineon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lumineon.png",
+      "cry": "assets/pokemon/cries/lumineon.ogg",
+      "animations": {}
+    }
+  }
+}

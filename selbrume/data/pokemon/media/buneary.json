@@ -1,0 +1,18 @@
+{
+  "speciesId": "buneary",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/buneary/front.png",
+      "backStatic": "assets/pokemon/sprites/buneary/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/buneary/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/buneary/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/buneary.png",
+      "cry": "assets/pokemon/cries/buneary.ogg",
+      "animations": {}
+    }
+  }
+}

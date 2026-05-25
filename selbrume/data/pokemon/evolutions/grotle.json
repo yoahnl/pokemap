@@ -1,0 +1,14 @@
+{
+  "speciesId": "grotle",
+  "preEvolution": "turtwig",
+  "evolutions": [
+    {
+      "targetSpeciesId": "torterra",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

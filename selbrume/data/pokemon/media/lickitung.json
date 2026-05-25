@@ -1,0 +1,18 @@
+{
+  "speciesId": "lickitung",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lickitung/front.png",
+      "backStatic": "assets/pokemon/sprites/lickitung/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lickitung/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lickitung/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lickitung.png",
+      "cry": "assets/pokemon/cries/lickitung.ogg",
+      "animations": {}
+    }
+  }
+}

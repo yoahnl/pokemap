@@ -1,0 +1,18 @@
+{
+  "speciesId": "vibrava",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vibrava/front.png",
+      "backStatic": "assets/pokemon/sprites/vibrava/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vibrava/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vibrava/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vibrava.png",
+      "cry": "assets/pokemon/cries/vibrava.ogg",
+      "animations": {}
+    }
+  }
+}

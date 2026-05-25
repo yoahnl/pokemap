@@ -1,0 +1,18 @@
+{
+  "speciesId": "togepi",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/togepi/front.png",
+      "backStatic": "assets/pokemon/sprites/togepi/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/togepi/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/togepi/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/togepi.png",
+      "cry": "assets/pokemon/cries/togepi.ogg",
+      "animations": {}
+    }
+  }
+}

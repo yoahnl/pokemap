@@ -1,0 +1,14 @@
+{
+  "speciesId": "pignite",
+  "preEvolution": "tepig",
+  "evolutions": [
+    {
+      "targetSpeciesId": "emboar",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

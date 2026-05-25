@@ -1,0 +1,97 @@
+{
+  "id": "passimian",
+  "slug": "passimian",
+  "nationalDex": 766,
+  "names": {
+    "ja_hrkt": "ナゲツケサル",
+    "ja_roma": "Nagetukesaru",
+    "ko": "내던숭이",
+    "zh_hant": "投擲猴",
+    "fr": "Quartermac",
+    "de": "Quartermak",
+    "es": "Passimian",
+    "it": "Passimian",
+    "en": "Passimian",
+    "ja": "ナゲツケサル",
+    "zh_hans": "投掷猴"
+  },
+  "speciesName": {
+    "ja_hrkt": "れんけいポケモン",
+    "ko": "연계포켓몬",
+    "zh_hant": "配合寶可夢",
+    "fr": "Pokémon Coopération",
+    "de": "Teamwork-Pokémon",
+    "es": "Pokémon Cooperación",
+    "it": "Pokémon Giocosquadra",
+    "en": "Teamwork Pokémon",
+    "ja": "れんけいポケモン",
+    "zh_hans": "配合宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 120,
+    "def": 90,
+    "spa": 40,
+    "spd": 60,
+    "spe": 80,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "receiver",
+    "secondary": null,
+    "hidden": "defiant"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "passimian",
+    "evolution": "passimian",
+    "media": "passimian"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 82.8,
+    "color": "white",
+    "flavorText": "They form groups of roughly 20 individuals. Their mutual bond is remarkable—they will never let down a comrade."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

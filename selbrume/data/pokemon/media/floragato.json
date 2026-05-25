@@ -1,0 +1,18 @@
+{
+  "speciesId": "floragato",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/floragato/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/floragato/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/floragato.png",
+      "cry": "assets/pokemon/cries/floragato.ogg",
+      "animations": {}
+    }
+  }
+}

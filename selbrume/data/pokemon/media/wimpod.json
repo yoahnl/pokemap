@@ -1,0 +1,18 @@
+{
+  "speciesId": "wimpod",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wimpod/front.png",
+      "backStatic": "assets/pokemon/sprites/wimpod/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wimpod/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wimpod/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wimpod.png",
+      "cry": "assets/pokemon/cries/wimpod.ogg",
+      "animations": {}
+    }
+  }
+}

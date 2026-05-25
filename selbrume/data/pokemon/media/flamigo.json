@@ -1,0 +1,18 @@
+{
+  "speciesId": "flamigo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/flamigo/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/flamigo/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/flamigo.png",
+      "cry": "assets/pokemon/cries/flamigo.ogg",
+      "animations": {}
+    }
+  }
+}

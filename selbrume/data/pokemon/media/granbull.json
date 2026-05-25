@@ -1,0 +1,18 @@
+{
+  "speciesId": "granbull",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/granbull/front.png",
+      "backStatic": "assets/pokemon/sprites/granbull/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/granbull/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/granbull/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/granbull.png",
+      "cry": "assets/pokemon/cries/granbull.ogg",
+      "animations": {}
+    }
+  }
+}

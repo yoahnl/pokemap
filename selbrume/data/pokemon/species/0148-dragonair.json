@@ -1,0 +1,98 @@
+{
+  "id": "dragonair",
+  "slug": "dragonair",
+  "nationalDex": 148,
+  "names": {
+    "ja_hrkt": "ハクリュー",
+    "ja_roma": "Hakuryu",
+    "ko": "신뇽",
+    "zh_hant": "哈克龍",
+    "fr": "Draco",
+    "de": "Dragonir",
+    "es": "Dragonair",
+    "it": "Dragonair",
+    "en": "Dragonair",
+    "ja": "ハクリュー",
+    "zh_hans": "哈克龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドラゴンポケモン",
+    "ko": "드래곤포켓몬",
+    "zh_hant": "龍寶可夢",
+    "fr": "Pokémon Dragon",
+    "de": "Drachen-Pokémon",
+    "es": "Pokémon Dragón",
+    "it": "Pokémon Drago",
+    "en": "Dragon Pokémon",
+    "ja": "ドラゴンポケモン",
+    "zh_hans": "龙宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 61,
+    "atk": 84,
+    "def": 65,
+    "spa": 70,
+    "spd": 70,
+    "spe": 70,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "secondary": null,
+    "hidden": "marvel_scale"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 147,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dragonair",
+    "evolution": "dragonair",
+    "media": "dragonair"
+  },
+  "dexContent": {
+    "heightM": 4.0,
+    "weightKg": 16.5,
+    "color": "blue",
+    "flavorText": "A mystical POKéMON that exudes a gentle aura. Has the ability to change climate conditions."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

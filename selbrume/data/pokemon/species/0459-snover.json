@@ -1,0 +1,99 @@
+{
+  "id": "snover",
+  "slug": "snover",
+  "nationalDex": 459,
+  "names": {
+    "ja_hrkt": "ユキカブリ",
+    "ja_roma": "Yukikaburi",
+    "ko": "눈쓰개",
+    "zh_hant": "雪笠怪",
+    "fr": "Blizzi",
+    "de": "Shnebedeck",
+    "es": "Snover",
+    "it": "Snover",
+    "en": "Snover",
+    "ja": "ユキカブリ",
+    "zh_hans": "雪笠怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "じゅひょうポケモン",
+    "ko": "얼음나무포켓몬",
+    "zh_hant": "樹冰寶可夢",
+    "fr": "Pokémon Arbregelé",
+    "de": "Frostbaum-Pokémon",
+    "es": "Pokémon Árbol Nieve",
+    "it": "Pokémon Albergelo",
+    "en": "Frost Tree Pokémon",
+    "ja": "じゅひょうポケモン",
+    "zh_hans": "树冰宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "grass",
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 62,
+    "def": 50,
+    "spa": 62,
+    "spd": 60,
+    "spe": 40,
+    "bst": 334
+  },
+  "abilities": {
+    "primary": "snow_warning",
+    "secondary": null,
+    "hidden": "soundproof"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 67,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "snover",
+    "evolution": "snover",
+    "media": "snover"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 50.5,
+    "color": "white",
+    "flavorText": "It lives on snowy mountains. Having had little contact with humans, it is boldly inquisitive."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

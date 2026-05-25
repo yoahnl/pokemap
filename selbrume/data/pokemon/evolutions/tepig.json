@@ -1,0 +1,14 @@
+{
+  "speciesId": "tepig",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "pignite",
+      "method": "level_up",
+      "minLevel": 17,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

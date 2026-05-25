@@ -1,0 +1,18 @@
+{
+  "speciesId": "bramblin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bramblin/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/bramblin/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bramblin.png",
+      "cry": "assets/pokemon/cries/bramblin.ogg",
+      "animations": {}
+    }
+  }
+}

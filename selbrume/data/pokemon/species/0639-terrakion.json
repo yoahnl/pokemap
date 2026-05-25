@@ -1,0 +1,100 @@
+{
+  "id": "terrakion",
+  "slug": "terrakion",
+  "nationalDex": 639,
+  "names": {
+    "ja_hrkt": "テラキオン",
+    "ja_roma": "Terrakion",
+    "ko": "테라키온",
+    "zh_hant": "代拉基翁",
+    "fr": "Terrakium",
+    "de": "Terrakium",
+    "es": "Terrakion",
+    "it": "Terrakion",
+    "en": "Terrakion",
+    "ja": "テラキオン",
+    "zh_hans": "代拉基翁"
+  },
+  "speciesName": {
+    "ja_hrkt": "がんくつポケモン",
+    "ko": "암굴포켓몬",
+    "zh_hant": "岩窟寶可夢",
+    "fr": "Pokémon Grotte",
+    "de": "Felsenhöhlen-Pokémon",
+    "es": "Pokémon Gruta",
+    "it": "Pokémon Caverna",
+    "en": "Cavern Pokémon",
+    "ja": "がんくつポケモン",
+    "zh_hans": "岩窟宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "rock",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 91,
+    "atk": 129,
+    "def": 90,
+    "spa": 72,
+    "spd": 90,
+    "spe": 108,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "justified",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "terrakion",
+    "evolution": "terrakion",
+    "media": "terrakion"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 260.0,
+    "color": "gray",
+    "flavorText": "This Pokémon came to the defense of Pokémon that had lost their homes in a war among humans."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "speciesId": "lucario",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lucario/front.png",
+      "backStatic": "assets/pokemon/sprites/lucario/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lucario/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lucario/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lucario.png",
+      "cry": "assets/pokemon/cries/lucario.ogg",
+      "animations": {}
+    },
+    "lucario-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "lucario-mega-z": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

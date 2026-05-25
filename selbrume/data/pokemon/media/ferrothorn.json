@@ -1,0 +1,18 @@
+{
+  "speciesId": "ferrothorn",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ferrothorn/front.png",
+      "backStatic": "assets/pokemon/sprites/ferrothorn/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ferrothorn/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ferrothorn/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ferrothorn.png",
+      "cry": "assets/pokemon/cries/ferrothorn.ogg",
+      "animations": {}
+    }
+  }
+}

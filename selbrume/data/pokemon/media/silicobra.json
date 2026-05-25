@@ -1,0 +1,18 @@
+{
+  "speciesId": "silicobra",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/silicobra/front.png",
+      "backStatic": "assets/pokemon/sprites/silicobra/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/silicobra/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/silicobra/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/silicobra.png",
+      "cry": "assets/pokemon/cries/silicobra.ogg",
+      "animations": {}
+    }
+  }
+}

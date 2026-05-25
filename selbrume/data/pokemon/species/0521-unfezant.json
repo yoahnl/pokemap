@@ -1,0 +1,98 @@
+{
+  "id": "unfezant",
+  "slug": "unfezant",
+  "nationalDex": 521,
+  "names": {
+    "ja_hrkt": "ケンホロウ",
+    "ja_roma": "Kenhallow",
+    "ko": "켄호로우",
+    "zh_hant": "高傲雉雞",
+    "fr": "Déflaisan",
+    "de": "Fasasnob",
+    "es": "Unfezant",
+    "it": "Unfezant",
+    "en": "Unfezant",
+    "ja": "ケンホロウ",
+    "zh_hans": "高傲雉鸡"
+  },
+  "speciesName": {
+    "ja_hrkt": "プライドポケモン",
+    "ko": "프라이드포켓몬",
+    "zh_hant": "自尊心寶可夢",
+    "fr": "Pokémon Fier",
+    "de": "Stolz-Pokémon",
+    "es": "Pokémon Altanero",
+    "it": "Pokémon Orgoglio",
+    "en": "Proud Pokémon",
+    "ja": "プライドポケモン",
+    "zh_hans": "自尊心宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 115,
+    "def": 80,
+    "spa": 65,
+    "spd": 55,
+    "spe": 93,
+    "bst": 488
+  },
+  "abilities": {
+    "primary": "big_pecks",
+    "secondary": "super_luck",
+    "hidden": "rivalry"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 220,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "unfezant",
+    "evolution": "unfezant",
+    "media": "unfezant"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 29.0,
+    "color": "gray",
+    "flavorText": "Males swing their head plumage to threaten opponents. The females’ flying abilities surpass those of the males."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "speciesId": "poltchageist",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sinistcha",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "masterpiece-teacup",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "sinistcha",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "unremarkable-teacup",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

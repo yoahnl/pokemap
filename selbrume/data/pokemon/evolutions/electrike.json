@@ -1,0 +1,14 @@
+{
+  "speciesId": "electrike",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "manectric",
+      "method": "level_up",
+      "minLevel": 26,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

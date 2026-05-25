@@ -1,0 +1,100 @@
+{
+  "id": "graveler",
+  "slug": "graveler",
+  "nationalDex": 75,
+  "names": {
+    "ja_hrkt": "ゴローン",
+    "ja_roma": "Golone",
+    "ko": "데구리",
+    "zh_hant": "隆隆石",
+    "fr": "Gravalanch",
+    "de": "Georok",
+    "es": "Graveler",
+    "it": "Graveler",
+    "en": "Graveler",
+    "ja": "ゴローン",
+    "zh_hans": "隆隆石"
+  },
+  "speciesName": {
+    "ja_hrkt": "がんせきポケモン",
+    "ko": "암석포켓몬",
+    "zh_hant": "岩石寶可夢",
+    "fr": "Pokémon Roche",
+    "de": "Gestein",
+    "es": "Pokémon Roca",
+    "it": "Pokémon Roccia",
+    "en": "Rock Pokémon",
+    "ja": "がんせきポケモン",
+    "zh_hans": "岩石宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "rock",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 95,
+    "def": 115,
+    "spa": 45,
+    "spd": 45,
+    "spe": 35,
+    "bst": 390
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": "sturdy",
+    "hidden": "sand_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 137,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "graveler-alola"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "graveler",
+    "evolution": "graveler",
+    "media": "graveler"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 105.0,
+    "color": "brown",
+    "flavorText": "Rolls down slopes to move. It rolls over any obstacle without slowing or changing its direction."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

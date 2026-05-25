@@ -1,0 +1,18 @@
+{
+  "speciesId": "simipour",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/simipour/front.png",
+      "backStatic": "assets/pokemon/sprites/simipour/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/simipour/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/simipour/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/simipour.png",
+      "cry": "assets/pokemon/cries/simipour.ogg",
+      "animations": {}
+    }
+  }
+}

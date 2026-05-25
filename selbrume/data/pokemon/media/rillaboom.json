@@ -1,0 +1,18 @@
+{
+  "speciesId": "rillaboom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rillaboom/front.png",
+      "backStatic": "assets/pokemon/sprites/rillaboom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rillaboom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rillaboom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rillaboom.png",
+      "cry": "assets/pokemon/cries/rillaboom.ogg",
+      "animations": {}
+    }
+  }
+}

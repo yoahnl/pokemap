@@ -1,0 +1,14 @@
+{
+  "speciesId": "thwackey",
+  "preEvolution": "grookey",
+  "evolutions": [
+    {
+      "targetSpeciesId": "rillaboom",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

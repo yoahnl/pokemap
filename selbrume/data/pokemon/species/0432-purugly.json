@@ -1,0 +1,100 @@
+{
+  "id": "purugly",
+  "slug": "purugly",
+  "nationalDex": 432,
+  "names": {
+    "es": "Purugly",
+    "ja_hrkt": "ブニャット",
+    "ja_roma": "Bunyat",
+    "ko": "몬냥이",
+    "zh_hant": "東施喵",
+    "fr": "Chaffreux",
+    "de": "Shnurgarst",
+    "it": "Purugly",
+    "en": "Purugly",
+    "ja": "ブニャット",
+    "zh_hans": "东施喵"
+  },
+  "speciesName": {
+    "es": "Pokémon Tigre Gato",
+    "ja_hrkt": "とらねこポケモン",
+    "ko": "얼룩고양이포켓몬",
+    "zh_hant": "虎斑貓寶可夢",
+    "fr": "Pokémon Chatigre",
+    "de": "Tigerkatze",
+    "it": "Pokémon Gattotigre",
+    "en": "Tiger Cat Pokémon",
+    "ja": "とらねこポケモン",
+    "zh_hans": "虎斑猫宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 71,
+    "atk": 82,
+    "def": 64,
+    "spa": 64,
+    "spd": 59,
+    "spe": 112,
+    "bst": 452
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "own_tempo",
+    "hidden": "defiant"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 158,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "purugly",
+    "evolution": "purugly",
+    "media": "purugly"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 43.8,
+    "color": "gray",
+    "flavorText": "It is a brazen brute that barges its way into another Pokémon’s nest and claims it as its own."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

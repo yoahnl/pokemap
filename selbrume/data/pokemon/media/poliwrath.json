@@ -1,0 +1,18 @@
+{
+  "speciesId": "poliwrath",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/poliwrath/front.png",
+      "backStatic": "assets/pokemon/sprites/poliwrath/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/poliwrath/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/poliwrath/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/poliwrath.png",
+      "cry": "assets/pokemon/cries/poliwrath.ogg",
+      "animations": {}
+    }
+  }
+}

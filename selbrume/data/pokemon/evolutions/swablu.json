@@ -1,0 +1,14 @@
+{
+  "speciesId": "swablu",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "altaria",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

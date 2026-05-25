@@ -1,0 +1,97 @@
+{
+  "id": "wobbuffet",
+  "slug": "wobbuffet",
+  "nationalDex": 202,
+  "names": {
+    "ja_hrkt": "ソーナンス",
+    "ja_roma": "Sonans",
+    "ko": "마자용",
+    "zh_hant": "果然翁",
+    "fr": "Qulbutoké",
+    "de": "Woingenau",
+    "es": "Wobbuffet",
+    "it": "Wobbuffet",
+    "en": "Wobbuffet",
+    "ja": "ソーナンス",
+    "zh_hans": "果然翁"
+  },
+  "speciesName": {
+    "ja_hrkt": "がまんポケモン",
+    "ko": "참기포켓몬",
+    "zh_hant": "忍耐寶可夢",
+    "fr": "Pokémon Patient",
+    "de": "Gedulds-Pokémon",
+    "es": "Pokémon Paciente",
+    "it": "Pokémon Pazienza",
+    "en": "Patient Pokémon",
+    "ja": "がまんポケモン",
+    "zh_hans": "忍耐宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 190,
+    "atk": 33,
+    "def": 58,
+    "spa": 33,
+    "spd": 58,
+    "spe": 33,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "shadow_tag",
+    "secondary": null,
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wobbuffet",
+    "evolution": "wobbuffet",
+    "media": "wobbuffet"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 28.5,
+    "color": "blue",
+    "flavorText": "It hates light and shock. If attack­ ed, it inflates its body to pump up its counter­ strike."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

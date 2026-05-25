@@ -1,0 +1,42 @@
+{
+  "speciesId": "calyrex",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/calyrex/front.png",
+      "backStatic": "assets/pokemon/sprites/calyrex/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/calyrex/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/calyrex/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/calyrex.png",
+      "cry": "assets/pokemon/cries/calyrex.ogg",
+      "animations": {}
+    },
+    "calyrex-ice": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "calyrex-shadow": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

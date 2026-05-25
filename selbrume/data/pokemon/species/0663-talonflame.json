@@ -1,0 +1,98 @@
+{
+  "id": "talonflame",
+  "slug": "talonflame",
+  "nationalDex": 663,
+  "names": {
+    "ja_hrkt": "ファイアロー",
+    "ja_roma": "Fiarrow",
+    "ko": "파이어로",
+    "zh_hant": "烈箭鷹",
+    "fr": "Flambusard",
+    "de": "Fiaro",
+    "es": "Talonflame",
+    "it": "Talonflame",
+    "en": "Talonflame",
+    "ja": "ファイアロー",
+    "zh_hans": "烈箭鹰"
+  },
+  "speciesName": {
+    "ja_hrkt": "れっかポケモン",
+    "ko": "열화포켓몬",
+    "zh_hant": "烈火寶可夢",
+    "fr": "Pokémon Fournaise",
+    "de": "Stichflammen-Pokémon",
+    "es": "Pokémon Flamígero",
+    "it": "Pokémon Ardifiamma",
+    "en": "Scorching Pokémon",
+    "ja": "れっかポケモン",
+    "zh_hans": "烈火宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fire",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 81,
+    "def": 71,
+    "spa": 74,
+    "spd": 69,
+    "spe": 126,
+    "bst": 499
+  },
+  "abilities": {
+    "primary": "flame_body",
+    "secondary": null,
+    "hidden": "gale_wings"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 175,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "talonflame",
+    "evolution": "talonflame",
+    "media": "talonflame"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 24.5,
+    "color": "red",
+    "flavorText": "In the fever of an exciting battle, it showers embers from the gaps between its feathers and takes to the air."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

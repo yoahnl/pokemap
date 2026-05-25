@@ -1,0 +1,22 @@
+{
+  "speciesId": "rufflet",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "braviary",
+      "method": "level_up",
+      "minLevel": 54,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "braviary",
+      "method": "level_up",
+      "minLevel": 54,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

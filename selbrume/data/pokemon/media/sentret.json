@@ -1,0 +1,18 @@
+{
+  "speciesId": "sentret",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sentret/front.png",
+      "backStatic": "assets/pokemon/sprites/sentret/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sentret/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sentret/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sentret.png",
+      "cry": "assets/pokemon/cries/sentret.ogg",
+      "animations": {}
+    }
+  }
+}

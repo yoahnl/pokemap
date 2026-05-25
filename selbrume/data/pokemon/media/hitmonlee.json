@@ -1,0 +1,18 @@
+{
+  "speciesId": "hitmonlee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hitmonlee/front.png",
+      "backStatic": "assets/pokemon/sprites/hitmonlee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hitmonlee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hitmonlee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hitmonlee.png",
+      "cry": "assets/pokemon/cries/hitmonlee.ogg",
+      "animations": {}
+    }
+  }
+}

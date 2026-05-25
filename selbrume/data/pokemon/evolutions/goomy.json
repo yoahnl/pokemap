@@ -1,0 +1,22 @@
+{
+  "speciesId": "goomy",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sliggoo",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "sliggoo",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "id": "watchog",
+  "slug": "watchog",
+  "nationalDex": 505,
+  "names": {
+    "es": "Watchog",
+    "ja_hrkt": "ミルホッグ",
+    "ja_roma": "Miruhog",
+    "ko": "보르그",
+    "zh_hant": "步哨鼠",
+    "fr": "Miradar",
+    "de": "Kukmarda",
+    "it": "Watchog",
+    "en": "Watchog",
+    "ja": "ミルホッグ",
+    "zh_hans": "步哨鼠"
+  },
+  "speciesName": {
+    "es": "Pokémon Alerta",
+    "ja_hrkt": "けいかいポケモン",
+    "ko": "경계포켓몬",
+    "zh_hant": "警戒寶可夢",
+    "fr": "Pokémon Vigilant",
+    "de": "Wachsamkeit",
+    "it": "Pokémon Sentinella",
+    "en": "Lookout Pokémon",
+    "ja": "けいかいポケモン",
+    "zh_hans": "警戒宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 85,
+    "def": 69,
+    "spa": 60,
+    "spd": 69,
+    "spe": 77,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "illuminate",
+    "secondary": "keen_eye",
+    "hidden": "analytic"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 147,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "watchog",
+    "evolution": "watchog",
+    "media": "watchog"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 27.0,
+    "color": "brown",
+    "flavorText": "When they see an enemy, their tails stand high, and they spit the seeds of berries stored in their cheek pouches."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

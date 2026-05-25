@@ -1,0 +1,18 @@
+{
+  "speciesId": "machoke",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/machoke/front.png",
+      "backStatic": "assets/pokemon/sprites/machoke/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/machoke/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/machoke/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/machoke.png",
+      "cry": "assets/pokemon/cries/machoke.ogg",
+      "animations": {}
+    }
+  }
+}

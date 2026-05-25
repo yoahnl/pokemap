@@ -1,0 +1,99 @@
+{
+  "id": "masquerain",
+  "slug": "masquerain",
+  "nationalDex": 284,
+  "names": {
+    "ja_hrkt": "アメモース",
+    "ja_roma": "Amemoth",
+    "ko": "비나방",
+    "zh_hant": "雨翅蛾",
+    "fr": "Maskadra",
+    "de": "Maskeregen",
+    "es": "Masquerain",
+    "it": "Masquerain",
+    "en": "Masquerain",
+    "ja": "アメモース",
+    "zh_hans": "雨翅蛾"
+  },
+  "speciesName": {
+    "ja_hrkt": "めだまポケモン",
+    "ko": "안구포켓몬",
+    "zh_hant": "眼珠寶可夢",
+    "fr": "Pokémon Boule Œil",
+    "de": "Auge",
+    "es": "Pokémon Globocular",
+    "it": "Pokémon Occhi",
+    "en": "Eyeball Pokémon",
+    "ja": "めだまポケモン",
+    "zh_hans": "眼珠宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 60,
+    "def": 62,
+    "spa": 100,
+    "spd": 82,
+    "spe": 80,
+    "bst": 454
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": null,
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 159,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "masquerain",
+    "evolution": "masquerain",
+    "media": "masquerain"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 3.6,
+    "color": "blue",
+    "flavorText": "MASQUERAIN intimidates enemies with the eyelike patterns on its antennas. This POKéMON flaps its four wings to freely fly in any direction - even sideways and backwards - as if it were a helicopter."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

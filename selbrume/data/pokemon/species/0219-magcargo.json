@@ -1,0 +1,98 @@
+{
+  "id": "magcargo",
+  "slug": "magcargo",
+  "nationalDex": 219,
+  "names": {
+    "ja_hrkt": "マグカルゴ",
+    "ja_roma": "Magcargot",
+    "ko": "마그카르고",
+    "zh_hant": "熔岩蝸牛",
+    "fr": "Volcaropod",
+    "de": "Magcargo",
+    "es": "Magcargo",
+    "it": "Magcargo",
+    "en": "Magcargo",
+    "ja": "マグカルゴ",
+    "zh_hans": "熔岩蜗牛"
+  },
+  "speciesName": {
+    "ja_hrkt": "ようがんポケモン",
+    "ko": "용암포켓몬",
+    "zh_hant": "熔岩寶可夢",
+    "fr": "Pokémon Lave",
+    "de": "Lava",
+    "es": "Pokémon Lava",
+    "it": "Pokémon Lava",
+    "en": "Lava Pokémon",
+    "ja": "ようがんポケモン",
+    "zh_hans": "熔岩宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fire",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 50,
+    "def": 120,
+    "spa": 90,
+    "spd": 80,
+    "spe": 30,
+    "bst": 430
+  },
+  "abilities": {
+    "primary": "magma_armor",
+    "secondary": "flame_body",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 151,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "magcargo",
+    "evolution": "magcargo",
+    "media": "magcargo"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 55.0,
+    "color": "red",
+    "flavorText": "The shell on its back is just skin that has cooled and hardened. It breaks easily with a slight touch."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

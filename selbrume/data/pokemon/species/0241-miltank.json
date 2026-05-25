@@ -1,0 +1,97 @@
+{
+  "id": "miltank",
+  "slug": "miltank",
+  "nationalDex": 241,
+  "names": {
+    "ja_hrkt": "ミルタンク",
+    "ja_roma": "Miltank",
+    "ko": "밀탱크",
+    "zh_hant": "大奶罐",
+    "fr": "Écrémeuh",
+    "de": "Miltank",
+    "es": "Miltank",
+    "it": "Miltank",
+    "en": "Miltank",
+    "ja": "ミルタンク",
+    "zh_hans": "大奶罐"
+  },
+  "speciesName": {
+    "ja_hrkt": "ちちうしポケモン",
+    "ko": "젖소포켓몬",
+    "zh_hant": "乳牛寶可夢",
+    "fr": "Pokémon Vachalait",
+    "de": "Milchkuh-Pokémon",
+    "es": "Pokémon Lechera",
+    "it": "Pokémon Bovino",
+    "en": "Milk Cow Pokémon",
+    "ja": "ちちうしポケモン",
+    "zh_hans": "奶牛宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 80,
+    "def": 105,
+    "spa": 40,
+    "spd": 70,
+    "spe": 100,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "scrappy",
+    "hidden": "sap_sipper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "miltank",
+    "evolution": "miltank",
+    "media": "miltank"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 75.5,
+    "color": "pink",
+    "flavorText": "Its milk is packed with nutrition, making it the ultimate beverage for the sick or weary."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

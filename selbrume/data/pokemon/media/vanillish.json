@@ -1,0 +1,18 @@
+{
+  "speciesId": "vanillish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vanillish/front.png",
+      "backStatic": "assets/pokemon/sprites/vanillish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vanillish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vanillish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vanillish.png",
+      "cry": "assets/pokemon/cries/vanillish.ogg",
+      "animations": {}
+    }
+  }
+}

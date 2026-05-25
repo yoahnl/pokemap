@@ -1,0 +1,18 @@
+{
+  "speciesId": "passimian",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/passimian/front.png",
+      "backStatic": "assets/pokemon/sprites/passimian/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/passimian/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/passimian/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/passimian.png",
+      "cry": "assets/pokemon/cries/passimian.ogg",
+      "animations": {}
+    }
+  }
+}

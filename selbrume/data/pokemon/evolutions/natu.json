@@ -1,0 +1,14 @@
+{
+  "speciesId": "natu",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "xatu",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

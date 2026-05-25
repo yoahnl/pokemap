@@ -1,0 +1,100 @@
+{
+  "id": "pansear",
+  "slug": "pansear",
+  "nationalDex": 513,
+  "names": {
+    "ja_hrkt": "バオップ",
+    "ja_roma": "Baoppu",
+    "ko": "바오프",
+    "zh_hant": "爆香猴",
+    "fr": "Flamajou",
+    "de": "Grillmak",
+    "es": "Pansear",
+    "it": "Pansear",
+    "en": "Pansear",
+    "ja": "バオップ",
+    "zh_hans": "爆香猴"
+  },
+  "speciesName": {
+    "ja_hrkt": "こうおんポケモン",
+    "ko": "고온포켓몬",
+    "zh_hant": "高溫寶可夢",
+    "fr": "Pokémon Brûlant",
+    "de": "Hitze",
+    "es": "Pokémon Ardiente",
+    "it": "Pokémon Testacalda",
+    "en": "High Temp Pokémon",
+    "ja": "こうおんポケモン",
+    "zh_hans": "高温宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 53,
+    "def": 48,
+    "spa": 53,
+    "spd": 48,
+    "spe": 64,
+    "bst": 316
+  },
+  "abilities": {
+    "primary": "gluttony",
+    "secondary": null,
+    "hidden": "blaze"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 63,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pansear",
+    "evolution": "pansear",
+    "media": "pansear"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 11.0,
+    "color": "red",
+    "flavorText": "When it is angered, the temperature of its head tuft reaches 600° F. It uses its tuft to roast berries."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

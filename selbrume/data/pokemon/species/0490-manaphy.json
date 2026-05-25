@@ -1,0 +1,100 @@
+{
+  "id": "manaphy",
+  "slug": "manaphy",
+  "nationalDex": 490,
+  "names": {
+    "ja_hrkt": "マナフィ",
+    "ja_roma": "Manaphy",
+    "ko": "마나피",
+    "zh_hant": "瑪納霏",
+    "fr": "Manaphy",
+    "de": "Manaphy",
+    "es": "Manaphy",
+    "it": "Manaphy",
+    "en": "Manaphy",
+    "ja": "マナフィ",
+    "zh_hans": "玛纳霏"
+  },
+  "speciesName": {
+    "ja_hrkt": "かいゆうポケモン",
+    "ko": "회유포켓몬",
+    "zh_hant": "洄游寶可夢",
+    "fr": "Pokémon Voyagenmer",
+    "de": "Seefahrer",
+    "es": "Pokémon Náutico",
+    "it": "Pokémon Oceandante",
+    "en": "Seafaring Pokémon",
+    "ja": "かいゆうポケモン",
+    "zh_hans": "回游宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 100,
+    "def": 100,
+    "spa": 100,
+    "spd": 100,
+    "spe": 100,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "hydration",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "water1",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "manaphy",
+    "evolution": "manaphy",
+    "media": "manaphy"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.4,
+    "color": "blue",
+    "flavorText": "Born on a cold seafloor, it will swim great distances to return to its birthplace."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

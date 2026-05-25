@@ -1,0 +1,94 @@
+{
+  "id": "terapagos",
+  "slug": "terapagos",
+  "nationalDex": 1024,
+  "names": {
+    "ja_hrkt": "テラパゴス",
+    "ko": "테라파고스",
+    "zh_hant": "太樂巴戈斯",
+    "fr": "Terapagos",
+    "de": "Terapagos",
+    "es": "Terapagos",
+    "it": "Terapagos",
+    "en": "Terapagos",
+    "ja": "テラパゴス",
+    "zh_hans": "太乐巴戈斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "テラスタルポケモン",
+    "ko": "테라스탈포켓몬",
+    "fr": "Téracristal",
+    "en": "Tera Pokémon",
+    "ja": "テラスタルポケモン"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 65,
+    "def": 85,
+    "spa": 65,
+    "spd": 85,
+    "spe": 60,
+    "bst": 450
+  },
+  "abilities": {
+    "primary": "tera_shift",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 90,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "terapagos-stellar",
+      "terapagos-terastal"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "terapagos",
+    "evolution": "terapagos",
+    "media": "terapagos"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 6.5,
+    "color": "blue",
+    "flavorText": "Terapagos protects itself using its power to transform energy into hard crystals. This Pokémon is the source of the Terastal phenomenon."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

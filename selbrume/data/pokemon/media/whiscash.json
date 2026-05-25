@@ -1,0 +1,18 @@
+{
+  "speciesId": "whiscash",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/whiscash/front.png",
+      "backStatic": "assets/pokemon/sprites/whiscash/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/whiscash/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/whiscash/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/whiscash.png",
+      "cry": "assets/pokemon/cries/whiscash.ogg",
+      "animations": {}
+    }
+  }
+}

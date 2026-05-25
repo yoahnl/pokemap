@@ -1,0 +1,101 @@
+{
+  "id": "charmander",
+  "slug": "charmander",
+  "nationalDex": 4,
+  "names": {
+    "ja_hrkt": "ヒトカゲ",
+    "ja_roma": "Hitokage",
+    "ko": "파이리",
+    "zh_hant": "小火龍",
+    "fr": "Salamèche",
+    "de": "Glumanda",
+    "es": "Charmander",
+    "it": "Charmander",
+    "en": "Charmander",
+    "ja": "ヒトカゲ",
+    "zh_hans": "小火龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "とかげポケモン",
+    "ko": "도롱뇽포켓몬",
+    "zh_hant": "蜥蜴寶可夢",
+    "fr": "Pokémon Lézard",
+    "de": "Echsen-Pokémon",
+    "es": "Pokémon Lagartija",
+    "it": "Pokémon Lucertola",
+    "en": "Lizard Pokémon",
+    "ja": "とかげポケモン",
+    "zh_hans": "蜥蜴宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 39,
+    "atk": 52,
+    "def": 43,
+    "spa": 60,
+    "spd": 50,
+    "spe": 65,
+    "bst": 309
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "solar_power"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "charmander",
+    "evolution": "charmander",
+    "media": "charmander"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.5,
+    "color": "red",
+    "flavorText": "Obviously prefers hot places. When it rains, steam is said to spout from the tip of its tail."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

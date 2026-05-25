@@ -1,0 +1,40 @@
+{
+  "speciesId": "slowpoke",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "slowbro",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "slowbro",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "galarica-cuff",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "slowking",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: kings-rock"
+      }
+    },
+    {
+      "targetSpeciesId": "slowking",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "galarica-wreath",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

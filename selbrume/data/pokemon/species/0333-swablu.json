@@ -1,0 +1,99 @@
+{
+  "id": "swablu",
+  "slug": "swablu",
+  "nationalDex": 333,
+  "names": {
+    "ja_hrkt": "チルット",
+    "ja_roma": "Tyltto",
+    "ko": "파비코",
+    "zh_hant": "青綿鳥",
+    "fr": "Tylton",
+    "de": "Wablu",
+    "es": "Swablu",
+    "it": "Swablu",
+    "en": "Swablu",
+    "ja": "チルット",
+    "zh_hans": "青绵鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "わたどりポケモン",
+    "ko": "솜새포켓몬",
+    "zh_hant": "綿鳥寶可夢",
+    "fr": "Pokémon Oiseaucoton",
+    "de": "Wollvogel-Pokémon",
+    "es": "Pokémon Ave Algodón",
+    "it": "Pokémon Alidicotone",
+    "en": "Cotton Bird Pokémon",
+    "ja": "わたどりポケモン",
+    "zh_hans": "绵鸟宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 40,
+    "def": 60,
+    "spa": 40,
+    "spd": 75,
+    "spe": 50,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "natural_cure",
+    "secondary": null,
+    "hidden": "cloud_nine"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 62,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "swablu",
+    "evolution": "swablu",
+    "media": "swablu"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 1.2,
+    "color": "blue",
+    "flavorText": "SWABLU has light and fluffy wings that are like cottony clouds. This POKéMON is not frightened of people. It lands on the heads of people and sits there like a cotton-fluff hat."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "petilil",
+  "slug": "petilil",
+  "nationalDex": 548,
+  "names": {
+    "ja_hrkt": "チュリネ",
+    "ja_roma": "Churine",
+    "ko": "치릴리",
+    "zh_hant": "百合根娃娃",
+    "fr": "Chlorobule",
+    "de": "Lilminip",
+    "es": "Petilil",
+    "it": "Petilil",
+    "en": "Petilil",
+    "ja": "チュリネ",
+    "zh_hans": "百合根娃娃"
+  },
+  "speciesName": {
+    "ja_hrkt": "ねっこポケモン",
+    "ko": "뿌리포켓몬",
+    "zh_hant": "根莖寶可夢",
+    "fr": "Pokémon Racine",
+    "de": "Wurzel-Pokémon",
+    "es": "Pokémon Bulbo",
+    "it": "Pokémon Radice",
+    "en": "Bulb Pokémon",
+    "ja": "ねっこポケモン",
+    "zh_hans": "根茎宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 35,
+    "def": 50,
+    "spa": 70,
+    "spd": 50,
+    "spe": 30,
+    "bst": 280
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "own_tempo",
+    "hidden": "leaf_guard"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 56,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "petilil",
+    "evolution": "petilil",
+    "media": "petilil"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 6.6,
+    "color": "green",
+    "flavorText": "The leaves on its head are very bitter. Eating one of these leaves is known to refresh a tired body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

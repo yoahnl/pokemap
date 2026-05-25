@@ -1,0 +1,30 @@
+{
+  "speciesId": "altaria",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/altaria/front.png",
+      "backStatic": "assets/pokemon/sprites/altaria/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/altaria/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/altaria/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/altaria.png",
+      "cry": "assets/pokemon/cries/altaria.ogg",
+      "animations": {}
+    },
+    "altaria-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

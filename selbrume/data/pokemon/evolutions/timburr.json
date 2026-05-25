@@ -1,0 +1,14 @@
+{
+  "speciesId": "timburr",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "gurdurr",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

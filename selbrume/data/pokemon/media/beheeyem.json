@@ -1,0 +1,18 @@
+{
+  "speciesId": "beheeyem",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/beheeyem/front.png",
+      "backStatic": "assets/pokemon/sprites/beheeyem/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/beheeyem/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/beheeyem/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/beheeyem.png",
+      "cry": "assets/pokemon/cries/beheeyem.ogg",
+      "animations": {}
+    }
+  }
+}

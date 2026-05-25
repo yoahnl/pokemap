@@ -1,0 +1,18 @@
+{
+  "speciesId": "pikipek",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pikipek/front.png",
+      "backStatic": "assets/pokemon/sprites/pikipek/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pikipek/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pikipek/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pikipek.png",
+      "cry": "assets/pokemon/cries/pikipek.ogg",
+      "animations": {}
+    }
+  }
+}

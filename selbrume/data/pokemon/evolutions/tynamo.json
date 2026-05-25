@@ -1,0 +1,14 @@
+{
+  "speciesId": "tynamo",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "eelektrik",
+      "method": "level_up",
+      "minLevel": 39,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

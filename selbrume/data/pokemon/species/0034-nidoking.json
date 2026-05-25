@@ -1,0 +1,99 @@
+{
+  "id": "nidoking",
+  "slug": "nidoking",
+  "nationalDex": 34,
+  "names": {
+    "ja_hrkt": "ニドキング",
+    "ja_roma": "Nidoking",
+    "ko": "니드킹",
+    "zh_hant": "尼多王",
+    "fr": "Nidoking",
+    "de": "Nidoking",
+    "es": "Nidoking",
+    "it": "Nidoking",
+    "en": "Nidoking",
+    "ja": "ニドキング",
+    "zh_hans": "尼多王"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドリルポケモン",
+    "ko": "드릴포켓몬",
+    "zh_hant": "鑽錐寶可夢",
+    "fr": "Pokémon Perceur",
+    "de": "Bohrer-Pokémon",
+    "es": "Pokémon Taladro",
+    "it": "Pokémon Trapano",
+    "en": "Drill Pokémon",
+    "ja": "ドリルポケモン",
+    "zh_hans": "钻锥宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "poison",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 81,
+    "atk": 102,
+    "def": 77,
+    "spa": 85,
+    "spd": 75,
+    "spe": 85,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "poison_point",
+    "secondary": "rivalry",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 227,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nidoking",
+    "evolution": "nidoking",
+    "media": "nidoking"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 62.0,
+    "color": "purple",
+    "flavorText": "It uses its powerful tail in battle to smash, constrict, then break the prey's bones."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

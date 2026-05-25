@@ -1,0 +1,14 @@
+{
+  "speciesId": "skitty",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "delcatty",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "moon-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

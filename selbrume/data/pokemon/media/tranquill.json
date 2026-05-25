@@ -1,0 +1,18 @@
+{
+  "speciesId": "tranquill",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tranquill/front.png",
+      "backStatic": "assets/pokemon/sprites/tranquill/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tranquill/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tranquill/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tranquill.png",
+      "cry": "assets/pokemon/cries/tranquill.ogg",
+      "animations": {}
+    }
+  }
+}

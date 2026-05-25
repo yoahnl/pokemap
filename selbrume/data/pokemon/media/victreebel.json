@@ -1,0 +1,30 @@
+{
+  "speciesId": "victreebel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/victreebel/front.png",
+      "backStatic": "assets/pokemon/sprites/victreebel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/victreebel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/victreebel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/victreebel.png",
+      "cry": "assets/pokemon/cries/victreebel.ogg",
+      "animations": {}
+    },
+    "victreebel-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

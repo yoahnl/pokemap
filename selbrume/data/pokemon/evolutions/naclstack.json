@@ -1,0 +1,14 @@
+{
+  "speciesId": "naclstack",
+  "preEvolution": "nacli",
+  "evolutions": [
+    {
+      "targetSpeciesId": "garganacl",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

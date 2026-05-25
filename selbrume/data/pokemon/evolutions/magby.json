@@ -1,0 +1,14 @@
+{
+  "speciesId": "magby",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "magmar",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

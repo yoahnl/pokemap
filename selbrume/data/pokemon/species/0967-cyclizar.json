@@ -1,0 +1,95 @@
+{
+  "id": "cyclizar",
+  "slug": "cyclizar",
+  "nationalDex": 967,
+  "names": {
+    "ja_hrkt": "モトトカゲ",
+    "ja_roma": "Mototokage",
+    "ko": "모토마",
+    "zh_hant": "摩托蜥",
+    "fr": "Motorizard",
+    "de": "Mopex",
+    "es": "Cyclizar",
+    "it": "Cyclizar",
+    "en": "Cyclizar",
+    "ja": "モトトカゲ",
+    "zh_hans": "摩托蜥"
+  },
+  "speciesName": {
+    "ja_hrkt": "ライドポケモン",
+    "ko": "라이드포켓몬",
+    "zh_hant": "坐騎寶可夢",
+    "fr": "Monture",
+    "de": "Ritt",
+    "en": "Mount Pokémon",
+    "zh_hans": "坐骑宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "dragon",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 95,
+    "def": 65,
+    "spa": 85,
+    "spd": 65,
+    "spe": 121,
+    "bst": 501
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "secondary": null,
+    "hidden": "regenerator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 175,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cyclizar",
+    "evolution": "cyclizar",
+    "media": "cyclizar"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 63.0,
+    "color": "green",
+    "flavorText": "Apparently Cyclizar has been allowing people to ride on its back since ancient times. Depictions of this have been found in 10,000-year-old murals."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

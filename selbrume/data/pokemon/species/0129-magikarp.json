@@ -1,0 +1,98 @@
+{
+  "id": "magikarp",
+  "slug": "magikarp",
+  "nationalDex": 129,
+  "names": {
+    "ja_hrkt": "コイキング",
+    "ja_roma": "Koiking",
+    "ko": "잉어킹",
+    "zh_hant": "鯉魚王",
+    "fr": "Magicarpe",
+    "de": "Karpador",
+    "es": "Magikarp",
+    "it": "Magikarp",
+    "en": "Magikarp",
+    "ja": "コイキング",
+    "zh_hans": "鲤鱼王"
+  },
+  "speciesName": {
+    "ja_hrkt": "さかなポケモン",
+    "ko": "물고기포켓몬",
+    "zh_hant": "魚寶可夢",
+    "fr": "Pokémon Poisson",
+    "de": "Fisch-Pokémon",
+    "es": "Pokémon Pez",
+    "it": "Pokémon Pesce",
+    "en": "Fish Pokémon",
+    "ja": "さかなポケモン",
+    "zh_hans": "鱼宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 20,
+    "atk": 10,
+    "def": 55,
+    "spa": 15,
+    "spd": 20,
+    "spe": 80,
+    "bst": 200
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": null,
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 40,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "magikarp",
+    "evolution": "magikarp",
+    "media": "magikarp"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 10.0,
+    "color": "red",
+    "flavorText": "In the distant past, it was somewhat stronger than the horribly weak descendants that exist today."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

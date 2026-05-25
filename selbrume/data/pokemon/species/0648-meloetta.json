@@ -1,0 +1,102 @@
+{
+  "id": "meloetta",
+  "slug": "meloetta",
+  "nationalDex": 648,
+  "names": {
+    "ja_hrkt": "メロエッタ",
+    "ja_roma": "Meloetta",
+    "ko": "메로엣타",
+    "zh_hant": "美洛耶塔",
+    "fr": "Meloetta",
+    "de": "Meloetta",
+    "es": "Meloetta",
+    "it": "Meloetta",
+    "en": "Meloetta",
+    "ja": "メロエッタ",
+    "zh_hans": "美洛耶塔"
+  },
+  "speciesName": {
+    "ja_hrkt": "せんりつポケモン",
+    "ko": "선율포켓몬",
+    "zh_hant": "旋律寶可夢",
+    "fr": "Pokémon Mélodie",
+    "de": "Melodie",
+    "es": "Pokémon Melodía",
+    "it": "Pokémon Melodia",
+    "en": "Melody Pokémon",
+    "ja": "せんりつポケモン",
+    "zh_hans": "旋律宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 77,
+    "def": 77,
+    "spa": 128,
+    "spd": 128,
+    "spe": 90,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "serene_grace",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "meloetta-pirouette"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "meloetta",
+    "evolution": "meloetta",
+    "media": "meloetta"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 6.5,
+    "color": "white",
+    "flavorText": "Its melodies are sung with a special vocalization method that can control the feelings of those who hear it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

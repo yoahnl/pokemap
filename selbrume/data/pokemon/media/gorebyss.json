@@ -1,0 +1,18 @@
+{
+  "speciesId": "gorebyss",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gorebyss/front.png",
+      "backStatic": "assets/pokemon/sprites/gorebyss/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gorebyss/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gorebyss/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gorebyss.png",
+      "cry": "assets/pokemon/cries/gorebyss.ogg",
+      "animations": {}
+    }
+  }
+}

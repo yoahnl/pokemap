@@ -1,0 +1,30 @@
+{
+  "speciesId": "togedemaru",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/togedemaru/front.png",
+      "backStatic": "assets/pokemon/sprites/togedemaru/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/togedemaru/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/togedemaru/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/togedemaru.png",
+      "cry": "assets/pokemon/cries/togedemaru.ogg",
+      "animations": {}
+    },
+    "togedemaru-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

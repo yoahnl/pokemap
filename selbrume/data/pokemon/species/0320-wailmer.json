@@ -1,0 +1,98 @@
+{
+  "id": "wailmer",
+  "slug": "wailmer",
+  "nationalDex": 320,
+  "names": {
+    "ja_hrkt": "ホエルコ",
+    "ja_roma": "Whalko",
+    "ko": "고래왕자",
+    "zh_hant": "吼吼鯨",
+    "fr": "Wailmer",
+    "de": "Wailmer",
+    "es": "Wailmer",
+    "it": "Wailmer",
+    "en": "Wailmer",
+    "ja": "ホエルコ",
+    "zh_hans": "吼吼鲸"
+  },
+  "speciesName": {
+    "ja_hrkt": "たまくじらポケモン",
+    "ko": "둥근고래포켓몬",
+    "zh_hant": "球鯨寶可夢",
+    "fr": "Pokémon Baleinboule",
+    "de": "Kugelwal-Pokémon",
+    "es": "Pokémon Ballenabola",
+    "it": "Pokémon Balenottero",
+    "en": "Ball Whale Pokémon",
+    "ja": "たまくじらポケモン",
+    "zh_hans": "球鲸宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 130,
+    "atk": 70,
+    "def": 35,
+    "spa": 70,
+    "spd": 35,
+    "spe": 60,
+    "bst": 400
+  },
+  "abilities": {
+    "primary": "water_veil",
+    "secondary": "oblivious",
+    "hidden": "pressure"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 80,
+    "catchRate": 125,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wailmer",
+    "evolution": "wailmer",
+    "media": "wailmer"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 130.0,
+    "color": "blue",
+    "flavorText": "WAILMER’s nostrils are located above its eyes. This playful POKéMON loves to startle people by forcefully snorting out seawater it stores inside its body out of its nostrils."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

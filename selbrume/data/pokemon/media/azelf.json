@@ -1,0 +1,18 @@
+{
+  "speciesId": "azelf",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/azelf/front.png",
+      "backStatic": "assets/pokemon/sprites/azelf/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/azelf/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/azelf/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/azelf.png",
+      "cry": "assets/pokemon/cries/azelf.ogg",
+      "animations": {}
+    }
+  }
+}

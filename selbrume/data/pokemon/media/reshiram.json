@@ -1,0 +1,18 @@
+{
+  "speciesId": "reshiram",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/reshiram/front.png",
+      "backStatic": "assets/pokemon/sprites/reshiram/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/reshiram/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/reshiram/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/reshiram.png",
+      "cry": "assets/pokemon/cries/reshiram.ogg",
+      "animations": {}
+    }
+  }
+}

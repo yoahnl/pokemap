@@ -1,0 +1,30 @@
+{
+  "speciesId": "rockruff",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rockruff/front.png",
+      "backStatic": "assets/pokemon/sprites/rockruff/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rockruff/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rockruff/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rockruff.png",
+      "cry": "assets/pokemon/cries/rockruff.ogg",
+      "animations": {}
+    },
+    "rockruff-dusk": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

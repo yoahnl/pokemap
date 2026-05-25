@@ -1,0 +1,18 @@
+{
+  "speciesId": "tepig",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tepig/front.png",
+      "backStatic": "assets/pokemon/sprites/tepig/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tepig/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tepig/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tepig.png",
+      "cry": "assets/pokemon/cries/tepig.ogg",
+      "animations": {}
+    }
+  }
+}

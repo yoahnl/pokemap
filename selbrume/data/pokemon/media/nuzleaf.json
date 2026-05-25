@@ -1,0 +1,18 @@
+{
+  "speciesId": "nuzleaf",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nuzleaf/front.png",
+      "backStatic": "assets/pokemon/sprites/nuzleaf/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/nuzleaf/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/nuzleaf/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nuzleaf.png",
+      "cry": "assets/pokemon/cries/nuzleaf.ogg",
+      "animations": {}
+    }
+  }
+}

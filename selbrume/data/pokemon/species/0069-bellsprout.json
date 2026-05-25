@@ -1,0 +1,98 @@
+{
+  "id": "bellsprout",
+  "slug": "bellsprout",
+  "nationalDex": 69,
+  "names": {
+    "ja_hrkt": "マダツボミ",
+    "ja_roma": "Madatsubomi",
+    "ko": "모다피",
+    "zh_hant": "喇叭芽",
+    "fr": "Chétiflor",
+    "de": "Knofensa",
+    "es": "Bellsprout",
+    "it": "Bellsprout",
+    "en": "Bellsprout",
+    "ja": "マダツボミ",
+    "zh_hans": "喇叭芽"
+  },
+  "speciesName": {
+    "ja_hrkt": "フラワーポケモン",
+    "ko": "꽃포켓몬",
+    "zh_hant": "花寶可夢",
+    "fr": "Pokémon Fleur",
+    "de": "Blume",
+    "es": "Pokémon Flor",
+    "it": "Pokémon Fiore",
+    "en": "Flower Pokémon",
+    "ja": "フラワーポケモン",
+    "zh_hans": "花宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 75,
+    "def": 35,
+    "spa": 70,
+    "spd": 30,
+    "spe": 40,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": null,
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 60,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bellsprout",
+    "evolution": "bellsprout",
+    "media": "bellsprout"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 4.0,
+    "color": "green",
+    "flavorText": "A carnivorous POKéMON that traps and eats bugs. It uses its root feet to soak up needed moisture."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

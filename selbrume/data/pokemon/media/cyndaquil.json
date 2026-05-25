@@ -1,0 +1,18 @@
+{
+  "speciesId": "cyndaquil",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cyndaquil/front.png",
+      "backStatic": "assets/pokemon/sprites/cyndaquil/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cyndaquil/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cyndaquil/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cyndaquil.png",
+      "cry": "assets/pokemon/cries/cyndaquil.ogg",
+      "animations": {}
+    }
+  }
+}

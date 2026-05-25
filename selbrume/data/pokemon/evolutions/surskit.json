@@ -1,0 +1,14 @@
+{
+  "speciesId": "surskit",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "masquerain",
+      "method": "level_up",
+      "minLevel": 22,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

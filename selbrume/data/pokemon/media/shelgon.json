@@ -1,0 +1,18 @@
+{
+  "speciesId": "shelgon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shelgon/front.png",
+      "backStatic": "assets/pokemon/sprites/shelgon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shelgon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shelgon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shelgon.png",
+      "cry": "assets/pokemon/cries/shelgon.ogg",
+      "animations": {}
+    }
+  }
+}

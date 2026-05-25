@@ -1,0 +1,101 @@
+{
+  "id": "groudon",
+  "slug": "groudon",
+  "nationalDex": 383,
+  "names": {
+    "ja_hrkt": "グラードン",
+    "ja_roma": "Groudon",
+    "ko": "그란돈",
+    "zh_hant": "固拉多",
+    "fr": "Groudon",
+    "de": "Groudon",
+    "es": "Groudon",
+    "it": "Groudon",
+    "en": "Groudon",
+    "ja": "グラードン",
+    "zh_hans": "固拉多"
+  },
+  "speciesName": {
+    "ja_hrkt": "たいりくポケモン",
+    "ko": "대륙포켓몬",
+    "zh_hant": "大陸寶可夢",
+    "fr": "Pokémon Continent",
+    "de": "Kontinent-Pokémon",
+    "es": "Pokémon Continente",
+    "it": "Pokémon Continente",
+    "en": "Continent Pokémon",
+    "ja": "たいりくポケモン",
+    "zh_hans": "大陆宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 150,
+    "def": 140,
+    "spa": 100,
+    "spd": 90,
+    "spe": 90,
+    "bst": 670
+  },
+  "abilities": {
+    "primary": "drought",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 302,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "groudon-primal"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "groudon",
+    "evolution": "groudon",
+    "media": "groudon"
+  },
+  "dexContent": {
+    "heightM": 3.5,
+    "weightKg": 950.0,
+    "color": "red",
+    "flavorText": "GROUDON has long been described in mythology as the POKéMON that raised lands and expanded continents. This POKéMON took to sleep after a cataclysmic battle with KYOGRE."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "id": "tinkaton",
+  "slug": "tinkaton",
+  "nationalDex": 959,
+  "names": {
+    "ja_hrkt": "デカヌチャン",
+    "ja_roma": "Dekanuchan",
+    "ko": "두드리짱",
+    "zh_hant": "巨鍛匠",
+    "fr": "Forgelina",
+    "de": "Granforgita",
+    "es": "Tinkaton",
+    "it": "Tinkaton",
+    "en": "Tinkaton",
+    "ja": "デカヌチャン",
+    "zh_hans": "巨锻匠"
+  },
+  "speciesName": {
+    "ja_hrkt": "ハンマーポケモン",
+    "ko": "해머포켓몬",
+    "zh_hant": "錘子寶可夢",
+    "fr": "Marteau",
+    "de": "Hammer",
+    "en": "Hammer Pokémon",
+    "zh_hans": "锤子宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fairy",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 75,
+    "def": 77,
+    "spa": 70,
+    "spd": 105,
+    "spe": 94,
+    "bst": 506
+  },
+  "abilities": {
+    "primary": "mold_breaker",
+    "secondary": "own_tempo",
+    "hidden": "pickpocket"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 253,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tinkaton",
+    "evolution": "tinkaton",
+    "media": "tinkaton"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 112.8,
+    "color": "pink",
+    "flavorText": "This intelligent Pokémon has a very daring disposition. It knocks rocks into the sky with its hammer, aiming for flying Corviknight."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

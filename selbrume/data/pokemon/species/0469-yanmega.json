@@ -1,0 +1,98 @@
+{
+  "id": "yanmega",
+  "slug": "yanmega",
+  "nationalDex": 469,
+  "names": {
+    "ja_hrkt": "メガヤンマ",
+    "ja_roma": "Megayanma",
+    "ko": "메가자리",
+    "zh_hant": "遠古巨蜓",
+    "fr": "Yanmega",
+    "de": "Yanmega",
+    "es": "Yanmega",
+    "it": "Yanmega",
+    "en": "Yanmega",
+    "ja": "メガヤンマ",
+    "zh_hans": "远古巨蜓"
+  },
+  "speciesName": {
+    "ja_hrkt": "オニトンボポケモン",
+    "ko": "깨비잠자리포켓몬",
+    "zh_hant": "勾蜓寶可夢",
+    "fr": "Pokémon Libellogre",
+    "de": "Agrion",
+    "es": "Pokémon Libélula",
+    "it": "Pokémon Libellorco",
+    "en": "Ogre Darner Pokémon",
+    "ja": "オニトンボポケモン",
+    "zh_hans": "勾蜓宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 86,
+    "atk": 76,
+    "def": 86,
+    "spa": 116,
+    "spd": 56,
+    "spe": 95,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "speed_boost",
+    "secondary": "tinted_lens",
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 180,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "yanmega",
+    "evolution": "yanmega",
+    "media": "yanmega"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 51.5,
+    "color": "green",
+    "flavorText": "By churning its wings, it creates shock waves that inflict critical internal injuries to foes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

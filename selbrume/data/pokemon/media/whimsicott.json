@@ -1,0 +1,18 @@
+{
+  "speciesId": "whimsicott",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/whimsicott/front.png",
+      "backStatic": "assets/pokemon/sprites/whimsicott/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/whimsicott/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/whimsicott/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/whimsicott.png",
+      "cry": "assets/pokemon/cries/whimsicott.ogg",
+      "animations": {}
+    }
+  }
+}

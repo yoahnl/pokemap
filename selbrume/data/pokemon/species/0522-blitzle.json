@@ -1,0 +1,97 @@
+{
+  "id": "blitzle",
+  "slug": "blitzle",
+  "nationalDex": 522,
+  "names": {
+    "ja_hrkt": "シママ",
+    "ja_roma": "Shimama",
+    "ko": "줄뮤마",
+    "zh_hant": "斑斑馬",
+    "fr": "Zébibron",
+    "de": "Elezeba",
+    "es": "Blitzle",
+    "it": "Blitzle",
+    "en": "Blitzle",
+    "ja": "シママ",
+    "zh_hans": "斑斑马"
+  },
+  "speciesName": {
+    "ja_hrkt": "たいでんポケモン",
+    "ko": "하전포켓몬",
+    "zh_hant": "帶電寶可夢",
+    "fr": "Pokémon Étincélec",
+    "de": "Hochspannung",
+    "es": "Pokémon Electrizado",
+    "it": "Pokémon Caricavolt",
+    "en": "Electrified Pokémon",
+    "ja": "たいでんポケモン",
+    "zh_hans": "带电宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 60,
+    "def": 32,
+    "spa": 50,
+    "spd": 32,
+    "spe": 76,
+    "bst": 295
+  },
+  "abilities": {
+    "primary": "lightning_rod",
+    "secondary": "motor_drive",
+    "hidden": "sap_sipper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 59,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "blitzle",
+    "evolution": "blitzle",
+    "media": "blitzle"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 29.8,
+    "color": "black",
+    "flavorText": "When thunderclouds cover the sky, it will appear. It can catch lightning with its mane and store the electricity."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

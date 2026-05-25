@@ -1,0 +1,102 @@
+{
+  "id": "tyrunt",
+  "slug": "tyrunt",
+  "nationalDex": 696,
+  "names": {
+    "ja_hrkt": "チゴラス",
+    "ja_roma": "Chigoras",
+    "ko": "티고라스",
+    "zh_hant": "寶寶暴龍",
+    "fr": "Ptyranidur",
+    "de": "Balgoras",
+    "es": "Tyrunt",
+    "it": "Tyrunt",
+    "en": "Tyrunt",
+    "ja": "チゴラス",
+    "zh_hans": "宝宝暴龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ようくんポケモン",
+    "ko": "유군포켓몬",
+    "zh_hant": "幼君寶可夢",
+    "fr": "Pokémon Prince",
+    "de": "Kronprinz-Pokémon",
+    "es": "Pokémon Heredero",
+    "it": "Pokémon Principino",
+    "en": "Royal Heir Pokémon",
+    "ja": "ようくんポケモン",
+    "zh_hans": "幼君宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "rock",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 58,
+    "atk": 89,
+    "def": 77,
+    "spa": 45,
+    "spd": 45,
+    "spe": 48,
+    "bst": 362
+  },
+  "abilities": {
+    "primary": "strong_jaw",
+    "secondary": null,
+    "hidden": "sturdy"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 72,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tyrunt",
+    "evolution": "tyrunt",
+    "media": "tyrunt"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 26.0,
+    "color": "brown",
+    "flavorText": "This Pokémon was restored from a fossil. If something happens that it doesn’t like, it throws a tantrum and runs wild."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

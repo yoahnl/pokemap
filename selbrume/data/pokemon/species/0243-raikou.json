@@ -1,0 +1,99 @@
+{
+  "id": "raikou",
+  "slug": "raikou",
+  "nationalDex": 243,
+  "names": {
+    "ja_hrkt": "ライコウ",
+    "ja_roma": "Raikou",
+    "ko": "라이코",
+    "zh_hant": "雷公",
+    "fr": "Raikou",
+    "de": "Raikou",
+    "es": "Raikou",
+    "it": "Raikou",
+    "en": "Raikou",
+    "ja": "ライコウ",
+    "zh_hans": "雷公"
+  },
+  "speciesName": {
+    "ja_hrkt": "いかずちポケモン",
+    "ko": "우뢰포켓몬",
+    "zh_hant": "天雷寶可夢",
+    "fr": "Pokémon Foudre",
+    "de": "Donner-Pokémon",
+    "es": "Pokémon Trueno",
+    "it": "Pokémon Tuono",
+    "en": "Thunder Pokémon",
+    "ja": "いかずちポケモン",
+    "zh_hans": "天雷宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 85,
+    "def": 75,
+    "spa": 115,
+    "spd": 100,
+    "spe": 115,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "inner_focus"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "raikou",
+    "evolution": "raikou",
+    "media": "raikou"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 178.0,
+    "color": "yellow",
+    "flavorText": "The rain clouds it carries let it fire thunderbolts at will. They say that it descended with lightning."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

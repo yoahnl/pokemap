@@ -1,0 +1,18 @@
+{
+  "speciesId": "delcatty",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/delcatty/front.png",
+      "backStatic": "assets/pokemon/sprites/delcatty/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/delcatty/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/delcatty/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/delcatty.png",
+      "cry": "assets/pokemon/cries/delcatty.ogg",
+      "animations": {}
+    }
+  }
+}

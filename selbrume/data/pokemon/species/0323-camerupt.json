@@ -1,0 +1,100 @@
+{
+  "id": "camerupt",
+  "slug": "camerupt",
+  "nationalDex": 323,
+  "names": {
+    "ja_hrkt": "バクーダ",
+    "ja_roma": "Bakuuda",
+    "ko": "폭타",
+    "zh_hant": "噴火駝",
+    "fr": "Camérupt",
+    "de": "Camerupt",
+    "es": "Camerupt",
+    "it": "Camerupt",
+    "en": "Camerupt",
+    "ja": "バクーダ",
+    "zh_hans": "喷火驼"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふんかポケモン",
+    "ko": "분화포켓몬",
+    "zh_hant": "噴火寶可夢",
+    "fr": "Pokémon Éruption",
+    "de": "Ausbruch",
+    "es": "Pokémon Erupción",
+    "it": "Pokémon Eruzione",
+    "en": "Eruption Pokémon",
+    "ja": "ふんかポケモン",
+    "zh_hans": "喷火宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "fire",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 100,
+    "def": 70,
+    "spa": 105,
+    "spd": 75,
+    "spe": 40,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "magma_armor",
+    "secondary": "solid_rock",
+    "hidden": "anger_point"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 161,
+    "catchRate": 150,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "camerupt-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "camerupt",
+    "evolution": "camerupt",
+    "media": "camerupt"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 220.0,
+    "color": "red",
+    "flavorText": "CAMERUPT has a volcano inside its body. Magma of 18,000 degrees F courses through its body. Occasionally, the humps on this POKéMON’s back erupt, spewing the superheated magma."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

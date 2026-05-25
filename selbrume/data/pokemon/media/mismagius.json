@@ -1,0 +1,18 @@
+{
+  "speciesId": "mismagius",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mismagius/front.png",
+      "backStatic": "assets/pokemon/sprites/mismagius/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mismagius/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mismagius/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mismagius.png",
+      "cry": "assets/pokemon/cries/mismagius.ogg",
+      "animations": {}
+    }
+  }
+}

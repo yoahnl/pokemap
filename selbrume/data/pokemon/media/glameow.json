@@ -1,0 +1,18 @@
+{
+  "speciesId": "glameow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/glameow/front.png",
+      "backStatic": "assets/pokemon/sprites/glameow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/glameow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/glameow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/glameow.png",
+      "cry": "assets/pokemon/cries/glameow.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "liepard",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/liepard/front.png",
+      "backStatic": "assets/pokemon/sprites/liepard/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/liepard/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/liepard/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/liepard.png",
+      "cry": "assets/pokemon/cries/liepard.ogg",
+      "animations": {}
+    }
+  }
+}

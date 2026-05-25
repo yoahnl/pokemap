@@ -1,0 +1,98 @@
+{
+  "id": "oddish",
+  "slug": "oddish",
+  "nationalDex": 43,
+  "names": {
+    "ja_hrkt": "ナゾノクサ",
+    "ja_roma": "Nazonokusa",
+    "ko": "뚜벅쵸",
+    "zh_hant": "走路草",
+    "fr": "Mystherbe",
+    "de": "Myrapla",
+    "es": "Oddish",
+    "it": "Oddish",
+    "en": "Oddish",
+    "ja": "ナゾノクサ",
+    "zh_hans": "走路草"
+  },
+  "speciesName": {
+    "ja_hrkt": "ざっそうポケモン",
+    "ko": "잡초포켓몬",
+    "zh_hant": "雜草寶可夢",
+    "fr": "Pokémon Racine",
+    "de": "Unkraut-Pokémon",
+    "es": "Pokémon Hierbajo",
+    "it": "Pokémon Malerba",
+    "en": "Weed Pokémon",
+    "ja": "ざっそうポケモン",
+    "zh_hans": "杂草宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 50,
+    "def": 55,
+    "spa": 75,
+    "spd": 65,
+    "spe": 30,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": null,
+    "hidden": "run_away"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "oddish",
+    "evolution": "oddish",
+    "media": "oddish"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 5.4,
+    "color": "blue",
+    "flavorText": "During the day, it keeps its face buried in the ground. At night, it wanders around sowing its seeds."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

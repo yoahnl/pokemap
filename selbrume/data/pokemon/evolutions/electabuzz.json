@@ -1,0 +1,16 @@
+{
+  "speciesId": "electabuzz",
+  "preEvolution": "elekid",
+  "evolutions": [
+    {
+      "targetSpeciesId": "electivire",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: electirizer"
+      }
+    }
+  ]
+}

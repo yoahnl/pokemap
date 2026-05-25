@@ -1,0 +1,14 @@
+{
+  "speciesId": "spewpa",
+  "preEvolution": "scatterbug",
+  "evolutions": [
+    {
+      "targetSpeciesId": "vivillon",
+      "method": "level_up",
+      "minLevel": 12,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

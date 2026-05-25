@@ -1,0 +1,18 @@
+{
+  "speciesId": "clamperl",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/clamperl/front.png",
+      "backStatic": "assets/pokemon/sprites/clamperl/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/clamperl/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/clamperl/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/clamperl.png",
+      "cry": "assets/pokemon/cries/clamperl.ogg",
+      "animations": {}
+    }
+  }
+}

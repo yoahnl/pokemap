@@ -1,0 +1,16 @@
+{
+  "speciesId": "greavard",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "houndstone",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night"
+      }
+    }
+  ]
+}

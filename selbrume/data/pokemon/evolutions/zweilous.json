@@ -1,0 +1,14 @@
+{
+  "speciesId": "zweilous",
+  "preEvolution": "deino",
+  "evolutions": [
+    {
+      "targetSpeciesId": "hydreigon",
+      "method": "level_up",
+      "minLevel": 64,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

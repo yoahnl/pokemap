@@ -1,0 +1,18 @@
+{
+  "speciesId": "swablu",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swablu/front.png",
+      "backStatic": "assets/pokemon/sprites/swablu/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swablu/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swablu/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swablu.png",
+      "cry": "assets/pokemon/cries/swablu.ogg",
+      "animations": {}
+    }
+  }
+}

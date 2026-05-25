@@ -1,0 +1,101 @@
+{
+  "id": "wartortle",
+  "slug": "wartortle",
+  "nationalDex": 8,
+  "names": {
+    "ja_hrkt": "カメール",
+    "ja_roma": "Kameil",
+    "ko": "어니부기",
+    "zh_hant": "卡咪龜",
+    "fr": "Carabaffe",
+    "de": "Schillok",
+    "es": "Wartortle",
+    "it": "Wartortle",
+    "en": "Wartortle",
+    "ja": "カメール",
+    "zh_hans": "卡咪龟"
+  },
+  "speciesName": {
+    "ja_hrkt": "かめポケモン",
+    "ko": "거북포켓몬",
+    "zh_hant": "龜寶可夢",
+    "fr": "Pokémon Tortue",
+    "de": "Kröten-Pokémon",
+    "es": "Pokémon Tortuga",
+    "it": "Pokémon Tartaruga",
+    "en": "Turtle Pokémon",
+    "ja": "かめポケモン",
+    "zh_hans": "龟宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 59,
+    "atk": 63,
+    "def": 80,
+    "spa": 65,
+    "spd": 80,
+    "spe": 58,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wartortle",
+    "evolution": "wartortle",
+    "media": "wartortle"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 22.5,
+    "color": "blue",
+    "flavorText": "Often hides in water to stalk unwary prey. For swimming fast, it moves its ears to maintain balance."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "speciesId": "abomasnow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/abomasnow/front.png",
+      "backStatic": "assets/pokemon/sprites/abomasnow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/abomasnow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/abomasnow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/abomasnow.png",
+      "cry": "assets/pokemon/cries/abomasnow.ogg",
+      "animations": {}
+    },
+    "abomasnow-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

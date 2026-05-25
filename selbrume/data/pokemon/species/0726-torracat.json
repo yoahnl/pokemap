@@ -1,0 +1,100 @@
+{
+  "id": "torracat",
+  "slug": "torracat",
+  "nationalDex": 726,
+  "names": {
+    "ja_hrkt": "ニャヒート",
+    "ja_roma": "Nyaheat",
+    "ko": "냐오히트",
+    "zh_hant": "炎熱喵",
+    "fr": "Matoufeu",
+    "de": "Miezunder",
+    "es": "Torracat",
+    "it": "Torracat",
+    "en": "Torracat",
+    "ja": "ニャヒート",
+    "zh_hans": "炎热喵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひねこポケモン",
+    "ko": "불고양이포켓몬",
+    "zh_hant": "火貓寶可夢",
+    "fr": "Pokémon Chat Feu",
+    "de": "Feuerkatzen-Pokémon",
+    "es": "Pokémon Gato Fuego",
+    "it": "Pokémon Pirofelino",
+    "en": "Fire Cat Pokémon",
+    "ja": "ひねこポケモン",
+    "zh_hans": "火猫宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 85,
+    "def": 50,
+    "spa": 80,
+    "spd": 50,
+    "spe": 90,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "intimidate"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 147,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "torracat",
+    "evolution": "torracat",
+    "media": "torracat"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 25.0,
+    "color": "red",
+    "flavorText": "At its throat, it bears a bell of fire. The bell rings brightly whenever this Pokémon spits fire."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

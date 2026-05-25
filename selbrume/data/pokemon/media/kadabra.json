@@ -1,0 +1,18 @@
+{
+  "speciesId": "kadabra",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kadabra/front.png",
+      "backStatic": "assets/pokemon/sprites/kadabra/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kadabra/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kadabra/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kadabra.png",
+      "cry": "assets/pokemon/cries/kadabra.ogg",
+      "animations": {}
+    }
+  }
+}

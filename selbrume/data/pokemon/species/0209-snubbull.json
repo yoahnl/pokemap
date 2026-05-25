@@ -1,0 +1,101 @@
+{
+  "id": "snubbull",
+  "slug": "snubbull",
+  "nationalDex": 209,
+  "names": {
+    "ja_hrkt": "ブルー",
+    "ja_roma": "Bulu",
+    "ko": "블루",
+    "zh_hant": "布魯",
+    "fr": "Snubbull",
+    "de": "Snubbull",
+    "es": "Snubbull",
+    "it": "Snubbull",
+    "en": "Snubbull",
+    "ja": "ブルー",
+    "zh_hans": "布鲁"
+  },
+  "speciesName": {
+    "ja_hrkt": "ようせいポケモン",
+    "ko": "요정포켓몬",
+    "zh_hant": "妖精寶可夢",
+    "fr": "Pokémon Fée",
+    "de": "Fee",
+    "es": "Pokémon Hada",
+    "it": "Pokémon Fata",
+    "en": "Fairy Pokémon",
+    "ja": "ようせいポケモン",
+    "zh_hans": "妖精宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 80,
+    "def": 50,
+    "spa": 40,
+    "spd": 40,
+    "spe": 30,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "run_away",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "ground",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 60,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "snubbull",
+    "evolution": "snubbull",
+    "media": "snubbull"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 7.8,
+    "color": "pink",
+    "flavorText": "Although it looks frightening, it is actually kind and affectionate. It is very popular among women."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "zekrom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zekrom/front.png",
+      "backStatic": "assets/pokemon/sprites/zekrom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zekrom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zekrom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zekrom.png",
+      "cry": "assets/pokemon/cries/zekrom.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "monferno",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/monferno/front.png",
+      "backStatic": "assets/pokemon/sprites/monferno/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/monferno/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/monferno/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/monferno.png",
+      "cry": "assets/pokemon/cries/monferno.ogg",
+      "animations": {}
+    }
+  }
+}

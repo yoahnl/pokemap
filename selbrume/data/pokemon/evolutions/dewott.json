@@ -1,0 +1,22 @@
+{
+  "speciesId": "dewott",
+  "preEvolution": "oshawott",
+  "evolutions": [
+    {
+      "targetSpeciesId": "samurott",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "samurott",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

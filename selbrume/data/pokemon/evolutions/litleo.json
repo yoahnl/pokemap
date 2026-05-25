@@ -1,0 +1,14 @@
+{
+  "speciesId": "litleo",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "pyroar",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

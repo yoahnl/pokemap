@@ -1,0 +1,18 @@
+{
+  "speciesId": "sneasler",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sneasler/front.png",
+      "backStatic": "assets/pokemon/sprites/sneasler/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sneasler/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sneasler/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sneasler.png",
+      "cry": "assets/pokemon/cries/sneasler.ogg",
+      "animations": {}
+    }
+  }
+}

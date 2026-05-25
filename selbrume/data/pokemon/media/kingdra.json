@@ -1,0 +1,18 @@
+{
+  "speciesId": "kingdra",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kingdra/front.png",
+      "backStatic": "assets/pokemon/sprites/kingdra/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kingdra/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kingdra/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kingdra.png",
+      "cry": "assets/pokemon/cries/kingdra.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "id": "golurk",
+  "slug": "golurk",
+  "nationalDex": 623,
+  "names": {
+    "ja_hrkt": "ゴルーグ",
+    "ja_roma": "Goloog",
+    "ko": "골루그",
+    "zh_hant": "泥偶巨人",
+    "fr": "Golemastoc",
+    "de": "Golgantes",
+    "es": "Golurk",
+    "it": "Golurk",
+    "en": "Golurk",
+    "ja": "ゴルーグ",
+    "zh_hans": "泥偶巨人"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゴーレムポケモン",
+    "ko": "골렘포켓몬",
+    "zh_hant": "魔像寶可夢",
+    "fr": "Pokémon Golem Ancien",
+    "de": "Urgolem-Pokémon",
+    "es": "Pokémon Autómata",
+    "it": "Pokémon Statuanimata",
+    "en": "Automaton Pokémon",
+    "ja": "ゴーレムポケモン",
+    "zh_hans": "魔像宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ground",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 89,
+    "atk": 124,
+    "def": 80,
+    "spa": 55,
+    "spd": 80,
+    "spe": 55,
+    "bst": 483
+  },
+  "abilities": {
+    "primary": "iron_fist",
+    "secondary": "klutz",
+    "hidden": "no_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 169,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "golurk-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "golurk",
+    "evolution": "golurk",
+    "media": "golurk"
+  },
+  "dexContent": {
+    "heightM": 2.8,
+    "weightKg": 330.0,
+    "color": "green",
+    "flavorText": "It flies across the sky at Mach speeds. Removing the seal on its chest makes its internal energy go out of control."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

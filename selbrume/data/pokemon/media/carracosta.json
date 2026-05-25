@@ -1,0 +1,18 @@
+{
+  "speciesId": "carracosta",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/carracosta/front.png",
+      "backStatic": "assets/pokemon/sprites/carracosta/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/carracosta/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/carracosta/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/carracosta.png",
+      "cry": "assets/pokemon/cries/carracosta.ogg",
+      "animations": {}
+    }
+  }
+}

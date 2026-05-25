@@ -1,0 +1,98 @@
+{
+  "id": "mandibuzz",
+  "slug": "mandibuzz",
+  "nationalDex": 630,
+  "names": {
+    "ja_hrkt": "バルジーナ",
+    "ja_roma": "Vulgina",
+    "ko": "버랜지나",
+    "zh_hant": "禿鷹娜",
+    "fr": "Vaututrice",
+    "de": "Grypheldis",
+    "es": "Mandibuzz",
+    "it": "Mandibuzz",
+    "en": "Mandibuzz",
+    "ja": "バルジーナ",
+    "zh_hans": "秃鹰娜"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほねわしポケモン",
+    "ko": "뼈독수리포켓몬",
+    "zh_hant": "骨鷹寶可夢",
+    "fr": "Pokémon Vostour",
+    "de": "Knochenadler-Pokémon",
+    "es": "Pokémon Buitre Hueso",
+    "it": "Pokémon Ossaquila",
+    "en": "Bone Vulture Pokémon",
+    "ja": "ほねわしポケモン",
+    "zh_hans": "骨鹰宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dark",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 110,
+    "atk": 65,
+    "def": 105,
+    "spa": 55,
+    "spd": 95,
+    "spe": 80,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "big_pecks",
+    "secondary": "overcoat",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 179,
+    "catchRate": 60,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mandibuzz",
+    "evolution": "mandibuzz",
+    "media": "mandibuzz"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 39.5,
+    "color": "brown",
+    "flavorText": "It makes a nest out of bones it finds. It grabs weakened prey in its talons and hauls it to its nest of bones."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

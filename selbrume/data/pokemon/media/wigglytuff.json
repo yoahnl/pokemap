@@ -1,0 +1,18 @@
+{
+  "speciesId": "wigglytuff",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wigglytuff/front.png",
+      "backStatic": "assets/pokemon/sprites/wigglytuff/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wigglytuff/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wigglytuff/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wigglytuff.png",
+      "cry": "assets/pokemon/cries/wigglytuff.ogg",
+      "animations": {}
+    }
+  }
+}

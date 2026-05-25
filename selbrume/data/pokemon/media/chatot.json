@@ -1,0 +1,18 @@
+{
+  "speciesId": "chatot",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chatot/front.png",
+      "backStatic": "assets/pokemon/sprites/chatot/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chatot/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chatot/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chatot.png",
+      "cry": "assets/pokemon/cries/chatot.ogg",
+      "animations": {}
+    }
+  }
+}

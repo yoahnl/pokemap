@@ -1,0 +1,18 @@
+{
+  "speciesId": "runerigus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/runerigus/front.png",
+      "backStatic": "assets/pokemon/sprites/runerigus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/runerigus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/runerigus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/runerigus.png",
+      "cry": "assets/pokemon/cries/runerigus.ogg",
+      "animations": {}
+    }
+  }
+}

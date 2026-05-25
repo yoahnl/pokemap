@@ -1,0 +1,14 @@
+{
+  "speciesId": "chinchou",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lanturn",
+      "method": "level_up",
+      "minLevel": 27,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

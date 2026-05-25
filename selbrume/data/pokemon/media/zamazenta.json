@@ -1,0 +1,30 @@
+{
+  "speciesId": "zamazenta",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zamazenta/front.png",
+      "backStatic": "assets/pokemon/sprites/zamazenta/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zamazenta/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zamazenta/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zamazenta.png",
+      "cry": "assets/pokemon/cries/zamazenta.ogg",
+      "animations": {}
+    },
+    "zamazenta-crowned": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

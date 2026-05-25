@@ -1,0 +1,97 @@
+{
+  "id": "corvisquire",
+  "slug": "corvisquire",
+  "nationalDex": 822,
+  "names": {
+    "ja_hrkt": "アオガラス",
+    "ja_roma": "Aogarasu",
+    "ko": "파크로우",
+    "zh_hant": "藍鴉",
+    "fr": "Bleuseille",
+    "de": "Kranoviz",
+    "es": "Corvisquire",
+    "it": "Corvisquire",
+    "en": "Corvisquire",
+    "ja": "アオガラス",
+    "zh_hans": "蓝鸦"
+  },
+  "speciesName": {
+    "ja_hrkt": "カラスポケモン",
+    "ko": "까마귀포켓몬",
+    "zh_hant": "烏鴉寶可夢",
+    "fr": "Pokémon Corbeau",
+    "de": "Krähen-Pokémon",
+    "es": "Pokémon Cuervo",
+    "it": "Pokémon Corvo",
+    "en": "Raven Pokémon",
+    "ja": "カラスポケモン",
+    "zh_hans": "乌鸦宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 68,
+    "atk": 67,
+    "def": 55,
+    "spa": 43,
+    "spd": 55,
+    "spe": 77,
+    "bst": 365
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "unnerve",
+    "hidden": "big_pecks"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 128,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "corvisquire",
+    "evolution": "corvisquire",
+    "media": "corvisquire"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 16.0,
+    "color": "blue",
+    "flavorText": "Smart enough to use tools in battle, these Pokémon have been seen picking up rocks and flinging them or using ropes to wrap up enemies."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

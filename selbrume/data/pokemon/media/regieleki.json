@@ -1,0 +1,18 @@
+{
+  "speciesId": "regieleki",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/regieleki/front.png",
+      "backStatic": "assets/pokemon/sprites/regieleki/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/regieleki/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/regieleki/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/regieleki.png",
+      "cry": "assets/pokemon/cries/regieleki.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "pangoro",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pangoro/front.png",
+      "backStatic": "assets/pokemon/sprites/pangoro/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pangoro/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pangoro/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pangoro.png",
+      "cry": "assets/pokemon/cries/pangoro.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "marill",
+  "slug": "marill",
+  "nationalDex": 183,
+  "names": {
+    "ja_hrkt": "マリル",
+    "ja_roma": "Maril",
+    "ko": "마릴",
+    "zh_hant": "瑪力露",
+    "fr": "Marill",
+    "de": "Marill",
+    "es": "Marill",
+    "it": "Marill",
+    "en": "Marill",
+    "ja": "マリル",
+    "zh_hans": "玛力露"
+  },
+  "speciesName": {
+    "ja_hrkt": "みずねずみポケモン",
+    "ko": "물쥐포켓몬",
+    "zh_hant": "水鼠寶可夢",
+    "fr": "Pokémon Aquasouris",
+    "de": "Aquamaus-Pokémon",
+    "es": "Pokémon Ratón Agua",
+    "it": "Pokémon Acquatopo",
+    "en": "Aqua Mouse Pokémon",
+    "ja": "みずねずみポケモン",
+    "zh_hans": "水鼠宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 20,
+    "def": 50,
+    "spa": 20,
+    "spd": 50,
+    "spe": 40,
+    "bst": 250
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "huge_power",
+    "hidden": "sap_sipper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 88,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "marill",
+    "evolution": "marill",
+    "media": "marill"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 8.5,
+    "color": "blue",
+    "flavorText": "The tip of its tail, which con­ tains oil that is lighter than wa­ ter, lets it swim without drowning."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

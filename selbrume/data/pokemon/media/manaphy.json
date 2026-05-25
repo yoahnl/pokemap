@@ -1,0 +1,18 @@
+{
+  "speciesId": "manaphy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/manaphy/front.png",
+      "backStatic": "assets/pokemon/sprites/manaphy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/manaphy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/manaphy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/manaphy.png",
+      "cry": "assets/pokemon/cries/manaphy.ogg",
+      "animations": {}
+    }
+  }
+}

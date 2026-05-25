@@ -1,0 +1,18 @@
+{
+  "speciesId": "wurmple",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wurmple/front.png",
+      "backStatic": "assets/pokemon/sprites/wurmple/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wurmple/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wurmple/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wurmple.png",
+      "cry": "assets/pokemon/cries/wurmple.ogg",
+      "animations": {}
+    }
+  }
+}

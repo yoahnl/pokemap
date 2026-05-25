@@ -1,0 +1,101 @@
+{
+  "id": "tatsugiri",
+  "slug": "tatsugiri",
+  "nationalDex": 978,
+  "names": {
+    "ja_hrkt": "シャリタツ",
+    "ja_roma": "Syaritatsu",
+    "ko": "싸리용",
+    "zh_hant": "米立龍",
+    "fr": "Nigirigon",
+    "de": "Nigiragi",
+    "es": "Tatsugiri",
+    "it": "Tatsugiri",
+    "en": "Tatsugiri",
+    "ja": "シャリタツ",
+    "zh_hans": "米立龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぎたいポケモン",
+    "ko": "의태포켓몬",
+    "zh_hant": "擬態寶可夢",
+    "fr": "Mimétisme",
+    "de": "Mimesen",
+    "en": "Mimicry Pokémon",
+    "zh_hans": "拟态宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "dragon",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 68,
+    "atk": 50,
+    "def": 60,
+    "spa": 120,
+    "spd": 95,
+    "spe": 82,
+    "bst": 475
+  },
+  "abilities": {
+    "primary": "commander",
+    "secondary": null,
+    "hidden": "storm_drain"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 0,
+    "catchRate": 100,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "tatsugiri-curly-mega",
+      "tatsugiri-droopy",
+      "tatsugiri-droopy-mega",
+      "tatsugiri-stretchy",
+      "tatsugiri-stretchy-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tatsugiri",
+    "evolution": "tatsugiri",
+    "media": "tatsugiri"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 8.0,
+    "color": "pink",
+    "flavorText": "This is a small dragon Pokémon. It lives inside the mouth of Dondozo to protect itself from enemies on the outside."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

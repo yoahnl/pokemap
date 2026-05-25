@@ -1,0 +1,18 @@
+{
+  "speciesId": "crawdaunt",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/crawdaunt/front.png",
+      "backStatic": "assets/pokemon/sprites/crawdaunt/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/crawdaunt/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/crawdaunt/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/crawdaunt.png",
+      "cry": "assets/pokemon/cries/crawdaunt.ogg",
+      "animations": {}
+    }
+  }
+}

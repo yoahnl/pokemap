@@ -1,0 +1,101 @@
+{
+  "id": "bastiodon",
+  "slug": "bastiodon",
+  "nationalDex": 411,
+  "names": {
+    "ja_hrkt": "トリデプス",
+    "ja_roma": "Trideps",
+    "ko": "바리톱스",
+    "zh_hant": "護城龍",
+    "fr": "Bastiodon",
+    "de": "Bollterus",
+    "es": "Bastiodon",
+    "it": "Bastiodon",
+    "en": "Bastiodon",
+    "ja": "トリデプス",
+    "zh_hans": "护城龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "シールドポケモン",
+    "ko": "실드포켓몬",
+    "zh_hant": "護盾寶可夢",
+    "fr": "Pokémon Bouclier",
+    "de": "Schutzschild",
+    "es": "Pokémon Escudo",
+    "it": "Pokémon Schermo",
+    "en": "Shield Pokémon",
+    "ja": "シールドポケモン",
+    "zh_hans": "护盾宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "rock",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 52,
+    "def": 168,
+    "spa": 47,
+    "spd": 138,
+    "spe": 30,
+    "bst": 495
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": null,
+    "hidden": "soundproof"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 173,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bastiodon",
+    "evolution": "bastiodon",
+    "media": "bastiodon"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 149.5,
+    "color": "gray",
+    "flavorText": "Any frontal attack is repulsed. It is a docile Pokémon that feeds on grass and berries."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

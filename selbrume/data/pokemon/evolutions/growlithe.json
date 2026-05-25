@@ -1,0 +1,22 @@
+{
+  "speciesId": "growlithe",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "arcanine",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "fire-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "arcanine",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "fire-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

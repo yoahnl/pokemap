@@ -1,0 +1,18 @@
+{
+  "speciesId": "kingler",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kingler/front.png",
+      "backStatic": "assets/pokemon/sprites/kingler/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kingler/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kingler/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kingler.png",
+      "cry": "assets/pokemon/cries/kingler.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "dustox",
+  "slug": "dustox",
+  "nationalDex": 269,
+  "names": {
+    "ja_hrkt": "ドクケイル",
+    "ja_roma": "Dokucale",
+    "ko": "독케일",
+    "zh_hant": "毒粉蛾",
+    "fr": "Papinox",
+    "de": "Pudox",
+    "es": "Dustox",
+    "it": "Dustox",
+    "en": "Dustox",
+    "ja": "ドクケイル",
+    "zh_hans": "毒粉蛾"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくがポケモン",
+    "ko": "독나방포켓몬",
+    "zh_hant": "毒蛾寶可夢",
+    "fr": "Pokémon Papipoison",
+    "de": "Giftmotte",
+    "es": "Pokémon Polilla Ven.",
+    "it": "Pokémon Velentarma",
+    "en": "Poison Moth Pokémon",
+    "ja": "どくがポケモン",
+    "zh_hans": "毒蛾宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 50,
+    "def": 70,
+    "spa": 50,
+    "spd": 90,
+    "spe": 65,
+    "bst": 385
+  },
+  "abilities": {
+    "primary": "shield_dust",
+    "secondary": null,
+    "hidden": "compound_eyes"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 173,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dustox",
+    "evolution": "dustox",
+    "media": "dustox"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 31.6,
+    "color": "green",
+    "flavorText": "DUSTOX is instinctively drawn to light. Swarms of this POKéMON are attracted by the bright lights of cities, where they wreak havoc by stripping the leaves off roadside trees for food."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

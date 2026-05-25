@@ -1,0 +1,18 @@
+{
+  "speciesId": "joltik",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/joltik/front.png",
+      "backStatic": "assets/pokemon/sprites/joltik/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/joltik/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/joltik/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/joltik.png",
+      "cry": "assets/pokemon/cries/joltik.ogg",
+      "animations": {}
+    }
+  }
+}

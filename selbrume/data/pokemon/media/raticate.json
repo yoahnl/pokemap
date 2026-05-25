@@ -1,0 +1,42 @@
+{
+  "speciesId": "raticate",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/raticate/front.png",
+      "backStatic": "assets/pokemon/sprites/raticate/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/raticate/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/raticate/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/raticate.png",
+      "cry": "assets/pokemon/cries/raticate.ogg",
+      "animations": {}
+    },
+    "raticate-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "raticate-alola-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

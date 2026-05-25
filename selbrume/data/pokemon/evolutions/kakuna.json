@@ -1,0 +1,14 @@
+{
+  "speciesId": "kakuna",
+  "preEvolution": "weedle",
+  "evolutions": [
+    {
+      "targetSpeciesId": "beedrill",
+      "method": "level_up",
+      "minLevel": 10,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

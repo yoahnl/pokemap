@@ -1,0 +1,103 @@
+{
+  "id": "urshifu",
+  "slug": "urshifu",
+  "nationalDex": 892,
+  "names": {
+    "ja_hrkt": "ウーラオス",
+    "ja_roma": "Wulaosu",
+    "ko": "우라오스",
+    "zh_hant": "武道熊師",
+    "fr": "Shifours",
+    "de": "Wulaosu",
+    "es": "Urshifu",
+    "it": "Urshifu",
+    "en": "Urshifu",
+    "ja": "ウーラオス",
+    "zh_hans": "武道熊师"
+  },
+  "speciesName": {
+    "ja_hrkt": "けんぽうポケモン",
+    "ko": "권법포켓몬",
+    "zh_hant": "拳法寶可夢",
+    "fr": "Pokémon Kung-fu",
+    "de": "Kung-Fu-Pokémon",
+    "es": "Pokémon Kung-fu",
+    "it": "Pokémon Kung Fu",
+    "en": "Wushu Pokémon",
+    "ja": "けんぽうポケモン",
+    "zh_hans": "拳法宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 130,
+    "def": 100,
+    "spa": 63,
+    "spd": 60,
+    "spe": 97,
+    "bst": 550
+  },
+  "abilities": {
+    "primary": "unseen_fist",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "urshifu-rapid-strike"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "urshifu",
+    "evolution": "urshifu",
+    "media": "urshifu"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 105.0,
+    "color": "gray",
+    "flavorText": "This form of Urshifu is a strong believer in the one-hit KO. Its strategy is to leap in close to foes and land a devastating blow with a hardened fist."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

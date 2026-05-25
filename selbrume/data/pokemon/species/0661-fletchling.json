@@ -1,0 +1,98 @@
+{
+  "id": "fletchling",
+  "slug": "fletchling",
+  "nationalDex": 661,
+  "names": {
+    "ja_hrkt": "ヤヤコマ",
+    "ja_roma": "Yayakoma",
+    "ko": "화살꼬빈",
+    "zh_hant": "小箭雀",
+    "fr": "Passerouge",
+    "de": "Dartiri",
+    "es": "Fletchling",
+    "it": "Fletchling",
+    "en": "Fletchling",
+    "ja": "ヤヤコマ",
+    "zh_hans": "小箭雀"
+  },
+  "speciesName": {
+    "ja_hrkt": "コマドリポケモン",
+    "ko": "울새포켓몬",
+    "zh_hant": "知更鳥寶可夢",
+    "fr": "Pokémon Rougegorge",
+    "de": "Rotkehlchen-Pokémon",
+    "es": "Pokémon Petirrojo",
+    "it": "Pokémon Pettirosso",
+    "en": "Tiny Robin Pokémon",
+    "ja": "コマドリポケモン",
+    "zh_hans": "知更鸟宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 50,
+    "def": 43,
+    "spa": 40,
+    "spd": 38,
+    "spe": 62,
+    "bst": 278
+  },
+  "abilities": {
+    "primary": "big_pecks",
+    "secondary": null,
+    "hidden": "gale_wings"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 56,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "fletchling",
+    "evolution": "fletchling",
+    "media": "fletchling"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.7,
+    "color": "red",
+    "flavorText": "These friendly Pokémon send signals to one another with beautiful chirps and tail-feather movements."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

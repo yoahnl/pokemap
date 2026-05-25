@@ -1,0 +1,54 @@
+{
+  "speciesId": "deerling",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/deerling/front.png",
+      "backStatic": "assets/pokemon/sprites/deerling/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/deerling/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/deerling/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/deerling.png",
+      "cry": "assets/pokemon/cries/deerling.ogg",
+      "animations": {}
+    },
+    "deerling-autumn": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "deerling-summer": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "deerling-winter": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

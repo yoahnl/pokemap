@@ -1,0 +1,18 @@
+{
+  "speciesId": "yungoos",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/yungoos/front.png",
+      "backStatic": "assets/pokemon/sprites/yungoos/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/yungoos/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/yungoos/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/yungoos.png",
+      "cry": "assets/pokemon/cries/yungoos.ogg",
+      "animations": {}
+    }
+  }
+}

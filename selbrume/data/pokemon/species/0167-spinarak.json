@@ -1,0 +1,98 @@
+{
+  "id": "spinarak",
+  "slug": "spinarak",
+  "nationalDex": 167,
+  "names": {
+    "ja_hrkt": "イトマル",
+    "ja_roma": "Itomaru",
+    "ko": "페이검",
+    "zh_hant": "圓絲蛛",
+    "fr": "Mimigal",
+    "de": "Webarak",
+    "es": "Spinarak",
+    "it": "Spinarak",
+    "en": "Spinarak",
+    "ja": "イトマル",
+    "zh_hans": "圆丝蛛"
+  },
+  "speciesName": {
+    "ja_hrkt": "いとはきポケモン",
+    "ko": "실뿜기포켓몬",
+    "zh_hant": "吐絲寶可夢",
+    "fr": "Pokémon Crache Fil",
+    "de": "Fadenwurf",
+    "es": "Pokémon Escupesoga",
+    "it": "Pokémon Tela",
+    "en": "String Spit Pokémon",
+    "ja": "いとはきポケモン",
+    "zh_hans": "吐丝宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 60,
+    "def": 40,
+    "spa": 40,
+    "spd": 40,
+    "spe": 30,
+    "bst": 250
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "insomnia",
+    "hidden": "sniper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 50,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spinarak",
+    "evolution": "spinarak",
+    "media": "spinarak"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 8.5,
+    "color": "green",
+    "flavorText": "It lies still in the same pose for days in its web, waiting for its unsuspecting prey to wander close."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

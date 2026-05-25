@@ -1,0 +1,14 @@
+{
+  "speciesId": "fletchinder",
+  "preEvolution": "fletchling",
+  "evolutions": [
+    {
+      "targetSpeciesId": "talonflame",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "vaporeon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vaporeon/front.png",
+      "backStatic": "assets/pokemon/sprites/vaporeon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vaporeon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vaporeon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vaporeon.png",
+      "cry": "assets/pokemon/cries/vaporeon.ogg",
+      "animations": {}
+    }
+  }
+}

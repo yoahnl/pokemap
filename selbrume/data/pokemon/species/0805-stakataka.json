@@ -1,0 +1,100 @@
+{
+  "id": "stakataka",
+  "slug": "stakataka",
+  "nationalDex": 805,
+  "names": {
+    "ja_hrkt": "ツンデツンデ",
+    "ja_roma": "Tundetunde",
+    "ko": "차곡차곡",
+    "zh_hant": "壘磊石",
+    "fr": "Ama-Ama",
+    "de": "Muramura",
+    "es": "Stakataka",
+    "it": "Stakataka",
+    "en": "Stakataka",
+    "ja": "ツンデツンデ",
+    "zh_hans": "垒磊石"
+  },
+  "speciesName": {
+    "ja_hrkt": "いしがきポケモン",
+    "ko": "돌담포켓몬",
+    "zh_hant": "石牆寶可夢",
+    "fr": "Pokémon Muraille",
+    "de": "Steinmauer-Pokémon",
+    "es": "Pokémon Muro",
+    "it": "Pokémon Bastione",
+    "en": "Rampart Pokémon",
+    "ja": "いしがきポケモン",
+    "zh_hans": "石墙宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "rock",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 61,
+    "atk": 131,
+    "def": 211,
+    "spa": 53,
+    "spd": 101,
+    "spe": 13,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 30,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "stakataka",
+    "evolution": "stakataka",
+    "media": "stakataka"
+  },
+  "dexContent": {
+    "heightM": 5.5,
+    "weightKg": 820.0,
+    "color": "gray",
+    "flavorText": "It appeared from an Ultra Wormhole. Each one appears to be made up of many life-forms stacked one on top of each other."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

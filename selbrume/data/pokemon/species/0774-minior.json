@@ -1,0 +1,108 @@
+{
+  "id": "minior",
+  "slug": "minior",
+  "nationalDex": 774,
+  "names": {
+    "ja_hrkt": "メテノ",
+    "ja_roma": "Meteno",
+    "ko": "메테노",
+    "zh_hant": "小隕星",
+    "fr": "Météno",
+    "de": "Meteno",
+    "es": "Minior",
+    "it": "Minior",
+    "en": "Minior",
+    "ja": "メテノ",
+    "zh_hans": "小陨星"
+  },
+  "speciesName": {
+    "ja_hrkt": "ながれぼしポケモン",
+    "ko": "유성포켓몬",
+    "zh_hant": "流星寶可夢",
+    "fr": "Pokémon Météore",
+    "de": "Meteor",
+    "es": "Pokémon Meteoro",
+    "it": "Pokémon Meteora",
+    "en": "Meteor Pokémon",
+    "ja": "ながれぼしポケモン",
+    "zh_hans": "流星宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "rock",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 100,
+    "def": 60,
+    "spa": 100,
+    "spd": 60,
+    "spe": 120,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "shields_down",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 0,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "minior-blue",
+      "minior-green",
+      "minior-indigo",
+      "minior-meteor",
+      "minior-orange",
+      "minior-violet",
+      "minior-yellow"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "minior",
+    "evolution": "minior",
+    "media": "minior"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.3,
+    "color": "brown",
+    "flavorText": "Originally making its home in the ozone layer, it hurtles to the ground when the shell enclosing its body grows too heavy."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "coalossal",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/coalossal/front.png",
+      "backStatic": "assets/pokemon/sprites/coalossal/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/coalossal/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/coalossal/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/coalossal.png",
+      "cry": "assets/pokemon/cries/coalossal.ogg",
+      "animations": {}
+    }
+  }
+}

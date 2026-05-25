@@ -1,0 +1,18 @@
+{
+  "speciesId": "mightyena",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mightyena/front.png",
+      "backStatic": "assets/pokemon/sprites/mightyena/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mightyena/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mightyena/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mightyena.png",
+      "cry": "assets/pokemon/cries/mightyena.ogg",
+      "animations": {}
+    }
+  }
+}

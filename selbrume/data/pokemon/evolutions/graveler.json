@@ -1,0 +1,22 @@
+{
+  "speciesId": "graveler",
+  "preEvolution": "geodude",
+  "evolutions": [
+    {
+      "targetSpeciesId": "golem",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "golem",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

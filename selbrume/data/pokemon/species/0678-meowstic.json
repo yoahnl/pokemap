@@ -1,0 +1,101 @@
+{
+  "id": "meowstic",
+  "slug": "meowstic",
+  "nationalDex": 678,
+  "names": {
+    "ja_hrkt": "ニャオニクス",
+    "ja_roma": "Nyaonix",
+    "ko": "냐오닉스",
+    "zh_hant": "超能妙喵",
+    "fr": "Mistigrix",
+    "de": "Psiaugon",
+    "es": "Meowstic",
+    "it": "Meowstic",
+    "en": "Meowstic",
+    "ja": "ニャオニクス",
+    "zh_hans": "超能妙喵"
+  },
+  "speciesName": {
+    "ja_hrkt": "よくせいポケモン",
+    "ko": "억제포켓몬",
+    "zh_hant": "抑制寶可夢",
+    "fr": "Pokémon SelfContrôle",
+    "de": "Fassungs-Pokémon",
+    "es": "Pokémon Autocontrol",
+    "it": "Pokémon Temperanza",
+    "en": "Constraint Pokémon",
+    "ja": "よくせいポケモン",
+    "zh_hans": "抑制宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 74,
+    "atk": 48,
+    "def": 76,
+    "spa": 83,
+    "spd": 81,
+    "spe": 104,
+    "bst": 466
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "infiltrator",
+    "hidden": "prankster"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 0,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "meowstic-f",
+      "meowstic-f-mega",
+      "meowstic-m-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "meowstic",
+    "evolution": "meowstic",
+    "media": "meowstic"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.5,
+    "color": "blue",
+    "flavorText": "When in danger, it raises its ears and releases enough psychic power to grind a 10-ton truck into dust."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "musharna",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/musharna/front.png",
+      "backStatic": "assets/pokemon/sprites/musharna/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/musharna/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/musharna/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/musharna.png",
+      "cry": "assets/pokemon/cries/musharna.ogg",
+      "animations": {}
+    }
+  }
+}

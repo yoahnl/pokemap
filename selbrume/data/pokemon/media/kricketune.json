@@ -1,0 +1,18 @@
+{
+  "speciesId": "kricketune",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kricketune/front.png",
+      "backStatic": "assets/pokemon/sprites/kricketune/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kricketune/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kricketune/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kricketune.png",
+      "cry": "assets/pokemon/cries/kricketune.ogg",
+      "animations": {}
+    }
+  }
+}

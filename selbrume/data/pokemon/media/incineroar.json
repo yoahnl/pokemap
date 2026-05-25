@@ -1,0 +1,18 @@
+{
+  "speciesId": "incineroar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/incineroar/front.png",
+      "backStatic": "assets/pokemon/sprites/incineroar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/incineroar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/incineroar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/incineroar.png",
+      "cry": "assets/pokemon/cries/incineroar.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "wishiwashi",
+  "slug": "wishiwashi",
+  "nationalDex": 746,
+  "names": {
+    "ja_hrkt": "ヨワシ",
+    "ja_roma": "Yowashi",
+    "ko": "약어리",
+    "zh_hant": "弱丁魚",
+    "fr": "Froussardine",
+    "de": "Lusardin",
+    "es": "Wishiwashi",
+    "it": "Wishiwashi",
+    "en": "Wishiwashi",
+    "ja": "ヨワシ",
+    "zh_hans": "弱丁鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "こざかなポケモン",
+    "ko": "잔물고기포켓몬",
+    "zh_hant": "小魚寶可夢",
+    "fr": "Pokémon Minipoisson",
+    "de": "Kleinfisch-Pokémon",
+    "es": "Pokémon Pececillo",
+    "it": "Pokémon Pesciolino",
+    "en": "Small Fry Pokémon",
+    "ja": "こざかなポケモン",
+    "zh_hans": "小鱼宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 20,
+    "def": 20,
+    "spa": 25,
+    "spd": 25,
+    "spe": 40,
+    "bst": 175
+  },
+  "abilities": {
+    "primary": "schooling",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 0,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "wishiwashi-school"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wishiwashi",
+    "evolution": "wishiwashi",
+    "media": "wishiwashi"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 0.3,
+    "color": "blue",
+    "flavorText": "When it’s in trouble, its eyes moisten and begin to shine. The shining light attracts its comrades, and they stand together against their enemies."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "snubbull",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "granbull",
+      "method": "level_up",
+      "minLevel": 23,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

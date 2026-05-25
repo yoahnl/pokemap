@@ -1,0 +1,18 @@
+{
+  "speciesId": "charcadet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/charcadet/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/charcadet/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/charcadet.png",
+      "cry": "assets/pokemon/cries/charcadet.ogg",
+      "animations": {}
+    }
+  }
+}

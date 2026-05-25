@@ -1,0 +1,18 @@
+{
+  "speciesId": "shelmet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shelmet/front.png",
+      "backStatic": "assets/pokemon/sprites/shelmet/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shelmet/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shelmet/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shelmet.png",
+      "cry": "assets/pokemon/cries/shelmet.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "tympole",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tympole/front.png",
+      "backStatic": "assets/pokemon/sprites/tympole/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tympole/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tympole/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tympole.png",
+      "cry": "assets/pokemon/cries/tympole.ogg",
+      "animations": {}
+    }
+  }
+}

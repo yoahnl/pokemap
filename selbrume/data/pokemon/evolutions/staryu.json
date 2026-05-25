@@ -1,0 +1,14 @@
+{
+  "speciesId": "staryu",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "starmie",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "water-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

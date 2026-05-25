@@ -1,0 +1,18 @@
+{
+  "speciesId": "larvitar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/larvitar/front.png",
+      "backStatic": "assets/pokemon/sprites/larvitar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/larvitar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/larvitar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/larvitar.png",
+      "cry": "assets/pokemon/cries/larvitar.ogg",
+      "animations": {}
+    }
+  }
+}

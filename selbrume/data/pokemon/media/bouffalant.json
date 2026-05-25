@@ -1,0 +1,18 @@
+{
+  "speciesId": "bouffalant",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bouffalant/front.png",
+      "backStatic": "assets/pokemon/sprites/bouffalant/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bouffalant/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bouffalant/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bouffalant.png",
+      "cry": "assets/pokemon/cries/bouffalant.ogg",
+      "animations": {}
+    }
+  }
+}

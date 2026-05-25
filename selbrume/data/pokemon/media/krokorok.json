@@ -1,0 +1,18 @@
+{
+  "speciesId": "krokorok",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/krokorok/front.png",
+      "backStatic": "assets/pokemon/sprites/krokorok/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/krokorok/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/krokorok/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/krokorok.png",
+      "cry": "assets/pokemon/cries/krokorok.ogg",
+      "animations": {}
+    }
+  }
+}

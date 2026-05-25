@@ -1,0 +1,30 @@
+{
+  "speciesId": "zacian",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zacian/front.png",
+      "backStatic": "assets/pokemon/sprites/zacian/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zacian/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zacian/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zacian.png",
+      "cry": "assets/pokemon/cries/zacian.ogg",
+      "animations": {}
+    },
+    "zacian-crowned": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

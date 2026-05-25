@@ -1,0 +1,102 @@
+{
+  "id": "omanyte",
+  "slug": "omanyte",
+  "nationalDex": 138,
+  "names": {
+    "ja_hrkt": "オムナイト",
+    "ja_roma": "Omnite",
+    "ko": "암나이트",
+    "zh_hant": "菊石獸",
+    "fr": "Amonita",
+    "de": "Amonitas",
+    "es": "Omanyte",
+    "it": "Omanyte",
+    "en": "Omanyte",
+    "ja": "オムナイト",
+    "zh_hans": "菊石兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "うずまきポケモン",
+    "ko": "소용돌이포켓몬",
+    "zh_hant": "漩渦寶可夢",
+    "fr": "Pokémon Spirale",
+    "de": "Spiralen-Pokémon",
+    "es": "Pokémon Espiral",
+    "it": "Pokémon Spirale",
+    "en": "Spiral Pokémon",
+    "ja": "うずまきポケモン",
+    "zh_hans": "漩涡宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "rock",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 40,
+    "def": 100,
+    "spa": 90,
+    "spd": 55,
+    "spe": 35,
+    "bst": 355
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "shell_armor",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 71,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "omanyte",
+    "evolution": "omanyte",
+    "media": "omanyte"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 7.5,
+    "color": "blue",
+    "flavorText": "Although long extinct, in rare cases, it can be genetically resurrected from fossils."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

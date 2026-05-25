@@ -1,0 +1,18 @@
+{
+  "speciesId": "mesprit",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mesprit/front.png",
+      "backStatic": "assets/pokemon/sprites/mesprit/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mesprit/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mesprit/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mesprit.png",
+      "cry": "assets/pokemon/cries/mesprit.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "orthworm",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/orthworm/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/orthworm/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/orthworm.png",
+      "cry": "assets/pokemon/cries/orthworm.ogg",
+      "animations": {}
+    }
+  }
+}

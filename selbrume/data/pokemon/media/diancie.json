@@ -1,0 +1,30 @@
+{
+  "speciesId": "diancie",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/diancie/front.png",
+      "backStatic": "assets/pokemon/sprites/diancie/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/diancie/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/diancie/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/diancie.png",
+      "cry": "assets/pokemon/cries/diancie.ogg",
+      "animations": {}
+    },
+    "diancie-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

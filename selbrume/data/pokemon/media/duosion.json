@@ -1,0 +1,18 @@
+{
+  "speciesId": "duosion",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/duosion/front.png",
+      "backStatic": "assets/pokemon/sprites/duosion/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/duosion/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/duosion/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/duosion.png",
+      "cry": "assets/pokemon/cries/duosion.ogg",
+      "animations": {}
+    }
+  }
+}

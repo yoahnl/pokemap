@@ -1,0 +1,18 @@
+{
+  "speciesId": "zweilous",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zweilous/front.png",
+      "backStatic": "assets/pokemon/sprites/zweilous/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zweilous/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zweilous/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zweilous.png",
+      "cry": "assets/pokemon/cries/zweilous.ogg",
+      "animations": {}
+    }
+  }
+}

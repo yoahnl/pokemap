@@ -1,0 +1,97 @@
+{
+  "id": "swalot",
+  "slug": "swalot",
+  "nationalDex": 317,
+  "names": {
+    "ja_hrkt": "マルノーム",
+    "ja_roma": "Marunoom",
+    "ko": "꿀꺽몬",
+    "zh_hant": "吞食獸",
+    "fr": "Avaltout",
+    "de": "Schlukwech",
+    "es": "Swalot",
+    "it": "Swalot",
+    "en": "Swalot",
+    "ja": "マルノーム",
+    "zh_hans": "吞食兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくぶくろポケモン",
+    "ko": "독봉지포켓몬",
+    "zh_hant": "毒袋寶可夢",
+    "fr": "Pokémon Sac Poison",
+    "de": "Giftbeutel",
+    "es": "Pokémon Bolsa Veneno",
+    "it": "Pokémon Velenosacco",
+    "en": "Poison Bag Pokémon",
+    "ja": "どくぶくろポケモン",
+    "zh_hans": "毒袋宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 73,
+    "def": 83,
+    "spa": 73,
+    "spd": 83,
+    "spe": 55,
+    "bst": 467
+  },
+  "abilities": {
+    "primary": "liquid_ooze",
+    "secondary": "sticky_hold",
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 163,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "swalot",
+    "evolution": "swalot",
+    "media": "swalot"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 80.0,
+    "color": "purple",
+    "flavorText": "When SWALOT spots prey, it spurts out a hideously toxic fluid from its pores and sprays the target. Once the prey has weakened, this POKéMON gulps it down whole with its cavernous mouth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

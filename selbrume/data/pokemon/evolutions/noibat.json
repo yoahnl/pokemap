@@ -1,0 +1,14 @@
+{
+  "speciesId": "noibat",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "noivern",
+      "method": "level_up",
+      "minLevel": 48,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

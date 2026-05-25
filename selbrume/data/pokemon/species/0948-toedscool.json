@@ -1,0 +1,95 @@
+{
+  "id": "toedscool",
+  "slug": "toedscool",
+  "nationalDex": 948,
+  "names": {
+    "ja_hrkt": "ノノクラゲ",
+    "ja_roma": "Nonokurage",
+    "ko": "들눈해",
+    "zh_hant": "原野水母",
+    "fr": "Terracool",
+    "de": "Tentagra",
+    "es": "Toedscool",
+    "it": "Toedscool",
+    "en": "Toedscool",
+    "ja": "ノノクラゲ",
+    "zh_hans": "原野水母"
+  },
+  "speciesName": {
+    "ja_hrkt": "きくらげポケモン",
+    "ko": "목이버섯포켓몬",
+    "zh_hant": "木耳寶可夢",
+    "fr": "Champiméduse",
+    "de": "Quallenpilz",
+    "en": "Woodear Pokémon",
+    "zh_hans": "木耳宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "ground",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 40,
+    "def": 35,
+    "spa": 50,
+    "spd": 100,
+    "spe": 70,
+    "bst": 335
+  },
+  "abilities": {
+    "primary": "mycelium_might",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 67,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "toedscool",
+    "evolution": "toedscool",
+    "media": "toedscool"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 33.0,
+    "color": "yellow",
+    "flavorText": "Toedscool lives in muggy forests. The flaps that fall from its body are chewy and very delicious."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

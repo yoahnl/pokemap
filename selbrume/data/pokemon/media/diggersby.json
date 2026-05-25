@@ -1,0 +1,18 @@
+{
+  "speciesId": "diggersby",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/diggersby/front.png",
+      "backStatic": "assets/pokemon/sprites/diggersby/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/diggersby/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/diggersby/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/diggersby.png",
+      "cry": "assets/pokemon/cries/diggersby.ogg",
+      "animations": {}
+    }
+  }
+}

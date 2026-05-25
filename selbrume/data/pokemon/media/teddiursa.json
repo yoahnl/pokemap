@@ -1,0 +1,18 @@
+{
+  "speciesId": "teddiursa",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/teddiursa/front.png",
+      "backStatic": "assets/pokemon/sprites/teddiursa/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/teddiursa/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/teddiursa/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/teddiursa.png",
+      "cry": "assets/pokemon/cries/teddiursa.ogg",
+      "animations": {}
+    }
+  }
+}

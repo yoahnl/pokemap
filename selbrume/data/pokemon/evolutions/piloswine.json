@@ -1,0 +1,14 @@
+{
+  "speciesId": "piloswine",
+  "preEvolution": "swinub",
+  "evolutions": [
+    {
+      "targetSpeciesId": "mamoswine",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "ancient_power",
+      "conditionText": {}
+    }
+  ]
+}

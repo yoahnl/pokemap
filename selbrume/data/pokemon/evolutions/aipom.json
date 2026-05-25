@@ -1,0 +1,14 @@
+{
+  "speciesId": "aipom",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ambipom",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "double_hit",
+      "conditionText": {}
+    }
+  ]
+}

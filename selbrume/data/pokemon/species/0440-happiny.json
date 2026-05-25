@@ -1,0 +1,97 @@
+{
+  "id": "happiny",
+  "slug": "happiny",
+  "nationalDex": 440,
+  "names": {
+    "ja_hrkt": "ピンプク",
+    "ja_roma": "Pinpuku",
+    "ko": "핑복",
+    "zh_hant": "小福蛋",
+    "fr": "Ptiravi",
+    "de": "Wonneira",
+    "es": "Happiny",
+    "it": "Happiny",
+    "en": "Happiny",
+    "ja": "ピンプク",
+    "zh_hans": "小福蛋"
+  },
+  "speciesName": {
+    "ja_hrkt": "ままごとポケモン",
+    "ko": "소꿉놀이포켓몬",
+    "zh_hant": "家家酒寶可夢",
+    "fr": "Pokémon Maisonjouet",
+    "de": "Spielhaus-Pokémon",
+    "es": "Pokémon Casita",
+    "it": "Pokémon Ovettino",
+    "en": "Playhouse Pokémon",
+    "ja": "ままごとポケモン",
+    "zh_hans": "家家酒宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 5,
+    "def": 5,
+    "spa": 15,
+    "spd": 65,
+    "spe": 30,
+    "bst": 220
+  },
+  "abilities": {
+    "primary": "natural_cure",
+    "secondary": "serene_grace",
+    "hidden": "friend_guard"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 110,
+    "catchRate": 130,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "happiny",
+    "evolution": "happiny",
+    "media": "happiny"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 24.4,
+    "color": "pink",
+    "flavorText": "It loves round white things. It carries an egg-shaped rock in imitation of CHANSEY."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

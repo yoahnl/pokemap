@@ -1,0 +1,18 @@
+{
+  "speciesId": "timburr",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/timburr/front.png",
+      "backStatic": "assets/pokemon/sprites/timburr/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/timburr/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/timburr/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/timburr.png",
+      "cry": "assets/pokemon/cries/timburr.ogg",
+      "animations": {}
+    }
+  }
+}

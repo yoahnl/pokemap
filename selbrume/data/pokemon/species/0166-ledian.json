@@ -1,0 +1,98 @@
+{
+  "id": "ledian",
+  "slug": "ledian",
+  "nationalDex": 166,
+  "names": {
+    "ja_hrkt": "レディアン",
+    "ja_roma": "Redian",
+    "ko": "레디안",
+    "zh_hant": "安瓢蟲",
+    "fr": "Coxyclaque",
+    "de": "Ledian",
+    "es": "Ledian",
+    "it": "Ledian",
+    "en": "Ledian",
+    "ja": "レディアン",
+    "zh_hans": "安瓢虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "いつつぼしポケモン",
+    "ko": "별다섯포켓몬",
+    "zh_hant": "五星寶可夢",
+    "fr": "Pokémon 5 Étoiles",
+    "de": "Fünf-Punkt",
+    "es": "Pokémon 5 Estrellas",
+    "it": "Pokémon Pentastra",
+    "en": "Five Star Pokémon",
+    "ja": "いつつぼしポケモン",
+    "zh_hans": "五星宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 35,
+    "def": 50,
+    "spa": 55,
+    "spd": 110,
+    "spe": 85,
+    "bst": 390
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "early_bird",
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 137,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ledian",
+    "evolution": "ledian",
+    "media": "ledian"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 35.6,
+    "color": "red",
+    "flavorText": "When the stars flicker in the night sky, it flutters about, scattering a glowing powder."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

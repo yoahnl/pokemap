@@ -1,0 +1,18 @@
+{
+  "speciesId": "electrike",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/electrike/front.png",
+      "backStatic": "assets/pokemon/sprites/electrike/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/electrike/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/electrike/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/electrike.png",
+      "cry": "assets/pokemon/cries/electrike.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "loudred",
+  "slug": "loudred",
+  "nationalDex": 294,
+  "names": {
+    "ja_hrkt": "ドゴーム",
+    "ja_roma": "Dogohmb",
+    "ko": "노공룡",
+    "zh_hant": "吼爆彈",
+    "fr": "Ramboum",
+    "de": "Krakeelo",
+    "es": "Loudred",
+    "it": "Loudred",
+    "en": "Loudred",
+    "ja": "ドゴーム",
+    "zh_hans": "吼爆弹"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおごえポケモン",
+    "ko": "큰목소리포켓몬",
+    "zh_hant": "大聲寶可夢",
+    "fr": "Pokémon Grosse Voix",
+    "de": "Lauthals-Pokémon",
+    "es": "Pokémon Chillón",
+    "it": "Pokémon Vocione",
+    "en": "Big Voice Pokémon",
+    "ja": "おおごえポケモン",
+    "zh_hans": "大声宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 84,
+    "atk": 71,
+    "def": 43,
+    "spa": 71,
+    "spd": 43,
+    "spe": 48,
+    "bst": 360
+  },
+  "abilities": {
+    "primary": "soundproof",
+    "secondary": null,
+    "hidden": "scrappy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 126,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "loudred",
+    "evolution": "loudred",
+    "media": "loudred"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 40.5,
+    "color": "blue",
+    "flavorText": "LOUDRED’s bellowing can completely decimate a wood-frame house. It uses its voice to punish its foes. This POKéMON’s round ears serve as loudspeakers."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

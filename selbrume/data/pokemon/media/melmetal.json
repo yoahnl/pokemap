@@ -1,0 +1,18 @@
+{
+  "speciesId": "melmetal",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/melmetal/front.png",
+      "backStatic": "assets/pokemon/sprites/melmetal/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/melmetal/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/melmetal/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/melmetal.png",
+      "cry": "assets/pokemon/cries/melmetal.ogg",
+      "animations": {}
+    }
+  }
+}

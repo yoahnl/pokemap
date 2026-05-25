@@ -1,0 +1,30 @@
+{
+  "speciesId": "golem",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/golem/front.png",
+      "backStatic": "assets/pokemon/sprites/golem/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/golem/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/golem/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/golem.png",
+      "cry": "assets/pokemon/cries/golem.ogg",
+      "animations": {}
+    },
+    "golem-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

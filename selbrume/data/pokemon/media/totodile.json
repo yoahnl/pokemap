@@ -1,0 +1,18 @@
+{
+  "speciesId": "totodile",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/totodile/front.png",
+      "backStatic": "assets/pokemon/sprites/totodile/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/totodile/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/totodile/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/totodile.png",
+      "cry": "assets/pokemon/cries/totodile.ogg",
+      "animations": {}
+    }
+  }
+}

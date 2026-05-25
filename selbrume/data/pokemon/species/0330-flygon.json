@@ -1,0 +1,99 @@
+{
+  "id": "flygon",
+  "slug": "flygon",
+  "nationalDex": 330,
+  "names": {
+    "ja_hrkt": "フライゴン",
+    "ja_roma": "Frygon",
+    "ko": "플라이곤",
+    "zh_hant": "沙漠蜻蜓",
+    "fr": "Libégon",
+    "de": "Libelldra",
+    "es": "Flygon",
+    "it": "Flygon",
+    "en": "Flygon",
+    "ja": "フライゴン",
+    "zh_hans": "沙漠蜻蜓"
+  },
+  "speciesName": {
+    "ja_hrkt": "せいれいポケモン",
+    "ko": "정령포켓몬",
+    "zh_hant": "神秘寶可夢",
+    "fr": "Pokémon Mystique",
+    "de": "Mystik-Pokémon",
+    "es": "Pokémon Místico",
+    "it": "Pokémon Magico",
+    "en": "Mystic Pokémon",
+    "ja": "せいれいポケモン",
+    "zh_hans": "神秘宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ground",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 100,
+    "def": 80,
+    "spa": 80,
+    "spd": 80,
+    "spe": 100,
+    "bst": 520
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 234,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "flygon",
+    "evolution": "flygon",
+    "media": "flygon"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 82.0,
+    "color": "green",
+    "flavorText": "FLYGON is nicknamed “the elemental spirit of the desert.” Because its flapping wings whip up a cloud of sand, this POKéMON is always enveloped in a sandstorm while flying."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

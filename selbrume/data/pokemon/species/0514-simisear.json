@@ -1,0 +1,100 @@
+{
+  "id": "simisear",
+  "slug": "simisear",
+  "nationalDex": 514,
+  "names": {
+    "ja_hrkt": "バオッキー",
+    "ja_roma": "Baokkie",
+    "ko": "바오키",
+    "zh_hant": "爆香猿",
+    "fr": "Flamoutan",
+    "de": "Grillchita",
+    "es": "Simisear",
+    "it": "Simisear",
+    "en": "Simisear",
+    "ja": "バオッキー",
+    "zh_hans": "爆香猿"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひのこポケモン",
+    "ko": "불티포켓몬",
+    "zh_hant": "火花寶可夢",
+    "fr": "Pokémon Braise",
+    "de": "Funkenregen",
+    "es": "Pokémon Lumbre",
+    "it": "Pokémon Sfavillante",
+    "en": "Ember Pokémon",
+    "ja": "ひのこポケモン",
+    "zh_hans": "火花宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 98,
+    "def": 63,
+    "spa": 98,
+    "spd": 63,
+    "spe": 101,
+    "bst": 498
+  },
+  "abilities": {
+    "primary": "gluttony",
+    "secondary": null,
+    "hidden": "blaze"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 174,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "simisear",
+    "evolution": "simisear",
+    "media": "simisear"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 28.0,
+    "color": "red",
+    "flavorText": "It loves sweets because they become energy for the fire burning inside its body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "speciesId": "charcadet",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "armarouge",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "auspicious-armor",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "ceruledge",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "malicious-armor",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "infernape",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/infernape/front.png",
+      "backStatic": "assets/pokemon/sprites/infernape/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/infernape/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/infernape/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/infernape.png",
+      "cry": "assets/pokemon/cries/infernape.ogg",
+      "animations": {}
+    }
+  }
+}

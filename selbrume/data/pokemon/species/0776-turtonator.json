@@ -1,0 +1,99 @@
+{
+  "id": "turtonator",
+  "slug": "turtonator",
+  "nationalDex": 776,
+  "names": {
+    "ja_hrkt": "バクガメス",
+    "ja_roma": "Bakugames",
+    "ko": "폭거북스",
+    "zh_hant": "爆焰龜獸",
+    "fr": "Boumata",
+    "de": "Tortunator",
+    "es": "Turtonator",
+    "it": "Turtonator",
+    "en": "Turtonator",
+    "ja": "バクガメス",
+    "zh_hans": "爆焰龟兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "ばくはつがめポケモン",
+    "ko": "폭발거북포켓몬",
+    "zh_hant": "爆炸龜寶可夢",
+    "fr": "Pokémon Tortue Boum",
+    "de": "Knallkröten-Pokémon",
+    "es": "Pokémon Tortugabomba",
+    "it": "Pokémon Tartabomba",
+    "en": "Blast Turtle Pokémon",
+    "ja": "ばくはつがめポケモン",
+    "zh_hans": "爆炸龟宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fire",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 78,
+    "def": 135,
+    "spa": 91,
+    "spd": 85,
+    "spe": 36,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "shell_armor",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 170,
+    "catchRate": 70,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "turtonator",
+    "evolution": "turtonator",
+    "media": "turtonator"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 212.0,
+    "color": "red",
+    "flavorText": "The shell on its back is chemically unstable and explodes violently if struck. The hole in its stomach is its weak point."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "jirachi",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/jirachi/front.png",
+      "backStatic": "assets/pokemon/sprites/jirachi/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/jirachi/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/jirachi/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/jirachi.png",
+      "cry": "assets/pokemon/cries/jirachi.ogg",
+      "animations": {}
+    }
+  }
+}

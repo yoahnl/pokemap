@@ -1,0 +1,18 @@
+{
+  "speciesId": "kakuna",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kakuna/front.png",
+      "backStatic": "assets/pokemon/sprites/kakuna/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kakuna/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kakuna/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kakuna.png",
+      "cry": "assets/pokemon/cries/kakuna.ogg",
+      "animations": {}
+    }
+  }
+}

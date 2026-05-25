@@ -1,0 +1,30 @@
+{
+  "speciesId": "vikavolt",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vikavolt/front.png",
+      "backStatic": "assets/pokemon/sprites/vikavolt/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vikavolt/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vikavolt/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vikavolt.png",
+      "cry": "assets/pokemon/cries/vikavolt.ogg",
+      "animations": {}
+    },
+    "vikavolt-totem": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

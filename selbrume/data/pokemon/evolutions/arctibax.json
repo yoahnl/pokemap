@@ -1,0 +1,14 @@
+{
+  "speciesId": "arctibax",
+  "preEvolution": "frigibax",
+  "evolutions": [
+    {
+      "targetSpeciesId": "baxcalibur",
+      "method": "level_up",
+      "minLevel": 54,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

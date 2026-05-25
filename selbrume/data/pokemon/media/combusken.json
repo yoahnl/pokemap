@@ -1,0 +1,18 @@
+{
+  "speciesId": "combusken",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/combusken/front.png",
+      "backStatic": "assets/pokemon/sprites/combusken/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/combusken/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/combusken/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/combusken.png",
+      "cry": "assets/pokemon/cries/combusken.ogg",
+      "animations": {}
+    }
+  }
+}

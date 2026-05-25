@@ -1,0 +1,14 @@
+{
+  "speciesId": "quaxwell",
+  "preEvolution": "quaxly",
+  "evolutions": [
+    {
+      "targetSpeciesId": "quaquaval",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

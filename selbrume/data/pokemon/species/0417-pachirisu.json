@@ -1,0 +1,98 @@
+{
+  "id": "pachirisu",
+  "slug": "pachirisu",
+  "nationalDex": 417,
+  "names": {
+    "ja_hrkt": "パチリス",
+    "ja_roma": "Pachirisu",
+    "ko": "파치리스",
+    "zh_hant": "帕奇利茲",
+    "fr": "Pachirisu",
+    "de": "Pachirisu",
+    "es": "Pachirisu",
+    "it": "Pachirisu",
+    "en": "Pachirisu",
+    "ja": "パチリス",
+    "zh_hans": "帕奇利兹"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんきりすポケモン",
+    "ko": "전기다람쥐포켓몬",
+    "zh_hant": "電松鼠寶可夢",
+    "fr": "Pokémon Écurélec",
+    "de": "Elektrohörnchen",
+    "es": "Pokémon Ardillalec",
+    "it": "Pokémon Elescoiatto",
+    "en": "EleSquirrel Pokémon",
+    "ja": "でんきりすポケモン",
+    "zh_hans": "电松鼠宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 45,
+    "def": 70,
+    "spa": 45,
+    "spd": 90,
+    "spe": 95,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "run_away",
+    "secondary": "pickup",
+    "hidden": "volt_absorb"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 142,
+    "catchRate": 200,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pachirisu",
+    "evolution": "pachirisu",
+    "media": "pachirisu"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 3.9,
+    "color": "white",
+    "flavorText": "It makes fur balls that crackle with static electricity. It stores them with berries in tree holes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "alomomola",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/alomomola/front.png",
+      "backStatic": "assets/pokemon/sprites/alomomola/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/alomomola/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/alomomola/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/alomomola.png",
+      "cry": "assets/pokemon/cries/alomomola.ogg",
+      "animations": {}
+    }
+  }
+}

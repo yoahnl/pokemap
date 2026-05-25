@@ -1,0 +1,98 @@
+{
+  "id": "golbat",
+  "slug": "golbat",
+  "nationalDex": 42,
+  "names": {
+    "ja_hrkt": "ゴルバット",
+    "ja_roma": "Golbat",
+    "ko": "골뱃",
+    "zh_hant": "大嘴蝠",
+    "fr": "Nosferalto",
+    "de": "Golbat",
+    "es": "Golbat",
+    "it": "Golbat",
+    "en": "Golbat",
+    "ja": "ゴルバット",
+    "zh_hans": "大嘴蝠"
+  },
+  "speciesName": {
+    "ja_hrkt": "こうもりポケモン",
+    "ko": "박쥐포켓몬",
+    "zh_hant": "蝙蝠寶可夢",
+    "fr": "Pokémon Chovsouris",
+    "de": "Fledermaus-Pokémon",
+    "es": "Pokémon Murciélago",
+    "it": "Pokémon Pipistrello",
+    "en": "Bat Pokémon",
+    "ja": "こうもりポケモン",
+    "zh_hans": "蝙蝠宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "poison",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 80,
+    "def": 70,
+    "spa": 65,
+    "spd": 75,
+    "spe": 90,
+    "bst": 455
+  },
+  "abilities": {
+    "primary": "inner_focus",
+    "secondary": null,
+    "hidden": "infiltrator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 159,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "golbat",
+    "evolution": "golbat",
+    "media": "golbat"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 55.0,
+    "color": "purple",
+    "flavorText": "Once it strikes, it will not stop draining energy from the victim even if it gets too heavy to fly."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

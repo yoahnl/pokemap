@@ -1,0 +1,100 @@
+{
+  "id": "panpour",
+  "slug": "panpour",
+  "nationalDex": 515,
+  "names": {
+    "ja_hrkt": "ヒヤップ",
+    "ja_roma": "Hiyappu",
+    "ko": "앗차프",
+    "zh_hant": "冷水猴",
+    "fr": "Flotajou",
+    "de": "Sodamak",
+    "es": "Panpour",
+    "it": "Panpour",
+    "en": "Panpour",
+    "ja": "ヒヤップ",
+    "zh_hans": "冷水猴"
+  },
+  "speciesName": {
+    "ja_hrkt": "みずかけポケモン",
+    "ko": "물뿌리기포켓몬",
+    "zh_hant": "潑水寶可夢",
+    "fr": "Pokémon Jet d’Eau",
+    "de": "Wasserstrahl",
+    "es": "Pokémon Salpicadura",
+    "it": "Pokémon Annaffiatore",
+    "en": "Spray Pokémon",
+    "ja": "みずかけポケモン",
+    "zh_hans": "泼水宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 53,
+    "def": 48,
+    "spa": 53,
+    "spd": 48,
+    "spe": 64,
+    "bst": 316
+  },
+  "abilities": {
+    "primary": "gluttony",
+    "secondary": null,
+    "hidden": "torrent"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 63,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "panpour",
+    "evolution": "panpour",
+    "media": "panpour"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 13.5,
+    "color": "blue",
+    "flavorText": "The water stored inside the tuft on its head is full of nutrients. Plants that receive its water grow large."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

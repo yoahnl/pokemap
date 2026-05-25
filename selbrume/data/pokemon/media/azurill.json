@@ -1,0 +1,18 @@
+{
+  "speciesId": "azurill",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/azurill/front.png",
+      "backStatic": "assets/pokemon/sprites/azurill/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/azurill/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/azurill/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/azurill.png",
+      "cry": "assets/pokemon/cries/azurill.ogg",
+      "animations": {}
+    }
+  }
+}

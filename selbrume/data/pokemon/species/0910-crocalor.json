@@ -1,0 +1,97 @@
+{
+  "id": "crocalor",
+  "slug": "crocalor",
+  "nationalDex": 910,
+  "names": {
+    "ja_hrkt": "アチゲータ",
+    "ja_roma": "Achigator",
+    "ko": "악뜨거",
+    "zh_hant": "炙燙鱷",
+    "fr": "Crocogril",
+    "de": "Lokroko",
+    "es": "Crocalor",
+    "it": "Crocalor",
+    "en": "Crocalor",
+    "ja": "アチゲータ",
+    "zh_hans": "炙烫鳄"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほのおワニポケモン",
+    "ko": "불꽃악어포켓몬",
+    "zh_hant": "火鱷寶可夢",
+    "fr": "Croco Feu",
+    "de": "Feuerkroko",
+    "en": "Fire Croc Pokémon",
+    "zh_hans": "火鳄宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 81,
+    "atk": 55,
+    "def": 78,
+    "spa": 90,
+    "spd": 58,
+    "spe": 49,
+    "bst": 411
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "unaware"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 144,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "crocalor",
+    "evolution": "crocalor",
+    "media": "crocalor"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 30.7,
+    "color": "red",
+    "flavorText": "The combination of Crocalor’s fire energy and overflowing vitality has caused an egg-shaped fireball to appear on the Pokémon’s head."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

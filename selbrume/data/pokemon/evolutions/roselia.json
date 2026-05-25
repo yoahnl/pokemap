@@ -1,0 +1,14 @@
+{
+  "speciesId": "roselia",
+  "preEvolution": "budew",
+  "evolutions": [
+    {
+      "targetSpeciesId": "roserade",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "shiny-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

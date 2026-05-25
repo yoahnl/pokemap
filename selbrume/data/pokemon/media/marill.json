@@ -1,0 +1,18 @@
+{
+  "speciesId": "marill",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/marill/front.png",
+      "backStatic": "assets/pokemon/sprites/marill/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/marill/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/marill/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/marill.png",
+      "cry": "assets/pokemon/cries/marill.ogg",
+      "animations": {}
+    }
+  }
+}

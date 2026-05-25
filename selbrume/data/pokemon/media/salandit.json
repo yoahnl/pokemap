@@ -1,0 +1,18 @@
+{
+  "speciesId": "salandit",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/salandit/front.png",
+      "backStatic": "assets/pokemon/sprites/salandit/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/salandit/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/salandit/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/salandit.png",
+      "cry": "assets/pokemon/cries/salandit.ogg",
+      "animations": {}
+    }
+  }
+}

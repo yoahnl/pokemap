@@ -1,0 +1,103 @@
+{
+  "id": "kyurem",
+  "slug": "kyurem",
+  "nationalDex": 646,
+  "names": {
+    "ja_hrkt": "キュレム",
+    "ja_roma": "Kyurem",
+    "ko": "큐레무",
+    "zh_hant": "酋雷姆",
+    "fr": "Kyurem",
+    "de": "Kyurem",
+    "es": "Kyurem",
+    "it": "Kyurem",
+    "en": "Kyurem",
+    "ja": "キュレム",
+    "zh_hans": "酋雷姆"
+  },
+  "speciesName": {
+    "ja_hrkt": "きょうかいポケモン",
+    "ko": "경계포켓몬",
+    "zh_hant": "境界寶可夢",
+    "fr": "Pokémon Frontière",
+    "de": "Schwellen-Pokémon",
+    "es": "Pokémon Frontera",
+    "it": "Pokémon Confine",
+    "en": "Boundary Pokémon",
+    "ja": "きょうかいポケモン",
+    "zh_hans": "境界宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dragon",
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 125,
+    "atk": 130,
+    "def": 90,
+    "spa": 130,
+    "spd": 90,
+    "spe": 95,
+    "bst": 660
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 297,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "kyurem-black",
+      "kyurem-white"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "kyurem",
+    "evolution": "kyurem",
+    "media": "kyurem"
+  },
+  "dexContent": {
+    "heightM": 3.0,
+    "weightKg": 325.0,
+    "color": "gray",
+    "flavorText": "It generates a powerful, freezing energy inside itself, but its body became frozen when the energy leaked out."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

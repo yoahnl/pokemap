@@ -1,0 +1,14 @@
+{
+  "speciesId": "bellsprout",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "weepinbell",
+      "method": "level_up",
+      "minLevel": 21,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "totodile",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "croconaw",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

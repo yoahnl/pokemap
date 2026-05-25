@@ -1,0 +1,30 @@
+{
+  "speciesId": "muk",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/muk/front.png",
+      "backStatic": "assets/pokemon/sprites/muk/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/muk/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/muk/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/muk.png",
+      "cry": "assets/pokemon/cries/muk.ogg",
+      "animations": {}
+    },
+    "muk-alola": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

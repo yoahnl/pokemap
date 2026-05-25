@@ -1,0 +1,18 @@
+{
+  "speciesId": "skuntank",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skuntank/front.png",
+      "backStatic": "assets/pokemon/sprites/skuntank/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/skuntank/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/skuntank/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skuntank.png",
+      "cry": "assets/pokemon/cries/skuntank.ogg",
+      "animations": {}
+    }
+  }
+}

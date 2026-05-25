@@ -1,0 +1,18 @@
+{
+  "speciesId": "zangoose",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zangoose/front.png",
+      "backStatic": "assets/pokemon/sprites/zangoose/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zangoose/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zangoose/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zangoose.png",
+      "cry": "assets/pokemon/cries/zangoose.ogg",
+      "animations": {}
+    }
+  }
+}

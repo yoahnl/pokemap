@@ -1,0 +1,18 @@
+{
+  "speciesId": "pansear",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pansear/front.png",
+      "backStatic": "assets/pokemon/sprites/pansear/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pansear/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pansear/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pansear.png",
+      "cry": "assets/pokemon/cries/pansear.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "id": "pawmot",
+  "slug": "pawmot",
+  "nationalDex": 923,
+  "names": {
+    "ja_hrkt": "パーモット",
+    "ja_roma": "Parmot",
+    "ko": "빠르모트",
+    "zh_hant": "巴布土撥",
+    "fr": "Pohmarmotte",
+    "de": "Pamomamo",
+    "es": "Pawmot",
+    "it": "Pawmot",
+    "en": "Pawmot",
+    "ja": "パーモット",
+    "zh_hans": "巴布土拨"
+  },
+  "speciesName": {
+    "ja_hrkt": "てあてポケモン",
+    "ko": "손길포켓몬",
+    "zh_hant": "押掌寶可夢",
+    "fr": "Pose Paume",
+    "de": "Behandlung",
+    "en": "Hands-On Pokémon",
+    "zh_hans": "押掌宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "electric",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 115,
+    "def": 70,
+    "spa": 70,
+    "spd": 60,
+    "spe": 105,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "volt_absorb",
+    "secondary": "natural_cure",
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 245,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pawmot",
+    "evolution": "pawmot",
+    "media": "pawmot"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 41.0,
+    "color": "yellow",
+    "flavorText": "This Pokémon normally is slow to react, but once it enters battle, it will strike down its enemies with lightning-fast movements."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

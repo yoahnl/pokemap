@@ -1,0 +1,14 @@
+{
+  "speciesId": "vullaby",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "mandibuzz",
+      "method": "level_up",
+      "minLevel": 54,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

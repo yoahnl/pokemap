@@ -1,0 +1,18 @@
+{
+  "speciesId": "roserade",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/roserade/front.png",
+      "backStatic": "assets/pokemon/sprites/roserade/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/roserade/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/roserade/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/roserade.png",
+      "cry": "assets/pokemon/cries/roserade.ogg",
+      "animations": {}
+    }
+  }
+}

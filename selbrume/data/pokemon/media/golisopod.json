@@ -1,0 +1,30 @@
+{
+  "speciesId": "golisopod",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/golisopod/front.png",
+      "backStatic": "assets/pokemon/sprites/golisopod/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/golisopod/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/golisopod/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/golisopod.png",
+      "cry": "assets/pokemon/cries/golisopod.ogg",
+      "animations": {}
+    },
+    "golisopod-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

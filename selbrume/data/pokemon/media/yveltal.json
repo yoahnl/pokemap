@@ -1,0 +1,18 @@
+{
+  "speciesId": "yveltal",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/yveltal/front.png",
+      "backStatic": "assets/pokemon/sprites/yveltal/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/yveltal/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/yveltal/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/yveltal.png",
+      "cry": "assets/pokemon/cries/yveltal.ogg",
+      "animations": {}
+    }
+  }
+}

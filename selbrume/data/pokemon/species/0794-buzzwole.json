@@ -1,0 +1,100 @@
+{
+  "id": "buzzwole",
+  "slug": "buzzwole",
+  "nationalDex": 794,
+  "names": {
+    "ja_hrkt": "マッシブーン",
+    "ja_roma": "Massivoon",
+    "ko": "매시붕",
+    "zh_hant": "爆肌蚊",
+    "fr": "Mouscoto",
+    "de": "Masskito",
+    "es": "Buzzwole",
+    "it": "Buzzwole",
+    "en": "Buzzwole",
+    "ja": "マッシブーン",
+    "zh_hans": "爆肌蚊"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぼうちょうポケモン",
+    "ko": "팽창포켓몬",
+    "zh_hant": "膨脹寶可夢",
+    "fr": "Pokémon Enflé",
+    "de": "Ausdehnungs-Pokémon",
+    "es": "Pokémon Hinchado",
+    "it": "Pokémon Gonfiacorpo",
+    "en": "Swollen Pokémon",
+    "ja": "ぼうちょうポケモン",
+    "zh_hans": "膨胀宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "bug",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 107,
+    "atk": 139,
+    "def": 139,
+    "spa": 53,
+    "spd": 53,
+    "spe": 79,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "buzzwole",
+    "evolution": "buzzwole",
+    "media": "buzzwole"
+  },
+  "dexContent": {
+    "heightM": 2.4,
+    "weightKg": 333.6,
+    "color": "red",
+    "flavorText": "This Ultra Beast appeared from another world. It shows off its body, but whether that display is a boast or a threat remains unclear."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

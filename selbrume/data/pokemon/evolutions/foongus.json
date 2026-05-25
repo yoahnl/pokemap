@@ -1,0 +1,14 @@
+{
+  "speciesId": "foongus",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "amoonguss",
+      "method": "level_up",
+      "minLevel": 39,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

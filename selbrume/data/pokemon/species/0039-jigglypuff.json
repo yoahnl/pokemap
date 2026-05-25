@@ -1,0 +1,101 @@
+{
+  "id": "jigglypuff",
+  "slug": "jigglypuff",
+  "nationalDex": 39,
+  "names": {
+    "ja_hrkt": "プリン",
+    "ja_roma": "Purin",
+    "ko": "푸린",
+    "zh_hant": "胖丁",
+    "fr": "Rondoudou",
+    "de": "Pummeluff",
+    "es": "Jigglypuff",
+    "it": "Jigglypuff",
+    "en": "Jigglypuff",
+    "ja": "プリン",
+    "zh_hans": "胖丁"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふうせんポケモン",
+    "ko": "풍선포켓몬",
+    "zh_hant": "氣球寶可夢",
+    "fr": "Pokémon Bouboule",
+    "de": "Ballon-Pokémon",
+    "es": "Pokémon Globo",
+    "it": "Pokémon Pallone",
+    "en": "Balloon Pokémon",
+    "ja": "ふうせんポケモン",
+    "zh_hans": "气球宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 115,
+    "atk": 45,
+    "def": 20,
+    "spa": 45,
+    "spd": 25,
+    "spe": 20,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "competitive",
+    "hidden": "friend_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 95,
+    "catchRate": 170,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "jigglypuff",
+    "evolution": "jigglypuff",
+    "media": "jigglypuff"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 5.5,
+    "color": "pink",
+    "flavorText": "When its huge eyes light up, it sings a mysteriously soothing melody that lulls its enemies to sleep."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

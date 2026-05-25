@@ -1,0 +1,14 @@
+{
+  "speciesId": "lombre",
+  "preEvolution": "lotad",
+  "evolutions": [
+    {
+      "targetSpeciesId": "ludicolo",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "water-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

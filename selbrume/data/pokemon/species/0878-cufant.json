@@ -1,0 +1,98 @@
+{
+  "id": "cufant",
+  "slug": "cufant",
+  "nationalDex": 878,
+  "names": {
+    "ja_hrkt": "ゾウドウ",
+    "ja_roma": "Zoudou",
+    "ko": "끼리동",
+    "zh_hant": "銅象",
+    "fr": "Charibari",
+    "de": "Kupfanti",
+    "es": "Cufant",
+    "it": "Cufant",
+    "en": "Cufant",
+    "ja": "ゾウドウ",
+    "zh_hans": "铜象"
+  },
+  "speciesName": {
+    "ja_hrkt": "どうぞうポケモン",
+    "ko": "동상포켓몬",
+    "zh_hant": "像銅寶可夢",
+    "fr": "Pokémon Pachycuivre",
+    "de": "Kupferfant-Pokémon",
+    "es": "Pokémon Broncefante",
+    "it": "Pokémon Bronzofante",
+    "en": "Copperderm Pokémon",
+    "ja": "どうぞうポケモン",
+    "zh_hans": "像铜宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 72,
+    "atk": 80,
+    "def": 49,
+    "spa": 40,
+    "spd": 49,
+    "spe": 40,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "sheer_force",
+    "secondary": null,
+    "hidden": "heavy_metal"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 66,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cufant",
+    "evolution": "cufant",
+    "media": "cufant"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 100.0,
+    "color": "yellow",
+    "flavorText": "It digs up the ground with its trunk. It’s also very strong, being able to carry loads of over five tons without any problem at all."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

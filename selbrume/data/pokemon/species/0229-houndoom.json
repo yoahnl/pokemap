@@ -1,0 +1,100 @@
+{
+  "id": "houndoom",
+  "slug": "houndoom",
+  "nationalDex": 229,
+  "names": {
+    "ja_hrkt": "ヘルガー",
+    "ja_roma": "Hellgar",
+    "ko": "헬가",
+    "zh_hant": "黑魯加",
+    "fr": "Démolosse",
+    "de": "Hundemon",
+    "es": "Houndoom",
+    "it": "Houndoom",
+    "en": "Houndoom",
+    "ja": "ヘルガー",
+    "zh_hans": "黑鲁加"
+  },
+  "speciesName": {
+    "ja_hrkt": "ダークポケモン",
+    "ko": "다크포켓몬",
+    "zh_hant": "陰暗寶可夢",
+    "fr": "Pokémon Sombre",
+    "de": "Hades",
+    "es": "Pokémon Siniestro",
+    "it": "Pokémon Buio",
+    "en": "Dark Pokémon",
+    "ja": "ダークポケモン",
+    "zh_hans": "阴暗宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "dark",
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 90,
+    "def": 50,
+    "spa": 110,
+    "spd": 80,
+    "spe": 95,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "early_bird",
+    "secondary": "flash_fire",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 175,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "houndoom-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "houndoom",
+    "evolution": "houndoom",
+    "media": "houndoom"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 35.0,
+    "color": "black",
+    "flavorText": "If you are burned by the flames it shoots from its mouth, the pain will never go away."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

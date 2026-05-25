@@ -1,0 +1,101 @@
+{
+  "id": "shieldon",
+  "slug": "shieldon",
+  "nationalDex": 410,
+  "names": {
+    "ja_hrkt": "タテトプス",
+    "ja_roma": "Tatetops",
+    "ko": "방패톱스",
+    "zh_hant": "盾甲龍",
+    "fr": "Dinoclier",
+    "de": "Schilterus",
+    "es": "Shieldon",
+    "it": "Shieldon",
+    "en": "Shieldon",
+    "ja": "タテトプス",
+    "zh_hans": "盾甲龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "シールドポケモン",
+    "ko": "실드포켓몬",
+    "zh_hant": "護盾寶可夢",
+    "fr": "Pokémon Bouclier",
+    "de": "Schutzschild",
+    "es": "Pokémon Escudo",
+    "it": "Pokémon Schermo",
+    "en": "Shield Pokémon",
+    "ja": "シールドポケモン",
+    "zh_hans": "护盾宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "rock",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 30,
+    "atk": 42,
+    "def": 118,
+    "spa": 42,
+    "spd": 88,
+    "spe": 30,
+    "bst": 350
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": null,
+    "hidden": "soundproof"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 70,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shieldon",
+    "evolution": "shieldon",
+    "media": "shieldon"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 57.0,
+    "color": "gray",
+    "flavorText": "A Pokémon that lived in jungles around 100 million years ago. Its facial hide is extremely hard."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

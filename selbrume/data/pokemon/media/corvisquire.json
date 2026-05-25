@@ -1,0 +1,18 @@
+{
+  "speciesId": "corvisquire",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/corvisquire/front.png",
+      "backStatic": "assets/pokemon/sprites/corvisquire/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/corvisquire/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/corvisquire/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/corvisquire.png",
+      "cry": "assets/pokemon/cries/corvisquire.ogg",
+      "animations": {}
+    }
+  }
+}

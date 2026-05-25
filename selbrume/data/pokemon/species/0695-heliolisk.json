@@ -1,0 +1,99 @@
+{
+  "id": "heliolisk",
+  "slug": "heliolisk",
+  "nationalDex": 695,
+  "names": {
+    "ja_hrkt": "エレザード",
+    "ja_roma": "Elezard",
+    "ko": "일레도리자드",
+    "zh_hant": "光電傘蜥",
+    "fr": "Iguolta",
+    "de": "Elezard",
+    "es": "Heliolisk",
+    "it": "Heliolisk",
+    "en": "Heliolisk",
+    "ja": "エレザード",
+    "zh_hans": "光电伞蜥"
+  },
+  "speciesName": {
+    "ja_hrkt": "はつでんポケモン",
+    "ko": "발전포켓몬",
+    "zh_hant": "發電寶可夢",
+    "fr": "Pokémon Générateur",
+    "de": "Generatoren-Pokémon",
+    "es": "Pokémon Generador",
+    "it": "Pokémon Generatore",
+    "en": "Generator Pokémon",
+    "ja": "はつでんポケモン",
+    "zh_hans": "发电宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "electric",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 62,
+    "atk": 55,
+    "def": 52,
+    "spa": 109,
+    "spd": 94,
+    "spe": 109,
+    "bst": 481
+  },
+  "abilities": {
+    "primary": "dry_skin",
+    "secondary": "sand_veil",
+    "hidden": "solar_power"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 168,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "heliolisk",
+    "evolution": "heliolisk",
+    "media": "heliolisk"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 21.0,
+    "color": "yellow",
+    "flavorText": "They flare their frills and generate energy. A single Heliolisk can generate sufficient electricity to power a skyscraper."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

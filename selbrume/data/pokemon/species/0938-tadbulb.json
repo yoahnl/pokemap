@@ -1,0 +1,94 @@
+{
+  "id": "tadbulb",
+  "slug": "tadbulb",
+  "nationalDex": 938,
+  "names": {
+    "ja_hrkt": "ズピカ",
+    "ja_roma": "Zupika",
+    "ko": "빈나두",
+    "zh_hant": "光蚪仔",
+    "fr": "Têtampoule",
+    "de": "Blipp",
+    "es": "Tadbulb",
+    "it": "Tadbulb",
+    "en": "Tadbulb",
+    "ja": "ズピカ",
+    "zh_hans": "光蚪仔"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんきおたまポケモン",
+    "ko": "전기올챙이포켓몬",
+    "zh_hant": "電蝌蚪寶可夢",
+    "fr": "Électêtard",
+    "de": "Stromquappe",
+    "en": "EleTadpole Pokémon",
+    "zh_hans": "电蝌蚪宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 61,
+    "atk": 31,
+    "def": 41,
+    "spa": 59,
+    "spd": 35,
+    "spe": 45,
+    "bst": 272
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "static",
+    "hidden": "damp"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 54,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tadbulb",
+    "evolution": "tadbulb",
+    "media": "tadbulb"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.4,
+    "color": "yellow",
+    "flavorText": "Tadbulb shakes its tail to generate electricity. If it senses danger, it will make its head blink on and off to alert its allies."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

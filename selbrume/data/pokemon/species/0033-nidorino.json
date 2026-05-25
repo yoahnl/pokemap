@@ -1,0 +1,98 @@
+{
+  "id": "nidorino",
+  "slug": "nidorino",
+  "nationalDex": 33,
+  "names": {
+    "ja_hrkt": "ニドリーノ",
+    "ja_roma": "Nidorino",
+    "ko": "니드리노",
+    "zh_hant": "尼多力諾",
+    "fr": "Nidorino",
+    "de": "Nidorino",
+    "es": "Nidorino",
+    "it": "Nidorino",
+    "en": "Nidorino",
+    "ja": "ニドリーノ",
+    "zh_hans": "尼多力诺"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくばりポケモン",
+    "ko": "독침포켓몬",
+    "zh_hant": "毒針寶可夢",
+    "fr": "Pokémon Vénépic",
+    "de": "Giftdorn-Pokémon",
+    "es": "Pokémon Pin Veneno",
+    "it": "Pokémon Velenago",
+    "en": "Poison Pin Pokémon",
+    "ja": "どくばりポケモン",
+    "zh_hans": "毒针宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 61,
+    "atk": 72,
+    "def": 57,
+    "spa": 55,
+    "spd": 55,
+    "spe": 65,
+    "bst": 365
+  },
+  "abilities": {
+    "primary": "poison_point",
+    "secondary": "rivalry",
+    "hidden": "hustle"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 128,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nidorino",
+    "evolution": "nidorino",
+    "media": "nidorino"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 19.5,
+    "color": "purple",
+    "flavorText": "An aggressive POKéMON that is quick to attack. The horn on its head secretes a powerful venom."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "koffing",
+  "slug": "koffing",
+  "nationalDex": 109,
+  "names": {
+    "ja_hrkt": "ドガース",
+    "ja_roma": "Dogars",
+    "ko": "또가스",
+    "zh_hant": "瓦斯彈",
+    "fr": "Smogo",
+    "de": "Smogon",
+    "es": "Koffing",
+    "it": "Koffing",
+    "en": "Koffing",
+    "ja": "ドガース",
+    "zh_hans": "瓦斯弹"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくガスポケモン",
+    "ko": "독가스포켓몬",
+    "zh_hant": "毒氣寶可夢",
+    "fr": "Pokémon Gaz Mortel",
+    "de": "Giftwolken-Pokémon",
+    "es": "Pokémon Gas Venenoso",
+    "it": "Pokémon Velenuvola",
+    "en": "Poison Gas Pokémon",
+    "ja": "どくガスポケモン",
+    "zh_hans": "毒气宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 65,
+    "def": 95,
+    "spa": 60,
+    "spd": 45,
+    "spe": 35,
+    "bst": 340
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": "neutralizing_gas",
+    "hidden": "stench"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 68,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "koffing",
+    "evolution": "koffing",
+    "media": "koffing"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 1.0,
+    "color": "purple",
+    "flavorText": "Because it stores several kinds of toxic gases in its body, it is prone to exploding without warning."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

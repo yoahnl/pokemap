@@ -1,0 +1,100 @@
+{
+  "id": "burmy",
+  "slug": "burmy",
+  "nationalDex": 412,
+  "names": {
+    "ja_hrkt": "ミノムッチ",
+    "ja_roma": "Minomucchi",
+    "ko": "도롱충이",
+    "zh_hant": "結草兒",
+    "fr": "Cheniti",
+    "de": "Burmy",
+    "es": "Burmy",
+    "it": "Burmy",
+    "en": "Burmy",
+    "ja": "ミノムッチ",
+    "zh_hans": "结草儿"
+  },
+  "speciesName": {
+    "ja_hrkt": "みのむしポケモン",
+    "ko": "도롱이벌레포켓몬",
+    "zh_hant": "蓑衣蟲寶可夢",
+    "fr": "Pokémon Ver Caché",
+    "de": "Beutelwurm",
+    "es": "Pokémon Larva",
+    "it": "Pokémon Larva",
+    "en": "Bagworm Pokémon",
+    "ja": "みのむしポケモン",
+    "zh_hans": "蓑衣虫宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 29,
+    "def": 45,
+    "spa": 29,
+    "spd": 45,
+    "spe": 36,
+    "bst": 224
+  },
+  "abilities": {
+    "primary": "shed_skin",
+    "secondary": null,
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 45,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "burmy-sandy",
+      "burmy-trash"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "burmy",
+    "evolution": "burmy",
+    "media": "burmy"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 3.4,
+    "color": "green",
+    "flavorText": "To shelter itself from cold, wintry winds, it covers itself with a cloak made of twigs and leaves."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

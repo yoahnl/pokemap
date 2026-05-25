@@ -1,0 +1,54 @@
+{
+  "speciesId": "tauros",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tauros/front.png",
+      "backStatic": "assets/pokemon/sprites/tauros/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tauros/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tauros/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tauros.png",
+      "cry": "assets/pokemon/cries/tauros.ogg",
+      "animations": {}
+    },
+    "tauros-paldea-aqua": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "tauros-paldea-blaze": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "tauros-paldea-combat": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "wyrdeer",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wyrdeer/front.png",
+      "backStatic": "assets/pokemon/sprites/wyrdeer/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wyrdeer/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wyrdeer/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wyrdeer.png",
+      "cry": "assets/pokemon/cries/wyrdeer.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "speciesId": "dusclops",
+  "preEvolution": "duskull",
+  "evolutions": [
+    {
+      "targetSpeciesId": "dusknoir",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: reaper-cloth"
+      }
+    }
+  ]
+}

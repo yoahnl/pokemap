@@ -1,0 +1,18 @@
+{
+  "speciesId": "breloom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/breloom/front.png",
+      "backStatic": "assets/pokemon/sprites/breloom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/breloom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/breloom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/breloom.png",
+      "cry": "assets/pokemon/cries/breloom.ogg",
+      "animations": {}
+    }
+  }
+}

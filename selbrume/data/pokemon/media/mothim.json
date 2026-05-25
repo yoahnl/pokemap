@@ -1,0 +1,18 @@
+{
+  "speciesId": "mothim",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mothim/front.png",
+      "backStatic": "assets/pokemon/sprites/mothim/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mothim/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mothim/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mothim.png",
+      "cry": "assets/pokemon/cries/mothim.ogg",
+      "animations": {}
+    }
+  }
+}

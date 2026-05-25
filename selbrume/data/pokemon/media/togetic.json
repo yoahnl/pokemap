@@ -1,0 +1,18 @@
+{
+  "speciesId": "togetic",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/togetic/front.png",
+      "backStatic": "assets/pokemon/sprites/togetic/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/togetic/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/togetic/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/togetic.png",
+      "cry": "assets/pokemon/cries/togetic.ogg",
+      "animations": {}
+    }
+  }
+}

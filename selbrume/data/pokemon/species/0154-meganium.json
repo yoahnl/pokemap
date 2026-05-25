@@ -1,0 +1,103 @@
+{
+  "id": "meganium",
+  "slug": "meganium",
+  "nationalDex": 154,
+  "names": {
+    "ja_hrkt": "メガニウム",
+    "ja_roma": "Meganium",
+    "ko": "메가니움",
+    "zh_hant": "大竺葵",
+    "fr": "Méganium",
+    "de": "Meganie",
+    "es": "Meganium",
+    "it": "Meganium",
+    "en": "Meganium",
+    "ja": "メガニウム",
+    "zh_hans": "大竺葵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ハーブポケモン",
+    "ko": "허브포켓몬",
+    "zh_hant": "芳草寶可夢",
+    "fr": "Pokémon Herbe",
+    "de": "Kräuter",
+    "es": "Pokémon Hierba",
+    "it": "Pokémon Erbe",
+    "en": "Herb Pokémon",
+    "ja": "ハーブポケモン",
+    "zh_hans": "芳草宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 82,
+    "def": 100,
+    "spa": 83,
+    "spd": 100,
+    "spe": 80,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "leaf_guard"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 236,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "meganium-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "meganium",
+    "evolution": "meganium",
+    "media": "meganium"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 100.5,
+    "color": "green",
+    "flavorText": "The aroma that rises from its petals contains a substance that calms aggressive feelings."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

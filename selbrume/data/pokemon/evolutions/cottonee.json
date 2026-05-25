@@ -1,0 +1,14 @@
+{
+  "speciesId": "cottonee",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "whimsicott",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "sun-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

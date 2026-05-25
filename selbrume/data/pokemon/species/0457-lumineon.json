@@ -1,0 +1,97 @@
+{
+  "id": "lumineon",
+  "slug": "lumineon",
+  "nationalDex": 457,
+  "names": {
+    "ja_hrkt": "ネオラント",
+    "ja_roma": "Neolant",
+    "ko": "네오라이트",
+    "zh_hant": "霓虹魚",
+    "fr": "Luminéon",
+    "de": "Lumineon",
+    "es": "Lumineon",
+    "it": "Lumineon",
+    "en": "Lumineon",
+    "ja": "ネオラント",
+    "zh_hans": "霓虹鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "ネオンポケモン",
+    "ko": "네온포켓몬",
+    "zh_hant": "霓虹寶可夢",
+    "fr": "Pokémon Néon",
+    "de": "Neon",
+    "es": "Pokémon Neón",
+    "it": "Pokémon Neon",
+    "en": "Neon Pokémon",
+    "ja": "ネオンポケモン",
+    "zh_hans": "霓虹宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 69,
+    "atk": 69,
+    "def": 76,
+    "spa": 69,
+    "spd": 86,
+    "spe": 91,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "storm_drain",
+    "hidden": "water_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 161,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lumineon",
+    "evolution": "lumineon",
+    "media": "lumineon"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 24.0,
+    "color": "blue",
+    "flavorText": "It lives on the deep-sea floor. It attracts prey by flashing the patterns on its four tail fins."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

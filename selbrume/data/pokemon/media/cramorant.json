@@ -1,0 +1,42 @@
+{
+  "speciesId": "cramorant",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cramorant/front.png",
+      "backStatic": "assets/pokemon/sprites/cramorant/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cramorant/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cramorant/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cramorant.png",
+      "cry": "assets/pokemon/cries/cramorant.ogg",
+      "animations": {}
+    },
+    "cramorant-gorging": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "cramorant-gulping": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

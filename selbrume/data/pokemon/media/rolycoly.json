@@ -1,0 +1,18 @@
+{
+  "speciesId": "rolycoly",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rolycoly/front.png",
+      "backStatic": "assets/pokemon/sprites/rolycoly/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rolycoly/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rolycoly/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rolycoly.png",
+      "cry": "assets/pokemon/cries/rolycoly.ogg",
+      "animations": {}
+    }
+  }
+}

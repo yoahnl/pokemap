@@ -1,0 +1,22 @@
+{
+  "speciesId": "pikachu",
+  "preEvolution": "pichu",
+  "evolutions": [
+    {
+      "targetSpeciesId": "raichu",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "raichu",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

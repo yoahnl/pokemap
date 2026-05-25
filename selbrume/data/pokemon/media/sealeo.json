@@ -1,0 +1,18 @@
+{
+  "speciesId": "sealeo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sealeo/front.png",
+      "backStatic": "assets/pokemon/sprites/sealeo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sealeo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sealeo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sealeo.png",
+      "cry": "assets/pokemon/cries/sealeo.ogg",
+      "animations": {}
+    }
+  }
+}

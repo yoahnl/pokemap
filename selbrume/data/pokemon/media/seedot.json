@@ -1,0 +1,18 @@
+{
+  "speciesId": "seedot",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/seedot/front.png",
+      "backStatic": "assets/pokemon/sprites/seedot/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/seedot/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/seedot/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/seedot.png",
+      "cry": "assets/pokemon/cries/seedot.ogg",
+      "animations": {}
+    }
+  }
+}

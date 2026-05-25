@@ -1,0 +1,14 @@
+{
+  "speciesId": "pikipek",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "trumbeak",
+      "method": "level_up",
+      "minLevel": 14,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "spinarak",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ariados",
+      "method": "level_up",
+      "minLevel": 22,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

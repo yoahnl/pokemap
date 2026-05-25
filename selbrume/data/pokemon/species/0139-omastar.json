@@ -1,0 +1,102 @@
+{
+  "id": "omastar",
+  "slug": "omastar",
+  "nationalDex": 139,
+  "names": {
+    "ja_hrkt": "オムスター",
+    "ja_roma": "Omstar",
+    "ko": "암스타",
+    "zh_hant": "多刺菊石獸",
+    "fr": "Amonistar",
+    "de": "Amoroso",
+    "es": "Omastar",
+    "it": "Omastar",
+    "en": "Omastar",
+    "ja": "オムスター",
+    "zh_hans": "多刺菊石兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "うずまきポケモン",
+    "ko": "소용돌이포켓몬",
+    "zh_hant": "漩渦寶可夢",
+    "fr": "Pokémon Spirale",
+    "de": "Spiralen-Pokémon",
+    "es": "Pokémon Espiral",
+    "it": "Pokémon Spirale",
+    "en": "Spiral Pokémon",
+    "ja": "うずまきポケモン",
+    "zh_hans": "漩涡宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "rock",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 60,
+    "def": 125,
+    "spa": 115,
+    "spd": 70,
+    "spe": 55,
+    "bst": 495
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "shell_armor",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 173,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "omastar",
+    "evolution": "omastar",
+    "media": "omastar"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 35.0,
+    "color": "blue",
+    "flavorText": "A prehistoric POKéMON that died out when its heavy shell made it impossible to catch prey."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

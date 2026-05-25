@@ -1,0 +1,18 @@
+{
+  "speciesId": "probopass",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/probopass/front.png",
+      "backStatic": "assets/pokemon/sprites/probopass/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/probopass/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/probopass/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/probopass.png",
+      "cry": "assets/pokemon/cries/probopass.ogg",
+      "animations": {}
+    }
+  }
+}

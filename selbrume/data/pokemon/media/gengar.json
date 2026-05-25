@@ -1,0 +1,30 @@
+{
+  "speciesId": "gengar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gengar/front.png",
+      "backStatic": "assets/pokemon/sprites/gengar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gengar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gengar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gengar.png",
+      "cry": "assets/pokemon/cries/gengar.ogg",
+      "animations": {}
+    },
+    "gengar-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

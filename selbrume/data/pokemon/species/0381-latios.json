@@ -1,0 +1,100 @@
+{
+  "id": "latios",
+  "slug": "latios",
+  "nationalDex": 381,
+  "names": {
+    "ja_hrkt": "ラティオス",
+    "ja_roma": "Latios",
+    "ko": "라티오스",
+    "zh_hant": "拉帝歐斯",
+    "fr": "Latios",
+    "de": "Latios",
+    "es": "Latios",
+    "it": "Latios",
+    "en": "Latios",
+    "ja": "ラティオス",
+    "zh_hans": "拉帝欧斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "むげんポケモン",
+    "ko": "무한포켓몬",
+    "zh_hant": "無限寶可夢",
+    "fr": "Pokémon Éon",
+    "de": "Äon-Pokémon",
+    "es": "Pokémon Eón",
+    "it": "Pokémon Eone",
+    "en": "Eon Pokémon",
+    "ja": "むげんポケモン",
+    "zh_hans": "无限宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dragon",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 90,
+    "def": 80,
+    "spa": 130,
+    "spd": 110,
+    "spe": 110,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 3,
+    "baseFriendship": 90
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "latios-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "latios",
+    "evolution": "latios",
+    "media": "latios"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 60.0,
+    "color": "blue",
+    "flavorText": "LATIOS has the ability to make its foe see an image of what it has seen or imagines in its head. This POKéMON is intelligent and understands human speech."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

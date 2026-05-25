@@ -1,0 +1,18 @@
+{
+  "speciesId": "gible",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gible/front.png",
+      "backStatic": "assets/pokemon/sprites/gible/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gible/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gible/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gible.png",
+      "cry": "assets/pokemon/cries/gible.ogg",
+      "animations": {}
+    }
+  }
+}

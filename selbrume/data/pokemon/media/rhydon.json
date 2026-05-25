@@ -1,0 +1,18 @@
+{
+  "speciesId": "rhydon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rhydon/front.png",
+      "backStatic": "assets/pokemon/sprites/rhydon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rhydon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rhydon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rhydon.png",
+      "cry": "assets/pokemon/cries/rhydon.ogg",
+      "animations": {}
+    }
+  }
+}

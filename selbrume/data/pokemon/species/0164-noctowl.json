@@ -1,0 +1,98 @@
+{
+  "id": "noctowl",
+  "slug": "noctowl",
+  "nationalDex": 164,
+  "names": {
+    "ja_hrkt": "ヨルノズク",
+    "ja_roma": "Yorunozuku",
+    "ko": "야부엉",
+    "zh_hant": "貓頭夜鷹",
+    "fr": "Noarfang",
+    "de": "Noctuh",
+    "es": "Noctowl",
+    "it": "Noctowl",
+    "en": "Noctowl",
+    "ja": "ヨルノズク",
+    "zh_hans": "猫头夜鹰"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふくろうポケモン",
+    "ko": "부엉이포켓몬",
+    "zh_hant": "貓頭鷹寶可夢",
+    "fr": "Pokémon Hibou",
+    "de": "Eulen-Pokémon",
+    "es": "Pokémon Búho",
+    "it": "Pokémon Gufo",
+    "en": "Owl Pokémon",
+    "ja": "ふくろうポケモン",
+    "zh_hans": "猫头鹰宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 50,
+    "def": 50,
+    "spa": 86,
+    "spd": 96,
+    "spe": 70,
+    "bst": 452
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": "keen_eye",
+    "hidden": "tinted_lens"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 158,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "noctowl",
+    "evolution": "noctowl",
+    "media": "noctowl"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 40.8,
+    "color": "brown",
+    "flavorText": "Its eyes are specially adapted. They concentrate even faint light and enable it to see in the dark."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

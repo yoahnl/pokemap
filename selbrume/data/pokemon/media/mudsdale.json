@@ -1,0 +1,18 @@
+{
+  "speciesId": "mudsdale",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mudsdale/front.png",
+      "backStatic": "assets/pokemon/sprites/mudsdale/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mudsdale/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mudsdale/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mudsdale.png",
+      "cry": "assets/pokemon/cries/mudsdale.ogg",
+      "animations": {}
+    }
+  }
+}

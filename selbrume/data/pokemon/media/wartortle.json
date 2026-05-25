@@ -1,0 +1,18 @@
+{
+  "speciesId": "wartortle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wartortle/front.png",
+      "backStatic": "assets/pokemon/sprites/wartortle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wartortle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wartortle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wartortle.png",
+      "cry": "assets/pokemon/cries/wartortle.ogg",
+      "animations": {}
+    }
+  }
+}

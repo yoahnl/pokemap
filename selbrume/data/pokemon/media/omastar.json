@@ -1,0 +1,18 @@
+{
+  "speciesId": "omastar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/omastar/front.png",
+      "backStatic": "assets/pokemon/sprites/omastar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/omastar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/omastar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/omastar.png",
+      "cry": "assets/pokemon/cries/omastar.ogg",
+      "animations": {}
+    }
+  }
+}

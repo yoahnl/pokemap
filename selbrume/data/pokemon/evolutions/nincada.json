@@ -1,0 +1,22 @@
+{
+  "speciesId": "nincada",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ninjask",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "shedinja",
+      "method": "shed",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

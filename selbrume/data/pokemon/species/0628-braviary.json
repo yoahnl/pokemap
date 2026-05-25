@@ -1,0 +1,100 @@
+{
+  "id": "braviary",
+  "slug": "braviary",
+  "nationalDex": 628,
+  "names": {
+    "ja_hrkt": "ウォーグル",
+    "ja_roma": "Warrgle",
+    "ko": "워글",
+    "zh_hant": "勇士雄鷹",
+    "fr": "Gueriaigle",
+    "de": "Washakwil",
+    "es": "Braviary",
+    "it": "Braviary",
+    "en": "Braviary",
+    "ja": "ウォーグル",
+    "zh_hans": "勇士雄鹰"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゆうもうポケモン",
+    "ko": "용맹포켓몬",
+    "zh_hant": "勇猛寶可夢",
+    "fr": "Pokémon Vaillant",
+    "de": "Kühnheits-Pokémon",
+    "es": "Pokémon Aguerrido",
+    "it": "Pokémon Baldanza",
+    "en": "Valiant Pokémon",
+    "ja": "ゆうもうポケモン",
+    "zh_hans": "勇猛宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 123,
+    "def": 75,
+    "spa": 57,
+    "spd": 75,
+    "spe": 80,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "sheer_force",
+    "hidden": "defiant"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 179,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "braviary-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "braviary",
+    "evolution": "braviary",
+    "media": "braviary"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 41.0,
+    "color": "red",
+    "flavorText": "They fight for their friends without any thought about danger to themselves. One can carry a car while flying."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

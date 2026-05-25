@@ -1,0 +1,100 @@
+{
+  "id": "simipour",
+  "slug": "simipour",
+  "nationalDex": 516,
+  "names": {
+    "ja_hrkt": "ヒヤッキー",
+    "ja_roma": "Hiyakkie",
+    "ko": "앗차키",
+    "zh_hant": "冷水猿",
+    "fr": "Flotoutan",
+    "de": "Sodachita",
+    "es": "Simipour",
+    "it": "Simipour",
+    "en": "Simipour",
+    "ja": "ヒヤッキー",
+    "zh_hans": "冷水猿"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほうすいポケモン",
+    "ko": "방수포켓몬",
+    "zh_hant": "放水寶可夢",
+    "fr": "Pokémon Drainage",
+    "de": "Drainage",
+    "es": "Pokémon Drenaje",
+    "it": "Pokémon Spruzzacqua",
+    "en": "Geyser Pokémon",
+    "ja": "ほうすいポケモン",
+    "zh_hans": "放水宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 98,
+    "def": 63,
+    "spa": 98,
+    "spd": 63,
+    "spe": 101,
+    "bst": 498
+  },
+  "abilities": {
+    "primary": "gluttony",
+    "secondary": null,
+    "hidden": "torrent"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 174,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "simipour",
+    "evolution": "simipour",
+    "media": "simipour"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 29.0,
+    "color": "blue",
+    "flavorText": "The tuft on its head holds water. When the level runs low, it replenishes the tuft by siphoning up water with its tail."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "frillish",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "jellicent",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

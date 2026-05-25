@@ -1,0 +1,18 @@
+{
+  "speciesId": "wooloo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wooloo/front.png",
+      "backStatic": "assets/pokemon/sprites/wooloo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wooloo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wooloo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wooloo.png",
+      "cry": "assets/pokemon/cries/wooloo.ogg",
+      "animations": {}
+    }
+  }
+}

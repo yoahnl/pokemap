@@ -1,0 +1,100 @@
+{
+  "id": "froakie",
+  "slug": "froakie",
+  "nationalDex": 656,
+  "names": {
+    "ja_hrkt": "ケロマツ",
+    "ja_roma": "Keromatsu",
+    "ko": "개구마르",
+    "zh_hant": "呱呱泡蛙",
+    "fr": "Grenousse",
+    "de": "Froxy",
+    "es": "Froakie",
+    "it": "Froakie",
+    "en": "Froakie",
+    "ja": "ケロマツ",
+    "zh_hans": "呱呱泡蛙"
+  },
+  "speciesName": {
+    "ja_hrkt": "あわがえるポケモン",
+    "ko": "거품개구리포켓몬",
+    "zh_hant": "泡蛙寶可夢",
+    "fr": "Pokémon Crapobulle",
+    "de": "Blubbfrosch",
+    "es": "Pokémon Burburrana",
+    "it": "Pokémon Schiumorana",
+    "en": "Bubble Frog Pokémon",
+    "ja": "あわがえるポケモン",
+    "zh_hans": "泡蛙宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 41,
+    "atk": 56,
+    "def": 40,
+    "spa": 62,
+    "spd": 44,
+    "spe": 71,
+    "bst": 314
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "protean"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 63,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "froakie",
+    "evolution": "froakie",
+    "media": "froakie"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 7.0,
+    "color": "blue",
+    "flavorText": "It secretes flexible bubbles from its chest and back. The bubbles reduce the damage it would otherwise take when attacked."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

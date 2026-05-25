@@ -1,0 +1,18 @@
+{
+  "speciesId": "rampardos",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/rampardos/front.png",
+      "backStatic": "assets/pokemon/sprites/rampardos/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/rampardos/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/rampardos/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/rampardos.png",
+      "cry": "assets/pokemon/cries/rampardos.ogg",
+      "animations": {}
+    }
+  }
+}

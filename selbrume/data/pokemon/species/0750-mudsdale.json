@@ -1,0 +1,97 @@
+{
+  "id": "mudsdale",
+  "slug": "mudsdale",
+  "nationalDex": 750,
+  "names": {
+    "ja_hrkt": "バンバドロ",
+    "ja_roma": "Banbadoro",
+    "ko": "만마드",
+    "zh_hant": "重泥挽馬",
+    "fr": "Bourrinos",
+    "de": "Pampross",
+    "es": "Mudsdale",
+    "it": "Mudsdale",
+    "en": "Mudsdale",
+    "ja": "バンバドロ",
+    "zh_hans": "重泥挽马"
+  },
+  "speciesName": {
+    "ja_hrkt": "ばんばポケモン",
+    "ko": "만마포켓몬",
+    "zh_hant": "挽馬寶可夢",
+    "fr": "Pokémon Cheval Trait",
+    "de": "Zugpferd-Pokémon",
+    "es": "Pokémon Caballo Tiro",
+    "it": "Pokémon Fortequino",
+    "en": "Draft Horse Pokémon",
+    "ja": "ばんばポケモン",
+    "zh_hans": "挽马宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 125,
+    "def": 100,
+    "spa": 55,
+    "spd": 85,
+    "spe": 35,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "stamina",
+    "hidden": "inner_focus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 175,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mudsdale",
+    "evolution": "mudsdale",
+    "media": "mudsdale"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 920.0,
+    "color": "brown",
+    "flavorText": "It spits a mud that provides resistance to both wind and rain, so the walls of old houses were often coated with it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

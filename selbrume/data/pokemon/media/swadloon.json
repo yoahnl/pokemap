@@ -1,0 +1,18 @@
+{
+  "speciesId": "swadloon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swadloon/front.png",
+      "backStatic": "assets/pokemon/sprites/swadloon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swadloon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swadloon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swadloon.png",
+      "cry": "assets/pokemon/cries/swadloon.ogg",
+      "animations": {}
+    }
+  }
+}

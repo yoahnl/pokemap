@@ -1,0 +1,34 @@
+{
+  "speciesId": "charjabug",
+  "preEvolution": "grubbin",
+  "evolutions": [
+    {
+      "targetSpeciesId": "vikavolt",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: blush-mountain"
+      }
+    },
+    {
+      "targetSpeciesId": "vikavolt",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: vast-poni-canyon"
+      }
+    },
+    {
+      "targetSpeciesId": "vikavolt",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

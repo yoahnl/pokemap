@@ -1,0 +1,14 @@
+{
+  "speciesId": "elgyem",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "beheeyem",
+      "method": "level_up",
+      "minLevel": 42,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "id": "purrloin",
+  "slug": "purrloin",
+  "nationalDex": 509,
+  "names": {
+    "ja_hrkt": "チョロネコ",
+    "ja_roma": "Choroneko",
+    "ko": "쌔비냥",
+    "zh_hant": "扒手貓",
+    "fr": "Chacripan",
+    "de": "Felilou",
+    "es": "Purrloin",
+    "it": "Purrloin",
+    "en": "Purrloin",
+    "ja": "チョロネコ",
+    "zh_hans": "扒手猫"
+  },
+  "speciesName": {
+    "ja_hrkt": "しょうわるポケモン",
+    "ko": "성악포켓몬",
+    "zh_hant": "壞心眼寶可夢",
+    "fr": "Pokémon Scélérat",
+    "de": "Schelm-Pokémon",
+    "es": "Pokémon Malicioso",
+    "it": "Pokémon Furbizia",
+    "en": "Devious Pokémon",
+    "ja": "しょうわるポケモン",
+    "zh_hans": "坏心眼宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 41,
+    "atk": 50,
+    "def": 37,
+    "spa": 50,
+    "spd": 37,
+    "spe": 66,
+    "bst": 281
+  },
+  "abilities": {
+    "primary": "limber",
+    "secondary": "unburden",
+    "hidden": "prankster"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 56,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "purrloin",
+    "evolution": "purrloin",
+    "media": "purrloin"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 10.1,
+    "color": "purple",
+    "flavorText": "They steal from people for fun, but their victims can’t help but forgive them. Their deceptively cute act is perfect."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

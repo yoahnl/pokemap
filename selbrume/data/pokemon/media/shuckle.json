@@ -1,0 +1,18 @@
+{
+  "speciesId": "shuckle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shuckle/front.png",
+      "backStatic": "assets/pokemon/sprites/shuckle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shuckle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shuckle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shuckle.png",
+      "cry": "assets/pokemon/cries/shuckle.ogg",
+      "animations": {}
+    }
+  }
+}

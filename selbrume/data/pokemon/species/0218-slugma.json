@@ -1,0 +1,97 @@
+{
+  "id": "slugma",
+  "slug": "slugma",
+  "nationalDex": 218,
+  "names": {
+    "ja_hrkt": "マグマッグ",
+    "ja_roma": "Magmag",
+    "ko": "마그마그",
+    "zh_hant": "熔岩蟲",
+    "fr": "Limagma",
+    "de": "Schneckmag",
+    "es": "Slugma",
+    "it": "Slugma",
+    "en": "Slugma",
+    "ja": "マグマッグ",
+    "zh_hans": "熔岩虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "ようがんポケモン",
+    "ko": "용암포켓몬",
+    "zh_hant": "熔岩寶可夢",
+    "fr": "Pokémon Lave",
+    "de": "Lava",
+    "es": "Pokémon Lava",
+    "it": "Pokémon Lava",
+    "en": "Lava Pokémon",
+    "ja": "ようがんポケモン",
+    "zh_hans": "熔岩宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 40,
+    "def": 40,
+    "spa": 70,
+    "spd": 40,
+    "spe": 20,
+    "bst": 250
+  },
+  "abilities": {
+    "primary": "magma_armor",
+    "secondary": "flame_body",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 50,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "slugma",
+    "evolution": "slugma",
+    "media": "slugma"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 35.0,
+    "color": "red",
+    "flavorText": "It never sleeps. It has to keep moving because if it stopped, its magma body would cool and harden."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "xurkitree",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/xurkitree/front.png",
+      "backStatic": "assets/pokemon/sprites/xurkitree/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/xurkitree/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/xurkitree/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/xurkitree.png",
+      "cry": "assets/pokemon/cries/xurkitree.ogg",
+      "animations": {}
+    }
+  }
+}

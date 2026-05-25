@@ -1,0 +1,100 @@
+{
+  "id": "dracovish",
+  "slug": "dracovish",
+  "nationalDex": 882,
+  "names": {
+    "ja_hrkt": "ウオノラゴン",
+    "ja_roma": "Uonoragon",
+    "ko": "어래곤",
+    "zh_hant": "鰓魚龍",
+    "fr": "Hydragon",
+    "de": "Pescragon",
+    "es": "Dracovish",
+    "it": "Dracovish",
+    "en": "Dracovish",
+    "ja": "ウオノラゴン",
+    "zh_hans": "鳃鱼龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "かせきポケモン",
+    "ko": "화석포켓몬",
+    "zh_hant": "化石寶可夢",
+    "fr": "Pokémon Fossile",
+    "de": "Fossil-Pokémon",
+    "es": "Pokémon Fósil",
+    "it": "Pokémon Fossile",
+    "en": "Fossil Pokémon",
+    "ja": "かせきポケモン",
+    "zh_hans": "化石宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "water",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 90,
+    "def": 100,
+    "spa": 70,
+    "spd": 80,
+    "spe": 75,
+    "bst": 505
+  },
+  "abilities": {
+    "primary": "water_absorb",
+    "secondary": "strong_jaw",
+    "hidden": "sand_rush"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 177,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dracovish",
+    "evolution": "dracovish",
+    "media": "dracovish"
+  },
+  "dexContent": {
+    "heightM": 2.3,
+    "weightKg": 215.0,
+    "color": "green",
+    "flavorText": "Powerful legs and jaws made it the apex predator of its time. Its own overhunting of its prey was what drove it to extinction."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "gumshoos",
+  "slug": "gumshoos",
+  "nationalDex": 735,
+  "names": {
+    "ja_hrkt": "デカグース",
+    "ja_roma": "Dekagoose",
+    "ko": "형사구스",
+    "zh_hant": "貓鼬探長",
+    "fr": "Argouste",
+    "de": "Manguspektor",
+    "es": "Gumshoos",
+    "it": "Gumshoos",
+    "en": "Gumshoos",
+    "ja": "デカグース",
+    "zh_hans": "猫鼬探长"
+  },
+  "speciesName": {
+    "ja_hrkt": "はりこみポケモン",
+    "ko": "잠복포켓몬",
+    "zh_hant": "監視寶可夢",
+    "fr": "Pokémon Filature",
+    "de": "Beschattung",
+    "es": "Pokémon Vigilante",
+    "it": "Pokémon Sorveglianza",
+    "en": "Stakeout Pokémon",
+    "ja": "はりこみポケモン",
+    "zh_hans": "蹲守宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 88,
+    "atk": 110,
+    "def": 60,
+    "spa": 55,
+    "spd": 60,
+    "spe": 45,
+    "bst": 418
+  },
+  "abilities": {
+    "primary": "stakeout",
+    "secondary": "strong_jaw",
+    "hidden": "adaptability"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 146,
+    "catchRate": 127,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "gumshoos-totem"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gumshoos",
+    "evolution": "gumshoos",
+    "media": "gumshoos"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 14.2,
+    "color": "brown",
+    "flavorText": "When it finds a trace of its prey, it patiently stakes out the location...but it’s always snoozing by nightfall."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

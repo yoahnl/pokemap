@@ -1,0 +1,100 @@
+{
+  "id": "thundurus",
+  "slug": "thundurus",
+  "nationalDex": 642,
+  "names": {
+    "ja_hrkt": "ボルトロス",
+    "ja_roma": "Voltolos",
+    "ko": "볼트로스",
+    "zh_hant": "雷電雲",
+    "fr": "Fulguris",
+    "de": "Voltolos",
+    "es": "Thundurus",
+    "it": "Thundurus",
+    "en": "Thundurus",
+    "ja": "ボルトロス",
+    "zh_hans": "雷电云"
+  },
+  "speciesName": {
+    "ja_hrkt": "らいげきポケモン",
+    "ko": "뇌격포켓몬",
+    "zh_hant": "雷擊寶可夢",
+    "fr": "Pokémon Foudroyeur",
+    "de": "Torpedo-Pokémon",
+    "es": "Pokémon Centella",
+    "it": "Pokémon Fulminante",
+    "en": "Bolt Strike Pokémon",
+    "ja": "らいげきポケモン",
+    "zh_hans": "雷击宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "electric",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 79,
+    "atk": 115,
+    "def": 70,
+    "spa": 125,
+    "spd": 80,
+    "spe": 111,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "prankster",
+    "secondary": null,
+    "hidden": "defiant"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 3,
+    "baseFriendship": 90
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "thundurus-therian"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "thundurus",
+    "evolution": "thundurus",
+    "media": "thundurus"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 61.0,
+    "color": "blue",
+    "flavorText": "Countless charred remains mar the landscape of places through which Thundurus has passed."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

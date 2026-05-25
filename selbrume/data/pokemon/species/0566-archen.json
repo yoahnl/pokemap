@@ -1,0 +1,102 @@
+{
+  "id": "archen",
+  "slug": "archen",
+  "nationalDex": 566,
+  "names": {
+    "ja_hrkt": "アーケン",
+    "ja_roma": "Archen",
+    "ko": "아켄",
+    "zh_hant": "始祖小鳥",
+    "fr": "Arkéapti",
+    "de": "Flapteryx",
+    "es": "Archen",
+    "it": "Archen",
+    "en": "Archen",
+    "ja": "アーケン",
+    "zh_hans": "始祖小鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "さいこどりポケモン",
+    "ko": "최초새포켓몬",
+    "zh_hant": "遠古鳥寶可夢",
+    "fr": "Pokémon Oisancien",
+    "de": "Urzeitvogel-Pokémon",
+    "es": "Pokémon Protopájaro",
+    "it": "Pokémon Paleouccello",
+    "en": "First Bird Pokémon",
+    "ja": "さいこどりポケモン",
+    "zh_hans": "远古鸟宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "rock",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 112,
+    "def": 45,
+    "spa": 74,
+    "spd": 45,
+    "spe": 70,
+    "bst": 401
+  },
+  "abilities": {
+    "primary": "defeatist",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "flying",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 71,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "archen",
+    "evolution": "archen",
+    "media": "archen"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.5,
+    "color": "yellow",
+    "flavorText": "Said to be an ancestor of bird Pokémon, they were unable to fly and moved about by hopping from one branch to another."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

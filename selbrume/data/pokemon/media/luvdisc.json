@@ -1,0 +1,18 @@
+{
+  "speciesId": "luvdisc",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/luvdisc/front.png",
+      "backStatic": "assets/pokemon/sprites/luvdisc/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/luvdisc/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/luvdisc/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/luvdisc.png",
+      "cry": "assets/pokemon/cries/luvdisc.ogg",
+      "animations": {}
+    }
+  }
+}

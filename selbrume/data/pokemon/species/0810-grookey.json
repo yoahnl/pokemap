@@ -1,0 +1,101 @@
+{
+  "id": "grookey",
+  "slug": "grookey",
+  "nationalDex": 810,
+  "names": {
+    "ja_hrkt": "サルノリ",
+    "ja_roma": "Sarunori",
+    "ko": "흥나숭",
+    "zh_hant": "敲音猴",
+    "fr": "Ouistempo",
+    "de": "Chimpep",
+    "es": "Grookey",
+    "it": "Grookey",
+    "en": "Grookey",
+    "ja": "サルノリ",
+    "zh_hans": "敲音猴"
+  },
+  "speciesName": {
+    "ja_hrkt": "こざるポケモン",
+    "ko": "꼬마원숭이포켓몬",
+    "zh_hant": "小猴寶可夢",
+    "fr": "Pokémon Chimpanzé",
+    "de": "Schimpansen-Pokémon",
+    "es": "Pokémon Chimpancé",
+    "it": "Pokémon Scimpanzé",
+    "en": "Chimp Pokémon",
+    "ja": "こざるポケモン",
+    "zh_hans": "小猴宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 65,
+    "def": 50,
+    "spa": 40,
+    "spd": 40,
+    "spe": 65,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "grassy_surge"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "grookey",
+    "evolution": "grookey",
+    "media": "grookey"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 5.0,
+    "color": "green",
+    "flavorText": "When it uses its special stick to strike up a beat, the sound waves produced carry revitalizing energy to the plants and flowers in the area."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "skorupi",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skorupi/front.png",
+      "backStatic": "assets/pokemon/sprites/skorupi/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/skorupi/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/skorupi/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skorupi.png",
+      "cry": "assets/pokemon/cries/skorupi.ogg",
+      "animations": {}
+    }
+  }
+}

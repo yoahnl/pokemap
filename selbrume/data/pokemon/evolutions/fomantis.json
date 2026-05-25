@@ -1,0 +1,16 @@
+{
+  "speciesId": "fomantis",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lurantis",
+      "method": "level_up",
+      "minLevel": 34,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: day"
+      }
+    }
+  ]
+}

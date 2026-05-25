@@ -1,0 +1,18 @@
+{
+  "speciesId": "celebi",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/celebi/front.png",
+      "backStatic": "assets/pokemon/sprites/celebi/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/celebi/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/celebi/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/celebi.png",
+      "cry": "assets/pokemon/cries/celebi.ogg",
+      "animations": {}
+    }
+  }
+}

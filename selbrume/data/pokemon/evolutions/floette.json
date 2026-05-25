@@ -1,0 +1,14 @@
+{
+  "speciesId": "floette",
+  "preEvolution": "flabebe",
+  "evolutions": [
+    {
+      "targetSpeciesId": "florges",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "shiny-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

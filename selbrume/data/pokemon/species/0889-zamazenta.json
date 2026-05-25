@@ -1,0 +1,101 @@
+{
+  "id": "zamazenta",
+  "slug": "zamazenta",
+  "nationalDex": 889,
+  "names": {
+    "ja_hrkt": "ザマゼンタ",
+    "ja_roma": "Zamazenta",
+    "ko": "자마젠타",
+    "zh_hant": "藏瑪然特",
+    "fr": "Zamazenta",
+    "de": "Zamazenta",
+    "es": "Zamazenta",
+    "it": "Zamazenta",
+    "en": "Zamazenta",
+    "ja": "ザマゼンタ",
+    "zh_hans": "藏玛然特"
+  },
+  "speciesName": {
+    "ja_hrkt": "つわものポケモン",
+    "ko": "강자포켓몬",
+    "zh_hant": "強者寶可夢",
+    "fr": "Pokémon Valeureux",
+    "de": "Krieger-Pokémon",
+    "es": "Pokémon Guerrero",
+    "it": "Pokémon Guerriero",
+    "en": "Warrior Pokémon",
+    "ja": "つわものポケモン",
+    "zh_hans": "强者宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 92,
+    "atk": 120,
+    "def": 115,
+    "spa": 80,
+    "spd": 115,
+    "spe": 138,
+    "bst": 660
+  },
+  "abilities": {
+    "primary": "dauntless_shield",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 335,
+    "catchRate": 10,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "zamazenta-crowned"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "zamazenta",
+    "evolution": "zamazenta",
+    "media": "zamazenta"
+  },
+  "dexContent": {
+    "heightM": 2.9,
+    "weightKg": 210.0,
+    "color": "red",
+    "flavorText": "In times past, it worked together with a king of the people to save the Galar region. It absorbs metal that it then uses in battle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

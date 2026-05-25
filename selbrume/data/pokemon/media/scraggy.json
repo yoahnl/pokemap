@@ -1,0 +1,18 @@
+{
+  "speciesId": "scraggy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/scraggy/front.png",
+      "backStatic": "assets/pokemon/sprites/scraggy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/scraggy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/scraggy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/scraggy.png",
+      "cry": "assets/pokemon/cries/scraggy.ogg",
+      "animations": {}
+    }
+  }
+}

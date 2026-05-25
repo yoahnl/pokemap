@@ -1,0 +1,22 @@
+{
+  "speciesId": "vulpix",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ninetales",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "fire-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "ninetales",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "ice-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

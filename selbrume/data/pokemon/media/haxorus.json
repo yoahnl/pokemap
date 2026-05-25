@@ -1,0 +1,18 @@
+{
+  "speciesId": "haxorus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/haxorus/front.png",
+      "backStatic": "assets/pokemon/sprites/haxorus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/haxorus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/haxorus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/haxorus.png",
+      "cry": "assets/pokemon/cries/haxorus.ogg",
+      "animations": {}
+    }
+  }
+}

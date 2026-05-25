@@ -1,0 +1,42 @@
+{
+  "speciesId": "garchomp",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/garchomp/front.png",
+      "backStatic": "assets/pokemon/sprites/garchomp/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/garchomp/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/garchomp/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/garchomp.png",
+      "cry": "assets/pokemon/cries/garchomp.ogg",
+      "animations": {}
+    },
+    "garchomp-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "garchomp-mega-z": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "poochyena",
+  "slug": "poochyena",
+  "nationalDex": 261,
+  "names": {
+    "ja_hrkt": "ポチエナ",
+    "ja_roma": "Pochiena",
+    "ko": "포챠나",
+    "zh_hant": "土狼犬",
+    "fr": "Medhyèna",
+    "de": "Fiffyen",
+    "es": "Poochyena",
+    "it": "Poochyena",
+    "en": "Poochyena",
+    "ja": "ポチエナ",
+    "zh_hans": "土狼犬"
+  },
+  "speciesName": {
+    "ja_hrkt": "かみつきポケモン",
+    "ko": "물어뜯기포켓몬",
+    "zh_hant": "緊咬寶可夢",
+    "fr": "Pokémon Morsure",
+    "de": "Biss",
+    "es": "Pokémon Mordisco",
+    "it": "Pokémon Morso",
+    "en": "Bite Pokémon",
+    "ja": "かみつきポケモン",
+    "zh_hans": "紧咬宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 35,
+    "atk": 55,
+    "def": 35,
+    "spa": 30,
+    "spd": 30,
+    "spe": 35,
+    "bst": 220
+  },
+  "abilities": {
+    "primary": "run_away",
+    "secondary": "quick_feet",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 56,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "poochyena",
+    "evolution": "poochyena",
+    "media": "poochyena"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 13.6,
+    "color": "gray",
+    "flavorText": "At first sight, POOCHYENA takes a bite at anything that moves. This POKéMON chases after prey until the victim becomes exhausted. However, it may turn tail if the prey strikes back."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

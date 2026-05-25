@@ -1,0 +1,98 @@
+{
+  "id": "dottler",
+  "slug": "dottler",
+  "nationalDex": 825,
+  "names": {
+    "ja_hrkt": "レドームシ",
+    "ja_roma": "Redomushi",
+    "ko": "레돔벌레",
+    "zh_hant": "天罩蟲",
+    "fr": "Coléodôme",
+    "de": "Keradar",
+    "es": "Dottler",
+    "it": "Dottler",
+    "en": "Dottler",
+    "ja": "レドームシ",
+    "zh_hans": "天罩虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "レドームポケモン",
+    "ko": "레이돔포켓몬",
+    "zh_hant": "天線罩寶可夢",
+    "fr": "Pokémon Radôme",
+    "de": "Radarkuppel-Pokémon",
+    "es": "Pokémon Radomo",
+    "it": "Pokémon Radome",
+    "en": "Radome Pokémon",
+    "ja": "レドームポケモン",
+    "zh_hans": "天线罩宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "bug",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 35,
+    "def": 80,
+    "spa": 50,
+    "spd": 90,
+    "spe": 30,
+    "bst": 335
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "compound_eyes",
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 117,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dottler",
+    "evolution": "dottler",
+    "media": "dottler"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 19.5,
+    "color": "yellow",
+    "flavorText": "It barely moves, but it’s still alive. Hiding in its shell without food or water seems to have awakened its psychic powers."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

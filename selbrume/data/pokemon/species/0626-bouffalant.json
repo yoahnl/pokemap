@@ -1,0 +1,97 @@
+{
+  "id": "bouffalant",
+  "slug": "bouffalant",
+  "nationalDex": 626,
+  "names": {
+    "ja_hrkt": "バッフロン",
+    "ja_roma": "Buffron",
+    "ko": "버프론",
+    "zh_hant": "爆炸頭水牛",
+    "fr": "Frison",
+    "de": "Bisofank",
+    "es": "Bouffalant",
+    "it": "Bouffalant",
+    "en": "Bouffalant",
+    "ja": "バッフロン",
+    "zh_hans": "爆炸头水牛"
+  },
+  "speciesName": {
+    "ja_hrkt": "ずつきうしポケモン",
+    "ko": "박치기소포켓몬",
+    "zh_hant": "頭錘牛寶可夢",
+    "fr": "Pokémon Coup d’Bœuf",
+    "de": "Kopfstoßrind-Pokémon",
+    "es": "Pokémon Torocabezazo",
+    "it": "Pokémon Sfondatoro",
+    "en": "Bash Buffalo Pokémon",
+    "ja": "ずつきうしポケモン",
+    "zh_hans": "头锤牛宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 110,
+    "def": 95,
+    "spa": 40,
+    "spd": 95,
+    "spe": 55,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "reckless",
+    "secondary": "sap_sipper",
+    "hidden": "soundproof"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bouffalant",
+    "evolution": "bouffalant",
+    "media": "bouffalant"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 94.6,
+    "color": "brown",
+    "flavorText": "Their fluffy fur absorbs damage, even if they strike foes with a fierce headbutt."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

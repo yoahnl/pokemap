@@ -1,0 +1,18 @@
+{
+  "speciesId": "overqwil",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/overqwil/front.png",
+      "backStatic": "assets/pokemon/sprites/overqwil/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/overqwil/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/overqwil/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/overqwil.png",
+      "cry": "assets/pokemon/cries/overqwil.ogg",
+      "animations": {}
+    }
+  }
+}

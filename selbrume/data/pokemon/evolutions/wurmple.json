@@ -1,0 +1,22 @@
+{
+  "speciesId": "wurmple",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "cascoon",
+      "method": "level_up",
+      "minLevel": 7,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "silcoon",
+      "method": "level_up",
+      "minLevel": 7,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

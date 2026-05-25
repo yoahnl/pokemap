@@ -1,0 +1,18 @@
+{
+  "speciesId": "skrelp",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skrelp/front.png",
+      "backStatic": "assets/pokemon/sprites/skrelp/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/skrelp/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/skrelp/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skrelp.png",
+      "cry": "assets/pokemon/cries/skrelp.ogg",
+      "animations": {}
+    }
+  }
+}

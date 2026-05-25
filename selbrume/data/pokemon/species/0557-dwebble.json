@@ -1,0 +1,99 @@
+{
+  "id": "dwebble",
+  "slug": "dwebble",
+  "nationalDex": 557,
+  "names": {
+    "ja_hrkt": "イシズマイ",
+    "ja_roma": "Ishizumai",
+    "ko": "돌살이",
+    "zh_hant": "石居蟹",
+    "fr": "Crabicoque",
+    "de": "Lithomith",
+    "es": "Dwebble",
+    "it": "Dwebble",
+    "en": "Dwebble",
+    "ja": "イシズマイ",
+    "zh_hans": "石居蟹"
+  },
+  "speciesName": {
+    "ja_hrkt": "いしやどポケモン",
+    "ko": "돌집포켓몬",
+    "zh_hant": "石居寶可夢",
+    "fr": "Pokémon Lithicole",
+    "de": "Steinhaus-Pokémon",
+    "es": "Pokémon Casapiedra",
+    "it": "Pokémon Pietracasa",
+    "en": "Rock Inn Pokémon",
+    "ja": "いしやどポケモン",
+    "zh_hans": "石居宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 65,
+    "def": 85,
+    "spa": 35,
+    "spd": 35,
+    "spe": 55,
+    "bst": 325
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": "shell_armor",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 65,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dwebble",
+    "evolution": "dwebble",
+    "media": "dwebble"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 14.5,
+    "color": "red",
+    "flavorText": "This Pokémon can easily melt holes in hard rocks with a liquid secreted from its mouth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

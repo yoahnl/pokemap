@@ -1,0 +1,22 @@
+{
+  "speciesId": "sandshrew",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sandslash",
+      "method": "level_up",
+      "minLevel": 22,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "sandslash",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "ice-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

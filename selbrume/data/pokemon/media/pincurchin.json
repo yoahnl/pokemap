@@ -1,0 +1,18 @@
+{
+  "speciesId": "pincurchin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pincurchin/front.png",
+      "backStatic": "assets/pokemon/sprites/pincurchin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pincurchin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pincurchin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pincurchin.png",
+      "cry": "assets/pokemon/cries/pincurchin.ogg",
+      "animations": {}
+    }
+  }
+}

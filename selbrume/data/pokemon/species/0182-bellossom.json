@@ -1,0 +1,97 @@
+{
+  "id": "bellossom",
+  "slug": "bellossom",
+  "nationalDex": 182,
+  "names": {
+    "ja_hrkt": "キレイハナ",
+    "ja_roma": "Kireihana",
+    "ko": "아르코",
+    "zh_hant": "美麗花",
+    "fr": "Joliflor",
+    "de": "Blubella",
+    "es": "Bellossom",
+    "it": "Bellossom",
+    "en": "Bellossom",
+    "ja": "キレイハナ",
+    "zh_hans": "美丽花"
+  },
+  "speciesName": {
+    "ja_hrkt": "フラワーポケモン",
+    "ko": "꽃포켓몬",
+    "zh_hant": "花寶可夢",
+    "fr": "Pokémon Fleur",
+    "de": "Blumen-Pokémon",
+    "es": "Pokémon Flor",
+    "it": "Pokémon Fiore",
+    "en": "Flower Pokémon",
+    "ja": "フラワーポケモン",
+    "zh_hans": "花宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 80,
+    "def": 95,
+    "spa": 90,
+    "spd": 100,
+    "spe": 50,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": null,
+    "hidden": "healer"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 221,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bellossom",
+    "evolution": "bellossom",
+    "media": "bellossom"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 5.8,
+    "color": "green",
+    "flavorText": "Plentiful in the tropics. When it dances, its petals rub together and make a pleasant ringing sound."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

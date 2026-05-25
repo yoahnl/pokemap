@@ -1,0 +1,98 @@
+{
+  "id": "klefki",
+  "slug": "klefki",
+  "nationalDex": 707,
+  "names": {
+    "ja_hrkt": "クレッフィ",
+    "ja_roma": "Cleffy",
+    "ko": "클레피",
+    "zh_hant": "鑰圈兒",
+    "fr": "Trousselin",
+    "de": "Clavion",
+    "es": "Klefki",
+    "it": "Klefki",
+    "en": "Klefki",
+    "ja": "クレッフィ",
+    "zh_hans": "钥圈儿"
+  },
+  "speciesName": {
+    "ja_hrkt": "かぎたばポケモン",
+    "ko": "열쇠꾸러미포켓몬",
+    "zh_hant": "鑰匙串寶可夢",
+    "fr": "Pokémon Trousseau",
+    "de": "Schlüssel-Pokémon",
+    "es": "Pokémon Llavero",
+    "it": "Pokémon Portachiavi",
+    "en": "Key Ring Pokémon",
+    "ja": "かぎたばポケモン",
+    "zh_hans": "钥匙串宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "steel",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 57,
+    "atk": 80,
+    "def": 91,
+    "spa": 80,
+    "spd": 87,
+    "spe": 75,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "prankster",
+    "secondary": null,
+    "hidden": "magician"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 165,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "klefki",
+    "evolution": "klefki",
+    "media": "klefki"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 3.0,
+    "color": "gray",
+    "flavorText": "These key collectors threaten any attackers by fiercely jingling their keys at them."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "slurpuff",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/slurpuff/front.png",
+      "backStatic": "assets/pokemon/sprites/slurpuff/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/slurpuff/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/slurpuff/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/slurpuff.png",
+      "cry": "assets/pokemon/cries/slurpuff.ogg",
+      "animations": {}
+    }
+  }
+}

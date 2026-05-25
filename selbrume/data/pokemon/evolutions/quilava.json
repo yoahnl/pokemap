@@ -1,0 +1,22 @@
+{
+  "speciesId": "quilava",
+  "preEvolution": "cyndaquil",
+  "evolutions": [
+    {
+      "targetSpeciesId": "typhlosion",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "typhlosion",
+      "method": "level_up",
+      "minLevel": 36,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

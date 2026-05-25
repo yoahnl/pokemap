@@ -1,0 +1,18 @@
+{
+  "speciesId": "yanmega",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/yanmega/front.png",
+      "backStatic": "assets/pokemon/sprites/yanmega/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/yanmega/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/yanmega/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/yanmega.png",
+      "cry": "assets/pokemon/cries/yanmega.ogg",
+      "animations": {}
+    }
+  }
+}

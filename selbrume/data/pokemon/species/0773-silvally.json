@@ -1,0 +1,117 @@
+{
+  "id": "silvally",
+  "slug": "silvally",
+  "nationalDex": 773,
+  "names": {
+    "ja_hrkt": "シルヴァディ",
+    "ja_roma": "Silvady",
+    "ko": "실버디",
+    "zh_hant": "銀伴戰獸",
+    "fr": "Silvallié",
+    "de": "Amigento",
+    "es": "Silvally",
+    "it": "Silvally",
+    "en": "Silvally",
+    "ja": "シルヴァディ",
+    "zh_hans": "银伴战兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "じんこうポケモン",
+    "ko": "인공포켓몬",
+    "zh_hant": "人工寶可夢",
+    "fr": "Pokémon Multigénome",
+    "de": "Modifikations-Pokémon",
+    "es": "Pokémon Multigénico",
+    "it": "Pokémon Multigene",
+    "en": "Synthetic Pokémon",
+    "ja": "じんこうポケモン",
+    "zh_hans": "人工宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 95,
+    "def": 95,
+    "spa": 95,
+    "spd": 95,
+    "spe": 95,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "rks_system",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "silvally-bug",
+      "silvally-dark",
+      "silvally-dragon",
+      "silvally-electric",
+      "silvally-fairy",
+      "silvally-fighting",
+      "silvally-fire",
+      "silvally-flying",
+      "silvally-ghost",
+      "silvally-grass",
+      "silvally-ground",
+      "silvally-ice",
+      "silvally-poison",
+      "silvally-psychic",
+      "silvally-rock",
+      "silvally-steel",
+      "silvally-water"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "silvally",
+    "evolution": "silvally",
+    "media": "silvally"
+  },
+  "dexContent": {
+    "heightM": 2.3,
+    "weightKg": 100.5,
+    "color": "gray",
+    "flavorText": "Its trust in its partner is what awakens it. This Pokémon is capable of changing its type, a flexibility that is well displayed in battle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

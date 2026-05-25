@@ -1,0 +1,18 @@
+{
+  "speciesId": "toedscruel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/toedscruel/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/toedscruel/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/toedscruel.png",
+      "cry": "assets/pokemon/cries/toedscruel.ogg",
+      "animations": {}
+    }
+  }
+}

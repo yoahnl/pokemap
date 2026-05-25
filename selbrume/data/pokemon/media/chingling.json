@@ -1,0 +1,18 @@
+{
+  "speciesId": "chingling",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chingling/front.png",
+      "backStatic": "assets/pokemon/sprites/chingling/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chingling/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chingling/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chingling.png",
+      "cry": "assets/pokemon/cries/chingling.ogg",
+      "animations": {}
+    }
+  }
+}

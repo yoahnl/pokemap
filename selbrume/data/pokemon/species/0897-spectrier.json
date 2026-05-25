@@ -1,0 +1,99 @@
+{
+  "id": "spectrier",
+  "slug": "spectrier",
+  "nationalDex": 897,
+  "names": {
+    "ja_hrkt": "レイスポス",
+    "ja_roma": "Wraithpos",
+    "ko": "레이스포스",
+    "zh_hant": "靈幽馬",
+    "fr": "Spectreval",
+    "de": "Phantoross",
+    "es": "Spectrier",
+    "it": "Spectrier",
+    "en": "Spectrier",
+    "ja": "レイスポス",
+    "zh_hans": "灵幽马"
+  },
+  "speciesName": {
+    "ja_hrkt": "しゅんばポケモン",
+    "ko": "빠른말포켓몬",
+    "zh_hant": "駿馬寶可夢",
+    "fr": "Pokémon Cheval Vif",
+    "de": "Flinkblut-Pokémon",
+    "es": "Pokémon Corcel Veloz",
+    "it": "Pokémon Sveltequino",
+    "en": "Swift Horse Pokémon",
+    "ja": "しゅんばポケモン",
+    "zh_hans": "骏马宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 65,
+    "def": 60,
+    "spa": 145,
+    "spd": 80,
+    "spe": 130,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "grim_neigh",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 290,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spectrier",
+    "evolution": "spectrier",
+    "media": "spectrier"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 44.5,
+    "color": "black",
+    "flavorText": "It probes its surroundings with all its senses save one—it doesn’t use its sense of sight. Spectrier’s kicks are said to separate soul from body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

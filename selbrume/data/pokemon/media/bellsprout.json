@@ -1,0 +1,18 @@
+{
+  "speciesId": "bellsprout",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bellsprout/front.png",
+      "backStatic": "assets/pokemon/sprites/bellsprout/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bellsprout/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bellsprout/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bellsprout.png",
+      "cry": "assets/pokemon/cries/bellsprout.ogg",
+      "animations": {}
+    }
+  }
+}

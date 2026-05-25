@@ -1,0 +1,18 @@
+{
+  "speciesId": "obstagoon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/obstagoon/front.png",
+      "backStatic": "assets/pokemon/sprites/obstagoon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/obstagoon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/obstagoon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/obstagoon.png",
+      "cry": "assets/pokemon/cries/obstagoon.ogg",
+      "animations": {}
+    }
+  }
+}

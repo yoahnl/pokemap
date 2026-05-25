@@ -1,0 +1,97 @@
+{
+  "id": "shuppet",
+  "slug": "shuppet",
+  "nationalDex": 353,
+  "names": {
+    "ja_hrkt": "カゲボウズ",
+    "ja_roma": "Kagebouzu",
+    "ko": "어둠대신",
+    "zh_hant": "怨影娃娃",
+    "fr": "Polichombr",
+    "de": "Shuppet",
+    "es": "Shuppet",
+    "it": "Shuppet",
+    "en": "Shuppet",
+    "ja": "カゲボウズ",
+    "zh_hans": "怨影娃娃"
+  },
+  "speciesName": {
+    "ja_hrkt": "にんぎょうポケモン",
+    "ko": "인형포켓몬",
+    "zh_hant": "人偶寶可夢",
+    "fr": "Pokémon Poupée",
+    "de": "Puppe",
+    "es": "Pokémon Títere",
+    "it": "Pokémon Pupazzo",
+    "en": "Puppet Pokémon",
+    "ja": "にんぎょうポケモン",
+    "zh_hans": "人偶宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 44,
+    "atk": 75,
+    "def": 35,
+    "spa": 63,
+    "spd": 33,
+    "spe": 45,
+    "bst": 295
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": "frisk",
+    "hidden": "cursed_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 59,
+    "catchRate": 225,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shuppet",
+    "evolution": "shuppet",
+    "media": "shuppet"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 2.3,
+    "color": "black",
+    "flavorText": "SHUPPET is attracted by feelings of jealousy and vindictiveness. If someone develops strong feelings of vengeance, this POKéMON will appear in a swarm and line up beneath the eaves of that person’s home."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

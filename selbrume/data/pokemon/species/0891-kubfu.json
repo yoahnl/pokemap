@@ -1,0 +1,100 @@
+{
+  "id": "kubfu",
+  "slug": "kubfu",
+  "nationalDex": 891,
+  "names": {
+    "ja_hrkt": "ダクマ",
+    "ja_roma": "Dakuma",
+    "ko": "치고마",
+    "zh_hant": "熊徒弟",
+    "fr": "Wushours",
+    "de": "Dakuma",
+    "es": "Kubfu",
+    "it": "Kubfu",
+    "en": "Kubfu",
+    "ja": "ダクマ",
+    "zh_hans": "熊徒弟"
+  },
+  "speciesName": {
+    "ja_hrkt": "けんぽうポケモン",
+    "ko": "권법포켓몬",
+    "zh_hant": "拳法寶可夢",
+    "fr": "Pokémon Kung-fu",
+    "de": "Kung-Fu-Pokémon",
+    "es": "Pokémon Kung-fu",
+    "it": "Pokémon Kung Fu",
+    "en": "Wushu Pokémon",
+    "ja": "けんぽうポケモン",
+    "zh_hans": "拳法宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 90,
+    "def": 60,
+    "spa": 53,
+    "spd": 50,
+    "spe": 72,
+    "bst": 385
+  },
+  "abilities": {
+    "primary": "inner_focus",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 77,
+    "catchRate": 3,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "kubfu",
+    "evolution": "kubfu",
+    "media": "kubfu"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 12.0,
+    "color": "gray",
+    "flavorText": "Kubfu trains hard to perfect its moves. The moves it masters will determine which form it takes when it evolves."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

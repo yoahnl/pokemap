@@ -1,0 +1,30 @@
+{
+  "speciesId": "poltchageist",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/poltchageist/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/poltchageist/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/poltchageist.png",
+      "cry": "assets/pokemon/cries/poltchageist.ogg",
+      "animations": {}
+    },
+    "poltchageist-artisan": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

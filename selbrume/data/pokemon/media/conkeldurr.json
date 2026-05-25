@@ -1,0 +1,18 @@
+{
+  "speciesId": "conkeldurr",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/conkeldurr/front.png",
+      "backStatic": "assets/pokemon/sprites/conkeldurr/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/conkeldurr/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/conkeldurr/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/conkeldurr.png",
+      "cry": "assets/pokemon/cries/conkeldurr.ogg",
+      "animations": {}
+    }
+  }
+}

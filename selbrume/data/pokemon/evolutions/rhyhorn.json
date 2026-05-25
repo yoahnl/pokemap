@@ -1,0 +1,14 @@
+{
+  "speciesId": "rhyhorn",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "rhydon",
+      "method": "level_up",
+      "minLevel": 42,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

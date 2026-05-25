@@ -1,0 +1,18 @@
+{
+  "speciesId": "leafeon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/leafeon/front.png",
+      "backStatic": "assets/pokemon/sprites/leafeon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/leafeon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/leafeon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/leafeon.png",
+      "cry": "assets/pokemon/cries/leafeon.ogg",
+      "animations": {}
+    }
+  }
+}

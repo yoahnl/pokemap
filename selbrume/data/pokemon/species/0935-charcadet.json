@@ -1,0 +1,94 @@
+{
+  "id": "charcadet",
+  "slug": "charcadet",
+  "nationalDex": 935,
+  "names": {
+    "ja_hrkt": "カルボウ",
+    "ja_roma": "Carbou",
+    "ko": "카르본",
+    "zh_hant": "炭小侍",
+    "fr": "Charbambin",
+    "de": "Knarbon",
+    "es": "Charcadet",
+    "it": "Charcadet",
+    "en": "Charcadet",
+    "ja": "カルボウ",
+    "zh_hans": "炭小侍"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひのこポケモン",
+    "ko": "불의아이포켓몬",
+    "zh_hant": "小火星寶可夢",
+    "fr": "Enfant Feu",
+    "de": "Feuerkind",
+    "en": "Fire Child Pokémon",
+    "zh_hans": "小火星宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 50,
+    "def": 40,
+    "spa": 50,
+    "spd": 40,
+    "spe": 35,
+    "bst": 255
+  },
+  "abilities": {
+    "primary": "flash_fire",
+    "secondary": null,
+    "hidden": "flame_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 51,
+    "catchRate": 90,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "charcadet",
+    "evolution": "charcadet",
+    "media": "charcadet"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 10.5,
+    "color": "red",
+    "flavorText": "Burnt charcoal came to life and became a Pokémon. Possessing a fiery fighting spirit, Charcadet will battle even tough opponents."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

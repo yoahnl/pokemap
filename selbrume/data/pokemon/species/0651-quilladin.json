@@ -1,0 +1,100 @@
+{
+  "id": "quilladin",
+  "slug": "quilladin",
+  "nationalDex": 651,
+  "names": {
+    "ja_hrkt": "ハリボーグ",
+    "ja_roma": "Hariborg",
+    "ko": "도치보구",
+    "zh_hant": "胖胖哈力",
+    "fr": "Boguérisse",
+    "de": "Igastarnish",
+    "es": "Quilladin",
+    "it": "Quilladin",
+    "en": "Quilladin",
+    "ja": "ハリボーグ",
+    "zh_hans": "胖胖哈力"
+  },
+  "speciesName": {
+    "ja_hrkt": "とげよろいポケモン",
+    "ko": "가시갑옷포켓몬",
+    "zh_hant": "刺鎧寶可夢",
+    "fr": "Pokémon Épinarmure",
+    "de": "Spitzpanzer",
+    "es": "Pokémon Corazaespín",
+    "it": "Pokémon Spincorazza",
+    "en": "Spiny Armor Pokémon",
+    "ja": "とげよろいポケモン",
+    "zh_hans": "刺铠宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 61,
+    "atk": 78,
+    "def": 95,
+    "spa": 56,
+    "spd": 58,
+    "spe": 57,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "bulletproof"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "quilladin",
+    "evolution": "quilladin",
+    "media": "quilladin"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 29.0,
+    "color": "green",
+    "flavorText": "It relies on its sturdy shell to deflect predators’ attacks. It counterattacks with its sharp quills."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

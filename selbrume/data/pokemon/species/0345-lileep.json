@@ -1,0 +1,101 @@
+{
+  "id": "lileep",
+  "slug": "lileep",
+  "nationalDex": 345,
+  "names": {
+    "ja_hrkt": "リリーラ",
+    "ja_roma": "Lilyla",
+    "ko": "릴링",
+    "zh_hant": "觸手百合",
+    "fr": "Lilia",
+    "de": "Liliep",
+    "es": "Lileep",
+    "it": "Lileep",
+    "en": "Lileep",
+    "ja": "リリーラ",
+    "zh_hans": "触手百合"
+  },
+  "speciesName": {
+    "ja_hrkt": "ウミユリポケモン",
+    "ko": "바다나리포켓몬",
+    "zh_hant": "海百合寶可夢",
+    "fr": "Pokémon Lis d’Eau",
+    "de": "Seeanemonen-Pokémon",
+    "es": "Pokémon Lirio de Mar",
+    "it": "Pokémon Fiordimare",
+    "en": "Sea Lily Pokémon",
+    "ja": "ウミユリポケモン",
+    "zh_hans": "海百合宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "rock",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 66,
+    "atk": 41,
+    "def": 77,
+    "spa": 61,
+    "spd": 87,
+    "spe": 23,
+    "bst": 355
+  },
+  "abilities": {
+    "primary": "suction_cups",
+    "secondary": null,
+    "hidden": "storm_drain"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 71,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lileep",
+    "evolution": "lileep",
+    "media": "lileep"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 23.8,
+    "color": "purple",
+    "flavorText": "LILEEP became extinct approximately a hundred million years ago. This ancient POKéMON attaches itself to a rock on the seafloor and catches approaching prey using tentacles shaped like flower petals."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "speciesId": "magneton",
+  "preEvolution": "magnemite",
+  "evolutions": [
+    {
+      "targetSpeciesId": "magnezone",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: blush-mountain"
+      }
+    },
+    {
+      "targetSpeciesId": "magnezone",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: chargestone-cave"
+      }
+    },
+    {
+      "targetSpeciesId": "magnezone",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: kalos-route-13"
+      }
+    },
+    {
+      "targetSpeciesId": "magnezone",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: mt-coronet"
+      }
+    },
+    {
+      "targetSpeciesId": "magnezone",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: vast-poni-canyon"
+      }
+    },
+    {
+      "targetSpeciesId": "magnezone",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

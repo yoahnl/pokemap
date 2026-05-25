@@ -1,0 +1,100 @@
+{
+  "id": "celebi",
+  "slug": "celebi",
+  "nationalDex": 251,
+  "names": {
+    "ja_hrkt": "セレビィ",
+    "ja_roma": "Celebi",
+    "ko": "세레비",
+    "zh_hant": "時拉比",
+    "fr": "Celebi",
+    "de": "Celebi",
+    "es": "Celebi",
+    "it": "Celebi",
+    "en": "Celebi",
+    "ja": "セレビィ",
+    "zh_hans": "时拉比"
+  },
+  "speciesName": {
+    "ja_hrkt": "ときわたりポケモン",
+    "ko": "시간이동포켓몬",
+    "zh_hant": "時空穿越寶可夢",
+    "fr": "Pokémon Temporel",
+    "de": "Zeitreise-Pokémon",
+    "es": "Pokémon Viajetiempo",
+    "it": "Pokémon Tempovia",
+    "en": "Time Travel Pokémon",
+    "ja": "ときわたりポケモン",
+    "zh_hans": "时空穿越宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "psychic",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 100,
+    "def": 100,
+    "spa": 100,
+    "spd": 100,
+    "spe": 100,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "natural_cure",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 270,
+    "catchRate": 45,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "celebi",
+    "evolution": "celebi",
+    "media": "celebi"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 5.0,
+    "color": "green",
+    "flavorText": "This POKéMON wan­ ders across time. Grass and trees flourish in the forests in which it has appeared."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

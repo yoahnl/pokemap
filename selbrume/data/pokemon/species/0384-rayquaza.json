@@ -1,0 +1,102 @@
+{
+  "id": "rayquaza",
+  "slug": "rayquaza",
+  "nationalDex": 384,
+  "names": {
+    "ja_hrkt": "レックウザ",
+    "ja_roma": "Rayquaza",
+    "ko": "레쿠쟈",
+    "zh_hant": "烈空坐",
+    "fr": "Rayquaza",
+    "de": "Rayquaza",
+    "es": "Rayquaza",
+    "it": "Rayquaza",
+    "en": "Rayquaza",
+    "ja": "レックウザ",
+    "zh_hans": "烈空坐"
+  },
+  "speciesName": {
+    "ja_hrkt": "てんくうポケモン",
+    "ko": "천공포켓몬",
+    "zh_hant": "天空寶可夢",
+    "fr": "Pokémon Cieux",
+    "de": "Himmelhoch-Pokémon",
+    "es": "Pokémon Cielo",
+    "it": "Pokémon Stratosfera",
+    "en": "Sky High Pokémon",
+    "ja": "てんくうポケモン",
+    "zh_hans": "天空宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dragon",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 105,
+    "atk": 150,
+    "def": 90,
+    "spa": 150,
+    "spd": 90,
+    "spe": 95,
+    "bst": 680
+  },
+  "abilities": {
+    "primary": "air_lock",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 306,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "rayquaza-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rayquaza",
+    "evolution": "rayquaza",
+    "media": "rayquaza"
+  },
+  "dexContent": {
+    "heightM": 7.0,
+    "weightKg": 206.5,
+    "color": "green",
+    "flavorText": "RAYQUAZA lived for hundreds of millions of years in the earth’s ozone layer, never descending to the ground. This POKéMON appears to feed on water and particles in the atmosphere."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "glastrier",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/glastrier/front.png",
+      "backStatic": "assets/pokemon/sprites/glastrier/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/glastrier/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/glastrier/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/glastrier.png",
+      "cry": "assets/pokemon/cries/glastrier.ogg",
+      "animations": {}
+    }
+  }
+}

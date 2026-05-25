@@ -1,0 +1,14 @@
+{
+  "speciesId": "clobbopus",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "grapploct",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "taunt",
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "id": "arctibax",
+  "slug": "arctibax",
+  "nationalDex": 997,
+  "names": {
+    "ja_hrkt": "セゴール",
+    "ja_roma": "Segohru",
+    "ko": "드니꽁",
+    "zh_hant": "凍脊龍",
+    "fr": "Cryodo",
+    "de": "Cryospino",
+    "es": "Arctibax",
+    "it": "Arctibax",
+    "en": "Arctibax",
+    "ja": "セゴール",
+    "zh_hans": "冻脊龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "こおりビレポケモン",
+    "ko": "얼음지느러미포켓몬",
+    "zh_hant": "冰鰭寶可夢",
+    "fr": "Glaçaileron",
+    "de": "Eisfinne",
+    "en": "Ice Fin Pokémon",
+    "zh_hans": "冰鳍宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "dragon",
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 95,
+    "def": 66,
+    "spa": 45,
+    "spd": 65,
+    "spe": 62,
+    "bst": 423
+  },
+  "abilities": {
+    "primary": "thermal_exchange",
+    "secondary": null,
+    "hidden": "ice_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "dragon",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 148,
+    "catchRate": 25,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "arctibax",
+    "evolution": "arctibax",
+    "media": "arctibax"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 30.0,
+    "color": "gray",
+    "flavorText": "Arctibax freezes the air around it, protecting its face with an ice mask and turning its dorsal fin into a blade of ice."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

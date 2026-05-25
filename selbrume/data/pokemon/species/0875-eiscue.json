@@ -1,0 +1,100 @@
+{
+  "id": "eiscue",
+  "slug": "eiscue",
+  "nationalDex": 875,
+  "names": {
+    "ja_hrkt": "コオリッポ",
+    "ja_roma": "Korippo",
+    "ko": "빙큐보",
+    "zh_hant": "冰砌鵝",
+    "fr": "Bekaglaçon",
+    "de": "Kubuin",
+    "es": "Eiscue",
+    "it": "Eiscue",
+    "en": "Eiscue",
+    "ja": "コオリッポ",
+    "zh_hans": "冰砌鹅"
+  },
+  "speciesName": {
+    "ja_hrkt": "ペンギンポケモン",
+    "ko": "펭귄포켓몬",
+    "zh_hant": "企鵝寶可夢",
+    "fr": "Pokémon Pingouin",
+    "de": "Pinguin-Pokémon",
+    "es": "Pokémon Pingüino",
+    "it": "Pokémon Pinguino",
+    "en": "Penguin Pokémon",
+    "ja": "ペンギンポケモン",
+    "zh_hans": "企鹅宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 80,
+    "def": 110,
+    "spa": 65,
+    "spd": 90,
+    "spe": 50,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "ice_face",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 0,
+    "catchRate": 60,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "eiscue-noice"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "eiscue",
+    "evolution": "eiscue",
+    "media": "eiscue"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 89.0,
+    "color": "blue",
+    "flavorText": "It drifted in on the flow of ocean waters from a frigid place. It keeps its head iced constantly to make sure it stays nice and cold."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

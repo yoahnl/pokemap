@@ -1,0 +1,18 @@
+{
+  "speciesId": "dewott",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dewott/front.png",
+      "backStatic": "assets/pokemon/sprites/dewott/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dewott/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dewott/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dewott.png",
+      "cry": "assets/pokemon/cries/dewott.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "chimchar",
+  "slug": "chimchar",
+  "nationalDex": 390,
+  "names": {
+    "ja_hrkt": "ヒコザル",
+    "ja_roma": "Hikozaru",
+    "ko": "불꽃숭이",
+    "zh_hant": "小火焰猴",
+    "fr": "Ouisticram",
+    "de": "Panflam",
+    "es": "Chimchar",
+    "it": "Chimchar",
+    "en": "Chimchar",
+    "ja": "ヒコザル",
+    "zh_hans": "小火焰猴"
+  },
+  "speciesName": {
+    "ja_hrkt": "こざるポケモン",
+    "ko": "꼬마원숭이포켓몬",
+    "zh_hant": "小猴寶可夢",
+    "fr": "Pokémon Chimpanzé",
+    "de": "Schimpanse",
+    "es": "Pokémon Chimpancé",
+    "it": "Pokémon Scimpanzé",
+    "en": "Chimp Pokémon",
+    "ja": "こざるポケモン",
+    "zh_hans": "小猴宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 44,
+    "atk": 58,
+    "def": 44,
+    "spa": 58,
+    "spd": 44,
+    "spe": 61,
+    "bst": 309
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "iron_fist"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "chimchar",
+    "evolution": "chimchar",
+    "media": "chimchar"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 6.2,
+    "color": "brown",
+    "flavorText": "It agilely scales sheer cliffs to live atop craggy mountains. Its fire is put out when it sleeps."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

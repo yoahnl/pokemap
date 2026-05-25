@@ -1,0 +1,98 @@
+{
+  "id": "jynx",
+  "slug": "jynx",
+  "nationalDex": 124,
+  "names": {
+    "ja_hrkt": "ルージュラ",
+    "ja_roma": "Rougela",
+    "ko": "루주라",
+    "zh_hant": "迷唇姐",
+    "fr": "Lippoutou",
+    "de": "Rossana",
+    "es": "Jynx",
+    "it": "Jynx",
+    "en": "Jynx",
+    "ja": "ルージュラ",
+    "zh_hans": "迷唇姐"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひとがたポケモン",
+    "ko": "인간형태포켓몬",
+    "zh_hant": "人形寶可夢",
+    "fr": "Pokémon Humanoïde",
+    "de": "Humanotyp-Pokémon",
+    "es": "Pokémon Forma Humana",
+    "it": "Pokémon Umanoide",
+    "en": "Human Shape Pokémon",
+    "ja": "ひとがたポケモン",
+    "zh_hans": "人形宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ice",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 50,
+    "def": 35,
+    "spa": 115,
+    "spd": 95,
+    "spe": 95,
+    "bst": 455
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "forewarn",
+    "hidden": "dry_skin"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 159,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "jynx",
+    "evolution": "jynx",
+    "media": "jynx"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 40.6,
+    "color": "red",
+    "flavorText": "It seductively wiggles its hips as it walks. It can cause people to dance in unison with it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "stoutland",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/stoutland/front.png",
+      "backStatic": "assets/pokemon/sprites/stoutland/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/stoutland/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/stoutland/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/stoutland.png",
+      "cry": "assets/pokemon/cries/stoutland.ogg",
+      "animations": {}
+    }
+  }
+}

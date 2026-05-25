@@ -1,0 +1,14 @@
+{
+  "speciesId": "glimmet",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "glimmora",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

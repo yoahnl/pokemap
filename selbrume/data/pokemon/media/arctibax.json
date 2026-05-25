@@ -1,0 +1,18 @@
+{
+  "speciesId": "arctibax",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/arctibax/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/arctibax/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/arctibax.png",
+      "cry": "assets/pokemon/cries/arctibax.ogg",
+      "animations": {}
+    }
+  }
+}

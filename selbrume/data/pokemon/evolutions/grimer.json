@@ -1,0 +1,22 @@
+{
+  "speciesId": "grimer",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "muk",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "muk",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

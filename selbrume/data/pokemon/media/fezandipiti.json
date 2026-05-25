@@ -1,0 +1,18 @@
+{
+  "speciesId": "fezandipiti",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/fezandipiti/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/fezandipiti/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/fezandipiti.png",
+      "cry": "assets/pokemon/cries/fezandipiti.ogg",
+      "animations": {}
+    }
+  }
+}

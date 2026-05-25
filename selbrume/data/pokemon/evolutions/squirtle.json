@@ -1,0 +1,14 @@
+{
+  "speciesId": "squirtle",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "wartortle",
+      "method": "level_up",
+      "minLevel": 16,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

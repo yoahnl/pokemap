@@ -1,0 +1,98 @@
+{
+  "id": "hoothoot",
+  "slug": "hoothoot",
+  "nationalDex": 163,
+  "names": {
+    "ja_hrkt": "ホーホー",
+    "ja_roma": "Hoho",
+    "ko": "부우부",
+    "zh_hant": "咕咕",
+    "fr": "Hoothoot",
+    "de": "Hoothoot",
+    "es": "Hoothoot",
+    "it": "Hoothoot",
+    "en": "Hoothoot",
+    "ja": "ホーホー",
+    "zh_hans": "咕咕"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふくろうポケモン",
+    "ko": "부엉이포켓몬",
+    "zh_hant": "貓頭鷹寶可夢",
+    "fr": "Pokémon Hibou",
+    "de": "Eulen-Pokémon",
+    "es": "Pokémon Búho",
+    "it": "Pokémon Gufo",
+    "en": "Owl Pokémon",
+    "ja": "ふくろうポケモン",
+    "zh_hans": "猫头鹰宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 30,
+    "def": 30,
+    "spa": 36,
+    "spd": 56,
+    "spe": 50,
+    "bst": 262
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": "keen_eye",
+    "hidden": "tinted_lens"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 52,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hoothoot",
+    "evolution": "hoothoot",
+    "media": "hoothoot"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 21.2,
+    "color": "brown",
+    "flavorText": "It always stands on one foot. It changes feet so fast, the movement can rarely be seen."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "id": "nincada",
+  "slug": "nincada",
+  "nationalDex": 290,
+  "names": {
+    "ja_hrkt": "ツチニン",
+    "ja_roma": "Tutinin",
+    "ko": "토중몬",
+    "zh_hant": "土居忍士",
+    "fr": "Ningale",
+    "de": "Nincada",
+    "es": "Nincada",
+    "it": "Nincada",
+    "en": "Nincada",
+    "ja": "ツチニン",
+    "zh_hans": "土居忍士"
+  },
+  "speciesName": {
+    "ja_hrkt": "したづみポケモン",
+    "ko": "신참포켓몬",
+    "zh_hant": "入門寶可夢",
+    "fr": "Pokémon Apprenti",
+    "de": "Vorbereiter-Pokémon",
+    "es": "Pokémon Aprendiz",
+    "it": "Pokémon Novizio",
+    "en": "Trainee Pokémon",
+    "ja": "したづみポケモン",
+    "zh_hans": "入门宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "bug",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 31,
+    "atk": 45,
+    "def": 90,
+    "spa": 30,
+    "spd": 30,
+    "spe": 40,
+    "bst": 266
+  },
+  "abilities": {
+    "primary": "compound_eyes",
+    "secondary": null,
+    "hidden": "run_away"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 53,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "nincada",
+    "evolution": "nincada",
+    "media": "nincada"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 5.5,
+    "color": "gray",
+    "flavorText": "NINCADA lives underground for many years in complete darkness. This POKéMON absorbs nutrients from the roots of trees. It stays motionless as it waits for evolution."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

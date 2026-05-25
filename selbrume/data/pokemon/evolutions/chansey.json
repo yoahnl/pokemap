@@ -1,0 +1,16 @@
+{
+  "speciesId": "chansey",
+  "preEvolution": "happiny",
+  "evolutions": [
+    {
+      "targetSpeciesId": "blissey",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160"
+      }
+    }
+  ]
+}

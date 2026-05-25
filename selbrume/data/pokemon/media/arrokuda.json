@@ -1,0 +1,18 @@
+{
+  "speciesId": "arrokuda",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/arrokuda/front.png",
+      "backStatic": "assets/pokemon/sprites/arrokuda/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/arrokuda/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/arrokuda/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/arrokuda.png",
+      "cry": "assets/pokemon/cries/arrokuda.ogg",
+      "animations": {}
+    }
+  }
+}

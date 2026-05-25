@@ -1,0 +1,98 @@
+{
+  "id": "sizzlipede",
+  "slug": "sizzlipede",
+  "nationalDex": 850,
+  "names": {
+    "ja_hrkt": "ヤクデ",
+    "ja_roma": "Yakude",
+    "ko": "태우지네",
+    "zh_hant": "燒火蚣",
+    "fr": "Grillepattes",
+    "de": "Thermopod",
+    "es": "Sizzlipede",
+    "it": "Sizzlipede",
+    "en": "Sizzlipede",
+    "ja": "ヤクデ",
+    "zh_hans": "烧火蚣"
+  },
+  "speciesName": {
+    "ja_hrkt": "はつねつポケモン",
+    "ko": "발열포켓몬",
+    "zh_hant": "發熱寶可夢",
+    "fr": "Pokémon Calorifère",
+    "de": "Exotherm-Pokémon",
+    "es": "Pokémon Radiador",
+    "it": "Pokémon Termogeno",
+    "en": "Radiator Pokémon",
+    "ja": "はつねつポケモン",
+    "zh_hans": "发热宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fire",
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 65,
+    "def": 45,
+    "spa": 50,
+    "spd": 50,
+    "spe": 45,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "flash_fire",
+    "secondary": "white_smoke",
+    "hidden": "flame_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sizzlipede",
+    "evolution": "sizzlipede",
+    "media": "sizzlipede"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 1.0,
+    "color": "red",
+    "flavorText": "It stores flammable gas in its body and uses it to generate heat. The yellow sections on its belly get particularly hot."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

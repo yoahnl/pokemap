@@ -1,0 +1,102 @@
+{
+  "id": "primarina",
+  "slug": "primarina",
+  "nationalDex": 730,
+  "names": {
+    "ja_hrkt": "アシレーヌ",
+    "ja_roma": "Ashirene",
+    "ko": "누리레느",
+    "zh_hant": "西獅海壬",
+    "fr": "Oratoria",
+    "de": "Primarene",
+    "es": "Primarina",
+    "it": "Primarina",
+    "en": "Primarina",
+    "ja": "アシレーヌ",
+    "zh_hans": "西狮海壬"
+  },
+  "speciesName": {
+    "ja_hrkt": "ソリストポケモン",
+    "ko": "솔리스트포켓몬",
+    "zh_hant": "獨唱者寶可夢",
+    "fr": "Pokémon Soliste",
+    "de": "Solisten-Pokémon",
+    "es": "Pokémon Solista",
+    "it": "Pokémon Solista",
+    "en": "Soloist Pokémon",
+    "ja": "ソリストポケモン",
+    "zh_hans": "独唱者宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "water",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 74,
+    "def": 74,
+    "spa": 126,
+    "spd": 116,
+    "spe": 60,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "liquid_voice"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 239,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "primarina",
+    "evolution": "primarina",
+    "media": "primarina"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 44.0,
+    "color": "blue",
+    "flavorText": "It controls its water balloons with song. The melody is learned from others of its kind and is passed down from one generation to the next."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

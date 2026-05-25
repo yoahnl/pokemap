@@ -1,0 +1,97 @@
+{
+  "id": "arrokuda",
+  "slug": "arrokuda",
+  "nationalDex": 846,
+  "names": {
+    "ja_hrkt": "サシカマス",
+    "ja_roma": "Sasikamasu",
+    "ko": "찌로꼬치",
+    "zh_hant": "刺梭魚",
+    "fr": "Embrochet",
+    "de": "Pikuda",
+    "es": "Arrokuda",
+    "it": "Arrokuda",
+    "en": "Arrokuda",
+    "ja": "サシカマス",
+    "zh_hans": "刺梭鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "とつげきポケモン",
+    "ko": "돌격포켓몬",
+    "zh_hant": "突擊寶可夢",
+    "fr": "Pokémon Fonceur",
+    "de": "Rempler-Pokémon",
+    "es": "Pokémon Arremetida",
+    "it": "Pokémon Carica",
+    "en": "Rush Pokémon",
+    "ja": "とつげきポケモン",
+    "zh_hans": "突击宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 41,
+    "atk": 63,
+    "def": 40,
+    "spa": 40,
+    "spd": 30,
+    "spe": 66,
+    "bst": 280
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": null,
+    "hidden": "propeller_tail"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 56,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "arrokuda",
+    "evolution": "arrokuda",
+    "media": "arrokuda"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 1.0,
+    "color": "brown",
+    "flavorText": "If it sees any movement around it, this Pokémon charges for it straightaway, leading with its sharply pointed jaw. It’s very proud of that jaw."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

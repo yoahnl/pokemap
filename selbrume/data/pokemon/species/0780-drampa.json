@@ -1,0 +1,101 @@
+{
+  "id": "drampa",
+  "slug": "drampa",
+  "nationalDex": 780,
+  "names": {
+    "ja_hrkt": "ジジーロン",
+    "ja_roma": "Jijilong",
+    "ko": "할비롱",
+    "zh_hant": "老翁龍",
+    "fr": "Draïeul",
+    "de": "Sen-Long",
+    "es": "Drampa",
+    "it": "Drampa",
+    "en": "Drampa",
+    "ja": "ジジーロン",
+    "zh_hans": "老翁龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ゆうゆうポケモン",
+    "ko": "느긋누긋포켓몬",
+    "zh_hant": "悠遊寶可夢",
+    "fr": "Pokémon Nonchalant",
+    "de": "Gelassenheits-Pokémon",
+    "es": "Pokémon Sosiego",
+    "it": "Pokémon Tuttacalma",
+    "en": "Placid Pokémon",
+    "ja": "ゆうゆうポケモン",
+    "zh_hans": "悠游宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "normal",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 60,
+    "def": 85,
+    "spa": 135,
+    "spd": 91,
+    "spe": 36,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "berserk",
+    "secondary": "sap_sipper",
+    "hidden": "cloud_nine"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 170,
+    "catchRate": 70,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "drampa-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "drampa",
+    "evolution": "drampa",
+    "media": "drampa"
+  },
+  "dexContent": {
+    "heightM": 3.0,
+    "weightKg": 185.0,
+    "color": "white",
+    "flavorText": "It has a compassionate personality, but if it is angered, it completely destroys its surroundings with its intense breath."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

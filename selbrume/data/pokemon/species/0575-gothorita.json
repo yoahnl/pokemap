@@ -1,0 +1,100 @@
+{
+  "id": "gothorita",
+  "slug": "gothorita",
+  "nationalDex": 575,
+  "names": {
+    "ja_hrkt": "ゴチミル",
+    "ja_roma": "Gothimiru",
+    "ko": "고디보미",
+    "zh_hant": "哥德小童",
+    "fr": "Mesmérella",
+    "de": "Hypnomorba",
+    "es": "Gothorita",
+    "it": "Gothorita",
+    "en": "Gothorita",
+    "ja": "ゴチミル",
+    "zh_hans": "哥德小童"
+  },
+  "speciesName": {
+    "ja_hrkt": "あやつりポケモン",
+    "ko": "조작포켓몬",
+    "zh_hant": "操縱寶可夢",
+    "fr": "Pokémon Magouilleur",
+    "de": "Manipulator-Pokémon",
+    "es": "Pokémon Manipulador",
+    "it": "Pokémon Raggiro",
+    "en": "Manipulate Pokémon",
+    "ja": "あやつりポケモン",
+    "zh_hans": "操纵宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 45,
+    "def": 70,
+    "spa": 75,
+    "spd": 85,
+    "spe": 55,
+    "bst": 390
+  },
+  "abilities": {
+    "primary": "frisk",
+    "secondary": "competitive",
+    "hidden": "shadow_tag"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 137,
+    "catchRate": 100,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gothorita",
+    "evolution": "gothorita",
+    "media": "gothorita"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 18.0,
+    "color": "purple",
+    "flavorText": "They use hypnosis to control people and Pokémon. Tales of Gothorita leading people astray are told in every corner."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

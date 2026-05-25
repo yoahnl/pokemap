@@ -1,0 +1,18 @@
+{
+  "speciesId": "dustox",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dustox/front.png",
+      "backStatic": "assets/pokemon/sprites/dustox/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dustox/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dustox/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dustox.png",
+      "cry": "assets/pokemon/cries/dustox.ogg",
+      "animations": {}
+    }
+  }
+}

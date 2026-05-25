@@ -1,0 +1,98 @@
+{
+  "id": "venonat",
+  "slug": "venonat",
+  "nationalDex": 48,
+  "names": {
+    "ja_hrkt": "コンパン",
+    "ja_roma": "Kongpang",
+    "ko": "콘팡",
+    "zh_hant": "毛球",
+    "fr": "Mimitoss",
+    "de": "Bluzuk",
+    "es": "Venonat",
+    "it": "Venonat",
+    "en": "Venonat",
+    "ja": "コンパン",
+    "zh_hans": "毛球"
+  },
+  "speciesName": {
+    "ja_hrkt": "こんちゅうポケモン",
+    "ko": "곤충포켓몬",
+    "zh_hant": "昆蟲寶可夢",
+    "fr": "Pokémon Vermine",
+    "de": "Insekt",
+    "es": "Pokémon Insecto",
+    "it": "Pokémon Insetto",
+    "en": "Insect Pokémon",
+    "ja": "こんちゅうポケモン",
+    "zh_hans": "昆虫宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 55,
+    "def": 50,
+    "spa": 40,
+    "spd": 55,
+    "spe": 45,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "compound_eyes",
+    "secondary": "tinted_lens",
+    "hidden": "run_away"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "venonat",
+    "evolution": "venonat",
+    "media": "venonat"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 30.0,
+    "color": "purple",
+    "flavorText": "Lives in the shadows of tall trees where it eats insects. It is attracted by light at night."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

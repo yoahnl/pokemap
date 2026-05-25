@@ -1,0 +1,18 @@
+{
+  "speciesId": "phione",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/phione/front.png",
+      "backStatic": "assets/pokemon/sprites/phione/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/phione/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/phione/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/phione.png",
+      "cry": "assets/pokemon/cries/phione.ogg",
+      "animations": {}
+    }
+  }
+}

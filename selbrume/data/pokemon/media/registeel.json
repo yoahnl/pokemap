@@ -1,0 +1,18 @@
+{
+  "speciesId": "registeel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/registeel/front.png",
+      "backStatic": "assets/pokemon/sprites/registeel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/registeel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/registeel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/registeel.png",
+      "cry": "assets/pokemon/cries/registeel.ogg",
+      "animations": {}
+    }
+  }
+}

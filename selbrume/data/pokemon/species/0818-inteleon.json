@@ -1,0 +1,101 @@
+{
+  "id": "inteleon",
+  "slug": "inteleon",
+  "nationalDex": 818,
+  "names": {
+    "ja_hrkt": "インテレオン",
+    "ja_roma": "Intereon",
+    "ko": "인텔리레온",
+    "zh_hant": "千面避役",
+    "fr": "Lézargus",
+    "de": "Intelleon",
+    "es": "Inteleon",
+    "it": "Inteleon",
+    "en": "Inteleon",
+    "ja": "インテレオン",
+    "zh_hans": "千面避役"
+  },
+  "speciesName": {
+    "ja_hrkt": "エージェントポケモン",
+    "ko": "에이전트포켓몬",
+    "zh_hant": "特工寶可夢",
+    "fr": "Pokémon Agent Secret",
+    "de": "Geheimagenten-Pokémon",
+    "es": "Pokémon Agente",
+    "it": "Pokémon Agente",
+    "en": "Secret Agent Pokémon",
+    "ja": "エージェントポケモン",
+    "zh_hans": "特工宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 85,
+    "def": 65,
+    "spa": 125,
+    "spd": 65,
+    "spe": 120,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "sniper"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 265,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "inteleon",
+    "evolution": "inteleon",
+    "media": "inteleon"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 45.2,
+    "color": "blue",
+    "flavorText": "It has many hidden capabilities, such as fingertips that can shoot water and a membrane on its back that it can use to glide through the air."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

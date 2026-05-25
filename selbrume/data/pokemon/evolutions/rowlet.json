@@ -1,0 +1,14 @@
+{
+  "speciesId": "rowlet",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dartrix",
+      "method": "level_up",
+      "minLevel": 17,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

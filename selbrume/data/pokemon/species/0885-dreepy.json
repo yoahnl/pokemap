@@ -1,0 +1,99 @@
+{
+  "id": "dreepy",
+  "slug": "dreepy",
+  "nationalDex": 885,
+  "names": {
+    "ja_hrkt": "ドラメシヤ",
+    "ja_roma": "Dorameshiya",
+    "ko": "드라꼰",
+    "zh_hant": "多龍梅西亞",
+    "fr": "Fantyrm",
+    "de": "Grolldra",
+    "es": "Dreepy",
+    "it": "Dreepy",
+    "en": "Dreepy",
+    "ja": "ドラメシヤ",
+    "zh_hans": "多龙梅西亚"
+  },
+  "speciesName": {
+    "ja_hrkt": "うらめしポケモン",
+    "ko": "원망포켓몬",
+    "zh_hant": "哀怨寶可夢",
+    "fr": "Pokémon Âme Errante",
+    "de": "Missgunst-Pokémon",
+    "es": "Pokémon Resentido",
+    "it": "Pokémon Risentimento",
+    "en": "Lingering Pokémon",
+    "ja": "うらめしポケモン",
+    "zh_hans": "哀怨宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "dragon",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 28,
+    "atk": 60,
+    "def": 30,
+    "spa": 40,
+    "spd": 30,
+    "spe": 82,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": "infiltrator",
+    "hidden": "cursed_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 54,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dreepy",
+    "evolution": "dreepy",
+    "media": "dreepy"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 2.0,
+    "color": "green",
+    "flavorText": "After being reborn as a ghost Pokémon, Dreepy wanders the areas it used to inhabit back when it was alive in prehistoric seas."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

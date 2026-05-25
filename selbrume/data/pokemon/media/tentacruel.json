@@ -1,0 +1,18 @@
+{
+  "speciesId": "tentacruel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tentacruel/front.png",
+      "backStatic": "assets/pokemon/sprites/tentacruel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tentacruel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tentacruel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tentacruel.png",
+      "cry": "assets/pokemon/cries/tentacruel.ogg",
+      "animations": {}
+    }
+  }
+}

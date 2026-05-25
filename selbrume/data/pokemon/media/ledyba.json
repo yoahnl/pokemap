@@ -1,0 +1,18 @@
+{
+  "speciesId": "ledyba",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ledyba/front.png",
+      "backStatic": "assets/pokemon/sprites/ledyba/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ledyba/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ledyba/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ledyba.png",
+      "cry": "assets/pokemon/cries/ledyba.ogg",
+      "animations": {}
+    }
+  }
+}

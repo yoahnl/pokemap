@@ -1,0 +1,98 @@
+{
+  "id": "alomomola",
+  "slug": "alomomola",
+  "nationalDex": 594,
+  "names": {
+    "ja_hrkt": "ママンボウ",
+    "ja_roma": "Mamanbou",
+    "ko": "맘복치",
+    "zh_hant": "保母曼波",
+    "fr": "Mamanbo",
+    "de": "Mamolida",
+    "es": "Alomomola",
+    "it": "Alomomola",
+    "en": "Alomomola",
+    "ja": "ママンボウ",
+    "zh_hans": "保姆曼波"
+  },
+  "speciesName": {
+    "ja_hrkt": "かいほうポケモン",
+    "ko": "돌보기포켓몬",
+    "zh_hant": "看護寶可夢",
+    "fr": "Pokémon Soigneur",
+    "de": "Fürsorge",
+    "es": "Pokémon Socorrista",
+    "it": "Pokémon Assistenza",
+    "en": "Caring Pokémon",
+    "ja": "かいほうポケモン",
+    "zh_hans": "看护宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 165,
+    "atk": 75,
+    "def": 80,
+    "spa": 40,
+    "spd": 45,
+    "spe": 65,
+    "bst": 470
+  },
+  "abilities": {
+    "primary": "healer",
+    "secondary": "hydration",
+    "hidden": "regenerator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 165,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "alomomola",
+    "evolution": "alomomola",
+    "media": "alomomola"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 31.6,
+    "color": "pink",
+    "flavorText": "The special membrane enveloping Alomomola has the ability to heal wounds."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

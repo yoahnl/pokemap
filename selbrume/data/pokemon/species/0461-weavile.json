@@ -1,0 +1,98 @@
+{
+  "id": "weavile",
+  "slug": "weavile",
+  "nationalDex": 461,
+  "names": {
+    "ja_hrkt": "マニューラ",
+    "ja_roma": "Manyula",
+    "ko": "포푸니라",
+    "zh_hant": "瑪狃拉",
+    "fr": "Dimoret",
+    "de": "Snibunna",
+    "es": "Weavile",
+    "it": "Weavile",
+    "en": "Weavile",
+    "ja": "マニューラ",
+    "zh_hans": "玛狃拉"
+  },
+  "speciesName": {
+    "ja_hrkt": "かぎづめポケモン",
+    "ko": "갈고리손톱포켓몬",
+    "zh_hant": "鉤爪寶可夢",
+    "fr": "Pokémon Grifacérée",
+    "de": "Stichklauen-Pokémon",
+    "es": "Pokémon Garra Filo",
+    "it": "Pokémon Lamartigli",
+    "en": "Sharp Claw Pokémon",
+    "ja": "かぎづめポケモン",
+    "zh_hans": "钩爪宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "dark",
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 120,
+    "def": 65,
+    "spa": 45,
+    "spd": 85,
+    "spe": 125,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "pickpocket"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 179,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "weavile",
+    "evolution": "weavile",
+    "media": "weavile"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 34.0,
+    "color": "black",
+    "flavorText": "They live in cold regions, forming groups of four or five that hunt prey with impressive coordination."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

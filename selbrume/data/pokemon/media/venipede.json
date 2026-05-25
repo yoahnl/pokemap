@@ -1,0 +1,18 @@
+{
+  "speciesId": "venipede",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/venipede/front.png",
+      "backStatic": "assets/pokemon/sprites/venipede/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/venipede/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/venipede/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/venipede.png",
+      "cry": "assets/pokemon/cries/venipede.ogg",
+      "animations": {}
+    }
+  }
+}

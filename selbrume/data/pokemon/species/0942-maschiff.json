@@ -1,0 +1,94 @@
+{
+  "id": "maschiff",
+  "slug": "maschiff",
+  "nationalDex": 942,
+  "names": {
+    "ja_hrkt": "オラチフ",
+    "ja_roma": "Orachifu",
+    "ko": "오라티프",
+    "zh_hant": "偶叫獒",
+    "fr": "Grondogue",
+    "de": "Mobtiff",
+    "es": "Maschiff",
+    "it": "Maschiff",
+    "en": "Maschiff",
+    "ja": "オラチフ",
+    "zh_hans": "偶叫獒"
+  },
+  "speciesName": {
+    "ja_hrkt": "わかぞうポケモン",
+    "ko": "애송이포켓몬",
+    "zh_hant": "小輩寶可夢",
+    "fr": "Jeunot",
+    "de": "Halbstark",
+    "en": "Rascal Pokémon",
+    "zh_hans": "小辈宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 78,
+    "def": 60,
+    "spa": 40,
+    "spd": 51,
+    "spe": 51,
+    "bst": 340
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "run_away",
+    "hidden": "stakeout"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 68,
+    "catchRate": 150,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "maschiff",
+    "evolution": "maschiff",
+    "media": "maschiff"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 16.0,
+    "color": "brown",
+    "flavorText": "It always scowls in an attempt to make opponents take it seriously, but even crying children will burst into laughter when they see Maschiff’s face."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

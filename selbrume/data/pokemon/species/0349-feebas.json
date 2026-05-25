@@ -1,0 +1,98 @@
+{
+  "id": "feebas",
+  "slug": "feebas",
+  "nationalDex": 349,
+  "names": {
+    "ja_hrkt": "ヒンバス",
+    "ja_roma": "Hinbass",
+    "ko": "빈티나",
+    "zh_hant": "醜醜魚",
+    "fr": "Barpau",
+    "de": "Barschwa",
+    "es": "Feebas",
+    "it": "Feebas",
+    "en": "Feebas",
+    "ja": "ヒンバス",
+    "zh_hans": "丑丑鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "さかなポケモン",
+    "ko": "물고기포켓몬",
+    "zh_hant": "魚寶可夢",
+    "fr": "Pokémon Poisson",
+    "de": "Fisch-Pokémon",
+    "es": "Pokémon Pez",
+    "it": "Pokémon Pesce",
+    "en": "Fish Pokémon",
+    "ja": "さかなポケモン",
+    "zh_hans": "鱼宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 20,
+    "atk": 15,
+    "def": 20,
+    "spa": 10,
+    "spd": 55,
+    "spe": 80,
+    "bst": 200
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "oblivious",
+    "hidden": "adaptability"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 40,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "feebas",
+    "evolution": "feebas",
+    "media": "feebas"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 7.4,
+    "color": "brown",
+    "flavorText": "FEEBAS’s fins are ragged and tattered from the start of its life. Because of its shoddy appearance, this POKéMON is largely ignored. It is capable of living in both the sea and in rivers."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

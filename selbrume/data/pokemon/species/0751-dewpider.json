@@ -1,0 +1,99 @@
+{
+  "id": "dewpider",
+  "slug": "dewpider",
+  "nationalDex": 751,
+  "names": {
+    "ja_hrkt": "シズクモ",
+    "ja_roma": "Shizukumo",
+    "ko": "물거미",
+    "zh_hant": "滴蛛",
+    "fr": "Araqua",
+    "de": "Araqua",
+    "es": "Dewpider",
+    "it": "Dewpider",
+    "en": "Dewpider",
+    "ja": "シズクモ",
+    "zh_hans": "滴蛛"
+  },
+  "speciesName": {
+    "ja_hrkt": "すいほうポケモン",
+    "ko": "수포포켓몬",
+    "zh_hant": "水泡寶可夢",
+    "fr": "Pokémon Aquabulle",
+    "de": "Wasserblasen-Pokémon",
+    "es": "Pokémon Pompa",
+    "it": "Pokémon Bolladacqua",
+    "en": "Water Bubble Pokémon",
+    "ja": "すいほうポケモン",
+    "zh_hans": "水泡宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "water",
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 38,
+    "atk": 40,
+    "def": 52,
+    "spa": 40,
+    "spd": 72,
+    "spe": 27,
+    "bst": 269
+  },
+  "abilities": {
+    "primary": "water_bubble",
+    "secondary": null,
+    "hidden": "water_absorb"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 54,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dewpider",
+    "evolution": "dewpider",
+    "media": "dewpider"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 4.0,
+    "color": "green",
+    "flavorText": "It crawls onto the land in search of food. Its water bubble allows it to breathe and protects its soft head."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

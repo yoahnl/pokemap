@@ -1,0 +1,18 @@
+{
+  "speciesId": "sylveon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sylveon/front.png",
+      "backStatic": "assets/pokemon/sprites/sylveon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sylveon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sylveon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sylveon.png",
+      "cry": "assets/pokemon/cries/sylveon.ogg",
+      "animations": {}
+    }
+  }
+}

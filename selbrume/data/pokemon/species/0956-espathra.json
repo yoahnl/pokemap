@@ -1,0 +1,94 @@
+{
+  "id": "espathra",
+  "slug": "espathra",
+  "nationalDex": 956,
+  "names": {
+    "ja_hrkt": "クエスパトラ",
+    "ja_roma": "Cuespatra",
+    "ko": "클레스퍼트라",
+    "zh_hant": "超能艷鴕",
+    "fr": "Cléopsytra",
+    "de": "Psiopatra",
+    "es": "Espathra",
+    "it": "Espathra",
+    "en": "Espathra",
+    "ja": "クエスパトラ",
+    "zh_hans": "超能艳鸵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ダチョウポケモン",
+    "ko": "타조포켓몬",
+    "zh_hant": "鴕鳥寶可夢",
+    "fr": "Autruche",
+    "de": "Strauß",
+    "en": "Ostrich Pokémon",
+    "zh_hans": "鸵鸟宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 60,
+    "def": 60,
+    "spa": 101,
+    "spd": 60,
+    "spe": 105,
+    "bst": 481
+  },
+  "abilities": {
+    "primary": "opportunist",
+    "secondary": "frisk",
+    "hidden": "speed_boost"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 168,
+    "catchRate": 60,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "espathra",
+    "evolution": "espathra",
+    "media": "espathra"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 90.0,
+    "color": "yellow",
+    "flavorText": "It immobilizes opponents by bathing them in psychic power from its large eyes. Despite its appearance, it has a vicious temperament."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "speciesId": "cubone",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "marowak",
+      "method": "level_up",
+      "minLevel": 28,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "marowak",
+      "method": "level_up",
+      "minLevel": 28,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night"
+      }
+    }
+  ]
+}

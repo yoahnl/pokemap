@@ -1,0 +1,14 @@
+{
+  "speciesId": "tarountula",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "spidops",
+      "method": "level_up",
+      "minLevel": 15,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

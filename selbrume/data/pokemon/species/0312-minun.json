@@ -1,0 +1,97 @@
+{
+  "id": "minun",
+  "slug": "minun",
+  "nationalDex": 312,
+  "names": {
+    "ja_hrkt": "マイナン",
+    "ja_roma": "Minun",
+    "ko": "마이농",
+    "zh_hant": "負電拍拍",
+    "fr": "Négapi",
+    "de": "Minun",
+    "es": "Minun",
+    "it": "Minun",
+    "en": "Minun",
+    "ja": "マイナン",
+    "zh_hans": "負电拍拍"
+  },
+  "speciesName": {
+    "ja_hrkt": "おうえんポケモン",
+    "ko": "응원포켓몬",
+    "zh_hant": "加油寶可夢",
+    "fr": "Pokémon Acclameur",
+    "de": "Jubel",
+    "es": "Pokémon Ánimo",
+    "it": "Pokémon Incitamento",
+    "en": "Cheering Pokémon",
+    "ja": "おうえんポケモン",
+    "zh_hans": "加油宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 40,
+    "def": 50,
+    "spa": 75,
+    "spd": 85,
+    "spe": 95,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "minus",
+    "secondary": null,
+    "hidden": "volt_absorb"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 142,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "minun",
+    "evolution": "minun",
+    "media": "minun"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.2,
+    "color": "yellow",
+    "flavorText": "MINUN is more concerned about cheering on its partners than its own safety. It shorts out the electricity in its body to create brilliant showers of sparks to cheer on its teammates."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

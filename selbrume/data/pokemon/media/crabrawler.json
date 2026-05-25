@@ -1,0 +1,18 @@
+{
+  "speciesId": "crabrawler",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/crabrawler/front.png",
+      "backStatic": "assets/pokemon/sprites/crabrawler/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/crabrawler/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/crabrawler/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/crabrawler.png",
+      "cry": "assets/pokemon/cries/crabrawler.ogg",
+      "animations": {}
+    }
+  }
+}

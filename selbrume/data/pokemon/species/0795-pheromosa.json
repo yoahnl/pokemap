@@ -1,0 +1,100 @@
+{
+  "id": "pheromosa",
+  "slug": "pheromosa",
+  "nationalDex": 795,
+  "names": {
+    "ja_hrkt": "フェローチェ",
+    "ja_roma": "Pheroache",
+    "ko": "페로코체",
+    "zh_hant": "費洛美螂",
+    "fr": "Cancrelove",
+    "de": "Schabelle",
+    "es": "Pheromosa",
+    "it": "Pheromosa",
+    "en": "Pheromosa",
+    "ja": "フェローチェ",
+    "zh_hans": "费洛美螂"
+  },
+  "speciesName": {
+    "ja_hrkt": "えんびポケモン",
+    "ko": "염미포켓몬",
+    "zh_hant": "美艷寶可夢",
+    "fr": "Pokémon Gracile",
+    "de": "Eleganz-Pokémon",
+    "es": "Pokémon Elegancia",
+    "it": "Pokémon Leggiadria",
+    "en": "Lissome Pokémon",
+    "ja": "えんびポケモン",
+    "zh_hans": "美艳宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "bug",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 71,
+    "atk": 137,
+    "def": 37,
+    "spa": 137,
+    "spd": 37,
+    "spe": 151,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pheromosa",
+    "evolution": "pheromosa",
+    "media": "pheromosa"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 25.0,
+    "color": "white",
+    "flavorText": "One of the dangerous Ultra Beasts, it has been spotted running across the land at terrific speeds."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

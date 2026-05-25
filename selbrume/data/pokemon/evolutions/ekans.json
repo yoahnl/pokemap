@@ -1,0 +1,14 @@
+{
+  "speciesId": "ekans",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "arbok",
+      "method": "level_up",
+      "minLevel": 22,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "nickit",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "thievul",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "dartrix",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dartrix/front.png",
+      "backStatic": "assets/pokemon/sprites/dartrix/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dartrix/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dartrix/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dartrix.png",
+      "cry": "assets/pokemon/cries/dartrix.ogg",
+      "animations": {}
+    }
+  }
+}

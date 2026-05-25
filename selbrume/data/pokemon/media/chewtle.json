@@ -1,0 +1,18 @@
+{
+  "speciesId": "chewtle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chewtle/front.png",
+      "backStatic": "assets/pokemon/sprites/chewtle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chewtle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chewtle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chewtle.png",
+      "cry": "assets/pokemon/cries/chewtle.ogg",
+      "animations": {}
+    }
+  }
+}

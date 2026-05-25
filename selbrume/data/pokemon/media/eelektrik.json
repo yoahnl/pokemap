@@ -1,0 +1,18 @@
+{
+  "speciesId": "eelektrik",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/eelektrik/front.png",
+      "backStatic": "assets/pokemon/sprites/eelektrik/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/eelektrik/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/eelektrik/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/eelektrik.png",
+      "cry": "assets/pokemon/cries/eelektrik.ogg",
+      "animations": {}
+    }
+  }
+}

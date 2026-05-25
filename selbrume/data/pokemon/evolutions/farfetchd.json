@@ -1,0 +1,14 @@
+{
+  "speciesId": "farfetchd",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "sirfetchd",
+      "method": "three_critical_hits",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

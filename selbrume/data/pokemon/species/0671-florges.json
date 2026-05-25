@@ -1,0 +1,102 @@
+{
+  "id": "florges",
+  "slug": "florges",
+  "nationalDex": 671,
+  "names": {
+    "ja_hrkt": "フラージェス",
+    "ja_roma": "Florges",
+    "ko": "플라제스",
+    "zh_hant": "花潔夫人",
+    "fr": "Florges",
+    "de": "Florges",
+    "es": "Florges",
+    "it": "Florges",
+    "en": "Florges",
+    "ja": "フラージェス",
+    "zh_hans": "花洁夫人"
+  },
+  "speciesName": {
+    "ja_hrkt": "ガーデンポケモン",
+    "ko": "가든포켓몬",
+    "zh_hant": "花園寶可夢",
+    "fr": "Pokémon Jardin",
+    "de": "Garten",
+    "es": "Pokémon Jardín",
+    "it": "Pokémon Giardino",
+    "en": "Garden Pokémon",
+    "ja": "ガーデンポケモン",
+    "zh_hans": "花园宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 65,
+    "def": 68,
+    "spa": 112,
+    "spd": 154,
+    "spe": 75,
+    "bst": 552
+  },
+  "abilities": {
+    "primary": "flower_veil",
+    "secondary": null,
+    "hidden": "symbiosis"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 248,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "florges-blue",
+      "florges-orange",
+      "florges-white",
+      "florges-yellow"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "florges",
+    "evolution": "florges",
+    "media": "florges"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 10.0,
+    "color": "white",
+    "flavorText": "It claims exquisite flower gardens as its territory, and it obtains power from basking in the energy emitted by flowering plants."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "glameow",
+  "slug": "glameow",
+  "nationalDex": 431,
+  "names": {
+    "ja_hrkt": "ニャルマー",
+    "ja_roma": "Nyarmar",
+    "ko": "나옹마",
+    "zh_hant": "魅力喵",
+    "fr": "Chaglam",
+    "de": "Charmian",
+    "es": "Glameow",
+    "it": "Glameow",
+    "en": "Glameow",
+    "ja": "ニャルマー",
+    "zh_hans": "魅力喵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ねこかぶりポケモン",
+    "ko": "내숭포켓몬",
+    "zh_hant": "裝乖寶可夢",
+    "fr": "Pokémon Chafouin",
+    "de": "Fies",
+    "es": "Pokémon Gastuto",
+    "it": "Pokémon Felide",
+    "en": "Catty Pokémon",
+    "ja": "ねこかぶりポケモン",
+    "zh_hans": "装乖宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 49,
+    "atk": 55,
+    "def": 42,
+    "spa": 42,
+    "spd": 37,
+    "spe": 85,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "limber",
+    "secondary": "own_tempo",
+    "hidden": "keen_eye"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 62,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "glameow",
+    "evolution": "glameow",
+    "media": "glameow"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 3.9,
+    "color": "gray",
+    "flavorText": "It claws if displeased and purrs when affectionate. Its fickleness is very popular among some."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "buizel",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "floatzel",
+      "method": "level_up",
+      "minLevel": 26,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

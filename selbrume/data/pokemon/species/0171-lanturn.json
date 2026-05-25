@@ -1,0 +1,98 @@
+{
+  "id": "lanturn",
+  "slug": "lanturn",
+  "nationalDex": 171,
+  "names": {
+    "ja_hrkt": "ランターン",
+    "ja_roma": "Lantern",
+    "ko": "랜턴",
+    "zh_hant": "電燈怪",
+    "fr": "Lanturn",
+    "de": "Lanturn",
+    "es": "Lanturn",
+    "it": "Lanturn",
+    "en": "Lanturn",
+    "ja": "ランターン",
+    "zh_hans": "电灯怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ライトポケモン",
+    "ko": "라이트포켓몬",
+    "zh_hant": "燈寶可夢",
+    "fr": "Pokémon Lumière",
+    "de": "Leuchten-Pokémon",
+    "es": "Pokémon Luz",
+    "it": "Pokémon Luce",
+    "en": "Light Pokémon",
+    "ja": "ライトポケモン",
+    "zh_hans": "灯宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water",
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 125,
+    "atk": 58,
+    "def": 58,
+    "spa": 76,
+    "spd": 76,
+    "spe": 67,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "volt_absorb",
+    "secondary": "illuminate",
+    "hidden": "water_absorb"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 161,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lanturn",
+    "evolution": "lanturn",
+    "media": "lanturn"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 22.5,
+    "color": "blue",
+    "flavorText": "The light it emits is so bright that it can illuminate the sea's surface from a depth of over three miles."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

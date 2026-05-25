@@ -1,0 +1,14 @@
+{
+  "speciesId": "ralts",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "kirlia",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

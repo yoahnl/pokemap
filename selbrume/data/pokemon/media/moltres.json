@@ -1,0 +1,30 @@
+{
+  "speciesId": "moltres",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/moltres/front.png",
+      "backStatic": "assets/pokemon/sprites/moltres/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/moltres/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/moltres/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/moltres.png",
+      "cry": "assets/pokemon/cries/moltres.ogg",
+      "animations": {}
+    },
+    "moltres-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

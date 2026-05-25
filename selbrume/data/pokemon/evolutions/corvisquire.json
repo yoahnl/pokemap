@@ -1,0 +1,14 @@
+{
+  "speciesId": "corvisquire",
+  "preEvolution": "rookidee",
+  "evolutions": [
+    {
+      "targetSpeciesId": "corviknight",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

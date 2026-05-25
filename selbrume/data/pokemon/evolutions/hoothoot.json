@@ -1,0 +1,14 @@
+{
+  "speciesId": "hoothoot",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "noctowl",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

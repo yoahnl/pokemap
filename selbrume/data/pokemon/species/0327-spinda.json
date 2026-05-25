@@ -1,0 +1,98 @@
+{
+  "id": "spinda",
+  "slug": "spinda",
+  "nationalDex": 327,
+  "names": {
+    "ja_hrkt": "パッチール",
+    "ja_roma": "Patcheel",
+    "ko": "얼루기",
+    "zh_hant": "晃晃斑",
+    "fr": "Spinda",
+    "de": "Pandir",
+    "es": "Spinda",
+    "it": "Spinda",
+    "en": "Spinda",
+    "ja": "パッチール",
+    "zh_hans": "晃晃斑"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぶちパンダポケモン",
+    "ko": "얼룩팬더포켓몬",
+    "zh_hant": "斑點熊貓寶可夢",
+    "fr": "Pokémon Panda Tache",
+    "de": "Punkt-Panda",
+    "es": "Pokémon Panda Topos",
+    "it": "Pokémon Macchipanda",
+    "en": "Spot Panda Pokémon",
+    "ja": "ぶちパンダポケモン",
+    "zh_hans": "斑点熊猫宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 60,
+    "def": 60,
+    "spa": 60,
+    "spd": 60,
+    "spe": 60,
+    "bst": 360
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "tangled_feet",
+    "hidden": "contrary"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 126,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spinda",
+    "evolution": "spinda",
+    "media": "spinda"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 5.0,
+    "color": "brown",
+    "flavorText": "No two Spinda have the same pattern of spots. Its tottering step fouls the aim of foes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

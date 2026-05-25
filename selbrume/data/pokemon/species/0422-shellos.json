@@ -1,0 +1,100 @@
+{
+  "id": "shellos",
+  "slug": "shellos",
+  "nationalDex": 422,
+  "names": {
+    "ja_hrkt": "カラナクシ",
+    "ja_roma": "Karanakushi",
+    "ko": "깝질무",
+    "zh_hant": "無殼海兔",
+    "fr": "Sancoki",
+    "de": "Schalellos",
+    "es": "Shellos",
+    "it": "Shellos",
+    "en": "Shellos",
+    "ja": "カラナクシ",
+    "zh_hans": "无壳海兔"
+  },
+  "speciesName": {
+    "ja_hrkt": "ウミウシポケモン",
+    "ko": "갯민숭달팽이포켓몬",
+    "zh_hant": "海兔寶可夢",
+    "fr": "Pokémon Aqualimace",
+    "de": "Seeschnecken-Pokémon",
+    "es": "Pokémon Babosa Marina",
+    "it": "Pokémon Lumacomare",
+    "en": "Sea Slug Pokémon",
+    "ja": "ウミウシポケモン",
+    "zh_hans": "海兔宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 76,
+    "atk": 48,
+    "def": 48,
+    "spa": 57,
+    "spd": 62,
+    "spe": 34,
+    "bst": 325
+  },
+  "abilities": {
+    "primary": "sticky_hold",
+    "secondary": "storm_drain",
+    "hidden": "sand_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 65,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "shellos-east"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shellos",
+    "evolution": "shellos",
+    "media": "shellos"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 6.3,
+    "color": "purple",
+    "flavorText": "Its colors and shapes differ from region to region. In the Sinnoh region, two types are confirmed."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

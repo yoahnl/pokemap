@@ -1,0 +1,18 @@
+{
+  "speciesId": "lairon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lairon/front.png",
+      "backStatic": "assets/pokemon/sprites/lairon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lairon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lairon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lairon.png",
+      "cry": "assets/pokemon/cries/lairon.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "snivy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/snivy/front.png",
+      "backStatic": "assets/pokemon/sprites/snivy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/snivy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/snivy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/snivy.png",
+      "cry": "assets/pokemon/cries/snivy.ogg",
+      "animations": {}
+    }
+  }
+}

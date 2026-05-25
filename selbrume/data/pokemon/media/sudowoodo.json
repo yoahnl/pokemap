@@ -1,0 +1,18 @@
+{
+  "speciesId": "sudowoodo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sudowoodo/front.png",
+      "backStatic": "assets/pokemon/sprites/sudowoodo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sudowoodo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sudowoodo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sudowoodo.png",
+      "cry": "assets/pokemon/cries/sudowoodo.ogg",
+      "animations": {}
+    }
+  }
+}

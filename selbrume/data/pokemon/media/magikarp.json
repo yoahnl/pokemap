@@ -1,0 +1,18 @@
+{
+  "speciesId": "magikarp",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magikarp/front.png",
+      "backStatic": "assets/pokemon/sprites/magikarp/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magikarp/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magikarp/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magikarp.png",
+      "cry": "assets/pokemon/cries/magikarp.ogg",
+      "animations": {}
+    }
+  }
+}

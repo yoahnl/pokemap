@@ -1,0 +1,100 @@
+{
+  "id": "hariyama",
+  "slug": "hariyama",
+  "nationalDex": 297,
+  "names": {
+    "ja_hrkt": "ハリテヤマ",
+    "ja_roma": "Hariteyama",
+    "ko": "하리뭉",
+    "zh_hant": "鐵掌力士",
+    "fr": "Hariyama",
+    "de": "Hariyama",
+    "es": "Hariyama",
+    "it": "Hariyama",
+    "en": "Hariyama",
+    "ja": "ハリテヤマ",
+    "zh_hans": "铁掌力士"
+  },
+  "speciesName": {
+    "ja_hrkt": "つっぱりポケモン",
+    "ko": "손바닥치기포켓몬",
+    "zh_hant": "猛推寶可夢",
+    "fr": "Pokémon Cogneur",
+    "de": "Armwurf",
+    "es": "Pokémon Empuje",
+    "it": "Pokémon Sberletese",
+    "en": "Arm Thrust Pokémon",
+    "ja": "つっぱりポケモン",
+    "zh_hans": "猛推宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 144,
+    "atk": 120,
+    "def": 60,
+    "spa": 40,
+    "spd": 60,
+    "spe": 50,
+    "bst": 474
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "guts",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 166,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hariyama",
+    "evolution": "hariyama",
+    "media": "hariyama"
+  },
+  "dexContent": {
+    "heightM": 2.3,
+    "weightKg": 253.8,
+    "color": "brown",
+    "flavorText": "It has the habit of challenging others without hesitation to tests of strength. It’s been known to stand on train tracks and stop trains using forearm thrusts."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

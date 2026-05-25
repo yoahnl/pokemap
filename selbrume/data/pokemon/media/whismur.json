@@ -1,0 +1,18 @@
+{
+  "speciesId": "whismur",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/whismur/front.png",
+      "backStatic": "assets/pokemon/sprites/whismur/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/whismur/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/whismur/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/whismur.png",
+      "cry": "assets/pokemon/cries/whismur.ogg",
+      "animations": {}
+    }
+  }
+}

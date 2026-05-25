@@ -1,0 +1,99 @@
+{
+  "id": "audino",
+  "slug": "audino",
+  "nationalDex": 531,
+  "names": {
+    "ja_hrkt": "タブンネ",
+    "ja_roma": "Tabunne",
+    "ko": "다부니",
+    "zh_hant": "差不多娃娃",
+    "fr": "Nanméouïe",
+    "de": "Ohrdoch",
+    "es": "Audino",
+    "it": "Audino",
+    "en": "Audino",
+    "ja": "タブンネ",
+    "zh_hans": "差不多娃娃"
+  },
+  "speciesName": {
+    "ja_hrkt": "ヒヤリングポケモン",
+    "ko": "히어링포켓몬",
+    "zh_hant": "聽力寶可夢",
+    "fr": "Pokémon Audition",
+    "de": "Gehör-Pokémon",
+    "es": "Pokémon Escucha",
+    "it": "Pokémon Ascolto",
+    "en": "Hearing Pokémon",
+    "ja": "ヒヤリングポケモン",
+    "zh_hans": "听力宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 103,
+    "atk": 60,
+    "def": 86,
+    "spa": 60,
+    "spd": 86,
+    "spe": 50,
+    "bst": 445
+  },
+  "abilities": {
+    "primary": "healer",
+    "secondary": "regenerator",
+    "hidden": "klutz"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 390,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "audino-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "audino",
+    "evolution": "audino",
+    "media": "audino"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 31.0,
+    "color": "pink",
+    "flavorText": "It touches others with the feelers on its ears, using the sound of their heartbeats to tell how they are feeling."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "throh",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/throh/front.png",
+      "backStatic": "assets/pokemon/sprites/throh/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/throh/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/throh/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/throh.png",
+      "cry": "assets/pokemon/cries/throh.ogg",
+      "animations": {}
+    }
+  }
+}

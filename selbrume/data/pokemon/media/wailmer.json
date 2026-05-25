@@ -1,0 +1,18 @@
+{
+  "speciesId": "wailmer",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wailmer/front.png",
+      "backStatic": "assets/pokemon/sprites/wailmer/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wailmer/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wailmer/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wailmer.png",
+      "cry": "assets/pokemon/cries/wailmer.ogg",
+      "animations": {}
+    }
+  }
+}

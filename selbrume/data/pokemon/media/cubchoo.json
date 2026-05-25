@@ -1,0 +1,18 @@
+{
+  "speciesId": "cubchoo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cubchoo/front.png",
+      "backStatic": "assets/pokemon/sprites/cubchoo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cubchoo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cubchoo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cubchoo.png",
+      "cry": "assets/pokemon/cries/cubchoo.ogg",
+      "animations": {}
+    }
+  }
+}

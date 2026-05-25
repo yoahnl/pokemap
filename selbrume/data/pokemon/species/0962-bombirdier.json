@@ -1,0 +1,95 @@
+{
+  "id": "bombirdier",
+  "slug": "bombirdier",
+  "nationalDex": 962,
+  "names": {
+    "ja_hrkt": "オトシドリ",
+    "ja_roma": "Otoshidori",
+    "ko": "떨구새",
+    "zh_hant": "下石鳥",
+    "fr": "Lestombaile",
+    "de": "Adebom",
+    "es": "Bombirdier",
+    "it": "Bombirdier",
+    "en": "Bombirdier",
+    "ja": "オトシドリ",
+    "zh_hans": "下石鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "おとしものポケモン",
+    "ko": "낙하물포켓몬",
+    "zh_hant": "掉東西寶可夢",
+    "fr": "Délesteur",
+    "de": "Abwurf",
+    "en": "Item Drop Pokémon",
+    "zh_hans": "掉东西宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "flying",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 103,
+    "def": 85,
+    "spa": 60,
+    "spd": 85,
+    "spe": 82,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "big_pecks",
+    "secondary": "keen_eye",
+    "hidden": "rocky_payload"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 243,
+    "catchRate": 25,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bombirdier",
+    "evolution": "bombirdier",
+    "media": "bombirdier"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 42.9,
+    "color": "white",
+    "flavorText": "It gathers things up in an apron made from shed feathers added to the Pokémon’s chest feathers, then drops those things from high places for fun."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

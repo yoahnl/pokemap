@@ -1,0 +1,18 @@
+{
+  "speciesId": "boltund",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/boltund/front.png",
+      "backStatic": "assets/pokemon/sprites/boltund/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/boltund/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/boltund/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/boltund.png",
+      "cry": "assets/pokemon/cries/boltund.ogg",
+      "animations": {}
+    }
+  }
+}

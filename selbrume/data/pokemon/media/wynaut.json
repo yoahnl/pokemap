@@ -1,0 +1,18 @@
+{
+  "speciesId": "wynaut",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wynaut/front.png",
+      "backStatic": "assets/pokemon/sprites/wynaut/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wynaut/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wynaut/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wynaut.png",
+      "cry": "assets/pokemon/cries/wynaut.ogg",
+      "animations": {}
+    }
+  }
+}

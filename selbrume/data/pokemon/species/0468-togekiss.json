@@ -1,0 +1,102 @@
+{
+  "id": "togekiss",
+  "slug": "togekiss",
+  "nationalDex": 468,
+  "names": {
+    "ja_hrkt": "トゲキッス",
+    "ja_roma": "Togekiss",
+    "ko": "토게키스",
+    "zh_hant": "波克基斯",
+    "fr": "Togekiss",
+    "de": "Togekiss",
+    "es": "Togekiss",
+    "it": "Togekiss",
+    "en": "Togekiss",
+    "ja": "トゲキッス",
+    "zh_hans": "波克基斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "しゅくふくポケモン",
+    "ko": "축복포켓몬",
+    "zh_hant": "祝福寶可夢",
+    "fr": "Pokémon Célébration",
+    "de": "Jubilierer-Pokémon",
+    "es": "Pokémon Festejo",
+    "it": "Pokémon Festa",
+    "en": "Jubilee Pokémon",
+    "ja": "しゅくふくポケモン",
+    "zh_hans": "祝福宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "fairy",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 85,
+    "atk": 50,
+    "def": 95,
+    "spa": 120,
+    "spd": 115,
+    "spe": 80,
+    "bst": 545
+  },
+  "abilities": {
+    "primary": "hustle",
+    "secondary": "serene_grace",
+    "hidden": "super_luck"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "flying",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 245,
+    "catchRate": 30,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "togekiss",
+    "evolution": "togekiss",
+    "media": "togekiss"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 38.0,
+    "color": "white",
+    "flavorText": "It will never appear where there is strife. Its sightings have become rare recently."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

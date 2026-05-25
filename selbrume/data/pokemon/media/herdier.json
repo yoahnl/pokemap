@@ -1,0 +1,18 @@
+{
+  "speciesId": "herdier",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/herdier/front.png",
+      "backStatic": "assets/pokemon/sprites/herdier/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/herdier/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/herdier/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/herdier.png",
+      "cry": "assets/pokemon/cries/herdier.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "psyduck",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "golduck",
+      "method": "level_up",
+      "minLevel": 33,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

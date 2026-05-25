@@ -1,0 +1,101 @@
+{
+  "id": "squirtle",
+  "slug": "squirtle",
+  "nationalDex": 7,
+  "names": {
+    "ja_hrkt": "ゼニガメ",
+    "ja_roma": "Zenigame",
+    "ko": "꼬부기",
+    "zh_hant": "傑尼龜",
+    "fr": "Carapuce",
+    "de": "Schiggy",
+    "es": "Squirtle",
+    "it": "Squirtle",
+    "en": "Squirtle",
+    "ja": "ゼニガメ",
+    "zh_hans": "杰尼龟"
+  },
+  "speciesName": {
+    "ja_hrkt": "かめのこポケモン",
+    "ko": "꼬마거북포켓몬",
+    "zh_hant": "小龜寶可夢",
+    "fr": "Pokémon Minitortue",
+    "de": "Minikröten-Pokémon",
+    "es": "Pokémon Tortuguita",
+    "it": "Pokémon Tartaghina",
+    "en": "Tiny Turtle Pokémon",
+    "ja": "かめのこポケモン",
+    "zh_hans": "小龟宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 44,
+    "atk": 48,
+    "def": 65,
+    "spa": 50,
+    "spd": 64,
+    "spe": 43,
+    "bst": 314
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 63,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "squirtle",
+    "evolution": "squirtle",
+    "media": "squirtle"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.0,
+    "color": "blue",
+    "flavorText": "After birth, its back swells and hardens into a shell. Powerfully sprays foam from its mouth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

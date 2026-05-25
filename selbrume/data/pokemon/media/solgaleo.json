@@ -1,0 +1,18 @@
+{
+  "speciesId": "solgaleo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/solgaleo/front.png",
+      "backStatic": "assets/pokemon/sprites/solgaleo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/solgaleo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/solgaleo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/solgaleo.png",
+      "cry": "assets/pokemon/cries/solgaleo.ogg",
+      "animations": {}
+    }
+  }
+}

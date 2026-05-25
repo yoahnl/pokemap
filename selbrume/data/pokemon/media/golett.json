@@ -1,0 +1,18 @@
+{
+  "speciesId": "golett",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/golett/front.png",
+      "backStatic": "assets/pokemon/sprites/golett/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/golett/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/golett/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/golett.png",
+      "cry": "assets/pokemon/cries/golett.ogg",
+      "animations": {}
+    }
+  }
+}

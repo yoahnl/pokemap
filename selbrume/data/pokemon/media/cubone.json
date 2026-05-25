@@ -1,0 +1,18 @@
+{
+  "speciesId": "cubone",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cubone/front.png",
+      "backStatic": "assets/pokemon/sprites/cubone/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cubone/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cubone/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cubone.png",
+      "cry": "assets/pokemon/cries/cubone.ogg",
+      "animations": {}
+    }
+  }
+}

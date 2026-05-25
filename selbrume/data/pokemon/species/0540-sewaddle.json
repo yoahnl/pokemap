@@ -1,0 +1,98 @@
+{
+  "id": "sewaddle",
+  "slug": "sewaddle",
+  "nationalDex": 540,
+  "names": {
+    "ja_hrkt": "クルミル",
+    "ja_roma": "Kurumiru",
+    "ko": "두르보",
+    "zh_hant": "蟲寶包",
+    "fr": "Larveyette",
+    "de": "Strawickl",
+    "es": "Sewaddle",
+    "it": "Sewaddle",
+    "en": "Sewaddle",
+    "ja": "クルミル",
+    "zh_hans": "虫宝包"
+  },
+  "speciesName": {
+    "ja_hrkt": "さいほうポケモン",
+    "ko": "재봉포켓몬",
+    "zh_hant": "裁縫寶可夢",
+    "fr": "Pokémon Couture",
+    "de": "Schneider",
+    "es": "Pokémon Sastre",
+    "it": "Pokémon Grancucito",
+    "en": "Sewing Pokémon",
+    "ja": "さいほうポケモン",
+    "zh_hans": "裁缝宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 53,
+    "def": 70,
+    "spa": 40,
+    "spd": 60,
+    "spe": 42,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "chlorophyll",
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sewaddle",
+    "evolution": "sewaddle",
+    "media": "sewaddle"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 2.5,
+    "color": "yellow",
+    "flavorText": "Leavanny dress it in clothes they made for it when it hatched. It hides its head in its hood while it is sleeping."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

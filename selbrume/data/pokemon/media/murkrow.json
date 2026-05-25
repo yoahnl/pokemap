@@ -1,0 +1,18 @@
+{
+  "speciesId": "murkrow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/murkrow/front.png",
+      "backStatic": "assets/pokemon/sprites/murkrow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/murkrow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/murkrow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/murkrow.png",
+      "cry": "assets/pokemon/cries/murkrow.ogg",
+      "animations": {}
+    }
+  }
+}

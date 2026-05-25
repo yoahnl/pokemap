@@ -1,0 +1,101 @@
+{
+  "id": "ribombee",
+  "slug": "ribombee",
+  "nationalDex": 743,
+  "names": {
+    "ja_hrkt": "アブリボン",
+    "ja_roma": "Aburibbon",
+    "ko": "에리본",
+    "zh_hant": "蝶結萌虻",
+    "fr": "Rubombelle",
+    "de": "Bandelby",
+    "es": "Ribombee",
+    "it": "Ribombee",
+    "en": "Ribombee",
+    "ja": "アブリボン",
+    "zh_hans": "蝶结萌虻"
+  },
+  "speciesName": {
+    "ja_hrkt": "ツリアブポケモン",
+    "ko": "재니등에포켓몬",
+    "zh_hant": "蜂虻寶可夢",
+    "fr": "Pokémon Bombyle",
+    "de": "Hummelfliegen-Pokémon",
+    "es": "Pokémon Mosca Abeja",
+    "it": "Pokémon Bombilide",
+    "en": "Bee Fly Pokémon",
+    "ja": "ツリアブポケモン",
+    "zh_hans": "蜂虻宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "bug",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 55,
+    "def": 60,
+    "spa": 95,
+    "spd": 70,
+    "spe": 124,
+    "bst": 464
+  },
+  "abilities": {
+    "primary": "honey_gather",
+    "secondary": "shield_dust",
+    "hidden": "sweet_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 162,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "ribombee-totem"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ribombee",
+    "evolution": "ribombee",
+    "media": "ribombee"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 0.5,
+    "color": "yellow",
+    "flavorText": "It rolls up pollen into puffs. It makes many different varieties, some used as food and others used in battle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

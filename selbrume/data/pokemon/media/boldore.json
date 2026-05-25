@@ -1,0 +1,18 @@
+{
+  "speciesId": "boldore",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/boldore/front.png",
+      "backStatic": "assets/pokemon/sprites/boldore/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/boldore/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/boldore/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/boldore.png",
+      "cry": "assets/pokemon/cries/boldore.ogg",
+      "animations": {}
+    }
+  }
+}

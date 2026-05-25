@@ -1,0 +1,18 @@
+{
+  "speciesId": "drednaw",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/drednaw/front.png",
+      "backStatic": "assets/pokemon/sprites/drednaw/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/drednaw/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/drednaw/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/drednaw.png",
+      "cry": "assets/pokemon/cries/drednaw.ogg",
+      "animations": {}
+    }
+  }
+}

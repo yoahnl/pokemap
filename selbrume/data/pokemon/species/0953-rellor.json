@@ -1,0 +1,94 @@
+{
+  "id": "rellor",
+  "slug": "rellor",
+  "nationalDex": 953,
+  "names": {
+    "ja_hrkt": "シガロコ",
+    "ja_roma": "Shigaroko",
+    "ko": "구르데",
+    "zh_hant": "蟲滾泥",
+    "fr": "Léboulérou",
+    "de": "Relluk",
+    "es": "Rellor",
+    "it": "Rellor",
+    "en": "Rellor",
+    "ja": "シガロコ",
+    "zh_hans": "虫滚泥"
+  },
+  "speciesName": {
+    "ja_hrkt": "ころがしポケモン",
+    "ko": "굴리기포켓몬",
+    "zh_hant": "滾動寶可夢",
+    "fr": "Rouleur",
+    "de": "Wälz",
+    "en": "Rolling Pokémon",
+    "zh_hans": "滚动宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 41,
+    "atk": 50,
+    "def": 60,
+    "spa": 31,
+    "spd": 58,
+    "spe": 30,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "compound_eyes",
+    "secondary": null,
+    "hidden": "shed_skin"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 54,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rellor",
+    "evolution": "rellor",
+    "media": "rellor"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 1.0,
+    "color": "brown",
+    "flavorText": "This Pokémon creates a mud ball by mixing sand and dirt with psychic energy. It treasures its mud ball more than its own life."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

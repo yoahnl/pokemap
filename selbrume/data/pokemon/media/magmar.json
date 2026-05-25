@@ -1,0 +1,18 @@
+{
+  "speciesId": "magmar",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magmar/front.png",
+      "backStatic": "assets/pokemon/sprites/magmar/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magmar/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magmar/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magmar.png",
+      "cry": "assets/pokemon/cries/magmar.ogg",
+      "animations": {}
+    }
+  }
+}

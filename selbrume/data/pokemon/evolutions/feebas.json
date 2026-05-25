@@ -1,0 +1,26 @@
+{
+  "speciesId": "feebas",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "milotic",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Beauty >= 170"
+      }
+    },
+    {
+      "targetSpeciesId": "milotic",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: prism-scale"
+      }
+    }
+  ]
+}

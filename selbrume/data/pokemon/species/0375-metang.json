@@ -1,0 +1,100 @@
+{
+  "id": "metang",
+  "slug": "metang",
+  "nationalDex": 375,
+  "names": {
+    "ja_hrkt": "メタング",
+    "ja_roma": "Metang",
+    "ko": "메탕구",
+    "zh_hant": "金屬怪",
+    "fr": "Métang",
+    "de": "Metang",
+    "es": "Metang",
+    "it": "Metang",
+    "en": "Metang",
+    "ja": "メタング",
+    "zh_hans": "金属怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "てつツメポケモン",
+    "ko": "철발톱포켓몬",
+    "zh_hant": "鐵爪寶可夢",
+    "fr": "Pokémon Pincefer",
+    "de": "Eisenklauen-Pokémon",
+    "es": "Pokémon Garra Hierro",
+    "it": "Pokémon Ferrunghia",
+    "en": "Iron Claw Pokémon",
+    "ja": "てつツメポケモン",
+    "zh_hans": "铁爪宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "steel",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 75,
+    "def": 100,
+    "spa": 55,
+    "spd": 80,
+    "spe": 50,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": null,
+    "hidden": "light_metal"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 147,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "metang",
+    "evolution": "metang",
+    "media": "metang"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 202.5,
+    "color": "blue",
+    "flavorText": "When two BELDUM fuse together, METANG is formed. The brains of the BELDUM are joined by a magnetic nervous system. By linking its brains magnetically, this POKéMON generates strong psychokinetic power."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "mawile",
+  "slug": "mawile",
+  "nationalDex": 303,
+  "names": {
+    "ja_hrkt": "クチート",
+    "ja_roma": "Kucheat",
+    "ko": "입치트",
+    "zh_hant": "大嘴娃",
+    "fr": "Mysdibule",
+    "de": "Flunkifer",
+    "es": "Mawile",
+    "it": "Mawile",
+    "en": "Mawile",
+    "ja": "クチート",
+    "zh_hans": "大嘴娃"
+  },
+  "speciesName": {
+    "ja_hrkt": "あざむきポケモン",
+    "ko": "배반포켓몬",
+    "zh_hant": "欺騙寶可夢",
+    "fr": "Pokémon Trompeur",
+    "de": "Schwindler-Pokémon",
+    "es": "Pokémon Tramposo",
+    "it": "Pokémon Inganno",
+    "en": "Deceiver Pokémon",
+    "ja": "あざむきポケモン",
+    "zh_hans": "欺骗宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "steel",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 85,
+    "def": 85,
+    "spa": 55,
+    "spd": 55,
+    "spe": 50,
+    "bst": 380
+  },
+  "abilities": {
+    "primary": "hyper_cutter",
+    "secondary": "intimidate",
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 133,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "mawile-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mawile",
+    "evolution": "mawile",
+    "media": "mawile"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 11.5,
+    "color": "black",
+    "flavorText": "MAWHILE’s huge jaws are actually steel horns that have been transformed. Its docile-looking face serves to lull its foe into letting down its guard. When the foe least expects it, MAWHILE chomps it with its gaping jaws."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "wooloo",
+  "slug": "wooloo",
+  "nationalDex": 831,
+  "names": {
+    "ja_hrkt": "ウールー",
+    "ja_roma": "Wooluu",
+    "ko": "우르",
+    "zh_hant": "毛辮羊",
+    "fr": "Moumouton",
+    "de": "Wolly",
+    "es": "Wooloo",
+    "it": "Wooloo",
+    "en": "Wooloo",
+    "ja": "ウールー",
+    "zh_hans": "毛辫羊"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひつじポケモン",
+    "ko": "양포켓몬",
+    "zh_hant": "綿羊寶可夢",
+    "fr": "Pokémon Mouton",
+    "de": "Schaf-Pokémon",
+    "es": "Pokémon Oveja",
+    "it": "Pokémon Pecora",
+    "en": "Sheep Pokémon",
+    "ja": "ひつじポケモン",
+    "zh_hans": "绵羊宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 42,
+    "atk": 40,
+    "def": 55,
+    "spa": 40,
+    "spd": 45,
+    "spe": 48,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "fluffy",
+    "secondary": "run_away",
+    "hidden": "bulletproof"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 122,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wooloo",
+    "evolution": "wooloo",
+    "media": "wooloo"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 6.0,
+    "color": "white",
+    "flavorText": "Its curly fleece is such an effective cushion that this Pokémon could fall off a cliff and stand right back up at the bottom, unharmed."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "stufful",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "bewear",
+      "method": "level_up",
+      "minLevel": 27,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

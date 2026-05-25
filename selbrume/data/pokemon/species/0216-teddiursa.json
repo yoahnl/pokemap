@@ -1,0 +1,97 @@
+{
+  "id": "teddiursa",
+  "slug": "teddiursa",
+  "nationalDex": 216,
+  "names": {
+    "ja_hrkt": "ヒメグマ",
+    "ja_roma": "Himeguma",
+    "ko": "깜지곰",
+    "zh_hant": "熊寶寶",
+    "fr": "Teddiursa",
+    "de": "Teddiursa",
+    "es": "Teddiursa",
+    "it": "Teddiursa",
+    "en": "Teddiursa",
+    "ja": "ヒメグマ",
+    "zh_hans": "熊宝宝"
+  },
+  "speciesName": {
+    "ja_hrkt": "こぐまポケモン",
+    "ko": "아기곰포켓몬",
+    "zh_hant": "小熊寶可夢",
+    "fr": "Pokémon Mini Ours",
+    "de": "Kleinbär",
+    "es": "Pokémon Osito",
+    "it": "Pokémon Orsetto",
+    "en": "Little Bear Pokémon",
+    "ja": "こぐまポケモン",
+    "zh_hans": "小熊宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 80,
+    "def": 50,
+    "spa": 50,
+    "spd": 50,
+    "spe": 40,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "quick_feet",
+    "hidden": "honey_gather"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 66,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "teddiursa",
+    "evolution": "teddiursa",
+    "media": "teddiursa"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 8.8,
+    "color": "brown",
+    "flavorText": "If it finds honey, its crescent mark glows. It always licks its paws because they are soaked with honey."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

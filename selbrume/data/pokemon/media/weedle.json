@@ -1,0 +1,18 @@
+{
+  "speciesId": "weedle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/weedle/front.png",
+      "backStatic": "assets/pokemon/sprites/weedle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/weedle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/weedle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/weedle.png",
+      "cry": "assets/pokemon/cries/weedle.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "perrserker",
+  "slug": "perrserker",
+  "nationalDex": 863,
+  "names": {
+    "ja_hrkt": "ニャイキング",
+    "ja_roma": "Nyaiking",
+    "ko": "나이킹",
+    "zh_hant": "喵頭目",
+    "fr": "Berserkatt",
+    "de": "Mauzinger",
+    "es": "Perrserker",
+    "it": "Perrserker",
+    "en": "Perrserker",
+    "ja": "ニャイキング",
+    "zh_hans": "喵头目"
+  },
+  "speciesName": {
+    "ja_hrkt": "バイキングポケモン",
+    "ko": "바이킹포켓몬",
+    "zh_hant": "維京寶可夢",
+    "fr": "Pokémon Viking",
+    "de": "Wikinger-Pokémon",
+    "es": "Pokémon Vikingo",
+    "it": "Pokémon Vichingo",
+    "en": "Viking Pokémon",
+    "ja": "バイキングポケモン",
+    "zh_hans": "维京宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 110,
+    "def": 100,
+    "spa": 50,
+    "spd": 60,
+    "spe": 50,
+    "bst": 440
+  },
+  "abilities": {
+    "primary": "battle_armor",
+    "secondary": "tough_claws",
+    "hidden": "steely_spirit"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 154,
+    "catchRate": 90,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "perrserker",
+    "evolution": "perrserker",
+    "media": "perrserker"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 28.0,
+    "color": "brown",
+    "flavorText": "What appears to be an iron helmet is actually hardened hair. This Pokémon lives for the thrill of battle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

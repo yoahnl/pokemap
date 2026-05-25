@@ -1,0 +1,101 @@
+{
+  "id": "anorith",
+  "slug": "anorith",
+  "nationalDex": 347,
+  "names": {
+    "ja_hrkt": "アノプス",
+    "ja_roma": "Anopth",
+    "ko": "아노딥스",
+    "zh_hant": "太古羽蟲",
+    "fr": "Anorith",
+    "de": "Anorith",
+    "es": "Anorith",
+    "it": "Anorith",
+    "en": "Anorith",
+    "ja": "アノプス",
+    "zh_hans": "太古羽虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "むかしエビポケモン",
+    "ko": "고대새우포켓몬",
+    "zh_hant": "古蝦寶可夢",
+    "fr": "Pokémon Crustage",
+    "de": "Urgarnelen-Pokémon",
+    "es": "Pokémon Camarón",
+    "it": "Pokémon Primaceo",
+    "en": "Old Shrimp Pokémon",
+    "ja": "むかしエビポケモン",
+    "zh_hans": "古虾宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "rock",
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 95,
+    "def": 50,
+    "spa": 40,
+    "spd": 50,
+    "spe": 75,
+    "bst": 355
+  },
+  "abilities": {
+    "primary": "battle_armor",
+    "secondary": null,
+    "hidden": "swift_swim"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 71,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "anorith",
+    "evolution": "anorith",
+    "media": "anorith"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 12.5,
+    "color": "gray",
+    "flavorText": "ANORITH was regenerated from a prehistoric fossil. This primitive POKéMON once lived in warm seas. It grips its prey firmly between its two large claws."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

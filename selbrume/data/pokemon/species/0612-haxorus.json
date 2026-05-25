@@ -1,0 +1,98 @@
+{
+  "id": "haxorus",
+  "slug": "haxorus",
+  "nationalDex": 612,
+  "names": {
+    "ja_hrkt": "オノノクス",
+    "ja_roma": "Ononokus",
+    "ko": "액스라이즈",
+    "zh_hant": "雙斧戰龍",
+    "fr": "Tranchodon",
+    "de": "Maxax",
+    "es": "Haxorus",
+    "it": "Haxorus",
+    "en": "Haxorus",
+    "ja": "オノノクス",
+    "zh_hans": "双斧战龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "あごオノポケモン",
+    "ko": "도끼턱포켓몬",
+    "zh_hant": "顎斧寶可夢",
+    "fr": "Pokémon Hachomenton",
+    "de": "Beilkiefer-Pokémon",
+    "es": "Pokémon Boca Hacha",
+    "it": "Pokémon Mascellascia",
+    "en": "Axe Jaw Pokémon",
+    "ja": "あごオノポケモン",
+    "zh_hans": "颚斧宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 76,
+    "atk": 147,
+    "def": 90,
+    "spa": 60,
+    "spd": 70,
+    "spe": 97,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "rivalry",
+    "secondary": "mold_breaker",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 243,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "haxorus",
+    "evolution": "haxorus",
+    "media": "haxorus"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 105.5,
+    "color": "yellow",
+    "flavorText": "They are kind but can be relentless when defending territory. They challenge foes with tusks that can cut steel."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

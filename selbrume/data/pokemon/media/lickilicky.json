@@ -1,0 +1,18 @@
+{
+  "speciesId": "lickilicky",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lickilicky/front.png",
+      "backStatic": "assets/pokemon/sprites/lickilicky/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lickilicky/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lickilicky/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lickilicky.png",
+      "cry": "assets/pokemon/cries/lickilicky.ogg",
+      "animations": {}
+    }
+  }
+}

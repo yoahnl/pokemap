@@ -1,0 +1,99 @@
+{
+  "id": "inkay",
+  "slug": "inkay",
+  "nationalDex": 686,
+  "names": {
+    "ja_hrkt": "マーイーカ",
+    "ja_roma": "Maaiika",
+    "ko": "오케이징",
+    "zh_hant": "好啦魷",
+    "fr": "Sepiatop",
+    "de": "Iscalar",
+    "es": "Inkay",
+    "it": "Inkay",
+    "en": "Inkay",
+    "ja": "マーイーカ",
+    "zh_hans": "好啦鱿"
+  },
+  "speciesName": {
+    "ja_hrkt": "かいてんポケモン",
+    "ko": "회전포켓몬",
+    "zh_hant": "回轉寶可夢",
+    "fr": "Pokémon Rotation",
+    "de": "Rotations-Pokémon",
+    "es": "Pokémon Rotación",
+    "it": "Pokémon Volteggio",
+    "en": "Revolving Pokémon",
+    "ja": "かいてんポケモン",
+    "zh_hans": "回转宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "dark",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 53,
+    "atk": 54,
+    "def": 53,
+    "spa": 37,
+    "spd": 46,
+    "spe": 45,
+    "bst": 288
+  },
+  "abilities": {
+    "primary": "contrary",
+    "secondary": "suction_cups",
+    "hidden": "infiltrator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 58,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "inkay",
+    "evolution": "inkay",
+    "media": "inkay"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 3.5,
+    "color": "blue",
+    "flavorText": "Opponents who stare at the flashing of the light-emitting spots on its body become dazed and lose their will to fight."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

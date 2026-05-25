@@ -1,0 +1,18 @@
+{
+  "speciesId": "tangrowth",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tangrowth/front.png",
+      "backStatic": "assets/pokemon/sprites/tangrowth/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tangrowth/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tangrowth/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tangrowth.png",
+      "cry": "assets/pokemon/cries/tangrowth.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "speciesId": "kubfu",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "urshifu",
+      "method": "tower_of_darkness",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "urshifu",
+      "method": "tower_of_waters",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "urshifu",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "scroll-of-darkness",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "urshifu",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "scroll-of-waters",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

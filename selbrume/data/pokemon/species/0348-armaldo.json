@@ -1,0 +1,101 @@
+{
+  "id": "armaldo",
+  "slug": "armaldo",
+  "nationalDex": 348,
+  "names": {
+    "ja_hrkt": "アーマルド",
+    "ja_roma": "Armaldo",
+    "ko": "아말도",
+    "zh_hant": "太古盔甲",
+    "fr": "Armaldo",
+    "de": "Armaldo",
+    "es": "Armaldo",
+    "it": "Armaldo",
+    "en": "Armaldo",
+    "ja": "アーマルド",
+    "zh_hans": "太古盔甲"
+  },
+  "speciesName": {
+    "ja_hrkt": "かっちゅうポケモン",
+    "ko": "갑주포켓몬",
+    "zh_hant": "甲胄寶可夢",
+    "fr": "Pokémon Blindage",
+    "de": "Schild-Pokémon",
+    "es": "Pokémon Armadura",
+    "it": "Pokémon Piastre",
+    "en": "Plate Pokémon",
+    "ja": "かっちゅうポケモン",
+    "zh_hans": "甲胄宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "rock",
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 125,
+    "def": 100,
+    "spa": 70,
+    "spd": 80,
+    "spe": 45,
+    "bst": 495
+  },
+  "abilities": {
+    "primary": "battle_armor",
+    "secondary": null,
+    "hidden": "swift_swim"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 173,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "armaldo",
+    "evolution": "armaldo",
+    "media": "armaldo"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 68.2,
+    "color": "gray",
+    "flavorText": "ARMALDO’s tough armor makes all attacks bounce off. This POKéMON’s two enormous claws can be freely extended or contracted. They have the power to punch right through a steel slab."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

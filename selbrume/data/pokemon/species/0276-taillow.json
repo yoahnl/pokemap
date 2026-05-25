@@ -1,0 +1,98 @@
+{
+  "id": "taillow",
+  "slug": "taillow",
+  "nationalDex": 276,
+  "names": {
+    "ja_hrkt": "スバメ",
+    "ja_roma": "Subame",
+    "ko": "테일로",
+    "zh_hant": "傲骨燕",
+    "fr": "Nirondelle",
+    "de": "Schwalbini",
+    "es": "Taillow",
+    "it": "Taillow",
+    "en": "Taillow",
+    "ja": "スバメ",
+    "zh_hans": "傲骨燕"
+  },
+  "speciesName": {
+    "ja_hrkt": "こツバメポケモン",
+    "ko": "아기제비포켓몬",
+    "zh_hant": "幼燕寶可夢",
+    "fr": "Pokémon Minirondel",
+    "de": "Schwälblein",
+    "es": "Pokémon Pequebuche",
+    "it": "Pokémon Rondinella",
+    "en": "Tiny Swallow Pokémon",
+    "ja": "こツバメポケモン",
+    "zh_hans": "幼燕宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 55,
+    "def": 30,
+    "spa": 30,
+    "spd": 30,
+    "spe": 85,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": null,
+    "hidden": "scrappy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 54,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "taillow",
+    "evolution": "taillow",
+    "media": "taillow"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 2.3,
+    "color": "blue",
+    "flavorText": "TAILLOW courageously stands its ground against foes, however strong they may be. This gutsy POKéMON will remain defiant even after a loss. On the other hand, it cries loudly if it becomes hungry."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

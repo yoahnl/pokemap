@@ -1,0 +1,18 @@
+{
+  "speciesId": "munchlax",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/munchlax/front.png",
+      "backStatic": "assets/pokemon/sprites/munchlax/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/munchlax/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/munchlax/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/munchlax.png",
+      "cry": "assets/pokemon/cries/munchlax.ogg",
+      "animations": {}
+    }
+  }
+}

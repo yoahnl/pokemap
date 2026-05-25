@@ -1,0 +1,14 @@
+{
+  "speciesId": "purrloin",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "liepard",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

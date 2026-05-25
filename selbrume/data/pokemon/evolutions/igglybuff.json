@@ -1,0 +1,16 @@
+{
+  "speciesId": "igglybuff",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "jigglypuff",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160"
+      }
+    }
+  ]
+}

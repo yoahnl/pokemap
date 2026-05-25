@@ -1,0 +1,101 @@
+{
+  "id": "farfetchd",
+  "slug": "farfetchd",
+  "nationalDex": 83,
+  "names": {
+    "ja_hrkt": "カモネギ",
+    "ja_roma": "Kamonegi",
+    "ko": "파오리",
+    "zh_hant": "大蔥鴨",
+    "fr": "Canarticho",
+    "de": "Porenta",
+    "es": "Farfetch’d",
+    "it": "Farfetch’d",
+    "en": "Farfetch’d",
+    "ja": "カモネギ",
+    "zh_hans": "大葱鸭"
+  },
+  "speciesName": {
+    "ja_hrkt": "かるがもポケモン",
+    "ko": "청둥오리포켓몬",
+    "zh_hant": "黃嘴鴨寶可夢",
+    "fr": "Pokémon Canard Fou",
+    "de": "Wildenten-Pokémon",
+    "es": "Pokémon Pato Salvaje",
+    "it": "Pokémon Selvanatra",
+    "en": "Wild Duck Pokémon",
+    "ja": "かるがもポケモン",
+    "zh_hans": "黄嘴鸭宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 52,
+    "atk": 90,
+    "def": 55,
+    "spa": 58,
+    "spd": 62,
+    "spe": 60,
+    "bst": 377
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "inner_focus",
+    "hidden": "defiant"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 132,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "farfetchd-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "farfetchd",
+    "evolution": "farfetchd",
+    "media": "farfetchd"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 15.0,
+    "color": "brown",
+    "flavorText": "The sprig of green onions it holds is its weapon. It is used much like a metal sword."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

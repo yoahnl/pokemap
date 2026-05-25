@@ -1,0 +1,18 @@
+{
+  "speciesId": "dusclops",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dusclops/front.png",
+      "backStatic": "assets/pokemon/sprites/dusclops/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dusclops/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dusclops/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dusclops.png",
+      "cry": "assets/pokemon/cries/dusclops.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "poliwag",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/poliwag/front.png",
+      "backStatic": "assets/pokemon/sprites/poliwag/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/poliwag/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/poliwag/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/poliwag.png",
+      "cry": "assets/pokemon/cries/poliwag.ogg",
+      "animations": {}
+    }
+  }
+}

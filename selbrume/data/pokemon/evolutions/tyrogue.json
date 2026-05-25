@@ -1,0 +1,36 @@
+{
+  "speciesId": "tyrogue",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "hitmonchan",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Attack lower than Defense"
+      }
+    },
+    {
+      "targetSpeciesId": "hitmonlee",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Attack greater than Defense"
+      }
+    },
+    {
+      "targetSpeciesId": "hitmontop",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Attack equal to Defense"
+      }
+    }
+  ]
+}

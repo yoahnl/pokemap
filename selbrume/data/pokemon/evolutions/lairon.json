@@ -1,0 +1,14 @@
+{
+  "speciesId": "lairon",
+  "preEvolution": "aron",
+  "evolutions": [
+    {
+      "targetSpeciesId": "aggron",
+      "method": "level_up",
+      "minLevel": 42,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

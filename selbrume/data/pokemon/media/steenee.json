@@ -1,0 +1,18 @@
+{
+  "speciesId": "steenee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/steenee/front.png",
+      "backStatic": "assets/pokemon/sprites/steenee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/steenee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/steenee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/steenee.png",
+      "cry": "assets/pokemon/cries/steenee.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "fennekin",
+  "slug": "fennekin",
+  "nationalDex": 653,
+  "names": {
+    "ja_hrkt": "フォッコ",
+    "ja_roma": "Fokko",
+    "ko": "푸호꼬",
+    "zh_hant": "火狐狸",
+    "fr": "Feunnec",
+    "de": "Fynx",
+    "es": "Fennekin",
+    "it": "Fennekin",
+    "en": "Fennekin",
+    "ja": "フォッコ",
+    "zh_hans": "火狐狸"
+  },
+  "speciesName": {
+    "ja_hrkt": "キツネポケモン",
+    "ko": "여우포켓몬",
+    "zh_hant": "狐狸寶可夢",
+    "fr": "Pokémon Renard",
+    "de": "Fuchs",
+    "es": "Pokémon Zorro",
+    "it": "Pokémon Volpe",
+    "en": "Fox Pokémon",
+    "ja": "キツネポケモン",
+    "zh_hans": "狐狸宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 45,
+    "def": 40,
+    "spa": 62,
+    "spd": 60,
+    "spe": 60,
+    "bst": 307
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "magician"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 61,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "fennekin",
+    "evolution": "fennekin",
+    "media": "fennekin"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 9.4,
+    "color": "red",
+    "flavorText": "Eating a twig fills it with energy, and its roomy ears give vent to air hotter than 390 degrees Fahrenheit."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

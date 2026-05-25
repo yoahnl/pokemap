@@ -1,0 +1,18 @@
+{
+  "speciesId": "makuhita",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/makuhita/front.png",
+      "backStatic": "assets/pokemon/sprites/makuhita/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/makuhita/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/makuhita/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/makuhita.png",
+      "cry": "assets/pokemon/cries/makuhita.ogg",
+      "animations": {}
+    }
+  }
+}

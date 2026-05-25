@@ -1,0 +1,30 @@
+{
+  "speciesId": "delphox",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/delphox/front.png",
+      "backStatic": "assets/pokemon/sprites/delphox/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/delphox/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/delphox/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/delphox.png",
+      "cry": "assets/pokemon/cries/delphox.ogg",
+      "animations": {}
+    },
+    "delphox-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

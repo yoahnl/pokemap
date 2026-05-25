@@ -1,0 +1,101 @@
+{
+  "id": "incineroar",
+  "slug": "incineroar",
+  "nationalDex": 727,
+  "names": {
+    "ja_hrkt": "ガオガエン",
+    "ja_roma": "Gaogaen",
+    "ko": "어흥염",
+    "zh_hant": "熾焰咆哮虎",
+    "fr": "Félinferno",
+    "de": "Fuegro",
+    "es": "Incineroar",
+    "it": "Incineroar",
+    "en": "Incineroar",
+    "ja": "ガオガエン",
+    "zh_hans": "炽焰咆哮虎"
+  },
+  "speciesName": {
+    "ja_hrkt": "ヒールポケモン",
+    "ko": "힐포켓몬",
+    "zh_hant": "反派寶可夢",
+    "fr": "Pokémon Vil Catcheur",
+    "de": "Fieslings-Pokémon",
+    "es": "Pokémon Rudo",
+    "it": "Pokémon Colpibassi",
+    "en": "Heel Pokémon",
+    "ja": "ヒールポケモン",
+    "zh_hans": "反派宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fire",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 115,
+    "def": 90,
+    "spa": 80,
+    "spd": 90,
+    "spe": 60,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "intimidate"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 239,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "incineroar",
+    "evolution": "incineroar",
+    "media": "incineroar"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 83.0,
+    "color": "red",
+    "flavorText": "This Pokémon has a violent, selfish disposition. If it’s not in the mood to listen, it will ignore its Trainer’s orders with complete nonchalance."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

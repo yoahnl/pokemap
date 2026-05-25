@@ -1,0 +1,14 @@
+{
+  "speciesId": "popplio",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "brionne",
+      "method": "level_up",
+      "minLevel": 17,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

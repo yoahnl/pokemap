@@ -1,0 +1,99 @@
+{
+  "id": "staryu",
+  "slug": "staryu",
+  "nationalDex": 120,
+  "names": {
+    "ja_hrkt": "ヒトデマン",
+    "ja_roma": "Hitodeman",
+    "ko": "별가사리",
+    "zh_hant": "海星星",
+    "fr": "Stari",
+    "de": "Sterndu",
+    "es": "Staryu",
+    "it": "Staryu",
+    "en": "Staryu",
+    "ja": "ヒトデマン",
+    "zh_hans": "海星星"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほしがたポケモン",
+    "ko": "별포켓몬",
+    "zh_hant": "星形寶可夢",
+    "fr": "Pokémon Étoile",
+    "de": "Sternform-Pokémon",
+    "es": "Pokémon Estrella",
+    "it": "Pokémon Stella",
+    "en": "Star Shape Pokémon",
+    "ja": "ほしがたポケモン",
+    "zh_hans": "星形宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 30,
+    "atk": 45,
+    "def": 55,
+    "spa": 70,
+    "spd": 55,
+    "spe": 85,
+    "bst": 340
+  },
+  "abilities": {
+    "primary": "illuminate",
+    "secondary": "natural_cure",
+    "hidden": "analytic"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 68,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "staryu",
+    "evolution": "staryu",
+    "media": "staryu"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 34.5,
+    "color": "brown",
+    "flavorText": "If its body is torn, it can grow back if the red core remains. The core flashes at midnight."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

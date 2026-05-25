@@ -1,0 +1,30 @@
+{
+  "speciesId": "sceptile",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sceptile/front.png",
+      "backStatic": "assets/pokemon/sprites/sceptile/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sceptile/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sceptile/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sceptile.png",
+      "cry": "assets/pokemon/cries/sceptile.ogg",
+      "animations": {}
+    },
+    "sceptile-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "sawk",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sawk/front.png",
+      "backStatic": "assets/pokemon/sprites/sawk/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sawk/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sawk/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sawk.png",
+      "cry": "assets/pokemon/cries/sawk.ogg",
+      "animations": {}
+    }
+  }
+}

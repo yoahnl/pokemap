@@ -1,0 +1,18 @@
+{
+  "speciesId": "gothitelle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gothitelle/front.png",
+      "backStatic": "assets/pokemon/sprites/gothitelle/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gothitelle/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gothitelle/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gothitelle.png",
+      "cry": "assets/pokemon/cries/gothitelle.ogg",
+      "animations": {}
+    }
+  }
+}

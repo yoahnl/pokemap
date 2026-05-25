@@ -1,0 +1,18 @@
+{
+  "speciesId": "purrloin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/purrloin/front.png",
+      "backStatic": "assets/pokemon/sprites/purrloin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/purrloin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/purrloin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/purrloin.png",
+      "cry": "assets/pokemon/cries/purrloin.ogg",
+      "animations": {}
+    }
+  }
+}

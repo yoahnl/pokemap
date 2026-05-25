@@ -1,0 +1,18 @@
+{
+  "speciesId": "raikou",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/raikou/front.png",
+      "backStatic": "assets/pokemon/sprites/raikou/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/raikou/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/raikou/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/raikou.png",
+      "cry": "assets/pokemon/cries/raikou.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "tentacool",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tentacool/front.png",
+      "backStatic": "assets/pokemon/sprites/tentacool/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tentacool/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tentacool/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tentacool.png",
+      "cry": "assets/pokemon/cries/tentacool.ogg",
+      "animations": {}
+    }
+  }
+}

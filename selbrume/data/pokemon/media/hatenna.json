@@ -1,0 +1,18 @@
+{
+  "speciesId": "hatenna",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/hatenna/front.png",
+      "backStatic": "assets/pokemon/sprites/hatenna/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/hatenna/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/hatenna/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/hatenna.png",
+      "cry": "assets/pokemon/cries/hatenna.ogg",
+      "animations": {}
+    }
+  }
+}

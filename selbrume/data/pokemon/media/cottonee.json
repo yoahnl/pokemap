@@ -1,0 +1,18 @@
+{
+  "speciesId": "cottonee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cottonee/front.png",
+      "backStatic": "assets/pokemon/sprites/cottonee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cottonee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cottonee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cottonee.png",
+      "cry": "assets/pokemon/cries/cottonee.ogg",
+      "animations": {}
+    }
+  }
+}

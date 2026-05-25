@@ -1,0 +1,101 @@
+{
+  "id": "altaria",
+  "slug": "altaria",
+  "nationalDex": 334,
+  "names": {
+    "ja_hrkt": "チルタリス",
+    "ja_roma": "Tyltalis",
+    "ko": "파비코리",
+    "zh_hant": "七夕青鳥",
+    "fr": "Altaria",
+    "de": "Altaria",
+    "es": "Altaria",
+    "it": "Altaria",
+    "en": "Altaria",
+    "ja": "チルタリス",
+    "zh_hans": "七夕青鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "ハミングポケモン",
+    "ko": "허밍포켓몬",
+    "zh_hant": "哼唱寶可夢",
+    "fr": "Pokémon Virevolteur",
+    "de": "Summsel-Pokémon",
+    "es": "Pokémon Cantor",
+    "it": "Pokémon Canterino",
+    "en": "Humming Pokémon",
+    "ja": "ハミングポケモン",
+    "zh_hans": "哼唱宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "dragon",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 70,
+    "def": 90,
+    "spa": 70,
+    "spd": 105,
+    "spe": 80,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "natural_cure",
+    "secondary": null,
+    "hidden": "cloud_nine"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "altaria-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "altaria",
+    "evolution": "altaria",
+    "media": "altaria"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 20.6,
+    "color": "blue",
+    "flavorText": "ALTARIA dances and wheels through the sky among billowing, cotton-like clouds. By singing melodies in its crystal-clear voice, this POKéMON makes its listeners experience dreamy wonderment."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

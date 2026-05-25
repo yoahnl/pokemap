@@ -1,0 +1,18 @@
+{
+  "speciesId": "elgyem",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/elgyem/front.png",
+      "backStatic": "assets/pokemon/sprites/elgyem/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/elgyem/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/elgyem/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/elgyem.png",
+      "cry": "assets/pokemon/cries/elgyem.ogg",
+      "animations": {}
+    }
+  }
+}

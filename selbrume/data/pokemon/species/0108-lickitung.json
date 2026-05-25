@@ -1,0 +1,97 @@
+{
+  "id": "lickitung",
+  "slug": "lickitung",
+  "nationalDex": 108,
+  "names": {
+    "ja_hrkt": "ベロリンガ",
+    "ja_roma": "Beroringa",
+    "ko": "내루미",
+    "zh_hant": "大舌頭",
+    "fr": "Excelangue",
+    "de": "Schlurp",
+    "es": "Lickitung",
+    "it": "Lickitung",
+    "en": "Lickitung",
+    "ja": "ベロリンガ",
+    "zh_hans": "大舌头"
+  },
+  "speciesName": {
+    "ja_hrkt": "なめまわしポケモン",
+    "ko": "핥기포켓몬",
+    "zh_hant": "舔舔寶可夢",
+    "fr": "Pokémon Lécheur",
+    "de": "Schlecker-Pokémon",
+    "es": "Pokémon Lametazo",
+    "it": "Pokémon Linguaccia",
+    "en": "Licking Pokémon",
+    "ja": "なめまわしポケモン",
+    "zh_hans": "舔舔宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 55,
+    "def": 75,
+    "spa": 60,
+    "spd": 75,
+    "spe": 30,
+    "bst": 385
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": "oblivious",
+    "hidden": "cloud_nine"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 77,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lickitung",
+    "evolution": "lickitung",
+    "media": "lickitung"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 65.5,
+    "color": "pink",
+    "flavorText": "Its tongue can be extended like a chameleon's. It leaves a tingling sensation when it licks enemies."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

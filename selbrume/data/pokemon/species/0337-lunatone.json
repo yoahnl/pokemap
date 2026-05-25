@@ -1,0 +1,100 @@
+{
+  "id": "lunatone",
+  "slug": "lunatone",
+  "nationalDex": 337,
+  "names": {
+    "ja_hrkt": "ルナトーン",
+    "ja_roma": "Lunatone",
+    "ko": "루나톤",
+    "zh_hant": "月石",
+    "fr": "Séléroc",
+    "de": "Lunastein",
+    "es": "Lunatone",
+    "it": "Lunatone",
+    "en": "Lunatone",
+    "ja": "ルナトーン",
+    "zh_hans": "月石"
+  },
+  "speciesName": {
+    "ja_hrkt": "いんせきポケモン",
+    "ko": "별똥별포켓몬",
+    "zh_hant": "隕石寶可夢",
+    "fr": "Pokémon Météorite",
+    "de": "Meteoriten-Pokémon",
+    "es": "Pokémon Meteorito",
+    "it": "Pokémon Meteorite",
+    "en": "Meteorite Pokémon",
+    "ja": "いんせきポケモン",
+    "zh_hans": "陨石宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "rock",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 55,
+    "def": 65,
+    "spa": 95,
+    "spd": 85,
+    "spe": 70,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 161,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lunatone",
+    "evolution": "lunatone",
+    "media": "lunatone"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 168.0,
+    "color": "yellow",
+    "flavorText": "LUNATONE was discovered at a location where a meteorite fell. As a result, some people theorize that this POKéMON came from space. However, no one has been able to prove this theory so far."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

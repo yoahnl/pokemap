@@ -1,0 +1,100 @@
+{
+  "id": "machoke",
+  "slug": "machoke",
+  "nationalDex": 67,
+  "names": {
+    "ja_hrkt": "ゴーリキー",
+    "ja_roma": "Goriky",
+    "ko": "근육몬",
+    "zh_hant": "豪力",
+    "fr": "Machopeur",
+    "de": "Maschock",
+    "es": "Machoke",
+    "it": "Machoke",
+    "en": "Machoke",
+    "ja": "ゴーリキー",
+    "zh_hans": "豪力"
+  },
+  "speciesName": {
+    "ja_hrkt": "かいりきポケモン",
+    "ko": "괴력포켓몬",
+    "zh_hant": "怪力寶可夢",
+    "fr": "Pokémon Colosse",
+    "de": "Kraftprotz-Pokémon",
+    "es": "Pokémon Superpoder",
+    "it": "Pokémon Megaforza",
+    "en": "Superpower Pokémon",
+    "ja": "かいりきポケモン",
+    "zh_hans": "怪力宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 100,
+    "def": 70,
+    "spa": 50,
+    "spd": 60,
+    "spe": 45,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "guts",
+    "secondary": "no_guard",
+    "hidden": "steadfast"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "machoke",
+    "evolution": "machoke",
+    "media": "machoke"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 70.5,
+    "color": "gray",
+    "flavorText": "Its muscular body is so powerful, it must wear a power save belt to be able to regulate its motions."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

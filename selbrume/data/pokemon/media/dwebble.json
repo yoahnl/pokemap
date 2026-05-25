@@ -1,0 +1,18 @@
+{
+  "speciesId": "dwebble",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dwebble/front.png",
+      "backStatic": "assets/pokemon/sprites/dwebble/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dwebble/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dwebble/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dwebble.png",
+      "cry": "assets/pokemon/cries/dwebble.ogg",
+      "animations": {}
+    }
+  }
+}

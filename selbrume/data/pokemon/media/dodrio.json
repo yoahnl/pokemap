@@ -1,0 +1,18 @@
+{
+  "speciesId": "dodrio",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dodrio/front.png",
+      "backStatic": "assets/pokemon/sprites/dodrio/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dodrio/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dodrio/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dodrio.png",
+      "cry": "assets/pokemon/cries/dodrio.ogg",
+      "animations": {}
+    }
+  }
+}

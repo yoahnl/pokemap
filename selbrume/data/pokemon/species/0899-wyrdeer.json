@@ -1,0 +1,97 @@
+{
+  "id": "wyrdeer",
+  "slug": "wyrdeer",
+  "nationalDex": 899,
+  "names": {
+    "ja_hrkt": "アヤシシ",
+    "ja_roma": "Ayashishi",
+    "ko": "신비록",
+    "zh_hant": "詭角鹿",
+    "fr": "Cerbyllin",
+    "de": "Damythir",
+    "es": "Wyrdeer",
+    "it": "Wyrdeer",
+    "en": "Wyrdeer",
+    "ja": "アヤシシ",
+    "zh_hans": "诡角鹿"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおツノポケモン",
+    "ko": "큰뿔포켓몬",
+    "zh_hant": "大角寶可夢",
+    "fr": "Pokémon Maxi Corne",
+    "de": "Vielender-Pokémon",
+    "it": "Pokémon Grancorno",
+    "en": "Big Horn Pokémon",
+    "ja": "おおツノポケモン",
+    "zh_hans": "大角宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "normal",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 103,
+    "atk": 105,
+    "def": 72,
+    "spa": 105,
+    "spd": 75,
+    "spe": 65,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "frisk",
+    "hidden": "sap_sipper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 263,
+    "catchRate": 135,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wyrdeer",
+    "evolution": "wyrdeer",
+    "media": "wyrdeer"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 95.1,
+    "color": "gray",
+    "flavorText": "The black orbs shine with an uncanny light when the Pokémon is erecting invisible barriers. The fur shed from its beard retains heat well and is a highly useful material for winter clothing."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

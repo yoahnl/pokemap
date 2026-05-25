@@ -1,0 +1,16 @@
+{
+  "speciesId": "woobat",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "swoobat",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160"
+      }
+    }
+  ]
+}

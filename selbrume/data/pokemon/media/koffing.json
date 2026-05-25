@@ -1,0 +1,18 @@
+{
+  "speciesId": "koffing",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/koffing/front.png",
+      "backStatic": "assets/pokemon/sprites/koffing/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/koffing/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/koffing/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/koffing.png",
+      "cry": "assets/pokemon/cries/koffing.ogg",
+      "animations": {}
+    }
+  }
+}

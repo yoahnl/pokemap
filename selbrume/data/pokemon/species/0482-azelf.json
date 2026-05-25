@@ -1,0 +1,99 @@
+{
+  "id": "azelf",
+  "slug": "azelf",
+  "nationalDex": 482,
+  "names": {
+    "ja_hrkt": "アグノム",
+    "ja_roma": "Agnome",
+    "ko": "아그놈",
+    "zh_hant": "亞克諾姆",
+    "fr": "Créfadet",
+    "de": "Tobutz",
+    "es": "Azelf",
+    "it": "Azelf",
+    "en": "Azelf",
+    "ja": "アグノム",
+    "zh_hans": "亚克诺姆"
+  },
+  "speciesName": {
+    "ja_hrkt": "いしポケモン",
+    "ko": "의지포켓몬",
+    "zh_hant": "意志寶可夢",
+    "fr": "Pokémon Volonté",
+    "de": "Willenskraft-Pokémon",
+    "es": "Pokémon Voluntad",
+    "it": "Pokémon Volontà",
+    "en": "Willpower Pokémon",
+    "ja": "いしポケモン",
+    "zh_hans": "意志宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 125,
+    "def": 70,
+    "spa": 125,
+    "spd": 70,
+    "spe": 115,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 140
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "azelf",
+    "evolution": "azelf",
+    "media": "azelf"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 0.3,
+    "color": "blue",
+    "flavorText": "Known as “The Being of Willpower.” It sleeps at the bottom of a lake to keep the world in balance."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "speciesId": "feraligatr",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/feraligatr/front.png",
+      "backStatic": "assets/pokemon/sprites/feraligatr/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/feraligatr/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/feraligatr/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/feraligatr.png",
+      "cry": "assets/pokemon/cries/feraligatr.ogg",
+      "animations": {}
+    },
+    "feraligatr-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

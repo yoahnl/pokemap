@@ -1,0 +1,16 @@
+{
+  "speciesId": "rhydon",
+  "preEvolution": "rhyhorn",
+  "evolutions": [
+    {
+      "targetSpeciesId": "rhyperior",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: protector"
+      }
+    }
+  ]
+}

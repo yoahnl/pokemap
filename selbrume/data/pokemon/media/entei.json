@@ -1,0 +1,18 @@
+{
+  "speciesId": "entei",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/entei/front.png",
+      "backStatic": "assets/pokemon/sprites/entei/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/entei/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/entei/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/entei.png",
+      "cry": "assets/pokemon/cries/entei.ogg",
+      "animations": {}
+    }
+  }
+}

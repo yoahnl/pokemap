@@ -1,0 +1,18 @@
+{
+  "speciesId": "shroodle",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shroodle/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/shroodle/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shroodle.png",
+      "cry": "assets/pokemon/cries/shroodle.ogg",
+      "animations": {}
+    }
+  }
+}

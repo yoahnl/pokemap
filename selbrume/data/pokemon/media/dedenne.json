@@ -1,0 +1,18 @@
+{
+  "speciesId": "dedenne",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dedenne/front.png",
+      "backStatic": "assets/pokemon/sprites/dedenne/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dedenne/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dedenne/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dedenne.png",
+      "cry": "assets/pokemon/cries/dedenne.ogg",
+      "animations": {}
+    }
+  }
+}

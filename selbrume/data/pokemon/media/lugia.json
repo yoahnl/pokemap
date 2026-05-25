@@ -1,0 +1,18 @@
+{
+  "speciesId": "lugia",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lugia/front.png",
+      "backStatic": "assets/pokemon/sprites/lugia/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lugia/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lugia/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lugia.png",
+      "cry": "assets/pokemon/cries/lugia.ogg",
+      "animations": {}
+    }
+  }
+}

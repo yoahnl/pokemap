@@ -1,0 +1,26 @@
+{
+  "speciesId": "sliggoo",
+  "preEvolution": "goomy",
+  "evolutions": [
+    {
+      "targetSpeciesId": "goodra",
+      "method": "level_up",
+      "minLevel": 50,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Needs overworld rain"
+      }
+    },
+    {
+      "targetSpeciesId": "goodra",
+      "method": "level_up",
+      "minLevel": 50,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Needs overworld rain"
+      }
+    }
+  ]
+}

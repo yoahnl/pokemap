@@ -1,0 +1,18 @@
+{
+  "speciesId": "shiinotic",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shiinotic/front.png",
+      "backStatic": "assets/pokemon/sprites/shiinotic/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shiinotic/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shiinotic/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shiinotic.png",
+      "cry": "assets/pokemon/cries/shiinotic.ogg",
+      "animations": {}
+    }
+  }
+}

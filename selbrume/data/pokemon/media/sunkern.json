@@ -1,0 +1,18 @@
+{
+  "speciesId": "sunkern",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sunkern/front.png",
+      "backStatic": "assets/pokemon/sprites/sunkern/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sunkern/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sunkern/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sunkern.png",
+      "cry": "assets/pokemon/cries/sunkern.ogg",
+      "animations": {}
+    }
+  }
+}

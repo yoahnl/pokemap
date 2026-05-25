@@ -1,0 +1,97 @@
+{
+  "id": "dusclops",
+  "slug": "dusclops",
+  "nationalDex": 356,
+  "names": {
+    "ja_hrkt": "サマヨール",
+    "ja_roma": "Samayouru",
+    "ko": "미라몽",
+    "zh_hant": "彷徨夜靈",
+    "fr": "Téraclope",
+    "de": "Zwirrklop",
+    "es": "Dusclops",
+    "it": "Dusclops",
+    "en": "Dusclops",
+    "ja": "サマヨール",
+    "zh_hans": "彷徨夜灵"
+  },
+  "speciesName": {
+    "ja_hrkt": "てまねきポケモン",
+    "ko": "손짓포켓몬",
+    "zh_hant": "招手寶可夢",
+    "fr": "Pokémon Appel",
+    "de": "Wink-Pokémon",
+    "es": "Pokémon Atrayente",
+    "it": "Pokémon Ipnosguardo",
+    "en": "Beckon Pokémon",
+    "ja": "てまねきポケモン",
+    "zh_hans": "招手宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 70,
+    "def": 130,
+    "spa": 60,
+    "spd": 130,
+    "spe": 25,
+    "bst": 455
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "frisk"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 159,
+    "catchRate": 90,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dusclops",
+    "evolution": "dusclops",
+    "media": "dusclops"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 30.6,
+    "color": "black",
+    "flavorText": "DUSCLOPS’s body is completely hollow - there is nothing at all inside. It is said that its body is like a black hole. This POKéMON will absorb anything into its body, but nothing will ever come back out."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

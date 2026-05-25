@@ -1,0 +1,18 @@
+{
+  "speciesId": "bagon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bagon/front.png",
+      "backStatic": "assets/pokemon/sprites/bagon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bagon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bagon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bagon.png",
+      "cry": "assets/pokemon/cries/bagon.ogg",
+      "animations": {}
+    }
+  }
+}

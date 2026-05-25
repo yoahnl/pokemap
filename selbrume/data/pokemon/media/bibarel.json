@@ -1,0 +1,18 @@
+{
+  "speciesId": "bibarel",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bibarel/front.png",
+      "backStatic": "assets/pokemon/sprites/bibarel/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bibarel/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bibarel/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bibarel.png",
+      "cry": "assets/pokemon/cries/bibarel.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "carvanha",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/carvanha/front.png",
+      "backStatic": "assets/pokemon/sprites/carvanha/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/carvanha/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/carvanha/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/carvanha.png",
+      "cry": "assets/pokemon/cries/carvanha.ogg",
+      "animations": {}
+    }
+  }
+}

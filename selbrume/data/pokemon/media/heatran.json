@@ -1,0 +1,30 @@
+{
+  "speciesId": "heatran",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/heatran/front.png",
+      "backStatic": "assets/pokemon/sprites/heatran/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/heatran/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/heatran/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/heatran.png",
+      "cry": "assets/pokemon/cries/heatran.ogg",
+      "animations": {}
+    },
+    "heatran-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

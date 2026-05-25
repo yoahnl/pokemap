@@ -1,0 +1,14 @@
+{
+  "speciesId": "smoliv",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dolliv",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

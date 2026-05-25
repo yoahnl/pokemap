@@ -1,0 +1,18 @@
+{
+  "speciesId": "amaura",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/amaura/front.png",
+      "backStatic": "assets/pokemon/sprites/amaura/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/amaura/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/amaura/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/amaura.png",
+      "cry": "assets/pokemon/cries/amaura.ogg",
+      "animations": {}
+    }
+  }
+}

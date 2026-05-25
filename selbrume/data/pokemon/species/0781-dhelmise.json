@@ -1,0 +1,100 @@
+{
+  "id": "dhelmise",
+  "slug": "dhelmise",
+  "nationalDex": 781,
+  "names": {
+    "ja_hrkt": "ダダリン",
+    "ja_roma": "Dadarin",
+    "ko": "타타륜",
+    "zh_hant": "破破舵輪",
+    "fr": "Sinistrail",
+    "de": "Moruda",
+    "es": "Dhelmise",
+    "it": "Dhelmise",
+    "en": "Dhelmise",
+    "ja": "ダダリン",
+    "zh_hans": "破破舵轮"
+  },
+  "speciesName": {
+    "ja_hrkt": "もくずポケモン",
+    "ko": "해초조각포켓몬",
+    "zh_hant": "碎藻寶可夢",
+    "fr": "Pokémon Varech",
+    "de": "Seetang-Pokémon",
+    "es": "Pokémon Alga Ancla",
+    "it": "Pokémon Brandellalga",
+    "en": "Sea Creeper Pokémon",
+    "ja": "もくずポケモン",
+    "zh_hans": "碎藻宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "ghost",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 131,
+    "def": 100,
+    "spa": 86,
+    "spd": 90,
+    "spe": 40,
+    "bst": 517
+  },
+  "abilities": {
+    "primary": "steelworker",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 181,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "dhelmise",
+    "evolution": "dhelmise",
+    "media": "dhelmise"
+  },
+  "dexContent": {
+    "heightM": 3.9,
+    "weightKg": 210.0,
+    "color": "green",
+    "flavorText": "Swinging its massive anchor, it can KO Wailord in a single blow. What appears to be green seaweed is actually its body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

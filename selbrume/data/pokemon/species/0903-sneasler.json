@@ -1,0 +1,97 @@
+{
+  "id": "sneasler",
+  "slug": "sneasler",
+  "nationalDex": 903,
+  "names": {
+    "ja_hrkt": "オオニューラ",
+    "ja_roma": "Oonyura",
+    "ko": "포푸니크",
+    "zh_hant": "大狃拉",
+    "fr": "Farfurex",
+    "de": "Snieboss",
+    "es": "Sneasler",
+    "it": "Sneasler",
+    "en": "Sneasler",
+    "ja": "オオニューラ",
+    "zh_hans": "大狃拉"
+  },
+  "speciesName": {
+    "ja_hrkt": "クライミングポケモン",
+    "ko": "클라이밍포켓몬",
+    "zh_hant": "攀崖寶可夢",
+    "fr": "Pokémon Grimpeur",
+    "de": "Kletterei-Pokémon",
+    "it": "Pokémon Scalata",
+    "en": "Free Climb Pokémon",
+    "ja": "クライミングポケモン",
+    "zh_hans": "攀崖宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 130,
+    "def": 60,
+    "spa": 40,
+    "spd": 80,
+    "spe": 120,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": "unburden",
+    "hidden": "poison_touch"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 102,
+    "catchRate": 135,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sneasler",
+    "evolution": "sneasler",
+    "media": "sneasler"
+  },
+  "dexContent": {
+    "heightM": 1.3,
+    "weightKg": 43.0,
+    "color": "gray",
+    "flavorText": "Because of Sneasler's virulent poison and daunting physical prowess, no other species could hope to best it on the frozen highlands. Preferring solitude, this species does not form packs."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

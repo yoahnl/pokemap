@@ -1,0 +1,18 @@
+{
+  "speciesId": "tyrunt",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tyrunt/front.png",
+      "backStatic": "assets/pokemon/sprites/tyrunt/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tyrunt/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tyrunt/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tyrunt.png",
+      "cry": "assets/pokemon/cries/tyrunt.ogg",
+      "animations": {}
+    }
+  }
+}

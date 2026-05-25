@@ -1,0 +1,18 @@
+{
+  "speciesId": "cofagrigus",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cofagrigus/front.png",
+      "backStatic": "assets/pokemon/sprites/cofagrigus/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cofagrigus/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cofagrigus/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cofagrigus.png",
+      "cry": "assets/pokemon/cries/cofagrigus.ogg",
+      "animations": {}
+    }
+  }
+}

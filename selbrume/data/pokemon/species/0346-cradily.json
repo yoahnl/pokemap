@@ -1,0 +1,101 @@
+{
+  "id": "cradily",
+  "slug": "cradily",
+  "nationalDex": 346,
+  "names": {
+    "ja_hrkt": "ユレイドル",
+    "ja_roma": "Yuradle",
+    "ko": "릴리요",
+    "zh_hant": "搖籃百合",
+    "fr": "Vacilys",
+    "de": "Wielie",
+    "es": "Cradily",
+    "it": "Cradily",
+    "en": "Cradily",
+    "ja": "ユレイドル",
+    "zh_hans": "摇篮百合"
+  },
+  "speciesName": {
+    "ja_hrkt": "いわつぼポケモン",
+    "ko": "바위단지포켓몬",
+    "zh_hant": "藤壺寶可夢",
+    "fr": "Pokémon Bernacle",
+    "de": "Rankfüßer-Pokémon",
+    "es": "Pokémon Percebe",
+    "it": "Pokémon Lepade",
+    "en": "Barnacle Pokémon",
+    "ja": "いわつぼポケモン",
+    "zh_hans": "藤壶宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "rock",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 86,
+    "atk": 81,
+    "def": 97,
+    "spa": 81,
+    "spd": 107,
+    "spe": 43,
+    "bst": 495
+  },
+  "abilities": {
+    "primary": "suction_cups",
+    "secondary": null,
+    "hidden": "storm_drain"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 173,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cradily",
+    "evolution": "cradily",
+    "media": "cradily"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 60.4,
+    "color": "green",
+    "flavorText": "CRADILY roams around the ocean floor in search of food. This POKéMON freely extends its tree trunk-like neck and captures unwary prey using its eight tentacles."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

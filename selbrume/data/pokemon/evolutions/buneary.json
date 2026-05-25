@@ -1,0 +1,16 @@
+{
+  "speciesId": "buneary",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lopunny",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160"
+      }
+    }
+  ]
+}

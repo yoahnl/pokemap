@@ -1,0 +1,18 @@
+{
+  "speciesId": "meowscarada",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/meowscarada/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/meowscarada/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/meowscarada.png",
+      "cry": "assets/pokemon/cries/meowscarada.ogg",
+      "animations": {}
+    }
+  }
+}

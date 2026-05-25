@@ -1,0 +1,18 @@
+{
+  "speciesId": "mew",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mew/front.png",
+      "backStatic": "assets/pokemon/sprites/mew/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mew/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mew/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mew.png",
+      "cry": "assets/pokemon/cries/mew.ogg",
+      "animations": {}
+    }
+  }
+}

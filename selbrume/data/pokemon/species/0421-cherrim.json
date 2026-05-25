@@ -1,0 +1,100 @@
+{
+  "id": "cherrim",
+  "slug": "cherrim",
+  "nationalDex": 421,
+  "names": {
+    "ja_hrkt": "チェリム",
+    "ja_roma": "Cherrim",
+    "ko": "체리꼬",
+    "zh_hant": "櫻花兒",
+    "fr": "Ceriflor",
+    "de": "Kinoso",
+    "es": "Cherrim",
+    "it": "Cherrim",
+    "en": "Cherrim",
+    "ja": "チェリム",
+    "zh_hans": "樱花儿"
+  },
+  "speciesName": {
+    "ja_hrkt": "サクラポケモン",
+    "ko": "벚꽃포켓몬",
+    "zh_hant": "櫻花寶可夢",
+    "fr": "Pokémon Floraison",
+    "de": "Blüten-Pokémon",
+    "es": "Pokémon Floración",
+    "it": "Pokémon Bocciolo",
+    "en": "Blossom Pokémon",
+    "ja": "サクラポケモン",
+    "zh_hans": "樱花宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 60,
+    "def": 70,
+    "spa": 87,
+    "spd": 78,
+    "spe": 85,
+    "bst": 450
+  },
+  "abilities": {
+    "primary": "flower_gift",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 158,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "cherrim-sunshine"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cherrim",
+    "evolution": "cherrim",
+    "media": "cherrim"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 9.3,
+    "color": "purple",
+    "flavorText": "It blooms during times of strong sunlight. It tries to make up for everything it endured as a bud."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

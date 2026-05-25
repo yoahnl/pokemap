@@ -1,0 +1,14 @@
+{
+  "speciesId": "larvesta",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "volcarona",
+      "method": "level_up",
+      "minLevel": 59,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

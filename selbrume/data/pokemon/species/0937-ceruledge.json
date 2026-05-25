@@ -1,0 +1,95 @@
+{
+  "id": "ceruledge",
+  "slug": "ceruledge",
+  "nationalDex": 937,
+  "names": {
+    "ja_hrkt": "ソウブレイズ",
+    "ja_roma": "Soublades",
+    "ko": "파라블레이즈",
+    "zh_hant": "蒼炎刃鬼",
+    "fr": "Malvalame",
+    "de": "Azugladis",
+    "es": "Ceruledge",
+    "it": "Ceruledge",
+    "en": "Ceruledge",
+    "ja": "ソウブレイズ",
+    "zh_hans": "苍炎刃鬼"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひのけんしポケモン",
+    "ko": "불의검사포켓몬",
+    "zh_hant": "火劍士寶可夢",
+    "fr": "Feu Bretteur",
+    "de": "Feuerklingen",
+    "en": "Fire Blades Pokémon",
+    "zh_hans": "火剑士宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fire",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 125,
+    "def": 80,
+    "spa": 60,
+    "spd": 100,
+    "spe": 85,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "flash_fire",
+    "secondary": null,
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 263,
+    "catchRate": 25,
+    "baseFriendship": 20
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ceruledge",
+    "evolution": "ceruledge",
+    "media": "ceruledge"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 62.0,
+    "color": "blue",
+    "flavorText": "The fiery blades on its arms burn fiercely with the lingering resentment of a sword wielder who fell before accomplishing their goal."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

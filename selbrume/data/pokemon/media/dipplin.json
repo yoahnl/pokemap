@@ -1,0 +1,18 @@
+{
+  "speciesId": "dipplin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dipplin/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/dipplin/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dipplin.png",
+      "cry": "assets/pokemon/cries/dipplin.ogg",
+      "animations": {}
+    }
+  }
+}

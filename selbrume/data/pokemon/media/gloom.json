@@ -1,0 +1,18 @@
+{
+  "speciesId": "gloom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/gloom/front.png",
+      "backStatic": "assets/pokemon/sprites/gloom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/gloom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/gloom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/gloom.png",
+      "cry": "assets/pokemon/cries/gloom.ogg",
+      "animations": {}
+    }
+  }
+}

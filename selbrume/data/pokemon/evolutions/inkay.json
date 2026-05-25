@@ -1,0 +1,16 @@
+{
+  "speciesId": "inkay",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "malamar",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Turn system upside down"
+      }
+    }
+  ]
+}

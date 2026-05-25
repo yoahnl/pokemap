@@ -1,0 +1,14 @@
+{
+  "speciesId": "horsea",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "seadra",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

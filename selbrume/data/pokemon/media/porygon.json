@@ -1,0 +1,18 @@
+{
+  "speciesId": "porygon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/porygon/front.png",
+      "backStatic": "assets/pokemon/sprites/porygon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/porygon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/porygon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/porygon.png",
+      "cry": "assets/pokemon/cries/porygon.ogg",
+      "animations": {}
+    }
+  }
+}

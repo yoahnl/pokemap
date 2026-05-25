@@ -1,0 +1,99 @@
+{
+  "id": "pichu",
+  "slug": "pichu",
+  "nationalDex": 172,
+  "names": {
+    "ja_hrkt": "ピチュー",
+    "ja_roma": "Pichu",
+    "ko": "피츄",
+    "zh_hant": "皮丘",
+    "fr": "Pichu",
+    "de": "Pichu",
+    "es": "Pichu",
+    "it": "Pichu",
+    "en": "Pichu",
+    "ja": "ピチュー",
+    "zh_hans": "皮丘"
+  },
+  "speciesName": {
+    "ja_hrkt": "こねずみポケモン",
+    "ko": "아기쥐포켓몬",
+    "zh_hant": "小鼠寶可夢",
+    "fr": "Pokémon Minisouris",
+    "de": "Babymaus-Pokémon",
+    "es": "Pokémon Ratoncito",
+    "it": "Pokémon Topino",
+    "en": "Tiny Mouse Pokémon",
+    "ja": "こねずみポケモン",
+    "zh_hans": "小鼠宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 20,
+    "atk": 40,
+    "def": 15,
+    "spa": 35,
+    "spd": 35,
+    "spe": 60,
+    "bst": 205
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": null,
+    "hidden": "lightning_rod"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 41,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "pichu-spiky-eared"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "pichu",
+    "evolution": "pichu",
+    "media": "pichu"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 2.0,
+    "color": "yellow",
+    "flavorText": "It is not yet skilled at storing electricity. It may send out a jolt if amused or startled."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

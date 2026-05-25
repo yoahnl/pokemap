@@ -1,0 +1,98 @@
+{
+  "id": "mamoswine",
+  "slug": "mamoswine",
+  "nationalDex": 473,
+  "names": {
+    "ja_hrkt": "マンムー",
+    "ja_roma": "Mammoo",
+    "ko": "맘모꾸리",
+    "zh_hant": "象牙豬",
+    "fr": "Mammochon",
+    "de": "Mamutel",
+    "es": "Mamoswine",
+    "it": "Mamoswine",
+    "en": "Mamoswine",
+    "ja": "マンムー",
+    "zh_hans": "象牙猪"
+  },
+  "speciesName": {
+    "ja_hrkt": "２ほんキバポケモン",
+    "ko": "2개송곳니포켓몬",
+    "zh_hant": "雙牙寶可夢",
+    "fr": "Pokémon Deudéfenses",
+    "de": "Doppelstoßzahn-Pokémon",
+    "es": "Pokémon Doscolmillos",
+    "it": "Pokémon Duezanne",
+    "en": "Twin Tusk Pokémon",
+    "ja": "２ほんキバポケモン",
+    "zh_hans": "双牙宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ice",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 110,
+    "atk": 130,
+    "def": 80,
+    "spa": 70,
+    "spd": 60,
+    "spe": 80,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "snow_cloak",
+    "hidden": "thick_fat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 239,
+    "catchRate": 50,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mamoswine",
+    "evolution": "mamoswine",
+    "media": "mamoswine"
+  },
+  "dexContent": {
+    "heightM": 2.5,
+    "weightKg": 291.0,
+    "color": "brown",
+    "flavorText": "Its impressive tusks are made of ice. The population thinned when it turned warm after the ice age."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

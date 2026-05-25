@@ -1,0 +1,18 @@
+{
+  "speciesId": "trevenant",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/trevenant/front.png",
+      "backStatic": "assets/pokemon/sprites/trevenant/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/trevenant/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/trevenant/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/trevenant.png",
+      "cry": "assets/pokemon/cries/trevenant.ogg",
+      "animations": {}
+    }
+  }
+}

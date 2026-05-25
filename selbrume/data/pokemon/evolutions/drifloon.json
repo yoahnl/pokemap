@@ -1,0 +1,14 @@
+{
+  "speciesId": "drifloon",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "drifblim",
+      "method": "level_up",
+      "minLevel": 28,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

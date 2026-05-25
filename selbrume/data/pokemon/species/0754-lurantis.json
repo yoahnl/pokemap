@@ -1,0 +1,99 @@
+{
+  "id": "lurantis",
+  "slug": "lurantis",
+  "nationalDex": 754,
+  "names": {
+    "ja_hrkt": "ラランテス",
+    "ja_roma": "Lalantes",
+    "ko": "라란티스",
+    "zh_hant": "蘭螳花",
+    "fr": "Floramantis",
+    "de": "Mantidea",
+    "es": "Lurantis",
+    "it": "Lurantis",
+    "en": "Lurantis",
+    "ja": "ラランテス",
+    "zh_hans": "兰螳花"
+  },
+  "speciesName": {
+    "ja_hrkt": "はなかまポケモン",
+    "ko": "꽃사마귀포켓몬",
+    "zh_hant": "花鐮寶可夢",
+    "fr": "Pokémon Fauch’Fleur",
+    "de": "Blumensichel-Pokémon",
+    "es": "Pokémon Filo Flor",
+    "it": "Pokémon Mantifiore",
+    "en": "Bloom Sickle Pokémon",
+    "ja": "はなかまポケモン",
+    "zh_hans": "花镰宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 105,
+    "def": 90,
+    "spa": 80,
+    "spd": 90,
+    "spe": 45,
+    "bst": 480
+  },
+  "abilities": {
+    "primary": "leaf_guard",
+    "secondary": null,
+    "hidden": "contrary"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 168,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "lurantis-totem"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lurantis",
+    "evolution": "lurantis",
+    "media": "lurantis"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 18.5,
+    "color": "pink",
+    "flavorText": "It requires a lot of effort to maintain Lurantis’s vivid coloring, but some collectors enjoy this work and treat it as their hobby."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "politoed",
+  "slug": "politoed",
+  "nationalDex": 186,
+  "names": {
+    "ja_hrkt": "ニョロトノ",
+    "ja_roma": "Nyorotono",
+    "ko": "왕구리",
+    "zh_hant": "蚊香蛙皇",
+    "fr": "Tarpaud",
+    "de": "Quaxo",
+    "es": "Politoed",
+    "it": "Politoed",
+    "en": "Politoed",
+    "ja": "ニョロトノ",
+    "zh_hans": "蚊香蛙皇"
+  },
+  "speciesName": {
+    "ja_hrkt": "かえるポケモン",
+    "ko": "개구리포켓몬",
+    "zh_hant": "蛙寶可夢",
+    "fr": "Pokémon Grenouille",
+    "de": "Frosch-Pokémon",
+    "es": "Pokémon Rana",
+    "it": "Pokémon Rana",
+    "en": "Frog Pokémon",
+    "ja": "かえるポケモン",
+    "zh_hans": "蛙宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 75,
+    "def": 75,
+    "spa": 90,
+    "spd": 100,
+    "spe": 70,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "water_absorb",
+    "secondary": "damp",
+    "hidden": "drizzle"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 225,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "politoed",
+    "evolution": "politoed",
+    "media": "politoed"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 33.9,
+    "color": "green",
+    "flavorText": "If POLIWAG and POLIWHIRL hear its echoing cry, they respond by gather­ ing from far and wide."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

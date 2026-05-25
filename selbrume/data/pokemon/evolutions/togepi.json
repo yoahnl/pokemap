@@ -1,0 +1,16 @@
+{
+  "speciesId": "togepi",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "togetic",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160"
+      }
+    }
+  ]
+}

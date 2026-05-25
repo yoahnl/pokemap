@@ -1,0 +1,100 @@
+{
+  "id": "shedinja",
+  "slug": "shedinja",
+  "nationalDex": 292,
+  "names": {
+    "ja_hrkt": "ヌケニン",
+    "ja_roma": "Nukenin",
+    "ko": "껍질몬",
+    "zh_hant": "脫殼忍者",
+    "fr": "Munja",
+    "de": "Ninjatom",
+    "es": "Shedinja",
+    "it": "Shedinja",
+    "en": "Shedinja",
+    "ja": "ヌケニン",
+    "zh_hans": "脱壳忍者"
+  },
+  "speciesName": {
+    "ja_hrkt": "ぬけがらポケモン",
+    "ko": "허물포켓몬",
+    "zh_hant": "空殼寶可夢",
+    "fr": "Pokémon Exuvie",
+    "de": "Häutungs-Pokémon",
+    "es": "Pokémon Muda",
+    "it": "Pokémon Cambiapelle",
+    "en": "Shed Pokémon",
+    "ja": "ぬけがらポケモン",
+    "zh_hans": "空壳宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "bug",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 1,
+    "atk": 90,
+    "def": 45,
+    "spa": 30,
+    "spd": 30,
+    "spe": 40,
+    "bst": 236
+  },
+  "abilities": {
+    "primary": "wonder_guard",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 83,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shedinja",
+    "evolution": "shedinja",
+    "media": "shedinja"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 1.2,
+    "color": "brown",
+    "flavorText": "SHEDINJA’s hard body doesn’t move - not even a twitch. In fact, its body appears to be merely a hollow shell. It is believed that this POKéMON will steal the spirit of anyone peering into its hollow body from its back."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

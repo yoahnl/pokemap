@@ -1,0 +1,97 @@
+{
+  "id": "goldeen",
+  "slug": "goldeen",
+  "nationalDex": 118,
+  "names": {
+    "ja_hrkt": "トサキント",
+    "ja_roma": "Tosakinto",
+    "ko": "콘치",
+    "zh_hant": "角金魚",
+    "fr": "Poissirène",
+    "de": "Goldini",
+    "es": "Goldeen",
+    "it": "Goldeen",
+    "en": "Goldeen",
+    "ja": "トサキント",
+    "zh_hans": "角金鱼"
+  },
+  "speciesName": {
+    "ja_hrkt": "きんぎょポケモン",
+    "ko": "금붕어포켓몬",
+    "zh_hant": "金魚寶可夢",
+    "fr": "Pokémon Poisson",
+    "de": "Goldfisch-Pokémon",
+    "es": "Pokémon Pez Color",
+    "it": "Pokémon Pescerosso",
+    "en": "Goldfish Pokémon",
+    "ja": "きんぎょポケモン",
+    "zh_hans": "金鱼宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 67,
+    "def": 60,
+    "spa": 35,
+    "spd": 50,
+    "spe": 63,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": "water_veil",
+    "hidden": "lightning_rod"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 64,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "goldeen",
+    "evolution": "goldeen",
+    "media": "goldeen"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 15.0,
+    "color": "red",
+    "flavorText": "Its tail fin billows like an elegant ballroom dress, giving it the nickname of the Water Queen."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

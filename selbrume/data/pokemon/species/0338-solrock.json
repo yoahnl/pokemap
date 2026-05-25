@@ -1,0 +1,100 @@
+{
+  "id": "solrock",
+  "slug": "solrock",
+  "nationalDex": 338,
+  "names": {
+    "ja_hrkt": "ソルロック",
+    "ja_roma": "Solrock",
+    "ko": "솔록",
+    "zh_hant": "太陽岩",
+    "fr": "Solaroc",
+    "de": "Sonnfel",
+    "es": "Solrock",
+    "it": "Solrock",
+    "en": "Solrock",
+    "ja": "ソルロック",
+    "zh_hans": "太阳岩"
+  },
+  "speciesName": {
+    "ja_hrkt": "いんせきポケモン",
+    "ko": "별똥별포켓몬",
+    "zh_hant": "隕石寶可夢",
+    "fr": "Pokémon Météorite",
+    "de": "Meteoriten-Pokémon",
+    "es": "Pokémon Meteorito",
+    "it": "Pokémon Meteorite",
+    "en": "Meteorite Pokémon",
+    "ja": "いんせきポケモン",
+    "zh_hans": "陨石宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "rock",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 95,
+    "def": 85,
+    "spa": 55,
+    "spd": 65,
+    "spe": 70,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 161,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "solrock",
+    "evolution": "solrock",
+    "media": "solrock"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 154.0,
+    "color": "red",
+    "flavorText": "Solar energy is the source of its power, so it is strong during the daytime. When it spins, its body shines."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "mareanie",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mareanie/front.png",
+      "backStatic": "assets/pokemon/sprites/mareanie/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mareanie/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mareanie/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mareanie.png",
+      "cry": "assets/pokemon/cries/mareanie.ogg",
+      "animations": {}
+    }
+  }
+}

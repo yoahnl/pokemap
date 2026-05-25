@@ -1,0 +1,18 @@
+{
+  "speciesId": "vullaby",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vullaby/front.png",
+      "backStatic": "assets/pokemon/sprites/vullaby/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vullaby/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vullaby/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vullaby.png",
+      "cry": "assets/pokemon/cries/vullaby.ogg",
+      "animations": {}
+    }
+  }
+}

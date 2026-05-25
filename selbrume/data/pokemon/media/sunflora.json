@@ -1,0 +1,18 @@
+{
+  "speciesId": "sunflora",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sunflora/front.png",
+      "backStatic": "assets/pokemon/sprites/sunflora/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sunflora/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sunflora/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sunflora.png",
+      "cry": "assets/pokemon/cries/sunflora.ogg",
+      "animations": {}
+    }
+  }
+}

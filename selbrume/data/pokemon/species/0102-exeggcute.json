@@ -1,0 +1,98 @@
+{
+  "id": "exeggcute",
+  "slug": "exeggcute",
+  "nationalDex": 102,
+  "names": {
+    "ja_hrkt": "タマタマ",
+    "ja_roma": "Tamatama",
+    "ko": "아라리",
+    "zh_hant": "蛋蛋",
+    "fr": "Noeunoeuf",
+    "de": "Owei",
+    "es": "Exeggcute",
+    "it": "Exeggcute",
+    "en": "Exeggcute",
+    "ja": "タマタマ",
+    "zh_hans": "蛋蛋"
+  },
+  "speciesName": {
+    "ja_hrkt": "たまごポケモン",
+    "ko": "알포켓몬",
+    "zh_hant": "蛋寶可夢",
+    "fr": "Pokémon Œuf",
+    "de": "Ei-Pokémon",
+    "es": "Pokémon Huevo",
+    "it": "Pokémon Uovo",
+    "en": "Egg Pokémon",
+    "ja": "たまごポケモン",
+    "zh_hans": "蛋宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 40,
+    "def": 80,
+    "spa": 60,
+    "spd": 45,
+    "spe": 40,
+    "bst": 325
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": null,
+    "hidden": "harvest"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 65,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "exeggcute",
+    "evolution": "exeggcute",
+    "media": "exeggcute"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 2.5,
+    "color": "pink",
+    "flavorText": "Often mistaken for eggs. When disturbed, they quickly gather and attack in swarms."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "kleavor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kleavor/front.png",
+      "backStatic": "assets/pokemon/sprites/kleavor/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kleavor/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kleavor/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kleavor.png",
+      "cry": "assets/pokemon/cries/kleavor.ogg",
+      "animations": {}
+    }
+  }
+}

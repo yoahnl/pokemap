@@ -1,0 +1,16 @@
+{
+  "speciesId": "tyrunt",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "tyrantrum",
+      "method": "level_up",
+      "minLevel": 39,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: day"
+      }
+    }
+  ]
+}

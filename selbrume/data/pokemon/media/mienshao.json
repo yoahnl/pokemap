@@ -1,0 +1,18 @@
+{
+  "speciesId": "mienshao",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mienshao/front.png",
+      "backStatic": "assets/pokemon/sprites/mienshao/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mienshao/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mienshao/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mienshao.png",
+      "cry": "assets/pokemon/cries/mienshao.ogg",
+      "animations": {}
+    }
+  }
+}

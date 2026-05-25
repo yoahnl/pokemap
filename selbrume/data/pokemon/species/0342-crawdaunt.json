@@ -1,0 +1,99 @@
+{
+  "id": "crawdaunt",
+  "slug": "crawdaunt",
+  "nationalDex": 342,
+  "names": {
+    "ja_hrkt": "シザリガー",
+    "ja_roma": "Shizariger",
+    "ko": "가재장군",
+    "zh_hant": "鐵螯龍蝦",
+    "fr": "Colhomard",
+    "de": "Krebutack",
+    "es": "Crawdaunt",
+    "it": "Crawdaunt",
+    "en": "Crawdaunt",
+    "ja": "シザリガー",
+    "zh_hans": "铁螯龙虾"
+  },
+  "speciesName": {
+    "ja_hrkt": "ならずものポケモン",
+    "ko": "불량배포켓몬",
+    "zh_hant": "流氓寶可夢",
+    "fr": "Pokémon Crapule",
+    "de": "Schlingel-Pokémon",
+    "es": "Pokémon Granuja",
+    "it": "Pokémon Canaglia",
+    "en": "Rogue Pokémon",
+    "ja": "ならずものポケモン",
+    "zh_hans": "流氓宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 63,
+    "atk": 120,
+    "def": 85,
+    "spa": 90,
+    "spd": 55,
+    "spe": 55,
+    "bst": 468
+  },
+  "abilities": {
+    "primary": "hyper_cutter",
+    "secondary": "shell_armor",
+    "hidden": "adaptability"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast_then_very_slow",
+    "baseExp": 164,
+    "catchRate": 155,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "crawdaunt",
+    "evolution": "crawdaunt",
+    "media": "crawdaunt"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 32.8,
+    "color": "red",
+    "flavorText": "CRAWDAUNT has an extremely violent nature that compels it to challenge other living things to battle. Other life-forms refuse to live in ponds inhabited by this POKéMON, making them desolate places."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

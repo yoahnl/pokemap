@@ -1,0 +1,14 @@
+{
+  "speciesId": "tadbulb",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "bellibolt",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

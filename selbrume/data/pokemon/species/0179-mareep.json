@@ -1,0 +1,98 @@
+{
+  "id": "mareep",
+  "slug": "mareep",
+  "nationalDex": 179,
+  "names": {
+    "ja_hrkt": "メリープ",
+    "ja_roma": "Merriep",
+    "ko": "메리프",
+    "zh_hant": "咩利羊",
+    "fr": "Wattouat",
+    "de": "Voltilamm",
+    "es": "Mareep",
+    "it": "Mareep",
+    "en": "Mareep",
+    "ja": "メリープ",
+    "zh_hans": "咩利羊"
+  },
+  "speciesName": {
+    "ja_hrkt": "わたげポケモン",
+    "ko": "솜털포켓몬",
+    "zh_hant": "綿毛寶可夢",
+    "fr": "Pokémon Laine",
+    "de": "Wolle",
+    "es": "Pokémon Lana",
+    "it": "Pokémon Lana",
+    "en": "Wool Pokémon",
+    "ja": "わたげポケモン",
+    "zh_hans": "绵毛宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 40,
+    "def": 40,
+    "spa": 65,
+    "spd": 45,
+    "spe": 35,
+    "bst": 280
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": null,
+    "hidden": "plus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 56,
+    "catchRate": 235,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "mareep",
+    "evolution": "mareep",
+    "media": "mareep"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 7.8,
+    "color": "white",
+    "flavorText": "If static elec­ tricity builds in its body, its fleece doubles in volume. Touching it will shock you."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

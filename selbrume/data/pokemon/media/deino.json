@@ -1,0 +1,18 @@
+{
+  "speciesId": "deino",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/deino/front.png",
+      "backStatic": "assets/pokemon/sprites/deino/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/deino/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/deino/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/deino.png",
+      "cry": "assets/pokemon/cries/deino.ogg",
+      "animations": {}
+    }
+  }
+}

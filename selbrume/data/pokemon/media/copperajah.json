@@ -1,0 +1,18 @@
+{
+  "speciesId": "copperajah",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/copperajah/front.png",
+      "backStatic": "assets/pokemon/sprites/copperajah/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/copperajah/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/copperajah/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/copperajah.png",
+      "cry": "assets/pokemon/cries/copperajah.ogg",
+      "animations": {}
+    }
+  }
+}

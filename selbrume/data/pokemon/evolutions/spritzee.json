@@ -1,0 +1,16 @@
+{
+  "speciesId": "spritzee",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "aromatisse",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Hold item: sachet"
+      }
+    }
+  ]
+}

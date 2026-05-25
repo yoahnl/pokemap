@@ -1,0 +1,30 @@
+{
+  "speciesId": "ursaluna",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ursaluna/front.png",
+      "backStatic": "assets/pokemon/sprites/ursaluna/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ursaluna/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ursaluna/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ursaluna.png",
+      "cry": "assets/pokemon/cries/ursaluna.ogg",
+      "animations": {}
+    },
+    "ursaluna-bloodmoon": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

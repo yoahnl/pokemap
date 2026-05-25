@@ -1,0 +1,100 @@
+{
+  "id": "torchic",
+  "slug": "torchic",
+  "nationalDex": 255,
+  "names": {
+    "ja_hrkt": "アチャモ",
+    "ja_roma": "Achamo",
+    "ko": "아차모",
+    "zh_hant": "火稚雞",
+    "fr": "Poussifeu",
+    "de": "Flemmli",
+    "es": "Torchic",
+    "it": "Torchic",
+    "en": "Torchic",
+    "ja": "アチャモ",
+    "zh_hans": "火稚鸡"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひよこポケモン",
+    "ko": "풋내기포켓몬",
+    "zh_hant": "雛雞寶可夢",
+    "fr": "Pokémon Poussin",
+    "de": "Küken-Pokémon",
+    "es": "Pokémon Polluelo",
+    "it": "Pokémon Pulcino",
+    "en": "Chick Pokémon",
+    "ja": "ひよこポケモン",
+    "zh_hans": "雏鸡宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 60,
+    "def": 40,
+    "spa": 70,
+    "spd": 50,
+    "spe": 45,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "speed_boost"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "torchic",
+    "evolution": "torchic",
+    "media": "torchic"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 2.5,
+    "color": "red",
+    "flavorText": "TORCHIC sticks with its TRAINER, following behind with unsteady steps. This POKéMON breathes fire of over 1,800 degrees F, including fireballs that leave the foe scorched black."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

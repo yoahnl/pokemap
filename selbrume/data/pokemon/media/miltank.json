@@ -1,0 +1,18 @@
+{
+  "speciesId": "miltank",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/miltank/front.png",
+      "backStatic": "assets/pokemon/sprites/miltank/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/miltank/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/miltank/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/miltank.png",
+      "cry": "assets/pokemon/cries/miltank.ogg",
+      "animations": {}
+    }
+  }
+}

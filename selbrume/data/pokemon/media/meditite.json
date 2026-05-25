@@ -1,0 +1,18 @@
+{
+  "speciesId": "meditite",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/meditite/front.png",
+      "backStatic": "assets/pokemon/sprites/meditite/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/meditite/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/meditite/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/meditite.png",
+      "cry": "assets/pokemon/cries/meditite.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "id": "fidough",
+  "slug": "fidough",
+  "nationalDex": 926,
+  "names": {
+    "ja_hrkt": "パピモッチ",
+    "ja_roma": "Pupimocchi",
+    "ko": "쫀도기",
+    "zh_hant": "狗仔包",
+    "fr": "Pâtachiot",
+    "de": "Hefel",
+    "es": "Fidough",
+    "it": "Fidough",
+    "en": "Fidough",
+    "ja": "パピモッチ",
+    "zh_hans": "狗仔包"
+  },
+  "speciesName": {
+    "ja_hrkt": "こいぬポケモン",
+    "ko": "강아지포켓몬",
+    "zh_hant": "小狗寶可夢",
+    "fr": "Chiot",
+    "de": "Welpe",
+    "en": "Puppy Pokémon",
+    "zh_hans": "小狗宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 37,
+    "atk": 55,
+    "def": 70,
+    "spa": 30,
+    "spd": 55,
+    "spe": 65,
+    "bst": 312
+  },
+  "abilities": {
+    "primary": "own_tempo",
+    "secondary": null,
+    "hidden": "klutz"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground",
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "fidough",
+    "evolution": "fidough",
+    "media": "fidough"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 10.9,
+    "color": "yellow",
+    "flavorText": "This Pokémon is smooth and moist to the touch. Yeast in Fidough’s breath induces fermentation in the Pokémon’s vicinity."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

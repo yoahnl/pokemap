@@ -1,0 +1,14 @@
+{
+  "speciesId": "shuppet",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "banette",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

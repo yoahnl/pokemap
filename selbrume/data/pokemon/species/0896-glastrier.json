@@ -1,0 +1,99 @@
+{
+  "id": "glastrier",
+  "slug": "glastrier",
+  "nationalDex": 896,
+  "names": {
+    "ja_hrkt": "ブリザポス",
+    "ja_roma": "Blizzapos",
+    "ko": "블리자포스",
+    "zh_hant": "雪暴馬",
+    "fr": "Blizzeval",
+    "de": "Polaross",
+    "es": "Glastrier",
+    "it": "Glastrier",
+    "en": "Glastrier",
+    "ja": "ブリザポス",
+    "zh_hans": "雪暴马"
+  },
+  "speciesName": {
+    "ja_hrkt": "あばれうまポケモン",
+    "ko": "사나운말포켓몬",
+    "zh_hant": "烈馬寶可夢",
+    "fr": "Pokémon Cheval Rétif",
+    "de": "Wildblut-Pokémon",
+    "es": "Pokémon Corcel Feroz",
+    "it": "Pokémon Furiequino",
+    "en": "Wild Horse Pokémon",
+    "ja": "あばれうまポケモン",
+    "zh_hans": "烈马宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 145,
+    "def": 130,
+    "spa": 65,
+    "spd": 110,
+    "spe": 30,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "chilling_neigh",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 290,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "glastrier",
+    "evolution": "glastrier",
+    "media": "glastrier"
+  },
+  "dexContent": {
+    "heightM": 2.2,
+    "weightKg": 800.0,
+    "color": "white",
+    "flavorText": "Glastrier emits intense cold from its hooves. It’s also a belligerent Pokémon—anything it wants, it takes by force."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

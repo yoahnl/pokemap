@@ -1,0 +1,18 @@
+{
+  "speciesId": "aromatisse",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/aromatisse/front.png",
+      "backStatic": "assets/pokemon/sprites/aromatisse/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/aromatisse/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/aromatisse/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/aromatisse.png",
+      "cry": "assets/pokemon/cries/aromatisse.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "swanna",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swanna/front.png",
+      "backStatic": "assets/pokemon/sprites/swanna/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swanna/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swanna/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swanna.png",
+      "cry": "assets/pokemon/cries/swanna.ogg",
+      "animations": {}
+    }
+  }
+}

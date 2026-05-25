@@ -1,0 +1,98 @@
+{
+  "id": "lairon",
+  "slug": "lairon",
+  "nationalDex": 305,
+  "names": {
+    "ja_hrkt": "コドラ",
+    "ja_roma": "Kodora",
+    "ko": "갱도라",
+    "zh_hant": "可多拉",
+    "fr": "Galegon",
+    "de": "Stollrak",
+    "es": "Lairon",
+    "it": "Lairon",
+    "en": "Lairon",
+    "ja": "コドラ",
+    "zh_hans": "可多拉"
+  },
+  "speciesName": {
+    "ja_hrkt": "てつヨロイポケモン",
+    "ko": "철갑옷포켓몬",
+    "zh_hant": "鐵鎧寶可夢",
+    "fr": "Pokémon Armurfer",
+    "de": "Eisenpanzer-Pokémon",
+    "es": "Pokémon Coraza Férrea",
+    "it": "Pokémon Corazza",
+    "en": "Iron Armor Pokémon",
+    "ja": "てつヨロイポケモン",
+    "zh_hans": "铁铠宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "steel",
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 90,
+    "def": 140,
+    "spa": 50,
+    "spd": 50,
+    "spe": 40,
+    "bst": 430
+  },
+  "abilities": {
+    "primary": "sturdy",
+    "secondary": "rock_head",
+    "hidden": "heavy_metal"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 151,
+    "catchRate": 90,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lairon",
+    "evolution": "lairon",
+    "media": "lairon"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 120.0,
+    "color": "gray",
+    "flavorText": "LAIRON tempers its steel body by drinking highly nutritious mineral springwater until it is bloated. This POKéMON makes its nest close to springs of delicious water."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "id": "fomantis",
+  "slug": "fomantis",
+  "nationalDex": 753,
+  "names": {
+    "ja_hrkt": "カリキリ",
+    "ja_roma": "Karikiri",
+    "ko": "짜랑랑",
+    "zh_hant": "偽螳草",
+    "fr": "Mimantis",
+    "de": "Imantis",
+    "es": "Fomantis",
+    "it": "Fomantis",
+    "en": "Fomantis",
+    "ja": "カリキリ",
+    "zh_hans": "伪螳草"
+  },
+  "speciesName": {
+    "ja_hrkt": "かまくさポケモン",
+    "ko": "풀사마귀포켓몬",
+    "zh_hant": "鐮草寶可夢",
+    "fr": "Pokémon Fauch’Herbe",
+    "de": "Grassichel-Pokémon",
+    "es": "Pokémon Filo Hoja",
+    "it": "Pokémon Mantiderba",
+    "en": "Sickle Grass Pokémon",
+    "ja": "かまくさポケモン",
+    "zh_hans": "镰草宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 55,
+    "def": 35,
+    "spa": 50,
+    "spd": 35,
+    "spe": 35,
+    "bst": 250
+  },
+  "abilities": {
+    "primary": "leaf_guard",
+    "secondary": null,
+    "hidden": "contrary"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 50,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "fomantis",
+    "evolution": "fomantis",
+    "media": "fomantis"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.5,
+    "color": "pink",
+    "flavorText": "During the day, it sleeps and soaks up light. When night falls, it walks around looking for a safer place to sleep."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

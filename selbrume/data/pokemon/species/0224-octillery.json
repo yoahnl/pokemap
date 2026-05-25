@@ -1,0 +1,98 @@
+{
+  "id": "octillery",
+  "slug": "octillery",
+  "nationalDex": 224,
+  "names": {
+    "ja_hrkt": "オクタン",
+    "ja_roma": "Okutank",
+    "ko": "대포무노",
+    "zh_hant": "章魚桶",
+    "fr": "Octillery",
+    "de": "Octillery",
+    "es": "Octillery",
+    "it": "Octillery",
+    "en": "Octillery",
+    "ja": "オクタン",
+    "zh_hans": "章鱼桶"
+  },
+  "speciesName": {
+    "ja_hrkt": "ふんしゃポケモン",
+    "ko": "분사포켓몬",
+    "zh_hant": "噴射寶可夢",
+    "fr": "Pokémon Jet",
+    "de": "Hochdruck-Pokémon",
+    "es": "Pokémon Reactor",
+    "it": "Pokémon Jet",
+    "en": "Jet Pokémon",
+    "ja": "ふんしゃポケモン",
+    "zh_hans": "喷射宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 105,
+    "def": 75,
+    "spa": 105,
+    "spd": 75,
+    "spe": 45,
+    "bst": 480
+  },
+  "abilities": {
+    "primary": "suction_cups",
+    "secondary": "sniper",
+    "hidden": "moody"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "water2"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 168,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "octillery",
+    "evolution": "octillery",
+    "media": "octillery"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 28.5,
+    "color": "red",
+    "flavorText": "It traps enemies with its suction- cupped tentacles then smashes them with its rock-hard head."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

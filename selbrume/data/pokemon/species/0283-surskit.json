@@ -1,0 +1,99 @@
+{
+  "id": "surskit",
+  "slug": "surskit",
+  "nationalDex": 283,
+  "names": {
+    "ja_hrkt": "アメタマ",
+    "ja_roma": "Ametama",
+    "ko": "비구술",
+    "zh_hant": "溜溜糖球",
+    "fr": "Arakdo",
+    "de": "Gehweiher",
+    "es": "Surskit",
+    "it": "Surskit",
+    "en": "Surskit",
+    "ja": "アメタマ",
+    "zh_hans": "溜溜糖球"
+  },
+  "speciesName": {
+    "ja_hrkt": "あめんぼポケモン",
+    "ko": "소금쟁이포켓몬",
+    "zh_hant": "水黽寶可夢",
+    "fr": "Pokémon Maresurfeur",
+    "de": "Wassergeher",
+    "es": "Pokémon Zapatero",
+    "it": "Pokémon Sfiorapozze",
+    "en": "Pond Skater Pokémon",
+    "ja": "あめんぼポケモン",
+    "zh_hans": "水黾宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "bug",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 30,
+    "def": 32,
+    "spa": 50,
+    "spd": 52,
+    "spe": 65,
+    "bst": 269
+  },
+  "abilities": {
+    "primary": "swift_swim",
+    "secondary": null,
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 54,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "surskit",
+    "evolution": "surskit",
+    "media": "surskit"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 1.7,
+    "color": "blue",
+    "flavorText": "From the tips of its feet, SURSKIT secretes an oil that enables it to walk on water as if it were skating. This POKéMON feeds on microscopic organisms in ponds and lakes."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

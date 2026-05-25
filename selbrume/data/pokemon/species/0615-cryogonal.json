@@ -1,0 +1,99 @@
+{
+  "id": "cryogonal",
+  "slug": "cryogonal",
+  "nationalDex": 615,
+  "names": {
+    "ja_hrkt": "フリージオ",
+    "ja_roma": "Freegeo",
+    "ko": "프리지오",
+    "zh_hant": "幾何雪花",
+    "fr": "Hexagel",
+    "de": "Frigometri",
+    "es": "Cryogonal",
+    "it": "Cryogonal",
+    "en": "Cryogonal",
+    "ja": "フリージオ",
+    "zh_hans": "几何雪花"
+  },
+  "speciesName": {
+    "ja_hrkt": "けっしょうポケモン",
+    "ko": "결정포켓몬",
+    "zh_hant": "結晶寶可夢",
+    "fr": "Pokémon Cristal",
+    "de": "Kristall-Pokémon",
+    "es": "Pokémon Cristal",
+    "it": "Pokémon Cristallo",
+    "en": "Crystallizing Pokémon",
+    "ja": "けっしょうポケモン",
+    "zh_hans": "结晶宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 50,
+    "def": 50,
+    "spa": 95,
+    "spd": 135,
+    "spe": 105,
+    "bst": 515
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 180,
+    "catchRate": 25,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cryogonal",
+    "evolution": "cryogonal",
+    "media": "cryogonal"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 148.0,
+    "color": "blue",
+    "flavorText": "When its body temperature goes up, it turns into steam and vanishes. When its temperature lowers, it returns to ice."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

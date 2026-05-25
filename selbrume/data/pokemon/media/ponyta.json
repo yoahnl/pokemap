@@ -1,0 +1,30 @@
+{
+  "speciesId": "ponyta",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ponyta/front.png",
+      "backStatic": "assets/pokemon/sprites/ponyta/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ponyta/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ponyta/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ponyta.png",
+      "cry": "assets/pokemon/cries/ponyta.ogg",
+      "animations": {}
+    },
+    "ponyta-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

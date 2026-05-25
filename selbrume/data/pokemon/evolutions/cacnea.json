@@ -1,0 +1,14 @@
+{
+  "speciesId": "cacnea",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "cacturne",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

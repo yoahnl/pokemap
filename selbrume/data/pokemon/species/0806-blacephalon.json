@@ -1,0 +1,100 @@
+{
+  "id": "blacephalon",
+  "slug": "blacephalon",
+  "nationalDex": 806,
+  "names": {
+    "ja_hrkt": "ズガドーン",
+    "ja_roma": "Zugadoon",
+    "ko": "두파팡",
+    "zh_hant": "砰頭小丑",
+    "fr": "Pierroteknik",
+    "de": "Kopplosio",
+    "es": "Blacephalon",
+    "it": "Blacephalon",
+    "en": "Blacephalon",
+    "ja": "ズガドーン",
+    "zh_hans": "砰头小丑"
+  },
+  "speciesName": {
+    "ja_hrkt": "はなびポケモン",
+    "ko": "불꽃놀이포켓몬",
+    "zh_hant": "煙火寶可夢",
+    "fr": "Pokémon Artificier",
+    "de": "Feuerwerks-Pokémon",
+    "es": "Pokémon Pirotecnia",
+    "it": "Pokémon Pirotecnico",
+    "en": "Fireworks Pokémon",
+    "ja": "はなびポケモン",
+    "zh_hans": "烟火宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fire",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 53,
+    "atk": 127,
+    "def": 53,
+    "spa": 151,
+    "spd": 79,
+    "spe": 107,
+    "bst": 570
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 257,
+    "catchRate": 30,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "blacephalon",
+    "evolution": "blacephalon",
+    "media": "blacephalon"
+  },
+  "dexContent": {
+    "heightM": 1.8,
+    "weightKg": 13.0,
+    "color": "white",
+    "flavorText": "It slithers toward people. Then, without warning, it triggers the explosion of its own head. It’s apparently one kind of Ultra Beast."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

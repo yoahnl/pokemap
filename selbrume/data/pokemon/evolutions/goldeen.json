@@ -1,0 +1,14 @@
+{
+  "speciesId": "goldeen",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "seaking",
+      "method": "level_up",
+      "minLevel": 33,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

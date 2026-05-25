@@ -1,0 +1,98 @@
+{
+  "id": "butterfree",
+  "slug": "butterfree",
+  "nationalDex": 12,
+  "names": {
+    "ja_hrkt": "バタフリー",
+    "ja_roma": "Butterfree",
+    "ko": "버터플",
+    "zh_hant": "巴大蝶",
+    "fr": "Papilusion",
+    "de": "Smettbo",
+    "es": "Butterfree",
+    "it": "Butterfree",
+    "en": "Butterfree",
+    "ja": "バタフリー",
+    "zh_hans": "巴大蝶"
+  },
+  "speciesName": {
+    "ja_hrkt": "ちょうちょポケモン",
+    "ko": "나비포켓몬",
+    "zh_hant": "蝴蝶寶可夢",
+    "fr": "Pokémon Papillon",
+    "de": "Falter-Pokémon",
+    "es": "Pokémon Mariposa",
+    "it": "Pokémon Farfalla",
+    "en": "Butterfly Pokémon",
+    "ja": "ちょうちょポケモン",
+    "zh_hans": "蝴蝶宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 45,
+    "def": 50,
+    "spa": 90,
+    "spd": 80,
+    "spe": 70,
+    "bst": 395
+  },
+  "abilities": {
+    "primary": "compound_eyes",
+    "secondary": null,
+    "hidden": "tinted_lens"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 178,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "butterfree",
+    "evolution": "butterfree",
+    "media": "butterfree"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 32.0,
+    "color": "white",
+    "flavorText": "In battle, it flaps its wings at high speed to release highly toxic dust into the air."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

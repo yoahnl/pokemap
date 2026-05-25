@@ -1,0 +1,99 @@
+{
+  "id": "delibird",
+  "slug": "delibird",
+  "nationalDex": 225,
+  "names": {
+    "ja_hrkt": "デリバード",
+    "ja_roma": "Delibird",
+    "ko": "딜리버드",
+    "zh_hant": "信使鳥",
+    "fr": "Cadoizo",
+    "de": "Botogel",
+    "es": "Delibird",
+    "it": "Delibird",
+    "en": "Delibird",
+    "ja": "デリバード",
+    "zh_hans": "信使鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "はこびやポケモン",
+    "ko": "배달포켓몬",
+    "zh_hant": "搬運寶可夢",
+    "fr": "Pokémon Livraison",
+    "de": "Lieferanten-Pokémon",
+    "es": "Pokémon Reparto",
+    "it": "Pokémon Consegna",
+    "en": "Delivery Pokémon",
+    "ja": "はこびやポケモン",
+    "zh_hans": "搬运宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "ice",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 55,
+    "def": 45,
+    "spa": 65,
+    "spd": 45,
+    "spe": 75,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "vital_spirit",
+    "secondary": "hustle",
+    "hidden": "insomnia"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 116,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "delibird",
+    "evolution": "delibird",
+    "media": "delibird"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 16.0,
+    "color": "red",
+    "flavorText": "It carries food all day long. There are tales about lost people who were saved by the food it had."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

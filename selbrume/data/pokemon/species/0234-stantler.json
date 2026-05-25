@@ -1,0 +1,97 @@
+{
+  "id": "stantler",
+  "slug": "stantler",
+  "nationalDex": 234,
+  "names": {
+    "ja_hrkt": "オドシシ",
+    "ja_roma": "Odoshishi",
+    "ko": "노라키",
+    "zh_hant": "驚角鹿",
+    "fr": "Cerfrousse",
+    "de": "Damhirplex",
+    "es": "Stantler",
+    "it": "Stantler",
+    "en": "Stantler",
+    "ja": "オドシシ",
+    "zh_hans": "惊角鹿"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおツノポケモン",
+    "ko": "큰뿔포켓몬",
+    "zh_hant": "大角寶可夢",
+    "fr": "Pokémon Maxi Corne",
+    "de": "Vielender",
+    "es": "Pokémon Gran Cuerno",
+    "it": "Pokémon Grancorno",
+    "en": "Big Horn Pokémon",
+    "ja": "おおツノポケモン",
+    "zh_hans": "大角宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 73,
+    "atk": 95,
+    "def": 62,
+    "spa": 85,
+    "spd": 65,
+    "spe": 85,
+    "bst": 465
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "frisk",
+    "hidden": "sap_sipper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 163,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "stantler",
+    "evolution": "stantler",
+    "media": "stantler"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 71.2,
+    "color": "brown",
+    "flavorText": "The curved antlers subtly change the flow of air to create a strange space where real­ ity is distorted."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

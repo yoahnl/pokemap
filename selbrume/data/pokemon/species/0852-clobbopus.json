@@ -1,0 +1,98 @@
+{
+  "id": "clobbopus",
+  "slug": "clobbopus",
+  "nationalDex": 852,
+  "names": {
+    "ja_hrkt": "タタッコ",
+    "ja_roma": "Tatakko",
+    "ko": "때때무노",
+    "zh_hant": "拳拳蛸",
+    "fr": "Poulpaf",
+    "de": "Klopptopus",
+    "es": "Clobbopus",
+    "it": "Clobbopus",
+    "en": "Clobbopus",
+    "ja": "タタッコ",
+    "zh_hans": "拳拳蛸"
+  },
+  "speciesName": {
+    "ja_hrkt": "だだっこポケモン",
+    "ko": "떼쟁이포켓몬",
+    "zh_hant": "纏人寶可夢",
+    "fr": "Pokémon Caprice",
+    "de": "Balg-Pokémon",
+    "es": "Pokémon Malcriado",
+    "it": "Pokémon Bizze",
+    "en": "Tantrum Pokémon",
+    "ja": "だだっこポケモン",
+    "zh_hans": "缠人宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 68,
+    "def": 60,
+    "spa": 50,
+    "spd": 50,
+    "spe": 32,
+    "bst": 310
+  },
+  "abilities": {
+    "primary": "limber",
+    "secondary": null,
+    "hidden": "technician"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 180,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "clobbopus",
+    "evolution": "clobbopus",
+    "media": "clobbopus"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 4.0,
+    "color": "brown",
+    "flavorText": "It’s very curious, but its means of investigating things is to try to punch them with its tentacles. The search for food is what brings it onto land."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

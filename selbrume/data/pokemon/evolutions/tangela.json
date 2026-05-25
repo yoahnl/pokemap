@@ -1,0 +1,14 @@
+{
+  "speciesId": "tangela",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "tangrowth",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "ancient_power",
+      "conditionText": {}
+    }
+  ]
+}

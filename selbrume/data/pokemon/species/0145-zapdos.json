@@ -1,0 +1,102 @@
+{
+  "id": "zapdos",
+  "slug": "zapdos",
+  "nationalDex": 145,
+  "names": {
+    "ja_hrkt": "サンダー",
+    "ja_roma": "Thunder",
+    "ko": "썬더",
+    "zh_hant": "閃電鳥",
+    "fr": "Électhor",
+    "de": "Zapdos",
+    "es": "Zapdos",
+    "it": "Zapdos",
+    "en": "Zapdos",
+    "ja": "サンダー",
+    "zh_hans": "闪电鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんげきポケモン",
+    "ko": "전기포켓몬",
+    "zh_hant": "電擊寶可夢",
+    "fr": "Pokémon Électrique",
+    "de": "Elektro-Pokémon",
+    "es": "Pokémon Eléctrico",
+    "it": "Pokémon Elettrico",
+    "en": "Electric Pokémon",
+    "ja": "でんげきポケモン",
+    "zh_hans": "电击宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "electric",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 90,
+    "def": 85,
+    "spa": 125,
+    "spd": 90,
+    "spe": 100,
+    "bst": 580
+  },
+  "abilities": {
+    "primary": "pressure",
+    "secondary": null,
+    "hidden": "static"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 261,
+    "catchRate": 3,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "zapdos-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "zapdos",
+    "evolution": "zapdos",
+    "media": "zapdos"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 52.6,
+    "color": "yellow",
+    "flavorText": "A legendary bird POKéMON that is said to appear from clouds while dropping enormous lightning bolts."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

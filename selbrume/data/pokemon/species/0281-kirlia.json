@@ -1,0 +1,99 @@
+{
+  "id": "kirlia",
+  "slug": "kirlia",
+  "nationalDex": 281,
+  "names": {
+    "ja_hrkt": "キルリア",
+    "ja_roma": "Kirlia",
+    "ko": "킬리아",
+    "zh_hant": "奇魯莉安",
+    "fr": "Kirlia",
+    "de": "Kirlia",
+    "es": "Kirlia",
+    "it": "Kirlia",
+    "en": "Kirlia",
+    "ja": "キルリア",
+    "zh_hans": "奇鲁莉安"
+  },
+  "speciesName": {
+    "ja_hrkt": "かんじょうポケモン",
+    "ko": "감정포켓몬",
+    "zh_hant": "感情寶可夢",
+    "fr": "Pokémon Émotion",
+    "de": "Emotions-Pokémon",
+    "es": "Pokémon Sensorio",
+    "it": "Pokémon Emozione",
+    "en": "Emotion Pokémon",
+    "ja": "かんじょうポケモン",
+    "zh_hans": "感情宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "psychic",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 38,
+    "atk": 35,
+    "def": 35,
+    "spa": 65,
+    "spd": 55,
+    "spe": 50,
+    "bst": 278
+  },
+  "abilities": {
+    "primary": "synchronize",
+    "secondary": "trace",
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 97,
+    "catchRate": 120,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "kirlia",
+    "evolution": "kirlia",
+    "media": "kirlia"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 20.2,
+    "color": "white",
+    "flavorText": "It is said that a KIRLIA that is exposed to the positive emotions of its TRAINER grows beautiful. This POKéMON controls psychokinetic powers with its highly developed brain."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

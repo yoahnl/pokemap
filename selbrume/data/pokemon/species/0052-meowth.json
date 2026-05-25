@@ -1,0 +1,100 @@
+{
+  "id": "meowth",
+  "slug": "meowth",
+  "nationalDex": 52,
+  "names": {
+    "ja_hrkt": "ニャース",
+    "ja_roma": "Nyarth",
+    "ko": "나옹",
+    "zh_hant": "喵喵",
+    "fr": "Miaouss",
+    "de": "Mauzi",
+    "es": "Meowth",
+    "it": "Meowth",
+    "en": "Meowth",
+    "ja": "ニャース",
+    "zh_hans": "喵喵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ばけねこポケモン",
+    "ko": "요괴고양이포켓몬",
+    "zh_hant": "妖怪貓寶可夢",
+    "fr": "Pokémon Chadégout",
+    "de": "Katzen-Pokémon",
+    "es": "Pokémon Gato Araña",
+    "it": "Pokémon Graffimiao",
+    "en": "Scratch Cat Pokémon",
+    "ja": "ばけねこポケモン",
+    "zh_hans": "妖怪猫宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 45,
+    "def": 35,
+    "spa": 40,
+    "spd": 40,
+    "spe": 90,
+    "bst": 290
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "technician",
+    "hidden": "unnerve"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 58,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "meowth-alola",
+      "meowth-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "meowth",
+    "evolution": "meowth",
+    "media": "meowth"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 4.2,
+    "color": "yellow",
+    "flavorText": "It washes its face regularly to keep the coin on its forehead spotless. It doesn’t get along with Galarian Meowth."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

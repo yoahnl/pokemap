@@ -1,0 +1,18 @@
+{
+  "speciesId": "bayleef",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bayleef/front.png",
+      "backStatic": "assets/pokemon/sprites/bayleef/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bayleef/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bayleef/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bayleef.png",
+      "cry": "assets/pokemon/cries/bayleef.ogg",
+      "animations": {}
+    }
+  }
+}

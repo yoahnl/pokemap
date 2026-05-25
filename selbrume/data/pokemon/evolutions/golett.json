@@ -1,0 +1,14 @@
+{
+  "speciesId": "golett",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "golurk",
+      "method": "level_up",
+      "minLevel": 43,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

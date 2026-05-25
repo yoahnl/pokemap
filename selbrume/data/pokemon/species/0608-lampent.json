@@ -1,0 +1,98 @@
+{
+  "id": "lampent",
+  "slug": "lampent",
+  "nationalDex": 608,
+  "names": {
+    "ja_hrkt": "ランプラー",
+    "ja_roma": "Lampler",
+    "ko": "램프라",
+    "zh_hant": "燈火幽靈",
+    "fr": "Mélancolux",
+    "de": "Laternecto",
+    "es": "Lampent",
+    "it": "Lampent",
+    "en": "Lampent",
+    "ja": "ランプラー",
+    "zh_hans": "灯火幽灵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ランプポケモン",
+    "ko": "램프포켓몬",
+    "zh_hant": "油燈寶可夢",
+    "fr": "Pokémon Lampe",
+    "de": "Lampen-Pokémon",
+    "es": "Pokémon Farolillo",
+    "it": "Pokémon Lanterna",
+    "en": "Lamp Pokémon",
+    "ja": "ランプポケモン",
+    "zh_hans": "油灯宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ghost",
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 40,
+    "def": 60,
+    "spa": 95,
+    "spd": 60,
+    "spe": 55,
+    "bst": 370
+  },
+  "abilities": {
+    "primary": "flash_fire",
+    "secondary": "flame_body",
+    "hidden": "infiltrator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 130,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "lampent",
+    "evolution": "lampent",
+    "media": "lampent"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 13.0,
+    "color": "black",
+    "flavorText": "This ominous Pokémon is feared. Through cities it wanders, searching for the spirits of the fallen."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

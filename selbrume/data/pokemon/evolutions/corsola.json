@@ -1,0 +1,14 @@
+{
+  "speciesId": "corsola",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "cursola",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

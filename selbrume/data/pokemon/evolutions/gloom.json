@@ -1,0 +1,22 @@
+{
+  "speciesId": "gloom",
+  "preEvolution": "oddish",
+  "evolutions": [
+    {
+      "targetSpeciesId": "bellossom",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "sun-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "vileplume",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "leaf-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

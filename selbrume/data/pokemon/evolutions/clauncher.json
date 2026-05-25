@@ -1,0 +1,14 @@
+{
+  "speciesId": "clauncher",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "clawitzer",
+      "method": "level_up",
+      "minLevel": 37,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

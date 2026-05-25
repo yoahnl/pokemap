@@ -1,0 +1,18 @@
+{
+  "speciesId": "blipbug",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/blipbug/front.png",
+      "backStatic": "assets/pokemon/sprites/blipbug/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/blipbug/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/blipbug/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/blipbug.png",
+      "cry": "assets/pokemon/cries/blipbug.ogg",
+      "animations": {}
+    }
+  }
+}

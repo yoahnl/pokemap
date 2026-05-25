@@ -1,0 +1,18 @@
+{
+  "speciesId": "phanpy",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/phanpy/front.png",
+      "backStatic": "assets/pokemon/sprites/phanpy/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/phanpy/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/phanpy/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/phanpy.png",
+      "cry": "assets/pokemon/cries/phanpy.ogg",
+      "animations": {}
+    }
+  }
+}

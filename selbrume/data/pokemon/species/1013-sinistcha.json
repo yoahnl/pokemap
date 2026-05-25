@@ -1,0 +1,95 @@
+{
+  "id": "sinistcha",
+  "slug": "sinistcha",
+  "nationalDex": 1013,
+  "names": {
+    "ja_hrkt": "ヤバソチャ",
+    "ko": "그우린차",
+    "zh_hant": "來悲粗茶",
+    "fr": "Théffroyable",
+    "de": "Fatalitcha",
+    "es": "Sinistcha",
+    "it": "Sinistcha",
+    "en": "Sinistcha",
+    "ja": "ヤバソチャ",
+    "zh_hans": "来悲粗茶"
+  },
+  "speciesName": {
+    "ko": "말차포켓몬",
+    "fr": "Matcha",
+    "en": "Matcha Pokémon"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "grass",
+      "ghost"
+    ]
+  },
+  "baseStats": {
+    "hp": 71,
+    "atk": 60,
+    "def": 106,
+    "spa": 121,
+    "spd": 80,
+    "spe": 70,
+    "bst": 508
+  },
+  "abilities": {
+    "primary": "hospitality",
+    "secondary": null,
+    "hidden": "heatproof"
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "mineral",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 178,
+    "catchRate": 60,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "sinistcha-masterpiece"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sinistcha",
+    "evolution": "sinistcha",
+    "media": "sinistcha"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 2.2,
+    "color": "green",
+    "flavorText": "It pretends to be tea, trying to fool people into drinking it so it can drain their life-force. Its ruse is generally unsuccessful."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

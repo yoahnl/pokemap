@@ -1,0 +1,95 @@
+{
+  "id": "tinkatuff",
+  "slug": "tinkatuff",
+  "nationalDex": 958,
+  "names": {
+    "ja_hrkt": "ナカヌチャン",
+    "ja_roma": "Nakanuchan",
+    "ko": "벼리짱",
+    "zh_hant": "巧鍛匠",
+    "fr": "Forgella",
+    "de": "Tafforgita",
+    "es": "Tinkatuff",
+    "it": "Tinkatuff",
+    "en": "Tinkatuff",
+    "ja": "ナカヌチャン",
+    "zh_hans": "巧锻匠"
+  },
+  "speciesName": {
+    "ja_hrkt": "ハンマーポケモン",
+    "ko": "해머포켓몬",
+    "zh_hant": "錘子寶可夢",
+    "fr": "Marteau",
+    "de": "Hammer",
+    "en": "Hammer Pokémon",
+    "zh_hans": "锤子宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "fairy",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 55,
+    "def": 55,
+    "spa": 45,
+    "spd": 82,
+    "spe": 78,
+    "bst": 380
+  },
+  "abilities": {
+    "primary": "mold_breaker",
+    "secondary": "own_tempo",
+    "hidden": "pickpocket"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 133,
+    "catchRate": 90,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tinkatuff",
+    "evolution": "tinkatuff",
+    "media": "tinkatuff"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 59.1,
+    "color": "pink",
+    "flavorText": "This Pokémon will attack groups of Pawniard and Bisharp, gathering metal from them in order to create a large and sturdy hammer."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

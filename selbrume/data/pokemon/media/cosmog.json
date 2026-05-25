@@ -1,0 +1,18 @@
+{
+  "speciesId": "cosmog",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cosmog/front.png",
+      "backStatic": "assets/pokemon/sprites/cosmog/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cosmog/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cosmog/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cosmog.png",
+      "cry": "assets/pokemon/cries/cosmog.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "shinx",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shinx/front.png",
+      "backStatic": "assets/pokemon/sprites/shinx/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shinx/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shinx/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shinx.png",
+      "cry": "assets/pokemon/cries/shinx.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "id": "smoliv",
+  "slug": "smoliv",
+  "nationalDex": 928,
+  "names": {
+    "ja_hrkt": "ミニーブ",
+    "ja_roma": "Minive",
+    "ko": "미니브",
+    "zh_hant": "迷你芙",
+    "fr": "Olivini",
+    "de": "Olini",
+    "es": "Smoliv",
+    "it": "Smoliv",
+    "en": "Smoliv",
+    "ja": "ミニーブ",
+    "zh_hans": "迷你芙"
+  },
+  "speciesName": {
+    "ja_hrkt": "オリーブポケモン",
+    "ko": "올리브포켓몬",
+    "zh_hant": "橄欖寶可夢",
+    "fr": "Olive",
+    "de": "Olive",
+    "en": "Olive Pokémon",
+    "zh_hans": "橄榄宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "grass",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 41,
+    "atk": 35,
+    "def": 45,
+    "spa": 58,
+    "spd": 51,
+    "spe": 30,
+    "bst": 260
+  },
+  "abilities": {
+    "primary": "early_bird",
+    "secondary": null,
+    "hidden": "harvest"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 52,
+    "catchRate": 255,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "smoliv",
+    "evolution": "smoliv",
+    "media": "smoliv"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 6.5,
+    "color": "green",
+    "flavorText": "It protects itself from enemies by emitting oil from the fruit on its head. This oil is bitter and astringent enough to make someone flinch."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

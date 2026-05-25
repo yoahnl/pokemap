@@ -1,0 +1,18 @@
+{
+  "speciesId": "wobbuffet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wobbuffet/front.png",
+      "backStatic": "assets/pokemon/sprites/wobbuffet/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wobbuffet/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wobbuffet/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wobbuffet.png",
+      "cry": "assets/pokemon/cries/wobbuffet.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "charmeleon",
+  "slug": "charmeleon",
+  "nationalDex": 5,
+  "names": {
+    "ja_hrkt": "リザード",
+    "ja_roma": "Lizardo",
+    "ko": "리자드",
+    "zh_hant": "火恐龍",
+    "fr": "Reptincel",
+    "de": "Glutexo",
+    "es": "Charmeleon",
+    "it": "Charmeleon",
+    "en": "Charmeleon",
+    "ja": "リザード",
+    "zh_hans": "火恐龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "かえんポケモン",
+    "ko": "화염포켓몬",
+    "zh_hant": "火焰寶可夢",
+    "fr": "Pokémon Flamme",
+    "de": "Flammen-Pokémon",
+    "es": "Pokémon Llama",
+    "it": "Pokémon Fiamma",
+    "en": "Flame Pokémon",
+    "ja": "かえんポケモン",
+    "zh_hans": "火焰宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 58,
+    "atk": 64,
+    "def": 58,
+    "spa": 80,
+    "spd": 65,
+    "spe": 80,
+    "bst": 405
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "solar_power"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 142,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "charmeleon",
+    "evolution": "charmeleon",
+    "media": "charmeleon"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 19.0,
+    "color": "red",
+    "flavorText": "When it swings its burning tail, it elevates the temperature to unbearably high levels."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

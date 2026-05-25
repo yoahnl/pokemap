@@ -1,0 +1,100 @@
+{
+  "id": "minccino",
+  "slug": "minccino",
+  "nationalDex": 572,
+  "names": {
+    "ja_hrkt": "チラーミィ",
+    "ja_roma": "Chillarmy",
+    "ko": "치라미",
+    "zh_hant": "泡沫栗鼠",
+    "fr": "Chinchidou",
+    "de": "Picochilla",
+    "es": "Minccino",
+    "it": "Minccino",
+    "en": "Minccino",
+    "ja": "チラーミィ",
+    "zh_hans": "泡沫栗鼠"
+  },
+  "speciesName": {
+    "ja_hrkt": "チンチラポケモン",
+    "ko": "친칠라포켓몬",
+    "zh_hant": "栗鼠寶可夢",
+    "fr": "Pokémon Chinchilla",
+    "de": "Chinchilla-Pokémon",
+    "es": "Pokémon Chinchilla",
+    "it": "Pokémon Cincillà",
+    "en": "Chinchilla Pokémon",
+    "ja": "チンチラポケモン",
+    "zh_hans": "栗鼠宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 50,
+    "def": 40,
+    "spa": 40,
+    "spd": 40,
+    "spe": 75,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "cute_charm",
+    "secondary": "technician",
+    "hidden": "skill_link"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.25,
+      "female": 0.75
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 60,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "minccino",
+    "evolution": "minccino",
+    "media": "minccino"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 5.8,
+    "color": "gray",
+    "flavorText": "They greet one another by rubbing each other with their tails, which are always kept well groomed and clean."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

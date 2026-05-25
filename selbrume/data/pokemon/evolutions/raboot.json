@@ -1,0 +1,14 @@
+{
+  "speciesId": "raboot",
+  "preEvolution": "scorbunny",
+  "evolutions": [
+    {
+      "targetSpeciesId": "cinderace",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

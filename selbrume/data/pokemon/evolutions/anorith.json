@@ -1,0 +1,14 @@
+{
+  "speciesId": "anorith",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "armaldo",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

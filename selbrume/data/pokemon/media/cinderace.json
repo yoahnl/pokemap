@@ -1,0 +1,18 @@
+{
+  "speciesId": "cinderace",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cinderace/front.png",
+      "backStatic": "assets/pokemon/sprites/cinderace/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cinderace/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cinderace/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cinderace.png",
+      "cry": "assets/pokemon/cries/cinderace.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "haunter",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/haunter/front.png",
+      "backStatic": "assets/pokemon/sprites/haunter/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/haunter/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/haunter/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/haunter.png",
+      "cry": "assets/pokemon/cries/haunter.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "id": "zorua",
+  "slug": "zorua",
+  "nationalDex": 570,
+  "names": {
+    "ja_hrkt": "ゾロア",
+    "ja_roma": "Zorua",
+    "ko": "조로아",
+    "zh_hant": "索羅亞",
+    "fr": "Zorua",
+    "de": "Zorua",
+    "es": "Zorua",
+    "it": "Zorua",
+    "en": "Zorua",
+    "ja": "ゾロア",
+    "zh_hans": "索罗亚"
+  },
+  "speciesName": {
+    "ja_hrkt": "わるぎつねポケモン",
+    "ko": "나쁜여우포켓몬",
+    "zh_hant": "惡狐寶可夢",
+    "fr": "Pokémon Sombrenard",
+    "de": "Lausefuchs-Pokémon",
+    "es": "Pokémon Zorro Pillo",
+    "it": "Pokémon Malavolpe",
+    "en": "Tricky Fox Pokémon",
+    "ja": "わるぎつねポケモン",
+    "zh_hans": "恶狐宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 65,
+    "def": 40,
+    "spa": 80,
+    "spd": 40,
+    "spe": 65,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "illusion",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 66,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "zorua-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "zorua",
+    "evolution": "zorua",
+    "media": "zorua"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 12.5,
+    "color": "gray",
+    "flavorText": "It changes into the forms of others to surprise them. Apparently, it often transforms into a silent child."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

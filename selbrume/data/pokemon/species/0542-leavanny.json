@@ -1,0 +1,98 @@
+{
+  "id": "leavanny",
+  "slug": "leavanny",
+  "nationalDex": 542,
+  "names": {
+    "ja_hrkt": "ハハコモリ",
+    "ja_roma": "Hahakomori",
+    "ko": "모아머",
+    "zh_hant": "保母蟲",
+    "fr": "Manternel",
+    "de": "Matrifol",
+    "es": "Leavanny",
+    "it": "Leavanny",
+    "en": "Leavanny",
+    "ja": "ハハコモリ",
+    "zh_hans": "保姆虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "こそだてポケモン",
+    "ko": "육아포켓몬",
+    "zh_hant": "育兒寶可夢",
+    "fr": "Pokémon Précepteur",
+    "de": "Kinderpflege",
+    "es": "Pokémon Cuidador",
+    "it": "Pokémon Balia",
+    "en": "Nurturing Pokémon",
+    "ja": "こそだてポケモン",
+    "zh_hans": "育儿宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug",
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 103,
+    "def": 80,
+    "spa": 70,
+    "spd": 80,
+    "spe": 92,
+    "bst": 500
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "chlorophyll",
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 225,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "leavanny",
+    "evolution": "leavanny",
+    "media": "leavanny"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 20.5,
+    "color": "yellow",
+    "flavorText": "Upon finding a small Pokémon, it weaves clothing for it from leaves, using the cutters on its arms and sticky silk."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

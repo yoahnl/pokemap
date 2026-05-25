@@ -1,0 +1,22 @@
+{
+  "speciesId": "diglett",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dugtrio",
+      "method": "level_up",
+      "minLevel": 26,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "dugtrio",
+      "method": "level_up",
+      "minLevel": 26,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

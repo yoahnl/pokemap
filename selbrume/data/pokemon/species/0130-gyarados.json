@@ -1,0 +1,101 @@
+{
+  "id": "gyarados",
+  "slug": "gyarados",
+  "nationalDex": 130,
+  "names": {
+    "ja_hrkt": "ギャラドス",
+    "ja_roma": "Gyarados",
+    "ko": "갸라도스",
+    "zh_hant": "暴鯉龍",
+    "fr": "Léviator",
+    "de": "Garados",
+    "es": "Gyarados",
+    "it": "Gyarados",
+    "en": "Gyarados",
+    "ja": "ギャラドス",
+    "zh_hans": "暴鲤龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "きょうあくポケモン",
+    "ko": "흉악포켓몬",
+    "zh_hant": "凶惡寶可夢",
+    "fr": "Pokémon Terrifiant",
+    "de": "Grausam-Pokémon",
+    "es": "Pokémon Atrocidad",
+    "it": "Pokémon Atroce",
+    "en": "Atrocious Pokémon",
+    "ja": "きょうあくポケモン",
+    "zh_hans": "凶恶宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 125,
+    "def": 79,
+    "spa": 60,
+    "spd": 100,
+    "spe": 81,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": null,
+    "hidden": "moxie"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water2",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 189,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "gyarados-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gyarados",
+    "evolution": "gyarados",
+    "media": "gyarados"
+  },
+  "dexContent": {
+    "heightM": 6.5,
+    "weightKg": 235.0,
+    "color": "blue",
+    "flavorText": "Once it begins to rampage, a GYARADOS will burn everything down, even in a harsh storm."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

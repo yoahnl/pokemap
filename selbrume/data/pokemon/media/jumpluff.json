@@ -1,0 +1,18 @@
+{
+  "speciesId": "jumpluff",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/jumpluff/front.png",
+      "backStatic": "assets/pokemon/sprites/jumpluff/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/jumpluff/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/jumpluff/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/jumpluff.png",
+      "cry": "assets/pokemon/cries/jumpluff.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "poipole",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "naganadel",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "dragon_pulse",
+      "conditionText": {}
+    }
+  ]
+}

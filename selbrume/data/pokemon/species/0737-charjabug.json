@@ -1,0 +1,98 @@
+{
+  "id": "charjabug",
+  "slug": "charjabug",
+  "nationalDex": 737,
+  "names": {
+    "ja_hrkt": "デンヂムシ",
+    "ja_roma": "Dendimushi",
+    "ko": "전지충이",
+    "zh_hant": "蟲電寶",
+    "fr": "Chrysapile",
+    "de": "Akkup",
+    "es": "Charjabug",
+    "it": "Charjabug",
+    "en": "Charjabug",
+    "ja": "デンヂムシ",
+    "zh_hans": "虫电宝"
+  },
+  "speciesName": {
+    "ja_hrkt": "バッテリーポケモン",
+    "ko": "배터리포켓몬",
+    "zh_hant": "蓄電池寶可夢",
+    "fr": "Pokémon Batterie",
+    "de": "Batterie-Pokémon",
+    "es": "Pokémon Batería",
+    "it": "Pokémon Batteria",
+    "en": "Battery Pokémon",
+    "ja": "バッテリーポケモン",
+    "zh_hans": "蓄电池宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "bug",
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 57,
+    "atk": 82,
+    "def": 95,
+    "spa": 55,
+    "spd": 75,
+    "spe": 36,
+    "bst": 400
+  },
+  "abilities": {
+    "primary": "battery",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 140,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "charjabug",
+    "evolution": "charjabug",
+    "media": "charjabug"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 10.5,
+    "color": "green",
+    "flavorText": "Its body is capable of storing electricity. On camping trips, people are grateful to have one around."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "cloyster",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cloyster/front.png",
+      "backStatic": "assets/pokemon/sprites/cloyster/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cloyster/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cloyster/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cloyster.png",
+      "cry": "assets/pokemon/cries/cloyster.ogg",
+      "animations": {}
+    }
+  }
+}

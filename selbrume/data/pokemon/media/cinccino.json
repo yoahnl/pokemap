@@ -1,0 +1,18 @@
+{
+  "speciesId": "cinccino",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cinccino/front.png",
+      "backStatic": "assets/pokemon/sprites/cinccino/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cinccino/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cinccino/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cinccino.png",
+      "cry": "assets/pokemon/cries/cinccino.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "bastiodon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bastiodon/front.png",
+      "backStatic": "assets/pokemon/sprites/bastiodon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bastiodon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bastiodon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bastiodon.png",
+      "cry": "assets/pokemon/cries/bastiodon.ogg",
+      "animations": {}
+    }
+  }
+}

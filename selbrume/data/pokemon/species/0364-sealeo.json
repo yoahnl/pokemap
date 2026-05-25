@@ -1,0 +1,99 @@
+{
+  "id": "sealeo",
+  "slug": "sealeo",
+  "nationalDex": 364,
+  "names": {
+    "ja_hrkt": "トドグラー",
+    "ja_roma": "Todoggler",
+    "ko": "씨레오",
+    "zh_hant": "海魔獅",
+    "fr": "Phogleur",
+    "de": "Seejong",
+    "es": "Sealeo",
+    "it": "Sealeo",
+    "en": "Sealeo",
+    "ja": "トドグラー",
+    "zh_hans": "海魔狮"
+  },
+  "speciesName": {
+    "ja_hrkt": "たままわしポケモン",
+    "ko": "공돌리기포켓몬",
+    "zh_hant": "滾球寶可夢",
+    "fr": "Pokémon Roule Boule",
+    "de": "Spielball-Pokémon",
+    "es": "Pokémon Rodabola",
+    "it": "Pokémon Rotapalla",
+    "en": "Ball Roll Pokémon",
+    "ja": "たままわしポケモン",
+    "zh_hans": "滚球宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ice",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 60,
+    "def": 70,
+    "spa": 75,
+    "spd": 70,
+    "spe": 45,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "ice_body",
+    "hidden": "oblivious"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 144,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sealeo",
+    "evolution": "sealeo",
+    "media": "sealeo"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 87.6,
+    "color": "blue",
+    "flavorText": "SEALEO has the habit of always juggling on the tip of its nose anything it sees for the first time. This POKéMON occasionally entertains itself by balancing and rolling a SPHEAL on its nose."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "nymble",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nymble/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/nymble/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nymble.png",
+      "cry": "assets/pokemon/cries/nymble.ogg",
+      "animations": {}
+    }
+  }
+}

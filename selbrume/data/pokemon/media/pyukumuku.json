@@ -1,0 +1,18 @@
+{
+  "speciesId": "pyukumuku",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pyukumuku/front.png",
+      "backStatic": "assets/pokemon/sprites/pyukumuku/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pyukumuku/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pyukumuku/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pyukumuku.png",
+      "cry": "assets/pokemon/cries/pyukumuku.ogg",
+      "animations": {}
+    }
+  }
+}

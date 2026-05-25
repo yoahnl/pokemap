@@ -1,0 +1,14 @@
+{
+  "speciesId": "blipbug",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "dottler",
+      "method": "level_up",
+      "minLevel": 10,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

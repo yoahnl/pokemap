@@ -1,0 +1,99 @@
+{
+  "id": "wingull",
+  "slug": "wingull",
+  "nationalDex": 278,
+  "names": {
+    "ja_hrkt": "キャモメ",
+    "ja_roma": "Camome",
+    "ko": "갈모매",
+    "zh_hant": "長翅鷗",
+    "fr": "Goélise",
+    "de": "Wingull",
+    "es": "Wingull",
+    "it": "Wingull",
+    "en": "Wingull",
+    "ja": "キャモメ",
+    "zh_hans": "长翅鸥"
+  },
+  "speciesName": {
+    "ja_hrkt": "うみねこポケモン",
+    "ko": "괭이갈매기포켓몬",
+    "zh_hant": "海鷗寶可夢",
+    "fr": "Pokémon Mouette",
+    "de": "Seemöwen-Pokémon",
+    "es": "Pokémon Gaviota",
+    "it": "Pokémon Gabbiano",
+    "en": "Seagull Pokémon",
+    "ja": "うみねこポケモン",
+    "zh_hans": "海鸥宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 30,
+    "def": 30,
+    "spa": 55,
+    "spd": 30,
+    "spe": 85,
+    "bst": 270
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "hydration",
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 54,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "wingull",
+    "evolution": "wingull",
+    "media": "wingull"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 9.5,
+    "color": "white",
+    "flavorText": "WINGULL has the habit of carrying prey and valuables in its beak and hiding them in all sorts of locations. This POKéMON rides the winds and flies as if it were skating across the sky."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

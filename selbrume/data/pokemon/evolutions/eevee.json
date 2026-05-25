@@ -1,0 +1,146 @@
+{
+  "speciesId": "eevee",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "espeon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160. Time: day"
+      }
+    },
+    {
+      "targetSpeciesId": "flareon",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "fire-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "glaceon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: frost-cavern"
+      }
+    },
+    {
+      "targetSpeciesId": "glaceon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: sinnoh-route-217"
+      }
+    },
+    {
+      "targetSpeciesId": "glaceon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: twist-mountain"
+      }
+    },
+    {
+      "targetSpeciesId": "glaceon",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "ice-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "jolteon",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "thunder-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "leafeon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: eterna-forest"
+      }
+    },
+    {
+      "targetSpeciesId": "leafeon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: kalos-route-20"
+      }
+    },
+    {
+      "targetSpeciesId": "leafeon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Location: pinwheel-forest"
+      }
+    },
+    {
+      "targetSpeciesId": "leafeon",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "leaf-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "sylveon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Affection >= 2. Known move type: fairy"
+      }
+    },
+    {
+      "targetSpeciesId": "sylveon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160. Known move type: fairy"
+      }
+    },
+    {
+      "targetSpeciesId": "umbreon",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Happiness >= 160. Time: night"
+      }
+    },
+    {
+      "targetSpeciesId": "vaporeon",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "water-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

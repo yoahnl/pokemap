@@ -1,0 +1,18 @@
+{
+  "speciesId": "drizzile",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/drizzile/front.png",
+      "backStatic": "assets/pokemon/sprites/drizzile/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/drizzile/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/drizzile/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/drizzile.png",
+      "cry": "assets/pokemon/cries/drizzile.ogg",
+      "animations": {}
+    }
+  }
+}

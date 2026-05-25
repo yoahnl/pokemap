@@ -1,0 +1,18 @@
+{
+  "speciesId": "magcargo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/magcargo/front.png",
+      "backStatic": "assets/pokemon/sprites/magcargo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/magcargo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/magcargo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/magcargo.png",
+      "cry": "assets/pokemon/cries/magcargo.ogg",
+      "animations": {}
+    }
+  }
+}

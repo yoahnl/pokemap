@@ -1,0 +1,14 @@
+{
+  "speciesId": "shellder",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "cloyster",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "water-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

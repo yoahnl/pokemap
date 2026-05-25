@@ -1,0 +1,18 @@
+{
+  "speciesId": "skwovet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/skwovet/front.png",
+      "backStatic": "assets/pokemon/sprites/skwovet/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/skwovet/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/skwovet/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/skwovet.png",
+      "cry": "assets/pokemon/cries/skwovet.ogg",
+      "animations": {}
+    }
+  }
+}

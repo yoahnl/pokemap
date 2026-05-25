@@ -1,0 +1,14 @@
+{
+  "speciesId": "lechonk",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "oinkologne",
+      "method": "level_up",
+      "minLevel": 18,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

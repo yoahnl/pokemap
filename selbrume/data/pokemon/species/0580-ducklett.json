@@ -1,0 +1,99 @@
+{
+  "id": "ducklett",
+  "slug": "ducklett",
+  "nationalDex": 580,
+  "names": {
+    "ja_hrkt": "コアルヒー",
+    "ja_roma": "Koaruhie",
+    "ko": "꼬지보리",
+    "zh_hant": "鴨寶寶",
+    "fr": "Couaneton",
+    "de": "Piccolente",
+    "es": "Ducklett",
+    "it": "Ducklett",
+    "en": "Ducklett",
+    "ja": "コアルヒー",
+    "zh_hans": "鸭宝宝"
+  },
+  "speciesName": {
+    "ja_hrkt": "みずどりポケモン",
+    "ko": "물새포켓몬",
+    "zh_hant": "水鳥寶可夢",
+    "fr": "Pokémon Oiseaudo",
+    "de": "Wasservogel",
+    "es": "Pokémon Ave Agua",
+    "it": "Pokémon Alacquatico",
+    "en": "Water Bird Pokémon",
+    "ja": "みずどりポケモン",
+    "zh_hans": "水鸟宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "water",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 62,
+    "atk": 44,
+    "def": 50,
+    "spa": 44,
+    "spd": 50,
+    "spe": 55,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "big_pecks",
+    "hidden": "hydration"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ducklett",
+    "evolution": "ducklett",
+    "media": "ducklett"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 5.5,
+    "color": "blue",
+    "flavorText": "These bird Pokémon are excellent divers. They swim around in the water eating their favorite food--peat moss."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

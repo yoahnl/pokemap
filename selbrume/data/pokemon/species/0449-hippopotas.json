@@ -1,0 +1,97 @@
+{
+  "id": "hippopotas",
+  "slug": "hippopotas",
+  "nationalDex": 449,
+  "names": {
+    "ja_hrkt": "ヒポポタス",
+    "ja_roma": "Hipopotas",
+    "ko": "히포포타스",
+    "zh_hant": "沙河馬",
+    "fr": "Hippopotas",
+    "de": "Hippopotas",
+    "es": "Hippopotas",
+    "it": "Hippopotas",
+    "en": "Hippopotas",
+    "ja": "ヒポポタス",
+    "zh_hans": "沙河马"
+  },
+  "speciesName": {
+    "ja_hrkt": "カバポケモン",
+    "ko": "하마포켓몬",
+    "zh_hant": "河馬寶可夢",
+    "fr": "Pokémon Hippo",
+    "de": "Flusspferd-Pokémon",
+    "es": "Pokémon Hipo",
+    "it": "Pokémon Ippo",
+    "en": "Hippo Pokémon",
+    "ja": "カバポケモン",
+    "zh_hans": "河马宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 68,
+    "atk": 72,
+    "def": 78,
+    "spa": 38,
+    "spd": 42,
+    "spe": 32,
+    "bst": 330
+  },
+  "abilities": {
+    "primary": "sand_stream",
+    "secondary": null,
+    "hidden": "sand_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 66,
+    "catchRate": 140,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hippopotas",
+    "evolution": "hippopotas",
+    "media": "hippopotas"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 49.5,
+    "color": "brown",
+    "flavorText": "It lives in arid places. Instead of perspiration, it expels grainy sand from its body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "tirtouga",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tirtouga/front.png",
+      "backStatic": "assets/pokemon/sprites/tirtouga/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tirtouga/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tirtouga/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tirtouga.png",
+      "cry": "assets/pokemon/cries/tirtouga.ogg",
+      "animations": {}
+    }
+  }
+}

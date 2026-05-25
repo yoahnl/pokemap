@@ -1,0 +1,18 @@
+{
+  "speciesId": "terrakion",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/terrakion/front.png",
+      "backStatic": "assets/pokemon/sprites/terrakion/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/terrakion/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/terrakion/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/terrakion.png",
+      "cry": "assets/pokemon/cries/terrakion.ogg",
+      "animations": {}
+    }
+  }
+}

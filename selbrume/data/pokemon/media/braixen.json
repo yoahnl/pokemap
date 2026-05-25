@@ -1,0 +1,18 @@
+{
+  "speciesId": "braixen",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/braixen/front.png",
+      "backStatic": "assets/pokemon/sprites/braixen/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/braixen/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/braixen/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/braixen.png",
+      "cry": "assets/pokemon/cries/braixen.ogg",
+      "animations": {}
+    }
+  }
+}

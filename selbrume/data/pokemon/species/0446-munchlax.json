@@ -1,0 +1,100 @@
+{
+  "id": "munchlax",
+  "slug": "munchlax",
+  "nationalDex": 446,
+  "names": {
+    "ja_hrkt": "ゴンベ",
+    "ja_roma": "Gonbe",
+    "ko": "먹고자",
+    "zh_hant": "小卡比獸",
+    "fr": "Goinfrex",
+    "de": "Mampfaxo",
+    "es": "Munchlax",
+    "it": "Munchlax",
+    "en": "Munchlax",
+    "ja": "ゴンベ",
+    "zh_hans": "小卡比兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "おおぐいポケモン",
+    "ko": "대식가포켓몬",
+    "zh_hant": "大胃王寶可夢",
+    "fr": "Pokémon Goinfre",
+    "de": "Nimmersatt-Pokémon",
+    "es": "Pokémon Comilón",
+    "it": "Pokémon Ghiottone",
+    "en": "Big Eater Pokémon",
+    "ja": "おおぐいポケモン",
+    "zh_hans": "大胃王宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 135,
+    "atk": 85,
+    "def": 40,
+    "spa": 40,
+    "spd": 85,
+    "spe": 5,
+    "bst": 390
+  },
+  "abilities": {
+    "primary": "pickup",
+    "secondary": "thick_fat",
+    "hidden": "gluttony"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 78,
+    "catchRate": 50,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": true
+  },
+  "refs": {
+    "learnset": "munchlax",
+    "evolution": "munchlax",
+    "media": "munchlax"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 105.0,
+    "color": "black",
+    "flavorText": "It wolfs down its weight in food once a day, swallowing food whole with almost no chewing."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

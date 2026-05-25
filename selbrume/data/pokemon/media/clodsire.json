@@ -1,0 +1,18 @@
+{
+  "speciesId": "clodsire",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/clodsire/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/clodsire/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/clodsire.png",
+      "cry": "assets/pokemon/cries/clodsire.ogg",
+      "animations": {}
+    }
+  }
+}

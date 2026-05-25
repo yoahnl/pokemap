@@ -1,0 +1,18 @@
+{
+  "speciesId": "durant",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/durant/front.png",
+      "backStatic": "assets/pokemon/sprites/durant/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/durant/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/durant/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/durant.png",
+      "cry": "assets/pokemon/cries/durant.ogg",
+      "animations": {}
+    }
+  }
+}

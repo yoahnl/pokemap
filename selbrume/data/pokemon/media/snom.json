@@ -1,0 +1,18 @@
+{
+  "speciesId": "snom",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/snom/front.png",
+      "backStatic": "assets/pokemon/sprites/snom/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/snom/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/snom/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/snom.png",
+      "cry": "assets/pokemon/cries/snom.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "spiritomb",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/spiritomb/front.png",
+      "backStatic": "assets/pokemon/sprites/spiritomb/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/spiritomb/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/spiritomb/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/spiritomb.png",
+      "cry": "assets/pokemon/cries/spiritomb.ogg",
+      "animations": {}
+    }
+  }
+}

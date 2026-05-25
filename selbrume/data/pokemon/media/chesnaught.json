@@ -1,0 +1,30 @@
+{
+  "speciesId": "chesnaught",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chesnaught/front.png",
+      "backStatic": "assets/pokemon/sprites/chesnaught/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chesnaught/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chesnaught/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chesnaught.png",
+      "cry": "assets/pokemon/cries/chesnaught.ogg",
+      "animations": {}
+    },
+    "chesnaught-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

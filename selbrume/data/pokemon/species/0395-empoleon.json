@@ -1,0 +1,102 @@
+{
+  "id": "empoleon",
+  "slug": "empoleon",
+  "nationalDex": 395,
+  "names": {
+    "ja_hrkt": "エンペルト",
+    "ja_roma": "Emperte",
+    "ko": "엠페르트",
+    "zh_hant": "帝王拿波",
+    "fr": "Pingoléon",
+    "de": "Impoleon",
+    "es": "Empoleon",
+    "it": "Empoleon",
+    "en": "Empoleon",
+    "ja": "エンペルト",
+    "zh_hans": "帝王拿波"
+  },
+  "speciesName": {
+    "ja_hrkt": "こうていポケモン",
+    "ko": "황제포켓몬",
+    "zh_hant": "皇帝寶可夢",
+    "fr": "Pokémon Empereur",
+    "de": "Kaiser",
+    "es": "Pokémon Emperador",
+    "it": "Pokémon Imperatore",
+    "en": "Emperor Pokémon",
+    "ja": "こうていポケモン",
+    "zh_hans": "皇帝宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water",
+      "steel"
+    ]
+  },
+  "baseStats": {
+    "hp": 84,
+    "atk": 86,
+    "def": 88,
+    "spa": 111,
+    "spd": 101,
+    "spe": 60,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "competitive"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 239,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "empoleon",
+    "evolution": "empoleon",
+    "media": "empoleon"
+  },
+  "dexContent": {
+    "heightM": 1.7,
+    "weightKg": 84.5,
+    "color": "blue",
+    "flavorText": "The three horns that extend from its beak attest to its power. The leader has the biggest horns."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

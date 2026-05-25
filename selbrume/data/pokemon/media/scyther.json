@@ -1,0 +1,18 @@
+{
+  "speciesId": "scyther",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/scyther/front.png",
+      "backStatic": "assets/pokemon/sprites/scyther/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/scyther/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/scyther/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/scyther.png",
+      "cry": "assets/pokemon/cries/scyther.ogg",
+      "animations": {}
+    }
+  }
+}

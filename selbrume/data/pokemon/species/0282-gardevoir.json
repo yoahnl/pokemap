@@ -1,0 +1,101 @@
+{
+  "id": "gardevoir",
+  "slug": "gardevoir",
+  "nationalDex": 282,
+  "names": {
+    "ja_hrkt": "サーナイト",
+    "ja_roma": "Sirnight",
+    "ko": "가디안",
+    "zh_hant": "沙奈朵",
+    "fr": "Gardevoir",
+    "de": "Guardevoir",
+    "es": "Gardevoir",
+    "it": "Gardevoir",
+    "en": "Gardevoir",
+    "ja": "サーナイト",
+    "zh_hans": "沙奈朵"
+  },
+  "speciesName": {
+    "ja_hrkt": "ほうようポケモン",
+    "ko": "포용포켓몬",
+    "zh_hant": "包容寶可夢",
+    "fr": "Pokémon Étreinte",
+    "de": "Umarmungs-Pokémon",
+    "es": "Pokémon Envolvente",
+    "it": "Pokémon Abbraccio",
+    "en": "Embrace Pokémon",
+    "ja": "ほうようポケモン",
+    "zh_hans": "包容宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "psychic",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 68,
+    "atk": 65,
+    "def": 65,
+    "spa": 125,
+    "spd": 115,
+    "spe": 80,
+    "bst": 518
+  },
+  "abilities": {
+    "primary": "synchronize",
+    "secondary": "trace",
+    "hidden": "telepathy"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 233,
+    "catchRate": 45,
+    "baseFriendship": 35
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "gardevoir-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gardevoir",
+    "evolution": "gardevoir",
+    "media": "gardevoir"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 48.4,
+    "color": "white",
+    "flavorText": "GARDEVOIR has the ability to read the future. If it senses impending danger to its TRAINER, this POKéMON is said to unleash its psychokinetic energy at full power."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

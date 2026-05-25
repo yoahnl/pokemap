@@ -1,0 +1,18 @@
+{
+  "speciesId": "wailord",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/wailord/front.png",
+      "backStatic": "assets/pokemon/sprites/wailord/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/wailord/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/wailord/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/wailord.png",
+      "cry": "assets/pokemon/cries/wailord.ogg",
+      "animations": {}
+    }
+  }
+}

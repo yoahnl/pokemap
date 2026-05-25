@@ -1,0 +1,14 @@
+{
+  "speciesId": "roggenrola",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "boldore",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

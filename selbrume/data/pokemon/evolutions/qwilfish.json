@@ -1,0 +1,30 @@
+{
+  "speciesId": "qwilfish",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "overqwil",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": "barb_barrage",
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "overqwil",
+      "method": "strong_style_move",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "overqwil",
+      "method": "use_move",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

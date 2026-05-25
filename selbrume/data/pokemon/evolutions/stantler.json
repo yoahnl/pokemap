@@ -1,0 +1,14 @@
+{
+  "speciesId": "stantler",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "wyrdeer",
+      "method": "agile_style_move",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

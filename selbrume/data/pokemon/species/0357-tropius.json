@@ -1,0 +1,99 @@
+{
+  "id": "tropius",
+  "slug": "tropius",
+  "nationalDex": 357,
+  "names": {
+    "ja_hrkt": "トロピウス",
+    "ja_roma": "Tropius",
+    "ko": "트로피우스",
+    "zh_hant": "熱帶龍",
+    "fr": "Tropius",
+    "de": "Tropius",
+    "es": "Tropius",
+    "it": "Tropius",
+    "en": "Tropius",
+    "ja": "トロピウス",
+    "zh_hans": "热带龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "フルーツポケモン",
+    "ko": "후르츠포켓몬",
+    "zh_hant": "水果寶可夢",
+    "fr": "Pokémon Fruit",
+    "de": "Obst",
+    "es": "Pokémon Fruto",
+    "it": "Pokémon Frutto",
+    "en": "Fruit Pokémon",
+    "ja": "フルーツポケモン",
+    "zh_hans": "水果宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "grass",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 99,
+    "atk": 68,
+    "def": 83,
+    "spa": 72,
+    "spd": 87,
+    "spe": 51,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "solar_power",
+    "hidden": "harvest"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 161,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tropius",
+    "evolution": "tropius",
+    "media": "tropius"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 100.0,
+    "color": "green",
+    "flavorText": "The bunches of fruit around TROPIUS’s neck are very popular with children. This POKéMON loves fruit, and eats it continuously. Apparently, its love for fruit resulted in its own outgrowth of fruit."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

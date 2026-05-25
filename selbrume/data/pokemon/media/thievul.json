@@ -1,0 +1,18 @@
+{
+  "speciesId": "thievul",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/thievul/front.png",
+      "backStatic": "assets/pokemon/sprites/thievul/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/thievul/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/thievul/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/thievul.png",
+      "cry": "assets/pokemon/cries/thievul.ogg",
+      "animations": {}
+    }
+  }
+}

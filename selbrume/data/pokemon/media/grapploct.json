@@ -1,0 +1,18 @@
+{
+  "speciesId": "grapploct",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/grapploct/front.png",
+      "backStatic": "assets/pokemon/sprites/grapploct/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/grapploct/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/grapploct/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/grapploct.png",
+      "cry": "assets/pokemon/cries/grapploct.ogg",
+      "animations": {}
+    }
+  }
+}

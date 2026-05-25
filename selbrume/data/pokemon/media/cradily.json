@@ -1,0 +1,18 @@
+{
+  "speciesId": "cradily",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cradily/front.png",
+      "backStatic": "assets/pokemon/sprites/cradily/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cradily/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cradily/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cradily.png",
+      "cry": "assets/pokemon/cries/cradily.ogg",
+      "animations": {}
+    }
+  }
+}

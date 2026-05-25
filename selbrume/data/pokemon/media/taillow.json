@@ -1,0 +1,18 @@
+{
+  "speciesId": "taillow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/taillow/front.png",
+      "backStatic": "assets/pokemon/sprites/taillow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/taillow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/taillow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/taillow.png",
+      "cry": "assets/pokemon/cries/taillow.ogg",
+      "animations": {}
+    }
+  }
+}

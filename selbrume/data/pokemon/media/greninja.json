@@ -1,0 +1,54 @@
+{
+  "speciesId": "greninja",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/greninja/front.png",
+      "backStatic": "assets/pokemon/sprites/greninja/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/greninja/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/greninja/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/greninja.png",
+      "cry": "assets/pokemon/cries/greninja.ogg",
+      "animations": {}
+    },
+    "greninja-ash": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "greninja-bond": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    },
+    "greninja-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

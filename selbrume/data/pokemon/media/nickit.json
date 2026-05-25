@@ -1,0 +1,18 @@
+{
+  "speciesId": "nickit",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nickit/front.png",
+      "backStatic": "assets/pokemon/sprites/nickit/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/nickit/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/nickit/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nickit.png",
+      "cry": "assets/pokemon/cries/nickit.ogg",
+      "animations": {}
+    }
+  }
+}

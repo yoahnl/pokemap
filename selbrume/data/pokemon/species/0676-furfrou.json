@@ -1,0 +1,107 @@
+{
+  "id": "furfrou",
+  "slug": "furfrou",
+  "nationalDex": 676,
+  "names": {
+    "ja_hrkt": "トリミアン",
+    "ja_roma": "Trimmien",
+    "ko": "트리미앙",
+    "zh_hant": "多麗米亞",
+    "fr": "Couafarel",
+    "de": "Coiffwaff",
+    "es": "Furfrou",
+    "it": "Furfrou",
+    "en": "Furfrou",
+    "ja": "トリミアン",
+    "zh_hans": "多丽米亚"
+  },
+  "speciesName": {
+    "ja_hrkt": "プードルポケモン",
+    "ko": "푸들포켓몬",
+    "zh_hant": "貴賓犬寶可夢",
+    "fr": "Pokémon Caniche",
+    "de": "Pudel",
+    "es": "Pokémon Caniche",
+    "it": "Pokémon Barboncino",
+    "en": "Poodle Pokémon",
+    "ja": "プードルポケモン",
+    "zh_hans": "贵宾犬宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 80,
+    "def": 60,
+    "spa": 65,
+    "spd": 90,
+    "spe": 102,
+    "bst": 472
+  },
+  "abilities": {
+    "primary": "fur_coat",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 165,
+    "catchRate": 160,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "furfrou-dandy",
+      "furfrou-debutante",
+      "furfrou-diamond",
+      "furfrou-heart",
+      "furfrou-kabuki",
+      "furfrou-lareine",
+      "furfrou-matron",
+      "furfrou-pharaoh",
+      "furfrou-star"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "furfrou",
+    "evolution": "furfrou",
+    "media": "furfrou"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 28.0,
+    "color": "white",
+    "flavorText": "Trimming its fluffy fur not only makes it more elegant but also increases the swiftness of its movements."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

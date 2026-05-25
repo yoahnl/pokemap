@@ -1,0 +1,14 @@
+{
+  "speciesId": "impidimp",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "morgrem",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

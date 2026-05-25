@@ -1,0 +1,18 @@
+{
+  "speciesId": "morelull",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/morelull/front.png",
+      "backStatic": "assets/pokemon/sprites/morelull/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/morelull/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/morelull/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/morelull.png",
+      "cry": "assets/pokemon/cries/morelull.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "drizzile",
+  "preEvolution": "sobble",
+  "evolutions": [
+    {
+      "targetSpeciesId": "inteleon",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

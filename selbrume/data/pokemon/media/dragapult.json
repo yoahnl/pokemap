@@ -1,0 +1,18 @@
+{
+  "speciesId": "dragapult",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dragapult/front.png",
+      "backStatic": "assets/pokemon/sprites/dragapult/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dragapult/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dragapult/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dragapult.png",
+      "cry": "assets/pokemon/cries/dragapult.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "kabutops",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kabutops/front.png",
+      "backStatic": "assets/pokemon/sprites/kabutops/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kabutops/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kabutops/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kabutops.png",
+      "cry": "assets/pokemon/cries/kabutops.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "seaking",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/seaking/front.png",
+      "backStatic": "assets/pokemon/sprites/seaking/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/seaking/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/seaking/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/seaking.png",
+      "cry": "assets/pokemon/cries/seaking.ogg",
+      "animations": {}
+    }
+  }
+}

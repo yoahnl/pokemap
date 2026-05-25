@@ -1,0 +1,18 @@
+{
+  "speciesId": "lunatone",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/lunatone/front.png",
+      "backStatic": "assets/pokemon/sprites/lunatone/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/lunatone/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/lunatone/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/lunatone.png",
+      "cry": "assets/pokemon/cries/lunatone.ogg",
+      "animations": {}
+    }
+  }
+}

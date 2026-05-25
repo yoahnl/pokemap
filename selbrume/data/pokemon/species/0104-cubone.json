@@ -1,0 +1,97 @@
+{
+  "id": "cubone",
+  "slug": "cubone",
+  "nationalDex": 104,
+  "names": {
+    "ja_hrkt": "カラカラ",
+    "ja_roma": "Karakara",
+    "ko": "탕구리",
+    "zh_hant": "卡拉卡拉",
+    "fr": "Osselait",
+    "de": "Tragosso",
+    "es": "Cubone",
+    "it": "Cubone",
+    "en": "Cubone",
+    "ja": "カラカラ",
+    "zh_hans": "卡拉卡拉"
+  },
+  "speciesName": {
+    "ja_hrkt": "こどくポケモン",
+    "ko": "고독포켓몬",
+    "zh_hant": "孤獨寶可夢",
+    "fr": "Pokémon Solitaire",
+    "de": "Einsam-Pokémon",
+    "es": "Pokémon Solitario",
+    "it": "Pokémon Solitario",
+    "en": "Lonely Pokémon",
+    "ja": "こどくポケモン",
+    "zh_hans": "孤独宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 50,
+    "def": 95,
+    "spa": 40,
+    "spd": 50,
+    "spe": 35,
+    "bst": 320
+  },
+  "abilities": {
+    "primary": "rock_head",
+    "secondary": "lightning_rod",
+    "hidden": "battle_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 64,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cubone",
+    "evolution": "cubone",
+    "media": "cubone"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 6.5,
+    "color": "brown",
+    "flavorText": "Because it never removes its skull helmet, no one has ever seen this POKéMON's real face."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "gastrodon",
+  "slug": "gastrodon",
+  "nationalDex": 423,
+  "names": {
+    "ja_hrkt": "トリトドン",
+    "ja_roma": "Toritodon",
+    "ko": "트리토돈",
+    "zh_hant": "海兔獸",
+    "fr": "Tritosor",
+    "de": "Gastrodon",
+    "es": "Gastrodon",
+    "it": "Gastrodon",
+    "en": "Gastrodon",
+    "ja": "トリトドン",
+    "zh_hans": "海兔兽"
+  },
+  "speciesName": {
+    "ja_hrkt": "ウミウシポケモン",
+    "ko": "갯민숭달팽이포켓몬",
+    "zh_hant": "海兔寶可夢",
+    "fr": "Pokémon Aqualimace",
+    "de": "Seeschnecken-Pokémon",
+    "es": "Pokémon Babosa Marina",
+    "it": "Pokémon Lumacomare",
+    "en": "Sea Slug Pokémon",
+    "ja": "ウミウシポケモン",
+    "zh_hans": "海兔宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "water",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 111,
+    "atk": 83,
+    "def": 68,
+    "spa": 92,
+    "spd": 82,
+    "spe": 39,
+    "bst": 475
+  },
+  "abilities": {
+    "primary": "sticky_hold",
+    "secondary": "storm_drain",
+    "hidden": "sand_force"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "indeterminate"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 166,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "gastrodon-east"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "gastrodon",
+    "evolution": "gastrodon",
+    "media": "gastrodon"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 29.9,
+    "color": "purple",
+    "flavorText": "It has a pliable body without any bones. If any part of its body is torn off, it grows right back."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

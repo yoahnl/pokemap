@@ -1,0 +1,97 @@
+{
+  "id": "vanillite",
+  "slug": "vanillite",
+  "nationalDex": 582,
+  "names": {
+    "ja_hrkt": "バニプッチ",
+    "ja_roma": "Vanipeti",
+    "ko": "바닐프티",
+    "zh_hant": "迷你冰",
+    "fr": "Sorbébé",
+    "de": "Gelatini",
+    "es": "Vanillite",
+    "it": "Vanillite",
+    "en": "Vanillite",
+    "ja": "バニプッチ",
+    "zh_hans": "迷你冰"
+  },
+  "speciesName": {
+    "ja_hrkt": "しんせつポケモン",
+    "ko": "신설포켓몬",
+    "zh_hant": "新雪寶可夢",
+    "fr": "Pokémon Poudreuse",
+    "de": "Neuschnee-Pokémon",
+    "es": "Pokémon Nieve Fresca",
+    "it": "Pokémon Nevefresca",
+    "en": "Fresh Snow Pokémon",
+    "ja": "しんせつポケモン",
+    "zh_hans": "新雪宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 36,
+    "atk": 50,
+    "def": 50,
+    "spa": 65,
+    "spd": 60,
+    "spe": 44,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "ice_body",
+    "secondary": "snow_cloak",
+    "hidden": "weak_armor"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 61,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vanillite",
+    "evolution": "vanillite",
+    "media": "vanillite"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 5.7,
+    "color": "white",
+    "flavorText": "The temperature of their breath is -58° F. They create snow crystals and make snow fall in the areas around them."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

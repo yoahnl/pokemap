@@ -1,0 +1,18 @@
+{
+  "speciesId": "accelgor",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/accelgor/front.png",
+      "backStatic": "assets/pokemon/sprites/accelgor/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/accelgor/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/accelgor/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/accelgor.png",
+      "cry": "assets/pokemon/cries/accelgor.ogg",
+      "animations": {}
+    }
+  }
+}

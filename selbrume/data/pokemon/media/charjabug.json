@@ -1,0 +1,18 @@
+{
+  "speciesId": "charjabug",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/charjabug/front.png",
+      "backStatic": "assets/pokemon/sprites/charjabug/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/charjabug/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/charjabug/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/charjabug.png",
+      "cry": "assets/pokemon/cries/charjabug.ogg",
+      "animations": {}
+    }
+  }
+}

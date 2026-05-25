@@ -1,0 +1,100 @@
+{
+  "id": "rampardos",
+  "slug": "rampardos",
+  "nationalDex": 409,
+  "names": {
+    "ja_hrkt": "ラムパルド",
+    "ja_roma": "Rampard",
+    "ko": "램펄드",
+    "zh_hant": "戰槌龍",
+    "fr": "Charkos",
+    "de": "Rameidon",
+    "es": "Rampardos",
+    "it": "Rampardos",
+    "en": "Rampardos",
+    "ja": "ラムパルド",
+    "zh_hans": "战槌龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ずつきポケモン",
+    "ko": "박치기포켓몬",
+    "zh_hant": "頭錘寶可夢",
+    "fr": "Pokémon Coud’Boule",
+    "de": "Kopfstoß",
+    "es": "Pokémon Cabezazo",
+    "it": "Pokémon Cranioso",
+    "en": "Head Butt Pokémon",
+    "ja": "ずつきポケモン",
+    "zh_hans": "头锤宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 97,
+    "atk": 165,
+    "def": 60,
+    "spa": 65,
+    "spd": 50,
+    "spe": 58,
+    "bst": 495
+  },
+  "abilities": {
+    "primary": "mold_breaker",
+    "secondary": null,
+    "hidden": "sheer_force"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 173,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rampardos",
+    "evolution": "rampardos",
+    "media": "rampardos"
+  },
+  "dexContent": {
+    "heightM": 1.6,
+    "weightKg": 102.5,
+    "color": "blue",
+    "flavorText": "Its powerful head butt has enough power to shatter even the most durable things upon impact."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

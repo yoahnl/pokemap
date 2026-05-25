@@ -1,0 +1,18 @@
+{
+  "speciesId": "ninjask",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ninjask/front.png",
+      "backStatic": "assets/pokemon/sprites/ninjask/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ninjask/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ninjask/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ninjask.png",
+      "cry": "assets/pokemon/cries/ninjask.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "nidoqueen",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nidoqueen/front.png",
+      "backStatic": "assets/pokemon/sprites/nidoqueen/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/nidoqueen/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/nidoqueen/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nidoqueen.png",
+      "cry": "assets/pokemon/cries/nidoqueen.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "applin",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/applin/front.png",
+      "backStatic": "assets/pokemon/sprites/applin/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/applin/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/applin/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/applin.png",
+      "cry": "assets/pokemon/cries/applin.ogg",
+      "animations": {}
+    }
+  }
+}

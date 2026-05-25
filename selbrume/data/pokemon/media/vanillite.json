@@ -1,0 +1,18 @@
+{
+  "speciesId": "vanillite",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/vanillite/front.png",
+      "backStatic": "assets/pokemon/sprites/vanillite/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/vanillite/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/vanillite/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/vanillite.png",
+      "cry": "assets/pokemon/cries/vanillite.ogg",
+      "animations": {}
+    }
+  }
+}

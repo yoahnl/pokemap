@@ -1,0 +1,30 @@
+{
+  "speciesId": "chimecho",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/chimecho/front.png",
+      "backStatic": "assets/pokemon/sprites/chimecho/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/chimecho/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/chimecho/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/chimecho.png",
+      "cry": "assets/pokemon/cries/chimecho.ogg",
+      "animations": {}
+    },
+    "chimecho-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

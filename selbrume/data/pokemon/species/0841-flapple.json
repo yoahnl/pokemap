@@ -1,0 +1,99 @@
+{
+  "id": "flapple",
+  "slug": "flapple",
+  "nationalDex": 841,
+  "names": {
+    "ja_hrkt": "アップリュー",
+    "ja_roma": "Appryu",
+    "ko": "애프룡",
+    "zh_hant": "蘋裹龍",
+    "fr": "Pomdrapi",
+    "de": "Drapfel",
+    "es": "Flapple",
+    "it": "Flapple",
+    "en": "Flapple",
+    "ja": "アップリュー",
+    "zh_hans": "苹裹龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "りんごはねポケモン",
+    "ko": "사과날개포켓몬",
+    "zh_hant": "蘋果翅寶可夢",
+    "fr": "Pokémon Ailes Pomme",
+    "de": "Apfelflügel-Pokémon",
+    "es": "Pokémon Manzanala",
+    "it": "Pokémon Pomivolo",
+    "en": "Apple Wing Pokémon",
+    "ja": "りんごはねポケモン",
+    "zh_hans": "苹果翅宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "grass",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 110,
+    "def": 80,
+    "spa": 95,
+    "spd": 60,
+    "spe": 70,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "ripen",
+    "secondary": "gluttony",
+    "hidden": "hustle"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 170,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "flapple",
+    "evolution": "flapple",
+    "media": "flapple"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.0,
+    "color": "green",
+    "flavorText": "It ate a sour apple, and that induced its evolution. In its cheeks, it stores an acid capable of causing chemical burns."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

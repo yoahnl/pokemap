@@ -1,0 +1,18 @@
+{
+  "speciesId": "krookodile",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/krookodile/front.png",
+      "backStatic": "assets/pokemon/sprites/krookodile/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/krookodile/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/krookodile/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/krookodile.png",
+      "cry": "assets/pokemon/cries/krookodile.ogg",
+      "animations": {}
+    }
+  }
+}

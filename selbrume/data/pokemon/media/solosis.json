@@ -1,0 +1,18 @@
+{
+  "speciesId": "solosis",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/solosis/front.png",
+      "backStatic": "assets/pokemon/sprites/solosis/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/solosis/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/solosis/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/solosis.png",
+      "cry": "assets/pokemon/cries/solosis.ogg",
+      "animations": {}
+    }
+  }
+}

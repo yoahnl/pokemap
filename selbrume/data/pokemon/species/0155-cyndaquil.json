@@ -1,0 +1,100 @@
+{
+  "id": "cyndaquil",
+  "slug": "cyndaquil",
+  "nationalDex": 155,
+  "names": {
+    "ja_hrkt": "ヒノアラシ",
+    "ja_roma": "Hinoarashi",
+    "ko": "브케인",
+    "zh_hant": "火球鼠",
+    "fr": "Héricendre",
+    "de": "Feurigel",
+    "es": "Cyndaquil",
+    "it": "Cyndaquil",
+    "en": "Cyndaquil",
+    "ja": "ヒノアラシ",
+    "zh_hans": "火球鼠"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひねずみポケモン",
+    "ko": "불쥐포켓몬",
+    "zh_hant": "火鼠寶可夢",
+    "fr": "Pokémon Souris Feu",
+    "de": "Feuermaus",
+    "es": "Pokémon Ratón Fuego",
+    "it": "Pokémon Fuocotopo",
+    "en": "Fire Mouse Pokémon",
+    "ja": "ひねずみポケモン",
+    "zh_hans": "火鼠宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 39,
+    "atk": 52,
+    "def": 43,
+    "spa": 60,
+    "spd": 50,
+    "spe": 65,
+    "bst": 309
+  },
+  "abilities": {
+    "primary": "blaze",
+    "secondary": null,
+    "hidden": "flash_fire"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 62,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cyndaquil",
+    "evolution": "cyndaquil",
+    "media": "cyndaquil"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 7.9,
+    "color": "yellow",
+    "flavorText": "It has a timid nature. If it is startled, the flames on its back burn more vigorously."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

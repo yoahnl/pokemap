@@ -1,0 +1,14 @@
+{
+  "speciesId": "cosmog",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "cosmoem",
+      "method": "level_up",
+      "minLevel": 43,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

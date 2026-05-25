@@ -1,0 +1,99 @@
+{
+  "id": "bibarel",
+  "slug": "bibarel",
+  "nationalDex": 400,
+  "names": {
+    "ja_hrkt": "ビーダル",
+    "ja_roma": "Beadull",
+    "ko": "비버통",
+    "zh_hant": "大尾狸",
+    "fr": "Castorno",
+    "de": "Bidifas",
+    "es": "Bibarel",
+    "it": "Bibarel",
+    "en": "Bibarel",
+    "ja": "ビーダル",
+    "zh_hans": "大尾狸"
+  },
+  "speciesName": {
+    "ja_hrkt": "ビーバーポケモン",
+    "ko": "비버포켓몬",
+    "zh_hant": "河狸寶可夢",
+    "fr": "Pokémon Castor",
+    "de": "Biber",
+    "es": "Pokémon Castor",
+    "it": "Pokémon Castoro",
+    "en": "Beaver Pokémon",
+    "ja": "ビーバーポケモン",
+    "zh_hans": "河狸宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal",
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 79,
+    "atk": 85,
+    "def": 60,
+    "spa": 55,
+    "spd": 60,
+    "spe": 71,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "simple",
+    "secondary": "unaware",
+    "hidden": "moody"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 144,
+    "catchRate": 127,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "bibarel",
+    "evolution": "bibarel",
+    "media": "bibarel"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 31.5,
+    "color": "brown",
+    "flavorText": "It makes its nest by damming streams with bark and mud. It is known as an industrious worker."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

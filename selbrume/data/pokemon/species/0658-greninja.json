@@ -1,0 +1,105 @@
+{
+  "id": "greninja",
+  "slug": "greninja",
+  "nationalDex": 658,
+  "names": {
+    "ja_hrkt": "ゲッコウガ",
+    "ja_roma": "Gekkouga",
+    "ko": "개굴닌자",
+    "zh_hant": "甲賀忍蛙",
+    "fr": "Amphinobi",
+    "de": "Quajutsu",
+    "es": "Greninja",
+    "it": "Greninja",
+    "en": "Greninja",
+    "ja": "ゲッコウガ",
+    "zh_hans": "甲贺忍蛙"
+  },
+  "speciesName": {
+    "ja_hrkt": "しのびポケモン",
+    "ko": "시노비포켓몬",
+    "zh_hant": "忍者寶可夢",
+    "fr": "Pokémon Ninja",
+    "de": "Ninja",
+    "es": "Pokémon Ninja",
+    "it": "Pokémon Ninja",
+    "en": "Ninja Pokémon",
+    "ja": "しのびポケモン",
+    "zh_hans": "忍者宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "water",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 72,
+    "atk": 95,
+    "def": 67,
+    "spa": 103,
+    "spd": 71,
+    "spe": 122,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "torrent",
+    "secondary": null,
+    "hidden": "protean"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 239,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "greninja-ash",
+      "greninja-bond",
+      "greninja-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "greninja",
+    "evolution": "greninja",
+    "media": "greninja"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 40.0,
+    "color": "blue",
+    "flavorText": "It creates throwing stars out of compressed water. When it spins them and throws them at high speed, these stars can split metal in two."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

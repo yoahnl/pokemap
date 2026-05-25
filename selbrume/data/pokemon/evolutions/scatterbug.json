@@ -1,0 +1,14 @@
+{
+  "speciesId": "scatterbug",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "spewpa",
+      "method": "level_up",
+      "minLevel": 9,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

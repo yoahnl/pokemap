@@ -1,0 +1,18 @@
+{
+  "speciesId": "kricketot",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kricketot/front.png",
+      "backStatic": "assets/pokemon/sprites/kricketot/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kricketot/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kricketot/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kricketot.png",
+      "cry": "assets/pokemon/cries/kricketot.ogg",
+      "animations": {}
+    }
+  }
+}

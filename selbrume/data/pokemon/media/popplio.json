@@ -1,0 +1,18 @@
+{
+  "speciesId": "popplio",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/popplio/front.png",
+      "backStatic": "assets/pokemon/sprites/popplio/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/popplio/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/popplio/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/popplio.png",
+      "cry": "assets/pokemon/cries/popplio.ogg",
+      "animations": {}
+    }
+  }
+}

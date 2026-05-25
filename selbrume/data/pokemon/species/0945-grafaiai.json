@@ -1,0 +1,95 @@
+{
+  "id": "grafaiai",
+  "slug": "grafaiai",
+  "nationalDex": 945,
+  "names": {
+    "ja_hrkt": "タギングル",
+    "ja_roma": "Taggingru",
+    "ko": "태깅구르",
+    "zh_hant": "塗標客",
+    "fr": "Tag-Tag",
+    "de": "Affiti",
+    "es": "Grafaiai",
+    "it": "Grafaiai",
+    "en": "Grafaiai",
+    "ja": "タギングル",
+    "zh_hans": "涂标客"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくざるポケモン",
+    "ko": "독원숭이포켓몬",
+    "zh_hant": "毒猴寶可夢",
+    "fr": "Singe Venin",
+    "de": "Giftaffe",
+    "en": "Toxic Monkey Pokémon",
+    "zh_hans": "毒猴宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "poison",
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 63,
+    "atk": 95,
+    "def": 65,
+    "spa": 80,
+    "spd": 72,
+    "spe": 110,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "unburden",
+    "secondary": "poison_touch",
+    "hidden": "prankster"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 170,
+    "catchRate": 90,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "grafaiai",
+    "evolution": "grafaiai",
+    "media": "grafaiai"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 27.2,
+    "color": "gray",
+    "flavorText": "The color of the poisonous saliva depends on what the Pokémon eats. Grafaiai covers its fingers in its saliva and draws patterns on trees in forests."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

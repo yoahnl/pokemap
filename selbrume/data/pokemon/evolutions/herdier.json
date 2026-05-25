@@ -1,0 +1,14 @@
+{
+  "speciesId": "herdier",
+  "preEvolution": "lillipup",
+  "evolutions": [
+    {
+      "targetSpeciesId": "stoutland",
+      "method": "level_up",
+      "minLevel": 32,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

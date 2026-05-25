@@ -1,0 +1,100 @@
+{
+  "id": "naganadel",
+  "slug": "naganadel",
+  "nationalDex": 804,
+  "names": {
+    "ja_hrkt": "アーゴヨン",
+    "ja_roma": "Agoyon",
+    "ko": "아고용",
+    "zh_hant": "四顎針龍",
+    "fr": "Mandrillon",
+    "de": "Agoyon",
+    "es": "Naganadel",
+    "it": "Naganadel",
+    "en": "Naganadel",
+    "ja": "アーゴヨン",
+    "zh_hans": "四颚针龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくばりポケモン",
+    "ko": "독침포켓몬",
+    "zh_hant": "毒針寶可夢",
+    "fr": "Pokémon Vénépic",
+    "de": "Giftdorn-Pokémon",
+    "es": "Pokémon Pin Veneno",
+    "it": "Pokémon Velenago",
+    "en": "Poison Pin Pokémon",
+    "ja": "どくばりポケモン",
+    "zh_hans": "毒针宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "poison",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 73,
+    "atk": 73,
+    "def": 73,
+    "spa": 127,
+    "spd": 73,
+    "spe": 121,
+    "bst": 540
+  },
+  "abilities": {
+    "primary": "beast_boost",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 243,
+    "catchRate": 45,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "naganadel",
+    "evolution": "naganadel",
+    "media": "naganadel"
+  },
+  "dexContent": {
+    "heightM": 3.6,
+    "weightKg": 150.0,
+    "color": "purple",
+    "flavorText": "It stores hundreds of liters of poisonous liquid inside its body. It is one of the organisms known as UBs."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

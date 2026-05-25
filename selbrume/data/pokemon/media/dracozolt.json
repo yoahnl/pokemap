@@ -1,0 +1,18 @@
+{
+  "speciesId": "dracozolt",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dracozolt/front.png",
+      "backStatic": "assets/pokemon/sprites/dracozolt/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dracozolt/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dracozolt/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dracozolt.png",
+      "cry": "assets/pokemon/cries/dracozolt.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "litwick",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "lampent",
+      "method": "level_up",
+      "minLevel": 41,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

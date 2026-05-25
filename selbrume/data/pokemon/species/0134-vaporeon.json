@@ -1,0 +1,100 @@
+{
+  "id": "vaporeon",
+  "slug": "vaporeon",
+  "nationalDex": 134,
+  "names": {
+    "ja_hrkt": "シャワーズ",
+    "ja_roma": "Showers",
+    "ko": "샤미드",
+    "zh_hant": "水伊布",
+    "fr": "Aquali",
+    "de": "Aquana",
+    "es": "Vaporeon",
+    "it": "Vaporeon",
+    "en": "Vaporeon",
+    "ja": "シャワーズ",
+    "zh_hans": "水伊布"
+  },
+  "speciesName": {
+    "ja_hrkt": "あわはきポケモン",
+    "ko": "거품뿜기포켓몬",
+    "zh_hant": "吐泡寶可夢",
+    "fr": "Pokémon Bulleur",
+    "de": "Blubbblasen-Pokémon",
+    "es": "Pokémon Burbuja",
+    "it": "Pokémon Bollajet",
+    "en": "Bubble Jet Pokémon",
+    "ja": "あわはきポケモン",
+    "zh_hans": "吐泡宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 130,
+    "atk": 65,
+    "def": 60,
+    "spa": 110,
+    "spd": 95,
+    "spe": 65,
+    "bst": 525
+  },
+  "abilities": {
+    "primary": "water_absorb",
+    "secondary": null,
+    "hidden": "hydration"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 184,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vaporeon",
+    "evolution": "vaporeon",
+    "media": "vaporeon"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 29.0,
+    "color": "blue",
+    "flavorText": "Lives close to water. Its long tail is ridged with a fin which is often mistaken for a mermaid's."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

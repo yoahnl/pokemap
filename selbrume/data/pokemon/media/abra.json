@@ -1,0 +1,18 @@
+{
+  "speciesId": "abra",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/abra/front.png",
+      "backStatic": "assets/pokemon/sprites/abra/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/abra/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/abra/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/abra.png",
+      "cry": "assets/pokemon/cries/abra.ogg",
+      "animations": {}
+    }
+  }
+}

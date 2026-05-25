@@ -1,0 +1,22 @@
+{
+  "speciesId": "geodude",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "graveler",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "graveler",
+      "method": "level_up",
+      "minLevel": 25,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

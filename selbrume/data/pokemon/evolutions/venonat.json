@@ -1,0 +1,14 @@
+{
+  "speciesId": "venonat",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "venomoth",
+      "method": "level_up",
+      "minLevel": 31,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

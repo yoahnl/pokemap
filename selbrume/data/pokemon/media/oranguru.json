@@ -1,0 +1,18 @@
+{
+  "speciesId": "oranguru",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/oranguru/front.png",
+      "backStatic": "assets/pokemon/sprites/oranguru/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/oranguru/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/oranguru/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/oranguru.png",
+      "cry": "assets/pokemon/cries/oranguru.ogg",
+      "animations": {}
+    }
+  }
+}

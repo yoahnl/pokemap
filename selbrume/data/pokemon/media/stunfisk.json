@@ -1,0 +1,30 @@
+{
+  "speciesId": "stunfisk",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/stunfisk/front.png",
+      "backStatic": "assets/pokemon/sprites/stunfisk/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/stunfisk/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/stunfisk/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/stunfisk.png",
+      "cry": "assets/pokemon/cries/stunfisk.ogg",
+      "animations": {}
+    },
+    "stunfisk-galar": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

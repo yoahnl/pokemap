@@ -1,0 +1,18 @@
+{
+  "speciesId": "jolteon",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/jolteon/front.png",
+      "backStatic": "assets/pokemon/sprites/jolteon/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/jolteon/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/jolteon/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/jolteon.png",
+      "cry": "assets/pokemon/cries/jolteon.ogg",
+      "animations": {}
+    }
+  }
+}

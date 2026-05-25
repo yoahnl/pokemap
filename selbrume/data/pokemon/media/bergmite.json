@@ -1,0 +1,18 @@
+{
+  "speciesId": "bergmite",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bergmite/front.png",
+      "backStatic": "assets/pokemon/sprites/bergmite/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bergmite/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bergmite/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bergmite.png",
+      "cry": "assets/pokemon/cries/bergmite.ogg",
+      "animations": {}
+    }
+  }
+}

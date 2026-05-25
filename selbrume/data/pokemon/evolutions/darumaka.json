@@ -1,0 +1,22 @@
+{
+  "speciesId": "darumaka",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "darmanitan",
+      "method": "level_up",
+      "minLevel": 35,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "darmanitan",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "ice-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

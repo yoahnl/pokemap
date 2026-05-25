@@ -1,0 +1,18 @@
+{
+  "speciesId": "centiskorch",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/centiskorch/front.png",
+      "backStatic": "assets/pokemon/sprites/centiskorch/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/centiskorch/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/centiskorch/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/centiskorch.png",
+      "cry": "assets/pokemon/cries/centiskorch.ogg",
+      "animations": {}
+    }
+  }
+}

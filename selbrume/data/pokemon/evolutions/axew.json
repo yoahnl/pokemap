@@ -1,0 +1,14 @@
+{
+  "speciesId": "axew",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "fraxure",
+      "method": "level_up",
+      "minLevel": 38,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

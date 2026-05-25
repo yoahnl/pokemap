@@ -1,0 +1,18 @@
+{
+  "speciesId": "petilil",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/petilil/front.png",
+      "backStatic": "assets/pokemon/sprites/petilil/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/petilil/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/petilil/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/petilil.png",
+      "cry": "assets/pokemon/cries/petilil.ogg",
+      "animations": {}
+    }
+  }
+}

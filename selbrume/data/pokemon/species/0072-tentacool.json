@@ -1,0 +1,98 @@
+{
+  "id": "tentacool",
+  "slug": "tentacool",
+  "nationalDex": 72,
+  "names": {
+    "ja_hrkt": "メノクラゲ",
+    "ja_roma": "Menokurage",
+    "ko": "왕눈해",
+    "zh_hant": "瑪瑙水母",
+    "fr": "Tentacool",
+    "de": "Tentacha",
+    "es": "Tentacool",
+    "it": "Tentacool",
+    "en": "Tentacool",
+    "ja": "メノクラゲ",
+    "zh_hans": "玛瑙水母"
+  },
+  "speciesName": {
+    "ja_hrkt": "くらげポケモン",
+    "ko": "해파리포켓몬",
+    "zh_hant": "水母寶可夢",
+    "fr": "Pokémon Mollusque",
+    "de": "Quallen-Pokémon",
+    "es": "Pokémon Medusa",
+    "it": "Pokémon Medusa",
+    "en": "Jellyfish Pokémon",
+    "ja": "くらげポケモン",
+    "zh_hans": "水母宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 40,
+    "def": 35,
+    "spa": 50,
+    "spd": 100,
+    "spe": 70,
+    "bst": 335
+  },
+  "abilities": {
+    "primary": "clear_body",
+    "secondary": "liquid_ooze",
+    "hidden": "rain_dish"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 67,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tentacool",
+    "evolution": "tentacool",
+    "media": "tentacool"
+  },
+  "dexContent": {
+    "heightM": 0.9,
+    "weightKg": 45.5,
+    "color": "blue",
+    "flavorText": "Drifts in shallow seas. Anglers who hook them by accident are often punished by its stinging acid."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "speciesId": "dragonair",
+  "preEvolution": "dratini",
+  "evolutions": [
+    {
+      "targetSpeciesId": "dragonite",
+      "method": "level_up",
+      "minLevel": 55,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

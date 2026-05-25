@@ -1,0 +1,18 @@
+{
+  "speciesId": "honchkrow",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/honchkrow/front.png",
+      "backStatic": "assets/pokemon/sprites/honchkrow/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/honchkrow/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/honchkrow/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/honchkrow.png",
+      "cry": "assets/pokemon/cries/honchkrow.ogg",
+      "animations": {}
+    }
+  }
+}

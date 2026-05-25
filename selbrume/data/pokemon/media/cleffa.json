@@ -1,0 +1,18 @@
+{
+  "speciesId": "cleffa",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cleffa/front.png",
+      "backStatic": "assets/pokemon/sprites/cleffa/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cleffa/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cleffa/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cleffa.png",
+      "cry": "assets/pokemon/cries/cleffa.ogg",
+      "animations": {}
+    }
+  }
+}

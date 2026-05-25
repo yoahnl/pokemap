@@ -1,0 +1,22 @@
+{
+  "speciesId": "ponyta",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "rapidash",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "rapidash",
+      "method": "level_up",
+      "minLevel": 40,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

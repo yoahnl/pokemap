@@ -1,0 +1,18 @@
+{
+  "speciesId": "weepinbell",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/weepinbell/front.png",
+      "backStatic": "assets/pokemon/sprites/weepinbell/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/weepinbell/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/weepinbell/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/weepinbell.png",
+      "cry": "assets/pokemon/cries/weepinbell.ogg",
+      "animations": {}
+    }
+  }
+}

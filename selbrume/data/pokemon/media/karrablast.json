@@ -1,0 +1,18 @@
+{
+  "speciesId": "karrablast",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/karrablast/front.png",
+      "backStatic": "assets/pokemon/sprites/karrablast/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/karrablast/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/karrablast/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/karrablast.png",
+      "cry": "assets/pokemon/cries/karrablast.ogg",
+      "animations": {}
+    }
+  }
+}

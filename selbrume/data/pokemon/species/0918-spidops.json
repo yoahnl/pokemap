@@ -1,0 +1,94 @@
+{
+  "id": "spidops",
+  "slug": "spidops",
+  "nationalDex": 918,
+  "names": {
+    "ja_hrkt": "ワナイダー",
+    "ja_roma": "Wanaider",
+    "ko": "트래피더",
+    "zh_hant": "操陷蛛",
+    "fr": "Filentrappe",
+    "de": "Spinsidias",
+    "es": "Spidops",
+    "it": "Spidops",
+    "en": "Spidops",
+    "ja": "ワナイダー",
+    "zh_hans": "操陷蛛"
+  },
+  "speciesName": {
+    "ja_hrkt": "トラップポケモン",
+    "ko": "트랩포켓몬",
+    "zh_hant": "陷阱寶可夢",
+    "fr": "Piège",
+    "de": "Falle",
+    "en": "Trap Pokémon",
+    "zh_hans": "陷阱宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 79,
+    "def": 92,
+    "spa": 52,
+    "spd": 86,
+    "spe": 35,
+    "bst": 404
+  },
+  "abilities": {
+    "primary": "insomnia",
+    "secondary": null,
+    "hidden": "stakeout"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 141,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spidops",
+    "evolution": "spidops",
+    "media": "spidops"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 16.5,
+    "color": "green",
+    "flavorText": "It clings to branches and ceilings using its threads and moves without a sound. It takes out its prey before the prey even notices it."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

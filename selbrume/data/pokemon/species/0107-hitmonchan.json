@@ -1,0 +1,97 @@
+{
+  "id": "hitmonchan",
+  "slug": "hitmonchan",
+  "nationalDex": 107,
+  "names": {
+    "ja_hrkt": "エビワラー",
+    "ja_roma": "Ebiwalar",
+    "ko": "홍수몬",
+    "zh_hant": "快拳郎",
+    "fr": "Tygnon",
+    "de": "Nockchan",
+    "es": "Hitmonchan",
+    "it": "Hitmonchan",
+    "en": "Hitmonchan",
+    "ja": "エビワラー",
+    "zh_hans": "快拳郎"
+  },
+  "speciesName": {
+    "ja_hrkt": "パンチポケモン",
+    "ko": "펀치포켓몬",
+    "zh_hant": "拳擊寶可夢",
+    "fr": "Pokémon Puncheur",
+    "de": "Puncher-Pokémon",
+    "es": "Pokémon Puñetazo",
+    "it": "Pokémon Tirapugni",
+    "en": "Punching Pokémon",
+    "ja": "パンチポケモン",
+    "zh_hans": "拳击宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 105,
+    "def": 79,
+    "spa": 35,
+    "spd": 110,
+    "spe": 76,
+    "bst": 455
+  },
+  "abilities": {
+    "primary": "keen_eye",
+    "secondary": "iron_fist",
+    "hidden": "inner_focus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 159,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hitmonchan",
+    "evolution": "hitmonchan",
+    "media": "hitmonchan"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 50.2,
+    "color": "brown",
+    "flavorText": "While apparently doing nothing, it fires punches in lightning fast volleys that are impossible to see."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

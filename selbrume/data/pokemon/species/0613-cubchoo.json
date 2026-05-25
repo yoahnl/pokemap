@@ -1,0 +1,97 @@
+{
+  "id": "cubchoo",
+  "slug": "cubchoo",
+  "nationalDex": 613,
+  "names": {
+    "ja_hrkt": "クマシュン",
+    "ja_roma": "Kumasyun",
+    "ko": "코고미",
+    "zh_hant": "噴嚏熊",
+    "fr": "Polarhume",
+    "de": "Petznief",
+    "es": "Cubchoo",
+    "it": "Cubchoo",
+    "en": "Cubchoo",
+    "ja": "クマシュン",
+    "zh_hans": "喷嚏熊"
+  },
+  "speciesName": {
+    "ja_hrkt": "ひょうけつポケモン",
+    "ko": "빙결포켓몬",
+    "zh_hant": "結冰寶可夢",
+    "fr": "Pokémon Gelé",
+    "de": "Eisschollen-Pokémon",
+    "es": "Pokémon Congelación",
+    "it": "Pokémon Freddo",
+    "en": "Chill Pokémon",
+    "ja": "ひょうけつポケモン",
+    "zh_hans": "结冰宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "ice"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 70,
+    "def": 40,
+    "spa": 60,
+    "spd": 40,
+    "spe": 40,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "snow_cloak",
+    "secondary": "slush_rush",
+    "hidden": "rattled"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "cubchoo",
+    "evolution": "cubchoo",
+    "media": "cubchoo"
+  },
+  "dexContent": {
+    "heightM": 0.5,
+    "weightKg": 8.5,
+    "color": "white",
+    "flavorText": "When it is not feeling well, its mucus gets watery and the power of its Ice-type moves decreases."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

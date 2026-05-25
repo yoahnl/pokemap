@@ -1,0 +1,18 @@
+{
+  "speciesId": "dunsparce",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/dunsparce/front.png",
+      "backStatic": "assets/pokemon/sprites/dunsparce/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/dunsparce/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/dunsparce/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/dunsparce.png",
+      "cry": "assets/pokemon/cries/dunsparce.ogg",
+      "animations": {}
+    }
+  }
+}

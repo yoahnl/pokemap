@@ -1,0 +1,117 @@
+{
+  "id": "arceus",
+  "slug": "arceus",
+  "nationalDex": 493,
+  "names": {
+    "ja_hrkt": "アルセウス",
+    "ja_roma": "Arceus",
+    "ko": "아르세우스",
+    "zh_hant": "阿爾宙斯",
+    "fr": "Arceus",
+    "de": "Arceus",
+    "es": "Arceus",
+    "it": "Arceus",
+    "en": "Arceus",
+    "ja": "アルセウス",
+    "zh_hans": "阿尔宙斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "そうぞうポケモン",
+    "ko": "창조포켓몬",
+    "zh_hant": "創造寶可夢",
+    "fr": "Pokémon Alpha",
+    "de": "Alpha",
+    "es": "Pokémon Alfa",
+    "it": "Pokémon Primevo",
+    "en": "Alpha Pokémon",
+    "ja": "そうぞうポケモン",
+    "zh_hans": "创造宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 120,
+    "atk": 120,
+    "def": 120,
+    "spa": 120,
+    "spd": 120,
+    "spe": 120,
+    "bst": 720
+  },
+  "abilities": {
+    "primary": "multitype",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 324,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "arceus-bug",
+      "arceus-dark",
+      "arceus-dragon",
+      "arceus-electric",
+      "arceus-fairy",
+      "arceus-fighting",
+      "arceus-fire",
+      "arceus-flying",
+      "arceus-ghost",
+      "arceus-grass",
+      "arceus-ground",
+      "arceus-ice",
+      "arceus-poison",
+      "arceus-psychic",
+      "arceus-rock",
+      "arceus-steel",
+      "arceus-water"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": true,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "arceus",
+    "evolution": "arceus",
+    "media": "arceus"
+  },
+  "dexContent": {
+    "heightM": 3.2,
+    "weightKg": 320.0,
+    "color": "white",
+    "flavorText": "It is described in mythology as the Pokémon that shaped the universe with its 1,000 arms."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

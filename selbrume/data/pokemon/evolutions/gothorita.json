@@ -1,0 +1,14 @@
+{
+  "speciesId": "gothorita",
+  "preEvolution": "gothita",
+  "evolutions": [
+    {
+      "targetSpeciesId": "gothitelle",
+      "method": "level_up",
+      "minLevel": 41,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "id": "garchomp",
+  "slug": "garchomp",
+  "nationalDex": 445,
+  "names": {
+    "ja_hrkt": "ガブリアス",
+    "ja_roma": "Gablias",
+    "ko": "한카리아스",
+    "zh_hant": "烈咬陸鯊",
+    "fr": "Carchacrok",
+    "de": "Knakrack",
+    "es": "Garchomp",
+    "it": "Garchomp",
+    "en": "Garchomp",
+    "ja": "ガブリアス",
+    "zh_hans": "烈咬陆鲨"
+  },
+  "speciesName": {
+    "ja_hrkt": "マッハポケモン",
+    "ko": "마하포켓몬",
+    "zh_hant": "音速寶可夢",
+    "fr": "Pokémon Supersonic",
+    "de": "Rasanz-Pokémon",
+    "es": "Pokémon Mach",
+    "it": "Pokémon Mach",
+    "en": "Mach Pokémon",
+    "ja": "マッハポケモン",
+    "zh_hans": "音速宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "dragon",
+      "ground"
+    ]
+  },
+  "baseStats": {
+    "hp": 108,
+    "atk": 130,
+    "def": 95,
+    "spa": 80,
+    "spd": 85,
+    "spe": 102,
+    "bst": 600
+  },
+  "abilities": {
+    "primary": "sand_veil",
+    "secondary": null,
+    "hidden": "rough_skin"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 270,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "garchomp-mega",
+      "garchomp-mega-z"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "garchomp",
+    "evolution": "garchomp",
+    "media": "garchomp"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 95.0,
+    "color": "blue",
+    "flavorText": "When it folds up its body and extends its wings, it looks like a jet plane. It flies at sonic speed."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

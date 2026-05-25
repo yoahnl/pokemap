@@ -1,0 +1,99 @@
+{
+  "id": "jumpluff",
+  "slug": "jumpluff",
+  "nationalDex": 189,
+  "names": {
+    "ja_hrkt": "ワタッコ",
+    "ja_roma": "Watacco",
+    "ko": "솜솜코",
+    "zh_hant": "毽子棉",
+    "fr": "Cotovol",
+    "de": "Papungha",
+    "es": "Jumpluff",
+    "it": "Jumpluff",
+    "en": "Jumpluff",
+    "ja": "ワタッコ",
+    "zh_hans": "毽子棉"
+  },
+  "speciesName": {
+    "ja_hrkt": "わたくさポケモン",
+    "ko": "솜풀포켓몬",
+    "zh_hant": "棉草寶可夢",
+    "fr": "Pokémon Pissenlit",
+    "de": "Löwenzahn",
+    "es": "Pokémon Algadón",
+    "it": "Pokémon Gramigna",
+    "en": "Cottonweed Pokémon",
+    "ja": "わたくさポケモン",
+    "zh_hans": "棉草宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "grass",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 55,
+    "def": 70,
+    "spa": 55,
+    "spd": 95,
+    "spe": 110,
+    "bst": 460
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "leaf_guard",
+    "hidden": "infiltrator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 207,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "jumpluff",
+    "evolution": "jumpluff",
+    "media": "jumpluff"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 3.0,
+    "color": "blue",
+    "flavorText": "Once it catches the wind, it deft­ ly controls its cotton-puff spores to float, even around the world."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

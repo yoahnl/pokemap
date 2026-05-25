@@ -1,0 +1,18 @@
+{
+  "speciesId": "pansage",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pansage/front.png",
+      "backStatic": "assets/pokemon/sprites/pansage/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pansage/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pansage/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pansage.png",
+      "cry": "assets/pokemon/cries/pansage.ogg",
+      "animations": {}
+    }
+  }
+}

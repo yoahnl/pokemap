@@ -1,0 +1,18 @@
+{
+  "speciesId": "pidgeotto",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pidgeotto/front.png",
+      "backStatic": "assets/pokemon/sprites/pidgeotto/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pidgeotto/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pidgeotto/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pidgeotto.png",
+      "cry": "assets/pokemon/cries/pidgeotto.ogg",
+      "animations": {}
+    }
+  }
+}

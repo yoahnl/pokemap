@@ -1,0 +1,95 @@
+{
+  "id": "varoom",
+  "slug": "varoom",
+  "nationalDex": 965,
+  "names": {
+    "ja_hrkt": "ブロロン",
+    "ja_roma": "Buroron",
+    "ko": "부르롱",
+    "zh_hant": "噗隆隆",
+    "fr": "Vrombi",
+    "de": "Knattox",
+    "es": "Varoom",
+    "it": "Varoom",
+    "en": "Varoom",
+    "ja": "ブロロン",
+    "zh_hans": "噗隆隆"
+  },
+  "speciesName": {
+    "ja_hrkt": "たんきとうポケモン",
+    "ko": "단기통포켓몬",
+    "zh_hant": "單汽缸寶可夢",
+    "fr": "Monocylindre",
+    "de": "Einzylinder",
+    "en": "Single-Cyl Pokémon",
+    "zh_hans": "单汽缸宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "steel",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 70,
+    "def": 63,
+    "spa": 30,
+    "spd": 45,
+    "spe": 47,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "overcoat",
+    "secondary": null,
+    "hidden": "slow_start"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 60,
+    "catchRate": 190,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "varoom",
+    "evolution": "varoom",
+    "media": "varoom"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 35.0,
+    "color": "gray",
+    "flavorText": "It is said that this Pokémon was born when an unknown poison Pokémon entered and inspirited an engine left at a scrap-processing factory."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

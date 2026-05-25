@@ -1,0 +1,14 @@
+{
+  "speciesId": "pidove",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "tranquill",
+      "method": "level_up",
+      "minLevel": 21,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

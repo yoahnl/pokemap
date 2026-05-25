@@ -1,0 +1,14 @@
+{
+  "speciesId": "chikorita",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "bayleef",
+      "method": "level_up",
+      "minLevel": 16,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

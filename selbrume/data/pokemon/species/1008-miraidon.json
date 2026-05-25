@@ -1,0 +1,97 @@
+{
+  "id": "miraidon",
+  "slug": "miraidon",
+  "nationalDex": 1008,
+  "names": {
+    "ja_hrkt": "ミライドン",
+    "ja_roma": "Miraidon",
+    "ko": "미라이돈",
+    "zh_hant": "密勒頓",
+    "fr": "Miraidon",
+    "de": "Miraidon",
+    "es": "Miraidon",
+    "it": "Miraidon",
+    "en": "Miraidon",
+    "ja": "ミライドン",
+    "zh_hans": "密勒顿"
+  },
+  "speciesName": {
+    "ja_hrkt": "パラドックスポケモン",
+    "ko": "패러독스포켓몬",
+    "zh_hant": "悖謬寶可夢",
+    "fr": "Paradoxe",
+    "de": "Paradox",
+    "en": "Paradox Pokémon",
+    "zh_hans": "悖谬宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "electric",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 85,
+    "def": 100,
+    "spa": 135,
+    "spd": 115,
+    "spe": 135,
+    "bst": 670
+  },
+  "abilities": {
+    "primary": "hadron_engine",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 335,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "miraidon",
+    "evolution": "miraidon",
+    "media": "miraidon"
+  },
+  "dexContent": {
+    "heightM": 3.5,
+    "weightKg": 240.0,
+    "color": "blue",
+    "flavorText": "Much remains unknown about this creature. It resembles Cyclizar, but it is far more ruthless and powerful."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

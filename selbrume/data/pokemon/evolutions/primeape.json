@@ -1,0 +1,14 @@
+{
+  "speciesId": "primeape",
+  "preEvolution": "mankey",
+  "evolutions": [
+    {
+      "targetSpeciesId": "annihilape",
+      "method": "use_move",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

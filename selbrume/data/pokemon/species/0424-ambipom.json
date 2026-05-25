@@ -1,0 +1,97 @@
+{
+  "id": "ambipom",
+  "slug": "ambipom",
+  "nationalDex": 424,
+  "names": {
+    "ja_hrkt": "エテボース",
+    "ja_roma": "Eteboth",
+    "ko": "겟핸보숭",
+    "zh_hant": "雙尾怪手",
+    "fr": "Capidextre",
+    "de": "Ambidiffel",
+    "es": "Ambipom",
+    "it": "Ambipom",
+    "en": "Ambipom",
+    "ja": "エテボース",
+    "zh_hans": "双尾怪手"
+  },
+  "speciesName": {
+    "ja_hrkt": "おながポケモン",
+    "ko": "긴꼬리포켓몬",
+    "zh_hant": "長尾寶可夢",
+    "fr": "Pokémon Longqueue",
+    "de": "Langschweif",
+    "es": "Pokémon Cola Larga",
+    "it": "Pokémon Lungacoda",
+    "en": "Long Tail Pokémon",
+    "ja": "おながポケモン",
+    "zh_hans": "长尾宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 75,
+    "atk": 100,
+    "def": 66,
+    "spa": 60,
+    "spd": 66,
+    "spe": 115,
+    "bst": 482
+  },
+  "abilities": {
+    "primary": "technician",
+    "secondary": "pickup",
+    "hidden": "skill_link"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 169,
+    "catchRate": 45,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ambipom",
+    "evolution": "ambipom",
+    "media": "ambipom"
+  },
+  "dexContent": {
+    "heightM": 1.2,
+    "weightKg": 20.3,
+    "color": "purple",
+    "flavorText": "To eat, it deftly shucks nuts with its two tails. It rarely uses its arms now."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

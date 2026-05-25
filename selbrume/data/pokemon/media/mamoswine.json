@@ -1,0 +1,18 @@
+{
+  "speciesId": "mamoswine",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mamoswine/front.png",
+      "backStatic": "assets/pokemon/sprites/mamoswine/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mamoswine/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mamoswine/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mamoswine.png",
+      "cry": "assets/pokemon/cries/mamoswine.ogg",
+      "animations": {}
+    }
+  }
+}

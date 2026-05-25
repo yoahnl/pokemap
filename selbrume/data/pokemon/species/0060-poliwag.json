@@ -1,0 +1,97 @@
+{
+  "id": "poliwag",
+  "slug": "poliwag",
+  "nationalDex": 60,
+  "names": {
+    "ja_hrkt": "ニョロモ",
+    "ja_roma": "Nyoromo",
+    "ko": "발챙이",
+    "zh_hant": "蚊香蝌蚪",
+    "fr": "Ptitard",
+    "de": "Quapsel",
+    "es": "Poliwag",
+    "it": "Poliwag",
+    "en": "Poliwag",
+    "ja": "ニョロモ",
+    "zh_hans": "蚊香蝌蚪"
+  },
+  "speciesName": {
+    "ja_hrkt": "おたまポケモン",
+    "ko": "올챙이포켓몬",
+    "zh_hant": "蝌蚪寶可夢",
+    "fr": "Pokémon Têtard",
+    "de": "Kaulquappen-Pokémon",
+    "es": "Pokémon Renacuajo",
+    "it": "Pokémon Girino",
+    "en": "Tadpole Pokémon",
+    "ja": "おたまポケモン",
+    "zh_hans": "蝌蚪宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 40,
+    "atk": 50,
+    "def": 40,
+    "spa": 40,
+    "spd": 40,
+    "spe": 90,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "water_absorb",
+    "secondary": "damp",
+    "hidden": "swift_swim"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 60,
+    "catchRate": 255,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "poliwag",
+    "evolution": "poliwag",
+    "media": "poliwag"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 12.4,
+    "color": "blue",
+    "flavorText": "Its newly grown legs prevent it from running. It appears to prefer swimming than trying to stand."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

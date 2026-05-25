@@ -1,0 +1,97 @@
+{
+  "id": "shelmet",
+  "slug": "shelmet",
+  "nationalDex": 616,
+  "names": {
+    "ja_hrkt": "チョボマキ",
+    "ja_roma": "Chobomaki",
+    "ko": "쪼마리",
+    "zh_hant": "小嘴蝸",
+    "fr": "Escargaume",
+    "de": "Schnuthelm",
+    "es": "Shelmet",
+    "it": "Shelmet",
+    "en": "Shelmet",
+    "ja": "チョボマキ",
+    "zh_hans": "小嘴蜗"
+  },
+  "speciesName": {
+    "ja_hrkt": "マイマイポケモン",
+    "ko": "달팽이포켓몬",
+    "zh_hant": "蝸牛寶可夢",
+    "fr": "Pokémon Escargot",
+    "de": "Schnecken-Pokémon",
+    "es": "Pokémon Caracol",
+    "it": "Pokémon Lumachina",
+    "en": "Snail Pokémon",
+    "ja": "マイマイポケモン",
+    "zh_hans": "蜗牛宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 40,
+    "def": 85,
+    "spa": 40,
+    "spd": 65,
+    "spe": 25,
+    "bst": 305
+  },
+  "abilities": {
+    "primary": "hydration",
+    "secondary": "shell_armor",
+    "hidden": "overcoat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 61,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "shelmet",
+    "evolution": "shelmet",
+    "media": "shelmet"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 7.7,
+    "color": "red",
+    "flavorText": "When attacked, it defends itself by closing the lid of its shell. It can spit a sticky, poisonous liquid."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "archeops",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/archeops/front.png",
+      "backStatic": "assets/pokemon/sprites/archeops/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/archeops/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/archeops/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/archeops.png",
+      "cry": "assets/pokemon/cries/archeops.ogg",
+      "animations": {}
+    }
+  }
+}

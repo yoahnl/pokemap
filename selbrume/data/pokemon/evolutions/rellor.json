@@ -1,0 +1,14 @@
+{
+  "speciesId": "rellor",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "rabsca",
+      "method": "level_up",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

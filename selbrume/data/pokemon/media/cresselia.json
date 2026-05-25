@@ -1,0 +1,18 @@
+{
+  "speciesId": "cresselia",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/cresselia/front.png",
+      "backStatic": "assets/pokemon/sprites/cresselia/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/cresselia/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/cresselia/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/cresselia.png",
+      "cry": "assets/pokemon/cries/cresselia.ogg",
+      "animations": {}
+    }
+  }
+}

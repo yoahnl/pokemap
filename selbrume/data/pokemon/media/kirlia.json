@@ -1,0 +1,18 @@
+{
+  "speciesId": "kirlia",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/kirlia/front.png",
+      "backStatic": "assets/pokemon/sprites/kirlia/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/kirlia/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/kirlia/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/kirlia.png",
+      "cry": "assets/pokemon/cries/kirlia.ogg",
+      "animations": {}
+    }
+  }
+}

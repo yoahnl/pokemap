@@ -1,0 +1,97 @@
+{
+  "id": "tangela",
+  "slug": "tangela",
+  "nationalDex": 114,
+  "names": {
+    "ja_hrkt": "モンジャラ",
+    "ja_roma": "Monjara",
+    "ko": "덩쿠리",
+    "zh_hant": "蔓藤怪",
+    "fr": "Saquedeneu",
+    "de": "Tangela",
+    "es": "Tangela",
+    "it": "Tangela",
+    "en": "Tangela",
+    "ja": "モンジャラ",
+    "zh_hans": "蔓藤怪"
+  },
+  "speciesName": {
+    "ja_hrkt": "ツルじょうポケモン",
+    "ko": "넝쿨포켓몬",
+    "zh_hant": "藤蔓狀寶可夢",
+    "fr": "Pokémon Vigne",
+    "de": "Ranken-Pokémon",
+    "es": "Pokémon Enredadera",
+    "it": "Pokémon Liana",
+    "en": "Vine Pokémon",
+    "ja": "ツルじょうポケモン",
+    "zh_hans": "藤蔓状宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 65,
+    "atk": 55,
+    "def": 115,
+    "spa": 100,
+    "spd": 40,
+    "spe": 60,
+    "bst": 435
+  },
+  "abilities": {
+    "primary": "chlorophyll",
+    "secondary": "leaf_guard",
+    "hidden": "regenerator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 87,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "tangela",
+    "evolution": "tangela",
+    "media": "tangela"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 35.0,
+    "color": "blue",
+    "flavorText": "The whole body is swathed with wide vines that are similar to sea­ weed. Its vines shake as it walks."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

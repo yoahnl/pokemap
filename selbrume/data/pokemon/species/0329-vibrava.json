@@ -1,0 +1,99 @@
+{
+  "id": "vibrava",
+  "slug": "vibrava",
+  "nationalDex": 329,
+  "names": {
+    "ja_hrkt": "ビブラーバ",
+    "ja_roma": "Vibrava",
+    "ko": "비브라바",
+    "zh_hant": "超音波幼蟲",
+    "fr": "Vibraninf",
+    "de": "Vibrava",
+    "es": "Vibrava",
+    "it": "Vibrava",
+    "en": "Vibrava",
+    "ja": "ビブラーバ",
+    "zh_hans": "超音波幼虫"
+  },
+  "speciesName": {
+    "ja_hrkt": "しんどうポケモン",
+    "ko": "진동포켓몬",
+    "zh_hant": "震動寶可夢",
+    "fr": "Pokémon Vibration",
+    "de": "Vibrations-Pokémon",
+    "es": "Pokémon Vibrante",
+    "it": "Pokémon Vibrazione",
+    "en": "Vibration Pokémon",
+    "ja": "しんどうポケモン",
+    "zh_hans": "振动宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "ground",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 70,
+    "def": 50,
+    "spa": 50,
+    "spd": 50,
+    "spe": 70,
+    "bst": 340
+  },
+  "abilities": {
+    "primary": "levitate",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 119,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vibrava",
+    "evolution": "vibrava",
+    "media": "vibrava"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 15.3,
+    "color": "green",
+    "flavorText": "To make prey faint, VIBRAVA generates ultrasonic waves by vigorously making its two wings vibrate. This POKéMON’s ultrasonic waves are so powerful, they can bring on headaches in people."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

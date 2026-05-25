@@ -1,0 +1,14 @@
+{
+  "speciesId": "carkol",
+  "preEvolution": "rolycoly",
+  "evolutions": [
+    {
+      "targetSpeciesId": "coalossal",
+      "method": "level_up",
+      "minLevel": 34,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

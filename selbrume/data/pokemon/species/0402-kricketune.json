@@ -1,0 +1,97 @@
+{
+  "id": "kricketune",
+  "slug": "kricketune",
+  "nationalDex": 402,
+  "names": {
+    "ja_hrkt": "コロトック",
+    "ja_roma": "Korotok",
+    "ko": "귀뚤톡크",
+    "zh_hant": "音箱蟀",
+    "fr": "Mélokrik",
+    "de": "Zirpeise",
+    "es": "Kricketune",
+    "it": "Kricketune",
+    "en": "Kricketune",
+    "ja": "コロトック",
+    "zh_hans": "音箱蟀"
+  },
+  "speciesName": {
+    "ja_hrkt": "こおろぎポケモン",
+    "ko": "귀뚜라미포켓몬",
+    "zh_hant": "蟋蟀寶可夢",
+    "fr": "Pokémon Criquet",
+    "de": "Zirper",
+    "es": "Pokémon Grillo",
+    "it": "Pokémon Grillo",
+    "en": "Cricket Pokémon",
+    "ja": "こおろぎポケモン",
+    "zh_hans": "蟋蟀宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "bug"
+    ]
+  },
+  "baseStats": {
+    "hp": 77,
+    "atk": 85,
+    "def": 51,
+    "spa": 55,
+    "spd": 51,
+    "spe": 65,
+    "bst": 384
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": null,
+    "hidden": "technician"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 134,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "kricketune",
+    "evolution": "kricketune",
+    "media": "kricketune"
+  },
+  "dexContent": {
+    "heightM": 1.0,
+    "weightKg": 25.5,
+    "color": "red",
+    "flavorText": "It crosses its knifelike arms in front of its chest when it cries. It can compose melodies ad lib."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "slowking",
+  "slug": "slowking",
+  "nationalDex": 199,
+  "names": {
+    "ja_hrkt": "ヤドキング",
+    "ja_roma": "Yadoking",
+    "ko": "야도킹",
+    "zh_hant": "呆呆王",
+    "fr": "Roigada",
+    "de": "Laschoking",
+    "es": "Slowking",
+    "it": "Slowking",
+    "en": "Slowking",
+    "ja": "ヤドキング",
+    "zh_hans": "呆呆王"
+  },
+  "speciesName": {
+    "ja_hrkt": "おうじゃポケモン",
+    "ko": "임금포켓몬",
+    "zh_hant": "王者寶可夢",
+    "fr": "Pokémon Royal",
+    "de": "Monarchen-Pokémon",
+    "es": "Pokémon Regio",
+    "it": "Pokémon Reale",
+    "en": "Royal Pokémon",
+    "ja": "おうじゃポケモン",
+    "zh_hans": "王者宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water",
+      "psychic"
+    ]
+  },
+  "baseStats": {
+    "hp": 95,
+    "atk": 75,
+    "def": 80,
+    "spa": 100,
+    "spd": 110,
+    "spe": 30,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "oblivious",
+    "secondary": "own_tempo",
+    "hidden": "regenerator"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 172,
+    "catchRate": 70,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "slowking-galar"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "slowking",
+    "evolution": "slowking",
+    "media": "slowking"
+  },
+  "dexContent": {
+    "heightM": 2.0,
+    "weightKg": 79.5,
+    "color": "pink",
+    "flavorText": "It has incredible intellect and in­ tuition. Whatever the situation, it remains calm and collected."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "azumarill",
+  "slug": "azumarill",
+  "nationalDex": 184,
+  "names": {
+    "ja_hrkt": "マリルリ",
+    "ja_roma": "Marilli",
+    "ko": "마릴리",
+    "zh_hant": "瑪力露麗",
+    "fr": "Azumarill",
+    "de": "Azumarill",
+    "es": "Azumarill",
+    "it": "Azumarill",
+    "en": "Azumarill",
+    "ja": "マリルリ",
+    "zh_hans": "玛力露丽"
+  },
+  "speciesName": {
+    "ja_hrkt": "みずうさぎポケモン",
+    "ko": "물토끼포켓몬",
+    "zh_hant": "水兔寶可夢",
+    "fr": "Pokémon Aqualapin",
+    "de": "Aquahasen-Pokémon",
+    "es": "Pokémon Conejo Agua",
+    "it": "Pokémon Acquniglio",
+    "en": "Aqua Rabbit Pokémon",
+    "ja": "みずうさぎポケモン",
+    "zh_hans": "水兔宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "water",
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 50,
+    "def": 80,
+    "spa": 60,
+    "spd": 80,
+    "spe": 50,
+    "bst": 420
+  },
+  "abilities": {
+    "primary": "thick_fat",
+    "secondary": "huge_power",
+    "hidden": "sap_sipper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1",
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 189,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "azumarill",
+    "evolution": "azumarill",
+    "media": "azumarill"
+  },
+  "dexContent": {
+    "heightM": 0.8,
+    "weightKg": 28.5,
+    "color": "blue",
+    "flavorText": "It lives in water virtually all day long. Its body color and pattern act as camouflage that makes it tough for enemies to spot in water."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

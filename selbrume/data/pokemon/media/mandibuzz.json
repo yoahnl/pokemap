@@ -1,0 +1,18 @@
+{
+  "speciesId": "mandibuzz",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/mandibuzz/front.png",
+      "backStatic": "assets/pokemon/sprites/mandibuzz/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/mandibuzz/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/mandibuzz/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/mandibuzz.png",
+      "cry": "assets/pokemon/cries/mandibuzz.ogg",
+      "animations": {}
+    }
+  }
+}

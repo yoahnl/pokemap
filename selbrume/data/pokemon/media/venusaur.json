@@ -1,0 +1,30 @@
+{
+  "speciesId": "venusaur",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/venusaur/front.png",
+      "backStatic": "assets/pokemon/sprites/venusaur/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/venusaur/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/venusaur/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/venusaur.png",
+      "cry": "assets/pokemon/cries/venusaur.ogg",
+      "animations": {}
+    },
+    "venusaur-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

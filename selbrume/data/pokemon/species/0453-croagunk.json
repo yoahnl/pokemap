@@ -1,0 +1,98 @@
+{
+  "id": "croagunk",
+  "slug": "croagunk",
+  "nationalDex": 453,
+  "names": {
+    "ja_hrkt": "グレッグル",
+    "ja_roma": "Gureggru",
+    "ko": "삐딱구리",
+    "zh_hant": "不良蛙",
+    "fr": "Cradopaud",
+    "de": "Glibunkel",
+    "es": "Croagunk",
+    "it": "Croagunk",
+    "en": "Croagunk",
+    "ja": "グレッグル",
+    "zh_hans": "不良蛙"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくづきポケモン",
+    "ko": "독설포켓몬",
+    "zh_hant": "毒擊寶可夢",
+    "fr": "Pokémon Toxique",
+    "de": "Giftmund-Pokémon",
+    "es": "Pokémon Boca Tóxica",
+    "it": "Pokémon Inveieleno",
+    "en": "Toxic Mouth Pokémon",
+    "ja": "どくづきポケモン",
+    "zh_hans": "毒击宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "poison",
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 48,
+    "atk": 61,
+    "def": 40,
+    "spa": 61,
+    "spd": 40,
+    "spe": 50,
+    "bst": 300
+  },
+  "abilities": {
+    "primary": "anticipation",
+    "secondary": "dry_skin",
+    "hidden": "poison_touch"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 60,
+    "catchRate": 140,
+    "baseFriendship": 100
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "croagunk",
+    "evolution": "croagunk",
+    "media": "croagunk"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 23.0,
+    "color": "blue",
+    "flavorText": "Its cheeks hold poison sacs. It tries to catch foes off guard to jab them with toxic fingers."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

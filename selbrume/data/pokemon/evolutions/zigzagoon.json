@@ -1,0 +1,22 @@
+{
+  "speciesId": "zigzagoon",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "linoone",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    },
+    {
+      "targetSpeciesId": "linoone",
+      "method": "level_up",
+      "minLevel": 20,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "bounsweet",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/bounsweet/front.png",
+      "backStatic": "assets/pokemon/sprites/bounsweet/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/bounsweet/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/bounsweet/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/bounsweet.png",
+      "cry": "assets/pokemon/cries/bounsweet.ogg",
+      "animations": {}
+    }
+  }
+}

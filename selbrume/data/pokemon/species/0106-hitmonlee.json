@@ -1,0 +1,97 @@
+{
+  "id": "hitmonlee",
+  "slug": "hitmonlee",
+  "nationalDex": 106,
+  "names": {
+    "ja_hrkt": "サワムラー",
+    "ja_roma": "Sawamular",
+    "ko": "시라소몬",
+    "zh_hant": "飛腿郎",
+    "fr": "Kicklee",
+    "de": "Kicklee",
+    "es": "Hitmonlee",
+    "it": "Hitmonlee",
+    "en": "Hitmonlee",
+    "ja": "サワムラー",
+    "zh_hans": "飞腿郎"
+  },
+  "speciesName": {
+    "ja_hrkt": "キックポケモン",
+    "ko": "킥포켓몬",
+    "zh_hant": "踢腿寶可夢",
+    "fr": "Pokémon Latteur",
+    "de": "Kicker-Pokémon",
+    "es": "Pokémon Patada",
+    "it": "Pokémon Tiracalci",
+    "en": "Kicking Pokémon",
+    "ja": "キックポケモン",
+    "zh_hans": "踢腿宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 50,
+    "atk": 120,
+    "def": 53,
+    "spa": 35,
+    "spd": 110,
+    "spe": 87,
+    "bst": 455
+  },
+  "abilities": {
+    "primary": "limber",
+    "secondary": "reckless",
+    "hidden": "unburden"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "humanshape"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 159,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "hitmonlee",
+    "evolution": "hitmonlee",
+    "media": "hitmonlee"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 49.8,
+    "color": "brown",
+    "flavorText": "When in a hurry, its legs lengthen progressively. It runs smoothly with extra long, loping strides."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "ditto",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ditto/front.png",
+      "backStatic": "assets/pokemon/sprites/ditto/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ditto/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ditto/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ditto.png",
+      "cry": "assets/pokemon/cries/ditto.ogg",
+      "animations": {}
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "tangela",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/tangela/front.png",
+      "backStatic": "assets/pokemon/sprites/tangela/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/tangela/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/tangela/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/tangela.png",
+      "cry": "assets/pokemon/cries/tangela.ogg",
+      "animations": {}
+    }
+  }
+}

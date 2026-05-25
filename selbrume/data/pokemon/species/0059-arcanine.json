@@ -1,0 +1,102 @@
+{
+  "id": "arcanine",
+  "slug": "arcanine",
+  "nationalDex": 59,
+  "names": {
+    "ja_hrkt": "ウインディ",
+    "ja_roma": "Windie",
+    "ko": "윈디",
+    "zh_hant": "風速狗",
+    "fr": "Arcanin",
+    "de": "Arkani",
+    "es": "Arcanine",
+    "it": "Arcanine",
+    "en": "Arcanine",
+    "ja": "ウインディ",
+    "zh_hans": "风速狗"
+  },
+  "speciesName": {
+    "ja_hrkt": "でんせつポケモン",
+    "ko": "전설포켓몬",
+    "zh_hant": "傳說寶可夢",
+    "fr": "Pokémon Légendaire",
+    "de": "Legendär-Pokémon",
+    "es": "Pokémon Leyenda",
+    "it": "Pokémon Leggenda",
+    "en": "Legendary Pokémon",
+    "ja": "でんせつポケモン",
+    "zh_hans": "传说宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 110,
+    "def": 80,
+    "spa": 100,
+    "spd": 80,
+    "spe": 95,
+    "bst": 555
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "flash_fire",
+    "hidden": "justified"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 194,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "arcanine-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "arcanine",
+    "evolution": "arcanine",
+    "media": "arcanine"
+  },
+  "dexContent": {
+    "heightM": 1.9,
+    "weightKg": 155.0,
+    "color": "brown",
+    "flavorText": "A POKéMON that has been admired since the past for its beauty. It runs agilely as if on wings."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

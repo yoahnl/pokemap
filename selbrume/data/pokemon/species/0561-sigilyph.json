@@ -1,0 +1,98 @@
+{
+  "id": "sigilyph",
+  "slug": "sigilyph",
+  "nationalDex": 561,
+  "names": {
+    "ja_hrkt": "シンボラー",
+    "ja_roma": "Symboler",
+    "ko": "심보러",
+    "zh_hant": "象徵鳥",
+    "fr": "Cryptéro",
+    "de": "Symvolara",
+    "es": "Sigilyph",
+    "it": "Sigilyph",
+    "en": "Sigilyph",
+    "ja": "シンボラー",
+    "zh_hans": "象征鸟"
+  },
+  "speciesName": {
+    "ja_hrkt": "とりもどきポケモン",
+    "ko": "흡사새포켓몬",
+    "zh_hant": "似鳥寶可夢",
+    "fr": "Pokémon Similoiseau",
+    "de": "Vogelgleich-Pokémon",
+    "es": "Pokémon Pseudopájaro",
+    "it": "Pokémon Pseuduccello",
+    "en": "Avianoid Pokémon",
+    "ja": "とりもどきポケモン",
+    "zh_hans": "似鸟宝可梦"
+  },
+  "genIntroduced": 5,
+  "typing": {
+    "types": [
+      "psychic",
+      "flying"
+    ]
+  },
+  "baseStats": {
+    "hp": 72,
+    "atk": 58,
+    "def": 80,
+    "spa": 103,
+    "spd": 80,
+    "spe": 97,
+    "bst": 490
+  },
+  "abilities": {
+    "primary": "wonder_skin",
+    "secondary": "magic_guard",
+    "hidden": "tinted_lens"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "flying"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 172,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "sigilyph",
+    "evolution": "sigilyph",
+    "media": "sigilyph"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 14.0,
+    "color": "black",
+    "flavorText": "They never vary the route they fly, because their memories of guarding an ancient city remain steadfast."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

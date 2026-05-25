@@ -1,0 +1,18 @@
+{
+  "speciesId": "slakoth",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/slakoth/front.png",
+      "backStatic": "assets/pokemon/sprites/slakoth/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/slakoth/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/slakoth/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/slakoth.png",
+      "cry": "assets/pokemon/cries/slakoth.ogg",
+      "animations": {}
+    }
+  }
+}

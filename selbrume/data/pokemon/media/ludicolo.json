@@ -1,0 +1,18 @@
+{
+  "speciesId": "ludicolo",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ludicolo/front.png",
+      "backStatic": "assets/pokemon/sprites/ludicolo/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ludicolo/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ludicolo/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ludicolo.png",
+      "cry": "assets/pokemon/cries/ludicolo.ogg",
+      "animations": {}
+    }
+  }
+}

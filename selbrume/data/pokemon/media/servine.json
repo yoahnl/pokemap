@@ -1,0 +1,18 @@
+{
+  "speciesId": "servine",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/servine/front.png",
+      "backStatic": "assets/pokemon/sprites/servine/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/servine/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/servine/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/servine.png",
+      "cry": "assets/pokemon/cries/servine.ogg",
+      "animations": {}
+    }
+  }
+}

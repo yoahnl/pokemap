@@ -1,0 +1,18 @@
+{
+  "speciesId": "arctovish",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/arctovish/front.png",
+      "backStatic": "assets/pokemon/sprites/arctovish/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/arctovish/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/arctovish/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/arctovish.png",
+      "cry": "assets/pokemon/cries/arctovish.ogg",
+      "animations": {}
+    }
+  }
+}

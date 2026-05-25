@@ -1,0 +1,18 @@
+{
+  "speciesId": "regice",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/regice/front.png",
+      "backStatic": "assets/pokemon/sprites/regice/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/regice/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/regice/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/regice.png",
+      "cry": "assets/pokemon/cries/regice.ogg",
+      "animations": {}
+    }
+  }
+}

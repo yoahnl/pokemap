@@ -1,0 +1,97 @@
+{
+  "id": "vigoroth",
+  "slug": "vigoroth",
+  "nationalDex": 288,
+  "names": {
+    "ja_hrkt": "ヤルキモノ",
+    "ja_roma": "Yarukimono",
+    "ko": "발바로",
+    "zh_hant": "過動猿",
+    "fr": "Vigoroth",
+    "de": "Muntier",
+    "es": "Vigoroth",
+    "it": "Vigoroth",
+    "en": "Vigoroth",
+    "ja": "ヤルキモノ",
+    "zh_hans": "过动猿"
+  },
+  "speciesName": {
+    "ja_hrkt": "あばれザルポケモン",
+    "ko": "성난원숭이포켓몬",
+    "zh_hant": "暴猿寶可夢",
+    "fr": "Pokémon Turbusinge",
+    "de": "Wildaffe",
+    "es": "Pokémon Mono Feroz",
+    "it": "Pokémon Indocile",
+    "en": "Wild Monkey Pokémon",
+    "ja": "あばれザルポケモン",
+    "zh_hans": "暴猿宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "normal"
+    ]
+  },
+  "baseStats": {
+    "hp": 80,
+    "atk": 80,
+    "def": 80,
+    "spa": 55,
+    "spd": 55,
+    "spe": 90,
+    "bst": 440
+  },
+  "abilities": {
+    "primary": "vital_spirit",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 154,
+    "catchRate": 120,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "vigoroth",
+    "evolution": "vigoroth",
+    "media": "vigoroth"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 46.5,
+    "color": "white",
+    "flavorText": "VIGOROTH is always itching and agitated to go on a wild rampage. It simply can’t tolerate sitting still for even a minute. This POKéMON’s stress level rises if it can’t be moving constantly."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

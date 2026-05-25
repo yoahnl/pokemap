@@ -1,0 +1,18 @@
+{
+  "speciesId": "swirlix",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/swirlix/front.png",
+      "backStatic": "assets/pokemon/sprites/swirlix/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/swirlix/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/swirlix/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/swirlix.png",
+      "cry": "assets/pokemon/cries/swirlix.ogg",
+      "animations": {}
+    }
+  }
+}

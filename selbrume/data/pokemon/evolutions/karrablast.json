@@ -1,0 +1,16 @@
+{
+  "speciesId": "karrablast",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "escavalier",
+      "method": "trade",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Trade species: shelmet"
+      }
+    }
+  ]
+}

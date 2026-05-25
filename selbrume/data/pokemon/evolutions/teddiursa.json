@@ -1,0 +1,14 @@
+{
+  "speciesId": "teddiursa",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "ursaring",
+      "method": "level_up",
+      "minLevel": 30,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

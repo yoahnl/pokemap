@@ -1,0 +1,18 @@
+{
+  "speciesId": "doublade",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/doublade/front.png",
+      "backStatic": "assets/pokemon/sprites/doublade/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/doublade/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/doublade/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/doublade.png",
+      "cry": "assets/pokemon/cries/doublade.ogg",
+      "animations": {}
+    }
+  }
+}

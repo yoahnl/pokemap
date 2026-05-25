@@ -1,0 +1,100 @@
+{
+  "id": "ampharos",
+  "slug": "ampharos",
+  "nationalDex": 181,
+  "names": {
+    "ja_hrkt": "デンリュウ",
+    "ja_roma": "Denryu",
+    "ko": "전룡",
+    "zh_hant": "電龍",
+    "fr": "Pharamp",
+    "de": "Ampharos",
+    "es": "Ampharos",
+    "it": "Ampharos",
+    "en": "Ampharos",
+    "ja": "デンリュウ",
+    "zh_hans": "电龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "ライトポケモン",
+    "ko": "라이트포켓몬",
+    "zh_hant": "燈寶可夢",
+    "fr": "Pokémon Lumière",
+    "de": "Leuchte",
+    "es": "Pokémon Luz",
+    "it": "Pokémon Luce",
+    "en": "Light Pokémon",
+    "ja": "ライトポケモン",
+    "zh_hans": "灯宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "electric"
+    ]
+  },
+  "baseStats": {
+    "hp": 90,
+    "atk": 75,
+    "def": 85,
+    "spa": 115,
+    "spd": 90,
+    "spe": 55,
+    "bst": 510
+  },
+  "abilities": {
+    "primary": "static",
+    "secondary": null,
+    "hidden": "plus"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "monster",
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 230,
+    "catchRate": 45,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "ampharos-mega"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ampharos",
+    "evolution": "ampharos",
+    "media": "ampharos"
+  },
+  "dexContent": {
+    "heightM": 1.4,
+    "weightKg": 61.5,
+    "color": "yellow",
+    "flavorText": "The tail's tip shines brightly and can be seen from far away. It acts as a beacon for lost people."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

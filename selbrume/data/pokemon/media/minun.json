@@ -1,0 +1,18 @@
+{
+  "speciesId": "minun",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/minun/front.png",
+      "backStatic": "assets/pokemon/sprites/minun/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/minun/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/minun/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/minun.png",
+      "cry": "assets/pokemon/cries/minun.ogg",
+      "animations": {}
+    }
+  }
+}

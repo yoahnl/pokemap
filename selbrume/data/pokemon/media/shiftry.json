@@ -1,0 +1,18 @@
+{
+  "speciesId": "shiftry",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/shiftry/front.png",
+      "backStatic": "assets/pokemon/sprites/shiftry/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/shiftry/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/shiftry/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/shiftry.png",
+      "cry": "assets/pokemon/cries/shiftry.ogg",
+      "animations": {}
+    }
+  }
+}

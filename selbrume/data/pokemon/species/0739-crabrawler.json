@@ -1,0 +1,97 @@
+{
+  "id": "crabrawler",
+  "slug": "crabrawler",
+  "nationalDex": 739,
+  "names": {
+    "ja_hrkt": "マケンカニ",
+    "ja_roma": "Makenkani",
+    "ko": "오기지게",
+    "zh_hant": "好勝蟹",
+    "fr": "Crabagarre",
+    "de": "Krabbox",
+    "es": "Crabrawler",
+    "it": "Crabrawler",
+    "en": "Crabrawler",
+    "ja": "マケンカニ",
+    "zh_hans": "好胜蟹"
+  },
+  "speciesName": {
+    "ja_hrkt": "けんとうポケモン",
+    "ko": "권투포켓몬",
+    "zh_hant": "拳鬥寶可夢",
+    "fr": "Pokémon Boxeur",
+    "de": "Boxkampf",
+    "es": "Pokémon Púgil",
+    "it": "Pokémon Pugile",
+    "en": "Boxing Pokémon",
+    "ja": "けんとうポケモン",
+    "zh_hans": "拳斗宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "fighting"
+    ]
+  },
+  "baseStats": {
+    "hp": 47,
+    "atk": 82,
+    "def": 57,
+    "spa": 42,
+    "spd": 47,
+    "spe": 63,
+    "bst": 338
+  },
+  "abilities": {
+    "primary": "hyper_cutter",
+    "secondary": "iron_fist",
+    "hidden": "anger_point"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water3"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 68,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "crabrawler",
+    "evolution": "crabrawler",
+    "media": "crabrawler"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 7.0,
+    "color": "purple",
+    "flavorText": "While guarding its weak points with its pincers, it looks for an opening and unleashes punches. When it loses, it foams at the mouth and faints."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

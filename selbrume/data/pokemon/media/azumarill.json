@@ -1,0 +1,18 @@
+{
+  "speciesId": "azumarill",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/azumarill/front.png",
+      "backStatic": "assets/pokemon/sprites/azumarill/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/azumarill/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/azumarill/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/azumarill.png",
+      "cry": "assets/pokemon/cries/azumarill.ogg",
+      "animations": {}
+    }
+  }
+}

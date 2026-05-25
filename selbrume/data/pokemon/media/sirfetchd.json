@@ -1,0 +1,18 @@
+{
+  "speciesId": "sirfetchd",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sirfetchd/front.png",
+      "backStatic": "assets/pokemon/sprites/sirfetchd/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sirfetchd/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sirfetchd/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sirfetchd.png",
+      "cry": "assets/pokemon/cries/sirfetchd.ogg",
+      "animations": {}
+    }
+  }
+}

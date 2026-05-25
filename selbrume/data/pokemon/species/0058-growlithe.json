@@ -1,0 +1,102 @@
+{
+  "id": "growlithe",
+  "slug": "growlithe",
+  "nationalDex": 58,
+  "names": {
+    "ja_hrkt": "ガーディ",
+    "ja_roma": "Gardie",
+    "ko": "가디",
+    "zh_hant": "卡蒂狗",
+    "fr": "Caninos",
+    "de": "Fukano",
+    "es": "Growlithe",
+    "it": "Growlithe",
+    "en": "Growlithe",
+    "ja": "ガーディ",
+    "zh_hans": "卡蒂狗"
+  },
+  "speciesName": {
+    "ja_hrkt": "こいぬポケモン",
+    "ko": "강아지포켓몬",
+    "zh_hant": "小狗寶可夢",
+    "fr": "Pokémon Chiot",
+    "de": "Welpen-Pokémon",
+    "es": "Pokémon Perrito",
+    "it": "Pokémon Cagnolino",
+    "en": "Puppy Pokémon",
+    "ja": "こいぬポケモン",
+    "zh_hans": "小狗宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "fire"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 70,
+    "def": 45,
+    "spa": 70,
+    "spd": 50,
+    "spe": 60,
+    "bst": 350
+  },
+  "abilities": {
+    "primary": "intimidate",
+    "secondary": "flash_fire",
+    "hidden": "justified"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.75,
+      "female": 0.25
+    },
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 70,
+    "catchRate": 190,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "growlithe-hisui"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "growlithe",
+    "evolution": "growlithe",
+    "media": "growlithe"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 19.0,
+    "color": "brown",
+    "flavorText": "Very protective of its territory. It will bark and bite to repel intruders from its space."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

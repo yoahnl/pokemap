@@ -1,0 +1,18 @@
+{
+  "speciesId": "drowzee",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/drowzee/front.png",
+      "backStatic": "assets/pokemon/sprites/drowzee/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/drowzee/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/drowzee/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/drowzee.png",
+      "cry": "assets/pokemon/cries/drowzee.ogg",
+      "animations": {}
+    }
+  }
+}

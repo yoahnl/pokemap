@@ -1,0 +1,14 @@
+{
+  "speciesId": "duosion",
+  "preEvolution": "solosis",
+  "evolutions": [
+    {
+      "targetSpeciesId": "reuniclus",
+      "method": "level_up",
+      "minLevel": 41,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "speciesId": "ariados",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/ariados/front.png",
+      "backStatic": "assets/pokemon/sprites/ariados/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/ariados/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/ariados/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/ariados.png",
+      "cry": "assets/pokemon/cries/ariados.ogg",
+      "animations": {}
+    }
+  }
+}

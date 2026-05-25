@@ -1,0 +1,101 @@
+{
+  "id": "kyogre",
+  "slug": "kyogre",
+  "nationalDex": 382,
+  "names": {
+    "ja_hrkt": "カイオーガ",
+    "ja_roma": "Kyogre",
+    "ko": "가이오가",
+    "zh_hant": "蓋歐卡",
+    "fr": "Kyogre",
+    "de": "Kyogre",
+    "es": "Kyogre",
+    "it": "Kyogre",
+    "en": "Kyogre",
+    "ja": "カイオーガ",
+    "zh_hans": "盖欧卡"
+  },
+  "speciesName": {
+    "ja_hrkt": "かいていポケモン",
+    "ko": "해저포켓몬",
+    "zh_hant": "海底寶可夢",
+    "fr": "Pokémon Bassinmarin",
+    "de": "Seegründler-Pokémon",
+    "es": "Pokémon Cuenca Mar",
+    "it": "Pokémon Oceano",
+    "en": "Sea Basin Pokémon",
+    "ja": "かいていポケモン",
+    "zh_hans": "海底宝可梦"
+  },
+  "genIntroduced": 3,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 100,
+    "def": 90,
+    "spa": 150,
+    "spd": 140,
+    "spe": 90,
+    "bst": 670
+  },
+  "abilities": {
+    "primary": "drizzle",
+    "secondary": null,
+    "hidden": null
+  },
+  "breeding": {
+    "genderRatio": {
+      "genderless": 1.0
+    },
+    "eggGroups": [
+      "no_eggs"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow",
+    "baseExp": 302,
+    "catchRate": 3,
+    "baseFriendship": 0
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": [
+      "kyogre-primal"
+    ]
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": true,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "kyogre",
+    "evolution": "kyogre",
+    "media": "kyogre"
+  },
+  "dexContent": {
+    "heightM": 4.5,
+    "weightKg": 352.0,
+    "color": "blue",
+    "flavorText": "KYOGRE has the power to create massive rain clouds that cover the entire sky and bring about torrential downpours. This POKéMON saved people who were suffering from droughts."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

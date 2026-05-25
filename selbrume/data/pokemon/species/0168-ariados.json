@@ -1,0 +1,98 @@
+{
+  "id": "ariados",
+  "slug": "ariados",
+  "nationalDex": 168,
+  "names": {
+    "ja_hrkt": "アリアドス",
+    "ja_roma": "Ariados",
+    "ko": "아리아도스",
+    "zh_hant": "阿利多斯",
+    "fr": "Migalos",
+    "de": "Ariados",
+    "es": "Ariados",
+    "it": "Ariados",
+    "en": "Ariados",
+    "ja": "アリアドス",
+    "zh_hans": "阿利多斯"
+  },
+  "speciesName": {
+    "ja_hrkt": "あしながポケモン",
+    "ko": "롱다리포켓몬",
+    "zh_hant": "長腿寶可夢",
+    "fr": "Pokémon Long-Patte",
+    "de": "Langbein",
+    "es": "Pokémon Pata Larga",
+    "it": "Pokémon Lungazampa",
+    "en": "Long Leg Pokémon",
+    "ja": "あしながポケモン",
+    "zh_hans": "长腿宝可梦"
+  },
+  "genIntroduced": 2,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 90,
+    "def": 70,
+    "spa": 60,
+    "spd": 70,
+    "spe": 40,
+    "bst": 400
+  },
+  "abilities": {
+    "primary": "swarm",
+    "secondary": "insomnia",
+    "hidden": "sniper"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 140,
+    "catchRate": 90,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "ariados",
+    "evolution": "ariados",
+    "media": "ariados"
+  },
+  "dexContent": {
+    "heightM": 1.1,
+    "weightKg": 33.5,
+    "color": "red",
+    "flavorText": "It spins string not only from its rear but also from its mouth. It is hard to tell which end is which."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

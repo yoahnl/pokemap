@@ -1,0 +1,18 @@
+{
+  "speciesId": "snubbull",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/snubbull/front.png",
+      "backStatic": "assets/pokemon/sprites/snubbull/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/snubbull/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/snubbull/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/snubbull.png",
+      "cry": "assets/pokemon/cries/snubbull.ogg",
+      "animations": {}
+    }
+  }
+}

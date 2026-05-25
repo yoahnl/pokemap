@@ -1,0 +1,98 @@
+{
+  "id": "stunky",
+  "slug": "stunky",
+  "nationalDex": 434,
+  "names": {
+    "ja_hrkt": "スカンプー",
+    "ja_roma": "Skunpoo",
+    "ko": "스컹뿡",
+    "zh_hant": "臭鼬噗",
+    "fr": "Moufouette",
+    "de": "Skunkapuh",
+    "es": "Stunky",
+    "it": "Stunky",
+    "en": "Stunky",
+    "ja": "スカンプー",
+    "zh_hans": "臭鼬噗"
+  },
+  "speciesName": {
+    "ja_hrkt": "スカンクポケモン",
+    "ko": "스컹크포켓몬",
+    "zh_hant": "臭鼬寶可夢",
+    "fr": "Pokémon Moufette",
+    "de": "Stinktier-Pokémon",
+    "es": "Pokémon Mofeta",
+    "it": "Pokémon Moffetta",
+    "en": "Skunk Pokémon",
+    "ja": "スカンクポケモン",
+    "zh_hans": "臭鼬宝可梦"
+  },
+  "genIntroduced": 4,
+  "typing": {
+    "types": [
+      "poison",
+      "dark"
+    ]
+  },
+  "baseStats": {
+    "hp": 63,
+    "atk": 63,
+    "def": 47,
+    "spa": 41,
+    "spd": 41,
+    "spe": 74,
+    "bst": 329
+  },
+  "abilities": {
+    "primary": "stench",
+    "secondary": "aftermath",
+    "hidden": "keen_eye"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "ground"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 66,
+    "catchRate": 225,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "stunky",
+    "evolution": "stunky",
+    "media": "stunky"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 19.2,
+    "color": "purple",
+    "flavorText": "It protects itself by spraying a noxious fluid from its rear. The stench lingers for 24 hours."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

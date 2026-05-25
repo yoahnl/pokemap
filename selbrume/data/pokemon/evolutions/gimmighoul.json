@@ -1,0 +1,14 @@
+{
+  "speciesId": "gimmighoul",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "gholdengo",
+      "method": "gimmighoul_coins",
+      "minLevel": null,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

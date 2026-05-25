@@ -1,0 +1,94 @@
+{
+  "id": "naclstack",
+  "slug": "naclstack",
+  "nationalDex": 933,
+  "names": {
+    "ja_hrkt": "ジオヅム",
+    "ja_roma": "Jiodumu",
+    "ko": "스태솔트",
+    "zh_hant": "鹽石壘",
+    "fr": "Amassel",
+    "de": "Sedisal",
+    "es": "Naclstack",
+    "it": "Naclstack",
+    "en": "Naclstack",
+    "ja": "ジオヅム",
+    "zh_hans": "盐石垒"
+  },
+  "speciesName": {
+    "ja_hrkt": "がんえんポケモン",
+    "ko": "암염포켓몬",
+    "zh_hant": "岩鹽寶可夢",
+    "fr": "Halite",
+    "de": "Steinsalz",
+    "en": "Rock Salt Pokémon",
+    "zh_hans": "岩盐宝可梦"
+  },
+  "genIntroduced": 9,
+  "typing": {
+    "types": [
+      "rock"
+    ]
+  },
+  "baseStats": {
+    "hp": 60,
+    "atk": 60,
+    "def": 100,
+    "spa": 35,
+    "spd": 65,
+    "spe": 35,
+    "bst": 355
+  },
+  "abilities": {
+    "primary": "purifying_salt",
+    "secondary": "sturdy",
+    "hidden": "clear_body"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "mineral"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 124,
+    "catchRate": 120,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "naclstack",
+    "evolution": "naclstack",
+    "media": "naclstack"
+  },
+  "dexContent": {
+    "heightM": 0.6,
+    "weightKg": 105.0,
+    "color": "brown",
+    "flavorText": "This Pokémon dry cures its prey by spraying salt over them. The curing process steals away the water in the prey’s body."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

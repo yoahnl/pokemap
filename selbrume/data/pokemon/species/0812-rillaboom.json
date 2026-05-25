@@ -1,0 +1,101 @@
+{
+  "id": "rillaboom",
+  "slug": "rillaboom",
+  "nationalDex": 812,
+  "names": {
+    "ja_hrkt": "ゴリランダー",
+    "ja_roma": "Gorirander",
+    "ko": "고릴타",
+    "zh_hant": "轟擂金剛猩",
+    "fr": "Gorythmic",
+    "de": "Gortrom",
+    "es": "Rillaboom",
+    "it": "Rillaboom",
+    "en": "Rillaboom",
+    "ja": "ゴリランダー",
+    "zh_hans": "轰擂金刚猩"
+  },
+  "speciesName": {
+    "ja_hrkt": "ドラマーポケモン",
+    "ko": "드러머포켓몬",
+    "zh_hant": "鼓手寶可夢",
+    "fr": "Pokémon Batteur",
+    "de": "Drummer-Pokémon",
+    "es": "Pokémon Percusión",
+    "it": "Pokémon Percussione",
+    "en": "Drummer Pokémon",
+    "ja": "ドラマーポケモン",
+    "zh_hans": "鼓手宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 100,
+    "atk": 125,
+    "def": 90,
+    "spa": 60,
+    "spd": 70,
+    "spe": 85,
+    "bst": 530
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": "grassy_surge"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "ground",
+      "plant"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 265,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "rillaboom",
+    "evolution": "rillaboom",
+    "media": "rillaboom"
+  },
+  "dexContent": {
+    "heightM": 2.1,
+    "weightKg": 90.0,
+    "color": "green",
+    "flavorText": "By drumming, it taps into the power of its special tree stump. The roots of the stump follow its direction in battle."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

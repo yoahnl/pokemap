@@ -1,0 +1,18 @@
+{
+  "speciesId": "zebstrika",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/zebstrika/front.png",
+      "backStatic": "assets/pokemon/sprites/zebstrika/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/zebstrika/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/zebstrika/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/zebstrika.png",
+      "cry": "assets/pokemon/cries/zebstrika.ogg",
+      "animations": {}
+    }
+  }
+}

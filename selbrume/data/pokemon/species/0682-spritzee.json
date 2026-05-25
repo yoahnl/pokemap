@@ -1,0 +1,97 @@
+{
+  "id": "spritzee",
+  "slug": "spritzee",
+  "nationalDex": 682,
+  "names": {
+    "ja_hrkt": "シュシュプ",
+    "ja_roma": "Shushupu",
+    "ko": "슈쁘",
+    "zh_hant": "粉香香",
+    "fr": "Fluvetin",
+    "de": "Parfi",
+    "es": "Spritzee",
+    "it": "Spritzee",
+    "en": "Spritzee",
+    "ja": "シュシュプ",
+    "zh_hans": "粉香香"
+  },
+  "speciesName": {
+    "ja_hrkt": "こうすいポケモン",
+    "ko": "향수포켓몬",
+    "zh_hant": "香水寶可夢",
+    "fr": "Pokémon Fragrance",
+    "de": "Parfüm-Pokémon",
+    "es": "Pokémon Aroma",
+    "it": "Pokémon Profumo",
+    "en": "Perfume Pokémon",
+    "ja": "こうすいポケモン",
+    "zh_hans": "香水宝可梦"
+  },
+  "genIntroduced": 6,
+  "typing": {
+    "types": [
+      "fairy"
+    ]
+  },
+  "baseStats": {
+    "hp": 78,
+    "atk": 52,
+    "def": 60,
+    "spa": 63,
+    "spd": 65,
+    "spe": 23,
+    "bst": 341
+  },
+  "abilities": {
+    "primary": "healer",
+    "secondary": null,
+    "hidden": "aroma_veil"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "fairy"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 68,
+    "catchRate": 200,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "spritzee",
+    "evolution": "spritzee",
+    "media": "spritzee"
+  },
+  "dexContent": {
+    "heightM": 0.2,
+    "weightKg": 0.5,
+    "color": "pink",
+    "flavorText": "It emits a scent that enraptures those who smell it. This fragrance changes depending on what it has eaten."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

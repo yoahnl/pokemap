@@ -1,0 +1,16 @@
+{
+  "speciesId": "amaura",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "aurorus",
+      "method": "level_up",
+      "minLevel": 39,
+      "itemId": null,
+      "requiredMoveId": null,
+      "conditionText": {
+        "en": "Time: night"
+      }
+    }
+  ]
+}

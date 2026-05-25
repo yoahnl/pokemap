@@ -1,0 +1,18 @@
+{
+  "speciesId": "pidgey",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/pidgey/front.png",
+      "backStatic": "assets/pokemon/sprites/pidgey/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/pidgey/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/pidgey/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/pidgey.png",
+      "cry": "assets/pokemon/cries/pidgey.ogg",
+      "animations": {}
+    }
+  }
+}

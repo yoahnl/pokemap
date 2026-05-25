@@ -1,0 +1,18 @@
+{
+  "speciesId": "nincada",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/nincada/front.png",
+      "backStatic": "assets/pokemon/sprites/nincada/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/nincada/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/nincada/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/nincada.png",
+      "cry": "assets/pokemon/cries/nincada.ogg",
+      "animations": {}
+    }
+  }
+}

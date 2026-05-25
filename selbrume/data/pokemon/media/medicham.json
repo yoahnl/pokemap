@@ -1,0 +1,30 @@
+{
+  "speciesId": "medicham",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/medicham/front.png",
+      "backStatic": "assets/pokemon/sprites/medicham/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/medicham/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/medicham/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/medicham.png",
+      "cry": "assets/pokemon/cries/medicham.ogg",
+      "animations": {}
+    },
+    "medicham-mega": {
+      "frontStatic": null,
+      "backStatic": null,
+      "frontShinyStatic": null,
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": null,
+      "cry": null,
+      "animations": {}
+    }
+  }
+}

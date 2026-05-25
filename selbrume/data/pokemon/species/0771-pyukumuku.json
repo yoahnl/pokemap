@@ -1,0 +1,97 @@
+{
+  "id": "pyukumuku",
+  "slug": "pyukumuku",
+  "nationalDex": 771,
+  "names": {
+    "ja_hrkt": "ナマコブシ",
+    "ja_roma": "Namakobushi",
+    "ko": "해무기",
+    "zh_hant": "拳海參",
+    "fr": "Concombaffe",
+    "de": "Gufa",
+    "es": "Pyukumuku",
+    "it": "Pyukumuku",
+    "en": "Pyukumuku",
+    "ja": "ナマコブシ",
+    "zh_hans": "拳海参"
+  },
+  "speciesName": {
+    "ja_hrkt": "なまこポケモン",
+    "ko": "해삼포켓몬",
+    "zh_hant": "海參寶可夢",
+    "fr": "Pokémon Holothurie",
+    "de": "Seegurken-Pokémon",
+    "es": "Pokémon Pepino Mar",
+    "it": "Pokémon Oloturia",
+    "en": "Sea Cucumber Pokémon",
+    "ja": "なまこポケモン",
+    "zh_hans": "海参宝可梦"
+  },
+  "genIntroduced": 7,
+  "typing": {
+    "types": [
+      "water"
+    ]
+  },
+  "baseStats": {
+    "hp": 55,
+    "atk": 60,
+    "def": 130,
+    "spa": 30,
+    "spd": 130,
+    "spe": 5,
+    "bst": 410
+  },
+  "abilities": {
+    "primary": "innards_out",
+    "secondary": null,
+    "hidden": "unaware"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "water1"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "fast",
+    "baseExp": 144,
+    "catchRate": 60,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "pyukumuku",
+    "evolution": "pyukumuku",
+    "media": "pyukumuku"
+  },
+  "dexContent": {
+    "heightM": 0.3,
+    "weightKg": 1.2,
+    "color": "black",
+    "flavorText": "It’s covered in a slime that keeps its skin moist, allowing it to stay on land for days without drying up."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

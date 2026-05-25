@@ -1,0 +1,99 @@
+{
+  "id": "appletun",
+  "slug": "appletun",
+  "nationalDex": 842,
+  "names": {
+    "ja_hrkt": "タルップル",
+    "ja_roma": "Tarupple",
+    "ko": "단지래플",
+    "zh_hant": "豐蜜龍",
+    "fr": "Dratatin",
+    "de": "Schlapfel",
+    "es": "Appletun",
+    "it": "Appletun",
+    "en": "Appletun",
+    "ja": "タルップル",
+    "zh_hans": "丰蜜龙"
+  },
+  "speciesName": {
+    "ja_hrkt": "りんごじるポケモン",
+    "ko": "사과즙포켓몬",
+    "zh_hant": "蘋果汁寶可夢",
+    "fr": "Pokémon Jus Pomme",
+    "de": "Apfelnektar-Pokémon",
+    "es": "Pokémon Manzanéctar",
+    "it": "Pokémon Pomisucco",
+    "en": "Apple Nectar Pokémon",
+    "ja": "りんごじるポケモン",
+    "zh_hans": "苹果汁宝可梦"
+  },
+  "genIntroduced": 8,
+  "typing": {
+    "types": [
+      "grass",
+      "dragon"
+    ]
+  },
+  "baseStats": {
+    "hp": 110,
+    "atk": 85,
+    "def": 80,
+    "spa": 100,
+    "spd": 80,
+    "spe": 30,
+    "bst": 485
+  },
+  "abilities": {
+    "primary": "ripen",
+    "secondary": "gluttony",
+    "hidden": "thick_fat"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "plant",
+      "dragon"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "slow_then_very_fast",
+    "baseExp": 170,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "appletun",
+    "evolution": "appletun",
+    "media": "appletun"
+  },
+  "dexContent": {
+    "heightM": 0.4,
+    "weightKg": 13.0,
+    "color": "green",
+    "flavorText": "Eating a sweet apple caused its evolution. A nectarous scent wafts from its body, luring in the bug Pokémon it preys on."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

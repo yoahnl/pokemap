@@ -1,0 +1,18 @@
+{
+  "speciesId": "litwick",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/litwick/front.png",
+      "backStatic": "assets/pokemon/sprites/litwick/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/litwick/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/litwick/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/litwick.png",
+      "cry": "assets/pokemon/cries/litwick.ogg",
+      "animations": {}
+    }
+  }
+}

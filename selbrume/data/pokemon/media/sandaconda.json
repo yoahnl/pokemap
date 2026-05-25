@@ -1,0 +1,18 @@
+{
+  "speciesId": "sandaconda",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sandaconda/front.png",
+      "backStatic": "assets/pokemon/sprites/sandaconda/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sandaconda/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sandaconda/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sandaconda.png",
+      "cry": "assets/pokemon/cries/sandaconda.ogg",
+      "animations": {}
+    }
+  }
+}

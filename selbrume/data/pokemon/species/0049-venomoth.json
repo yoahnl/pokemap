@@ -1,0 +1,98 @@
+{
+  "id": "venomoth",
+  "slug": "venomoth",
+  "nationalDex": 49,
+  "names": {
+    "ja_hrkt": "モルフォン",
+    "ja_roma": "Morphon",
+    "ko": "도나리",
+    "zh_hant": "摩魯蛾",
+    "fr": "Aéromite",
+    "de": "Omot",
+    "es": "Venomoth",
+    "it": "Venomoth",
+    "en": "Venomoth",
+    "ja": "モルフォン",
+    "zh_hans": "摩鲁蛾"
+  },
+  "speciesName": {
+    "ja_hrkt": "どくがポケモン",
+    "ko": "독나방포켓몬",
+    "zh_hant": "毒蛾寶可夢",
+    "fr": "Pokémon Papipoison",
+    "de": "Giftmotte",
+    "es": "Pokémon Polilla Ven.",
+    "it": "Pokémon Velentarma",
+    "en": "Poison Moth Pokémon",
+    "ja": "どくがポケモン",
+    "zh_hans": "毒蛾宝可梦"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "bug",
+      "poison"
+    ]
+  },
+  "baseStats": {
+    "hp": 70,
+    "atk": 65,
+    "def": 60,
+    "spa": 90,
+    "spd": 75,
+    "spe": 90,
+    "bst": 450
+  },
+  "abilities": {
+    "primary": "shield_dust",
+    "secondary": "tinted_lens",
+    "hidden": "wonder_skin"
+  },
+  "breeding": {
+    "genderRatio": {},
+    "eggGroups": [
+      "bug"
+    ],
+    "hatchCycles": 0
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 158,
+    "catchRate": 75,
+    "baseFriendship": 70
+  },
+  "forms": {
+    "baseFormId": "",
+    "isBaseForm": true,
+    "formId": "",
+    "formName": null,
+    "otherForms": []
+  },
+  "classification": {
+    "isEnabledInProject": true,
+    "isObtainable": true,
+    "isLegendary": false,
+    "isMythical": false,
+    "isBaby": false
+  },
+  "refs": {
+    "learnset": "venomoth",
+    "evolution": "venomoth",
+    "media": "venomoth"
+  },
+  "dexContent": {
+    "heightM": 1.5,
+    "weightKg": 12.5,
+    "color": "purple",
+    "flavorText": "The dustlike scales covering its wings are color-coded to indicate the kinds of poison it has."
+  },
+  "gameplayFlags": {
+    "starterEligible": false,
+    "giftOnly": false,
+    "tradeOnly": false
+  },
+  "sourceMeta": {
+    "seededBy": "external_api",
+    "seedVersion": null
+  }
+}

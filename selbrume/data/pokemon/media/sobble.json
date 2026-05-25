@@ -1,0 +1,18 @@
+{
+  "speciesId": "sobble",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/sobble/front.png",
+      "backStatic": "assets/pokemon/sprites/sobble/back.png",
+      "frontShinyStatic": "assets/pokemon/sprites/sobble/front_shiny.png",
+      "backShinyStatic": "assets/pokemon/sprites/sobble/back_shiny.png",
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/sobble.png",
+      "cry": "assets/pokemon/cries/sobble.ogg",
+      "animations": {}
+    }
+  }
+}

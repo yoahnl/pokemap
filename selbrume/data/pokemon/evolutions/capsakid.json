@@ -1,0 +1,14 @@
+{
+  "speciesId": "capsakid",
+  "preEvolution": null,
+  "evolutions": [
+    {
+      "targetSpeciesId": "scovillain",
+      "method": "use_item",
+      "minLevel": null,
+      "itemId": "fire-stone",
+      "requiredMoveId": null,
+      "conditionText": {}
+    }
+  ]
+}

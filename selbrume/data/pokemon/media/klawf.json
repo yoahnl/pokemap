@@ -1,0 +1,18 @@
+{
+  "speciesId": "klawf",
+  "defaultFormId": "base",
+  "variants": {
+    "base": {
+      "frontStatic": "assets/pokemon/sprites/klawf/front.png",
+      "backStatic": null,
+      "frontShinyStatic": "assets/pokemon/sprites/klawf/front_shiny.png",
+      "backShinyStatic": null,
+      "icon": null,
+      "party": null,
+      "overworld": null,
+      "portrait": "assets/pokemon/portraits/klawf.png",
+      "cry": "assets/pokemon/cries/klawf.ogg",
+      "animations": {}
+    }
+  }
+}
