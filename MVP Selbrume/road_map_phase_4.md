@@ -6,9 +6,9 @@ Phase 4 — Authoring Workflows Minimal
 
 Statut : 🔜 Phase courante en exécution
 
-Lot courant : P4-05 — Predicate / World Rule Authoring Draft V0
+Lot courant : P4-06 — Narrative Validator Authoring Adapter V0
 
-Prochain lot exact : P4-05 — Predicate / World Rule Authoring Draft V0
+Prochain lot exact : P4-06 — Narrative Validator Authoring Adapter V0
 
 Suivi des lots :
 
@@ -17,8 +17,8 @@ Suivi des lots :
 - ✅ P4-02 — Scenario Authoring Draft Model V0
 - ✅ P4-03 — Event Source Authoring Draft Operations V0
 - ✅ P4-04 — Outcome / Battle Outcome Authoring Operations V0
-- 🔜 P4-05 — Predicate / World Rule Authoring Draft V0
-- P4-06 — Narrative Validator Authoring Adapter V0
+- ✅ P4-05 — Predicate / World Rule Authoring Draft V0
+- 🔜 P4-06 — Narrative Validator Authoring Adapter V0
 - P4-07 — Minimal Authoring Golden Path Test V0
 - P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
@@ -32,7 +32,9 @@ P4-03 : ✅ terminé
 
 P4-04 : ✅ terminé
 
-P4-05 : 🔜 prochain lot exact
+P4-05 : ✅ terminé
+
+P4-06 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -290,7 +292,7 @@ Résultat P4-04 :
   persistant, aucune migration, aucun runtime, aucun contenu Selbrume et aucun
   reward/money/XP créé.
 
-### 🔜 P4-05 — Predicate / World Rule Authoring Draft V0
+### ✅ P4-05 — Predicate / World Rule Authoring Draft V0
 
 Objectif :
 Rendre authorables les predicates et world rules passives sans créer
@@ -299,11 +301,17 @@ FactRegistry ni WorldRuleRegistry.
 Résultat attendu :
 Preuve concrète, pure et testée :
 
-- draft de predicate / visibility rule / conditional dialogue minimal ;
+- draft de predicate / visibility rule / conditional dialogue minimal ajouté ;
 - mapping pur vers `MapEntityRuntimePredicate`,
   `MapEntityNpcVisibilityRule` et `MapEntityConditionalDialogue` ;
-- réutilisation ou généralisation prudente des helpers PNJ existants ;
-- cas négatifs refId vide / cible inconnue.
+- diagnostics authoring `emptyReferenceId`, `emptyDialogueId`,
+  `missingPredicate` et `scenarioOutcomeBattleOutcomeConfusion` ;
+- `scenario.outcome.*` et `battle:*` restent des flags techniques lisibles,
+  pas des registries persistants ;
+- tests ciblés ajoutés dans
+  `packages/map_core/test/narrative_predicate_authoring_draft_test.dart` ;
+- aucun widget UI, aucun FactRegistry/WorldRuleRegistry, aucune migration,
+  aucun runtime, aucun contenu Selbrume et aucun reward/money/XP créé.
 
 ### P4-06 — Narrative Validator Authoring Adapter V0
 
@@ -380,5 +388,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-05 — Predicate / World Rule Authoring Draft V0
+P4-06 — Narrative Validator Authoring Adapter V0
 ```
