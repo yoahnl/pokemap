@@ -1,0 +1,246 @@
+{
+  "name": "P3 Event Source Bridge",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "p3_event_source_map",
+      "name": "P3 Event Source Map",
+      "relativePath": "maps/p3_event_source_field.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "scenarios": [
+    {
+      "id": "p3_source_map_enter_scenario",
+      "name": "P3 Source Map Enter Scenario",
+      "description": "Technical fixture proving mapEnter event source dispatch.",
+      "scope": "localEventFlow",
+      "entryNodeId": "p3_map_enter_start",
+      "nodes": [
+        {
+          "id": "p3_map_enter_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_map_enter_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceMapEnter"
+          },
+          "binding": {
+            "mapId": "p3_event_source_map"
+          }
+        },
+        {
+          "id": "p3_map_enter_set_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.source.map_enter.executed"
+          }
+        },
+        {
+          "id": "p3_map_enter_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_map_enter_edge_start_source",
+          "fromNodeId": "p3_map_enter_start",
+          "toNodeId": "p3_map_enter_source"
+        },
+        {
+          "id": "p3_map_enter_edge_source_flag",
+          "fromNodeId": "p3_map_enter_source",
+          "toNodeId": "p3_map_enter_set_flag"
+        },
+        {
+          "id": "p3_map_enter_edge_flag_end",
+          "fromNodeId": "p3_map_enter_set_flag",
+          "toNodeId": "p3_map_enter_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-03"
+      }
+    },
+    {
+      "id": "p3_source_trigger_enter_scenario",
+      "name": "P3 Source Trigger Enter Scenario",
+      "description": "Technical fixture proving triggerEnter event source dispatch.",
+      "scope": "localEventFlow",
+      "entryNodeId": "p3_trigger_enter_start",
+      "nodes": [
+        {
+          "id": "p3_trigger_enter_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_trigger_enter_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceTriggerEnter"
+          },
+          "binding": {
+            "mapId": "p3_event_source_map",
+            "triggerId": "p3_test_trigger"
+          }
+        },
+        {
+          "id": "p3_trigger_enter_set_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.source.trigger_enter.executed"
+          }
+        },
+        {
+          "id": "p3_trigger_enter_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_trigger_enter_edge_start_source",
+          "fromNodeId": "p3_trigger_enter_start",
+          "toNodeId": "p3_trigger_enter_source"
+        },
+        {
+          "id": "p3_trigger_enter_edge_source_flag",
+          "fromNodeId": "p3_trigger_enter_source",
+          "toNodeId": "p3_trigger_enter_set_flag"
+        },
+        {
+          "id": "p3_trigger_enter_edge_flag_end",
+          "fromNodeId": "p3_trigger_enter_set_flag",
+          "toNodeId": "p3_trigger_enter_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-03"
+      }
+    },
+    {
+      "id": "p3_source_entity_interact_scenario",
+      "name": "P3 Source Entity Interact Scenario",
+      "description": "Technical fixture proving entityInteract event source dispatch.",
+      "scope": "localEventFlow",
+      "entryNodeId": "p3_entity_interact_start",
+      "nodes": [
+        {
+          "id": "p3_entity_interact_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_entity_interact_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceEntityInteract"
+          },
+          "binding": {
+            "mapId": "p3_event_source_map",
+            "entityId": "p3_test_npc"
+          }
+        },
+        {
+          "id": "p3_entity_interact_set_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.source.entity_interact.executed"
+          }
+        },
+        {
+          "id": "p3_entity_interact_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_entity_interact_edge_start_source",
+          "fromNodeId": "p3_entity_interact_start",
+          "toNodeId": "p3_entity_interact_source"
+        },
+        {
+          "id": "p3_entity_interact_edge_source_flag",
+          "fromNodeId": "p3_entity_interact_source",
+          "toNodeId": "p3_entity_interact_set_flag"
+        },
+        {
+          "id": "p3_entity_interact_edge_flag_end",
+          "fromNodeId": "p3_entity_interact_set_flag",
+          "toNodeId": "p3_entity_interact_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-03"
+      }
+    },
+    {
+      "id": "p3_source_outcome_received_scenario",
+      "name": "P3 Source Outcome Received Scenario",
+      "description": "Technical fixture proving explicit outcomeReceived event source dispatch.",
+      "scope": "globalStory",
+      "entryNodeId": "p3_outcome_received_start",
+      "nodes": [
+        {
+          "id": "p3_outcome_received_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_outcome_received_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceOutcome"
+          },
+          "binding": {
+            "outcomeId": "p3.source.previous_outcome"
+          }
+        },
+        {
+          "id": "p3_outcome_received_set_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.source.outcome_received.executed"
+          }
+        },
+        {
+          "id": "p3_outcome_received_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_outcome_received_edge_start_source",
+          "fromNodeId": "p3_outcome_received_start",
+          "toNodeId": "p3_outcome_received_source"
+        },
+        {
+          "id": "p3_outcome_received_edge_source_flag",
+          "fromNodeId": "p3_outcome_received_source",
+          "toNodeId": "p3_outcome_received_set_flag"
+        },
+        {
+          "id": "p3_outcome_received_edge_flag_end",
+          "fromNodeId": "p3_outcome_received_set_flag",
+          "toNodeId": "p3_outcome_received_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-03"
+      }
+    }
+  ]
+}

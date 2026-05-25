@@ -1,0 +1,305 @@
+{
+  "name": "P3 Outcome Battle Continuation",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "p3_outcome_battle_map",
+      "name": "P3 Outcome Battle Map",
+      "relativePath": "maps/p3_outcome_battle_field.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "trainers": [
+    {
+      "id": "p3_trainer_test",
+      "name": "P3 Test Trainer",
+      "trainerClass": "Test Trainer",
+      "battleDifficulty": 1,
+      "team": [
+        {
+          "speciesId": "p3_test_mon",
+          "level": 5,
+          "moves": [
+            "tackle"
+          ]
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "p3_scenario_outcome_emitter",
+      "name": "P3 Scenario Outcome Emitter",
+      "description": "Technical fixture proving emitOutcome from disk.",
+      "scope": "localEventFlow",
+      "entryNodeId": "p3_outcome_emitter_start",
+      "declaredOutcomes": [
+        "p3.outcome.continuation"
+      ],
+      "nodes": [
+        {
+          "id": "p3_outcome_emitter_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_outcome_emitter_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceMapEnter"
+          },
+          "binding": {
+            "mapId": "p3_outcome_battle_map"
+          }
+        },
+        {
+          "id": "p3_outcome_emitter_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.outcome.emitted"
+          }
+        },
+        {
+          "id": "p3_outcome_emit",
+          "type": "action",
+          "payload": {
+            "actionKind": "emitOutcome"
+          },
+          "binding": {
+            "outcomeId": "p3.outcome.continuation"
+          }
+        },
+        {
+          "id": "p3_outcome_emitter_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_outcome_emitter_edge_start_source",
+          "fromNodeId": "p3_outcome_emitter_start",
+          "toNodeId": "p3_outcome_emitter_source"
+        },
+        {
+          "id": "p3_outcome_emitter_edge_source_flag",
+          "fromNodeId": "p3_outcome_emitter_source",
+          "toNodeId": "p3_outcome_emitter_flag"
+        },
+        {
+          "id": "p3_outcome_emitter_edge_flag_emit",
+          "fromNodeId": "p3_outcome_emitter_flag",
+          "toNodeId": "p3_outcome_emit"
+        },
+        {
+          "id": "p3_outcome_emitter_edge_emit_end",
+          "fromNodeId": "p3_outcome_emit",
+          "toNodeId": "p3_outcome_emitter_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-04"
+      }
+    },
+    {
+      "id": "p3_scenario_outcome_receiver",
+      "name": "P3 Scenario Outcome Receiver",
+      "description": "Technical fixture proving sourceOutcome / outcomeReceived continuation.",
+      "scope": "globalStory",
+      "entryNodeId": "p3_outcome_receiver_start",
+      "nodes": [
+        {
+          "id": "p3_outcome_receiver_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_outcome_receiver_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceOutcome"
+          },
+          "binding": {
+            "outcomeId": "p3.outcome.continuation"
+          }
+        },
+        {
+          "id": "p3_outcome_receiver_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.outcome.received"
+          }
+        },
+        {
+          "id": "p3_outcome_receiver_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_outcome_receiver_edge_start_source",
+          "fromNodeId": "p3_outcome_receiver_start",
+          "toNodeId": "p3_outcome_receiver_source"
+        },
+        {
+          "id": "p3_outcome_receiver_edge_source_flag",
+          "fromNodeId": "p3_outcome_receiver_source",
+          "toNodeId": "p3_outcome_receiver_flag"
+        },
+        {
+          "id": "p3_outcome_receiver_edge_flag_end",
+          "fromNodeId": "p3_outcome_receiver_flag",
+          "toNodeId": "p3_outcome_receiver_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-04"
+      }
+    },
+    {
+      "id": "p3_battle_starter_scenario",
+      "name": "P3 Battle Starter Scenario",
+      "description": "Technical fixture proving startTrainerBattle and post-battle continuation flags.",
+      "scope": "localEventFlow",
+      "entryNodeId": "p3_battle_start",
+      "nodes": [
+        {
+          "id": "p3_battle_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_battle_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceEntityInteract"
+          },
+          "binding": {
+            "mapId": "p3_outcome_battle_map",
+            "entityId": "p3_battle_npc"
+          }
+        },
+        {
+          "id": "p3_battle_node",
+          "type": "action",
+          "payload": {
+            "actionKind": "startTrainerBattle",
+            "params": {
+              "battleId": "p3_battle_test"
+            }
+          },
+          "binding": {
+            "trainerId": "p3_trainer_test",
+            "entityId": "p3_battle_npc"
+          }
+        },
+        {
+          "id": "p3_check_battle_victory",
+          "type": "condition",
+          "payload": {
+            "condition": {
+              "type": "flagIsSet",
+              "params": {
+                "flagName": "battle:p3_battle_test:victory"
+              }
+            }
+          }
+        },
+        {
+          "id": "p3_battle_victory_continuation",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.battle.victory.continued"
+          }
+        },
+        {
+          "id": "p3_check_battle_defeat",
+          "type": "condition",
+          "payload": {
+            "condition": {
+              "type": "flagIsSet",
+              "params": {
+                "flagName": "battle:p3_battle_test:defeat"
+              }
+            }
+          }
+        },
+        {
+          "id": "p3_battle_defeat_continuation",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.battle.defeat.continued"
+          }
+        },
+        {
+          "id": "p3_battle_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_battle_edge_start_source",
+          "fromNodeId": "p3_battle_start",
+          "toNodeId": "p3_battle_source"
+        },
+        {
+          "id": "p3_battle_edge_source_battle",
+          "fromNodeId": "p3_battle_source",
+          "toNodeId": "p3_battle_node"
+        },
+        {
+          "id": "p3_battle_edge_battle_check_victory",
+          "fromNodeId": "p3_battle_node",
+          "toNodeId": "p3_check_battle_victory"
+        },
+        {
+          "id": "p3_battle_edge_victory_true",
+          "fromNodeId": "p3_check_battle_victory",
+          "toNodeId": "p3_battle_victory_continuation",
+          "kind": "trueBranch"
+        },
+        {
+          "id": "p3_battle_edge_victory_false",
+          "fromNodeId": "p3_check_battle_victory",
+          "toNodeId": "p3_check_battle_defeat",
+          "kind": "falseBranch"
+        },
+        {
+          "id": "p3_battle_edge_defeat_true",
+          "fromNodeId": "p3_check_battle_defeat",
+          "toNodeId": "p3_battle_defeat_continuation",
+          "kind": "trueBranch"
+        },
+        {
+          "id": "p3_battle_edge_defeat_false",
+          "fromNodeId": "p3_check_battle_defeat",
+          "toNodeId": "p3_battle_end",
+          "kind": "falseBranch"
+        },
+        {
+          "id": "p3_battle_edge_victory_end",
+          "fromNodeId": "p3_battle_victory_continuation",
+          "toNodeId": "p3_battle_end"
+        },
+        {
+          "id": "p3_battle_edge_defeat_end",
+          "fromNodeId": "p3_battle_defeat_continuation",
+          "toNodeId": "p3_battle_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-04"
+      }
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "p3_outcome_battle_map",
+  "name": "P3 Outcome Battle Map",
+  "size": {
+    "width": 4,
+    "height": 4
+  },
+  "version": "v1",
+  "entities": [
+    {
+      "id": "p3_outcome_battle_spawn",
+      "name": "P3 Outcome Battle Spawn",
+      "kind": "spawn",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "south"
+      }
+    },
+    {
+      "id": "p3_battle_npc",
+      "name": "P3 Battle NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 2,
+        "y": 1
+      },
+      "npc": {
+        "displayName": "P3 Battle NPC",
+        "trainerId": "p3_trainer_test",
+        "facing": "west"
+      }
+    }
+  ],
+  "mapMetadata": {
+    "defaultSpawnId": "p3_outcome_battle_spawn"
+  }
+}

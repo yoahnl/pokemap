@@ -1,0 +1,41 @@
+{
+  "id": "p3_event_source_map",
+  "name": "P3 Event Source Map",
+  "size": {
+    "width": 4,
+    "height": 4
+  },
+  "version": "v1",
+  "mapMetadata": {
+    "defaultSpawnId": "p3_event_source_spawn"
+  },
+  "entities": [
+    {
+      "id": "p3_event_source_spawn",
+      "name": "P3 Event Source Spawn",
+      "kind": "spawn",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "south"
+      }
+    },
+    {
+      "id": "p3_test_npc",
+      "name": "P3 Test NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 2,
+        "y": 1
+      },
+      "npc": {
+        "displayName": "P3 Test NPC",
+        "facing": "west"
+      }
+    }
+  ]
+}

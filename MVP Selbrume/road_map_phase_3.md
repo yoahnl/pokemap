@@ -6,18 +6,18 @@ Phase 3 — Runtime / Application / Flame / Disk Validation
 
 Statut : 🔜 En cours
 
-Lot courant : P3-03 — Event Source to Scenario Runtime Bridge Validation
+Lot courant : P3-05 — Fact / World Rule Runtime Projection Validation
 
-Prochain lot exact : P3-03 — Event Source to Scenario Runtime Bridge Validation
+Prochain lot exact : P3-05 — Fact / World Rule Runtime Projection Validation
 
 Suivi des lots :
 
 - ✅ P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 - ✅ P3-01 — Project Disk Narrative Asset Loading Audit
 - ✅ P3-02 — ScenarioAsset Runtime Execution Golden Path
-- 🔜 P3-03 — Event Source to Scenario Runtime Bridge Validation
-- P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
-- P3-05 — Fact / World Rule Runtime Projection Validation
+- ✅ P3-03 — Event Source to Scenario Runtime Bridge Validation
+- ✅ P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
+- 🔜 P3-05 — Fact / World Rule Runtime Projection Validation
 - P3-06 — Save/Load Narrative State Roundtrip Validation
 - P3-07 — Playable Runtime Host Narrative Smoke Test
 - P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
@@ -28,7 +28,11 @@ P3-01 : ✅ terminé
 
 P3-02 : ✅ terminé
 
-P3-03 : 🔜 prochain lot exact
+P3-03 : ✅ terminé
+
+P3-04 : ✅ terminé
+
+P3-05 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 3
 
@@ -233,7 +237,7 @@ P3-03 devient le prochain lot exact, car P3-02 a prouvé le scénario chargé
 depuis disque et exécuté par le chemin application runtime sans ouvrir les
 sources Event runtime complètes.
 
-### P3-03 — Event Source to Scenario Runtime Bridge Validation
+### ✅ P3-03 — Event Source to Scenario Runtime Bridge Validation
 
 Objectif :
 Valider le pont entre sources Event runtime et source nodes `ScenarioAsset`.
@@ -242,13 +246,93 @@ Résultat attendu :
 Preuve `mapEnter`, `triggerEnter`, `entityInteract` et `outcomeReceived` selon
 le périmètre réellement supporté.
 
-### P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
+Résultat P3-03 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_03_event_source_to_scenario_runtime_bridge_validation.md` ;
+- fixture technique non-Selbrume créée :
+  `packages/map_runtime/test/fixtures/p3_event_source_bridge/` ;
+- test ciblé créé :
+  `packages/map_runtime/test/p3_event_source_bridge_validation_test.dart` ;
+- preuve obtenue :
+  - vrai `project.json` chargé par `loadRuntimeMapBundle` ;
+  - quatre `ScenarioAsset` embedded disponibles via
+    `RuntimeMapBundle.manifest.scenarios` ;
+  - `ScenarioRuntimeSourceEvent.mapEnter` matche seulement
+    `sourceMapEnter` et pose `p3.source.map_enter.executed` ;
+  - `ScenarioRuntimeSourceEvent.triggerEnter` matche seulement
+    `sourceTriggerEnter` et pose `p3.source.trigger_enter.executed` ;
+  - `ScenarioRuntimeSourceEvent.entityInteract` matche seulement
+    `sourceEntityInteract` et pose `p3.source.entity_interact.executed` ;
+  - `ScenarioRuntimeSourceEvent.outcomeReceived` matche explicitement
+    `sourceOutcome` et pose `p3.source.outcome_received.executed` ;
+  - les identifiants erronés map, trigger, entity et outcome ne déclenchent
+    aucun scénario ;
+- niveau de preuve : Level 4 partiel pour disque + Level 2/3 contrôlé pour
+  executor ;
+- non prouvé volontairement : hook complet `PlayableMapGame`, host smoke,
+  chaîne automatique `emitOutcome -> outcomeReceived`, battle continuation,
+  save/load roundtrip, World Rules ;
+- tests lancés :
+  - `cd packages/map_runtime && flutter test test/p3_event_source_bridge_validation_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_scenario_runtime_golden_path_test.dart`
+  - `cd packages/map_runtime && flutter test test/scenario_runtime_executor_test.dart`
+  - `cd packages/map_runtime && flutter test test/outcome_scene_branch_readiness_test.dart`
+  - `cd packages/map_runtime && dart format --set-exit-if-changed test/p3_event_source_bridge_validation_test.dart`
+
+Décision :
+P3-04 devient le prochain lot exact, car P3-03 a prouvé le dispatch explicite
+des sources Event runtime sans ouvrir la continuation outcome / battle outcome.
+
+### ✅ P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
 
 Objectif :
 Valider la continuation runtime après `emitOutcome` et battle outcome minimal.
 
 Résultat attendu :
 Preuve que les outcomes scénario et battle restent séparés et interprétables.
+
+Résultat P3-04 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_04_outcome_battle_outcome_runtime_continuation_validation.md` ;
+- fixture technique non-Selbrume créée :
+  `packages/map_runtime/test/fixtures/p3_outcome_battle_continuation/` ;
+- test ciblé créé :
+  `packages/map_runtime/test/p3_outcome_battle_continuation_test.dart` ;
+- preuve scenario outcome :
+  - vrai `project.json` chargé par `loadRuntimeMapBundle` ;
+  - `emitOutcome p3.outcome.continuation` pose
+    `scenario.outcome.p3.outcome.continuation` ;
+  - le dispatch automatique `emitOutcome -> outcomeReceived` atteint le
+    scénario global `sourceOutcome` et pose `p3.outcome.received` ;
+  - `outcomeReceived` explicite fonctionne aussi ;
+  - un mauvais `outcomeId` ne déclenche rien ;
+- preuve battle outcome :
+  - `startTrainerBattle` retourne `ScenarioRuntimeEffectType.battle` avec
+    `battleId=p3_battle_test`, `trainerId=p3_trainer_test`,
+    `npcEntityId=p3_battle_npc` ;
+  - `battle:p3_battle_test:victory` et `battle:p3_battle_test:defeat` restent
+    séparés de `scenario.outcome.*` ;
+  - `dispatchContinuation` reprend après le node battle et branche sur victory
+    ou defeat selon le flag battle actif ;
+- niveau de preuve : Level 4 partiel pour disque + Level 2/3 contrôlé pour
+  executor/continuation ;
+- non prouvé volontairement : boucle complète `PlayableMapGame`,
+  `_onBattleFinished` réel, combat engine complet, rewards, money, XP,
+  save/load roundtrip, World Rules ;
+- tests lancés :
+  - `cd packages/map_runtime && flutter test test/p3_outcome_battle_continuation_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_scenario_runtime_golden_path_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_event_source_bridge_validation_test.dart`
+  - `cd packages/map_runtime && flutter test test/scenario_runtime_executor_test.dart`
+  - `cd packages/map_runtime && flutter test test/outcome_scene_branch_readiness_test.dart`
+  - `cd packages/map_runtime && flutter test test/scenario_battle_from_scene_test.dart`
+  - `cd packages/map_runtime && dart format --set-exit-if-changed test/p3_outcome_battle_continuation_test.dart`
+
+Décision :
+P3-05 devient le prochain lot exact, car P3-04 a prouvé la continuation outcome
+et battle outcome minimale sans ouvrir save/load, World Rules ou battle complet.
 
 ### P3-05 — Fact / World Rule Runtime Projection Validation
 
@@ -320,5 +404,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-03 — Event Source to Scenario Runtime Bridge Validation
+P3-05 — Fact / World Rule Runtime Projection Validation
 ```
