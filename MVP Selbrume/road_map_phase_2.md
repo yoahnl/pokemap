@@ -812,19 +812,6 @@ Commandes exécutées :
 - `find packages/map_core/test -type f -name '*test.dart' | sort`
 - `rg -n "NarrativeValidator|NarrativeDiagnostic|ProjectValidator|flagReadNeverProduced|stepReadNeverCompleted|sourceOutcomeWithoutMatchingEmitOutcome|conditionalDialogueReferencesUnknownDialogue|startTrainerBattleMissingTrainerId|startTrainerBattleReferencesUnknownTrainer|startTrainerBattleMissingNpcEntityId|startTrainerBattleBlankBattleId|declaredOutcomes|emitOutcome|sourceOutcome|choice|reference|authoringPlaceholder|visibilityRule" packages/map_core/test packages/map_core/lib`
 - `dart test test/narrative_validator_test.dart`
-- `dart test --reporter expanded test/narrative_reference_picker_read_models_test.dart`
-- `dart test --reporter expanded test/narrative_validator_test.dart`
-- `dart test --reporter json test/narrative_reference_picker_read_models_test.dart | tail -n 1`
-- `dart test --reporter json test/narrative_validator_test.dart | tail -n 1`
-- `git diff --check`
-- `git diff --stat`
-- `git diff --name-only`
-- `git status --short --untracked-files=all`
-- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle packages/map_runtime packages/map_editor packages/map_gameplay examples/playable_runtime_host`
-- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
-- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_10_reference_picker_read_models.md || true`
-- `git diff --no-index --check /dev/null packages/map_core/lib/src/read_models/narrative_reference_picker_read_models.dart || true`
-- `git diff --no-index --check /dev/null packages/map_core/test/narrative_reference_picker_read_models_test.dart || true`
 - `dart format lib/src/operations/narrative_validator.dart test/narrative_validator_test.dart`
 - `dart test --reporter compact test/narrative_validator_test.dart`
 - `dart analyze`
@@ -910,10 +897,22 @@ Commandes exécutées :
 - `find packages/map_core/lib -maxdepth 4 -type f | sort`
 - `find packages/map_core/test -type f -name '*test.dart' | sort`
 - `rg -n "ReadModel|Picker|Reference|Projection|ScenarioAsset|declaredOutcomes|emitOutcome|sourceOutcome|startTrainerBattle|ProjectTrainerEntry|NarrativeWorkspaceProjection" packages/map_core packages/map_editor`
-- `dart test test/narrative_reference_picker_read_models_test.dart`
 - `dart format lib/src/read_models/narrative_reference_picker_read_models.dart lib/map_core.dart test/narrative_reference_picker_read_models_test.dart`
+- `dart test test/narrative_reference_picker_read_models_test.dart`
+- `dart test --reporter expanded test/narrative_reference_picker_read_models_test.dart`
+- `dart test --reporter expanded test/narrative_validator_test.dart`
+- `dart test --reporter json test/narrative_reference_picker_read_models_test.dart | tail -n 1`
+- `dart test --reporter json test/narrative_validator_test.dart | tail -n 1`
 - `dart analyze`
-- `dart test test/narrative_validator_test.dart`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle packages/map_runtime packages/map_editor packages/map_gameplay examples/playable_runtime_host`
+- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_10_reference_picker_read_models.md || true`
+- `git diff --no-index --check /dev/null packages/map_core/lib/src/read_models/narrative_reference_picker_read_models.dart || true`
+- `git diff --no-index --check /dev/null packages/map_core/test/narrative_reference_picker_read_models_test.dart || true`
 
 Read models ajoutés :
 
@@ -934,6 +933,9 @@ Tests lancés :
 - `dart test test/narrative_validator_test.dart`
 - `dart analyze`
 
+Prochain lot exact :
+P2-CHECKPOINT-01 — Domain Contracts Readiness Review.
+
 Décisions utilisateur nouvelles :
 Aucune décision utilisateur imposée. La décision appliquée est la trajectoire
 P2-04/P2-05/P2-06 : read models non persistants dérivés de l'existant.
@@ -941,6 +943,12 @@ P2-04/P2-05/P2-06 : read models non persistants dérivés de l'existant.
 Changements de périmètre :
 Aucun changement de périmètre. P2-10 reste dans `map_core`, sans UI, sans
 runtime/editor/gameplay/battle et sans registry.
+
+Correction P2-10-bis :
+Nettoyage de l'historique roadmap uniquement. Des commandes P2-10 qui avaient
+été listées par erreur dans le bloc P2-09 ont été retirées de P2-09 et
+réattribuées au bloc P2-10. Aucun code, package, test, rapport ou contrat n'a
+été modifié dans ce bis.
 
 Risque :
 Confondre read model et widget Flutter.
