@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-03 — Selbrume First Narrative Interaction V0
+Lot courant : ✅ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 
-Prochain lot exact : P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+Prochain lot exact : P6-05 — Selbrume First Trainer Battle Golden Slice V0
 
 Légende :
 
@@ -41,8 +41,8 @@ Suivi des lots :
 - ✅ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
 - ✅ P6-02 — Selbrume Initial Party / Bag Setup V0
 - ✅ P6-03 — Selbrume First Narrative Interaction V0
-- ➡️ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
-- ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+- ✅ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+- ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
 - ⏳ P6-07 — Selbrume Beta Validator Pass V0
 - ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
@@ -56,12 +56,14 @@ P6-02 : ✅ terminé
 
 P6-03 : ✅ terminé
 
-P6-04 : ➡️ prochain lot exact
+P6-04 : ✅ terminé
+
+P6-05 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+P6-05 — Selbrume First Trainer Battle Golden Slice V0
 ```
 
 ## Objectif Phase 6
@@ -81,6 +83,7 @@ projet Selbrume existant
 -> New Game minimal
 -> party initiale / bag minimal
 -> première interaction narrative
+-> route 1 encounter / capture minimale
 -> trainer battle
 -> rewards
 -> save/load
@@ -263,6 +266,40 @@ elle n'est pas un dialogue final, une quête finale, un PNJ final ou une cinéma
 aucun combat, reward, capture ou P6-04 n'est démarré en P6-03
 ```
 
+## Résultat P6-04
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json est chargé via loadRuntimeMapBundle
+maps chargées : Selbrume et route 1
+connexion observée : route 1 -> Selbrume
+encounter table retenue : grass_path_route_1
+encounter kind : walk
+zones route 1 exploitables : 5 zones encounter
+species encounter/capture : pidgeotto
+plage de niveau authorée : 1..5
+niveau déclenché dans le test : 3
+moves vérifiés : gust, tackle
+item capture vérifié : poke-ball
+bag initial P6-02 : poke-ball x5, potion x2
+preuve encounter : gameplay encounter via checkEncounterAtPlayerPosition
+preuve runtime-application : WildBattleStartRequest via buildBattleStartRequestFromEncounter
+capture minimale : applyCapturedPokemon
+destination capture : party
+bag après capture : poke-ball x4, potion x2
+roundtrip SaveData conserve route 1, party, capture, bag, seen/caught et flags P6-03
+```
+
+Décision encounter / capture :
+
+```text
+aucun fichier selbrume/ n'est modifié en P6-04
+la table existante grass_path_route_1 est réutilisée
+la preuve ne lance pas Battle UI et ne crée pas de trainer battle
+le pidgeotto capturé duplique volontairement l'espèce initiale P6-02, car la table Route 1 ne contient que pidgeotto
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -338,9 +375,9 @@ Preuve :
 packages/map_runtime/test/p6_selbrume_first_narrative_interaction_test.dart
 ```
 
-### ➡️ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+### ✅ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -349,7 +386,15 @@ prouver une rencontre route 1 bornée et une capture minimale si le bag initial
 fournit une source de capture.
 ```
 
-### ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+Preuve :
+
+```text
+packages/map_runtime/test/p6_selbrume_route_1_encounter_capture_golden_slice_test.dart
+```
+
+### ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+
+Statut : prochain lot exact.
 
 But :
 

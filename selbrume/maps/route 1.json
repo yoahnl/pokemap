@@ -13350,7 +13350,46 @@
       "properties": {}
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "id": "grant",
+      "name": "grant",
+      "kind": "npc",
+      "pos": {
+        "x": 24,
+        "y": 20
+      },
+      "size": {
+        "width": 2,
+        "height": 2
+      },
+      "npc": {
+        "displayName": "grant",
+        "dialogue": null,
+        "facing": "north",
+        "visualElementId": "",
+        "trainerId": "grant",
+        "lineOfSightRange": 12,
+        "defeatDialogueRef": null,
+        "characterId": null,
+        "movement": {
+          "mode": "idle",
+          "waypoints": [],
+          "loop": true,
+          "pauseDurationMs": 0,
+          "stepDurationMs": 200
+        },
+        "visibilityRule": null,
+        "conditionalDialogues": []
+      },
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {}
+    }
+  ],
   "connections": [
     {
       "direction": "west",
