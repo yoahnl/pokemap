@@ -15,6 +15,7 @@ import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/battle_effect_hooks.dart';
 import '../domain/effect/move/beak_blast_effect.dart';
+import '../domain/effect/move/bide_effect.dart';
 import '../domain/effect/move/shell_trap_effect.dart';
 import '../domain/effect/item/item_effect.dart';
 import '../domain/effect/status/status_effect_registry.dart';
@@ -357,7 +358,12 @@ final class BattleTurnRunner {
           continue;
         }
 
-        if (!moveBeforePp.hasUsablePp) {
+        final skipsForcedMovePp = _skipsForcedMovePp(
+          state: _context.state,
+          user: action.user,
+          move: cleanMoveBeforePp,
+        );
+        if (!skipsForcedMovePp && !moveBeforePp.hasUsablePp) {
           _recordMoveAttempt(
             user: action.user,
             moveId: moveBeforePp.id,
@@ -382,27 +388,32 @@ final class BattleTurnRunner {
           continue;
         }
 
-        final ppCost = _ppCostForMove(
-          state: _context.state,
-          user: action.user,
-        );
-        final moveAfterPp = moveBeforePp.spendPp(ppCost);
-        _context.applyStateAndRng(
-          nextState: _context.state.updateBattler(
-            action.user,
-            (battler) => battler.replaceMoveAt(action.moveSlot, moveAfterPp),
-          ),
-          nextRng: _context.rng,
-        );
-        timeline.add(
-          BattleMovePpSpentTimelineEvent(
-            turn: _context.turnNumber,
-            user: _fromPsdkSlot(action.user),
-            moveId: moveAfterPp.id,
-            spent: moveBeforePp.currentPp - moveAfterPp.currentPp,
-            remainingPp: moveAfterPp.currentPp,
-          ),
-        );
+        final moveAfterPp = skipsForcedMovePp
+            ? moveBeforePp
+            : moveBeforePp.spendPp(
+                _ppCostForMove(
+                  state: _context.state,
+                  user: action.user,
+                ),
+              );
+        if (!skipsForcedMovePp) {
+          _context.applyStateAndRng(
+            nextState: _context.state.updateBattler(
+              action.user,
+              (battler) => battler.replaceMoveAt(action.moveSlot, moveAfterPp),
+            ),
+            nextRng: _context.rng,
+          );
+          timeline.add(
+            BattleMovePpSpentTimelineEvent(
+              turn: _context.turnNumber,
+              user: _fromPsdkSlot(action.user),
+              moveId: moveAfterPp.id,
+              spent: moveBeforePp.currentPp - moveAfterPp.currentPp,
+              remainingPp: moveAfterPp.currentPp,
+            ),
+          );
+        }
         final cleanMoveAfterPp = BattleMoveDefinition.fromPsdk(moveAfterPp);
         final preAccuracy = _resolvePreAccuracy(
           user: action.user,
@@ -1120,6 +1131,29 @@ int _ppCostForMove({
   required PsdkBattleSlotRef user,
 }) {
   return _hasAlivePressureFoe(state: state, user: user) ? 2 : 1;
+}
+
+bool _skipsForcedMovePp({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required BattleMoveDefinition move,
+}) {
+  // PSDK forced-next-move effects do not decrease PP unless a specialized
+  // action, currently Encore, opts in. Bide is the only newly-ported forced
+  // effect that needs that contract in this slice.
+  for (final effect in state.battlerAt(user).effects.effects) {
+    if (effect is BideEffect &&
+        (_sameMoveId(effect.forcedMoveId, move.id) ||
+            _sameMoveId(effect.forcedMoveId, move.dbSymbol))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool _sameMoveId(String left, String right) {
+  return left.trim().toLowerCase().replaceAll('-', '_') ==
+      right.trim().toLowerCase().replaceAll('-', '_');
 }
 
 bool _hasAlivePressureFoe({

@@ -138,7 +138,7 @@ void main() {
       expect(_failed(result, moveId: 'counter'), isTrue);
     });
 
-    test('s_bide releases double stored damage from prior entries', () {
+    test('s_bide ignores damage that happened before the charge effect', () {
       final result = _runMove(
         playerDamageHistory: PsdkBattleDamageHistory(
           entries: const <PsdkBattleDamageHistoryEntry>[
@@ -166,7 +166,68 @@ void main() {
         ),
       );
 
-      expect(_damage(result, moveId: 'bide'), 36);
+      expect(_damageEvents(result, moveId: 'bide'), isEmpty);
+      expect(result.state.battlerAt(psdkPlayerSlot).effects.contains('bide'),
+          isTrue);
+    });
+
+    test('s_bide stores damage for two turns then unleashes it', () {
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'bide',
+            type: 'normal',
+            power: 0,
+            battleEngineMethod: 's_bide',
+          ),
+        ],
+        opponentMove: _move(id: 'opponent_tackle', power: 40),
+      );
+
+      final first = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final third = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_damageEvents(first, moveId: 'bide'), isEmpty);
+      expect(_damageEvents(second, moveId: 'bide'), isEmpty);
+      expect(first.state.battlerAt(psdkPlayerSlot).effects.contains('bide'),
+          isTrue);
+      expect(second.state.battlerAt(psdkPlayerSlot).effects.contains('bide'),
+          isTrue);
+
+      final storedDamage = _damage(first, moveId: 'opponent_tackle') +
+          _damage(second, moveId: 'opponent_tackle');
+      expect(_damage(third, moveId: 'bide'), storedDamage * 2);
+      expect(third.state.battlerAt(psdkPlayerSlot).moves.single.currentPp, 34);
+      expect(
+        third.state.battlerAt(psdkPlayerSlot).effects.contains('bide'),
+        isFalse,
+      );
+    });
+
+    test('s_bide forces the stored move while charging', () {
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'bide',
+            type: 'normal',
+            power: 0,
+            battleEngineMethod: 's_bide',
+          ),
+          _move(id: 'tackle', power: 40),
+        ],
+        opponentMove: _move(id: 'opponent_tackle', power: 40),
+      );
+
+      engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 1));
+
+      expect(_damageEvents(second, moveId: 'tackle'), isEmpty);
+      expect(_damageEvents(second, moveId: 'bide'), isEmpty);
+      expect(
+        second.state.battlerAt(psdkPlayerSlot).effects.contains('bide'),
+        isTrue,
+      );
     });
   });
 }
@@ -210,12 +271,47 @@ PsdkBattleTurnResult _runMove({
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
+PsdkBattleEngine _engine({
+  required List<PsdkBattleMoveData> playerMoves,
+  PsdkBattleMoveData? opponentMove,
+}) {
+  return PsdkBattleEngine(
+    setup: PsdkBattleSetup.singles(
+      player: _combatant(
+        id: 'player',
+        speed: 100,
+        moves: playerMoves,
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        speed: 1,
+        move: opponentMove ??
+            _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 0,
+              category: PsdkBattleMoveCategory.status,
+              battleEngineMethod: 's_splash',
+            ),
+      ),
+      rngSeeds: const PsdkBattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ),
+    ),
+  );
+}
+
 PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
-  required PsdkBattleMoveData move,
+  PsdkBattleMoveData? move,
+  List<PsdkBattleMoveData>? moves,
   PsdkBattleDamageHistory damageHistory = const PsdkBattleDamageHistory.empty(),
 }) {
+  final resolvedMoves = moves ?? <PsdkBattleMoveData>[move!];
   return PsdkBattleCombatantSetup(
     id: id,
     speciesId: id,
@@ -232,7 +328,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     damageHistory: damageHistory,
-    moves: <PsdkBattleMoveData>[move],
+    moves: resolvedMoves,
   );
 }
 

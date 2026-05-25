@@ -8,6 +8,7 @@ import '../decision/battle_decision.dart';
 import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
+import '../effect/move/bide_effect.dart';
 import '../effect/move/two_turn_charge_effect.dart';
 import 'battle_action.dart';
 
@@ -64,9 +65,12 @@ final class PsdkBattleActionDecisionMapper {
   }) {
     final battler = state.battlerAt(user);
     final twoTurnCharge = _twoTurnCharge(battler);
+    final bide = _bide(battler);
     final chargedMoveSlot =
         _chargedMoveSlot(battler: battler, charge: twoTurnCharge);
-    final effectiveMoveSlot = chargedMoveSlot ?? moveSlot;
+    final bideMoveSlot = _bideMoveSlot(battler: battler, bide: bide);
+    final forcedTarget = twoTurnCharge?.chargedTarget ?? bide?.chargedTarget;
+    final effectiveMoveSlot = chargedMoveSlot ?? bideMoveSlot ?? moveSlot;
     if (effectiveMoveSlot < 0 || effectiveMoveSlot >= battler.moves.length) {
       throw RangeError.range(
         effectiveMoveSlot,
@@ -83,9 +87,8 @@ final class PsdkBattleActionDecisionMapper {
     );
     return PsdkBattleFightAction(
       user: user,
-      target: chargedMoveSlot != null
-          ? twoTurnCharge!.chargedTarget
-          : requestedTarget ?? _targetFor(user: user, move: move),
+      target:
+          forcedTarget ?? requestedTarget ?? _targetFor(user: user, move: move),
       moveSlot: effectiveMoveSlot,
       move: move,
       speed: _actionSpeed(state: state, user: user, battler: battler),
@@ -93,10 +96,35 @@ final class PsdkBattleActionDecisionMapper {
   }
 }
 
+BideEffect? _bide(PsdkBattleCombatant battler) {
+  for (final effect in battler.effects.effects) {
+    if (effect is BideEffect) {
+      return effect;
+    }
+  }
+  return null;
+}
+
 TwoTurnChargeEffect? _twoTurnCharge(PsdkBattleCombatant battler) {
   for (final effect in battler.effects.effects) {
     if (effect is TwoTurnChargeEffect) {
       return effect;
+    }
+  }
+  return null;
+}
+
+int? _bideMoveSlot({
+  required PsdkBattleCombatant battler,
+  required BideEffect? bide,
+}) {
+  final forcedMoveId = bide?.forcedMoveId;
+  if (forcedMoveId == null) {
+    return null;
+  }
+  for (var index = 0; index < battler.moves.length; index++) {
+    if (battler.moves[index].id == forcedMoveId) {
+      return index;
     }
   }
   return null;

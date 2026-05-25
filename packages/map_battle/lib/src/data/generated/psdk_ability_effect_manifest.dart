@@ -885,8 +885,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'mirror_armor',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Mirror Armor.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'MirrorArmorEffect.partialNoOriginalTargetBatch',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MirrorArmorEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'misty_surge',

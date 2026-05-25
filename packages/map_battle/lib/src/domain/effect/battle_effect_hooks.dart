@@ -491,6 +491,7 @@ final class BattleEffectStatChangeContext {
     required this.target,
     required this.stat,
     required this.stages,
+    this.originalTargets = const <PsdkBattleSlotRef>[],
     this.move,
     this.sourceAbilityId,
   });
@@ -503,6 +504,7 @@ final class BattleEffectStatChangeContext {
   final PsdkBattleSlotRef target;
   final String stat;
   final int stages;
+  final List<PsdkBattleSlotRef> originalTargets;
   final BattleMoveDefinition? move;
   final String? sourceAbilityId;
 }

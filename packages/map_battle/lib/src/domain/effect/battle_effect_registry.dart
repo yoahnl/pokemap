@@ -9,6 +9,7 @@ import 'move/attract_effect.dart';
 import 'move/baton_pass_effect.dart';
 import 'move/beak_blast_effect.dart';
 import 'move/bestow_effect.dart';
+import 'move/bide_effect.dart';
 import 'move/bind_effect.dart';
 import 'move/cant_switch_effect.dart';
 import 'move/confusion_effect.dart';
@@ -84,6 +85,11 @@ final class BattleEffectRegistry {
           giver: psdkPlayerSlot,
           receiver: psdkOpponentSlot,
           itemId: '',
+        ),
+      'bide' => const BideEffect(
+          scope: LocalBattleEffectScope(),
+          forcedMoveId: 'bide',
+          chargedTarget: psdkOpponentSlot,
         ),
       'bind' => const BindEffect(
           scope: LocalBattleEffectScope(),

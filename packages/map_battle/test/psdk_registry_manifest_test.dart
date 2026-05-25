@@ -531,7 +531,7 @@ void main() {
       );
       expect(
         byFamilyAndName['ability:MirrorArmor']?.status,
-        PsdkPortStatus.partial,
+        PsdkPortStatus.ported,
       );
     });
 
@@ -674,20 +674,11 @@ void main() {
         'SleepPrevention',
         'SmackDown',
         'WonderRoom',
-      ]) {
-        expect(
-          byFamilyAndName['move:$effectName']?.status,
-          PsdkPortStatus.ported,
-          reason: effectName,
-        );
-      }
-
-      for (final effectName in <String>[
         'Bide',
       ]) {
         expect(
           byFamilyAndName['move:$effectName']?.status,
-          PsdkPortStatus.partial,
+          PsdkPortStatus.ported,
           reason: effectName,
         );
       }

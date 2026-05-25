@@ -801,6 +801,38 @@ void main() {
       );
     });
 
+    test('Mirror Armor reflects drops to the original affected targets', () {
+      final result = _applyPlayerStatDrop(
+        playerAbilityId: 'mirror_armor',
+        opponentAbilityId: 'overgrow',
+        stat: 'speed',
+        originalTargets: const <PsdkBattleSlotRef>[
+          psdkOpponentSlot,
+          _psdkOpponentAllySlot,
+        ],
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+        0,
+      );
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        -1,
+      );
+      expect(
+        result.state
+            .battlerAt(_psdkOpponentAllySlot)
+            .statStages
+            .valueOf('speed'),
+        -1,
+      );
+      expect(
+        _statEventsForHandler(result).map((event) => event.target),
+        <PsdkBattleSlotRef>[psdkOpponentSlot, _psdkOpponentAllySlot],
+      );
+    });
+
     test('Defiant and Competitive punish opposing stat drops', () {
       final defiant = _applyPlayerStatDrop(
         playerAbilityId: 'defiant',
@@ -7613,30 +7645,62 @@ BattleHandlerResult _applyPlayerStatDrop({
   String? opponentAbilityId,
   PsdkBattleEffectStack? playerEffects,
   PsdkBattleEffectStack? opponentEffects,
+  List<PsdkBattleSlotRef> originalTargets = const <PsdkBattleSlotRef>[],
 }) {
-  final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
-      player: _combatant(
-        id: 'player',
-        abilityId: playerAbilityId,
-        types: playerTypes,
-        effects: playerEffects,
-        move: _move(id: 'tackle', power: 40),
-      ),
-      opponent: _combatant(
-        id: 'opponent',
-        abilityId: opponentAbilityId,
-        effects: opponentEffects,
-        move: _move(id: 'opponent_wait', power: 0),
-      ),
-      rngSeeds: const BattleRngSeeds(
-        moveDamage: 1,
-        moveCritical: 99999,
-        moveAccuracy: 3,
-        generic: 4,
-      ).psdkSeeds,
-    ).psdkSetup,
+  final player = PsdkBattleCombatant.fromSetup(
+    _combatant(
+      id: 'player',
+      abilityId: playerAbilityId,
+      types: playerTypes,
+      effects: playerEffects,
+      move: _move(id: 'tackle', power: 40),
+    ),
   );
+  final opponent = PsdkBattleCombatant.fromSetup(
+    _combatant(
+      id: 'opponent',
+      abilityId: opponentAbilityId,
+      effects: opponentEffects,
+      move: _move(id: 'opponent_wait', power: 0),
+    ),
+  );
+  final state = originalTargets.contains(_psdkOpponentAllySlot)
+      ? PsdkBattleState(
+          combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+            psdkPlayerSlot: player,
+            psdkOpponentSlot: opponent,
+            _psdkOpponentAllySlot: PsdkBattleCombatant.fromSetup(
+              _combatant(
+                id: 'opponent_ally',
+                abilityId: 'overgrow',
+                move: _move(id: 'opponent_ally_wait', power: 0),
+              ),
+            ),
+          },
+        )
+      : PsdkBattleState.fromSetup(
+          BattleEngineSetup.singles(
+            player: _combatant(
+              id: 'player',
+              abilityId: playerAbilityId,
+              types: playerTypes,
+              effects: playerEffects,
+              move: _move(id: 'tackle', power: 40),
+            ),
+            opponent: _combatant(
+              id: 'opponent',
+              abilityId: opponentAbilityId,
+              effects: opponentEffects,
+              move: _move(id: 'opponent_wait', power: 0),
+            ),
+            rngSeeds: const BattleRngSeeds(
+              moveDamage: 1,
+              moveCritical: 99999,
+              moveAccuracy: 3,
+              generic: 4,
+            ).psdkSeeds,
+          ).psdkSetup,
+        );
 
   return const BattleStatChangeHandler().applyStatChange(
     context: BattleHandlerContext(
@@ -7648,6 +7712,7 @@ BattleHandlerResult _applyPlayerStatDrop({
     target: psdkPlayerSlot,
     stat: stat,
     stages: stages,
+    originalTargets: originalTargets,
   );
 }
 

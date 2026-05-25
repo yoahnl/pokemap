@@ -1,3 +1,4 @@
+import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_stat_change_handler.dart';
@@ -58,40 +59,53 @@ final class MirrorArmorEffect extends BattleAbilityEffect {
   BattleEffectStatChangeRedirectResult? onStatChangeRedirect(
     BattleEffectStatChangeContext context,
   ) {
+    final reflectedTargets = context.originalTargets.isEmpty
+        ? <PsdkBattleSlotRef>[context.user]
+        : context.originalTargets;
     if (!isOwnedBy(context.target) ||
-        context.user == context.target ||
+        (context.user == context.target && context.originalTargets.isEmpty) ||
         context.stages >= 0 ||
         context.sourceAbilityId == abilityId) {
       return null;
     }
 
-    final reflectedTarget = context.state.battlerAt(context.user);
-    if (reflectedTarget.isFainted) {
-      return null;
+    // PSDK Mirror Armor returns 0 for the original drop and runs a fresh stat
+    // change against the launcher, or against the original batch of targets
+    // when an effect such as Magic Coat has remapped the move.
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var applied = false;
+
+    for (final reflectedTarget in reflectedTargets) {
+      if (!nextState.combatants.containsKey(reflectedTarget) ||
+          nextState.battlerAt(reflectedTarget).isFainted) {
+        continue;
+      }
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          user: context.user,
+        ),
+        target: reflectedTarget,
+        stat: context.stat,
+        stages: context.stages,
+        move: context.move,
+        sourceAbilityId: abilityId,
+      );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      applied = applied || result.applied || result.events.isNotEmpty;
     }
 
-    // PSDK Mirror Armor returns 0 for the original drop and runs a fresh stat
-    // change against the launcher. Routing through the regular handler keeps
-    // Contrary/Simple, Mist and stage bounds honest on the reflected target.
-    final result = const BattleStatChangeHandler().applyStatChange(
-      context: BattleHandlerContext(
-        state: context.state,
-        rng: context.rng,
-        turn: context.turn,
-        user: context.user,
-      ),
-      target: context.user,
-      stat: context.stat,
-      stages: context.stages,
-      move: context.move,
-      sourceAbilityId: abilityId,
-    );
-
     return BattleEffectStatChangeRedirectResult(
-      state: result.state,
-      rng: result.rng,
-      events: result.events,
-      applied: true,
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: applied || reflectedTargets.isNotEmpty,
     );
   }
 }

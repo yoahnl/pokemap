@@ -17,6 +17,7 @@ final class BattleStatChangeHandler {
     required int stages,
     BattleMoveDefinition? move,
     String? sourceAbilityId,
+    List<PsdkBattleSlotRef> originalTargets = const <PsdkBattleSlotRef>[],
   }) {
     if (stages == 0) {
       return BattleHandlerResult(
@@ -35,6 +36,7 @@ final class BattleStatChangeHandler {
       stages: effectiveStages,
       move: move,
       sourceAbilityId: sourceAbilityId,
+      originalTargets: originalTargets,
     );
     if (hookPrevention != null) {
       return BattleHandlerResult(
@@ -66,6 +68,7 @@ final class BattleStatChangeHandler {
       stages: effectiveStages,
       move: move,
       sourceAbilityId: sourceAbilityId,
+      originalTargets: originalTargets,
     );
     if (redirect != null) {
       return BattleHandlerResult(
@@ -84,6 +87,7 @@ final class BattleStatChangeHandler {
       stages: effectiveStages,
       move: move,
       sourceAbilityId: sourceAbilityId,
+      originalTargets: originalTargets,
     );
     if (effectiveStages == 0) {
       return BattleHandlerResult(
@@ -128,6 +132,7 @@ final class BattleStatChangeHandler {
       stat: stat,
       stages: effectiveStages,
       sourceAbilityId: sourceAbilityId,
+      originalTargets: originalTargets,
     );
 
     return BattleHandlerResult(
@@ -154,6 +159,7 @@ String? _statPreventionReason({
   required int stages,
   required BattleMoveDefinition? move,
   required String? sourceAbilityId,
+  required List<PsdkBattleSlotRef> originalTargets,
 }) {
   for (final owner in _orderedSlots(context.state)) {
     final reason =
@@ -198,6 +204,7 @@ BattleEffectStatChangeRedirectResult? _dispatchStatChangeRedirect({
   required int stages,
   required BattleMoveDefinition? move,
   required String? sourceAbilityId,
+  required List<PsdkBattleSlotRef> originalTargets,
 }) {
   for (final owner in _orderedSlots(context.state)) {
     final result = context.state.battlerAt(owner).effects.statChangeRedirect(
@@ -210,6 +217,7 @@ BattleEffectStatChangeRedirectResult? _dispatchStatChangeRedirect({
             target: target,
             stat: stat,
             stages: stages,
+            originalTargets: originalTargets,
             move: move,
             sourceAbilityId: sourceAbilityId,
           ),
@@ -228,6 +236,7 @@ int _resolveStatChangeHooks({
   required int stages,
   required BattleMoveDefinition? move,
   required String? sourceAbilityId,
+  required List<PsdkBattleSlotRef> originalTargets,
 }) {
   var effectiveStages = stages;
   for (final owner in _orderedSlots(context.state)) {
@@ -241,6 +250,7 @@ int _resolveStatChangeHooks({
             target: target,
             stat: stat,
             stages: effectiveStages,
+            originalTargets: originalTargets,
             move: move,
             sourceAbilityId: sourceAbilityId,
           ),
@@ -255,6 +265,7 @@ BattleEffectStatChangePostResult _dispatchStatChangePost({
   required String stat,
   required int stages,
   required String? sourceAbilityId,
+  required List<PsdkBattleSlotRef> originalTargets,
 }) {
   var nextState = context.state;
   var nextRng = context.rng;
@@ -271,6 +282,7 @@ BattleEffectStatChangePostResult _dispatchStatChangePost({
             target: target,
             stat: stat,
             stages: stages,
+            originalTargets: originalTargets,
             sourceAbilityId: sourceAbilityId,
           ),
         );

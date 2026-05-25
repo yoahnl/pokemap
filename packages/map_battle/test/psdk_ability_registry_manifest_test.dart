@@ -221,6 +221,7 @@ void main() {
         'emergency_exit',
         'wimp_out',
         'symbiosis',
+        'mirror_armor',
       ]) {
         final entry = byId[abilityId];
 
@@ -231,7 +232,7 @@ void main() {
       }
 
       for (final abilityId in <String>[
-        'mirror_armor',
+        'parental_bond',
       ]) {
         final entry = byId[abilityId];
 
