@@ -4,11 +4,11 @@
 
 Phase 2 — Domain Model & Contracts
 
-Statut : 🔜 En cours
+Statut : ✅ Clôturée avec réserves mineures
 
 Lot courant : P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
-Prochain lot exact : P2-CHECKPOINT-01 — Domain Contracts Readiness Review
+Prochain lot exact : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 
 Suivi des lots :
 
@@ -23,7 +23,7 @@ Suivi des lots :
 - ✅ P2-08 — World Rule Predicate Adapter Contract
 - ✅ P2-09 — Narrative Validator Diagnostic Expansion
 - ✅ P2-10 — Reference Picker Read Models
-- 🔜 P2-CHECKPOINT-01 — Domain Contracts Readiness Review
+- ✅ P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
 P2-00 : ✅ terminé
 
@@ -47,7 +47,15 @@ P2-09 : ✅ terminé
 
 P2-10 : ✅ terminé
 
-P2-CHECKPOINT-01 : 🔜 prochain lot exact
+P2-CHECKPOINT-01 : ✅ terminé
+
+Phase 2 : ✅ clôturée avec réserves mineures
+
+Prochain lot exact :
+
+```text
+P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+```
 
 ## 2. Objectif de la Phase 2
 
@@ -962,11 +970,69 @@ Pas d’UI Flutter, pas de design system.
 Dépendances :
 P2-09.
 
-### P2-CHECKPOINT-01 — Domain Contracts Readiness Review
+### ✅ P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
 Objectif :
 Clôturer Phase 2, vérifier les contrats créés/adaptés/reportés, les diagnostics
 et les package boundaries.
+
+Résultat :
+Le checkpoint clôture la Phase 2 avec réserves mineures. Les décisions domaine
+P2-02 à P2-08 sont cohérentes, les diagnostics P2-09 sont testés, les read
+models P2-10 sont testés, les package boundaries sont respectées, aucun
+registry ou modèle persistant prématuré n'a été créé, et la Phase 3 peut
+commencer par un audit runtime/disk.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_checkpoint_01_domain_contracts_readiness_review.md`
+- `MVP Selbrume/road_map_phase_3.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+- `MVP Selbrume/road_map_global.md`
+
+Commandes exécutées :
+
+- `cd packages/map_core && dart test test/narrative_validator_test.dart`
+- `cd packages/map_core && dart test test/narrative_reference_picker_read_models_test.dart`
+- `cd packages/map_core && dart analyze`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+
+Décisions stabilisées :
+
+- Phase 2 est clôturable avec réserves mineures.
+- Aucun registry persistant n'est justifié.
+- Aucune migration `ProjectManifest` n'est justifiée.
+- Les diagnostics P2-09 restent un premier batch borné.
+- Les read models P2-10 restent des sources pures de pickers, pas une UI.
+- Phase 3 doit prouver runtime/disk sans créer Selbrume final.
+
+Diagnostics vérifiés :
+
+- `declaredOutcomeNeverEmitted`
+- `emitOutcomeNotDeclared`
+- `visibilityRuleConditionalMissingPredicate`
+- `worldRulePredicateEmptyRefId`
+- `scenarioChoiceNodeRuntimeUnsupported`
+
+Read models vérifiés :
+
+- `NarrativeScenarioPickerOption`
+- `NarrativeOutcomePickerOption`
+- `NarrativeBattleReferencePickerOption`
+
+Réserves :
+
+- Phase 2 ne prouve pas le runtime Flame.
+- Phase 2 ne prouve pas le chargement d'un vrai projet disque.
+- Phase 2 ne crée pas d'UI authoring.
+- Selbrume reste conceptuel.
+- Les pickers Story Step, Fact, World Rule et Event Source sont reportés.
 
 Risque :
 Clôturer avec des migrations ou duplications d’état cachées.
@@ -979,6 +1045,9 @@ Pas de Phase 3 démarrée.
 
 Dépendances :
 P2-10.
+
+Prochain lot exact :
+P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit.
 
 ## 8. Critères de sortie Phase 2
 
@@ -1031,5 +1100,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-CHECKPOINT-01 — Domain Contracts Readiness Review
+P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 ```

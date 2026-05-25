@@ -6,20 +6,21 @@ Roadmap globale : active
 
 Bloc NS-GS-01 → NS-GS-18 : ✅ terminé comme bloc mechanics-first Level 2 Application
 
-Phase courante : Phase 2 — Domain Model & Contracts
+Phase courante : Phase 3 — Runtime / Application / Flame / Disk Validation
 
-Roadmap de phase courante : `MVP Selbrume/road_map_phase_2.md`
+Roadmap de phase courante : `MVP Selbrume/road_map_phase_3.md`
 
-Lot courant : P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
+Lot courant : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 
-Prochain lot exact : P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
+Prochain lot exact : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 
 Suivi global :
 
 - ROADMAP-GLOBAL-00 : ✅ terminé
 - Phase 1 — Canonical Product Model / Narrative Studio Foundations : ✅ clôturée avec réserves mineures
-- Phase 2 — Domain Model & Contracts : 🔜 phase courante
-- P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit : 🔜 prochain lot exact
+- Phase 2 — Domain Model & Contracts : ✅ clôturée avec réserves mineures
+- Phase 3 — Runtime / Application / Flame / Disk Validation : 🔜 phase courante
+- P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit : 🔜 prochain lot exact
 
 ## 2. Objectif final de PokeMap
 
@@ -90,6 +91,12 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 `MVP Selbrume/road_map_phase_1.md`
 → source de vérité détaillée pour la Phase 1.
 
+`MVP Selbrume/road_map_phase_2.md`
+→ source de vérité détaillée pour la Phase 2 clôturée.
+
+`MVP Selbrume/road_map_phase_3.md`
+→ source de vérité détaillée pour la Phase 3 courante.
+
 `MVP Selbrume/road_map.md`
 → roadmap historique NS-GS clôturée, conservée comme archive de preuves et contexte.
 
@@ -99,12 +106,15 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 `reports/roadmap/phase_1/*.md`
 → livrables et rapports des lots Phase 1.
 
+`reports/roadmap/phase_2/*.md`
+→ livrables et rapports des lots Phase 2.
+
 ## 5. Synthèse des phases
 
 - ✅ Phase 0 — Audit global & roadmap reset
 - ✅ Phase 1 — Canonical Product Model / Narrative Studio Foundations
-- 🔜 Phase 2 — Domain Model & Contracts
-- Phase 3 — Runtime / Application / Flame / Disk Validation
+- ✅ Phase 2 — Domain Model & Contracts
+- 🔜 Phase 3 — Runtime / Application / Flame / Disk Validation
 - Phase 4 — Authoring Workflows Minimal
 - Phase 5 — Gameplay Gaps Prioritaires
 - Phase 6 — Selbrume Golden Slice réel
@@ -294,7 +304,34 @@ Checkpoint final :
 - P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
 Statut :
-🔜 phase courante.
+✅ clôturée avec réserves mineures.
+
+Résultat checkpoint :
+
+```text
+Phase 2 a stabilisé les décisions domaine du Narrative Studio, ajouté un
+premier batch de diagnostics dans map_core et créé les premiers read models
+purs de picker sans registry, sans UI et sans migration ProjectManifest.
+```
+
+Livrables principaux :
+
+- rapports P2-00 à P2-10 ;
+- `reports/roadmap/phase_2/p2_checkpoint_01_domain_contracts_readiness_review.md` ;
+- diagnostics `declaredOutcomeNeverEmitted`, `emitOutcomeNotDeclared`,
+  `visibilityRuleConditionalMissingPredicate`, `worldRulePredicateEmptyRefId`,
+  `scenarioChoiceNodeRuntimeUnsupported` ;
+- read models `NarrativeScenarioPickerOption`, `NarrativeOutcomePickerOption`,
+  `NarrativeBattleReferencePickerOption` ;
+- `MVP Selbrume/road_map_phase_3.md`.
+
+Réserves :
+
+- pas encore de preuve runtime Flame ;
+- pas encore de preuve projet disque ;
+- pas encore d'UI authoring ;
+- pickers Story Step / Fact / World Rule / Event Source reportés ;
+- Selbrume reste conceptuel.
 
 ## 9. Phase 3 — Runtime / Application / Flame / Disk Validation
 
@@ -557,29 +594,30 @@ future tardive.
 ## 14. Phase courante
 
 Phase courante :
-Phase 2 — Domain Model & Contracts
+Phase 3 — Runtime / Application / Flame / Disk Validation
 
 Roadmap de phase :
-`MVP Selbrume/road_map_phase_2.md`
+`MVP Selbrume/road_map_phase_3.md`
 
 Prochain lot de la phase :
-P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
+P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 
 Note :
-P1-CHECKPOINT-01 a clôturé Phase 1 et créé la roadmap vivante Phase 2. Il ne
-démarre pas P2-00.
+P2-CHECKPOINT-01 a clôturé Phase 2 et créé la roadmap vivante Phase 3. Il ne
+démarre pas P3-00.
 
 ## 15. Prochain lot exact
 
-P2-00 — Phase 2 Roadmap Bootstrap / Domain Contract Audit
+P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 
-P2-00 doit rester audit-first et documentaire / cadrage domaine. Il doit
-inventorier précisément les modèles, metadata, validators, runtime source events,
-authoring projections et conventions existantes avant toute création de contrat.
+P3-00 doit rester audit-first et documentaire / cadrage runtime-disk. Il doit
+inventorier les preuves runtime, les chemins de chargement projet disque, les
+bridges ScenarioAsset/runtime et les smoke tests possibles avant toute
+implémentation de Phase 3.
 
-P2-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l’UI
-premium, et ne doit pas modifier le runtime Flame sauf si un lot dédié ultérieur
-le demande explicitement.
+P3-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l’UI
+premium, ne doit pas ouvrir les gaps gameplay Phase 5 et ne doit pas transformer
+la roadmap Phase 3 en implémentation runtime.
 
 ## 16. Critères de changement de phase
 
@@ -643,11 +681,11 @@ ou si l’utilisateur le demande explicitement.
 - Level 3 Flame / PlayableMapGame Golden Slice complet : non entièrement prouvé.
 - Level 4 projet disque / vrai projet créé dans l’éditeur : non prouvé pour le
   Golden Slice narratif complet.
-- Storyline / Chapter / Story Step contract ou descriptor : Phase 2.
-- Event authoring source contract : Phase 2.
-- Scene / ScenarioAsset adapter : Phase 2.
-- FactDescriptor / Fact Presentation Layer : Phase 2.
-- World Rule Predicate Adapter : Phase 2.
+- Storyline / Chapter / Story Step contract ou descriptor : décision Phase 2 faite, picker reporté Phase 4.
+- Event authoring source contract : décision Phase 2 faite, picker reporté Phase 4.
+- Scene / ScenarioAsset adapter : décision Phase 2 faite, preuve runtime Phase 3.
+- FactDescriptor / Fact Presentation Layer : décision Phase 2 faite, picker reporté Phase 4.
+- World Rule Predicate Adapter : décision Phase 2 faite, preuve runtime Phase 3.
 - Validator UI et intégration authoring : Phase 4 puis Phase 7.
 - Reward Model, money, XP, level-up : Phase 5.
 - Static wild encounter authorable réel : Phase 5.
@@ -668,3 +706,11 @@ ou si l’utilisateur le demande explicitement.
   Roadmap de phase courante fixée à `MVP Selbrume/road_map_phase_2.md`.
   Prochain lot exact fixé à P2-00 — Phase 2 Roadmap Bootstrap / Domain
   Contract Audit.
+- 2026-05-25 — P2-CHECKPOINT-01 — Phase 2 clôturée avec réserves mineures.
+  La Phase 2 a stabilisé les décisions domaine, refusé les registries
+  prématurés, ajouté les diagnostics P2-09, ajouté les read models P2-10 et
+  confirmé que la prochaine preuve doit être runtime/disk. Phase courante mise
+  à jour vers Phase 3 — Runtime / Application / Flame / Disk Validation.
+  Roadmap de phase courante fixée à `MVP Selbrume/road_map_phase_3.md`.
+  Prochain lot exact fixé à P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk
+  Validation Audit.

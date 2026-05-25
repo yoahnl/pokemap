@@ -1,0 +1,227 @@
+# Phase 3 Roadmap — Runtime / Application / Flame / Disk Validation
+
+## 1. Statut de la phase
+
+Phase 3 — Runtime / Application / Flame / Disk Validation
+
+Statut : 🔜 À démarrer
+
+Lot courant : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+
+Prochain lot exact : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+
+Suivi des lots :
+
+- 🔜 P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+- P3-01 — Project Disk Narrative Asset Loading Audit
+- P3-02 — ScenarioAsset Runtime Execution Golden Path
+- P3-03 — Event Source to Scenario Runtime Bridge Validation
+- P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
+- P3-05 — Fact / World Rule Runtime Projection Validation
+- P3-06 — Save/Load Narrative State Roundtrip Validation
+- P3-07 — Playable Runtime Host Narrative Smoke Test
+- P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+
+P3-00 : 🔜 prochain lot exact
+
+## 2. Objectif de la Phase 3
+
+Valider que les contrats, diagnostics et read models Phase 2 peuvent être reliés
+à un vrai projet disque et à l'exécution runtime, sans créer encore Selbrume
+final, sans UI premium et sans ouvrir les grands gaps gameplay hors lot.
+
+Phase 3 doit répondre à la question :
+
+```text
+Le socle domaine Phase 2 peut-il réellement alimenter le runtime et le disque ?
+```
+
+## 3. Pourquoi cette phase existe
+
+La Phase 2 a stabilisé les décisions domaine, ajouté des diagnostics et créé les
+premiers read models. Elle n'a pas prouvé :
+
+- le chargement depuis un vrai projet disque ;
+- l'exécution complète dans le runtime Flutter / Flame ;
+- la continuité Event → Scene → Outcome / Battle → Fact / Step → World Rule ;
+- le roundtrip save/load réel sur un flux narratif.
+
+Phase 3 est donc une phase de preuve runtime/disk, pas une phase d'UI ou de
+contenu final.
+
+## 4. Préconditions
+
+- Phase 2 clôturée avec réserves mineures.
+- `reports/roadmap/phase_2/p2_checkpoint_01_domain_contracts_readiness_review.md`
+  existe.
+- `MVP Selbrume/road_map_global.md` pointe vers la Phase 3.
+- Les diagnostics P2-09 passent.
+- Les read models P2-10 passent.
+- Selbrume reste une référence conceptuelle.
+
+## 5. Périmètre Phase 3
+
+Inclus :
+
+- audit runtime/disk ;
+- validation du chargement narratif depuis projet disque ;
+- validation du chemin `ScenarioAsset` vers runtime ;
+- validation des sources Event vers scenario runtime ;
+- validation de la continuation outcome / battle outcome ;
+- validation de la projection Fact / World Rule au runtime ;
+- validation save/load narrative state ;
+- smoke test ciblé dans playable runtime host si justifié ;
+- rapport checkpoint Phase 3.
+
+Exclus :
+
+- Selbrume final ;
+- UI premium ;
+- widgets authoring ;
+- Scene Builder complet ;
+- Cinematic Builder complet ;
+- Reward Model ;
+- money / XP / level-up ;
+- static wild authoring ;
+- Door/Warp complet hors lot explicite ;
+- Phase 4 authoring workflows ;
+- Phase 5 gameplay gaps.
+
+## 6. Règles de maintenance
+
+À chaque lot Phase 3, l'agent doit :
+
+1. Lire `MVP Selbrume/road_map_global.md`.
+2. Lire `MVP Selbrume/road_map_phase_3.md`.
+3. Respecter le prochain lot exact.
+4. Ne pas démarrer un autre lot.
+5. Distinguer preuve runtime, preuve disk, preuve editor et preuve gameplay.
+6. Ne pas créer Selbrume final.
+7. Ne pas créer UI premium.
+8. Ne pas ouvrir les gaps gameplay Phase 5 hors demande explicite.
+9. Fournir un Evidence Pack complet.
+10. Mettre à jour cette roadmap vivante.
+11. Ne modifier `road_map_global.md` qu'au checkpoint ou sur demande explicite.
+
+## 7. Lots Phase 3 proposés
+
+### 🔜 P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+
+Objectif :
+Valider le découpage Phase 3, inventorier les preuves runtime/disk existantes et
+définir les lots de validation sans implémenter le runtime.
+
+Résultat attendu :
+Roadmap Phase 3 confirmée, risques runtime/disk listés, prochain lot P3-01
+clarifié.
+
+Non-objectifs :
+Pas de code runtime, pas de projet Selbrume final, pas d'UI.
+
+### P3-01 — Project Disk Narrative Asset Loading Audit
+
+Objectif :
+Auditer comment un projet disque charge maps, scenarios, dialogues, trainers et
+assets narratifs.
+
+Résultat attendu :
+Frontière claire entre `ProjectManifest`, fichiers disque et runtime loader.
+
+### P3-02 — ScenarioAsset Runtime Execution Golden Path
+
+Objectif :
+Prouver un chemin minimal d'exécution `ScenarioAsset` dans le runtime, sans
+élargir le modèle.
+
+Résultat attendu :
+Preuve ciblée que le graphe existant s'exécute comme attendu ou liste de gaps.
+
+### P3-03 — Event Source to Scenario Runtime Bridge Validation
+
+Objectif :
+Valider le pont entre sources Event runtime et source nodes `ScenarioAsset`.
+
+Résultat attendu :
+Preuve `mapEnter`, `triggerEnter`, `entityInteract` et `outcomeReceived` selon
+le périmètre réellement supporté.
+
+### P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
+
+Objectif :
+Valider la continuation runtime après `emitOutcome` et battle outcome minimal.
+
+Résultat attendu :
+Preuve que les outcomes scénario et battle restent séparés et interprétables.
+
+### P3-05 — Fact / World Rule Runtime Projection Validation
+
+Objectif :
+Valider que les vérités techniques et predicates existants projettent le monde
+sans créer de nouvelle source de vérité.
+
+Résultat attendu :
+Preuve ou gaps sur flags, steps, chapter derivation, visibility rules et
+conditional dialogues.
+
+### P3-06 — Save/Load Narrative State Roundtrip Validation
+
+Objectif :
+Valider le roundtrip save/load des états narratifs nécessaires au flux minimal.
+
+Résultat attendu :
+Preuve ciblée pour story flags, completed steps, outcomes et états connexes.
+
+### P3-07 — Playable Runtime Host Narrative Smoke Test
+
+Objectif :
+Ajouter ou auditer un smoke test runtime host ciblé, si les lots précédents
+montrent que le périmètre est prêt.
+
+Résultat attendu :
+Preuve d'exécution end-to-end minimale ou décision documentée de report.
+
+### P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+
+Objectif :
+Clôturer Phase 3, vérifier les preuves runtime/disk et décider le passage vers
+Phase 4.
+
+Résultat attendu :
+Verdict Phase 3, roadmaps mises à jour, prochain lot exact fixé.
+
+## 8. Critères de sortie Phase 3
+
+Phase 3 pourra être clôturée si :
+
+- les chemins runtime/disk essentiels sont prouvés ou leurs gaps sont explicites ;
+- les limites Level 2 / Level 3 / Level 4 ne sont plus ambiguës ;
+- les validations ciblées passent ;
+- aucun contenu Selbrume final n'a été créé par accident ;
+- l'UI authoring reste reportée à Phase 4 ;
+- les gaps gameplay restent reportés à Phase 5 ;
+- la roadmap globale est mise à jour au checkpoint.
+
+## 9. Décisions à valider avant ou pendant P3-00
+
+- Valider cette roadmap Phase 3.
+- Définir le degré de preuve runtime attendu.
+- Choisir projet disque minimal ou fixture technique.
+- Définir le périmètre du runtime smoke test.
+- Confirmer que Phase 3 ne crée pas Selbrume final.
+- Confirmer que l'UI authoring reste Phase 4.
+- Confirmer que rewards / money / XP restent Phase 5.
+
+## 10. Rappels permanents
+
+```text
+Phase 3 prouve runtime/disk.
+Phase 3 ne crée pas Selbrume final.
+Phase 3 ne crée pas UI premium.
+Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
+```
+
+Le prochain lot exact est :
+
+```text
+P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+```
