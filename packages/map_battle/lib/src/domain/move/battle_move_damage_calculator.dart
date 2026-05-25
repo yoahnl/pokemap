@@ -89,14 +89,15 @@ final class BattleMoveDamageCalculator {
     final offensiveStat = _positiveStat(
       _abilityAdjustedOffensiveStat(
         context.overrides?.offensiveStatFor(critical.isCritical) ??
-            _offensiveStat(context),
+            _offensiveStat(context, critical.isCritical),
         context,
         moveType,
+        critical.isCritical,
       ),
     );
     final defensiveStat = _positiveStat(
       context.overrides?.defensiveStatFor(critical.isCritical) ??
-          _defensiveStat(context),
+          _defensiveStat(context, critical.isCritical),
     );
     final levelFactor = ((2 * context.user.level) ~/ 5) + 2;
     var formulaDamage = levelFactor;
@@ -598,6 +599,7 @@ int _abilityAdjustedOffensiveStat(
   int stat,
   BattleMoveDamageContext context,
   String moveType,
+  bool criticalHit,
 ) {
   if (stat <= 0) {
     return stat;
@@ -614,6 +616,7 @@ int _abilityAdjustedOffensiveStat(
     activeAbilityIds: _activeAbilityIds(context),
     weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
     isLastActionOfTurn: context.isLastActionOfTurn,
+    criticalHit: criticalHit,
   );
   var multiplier = 1.0;
   for (final effect in context.user.abilityEffects) {
@@ -746,9 +749,15 @@ final class BattleMoveDamageResult {
   bool get isImmune => typeEffectivenessMultiplier == 0.0;
 }
 
-int _offensiveStat(BattleMoveDamageContext context) {
+int _offensiveStat(BattleMoveDamageContext context, bool criticalHit) {
+  final ignoreAllStages =
+      _targetIgnoresOffensiveStatStages(context, criticalHit);
   return switch (context.move.category) {
-    PsdkBattleMoveCategory.physical => _physicalAttack(context),
+    PsdkBattleMoveCategory.physical => _physicalAttack(
+        context,
+        criticalHit,
+        ignoreAllStages,
+      ),
     PsdkBattleMoveCategory.special => _adjustedStat(
         value: context.user.stats.specialAttack,
         battler: context.user,
@@ -756,12 +765,18 @@ int _offensiveStat(BattleMoveDamageContext context) {
         field: context.field,
         state: context.state,
         stat: 'specialAttack',
+        ignoreNegativeStage: criticalHit,
+        ignoreAllStages: ignoreAllStages,
       ),
     PsdkBattleMoveCategory.status => context.user.stats.attack,
   };
 }
 
-int _physicalAttack(BattleMoveDamageContext context) {
+int _physicalAttack(
+  BattleMoveDamageContext context,
+  bool criticalHit,
+  bool ignoreAllStages,
+) {
   return _adjustedStat(
     value: context.user.stats.attack,
     battler: context.user,
@@ -769,13 +784,16 @@ int _physicalAttack(BattleMoveDamageContext context) {
     field: context.field,
     state: context.state,
     stat: 'attack',
+    ignoreNegativeStage: criticalHit,
+    ignoreAllStages: ignoreAllStages,
   );
 }
 
-int _defensiveStat(BattleMoveDamageContext context) {
+int _defensiveStat(BattleMoveDamageContext context, bool criticalHit) {
   final wonderRoomActive =
       (context.state?.hasFieldEffect('wonder_room') ?? false) ||
           _hasBattleEffect(context, 'wonder_room');
+  final ignoreAllStages = _userIgnoresDefensiveStatStages(context, criticalHit);
   final value = switch (context.move.category) {
     PsdkBattleMoveCategory.physical => _adjustedStat(
         value: wonderRoomActive
@@ -786,6 +804,8 @@ int _defensiveStat(BattleMoveDamageContext context) {
         field: context.field,
         state: context.state,
         stat: 'defense',
+        ignorePositiveStage: criticalHit,
+        ignoreAllStages: ignoreAllStages,
       ),
     PsdkBattleMoveCategory.special => _adjustedStat(
         value: wonderRoomActive
@@ -796,6 +816,8 @@ int _defensiveStat(BattleMoveDamageContext context) {
         field: context.field,
         state: context.state,
         stat: 'specialDefense',
+        ignorePositiveStage: criticalHit,
+        ignoreAllStages: ignoreAllStages,
       ),
     PsdkBattleMoveCategory.status => context.target.stats.defense,
   };
@@ -809,7 +831,17 @@ int _adjustedStat({
   required PsdkBattleFieldState field,
   required PsdkBattleState? state,
   required String stat,
+  bool ignorePositiveStage = false,
+  bool ignoreNegativeStage = false,
+  bool ignoreAllStages = false,
 }) {
+  final stagedValue = battler.statStages.effectiveValue(
+    stat: stat,
+    baseValue: value,
+    ignorePositiveStage: ignorePositiveStage,
+    ignoreNegativeStage: ignoreNegativeStage,
+    ignoreAllStages: ignoreAllStages,
+  );
   var multiplier = 1.0;
   for (final effect in battleActiveItemEffects(
     battler: battler,
@@ -837,10 +869,72 @@ int _adjustedStat({
     }
   }
   if (multiplier == 1.0) {
-    return value;
+    return stagedValue;
   }
-  final adjusted = (value * multiplier).floor();
+  final adjusted = (stagedValue * multiplier).floor();
   return adjusted < 1 ? 1 : adjusted;
+}
+
+bool _targetIgnoresOffensiveStatStages(
+  BattleMoveDamageContext context,
+  bool criticalHit,
+) {
+  if (criticalHit || _userBypassesTargetAbilityEffects(context)) {
+    return false;
+  }
+  final abilityContext = _damageAbilityContext(
+    context,
+    criticalHit: criticalHit,
+  );
+  return context.target.abilityEffects.any(
+    (effect) => effect.ignoresOffensiveStatStages(abilityContext),
+  );
+}
+
+bool _userIgnoresDefensiveStatStages(
+  BattleMoveDamageContext context,
+  bool criticalHit,
+) {
+  if (criticalHit) {
+    return false;
+  }
+  final abilityContext = _damageAbilityContext(
+    context,
+    criticalHit: criticalHit,
+  );
+  return context.user.abilityEffects.any(
+    (effect) => effect.ignoresDefensiveStatStages(abilityContext),
+  );
+}
+
+BattleAbilityDamageContext _damageAbilityContext(
+  BattleMoveDamageContext context, {
+  required bool criticalHit,
+}) {
+  return BattleAbilityDamageContext(
+    field: context.field,
+    user: context.user,
+    target: context.target,
+    move: context.move,
+    moveType: _effectiveMoveType(context),
+    typeEffectivenessMultiplier: 1,
+    userSlot: context.userSlot,
+    targetSlot: context.targetSlot,
+    activeAbilityIds: _activeAbilityIds(context),
+    weatherEffectsSuppressed: _weatherEffectsSuppressed(context),
+    isLastActionOfTurn: context.isLastActionOfTurn,
+    criticalHit: criticalHit,
+  );
+}
+
+bool _userBypassesTargetAbilityEffects(BattleMoveDamageContext context) {
+  if (context.user.effects.contains('ability_suppressed')) {
+    return false;
+  }
+  final abilityId = context.user.abilityId?.trim().toLowerCase();
+  return abilityId == 'mold_breaker' ||
+      abilityId == 'teravolt' ||
+      abilityId == 'turboblaze';
 }
 
 int _positiveStat(int value) {

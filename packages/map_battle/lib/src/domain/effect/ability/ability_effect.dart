@@ -73,6 +73,10 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   bool get affectsGlobalStats => false;
 
+  bool ignoresOffensiveStatStages(BattleAbilityDamageContext context) => false;
+
+  bool ignoresDefensiveStatStages(BattleAbilityDamageContext context) => false;
+
   bool preventsRecoil(BattleAbilityMoveContext context) => false;
 
   bool preventsSecondaryEffects(
@@ -181,6 +185,7 @@ final class BattleAbilityDamageContext {
     this.activeAbilityIds = const <String>{},
     this.weatherEffectsSuppressed = false,
     this.isLastActionOfTurn = false,
+    this.criticalHit = false,
   });
 
   final PsdkBattleFieldState field;
@@ -194,6 +199,7 @@ final class BattleAbilityDamageContext {
   final Set<String> activeAbilityIds;
   final bool weatherEffectsSuppressed;
   final bool isLastActionOfTurn;
+  final bool criticalHit;
 }
 
 final class BattleAbilityStatContext {

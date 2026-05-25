@@ -100,7 +100,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'ball_fetch',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 BallFetch.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'BallFetchEffect.partialRequiresCaptureBridgeState',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'battery',
@@ -425,7 +426,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'emergency_exit',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'EmergencyExitEffect.partialNoWildFleeOrItemPrevention',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'fairy_aura',
@@ -1622,7 +1624,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'symbiosis',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Symbiosis.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'SymbiosisEffect.partialNoDeferredPostDamageTransfer',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'synchronize',
@@ -1789,7 +1792,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'unaware',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Unaware.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'UnawareEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'unburden',
@@ -1892,7 +1896,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'wimp_out',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'EmergencyExitEffect.partialNoWildFleeOrItemPrevention',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wind_power',

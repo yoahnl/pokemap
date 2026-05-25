@@ -9,6 +9,7 @@ import 'accuracy_modifier_ability_effect.dart';
 import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
 import 'apply_status_to_move_target_ability_effect.dart';
+import 'ball_fetch_effect.dart';
 import 'cloud_nine_effect.dart';
 import 'contact_disable_ability_effect.dart';
 import 'contact_punish_ability_effect.dart';
@@ -53,6 +54,7 @@ import 'switch_out_cleanup_ability_effect.dart';
 import 'type_boosting_ability_effect.dart';
 import 'type_immunity_ability_effect.dart';
 import 'turn_skip_ability_effect.dart';
+import 'unaware_effect.dart';
 
 typedef AbilityEffectFactory = BattleEffect Function({
   required BattleEffectScope scope,
@@ -75,6 +77,8 @@ final class AbilityEffectRegistry {
     'opportunist': ({required scope}) => OpportunistEffect(scope: scope),
     'ripen': ({required scope}) => RipenEffect(scope: scope),
     'unburden': ({required scope}) => UnburdenEffect(scope: scope),
+    'ball_fetch': ({required scope}) => BallFetchEffect(scope: scope),
+    'symbiosis': ({required scope}) => SymbiosisEffect(scope: scope),
     'aftermath': ({required scope}) => AftermathEffect(scope: scope),
     'anger_point': ({required scope}) => AngerPointEffect(scope: scope),
     'rough_skin': ({required scope}) => ContactPunishAbilityEffect(
@@ -861,6 +865,14 @@ final class AbilityEffectRegistry {
     'innards_out': ({required scope}) => InnardsOutEffect(scope: scope),
     'cotton_down': ({required scope}) => CottonDownEffect(scope: scope),
     'color_change': ({required scope}) => ColorChangeEffect(scope: scope),
+    'emergency_exit': ({required scope}) => EmergencyExitEffect(
+          abilityId: 'emergency_exit',
+          scope: scope,
+        ),
+    'wimp_out': ({required scope}) => EmergencyExitEffect(
+          abilityId: 'wimp_out',
+          scope: scope,
+        ),
     'perish_body': ({required scope}) => PerishBodyEffect(scope: scope),
     'toxic_debris': ({required scope}) => ToxicDebrisEffect(scope: scope),
     'mummy': ({required scope}) => ContactAbilityChangeEffect(
@@ -1094,6 +1106,7 @@ final class AbilityEffectRegistry {
     'trace': ({required scope}) => TraceEffect(scope: scope),
     'telepathy': ({required scope}) => TelepathyEffect(scope: scope),
     'truant': ({required scope}) => TruantEffect(scope: scope),
+    'unaware': ({required scope}) => UnawareEffect(scope: scope),
     'unnerve': ({required scope}) => UnnerveEffect(scope: scope),
   };
 

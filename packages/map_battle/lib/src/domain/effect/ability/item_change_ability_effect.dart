@@ -167,6 +167,71 @@ final class RipenEffect extends BattleAbilityEffect {
   }
 }
 
+final class SymbiosisEffect extends BattleAbilityEffect {
+  const SymbiosisEffect({required BattleEffectScope scope})
+      : super(abilityId: 'symbiosis', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return SymbiosisEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectItemChangeResult? onPostItemChange(
+    BattleEffectItemChangeContext context,
+  ) {
+    final owner = this.owner;
+    if (owner == null ||
+        owner == context.target ||
+        owner.bank != context.target.bank ||
+        context.reason != 'consumed' ||
+        context.consumedItemId == null ||
+        context.nextItemId != null) {
+      return null;
+    }
+
+    final holder = context.state.battlerAt(owner);
+    final receiver = context.state.battlerAt(context.target);
+    final itemId = holder.heldItemId;
+    if (holder.abilityId != abilityId ||
+        holder.isFainted ||
+        itemId == null ||
+        receiver.isFainted ||
+        receiver.heldItemId != null) {
+      return null;
+    }
+
+    final withoutHolderItem = const BattleItemChangeHandler().changeHeldItem(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: owner,
+      heldItemId: null,
+    );
+    final transferred = const BattleItemChangeHandler().changeHeldItem(
+      context: BattleHandlerContext(
+        state: withoutHolderItem.state,
+        rng: withoutHolderItem.rng,
+        turn: context.turn,
+        user: owner,
+      ),
+      target: context.target,
+      heldItemId: itemId,
+    );
+    return BattleEffectItemChangeResult(
+      state: transferred.state,
+      rng: transferred.rng,
+      events: <PsdkBattleEvent>[
+        ...withoutHolderItem.events,
+        ...transferred.events,
+      ],
+    );
+  }
+}
+
 final class CheekPouchEffect extends BattleAbilityEffect {
   const CheekPouchEffect({required BattleEffectScope scope})
       : super(abilityId: 'cheek_pouch', scope: scope);

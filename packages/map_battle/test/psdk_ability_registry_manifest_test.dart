@@ -286,7 +286,7 @@ void main() {
       expect(coverage.concreteFactoryAbilityIds, contains('shadow_tag'));
       expect(coverage.concreteFactoryAbilityIds, contains('zero_to_hero'));
       expect(coverage.manifestAbilityIds, contains('zero_to_hero'));
-      expect(coverage.missingAbilityIds, contains('ball_fetch'));
+      expect(coverage.missingAbilityIds, contains('neutralizing_gas'));
     });
 
     test('Lot 98 damage type and accuracy abilities are strict', () {

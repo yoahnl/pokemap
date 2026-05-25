@@ -9116,15 +9116,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 453,
-      "partial": 19,
-      "missing": 10
+      "ported": 454,
+      "partial": 22,
+      "missing": 6
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 239,
-        "partial": 5,
-        "missing": 10
+        "ported": 240,
+        "partial": 8,
+        "missing": 6
       },
       "move": {
         "ported": 101,
@@ -9365,7 +9365,7 @@
       {
         "effectName": "BallFetch",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 BallFetch.rb",
         "hookFamilies": [
           "end_turn"
@@ -10155,7 +10155,7 @@
       {
         "effectName": "EmergencyExit",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb",
         "hookFamilies": [
           "post_damage"
@@ -12668,7 +12668,7 @@
       {
         "effectName": "Symbiosis",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Symbiosis.rb",
         "hookFamilies": [
           "item_change",
@@ -13003,7 +13003,7 @@
       {
         "effectName": "Unaware",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Unaware.rb",
         "hookFamilies": []
       },

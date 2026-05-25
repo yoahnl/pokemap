@@ -1,10 +1,12 @@
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_handler_result.dart';
 import '../../handler/battle_stat_change_handler.dart';
+import '../../handler/battle_switch_handler.dart';
 import '../../move/battle_move_data.dart';
 import '../../move/battle_move_prevention.dart';
 import '../../rng/battle_rng_streams.dart';
@@ -330,6 +332,62 @@ final class WindRiderEffect extends BattleAbilityEffect {
   }
 }
 
+final class EmergencyExitEffect extends BattleAbilityEffect {
+  const EmergencyExitEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+  }) : super(abilityId: abilityId, scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return EmergencyExitEffect(abilityId: abilityId, scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        context.targetFainted ||
+        _sheerForceAlreadyActivated(context)) {
+      return null;
+    }
+
+    final holder = context.state.battlerAt(context.owner);
+    final previousHp = holder.currentHp + context.damage;
+    if (holder.abilityId != abilityId ||
+        holder.switching ||
+        holder.currentHp * 2 > holder.maxHp ||
+        previousHp * 2 <= holder.maxHp ||
+        holder.effects.contains('out_of_reach') ||
+        holder.heldItemId == 'eject_button' ||
+        !const BattleSwitchHandler().hasAvailableReplacement(
+          state: context.state,
+          target: context.owner,
+        )) {
+      return null;
+    }
+
+    final switched = const BattleSwitchHandler().markSwitching(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      switching: true,
+    );
+    return BattleEffectPostDamageResult(
+      state: switched.state,
+      rng: switched.rng,
+      events: switched.events,
+    );
+  }
+}
+
 final class StenchEffect extends BattleAbilityEffect {
   const StenchEffect({
     required BattleEffectScope scope,
@@ -393,6 +451,30 @@ final class StenchEffect extends BattleAbilityEffect {
   bool _heldItemSuppressesStench(String? itemId) {
     return itemId == 'king_s_rock' || itemId == 'razor_fang';
   }
+}
+
+bool _sheerForceAlreadyActivated(BattleEffectPostDamageContext context) {
+  final attacker = context.state.battlerAt(context.user);
+  if (attacker.abilityId != 'sheer_force' ||
+      attacker.effects.contains('ability_suppressed') ||
+      context.move.category == PsdkBattleMoveCategory.status) {
+    return false;
+  }
+  if (context.move.statuses.any(
+        (status) => status.majorStatus != null || status.volatileStatus != null,
+      ) ||
+      context.move.effectChance != null) {
+    return true;
+  }
+  if (context.move.stageMods.isEmpty) {
+    return false;
+  }
+  final onlyPositive = context.move.stageMods.every((mod) => mod.stages > 0);
+  final onlyNegative = context.move.stageMods.every((mod) => mod.stages < 0);
+  return switch (context.move.target) {
+    PsdkBattleMoveTarget.self || PsdkBattleMoveTarget.user => onlyPositive,
+    _ => onlyNegative,
+  };
 }
 
 _ChargeResult? _addCharge({

@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/ability/unaware_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_secondary_effect_resolver.dart';
@@ -133,7 +134,9 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
           'attack',
           // PSDK FoulPlay also returns stage modifier 1 on critical hit, using
           // the target's raw Attack instead of any target Attack stage.
-          ignoreAllStages: isCritical,
+          ignoreAllStages: isCritical ||
+              (battlerHasActiveUnaware(target) &&
+                  !_bypassesTargetAbility(user)),
         ),
       _CustomStatSourceKind.psyshock ||
       _CustomStatSourceKind.customStatsBased =>
@@ -179,4 +182,14 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       'Unsupported s_custom_stats_based dbSymbol "${context.move.dbSymbol}".',
     );
   }
+}
+
+bool _bypassesTargetAbility(PsdkBattleCombatant user) {
+  if (user.effects.contains('ability_suppressed')) {
+    return false;
+  }
+  final abilityId = user.abilityId?.trim().toLowerCase();
+  return abilityId == 'mold_breaker' ||
+      abilityId == 'teravolt' ||
+      abilityId == 'turboblaze';
 }

@@ -44,7 +44,7 @@ void main() {
             'attack': 2,
             'defense': 1,
             'speed': 3,
-            'specialAttack': -1,
+            'specialDefense': -1,
           },
         ),
         playerMove: _move(
