@@ -4,6 +4,7 @@ import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../move/battle_move_data.dart';
+import '../rng/battle_rng_streams.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 
@@ -49,6 +50,21 @@ final class BattleAbilityChangeHandler {
     );
     var nextRng = removed.rng;
     var events = removed.events;
+    if (currentAbilityId == 'neutralizing_gas' &&
+        normalizedAbilityId != 'neutralizing_gas') {
+      final neutralizingGas = _resyncNeutralizingGasReplacement(
+        state: nextState,
+        rng: nextRng,
+        turn: context.turn,
+        previousOwner: target,
+      );
+      nextState = neutralizingGas.state;
+      nextRng = neutralizingGas.rng;
+      events = <PsdkBattleEvent>[
+        ...events,
+        ...neutralizingGas.events,
+      ];
+    }
     if (triggerSwitchEvent) {
       final switchResult =
           nextState.battlerAt(target).effects.dispatchSwitchEvent(
@@ -99,6 +115,47 @@ final class BattleAbilityChangeHandler {
     return blockedAbilities == null ||
         !blockedAbilities.contains(targetAbilityId);
   }
+}
+
+BattleHandlerResult _resyncNeutralizingGasReplacement({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef previousOwner,
+}) {
+  for (final slot in state.aliveSlots()) {
+    final battler = state.battlerAt(slot);
+    if (slot == previousOwner ||
+        _normalizedAbilityId(battler.abilityId) != 'neutralizing_gas' ||
+        battler.effects.contains('ability_suppressed') ||
+        !battler.effects.contains('neutralizing_gas_activated')) {
+      continue;
+    }
+
+    final result = battler.effects.dispatchSwitchEvent(
+      BattleEffectSwitchEventContext(
+        state: state,
+        rng: rng,
+        turn: turn,
+        owner: slot,
+        who: slot,
+        replacement: slot,
+      ),
+      where: (effect) => effect.id == 'ability:neutralizing_gas',
+    );
+    return BattleHandlerResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+      applied: result.applied || result.events.isNotEmpty,
+    );
+  }
+
+  return BattleHandlerResult(
+    state: state,
+    rng: rng,
+    applied: false,
+  );
 }
 
 String _normalizedAbilityId(String? abilityId) {

@@ -955,8 +955,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'neutralizing_gas',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 NeutralizingGas.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'NeutralizingGasEffect.partialNoSwitchPrePass',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'NeutralizingGasEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'no_guard',

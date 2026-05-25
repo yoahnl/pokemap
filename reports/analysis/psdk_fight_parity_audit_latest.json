@@ -9116,19 +9116,19 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 467,
-      "partial": 15,
+      "ported": 469,
+      "partial": 13,
       "missing": 0
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 246,
-        "partial": 8,
+        "ported": 247,
+        "partial": 7,
         "missing": 0
       },
       "move": {
-        "ported": 108,
-        "partial": 7,
+        "ported": 109,
+        "partial": 6,
         "missing": 0
       },
       "item": {
@@ -10258,7 +10258,7 @@
       {
         "effectName": "Flinch",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Flinch.rb",
         "hookFamilies": [
           "move_prevention",
@@ -11395,7 +11395,7 @@
       {
         "effectName": "NeutralizingGas",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 NeutralizingGas.rb",
         "hookFamilies": [
           "ability_change",

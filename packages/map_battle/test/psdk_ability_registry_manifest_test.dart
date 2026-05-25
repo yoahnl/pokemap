@@ -281,6 +281,7 @@ void main() {
         'ball_fetch',
         'color_change',
         'dancer',
+        'neutralizing_gas',
         'wind_rider',
       ]) {
         expect(

@@ -492,14 +492,18 @@ final class BattleEffectObjectStack {
   }
 
   BattleEffectSwitchEventResult dispatchSwitchEvent(
-    BattleEffectSwitchEventContext context,
-  ) {
+    BattleEffectSwitchEventContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     var nextState = context.state;
     var nextRng = context.rng;
     final events = <PsdkBattleEvent>[];
     var changed = false;
 
     for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
       if (!_effectIsStillActive(
         effect: effect,
         state: nextState,

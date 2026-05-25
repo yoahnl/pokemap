@@ -204,15 +204,15 @@ void main() {
         },
       );
 
-      final ticked = initialState.battlerAt(psdkPlayerSlot).effects
-          .dispatchEndTurn(
-            BattleEffectEndTurnContext(
-              state: initialState,
-              rng: _rng(),
-              turn: 7,
-              owner: psdkPlayerSlot,
-            ),
-          );
+      final ticked =
+          initialState.battlerAt(psdkPlayerSlot).effects.dispatchEndTurn(
+                BattleEffectEndTurnContext(
+                  state: initialState,
+                  rng: _rng(),
+                  turn: 7,
+                  owner: psdkPlayerSlot,
+                ),
+              );
 
       final tickedEffect = ticked.state
           .battlerAt(psdkPlayerSlot)
@@ -222,15 +222,15 @@ void main() {
       expect(tickedEffect, isA<EmbargoEffect>());
       expect(tickedEffect.remainingTurns, 1);
 
-      final expired = ticked.state.battlerAt(psdkPlayerSlot).effects
-          .dispatchEndTurn(
-            BattleEffectEndTurnContext(
-              state: ticked.state,
-              rng: ticked.rng,
-              turn: 8,
-              owner: psdkPlayerSlot,
-            ),
-          );
+      final expired =
+          ticked.state.battlerAt(psdkPlayerSlot).effects.dispatchEndTurn(
+                BattleEffectEndTurnContext(
+                  state: ticked.state,
+                  rng: ticked.rng,
+                  turn: 8,
+                  owner: psdkPlayerSlot,
+                ),
+              );
 
       expect(
         expired.state.battlerAt(psdkPlayerSlot).effects.contains('embargo'),
@@ -247,6 +247,43 @@ void main() {
 
       expect(stack.contains('powder'), isTrue);
       expect(stack.clearTurnScopedEffects().contains('powder'), isFalse);
+    });
+
+    test('Flinch status prevention keeps existing flinch from reapplying', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(_combatant()),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'opponent',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                FlinchEffect(
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                ),
+              ),
+            ),
+          ),
+        },
+      );
+
+      final result = applyFlinchEffect(
+        state: state,
+        rng: _rng(),
+        turn: 2,
+        target: psdkOpponentSlot,
+        reason: 'bite',
+      );
+
+      expect(result.applied, isFalse);
+      expect(result.events, isEmpty);
+      expect(
+        result.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .effects
+            .whereType<FlinchEffect>(),
+        hasLength(1),
+      );
     });
 
     test('registry exposes carried move effect objects', () {

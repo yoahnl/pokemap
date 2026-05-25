@@ -55,6 +55,15 @@ BattleHandlerResult applyFlinchEffect({
   required String reason,
   BattleMoveDefinition? move,
 }) {
+  if (state.battlerAt(target).effects.contains('flinch')) {
+    return BattleHandlerResult(
+      state: state,
+      rng: rng,
+      applied: false,
+      reason: 'flinch',
+    );
+  }
+
   final flinch = FlinchEffect(
     scope: BattlerBattleEffectScope(target),
   );

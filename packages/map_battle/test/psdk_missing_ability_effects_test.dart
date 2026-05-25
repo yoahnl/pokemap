@@ -663,6 +663,88 @@ void main() {
       );
     });
 
+    test(
+        'Neutralizing Gas replacement suppresses the former owner after ability change',
+        () {
+      final activated = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            playerAllyAbilityId: 'levitate',
+            opponentAbilityId: 'neutralizing_gas',
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      final changed = const BattleAbilityChangeHandler().changeAbility(
+        context: BattleHandlerContext(
+          state: activated.state,
+          rng: activated.rng,
+          turn: 2,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        abilityId: 'run_away',
+      );
+
+      expect(changed.state.battlerAt(psdkPlayerSlot).abilityId, 'run_away');
+      expect(
+        changed.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isTrue,
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          changed.state.battlerAt(psdkPlayerSlot),
+        ),
+        'neutralizing_gas',
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          changed.state.battlerAt(_playerAllySlot),
+        ),
+        'neutralizing_gas',
+      );
+    });
+
+    test('Neutralizing Gas initial switch pre-pass activates fastest Gas owner',
+        () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            opponentAbilityId: 'neutralizing_gas',
+            playerSpeed: 40,
+            opponentSpeed: 120,
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isTrue,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isFalse,
+      );
+    });
+
     test('Parental Bond adds a weaker second hit for simple damaging moves',
         () {
       final engine = PsdkBattleEngine(
@@ -840,6 +922,9 @@ PsdkBattleState _doublesState({
   String? opponentAbilityId,
   String? playerHeldItemId,
   String? playerAllyHeldItemId,
+  int playerSpeed = 80,
+  int playerAllySpeed = 80,
+  int opponentSpeed = 80,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   return PsdkBattleState(
@@ -849,6 +934,7 @@ PsdkBattleState _doublesState({
           id: 'player',
           abilityId: playerAbilityId,
           heldItemId: playerHeldItemId,
+          speed: playerSpeed,
         ),
       ),
       _playerAllySlot: PsdkBattleCombatant.fromSetup(
@@ -856,10 +942,15 @@ PsdkBattleState _doublesState({
           id: 'player-ally',
           abilityId: playerAllyAbilityId,
           heldItemId: playerAllyHeldItemId,
+          speed: playerAllySpeed,
         ),
       ),
       psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'opponent', abilityId: opponentAbilityId),
+        _combatant(
+          id: 'opponent',
+          abilityId: opponentAbilityId,
+          speed: opponentSpeed,
+        ),
       ),
     },
     field: field,

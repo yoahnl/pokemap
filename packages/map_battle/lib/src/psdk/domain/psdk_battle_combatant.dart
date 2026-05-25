@@ -356,9 +356,10 @@ class PsdkBattleEffectStack {
   }
 
   BattleEffectSwitchEventResult dispatchSwitchEvent(
-    BattleEffectSwitchEventContext context,
-  ) {
-    return _stack.dispatchSwitchEvent(context);
+    BattleEffectSwitchEventContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.dispatchSwitchEvent(context, where: where);
   }
 
   BattleEffectSwitchOutResult dispatchSwitchOut(

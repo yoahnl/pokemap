@@ -503,6 +503,7 @@ void main() {
         'BallFetch',
         'ColorChange',
         'Dancer',
+        'NeutralizingGas',
         'WindRider',
       ]) {
         expect(
@@ -654,6 +655,7 @@ void main() {
         'ChangeType',
         'Confusion',
         'DestinyBond',
+        'Flinch',
         'FutureSight',
         'FuryCutter',
         'Grudge',
