@@ -4,16 +4,16 @@
 
 Phase 3 — Runtime / Application / Flame / Disk Validation
 
-Statut : 🔜 À démarrer
+Statut : 🔜 En cours
 
-Lot courant : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+Lot courant : P3-01 — Project Disk Narrative Asset Loading Audit
 
-Prochain lot exact : P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+Prochain lot exact : P3-01 — Project Disk Narrative Asset Loading Audit
 
 Suivi des lots :
 
-- 🔜 P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
-- P3-01 — Project Disk Narrative Asset Loading Audit
+- ✅ P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+- 🔜 P3-01 — Project Disk Narrative Asset Loading Audit
 - P3-02 — ScenarioAsset Runtime Execution Golden Path
 - P3-03 — Event Source to Scenario Runtime Bridge Validation
 - P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
@@ -22,7 +22,9 @@ Suivi des lots :
 - P3-07 — Playable Runtime Host Narrative Smoke Test
 - P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
-P3-00 : 🔜 prochain lot exact
+P3-00 : ✅ terminé
+
+P3-01 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 3
 
@@ -105,7 +107,7 @@ Exclus :
 
 ## 7. Lots Phase 3 proposés
 
-### 🔜 P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+### ✅ P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 
 Objectif :
 Valider le découpage Phase 3, inventorier les preuves runtime/disk existantes et
@@ -117,6 +119,39 @@ clarifié.
 
 Non-objectifs :
 Pas de code runtime, pas de projet Selbrume final, pas d'UI.
+
+Résultat P3-00 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_00_phase_3_roadmap_bootstrap_runtime_disk_validation_audit.md` ;
+- roadmap Phase 3 confirmée sans réordonnancement ;
+- P3-01 confirmé comme prochain lot exact ;
+- niveaux de preuve clarifiés :
+  - Level 1 solide sur contrats/modèles Phase 2 ;
+  - Level 2 solide sur executor, outcomes, battle handoff, predicates et save/load ;
+  - Level 3 présent sous forme de hooks `PlayableMapGame`, mais preuve narrative
+    Flame complète encore partielle ;
+  - Level 4 partiel sur chargement projet/host, mais flux narratif disque complet
+    non prouvé ;
+- aucun code modifié ;
+- aucun test ajouté ou relancé ;
+- aucun runtime, UI, smoke test ou projet Selbrume créé.
+
+Commandes principales exécutées :
+
+- `git status --short --untracked-files=all`
+- `sed -n '1,260p' "MVP Selbrume/road_map_global.md"`
+- `sed -n '1,260p' "MVP Selbrume/road_map_phase_2.md"`
+- `sed -n '1,260p' "MVP Selbrume/road_map_phase_3.md"`
+- `sed -n '1,320p' reports/roadmap/phase_2/p2_checkpoint_01_domain_contracts_readiness_review.md`
+- `rg -n "ScenarioAsset|ProjectManifest|GameState|SaveData|ScenarioRuntimeExecutor|ScenarioRuntimeSourceEvent|ScenarioRuntimeEffect|sourceMapEnter|sourceTriggerEnter|sourceEntityInteract|sourceOutcome|emitOutcome|startTrainerBattle|battle:|trainer_defeated|storyFlags|completedStepIds|consumedEventIds|MapEntityRuntimePredicate|visibilityRule|conditionalDialogues|PlayableMapGame|save|load" packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `find packages/map_runtime -type f | sort`
+- `find examples/playable_runtime_host -type f | sort`
+
+Décision :
+P3-01 reste nécessaire avant tout golden path runtime plus ambitieux, car le lien
+`projet disque -> assets narratifs disponibles -> runtime narratif prouvé` reste
+le premier gap à fermer.
 
 ### P3-01 — Project Disk Narrative Asset Loading Audit
 
@@ -223,5 +258,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
+P3-01 — Project Disk Narrative Asset Loading Audit
 ```
