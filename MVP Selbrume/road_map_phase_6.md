@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-04-ter — Selbrume Grant Reconciliation / P6-03 Regression Fix
+Lot courant : ✅ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 
-Prochain lot exact : P6-05 — Selbrume First Trainer Battle Golden Slice V0
+Prochain lot exact : P6-06 — Selbrume Save/Load Golden Slice V0
 
 Légende :
 
@@ -44,8 +44,8 @@ Suivi des lots :
 - ✅ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 - ✅ P6-04-bis — Selbrume Git Worktree Attribution / Diff Cleanup
 - ✅ P6-04-ter — Selbrume Grant Reconciliation / P6-03 Regression Fix
-- ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
-- ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
+- ✅ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+- ➡️ P6-06 — Selbrume Save/Load Golden Slice V0
 - ⏳ P6-07 — Selbrume Beta Validator Pass V0
 - ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
 - 🧭 P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
@@ -64,12 +64,14 @@ P6-04-bis : ✅ terminé
 
 P6-04-ter : ✅ terminé
 
-P6-05 : ➡️ prochain lot exact
+P6-05 : ✅ terminé
+
+P6-06 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-05 — Selbrume First Trainer Battle Golden Slice V0
+P6-06 — Selbrume Save/Load Golden Slice V0
 ```
 
 ## Objectif Phase 6
@@ -357,6 +359,47 @@ Décision roadmap :
 Les preuves P6-01/P6-02/P6-03/P6-04 repassent.
 P6-05 peut démarrer explicitement sur Grant ou sur un autre trainer choisi.
 Prochain lot exact : P6-05 — Selbrume First Trainer Battle Golden Slice V0.
+```
+
+## Résultat P6-05
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json est chargé via loadRuntimeMapBundle
+maps chargées : Selbrume et route 1
+trainer retenu : grant
+NPC route 1 retenu : grant avec trainerId=grant
+asset Grant conservé : assets/tilesets/grant.png
+team Grant vérifiée : bulbasaur niveau 1, metapod niveau 25, ivysaur niveau 25
+moves Grant vérifiés : growl, tackle, harden, sweet_scent, growth, leech_seed
+état golden slice seedé : party/bag P6-02, flag/step P6-03, capture P6-04 conservée
+position route 1 testée : x=24, y=22, facing north
+TrainerBattleStartRequest construit depuis l'entité NPC Grant
+RuntimeBattleSetupMapper construit un BattleSetup trainer Grant
+createBattleSession démarre une session battle non terminée avec Grant
+outcome victoire contrôlé appliqué via applyRuntimeBattleOutcomeToGameState
+trainer defeated flag : trainer_defeated:grant
+reward minimal test-level : money +120, level-up direct party[0] +1
+roundtrip SaveData conserve route 1, party, bag, capture, flags, money et level-up
+```
+
+Niveau de preuve battle :
+
+```text
+runtime-application trainer battle setup + controlled victory outcome write-back
+pas de victoire battle engine complète
+pas de Battle UI
+pas de reward UI
+```
+
+Décision roadmap :
+
+```text
+P6-05 est concluant.
+Grant reste conservé comme contenu utilisateur volontaire.
+Aucun code production et aucun fichier selbrume/ n'est modifié en P6-05.
+Prochain lot exact : P6-06 — Selbrume Save/Load Golden Slice V0.
 ```
 
 ## Roadmap
