@@ -6,9 +6,9 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-10 — Reference Picker Read Models
+Lot courant : P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
-Prochain lot exact : P2-10 — Reference Picker Read Models
+Prochain lot exact : P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
 Suivi des lots :
 
@@ -22,8 +22,8 @@ Suivi des lots :
 - ✅ P2-07 — Fact Descriptor / Presentation Layer
 - ✅ P2-08 — World Rule Predicate Adapter Contract
 - ✅ P2-09 — Narrative Validator Diagnostic Expansion
-- 🔜 P2-10 — Reference Picker Read Models
-- P2-CHECKPOINT-01 — Domain Contracts Readiness Review
+- ✅ P2-10 — Reference Picker Read Models
+- 🔜 P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
 P2-00 : ✅ terminé
 
@@ -45,7 +45,9 @@ P2-08 : ✅ terminé
 
 P2-09 : ✅ terminé
 
-P2-10 : 🔜 prochain lot exact
+P2-10 : ✅ terminé
+
+P2-CHECKPOINT-01 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -810,6 +812,19 @@ Commandes exécutées :
 - `find packages/map_core/test -type f -name '*test.dart' | sort`
 - `rg -n "NarrativeValidator|NarrativeDiagnostic|ProjectValidator|flagReadNeverProduced|stepReadNeverCompleted|sourceOutcomeWithoutMatchingEmitOutcome|conditionalDialogueReferencesUnknownDialogue|startTrainerBattleMissingTrainerId|startTrainerBattleReferencesUnknownTrainer|startTrainerBattleMissingNpcEntityId|startTrainerBattleBlankBattleId|declaredOutcomes|emitOutcome|sourceOutcome|choice|reference|authoringPlaceholder|visibilityRule" packages/map_core/test packages/map_core/lib`
 - `dart test test/narrative_validator_test.dart`
+- `dart test --reporter expanded test/narrative_reference_picker_read_models_test.dart`
+- `dart test --reporter expanded test/narrative_validator_test.dart`
+- `dart test --reporter json test/narrative_reference_picker_read_models_test.dart | tail -n 1`
+- `dart test --reporter json test/narrative_validator_test.dart | tail -n 1`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle packages/map_runtime packages/map_editor packages/map_gameplay examples/playable_runtime_host`
+- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_10_reference_picker_read_models.md || true`
+- `git diff --no-index --check /dev/null packages/map_core/lib/src/read_models/narrative_reference_picker_read_models.dart || true`
+- `git diff --no-index --check /dev/null packages/map_core/test/narrative_reference_picker_read_models_test.dart || true`
 - `dart format lib/src/operations/narrative_validator.dart test/narrative_validator_test.dart`
 - `dart test --reporter compact test/narrative_validator_test.dart`
 - `dart analyze`
@@ -849,10 +864,83 @@ Pas d’auto-correction.
 Dépendances :
 P2-02 à P2-08.
 
-### P2-10 — Reference Picker Read Models
+### ✅ P2-10 — Reference Picker Read Models
 
 Objectif :
 Préparer les sources pures de pickers Phase 4 sans créer de widgets UI.
+
+Résultat :
+P2-10 ajoute un petit batch de read models purs dans `map_core`, dérivés de
+`ProjectManifest` et `ScenarioAsset`, sans registry, sans persistence, sans
+JSON/migration, sans modification `ProjectManifest` et sans UI. Le lot crée les
+sources de picker pour Scenario/Scene, Outcome et Battle Reference :
+`NarrativeScenarioPickerOption`, `NarrativeOutcomePickerOption` et
+`NarrativeBattleReferencePickerOption`. Les read models garantissent un tri
+stable, des labels humains avec fallback sur ID, des IDs techniques conservés
+en debug/source et des listes dédupliquées. Les pickers Step, Fact, World Rule
+et Event Source restent reportés.
+
+Fichiers créés :
+
+- `packages/map_core/lib/src/read_models/narrative_reference_picker_read_models.dart`
+- `packages/map_core/test/narrative_reference_picker_read_models_test.dart`
+- `reports/roadmap/phase_2/p2_10_reference_picker_read_models.md`
+
+Fichiers modifiés :
+
+- `packages/map_core/lib/map_core.dart`
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `test -f skills/README.md && sed -n '1,220p' skills/README.md || true`
+- `sed -n '1,220p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/using-superpowers/SKILL.md`
+- `sed -n '1,260p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/test-driven-development/SKILL.md`
+- `sed -n '1,220p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/verification-before-completion/SKILL.md`
+- `find .. -name AGENTS.md -print`
+- `sed -n '1,240p' AGENTS.md`
+- `sed -n '1,220p' "MVP Selbrume/road_map_phase_2.md"`
+- `sed -n '1,180p' "MVP Selbrume/road_map_global.md"`
+- `sed -n '1,160p' "MVP Selbrume/road_map_phase_1.md"`
+- `sed -n '1,220p' reports/roadmap/phase_2/p2_09_narrative_validator_diagnostic_expansion.md`
+- `sed -n '1,180p' reports/roadmap/phase_2/p2_04_scene_scenario_asset_adapter_contract.md`
+- `sed -n '1,180p' reports/roadmap/phase_2/p2_05_outcome_reference_contracts.md`
+- `sed -n '1,180p' reports/roadmap/phase_2/p2_06_battle_reference_outcome_contract.md`
+- `find packages/map_core/lib -maxdepth 4 -type f | sort`
+- `find packages/map_core/test -type f -name '*test.dart' | sort`
+- `rg -n "ReadModel|Picker|Reference|Projection|ScenarioAsset|declaredOutcomes|emitOutcome|sourceOutcome|startTrainerBattle|ProjectTrainerEntry|NarrativeWorkspaceProjection" packages/map_core packages/map_editor`
+- `dart test test/narrative_reference_picker_read_models_test.dart`
+- `dart format lib/src/read_models/narrative_reference_picker_read_models.dart lib/map_core.dart test/narrative_reference_picker_read_models_test.dart`
+- `dart analyze`
+- `dart test test/narrative_validator_test.dart`
+
+Read models ajoutés :
+
+- `NarrativeScenarioPickerOption`
+- `NarrativeOutcomePickerOption`
+- `NarrativeBattleReferencePickerOption`
+
+Read models reportés :
+
+- Story Step picker ;
+- Fact Presentation picker ;
+- World Rule picker ;
+- Event Source picker.
+
+Tests lancés :
+
+- `dart test test/narrative_reference_picker_read_models_test.dart`
+- `dart test test/narrative_validator_test.dart`
+- `dart analyze`
+
+Décisions utilisateur nouvelles :
+Aucune décision utilisateur imposée. La décision appliquée est la trajectoire
+P2-04/P2-05/P2-06 : read models non persistants dérivés de l'existant.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-10 reste dans `map_core`, sans UI, sans
+runtime/editor/gameplay/battle et sans registry.
 
 Risque :
 Confondre read model et widget Flutter.
@@ -935,5 +1023,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-10 — Reference Picker Read Models
+P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 ```
