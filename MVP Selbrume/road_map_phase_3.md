@@ -6,9 +6,9 @@ Phase 3 — Runtime / Application / Flame / Disk Validation
 
 Statut : 🔜 En cours
 
-Lot courant : P3-05 — Fact / World Rule Runtime Projection Validation
+Lot courant : P3-06 — Save/Load Narrative State Roundtrip Validation
 
-Prochain lot exact : P3-05 — Fact / World Rule Runtime Projection Validation
+Prochain lot exact : P3-06 — Save/Load Narrative State Roundtrip Validation
 
 Suivi des lots :
 
@@ -17,8 +17,8 @@ Suivi des lots :
 - ✅ P3-02 — ScenarioAsset Runtime Execution Golden Path
 - ✅ P3-03 — Event Source to Scenario Runtime Bridge Validation
 - ✅ P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
-- 🔜 P3-05 — Fact / World Rule Runtime Projection Validation
-- P3-06 — Save/Load Narrative State Roundtrip Validation
+- ✅ P3-05 — Fact / World Rule Runtime Projection Validation
+- 🔜 P3-06 — Save/Load Narrative State Roundtrip Validation
 - P3-07 — Playable Runtime Host Narrative Smoke Test
 - P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
@@ -32,7 +32,9 @@ P3-03 : ✅ terminé
 
 P3-04 : ✅ terminé
 
-P3-05 : 🔜 prochain lot exact
+P3-05 : ✅ terminé
+
+P3-06 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 3
 
@@ -334,7 +336,7 @@ Décision :
 P3-05 devient le prochain lot exact, car P3-04 a prouvé la continuation outcome
 et battle outcome minimale sans ouvrir save/load, World Rules ou battle complet.
 
-### P3-05 — Fact / World Rule Runtime Projection Validation
+### ✅ P3-05 — Fact / World Rule Runtime Projection Validation
 
 Objectif :
 Valider que les vérités techniques et predicates existants projettent le monde
@@ -343,6 +345,46 @@ sans créer de nouvelle source de vérité.
 Résultat attendu :
 Preuve ou gaps sur flags, steps, chapter derivation, visibility rules et
 conditional dialogues.
+
+Résultat P3-05 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_05_fact_world_rule_runtime_projection_validation.md` ;
+- fixture technique non-Selbrume créée :
+  `packages/map_runtime/test/fixtures/p3_fact_world_rule_projection/` ;
+- test ciblé créé :
+  `packages/map_runtime/test/p3_fact_world_rule_projection_test.dart` ;
+- preuve obtenue :
+  - vrai `project.json` chargé par `loadRuntimeMapBundle` ;
+  - `visibilityRule` lit passivement `GameState.storyFlags.activeFlags` ;
+  - `visibilityRule` lit passivement `completedStepIds` ;
+  - `visibilityRule` lit passivement `completedCutsceneIds` ;
+  - `scenario.outcome.*` est lisible comme flag technique ;
+  - `battle:*` est lisible comme flag technique ;
+  - `chapterCompleted` est dérivé via `GlobalStoryChapterStepIndex` sans état
+    stocké de chapitre ;
+  - `Step Studio world presence` projette passivement la présence PNJ depuis
+    metadata `authoring.stepStudioDocument` et `completedStepIds` ;
+  - `conditionalDialogues` résout le dialogue attendu selon les predicates
+    existants ;
+  - les cas négatifs mauvais flag/step/cutscene/outcome/battle/chapter ne
+    déclenchent pas de projection ;
+  - les évaluations ne mutent pas `GameState` ;
+- niveau de preuve : Level 4 partiel pour disque + Level 2/3 contrôlé pour
+  predicates/projection runtime ;
+- non prouvé volontairement : `PlayableMapGame` complet, host smoke,
+  save/load roundtrip, UI authoring, FactRegistry, WorldRuleRegistry ;
+- tests lancés :
+  - `cd packages/map_runtime && flutter test test/p3_fact_world_rule_projection_test.dart`
+  - `cd packages/map_runtime && flutter test test/npc_runtime_presence_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_outcome_battle_continuation_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_event_source_bridge_validation_test.dart`
+  - `cd packages/map_runtime && dart format --set-exit-if-changed test/p3_fact_world_rule_projection_test.dart`
+
+Décision :
+P3-06 devient le prochain lot exact, car P3-05 a prouvé que les vérités
+techniques existantes peuvent projeter passivement le monde sans nouvelle source
+de vérité. Le roundtrip save/load de ces vérités reste volontairement hors P3-05.
 
 ### P3-06 — Save/Load Narrative State Roundtrip Validation
 
@@ -404,5 +446,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-05 — Fact / World Rule Runtime Projection Validation
+P3-06 — Save/Load Narrative State Roundtrip Validation
 ```

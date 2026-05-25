@@ -1,0 +1,71 @@
+{
+  "name": "P3 Fact World Rule Projection",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "p3_fact_world_rule_map",
+      "name": "P3 Fact World Rule Map",
+      "relativePath": "maps/p3_fact_world_rule_field.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "dialogues": [
+    {
+      "id": "p3.default.dialogue",
+      "name": "P3 Default Dialogue",
+      "relativePath": "dialogues/p3_default.yarn"
+    },
+    {
+      "id": "p3.flag.dialogue",
+      "name": "P3 Flag Dialogue",
+      "relativePath": "dialogues/p3_flag.yarn"
+    },
+    {
+      "id": "p3.step.dialogue",
+      "name": "P3 Step Dialogue",
+      "relativePath": "dialogues/p3_step.yarn"
+    },
+    {
+      "id": "p3.outcome.dialogue",
+      "name": "P3 Outcome Dialogue",
+      "relativePath": "dialogues/p3_outcome.yarn"
+    },
+    {
+      "id": "p3.battle.dialogue",
+      "name": "P3 Battle Dialogue",
+      "relativePath": "dialogues/p3_battle.yarn"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "p3_fact_world_rule_global_story",
+      "name": "P3 Fact World Rule Global Story",
+      "description": "Technical metadata fixture for P3-05 passive projection.",
+      "scope": "globalStory",
+      "entryNodeId": "p3_fact_world_rule_start",
+      "nodes": [
+        {
+          "id": "p3_fact_world_rule_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_fact_world_rule_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_fact_world_rule_edge_start_end",
+          "fromNodeId": "p3_fact_world_rule_start",
+          "toNodeId": "p3_fact_world_rule_end"
+        }
+      ],
+      "metadata": {
+        "authoring.stepStudioDocument": "{\"schemaVersion\":1,\"steps\":[{\"id\":\"p3.world_presence.step.visible\",\"worldChanges\":[{\"mapId\":\"p3_fact_world_rule_map\",\"entityId\":\"p3_world_presence_npc\",\"presenceRule\":\"visibleAfterStepCompletion\"}]}]}",
+        "authoring.globalStoryStudioDocument": "{\"schemaVersion\":1,\"chapters\":[{\"id\":\"p3.chapter.visible\",\"stepIds\":[\"p3.chapter.step.a\",\"p3.chapter.step.b\"]}]}"
+      }
+    }
+  ]
+}

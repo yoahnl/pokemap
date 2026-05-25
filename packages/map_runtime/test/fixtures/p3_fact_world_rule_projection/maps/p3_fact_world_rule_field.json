@@ -1,0 +1,215 @@
+{
+  "id": "p3_fact_world_rule_map",
+  "name": "P3 Fact World Rule Map",
+  "size": {
+    "width": 8,
+    "height": 8
+  },
+  "version": "v1",
+  "entities": [
+    {
+      "id": "p3_fact_world_rule_spawn",
+      "name": "P3 Fact World Rule Spawn",
+      "kind": "spawn",
+      "pos": {
+        "x": 0,
+        "y": 0
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "south"
+      }
+    },
+    {
+      "id": "p3_flag_visible_npc",
+      "name": "P3 Flag Visible NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Flag Visible NPC",
+        "visibilityRule": {
+          "mode": "visibleWhen",
+          "predicate": {
+            "kind": "storyFlagSet",
+            "refId": "p3.fact.flag.visible"
+          }
+        }
+      }
+    },
+    {
+      "id": "p3_step_visible_npc",
+      "name": "P3 Step Visible NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 2,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Step Visible NPC",
+        "visibilityRule": {
+          "mode": "visibleWhen",
+          "predicate": {
+            "kind": "stepCompleted",
+            "refId": "p3.step.visible"
+          }
+        }
+      }
+    },
+    {
+      "id": "p3_cutscene_visible_npc",
+      "name": "P3 Cutscene Visible NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 3,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Cutscene Visible NPC",
+        "visibilityRule": {
+          "mode": "visibleWhen",
+          "predicate": {
+            "kind": "cutsceneCompleted",
+            "refId": "p3.cutscene.visible"
+          }
+        }
+      }
+    },
+    {
+      "id": "p3_outcome_visible_npc",
+      "name": "P3 Outcome Visible NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 4,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Outcome Visible NPC",
+        "visibilityRule": {
+          "mode": "visibleWhen",
+          "predicate": {
+            "kind": "storyFlagSet",
+            "refId": "scenario.outcome.p3.outcome.visible"
+          }
+        }
+      }
+    },
+    {
+      "id": "p3_battle_visible_npc",
+      "name": "P3 Battle Visible NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 5,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Battle Visible NPC",
+        "visibilityRule": {
+          "mode": "visibleWhen",
+          "predicate": {
+            "kind": "storyFlagSet",
+            "refId": "battle:p3_battle_projection:victory"
+          }
+        }
+      }
+    },
+    {
+      "id": "p3_chapter_visible_npc",
+      "name": "P3 Chapter Visible NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 6,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Chapter Visible NPC",
+        "visibilityRule": {
+          "mode": "visibleWhen",
+          "predicate": {
+            "kind": "chapterCompleted",
+            "refId": "p3.chapter.visible"
+          }
+        }
+      }
+    },
+    {
+      "id": "p3_world_presence_npc",
+      "name": "P3 World Presence NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 1,
+        "y": 3
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 World Presence NPC"
+      }
+    },
+    {
+      "id": "p3_conditional_dialogue_npc",
+      "name": "P3 Conditional Dialogue NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 2,
+        "y": 3
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Conditional Dialogue NPC",
+        "dialogue": {
+          "dialogueId": "p3.default.dialogue"
+        },
+        "conditionalDialogues": [
+          {
+            "when": {
+              "kind": "storyFlagSet",
+              "refId": "p3.fact.flag.visible"
+            },
+            "dialogue": {
+              "dialogueId": "p3.flag.dialogue"
+            }
+          },
+          {
+            "when": {
+              "kind": "stepCompleted",
+              "refId": "p3.step.visible"
+            },
+            "dialogue": {
+              "dialogueId": "p3.step.dialogue"
+            }
+          },
+          {
+            "when": {
+              "kind": "storyFlagSet",
+              "refId": "scenario.outcome.p3.outcome.visible"
+            },
+            "dialogue": {
+              "dialogueId": "p3.outcome.dialogue"
+            }
+          },
+          {
+            "when": {
+              "kind": "storyFlagSet",
+              "refId": "battle:p3_battle_projection:victory"
+            },
+            "dialogue": {
+              "dialogueId": "p3.battle.dialogue"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "mapMetadata": {
+    "defaultSpawnId": "p3_fact_world_rule_spawn"
+  }
+}
