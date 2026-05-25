@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
+Lot courant : ✅ P6-02 — Selbrume Initial Party / Bag Setup V0
 
-Prochain lot exact : P6-02 — Selbrume Initial Party / Bag Setup V0
+Prochain lot exact : P6-03 — Selbrume First Narrative Interaction V0
 
 Légende :
 
@@ -39,8 +39,8 @@ Suivi des lots :
 
 - ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 - ✅ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
-- ➡️ P6-02 — Selbrume Initial Party / Bag Setup V0
-- ⏳ P6-03 — Selbrume First Narrative Interaction V0
+- ✅ P6-02 — Selbrume Initial Party / Bag Setup V0
+- ➡️ P6-03 — Selbrume First Narrative Interaction V0
 - ⏳ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 - ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
@@ -52,12 +52,14 @@ P6-00 : ✅ terminé
 
 P6-01 : ✅ terminé
 
-P6-02 : ➡️ prochain lot exact
+P6-02 : ✅ terminé
+
+P6-03 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-02 — Selbrume Initial Party / Bag Setup V0
+P6-03 — Selbrume First Narrative Interaction V0
 ```
 
 ## Objectif Phase 6
@@ -200,6 +202,32 @@ massivement ajouté à l'état Git au Gate 0. Le contrat P6-01 est donc prouvé 
 sélection explicite startMapId=Selbrume et spawnId=spawn dans le test.
 ```
 
+## Résultat P6-02
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json est chargé via loadRuntimeMapBundle
+start map retenue : Selbrume
+spawn retenu : spawn
+position conservée : x=17, y=24
+facing conservé : south
+party initiale seedée par test : pidgeotto niveau 8
+moves retenus : gust, tackle
+bag initial seedé par test : poke-ball x5, potion x2
+money initial conservé : 0
+roundtrip SaveData conserve map, position, facing, party, bag, money, caught/seen
+```
+
+Décision initial party / bag :
+
+```text
+aucun champ officiel initialParty ou initialBag n'existe dans ProjectManifest
+aucun contrat New Game config persistant n'est créé en P6-02
+aucun fichier selbrume/ n'est modifié
+le setup initial est prouvé par seed explicite de test
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -243,7 +271,9 @@ Preuve :
 packages/map_runtime/test/p6_existing_selbrume_loadability_start_map_contract_test.dart
 ```
 
-### ➡️ P6-02 — Selbrume Initial Party / Bag Setup V0
+### ✅ P6-02 — Selbrume Initial Party / Bag Setup V0
+
+Statut : terminé.
 
 But :
 
@@ -251,7 +281,13 @@ But :
 fournir une party initiale et un bag minimal utilisables dans le golden slice.
 ```
 
-### ⏳ P6-03 — Selbrume First Narrative Interaction V0
+Preuve :
+
+```text
+packages/map_runtime/test/p6_selbrume_initial_party_bag_setup_test.dart
+```
+
+### ➡️ P6-03 — Selbrume First Narrative Interaction V0
 
 But :
 
