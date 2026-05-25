@@ -6,9 +6,9 @@ Phase 3 — Runtime / Application / Flame / Disk Validation
 
 Statut : 🔜 En cours
 
-Lot courant : P3-06 — Save/Load Narrative State Roundtrip Validation
+Lot courant : P3-07 — Playable Runtime Host Narrative Smoke Test
 
-Prochain lot exact : P3-06 — Save/Load Narrative State Roundtrip Validation
+Prochain lot exact : P3-07 — Playable Runtime Host Narrative Smoke Test
 
 Suivi des lots :
 
@@ -18,8 +18,8 @@ Suivi des lots :
 - ✅ P3-03 — Event Source to Scenario Runtime Bridge Validation
 - ✅ P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
 - ✅ P3-05 — Fact / World Rule Runtime Projection Validation
-- 🔜 P3-06 — Save/Load Narrative State Roundtrip Validation
-- P3-07 — Playable Runtime Host Narrative Smoke Test
+- ✅ P3-06 — Save/Load Narrative State Roundtrip Validation
+- 🔜 P3-07 — Playable Runtime Host Narrative Smoke Test
 - P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
 P3-00 : ✅ terminé
@@ -34,7 +34,9 @@ P3-04 : ✅ terminé
 
 P3-05 : ✅ terminé
 
-P3-06 : 🔜 prochain lot exact
+P3-06 : ✅ terminé
+
+P3-07 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 3
 
@@ -386,13 +388,56 @@ P3-06 devient le prochain lot exact, car P3-05 a prouvé que les vérités
 techniques existantes peuvent projeter passivement le monde sans nouvelle source
 de vérité. Le roundtrip save/load de ces vérités reste volontairement hors P3-05.
 
-### P3-06 — Save/Load Narrative State Roundtrip Validation
+### ✅ P3-06 — Save/Load Narrative State Roundtrip Validation
 
 Objectif :
 Valider le roundtrip save/load des états narratifs nécessaires au flux minimal.
 
 Résultat attendu :
 Preuve ciblée pour story flags, completed steps, outcomes et états connexes.
+
+Résultat P3-06 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_06_save_load_narrative_state_roundtrip_validation.md` ;
+- test ciblé créé :
+  `packages/map_runtime/test/p3_save_load_narrative_state_roundtrip_test.dart` ;
+- fixture P3-05 réutilisée sans modification :
+  `packages/map_runtime/test/fixtures/p3_fact_world_rule_projection/` ;
+- preuve obtenue :
+  - vrai fichier de sauvegarde temporaire écrit et relu via
+    `FileGameSaveRepository`, `SaveGameUseCase` et `LoadGameUseCase` ;
+  - `storyFlags.activeFlags` survit au roundtrip ;
+  - `completedStepIds` survit au roundtrip ;
+  - `completedCutsceneIds` survit au roundtrip ;
+  - `scenario.outcome.*` survit comme flag technique ;
+  - `battle:*:victory` et `battle:*:defeat` survivent comme flags techniques
+    séparés ;
+  - `consumedEventIds` survit au roundtrip dans le chemin `GameState` courant ;
+  - `currentMapId`, position et orientation joueur sont conservés pour le flux
+    runtime minimal ;
+  - les projections P3-05 restent actives après reload :
+    `visibilityRule`, `conditionalDialogues`, `chapterCompleted` dérivé et
+    Step Studio world presence ;
+  - les cas négatifs après reload restent false ou fallback ;
+  - les projections relues après reload ne mutent pas `GameState` ;
+- niveau de preuve : Level 4 partiel pour vrai save/load disque temporaire et
+  fixture `project.json` P3-05, Level 2/3 contrôlé pour repository/use cases et
+  predicates runtime ;
+- non prouvé volontairement : `PlayableMapGame` complet, host smoke, UI save
+  menu, combat complet, rewards, money, XP, Selbrume final ;
+- tests lancés :
+  - `cd packages/map_runtime && dart format --set-exit-if-changed test/p3_save_load_narrative_state_roundtrip_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_save_load_narrative_state_roundtrip_test.dart`
+  - `cd packages/map_runtime && flutter test test/file_game_save_repository_test.dart`
+  - `cd packages/map_runtime && flutter test test/step_studio_save_reload_visibility_integration_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_fact_world_rule_projection_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_outcome_battle_continuation_test.dart`
+
+Décision :
+P3-07 devient le prochain lot exact, car P3-06 a prouvé que les vérités
+narratives techniques produites ou lues par P3-02 à P3-05 survivent au
+roundtrip save/load disque sans créer de nouveau modèle, registry ou migration.
 
 ### P3-07 — Playable Runtime Host Narrative Smoke Test
 
@@ -446,5 +491,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-06 — Save/Load Narrative State Roundtrip Validation
+P3-07 — Playable Runtime Host Narrative Smoke Test
 ```
