@@ -6,9 +6,9 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-07 — Fact Descriptor / Presentation Layer
+Lot courant : P2-08 — World Rule Predicate Adapter Contract
 
-Prochain lot exact : P2-07 — Fact Descriptor / Presentation Layer
+Prochain lot exact : P2-08 — World Rule Predicate Adapter Contract
 
 Suivi des lots :
 
@@ -19,8 +19,8 @@ Suivi des lots :
 - ✅ P2-04 — Scene / ScenarioAsset Adapter Contract
 - ✅ P2-05 — Outcome Reference Contracts
 - ✅ P2-06 — Battle Reference / Outcome Contract
-- 🔜 P2-07 — Fact Descriptor / Presentation Layer
-- P2-08 — World Rule Predicate Adapter Contract
+- ✅ P2-07 — Fact Descriptor / Presentation Layer
+- 🔜 P2-08 — World Rule Predicate Adapter Contract
 - P2-09 — Narrative Validator Diagnostic Expansion
 - P2-10 — Reference Picker Read Models
 - P2-CHECKPOINT-01 — Domain Contracts Readiness Review
@@ -39,7 +39,9 @@ P2-05 : ✅ terminé
 
 P2-06 : ✅ terminé
 
-P2-07 : 🔜 prochain lot exact
+P2-07 : ✅ terminé
+
+P2-08 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -631,11 +633,60 @@ Pas de static wild complet, pas de money/XP, pas de Reward Model unifié.
 Dépendances :
 P2-04.
 
-### P2-07 — Fact Descriptor / Presentation Layer
+### ✅ P2-07 — Fact Descriptor / Presentation Layer
 
 Objectif :
 Fournir des labels humains et relations de source/consumer pour les vérités du
 monde, sans dupliquer le GameState.
+
+Résultat :
+P2-07 reste design-only. Le lot refuse un `FactRegistry` persistant, toute
+modification `ProjectManifest`, toute modification `GameState` / `SaveData` et
+toute duplication de `storyFlags` ou `completedStepIds`. Les vérités techniques
+actuelles restent portées par `GameState`, `SaveData`, les flags
+`scenario.outcome.*`, les flags `battle:<battleId>:<suffix>`, les flags
+`trainer_defeated:<trainerId>`, les conditions et les predicates runtime. La
+trajectoire recommandée est une future `FactPresentationReadModel` non
+persistante, dérivée des sources techniques et des producers/consumers, si
+P2-09/P2-10 le justifient. Outcomes, battle outcomes et World Rules ne
+deviennent pas automatiquement Facts.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_07_fact_descriptor_presentation_layer.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `sed -n '1,220p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/using-superpowers/SKILL.md`
+- `sed -n '1,220p' /Users/karim/.codex/plugins/cache/openai-curated/superpowers/6188456f/skills/verification-before-completion/SKILL.md`
+- `ctx_batch_execute(commands=[P2-07 roadmap and report fact references, Fact technical truth grep in core gameplay runtime editor, GameState and SaveData truth fields, ScriptCondition truth reads, GameState mutations truth writes, ScenarioAsset fact-producing actions and bindings, Narrative validator fact diagnostics, Runtime outcome and battle facts, World rule predicate truth reads, Narrative workspace fact/outcome projection], queries=[...])`
+- `ctx_batch_execute(commands=[MapEntityRuntimePredicate definitions, Validator enum diagnostics exact], queries=[...])`
+- `ctx_batch_execute(commands=[SaveData GameState conversion storyFlags mapping], queries=[...])`
+- `ctx_batch_execute(commands=[SaveData conversion functions search], queries=[...])`
+- `ctx_batch_execute(commands=[GameState persistence mapping], queries=[...])`
+- `sed -n '1,840p' "MVP Selbrume/road_map_phase_2.md"`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_07_fact_descriptor_presentation_layer.md || true`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle examples/playable_runtime_host`
+- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+
+Décisions utilisateur nouvelles :
+Aucune décision utilisateur imposée. La décision recommandée pour la suite est
+de garder Fact comme présentation lisible non persistante et de laisser P2-08
+traiter World Rule séparément comme projection passive.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-07 confirme que les Facts ne créent pas une
+nouvelle source de vérité et que tous les flags techniques ne deviennent pas des
+Facts auteur.
 
 Risque :
 Créer un FactRegistry lourd ou exposer des flags bruts avec un label cosmétique.
@@ -772,5 +823,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-07 — Fact Descriptor / Presentation Layer
+P2-08 — World Rule Predicate Adapter Contract
 ```
