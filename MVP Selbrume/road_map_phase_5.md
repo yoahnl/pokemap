@@ -6,14 +6,15 @@ Phase 5 active.
 
 Statut : 🟡 active
 
-Lot courant : ➡️ P5-10 — Audio Minimal Runtime Proof V0
+Lot courant : ➡️ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
-Prochain lot exact : P5-10 — Audio Minimal Runtime Proof V0
+Prochain lot exact : P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
 Légende :
 
 - ✅ terminé
 - ➡️ prochain lot exact
+- ⏭️ reporté
 - ⏳ à venir
 - 🧭 checkpoint
 
@@ -32,8 +33,8 @@ Suivi des lots :
 - ✅ P5-07 — Gameplay Save/Load Beta Roundtrip V0
 - ✅ P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
 - ✅ P5-09 — Beta Playability Validator V0
-- ➡️ P5-10 — Audio Minimal Runtime Proof V0
-- 🧭 P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+- ⏭️ P5-10 — Audio Minimal Runtime Proof V0
+- ➡️ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
 P5-00 : ✅ terminé
 
@@ -55,14 +56,14 @@ P5-08 : ✅ terminé
 
 P5-09 : ✅ terminé
 
-P5-10 : ➡️ prochain lot exact
+P5-10 : ⏭️ reporté hors scope Phase 5 immédiate
 
-P5-CHECKPOINT-01 : 🧭 à venir
+P5-CHECKPOINT-01 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P5-10 — Audio Minimal Runtime Proof V0
+P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 ```
 
 ## Objectif Phase 5
@@ -348,9 +349,25 @@ save/load prerequisites
 diagnostics actionnables
 ```
 
-### ➡️ P5-10 — Audio Minimal Runtime Proof V0
+### ⏭️ P5-10 — Audio Minimal Runtime Proof V0
 
-Statut : prochain lot exact.
+Statut : reporté hors scope Phase 5 immédiate.
+
+Décision :
+
+```text
+L'audio n'est pas implémenté aujourd'hui et n'est pas requis pour clôturer la
+boucle gameplay minimale.
+Le sujet est reporté à une phase UI/UX/polish ou à un chantier audio dédié.
+```
+
+Non-exécuté :
+
+```text
+Aucun code audio n'a été ajouté.
+Aucun modèle audio n'a été créé.
+Aucune preuve runtime audio n'est requise pour passer au checkpoint Phase 5.
+```
 
 But :
 
@@ -367,7 +384,9 @@ fallback silencieux documenté si assets absents
 pas de direction artistique finale
 ```
 
-### 🧭 P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+### ➡️ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+
+Statut : prochain lot exact.
 
 But :
 
