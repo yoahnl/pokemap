@@ -38,8 +38,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 473 |
-| `partial` | 9 |
+| `ported` | 477 |
+| `partial` | 5 |
 | `missing` | 0 |
 | Total effect classes | 482 |
 
@@ -47,7 +47,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 247 | 7 | 0 |
+| ability | 251 | 3 | 0 |
 | field | 15 | 0 | 0 |
 | item | 87 | 0 | 0 |
 | mechanics | 4 | 0 | 0 |

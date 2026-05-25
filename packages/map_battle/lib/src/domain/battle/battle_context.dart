@@ -67,7 +67,7 @@ final class BattleContext {
     state = state.copyWith(outcome: outcome);
   }
 
-  PsdkBattleOutcome? resolveOutcome() => _outcomeFor(state);
+  PsdkBattleOutcome? resolveOutcome() => state.outcome ?? _outcomeFor(state);
 }
 
 /// Immutable state returned outside the application layer.

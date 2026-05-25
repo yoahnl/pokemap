@@ -9116,14 +9116,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 473,
-      "partial": 9,
+      "ported": 477,
+      "partial": 5,
       "missing": 0
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 247,
-        "partial": 7,
+        "ported": 251,
+        "partial": 3,
         "missing": 0
       },
       "move": {
@@ -9718,7 +9718,7 @@
       {
         "effectName": "Commanded",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb",
         "hookFamilies": [
           "post_damage",
@@ -9728,7 +9728,7 @@
       {
         "effectName": "Commander",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Commander.rb",
         "hookFamilies": [
           "switch"
@@ -9737,7 +9737,7 @@
       {
         "effectName": "Commanding",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb",
         "hookFamilies": [
           "move_prevention",
@@ -10155,7 +10155,7 @@
       {
         "effectName": "EmergencyExit",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb",
         "hookFamilies": [
           "post_damage"

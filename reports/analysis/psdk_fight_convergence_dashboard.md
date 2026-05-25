@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-25T09:20:14.257442Z
+Generated: 2026-05-25T09:55:36.481733Z
 
 ## Final Gate Axes
 
@@ -8,13 +8,13 @@ Generated: 2026-05-25T09:20:14.257442Z
 | --- | ---: | ---: | ---: |
 | Attacks | 728 / 728 | 100.0% | 0 |
 | Methods | 330 / 330 | 100.0% | 0 |
-| Effects | 473 / 482 | 98.1% | 9 |
+| Effects | 477 / 482 | 99.0% | 5 |
 
 ## Effects By Family
 
 | Family | Ported | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: | ---: |
-| ability | 247 | 7 | 0 | 7 |
+| ability | 251 | 3 | 0 | 3 |
 | field | 15 | 0 | 0 | 0 |
 | item | 87 | 0 | 0 | 0 |
 | mechanics | 4 | 0 | 0 | 0 |
@@ -27,10 +27,8 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 
 | Hook family | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: |
-| post_damage | 3 | 0 | 3 |
-| switch | 3 | 0 | 3 |
 | item_change | 1 | 0 | 1 |
-| move_prevention | 1 | 0 | 1 |
+| post_damage | 1 | 0 | 1 |
 | stat_change | 1 | 0 | 1 |
 | unclassified | 1 | 0 | 1 |
 
@@ -43,4 +41,4 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 
 ## Next Recommendation
 
-Next recommended lot: close effect family `ability` (7 remaining effects).
+Next recommended lot: close effect family `ability` (3 remaining effects).

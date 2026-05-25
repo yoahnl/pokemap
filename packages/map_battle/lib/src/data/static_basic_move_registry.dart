@@ -1132,6 +1132,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       amount: damage,
       moveCategory: context.move.category,
       move: context.move,
+      canFlee: context.canFlee,
       actionOrder: context.actionOrder,
       targetActionOrder:
           context.announcedMoveFor?.call(targetSlot)?.actionOrder,
@@ -1250,6 +1251,7 @@ _ParentalBondBasicFollowUpResult _resolveParentalBondBasicFollowUp({
     amount: damage,
     moveCategory: context.move.category,
     move: context.move,
+    canFlee: context.canFlee,
   );
   return _ParentalBondBasicFollowUpResult(
     state: applied.state,
@@ -1742,10 +1744,7 @@ BattleMoveBehaviorResolution _resolveTeleport(
     return BattleMoveBehaviorResolution(
       state: prepared.state.copyWith(outcome: outcome),
       rng: prepared.rng,
-      events: <PsdkBattleEvent>[
-        ...prepared.events,
-        PsdkBattleEndedEvent(outcome: outcome),
-      ],
+      events: prepared.events,
     );
   }
 

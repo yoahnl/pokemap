@@ -177,6 +177,129 @@ void main() {
       }
     });
 
+    test('Emergency Exit waits for the final hit of a multi-hit move', () {
+      final state = _singlesState(
+        opponentAbilityId: 'wimp_out',
+        opponentReserves: <PsdkBattleCombatantSetup>[
+          _combatant(id: 'opponent-reserve'),
+        ],
+      );
+      final move = _move(
+        id: 'double_slap',
+        power: 15,
+        battleEngineMethod: 's_multi_hit',
+      ).definition;
+
+      final firstHit = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: move.id,
+        rawDamage: 60,
+        move: move,
+        isFinalHit: false,
+      );
+      final finalHit = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: firstHit.state,
+          rng: firstHit.rng,
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: move.id,
+        rawDamage: 10,
+        move: move,
+      );
+
+      expect(firstHit.state.battlerAt(psdkOpponentSlot).currentHp, 40);
+      expect(firstHit.state.battlerAt(psdkOpponentSlot).switching, isFalse);
+      expect(finalHit.state.battlerAt(psdkOpponentSlot).currentHp, 30);
+      expect(finalHit.state.battlerAt(psdkOpponentSlot).switching, isTrue);
+    });
+
+    test('Emergency Exit is prevented when a healing berry restores above half',
+        () {
+      final state = _singlesState(
+        opponentAbilityId: 'emergency_exit',
+        opponentHeldItemId: 'sitrus_berry',
+        opponentReserves: <PsdkBattleCombatantSetup>[
+          _combatant(id: 'opponent-reserve'),
+        ],
+      );
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'tackle',
+        rawDamage: 60,
+        move: _move(id: 'tackle', power: 40).definition,
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(opponent.currentHp, 65);
+      expect(opponent.heldItemId, isNull);
+      expect(opponent.consumedItemId, 'sitrus_berry');
+      expect(opponent.switching, isFalse);
+    });
+
+    test('Emergency Exit flees in wild-style battles without a replacement',
+        () {
+      final state = _singlesState(opponentAbilityId: 'emergency_exit');
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+          canFlee: true,
+        ),
+        target: psdkOpponentSlot,
+        moveId: 'tackle',
+        rawDamage: 60,
+        move: _move(id: 'tackle', power: 40).definition,
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).switching, isFalse);
+      expect(result.state.outcome?.kind, PsdkBattleOutcomeKind.fled);
+    });
+
+    test('Emergency Exit wild flee propagates through the battle engine', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          canFlee: true,
+          player: _combatant(
+            id: 'player',
+            move: _move(id: 'tackle', power: 120).psdk,
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'wimp_out',
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.outcome?.kind, PsdkBattleOutcomeKind.fled);
+    });
+
     test('Symbiosis gives the owner held item to an ally that consumed one',
         () {
       final state = _doublesState(
@@ -421,6 +544,25 @@ void main() {
         result.events.whereType<PsdkBattleStatStageEvent>(),
         hasLength(5),
       );
+    });
+
+    test('Commander clears queued switches for the tied pair', () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(
+            tatsugiriSwitching: true,
+            dondozoSwitching: true,
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+      expect(result.state.battlerAt(_playerAllySlot).switching, isFalse);
     });
 
     test('Commander also activates when allied Dondozo switches in', () {
@@ -886,6 +1028,7 @@ BattleAccuracyResult _resolveAccuracy({
 PsdkBattleState _singlesState({
   String? playerAbilityId,
   String? opponentAbilityId,
+  String? opponentHeldItemId,
   PsdkBattleStatStages? playerStages,
   PsdkBattleStatStages? opponentStages,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
@@ -902,6 +1045,7 @@ PsdkBattleState _singlesState({
       opponent: _combatant(
         id: 'opponent',
         abilityId: opponentAbilityId,
+        heldItemId: opponentHeldItemId,
         statStages: opponentStages,
       ),
       opponentReserves: opponentReserves,
@@ -957,7 +1101,10 @@ PsdkBattleState _doublesState({
   );
 }
 
-PsdkBattleState _commanderState() {
+PsdkBattleState _commanderState({
+  bool tatsugiriSwitching = false,
+  bool dondozoSwitching = false,
+}) {
   return PsdkBattleState(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
@@ -965,12 +1112,14 @@ PsdkBattleState _commanderState() {
           id: 'tatsugiri',
           speciesId: 'tatsugiri',
           abilityId: 'commander',
+          switching: tatsugiriSwitching,
         ),
       ),
       _playerAllySlot: PsdkBattleCombatant.fromSetup(
         _combatant(
           id: 'dondozo',
           speciesId: 'dondozo',
+          switching: dondozoSwitching,
         ),
       ),
       psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
@@ -1010,6 +1159,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleStatStages? statStages,
   PsdkBattleMoveData? move,
   int speed = 80,
+  bool switching = false,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -1029,6 +1179,7 @@ PsdkBattleCombatantSetup _combatant({
     abilityId: abilityId,
     heldItemId: heldItemId,
     statStages: statStages,
+    switching: switching,
     moves: <PsdkBattleMoveData>[
       move ?? _move(id: 'tackle', power: 40).psdk,
     ],

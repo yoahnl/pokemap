@@ -155,6 +155,7 @@ final class BattleEffectPostDamageContext {
     required this.damage,
     this.targetFainted = false,
     this.criticalHit = false,
+    this.canFlee = false,
     this.userActionOrder,
     this.targetActionOrder,
     this.isFinalHit = true,
@@ -170,6 +171,7 @@ final class BattleEffectPostDamageContext {
   final int damage;
   final bool targetFainted;
   final bool criticalHit;
+  final bool canFlee;
   final int? userActionOrder;
   final int? targetActionOrder;
   final bool isFinalHit;

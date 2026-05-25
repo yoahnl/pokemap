@@ -42,6 +42,7 @@ final class CommanderEffect extends BattleAbilityEffect {
         .updateBattler(
           context.owner,
           (battler) => battler.copyWith(
+            switching: false,
             effects: battler.effects.addEffects(
               <BattleEffect>[
                 CommandingEffect(
@@ -58,6 +59,7 @@ final class CommanderEffect extends BattleAbilityEffect {
         .updateBattler(
           dondozo,
           (battler) => battler.copyWith(
+            switching: false,
             effects: battler.effects.addEffect(
               CommandedEffect(
                 scope: BattlerBattleEffectScope(dondozo),

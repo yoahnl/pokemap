@@ -746,6 +746,8 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'CenterOfAttention',
     'ChangeType',
     'Charge',
+    'Commanded',
+    'Commanding',
     'Confusion',
     'CraftyShield',
     'Curse',
@@ -876,8 +878,6 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
   const partialEffects = <String>{
     'Bestow',
     'Bide',
-    'Commanded',
-    'Commanding',
     'ParentalBond',
   };
   if (portedEffects.contains(effectName)) {

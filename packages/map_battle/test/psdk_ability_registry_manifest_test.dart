@@ -210,6 +210,7 @@ void main() {
         'run_away',
         'aroma_veil',
         'as_one',
+        'commander',
         'oblivious',
         'beads_of_ruin',
         'sword_of_ruin',
@@ -217,6 +218,8 @@ void main() {
         'protosynthesis',
         'quark_drive',
         'receiver',
+        'emergency_exit',
+        'wimp_out',
       ]) {
         final entry = byId[abilityId];
 

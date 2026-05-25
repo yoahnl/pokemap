@@ -165,6 +165,7 @@ final class BattleDamageHandler {
               damage: damage,
               targetFainted: nextState.battlerAt(target).isFainted,
               criticalHit: criticalHit,
+              canFlee: context.canFlee,
               userActionOrder: context.actionOrder,
               targetActionOrder: context.targetActionOrder,
               isFinalHit: isFinalHit,

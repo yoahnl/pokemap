@@ -1,5 +1,7 @@
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_outcome.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
@@ -353,24 +355,43 @@ final class EmergencyExitEffect extends BattleAbilityEffect {
         context.user == context.target ||
         context.damage <= 0 ||
         context.targetFainted ||
+        !context.isFinalHit ||
         _skillPreventsEmergencyExit(context.move) ||
         _sheerForceAlreadyActivated(context)) {
       return null;
     }
 
     final holder = context.state.battlerAt(context.owner);
-    final previousHp = holder.currentHp + context.damage;
+    final previousHp = _hpBeforeCurrentMoveDamage(
+      holder: holder,
+      turn: context.turn,
+      user: context.user,
+      moveId: context.move.id,
+      fallbackDamage: context.damage,
+    );
     if (holder.abilityId != abilityId ||
         holder.switching ||
         holder.currentHp * 2 > holder.maxHp ||
         previousHp * 2 <= holder.maxHp ||
         holder.effects.contains('out_of_reach') ||
         holder.heldItemId == 'eject_button' ||
-        !const BattleSwitchHandler().hasAvailableReplacement(
-          state: context.state,
-          target: context.owner,
-        )) {
+        _healingBerryPreventsEmergencyExit(holder)) {
       return null;
+    }
+
+    if (!const BattleSwitchHandler().hasAvailableReplacement(
+      state: context.state,
+      target: context.owner,
+    )) {
+      if (!context.canFlee) {
+        return null;
+      }
+      return BattleEffectPostDamageResult(
+        state: context.state.copyWith(
+          outcome: const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled),
+        ),
+        rng: context.rng,
+      );
     }
 
     final switched = const BattleSwitchHandler().markSwitching(
@@ -396,6 +417,76 @@ bool _skillPreventsEmergencyExit(BattleMoveDefinition move) {
     's_dragon_tail' || 's_roar' || 's_sky_drop' => true,
     _ => false,
   };
+}
+
+int _hpBeforeCurrentMoveDamage({
+  required PsdkBattleCombatant holder,
+  required int turn,
+  required PsdkBattleSlotRef user,
+  required String moveId,
+  required int fallbackDamage,
+}) {
+  final relevantDamage = holder.damageHistory.entries
+      .where(
+        (entry) =>
+            entry.turn == turn &&
+            entry.source == user &&
+            _normalizedId(entry.moveId) == _normalizedId(moveId),
+      )
+      .fold<int>(0, (sum, entry) => sum + entry.damage);
+  return holder.currentHp +
+      (relevantDamage > 0 ? relevantDamage : fallbackDamage);
+}
+
+bool _healingBerryPreventsEmergencyExit(PsdkBattleCombatant holder) {
+  final itemId = _normalizedNullableId(holder.heldItemId);
+  if (itemId == null) {
+    return false;
+  }
+  final heal = _emergencyExitBerryHealAmount(itemId, holder.maxHp);
+  if (heal == null || heal <= 0) {
+    return false;
+  }
+  if (holder.currentHp / holder.maxHp >
+      _emergencyExitBerryHpThreshold(itemId)) {
+    return false;
+  }
+  return (holder.currentHp + heal) * 2 > holder.maxHp;
+}
+
+int? _emergencyExitBerryHealAmount(String itemId, int maxHp) {
+  return switch (itemId) {
+    'oran_berry' => 10,
+    'sitrus_berry' => (maxHp ~/ 4).clamp(1, maxHp).toInt(),
+    'berry_juice' => 20,
+    'figy_berry' ||
+    'wiki_berry' ||
+    'mago_berry' ||
+    'aguav_berry' ||
+    'iapapa_berry' =>
+      (maxHp ~/ 3).clamp(1, maxHp).toInt(),
+    _ => null,
+  };
+}
+
+double _emergencyExitBerryHpThreshold(String itemId) {
+  return switch (itemId) {
+    'figy_berry' ||
+    'wiki_berry' ||
+    'mago_berry' ||
+    'aguav_berry' ||
+    'iapapa_berry' =>
+      0.25,
+    _ => 0.5,
+  };
+}
+
+String? _normalizedNullableId(String? id) {
+  if (id == null) {
+    return null;
+  }
+  final normalized = _normalizedId(id);
+  return normalized.isEmpty ? null : normalized;
 }
 
 final class StenchEffect extends BattleAbilityEffect {

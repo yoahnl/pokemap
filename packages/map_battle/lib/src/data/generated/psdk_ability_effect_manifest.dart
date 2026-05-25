@@ -210,8 +210,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'commander',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Commander.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'CommanderEffect.partialNoQueuedSwitchActionRewrite',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'CommanderEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'competitive',
@@ -427,8 +427,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'emergency_exit',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'EmergencyExitEffect.partialNoWildFleeMultiHitBerryPrevention',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'EmergencyExitEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'fairy_aura',
@@ -1899,8 +1899,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'wimp_out',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'EmergencyExitEffect.partialNoWildFleeMultiHitBerryPrevention',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'EmergencyExitEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wind_power',
