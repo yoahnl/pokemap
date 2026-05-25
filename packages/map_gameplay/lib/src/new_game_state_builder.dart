@@ -1,5 +1,8 @@
 import 'package:map_core/map_core.dart';
 
+import 'direction.dart';
+import 'player_spawn_resolver.dart';
+
 /// Crée un [GameState] initial pour une nouvelle partie.
 ///
 /// Le state produit est propre : party vide, bag vide, flags vides,
@@ -51,5 +54,32 @@ GameState createNewGameState({
     storyFlags: const StoryFlags(),
     consumedEventIds: const {},
     metadata: const {},
+  );
+}
+
+/// Crée un [GameState] initial depuis une map de départ authorée.
+///
+/// Ce helper garde P5-02 au niveau New Game minimal : il résout uniquement la
+/// position/facing via le spawn de la map, puis délègue l'initialisation du
+/// state à [createNewGameState].
+GameState createNewGameStateFromMap({
+  required MapData startMap,
+  String saveId = 'new_game',
+  String playerName = 'Player',
+  int tileWidthPx = 16,
+  int tileHeightPx = 16,
+}) {
+  final spawn = resolveInitialPlayerSpawn(
+    startMap,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
+  );
+
+  return createNewGameState(
+    startMapId: startMap.id,
+    startPosition: spawn.pos,
+    startFacing: spawn.facing.asFacing,
+    saveId: saveId,
+    playerName: playerName,
   );
 }

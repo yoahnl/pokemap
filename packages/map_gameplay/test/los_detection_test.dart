@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 void main() {
   group('checkLineOfSight', () {
     // Helper pour créer un GameplayWorldState de test
-    GameplayWorldState _createWorld({
+    GameplayWorldState createWorld({
       required MapData map,
       GridPos playerPos = const GridPos(x: 5, y: 5),
     }) {
@@ -21,9 +21,9 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
-        playerPos: const GridPos(x: 5, y: 2),  // 3 cases au nord
+        playerPos: const GridPos(x: 5, y: 2), // 3 cases au nord
       );
 
       final result = checkLineOfSight(
@@ -43,9 +43,9 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
-        playerPos: const GridPos(x: 6, y: 2),  // Décalé d'une case
+        playerPos: const GridPos(x: 6, y: 2), // Décalé d'une case
       );
 
       final result = checkLineOfSight(
@@ -65,15 +65,15 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
-        playerPos: const GridPos(x: 5, y: 0),  // 5 cases (distance > 3)
+        playerPos: const GridPos(x: 5, y: 0), // 5 cases (distance > 3)
       );
 
       final result = checkLineOfSight(
         npcPos: const GridPos(x: 5, y: 5),
         npcFacing: EntityFacing.north,
-        lineOfSightRange: 3,  // Trop court
+        lineOfSightRange: 3, // Trop court
         playerPos: const GridPos(x: 5, y: 0),
         world: world,
       );
@@ -88,20 +88,20 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
         layers: [
-          const MapLayer.tile(
+          MapLayer.tile(
             id: 'terrain',
             name: 'Terrain',
             tilesetId: 'ts',
-            tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            tiles: List.filled(100, 0),
           ),
           MapLayer.collision(
             id: 'collision',
             name: 'Collision',
-            collisions: List.generate(100, (i) => i == 35),  // Index 35 = (5, 3)
+            collisions: List.generate(100, (i) => i == 35), // Index 35 = (5, 3)
           ),
         ],
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
         playerPos: const GridPos(x: 5, y: 2),
       );
@@ -123,9 +123,9 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
-        playerPos: const GridPos(x: 5, y: 4),  // Adjacent (1 case)
+        playerPos: const GridPos(x: 5, y: 4), // Adjacent (1 case)
       );
 
       final result = checkLineOfSight(
@@ -145,7 +145,7 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
         playerPos: const GridPos(x: 5, y: 4),
       );
@@ -153,7 +153,7 @@ void main() {
       final result = checkLineOfSight(
         npcPos: const GridPos(x: 5, y: 5),
         npcFacing: EntityFacing.north,
-        lineOfSightRange: 0,  // Désactivé
+        lineOfSightRange: 0, // Désactivé
         playerPos: const GridPos(x: 5, y: 4),
         world: world,
       );
@@ -167,9 +167,10 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
-        playerPos: const GridPos(x: 5, y: 6),  // Au SUD du NPC (qui regarde au NORD)
+        playerPos:
+            const GridPos(x: 5, y: 6), // Au SUD du NPC (qui regarde au NORD)
       );
 
       final result = checkLineOfSight(
@@ -189,7 +190,7 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
         playerPos: const GridPos(x: 8, y: 5),
       );
@@ -211,7 +212,7 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
         playerPos: const GridPos(x: 2, y: 5),
       );
@@ -233,7 +234,7 @@ void main() {
         name: 'Test',
         size: const GridSize(width: 10, height: 10),
       );
-      final world = _createWorld(
+      final world = createWorld(
         map: map,
         playerPos: const GridPos(x: 5, y: 8),
       );

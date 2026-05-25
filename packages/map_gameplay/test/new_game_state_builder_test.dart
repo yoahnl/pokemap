@@ -3,6 +3,33 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  MapData newGameMap({
+    String mapId = 'p5_new_game_map',
+    String? defaultSpawnId = 'p5_spawn_default',
+    List<MapEntity>? entities,
+  }) {
+    return MapData(
+      id: mapId,
+      name: 'P5 New Game Test Map',
+      size: const GridSize(width: 12, height: 10),
+      mapMetadata: MapMetadata(defaultSpawnId: defaultSpawnId),
+      entities: entities ??
+          const [
+            MapEntity(
+              id: 'p5_spawn_default',
+              name: 'Default Spawn',
+              kind: MapEntityKind.spawn,
+              pos: GridPos(x: 3, y: 4),
+              spawn: MapEntitySpawnData(
+                spawnKey: 'p5_spawn_default',
+                role: EntitySpawnRole.playerStart,
+                facing: EntityFacing.west,
+              ),
+            ),
+          ],
+    );
+  }
+
   group('createNewGameState', () {
     test('creates a GameState with the correct start map id', () {
       final state = createNewGameState(startMapId: 'test_start_map');
@@ -225,7 +252,8 @@ void main() {
       );
 
       final saveData = saveDataFromGameState(state);
-      final reloaded = normalizeLoadedGameState(gameStateFromSaveData(saveData));
+      final reloaded =
+          normalizeLoadedGameState(gameStateFromSaveData(saveData));
 
       expect(reloaded.currentMapId, state.currentMapId);
       expect(reloaded.playerPosition, state.playerPosition);
@@ -245,6 +273,115 @@ void main() {
       expect(state.currentMapId, isNot(contains('selbrume')));
       expect(state.currentMapId, isNot(contains('bourg')));
       expect(state.currentMapId, isNot(contains('port')));
+    });
+  });
+
+  group('createNewGameStateFromMap', () {
+    test('resolves defaultSpawnId into start position and facing', () {
+      final state = createNewGameStateFromMap(
+        startMap: newGameMap(),
+        saveId: 'p5_new_game_save',
+        playerName: 'P5 Player',
+      );
+
+      expect(state.saveId, 'p5_new_game_save');
+      expect(state.currentMapId, 'p5_new_game_map');
+      expect(state.playerPosition, const GridPos(x: 3, y: 4));
+      expect(state.playerFacing, EntityFacing.west);
+      expect(state.trainerProfile.name, 'P5 Player');
+      expect(state.party.members, isEmpty);
+      expect(state.bag.entries, isEmpty);
+      expect(state.trainerProfile.money, 0);
+      expect(state.progression.completedStepIds, isEmpty);
+      expect(state.storyFlags.activeFlags, isEmpty);
+      expect(state.consumedEventIds, isEmpty);
+      expect(state.metadata, isEmpty);
+    });
+
+    test(
+        'falls back to the first playerStart spawn when defaultSpawnId is absent',
+        () {
+      final state = createNewGameStateFromMap(
+        startMap: newGameMap(
+          defaultSpawnId: null,
+          entities: const [
+            MapEntity(
+              id: 'z_spawn',
+              kind: MapEntityKind.spawn,
+              pos: GridPos(x: 7, y: 8),
+              spawn: MapEntitySpawnData(
+                spawnKey: 'z_spawn',
+                role: EntitySpawnRole.playerStart,
+                facing: EntityFacing.north,
+              ),
+            ),
+            MapEntity(
+              id: 'a_spawn',
+              kind: MapEntityKind.spawn,
+              pos: GridPos(x: 1, y: 2),
+              spawn: MapEntitySpawnData(
+                spawnKey: 'a_spawn',
+                role: EntitySpawnRole.playerStart,
+                facing: EntityFacing.east,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      expect(state.currentMapId, 'p5_new_game_map');
+      expect(state.playerPosition, const GridPos(x: 1, y: 2));
+      expect(state.playerFacing, EntityFacing.east);
+    });
+
+    test('throws when the map id is blank', () {
+      expect(
+        () => createNewGameStateFromMap(
+          startMap: newGameMap(mapId: '   '),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('throws when no player spawn can be resolved', () {
+      expect(
+        () => createNewGameStateFromMap(
+          startMap: newGameMap(
+            defaultSpawnId: null,
+            entities: const [],
+          ),
+        ),
+        throwsA(isA<GameplaySpawnResolutionException>()),
+      );
+    });
+
+    test('round-trips the spawn-derived state through SaveData', () {
+      final state = createNewGameStateFromMap(
+        startMap: newGameMap(),
+        saveId: 'p5_roundtrip_save',
+      );
+
+      final saveData = saveDataFromGameState(state);
+      final reloaded =
+          normalizeLoadedGameState(gameStateFromSaveData(saveData));
+
+      expect(reloaded.saveId, 'p5_roundtrip_save');
+      expect(reloaded.currentMapId, 'p5_new_game_map');
+      expect(reloaded.playerPosition, const GridPos(x: 3, y: 4));
+      expect(reloaded.playerFacing, EntityFacing.west);
+      expect(reloaded.party.members, isEmpty);
+      expect(reloaded.bag.entries, isEmpty);
+      expect(reloaded.trainerProfile.money, 0);
+      expect(reloaded.progression.completedStepIds, isEmpty);
+    });
+
+    test('does not hardcode Selbrume ids when resolving a map spawn', () {
+      final state = createNewGameStateFromMap(startMap: newGameMap());
+
+      expect(state.currentMapId.toLowerCase(), isNot(contains('selbrume')));
+      expect(state.currentMapId.toLowerCase(), isNot(contains('lysa')));
+      expect(state.currentMapId.toLowerCase(), isNot(contains('mael')));
+      expect(state.currentMapId.toLowerCase(), isNot(contains('brume')));
     });
   });
 }

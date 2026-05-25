@@ -4,6 +4,7 @@ description: >-
   Player movement, collision resolution, and warp detection.
   Pure Dart — no rendering, no Flame dependency.
 version: 0.1.0
+publish_to: none
 
 repository: https://git.yoahn.me/yoahn/pokemonProject
 

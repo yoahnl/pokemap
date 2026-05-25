@@ -6,6 +6,7 @@ Phase 5 active.
 
 P5-00 : terminé.
 P5-01 : terminé.
+P5-02 : terminé.
 
 Phase 5 reste orientée vers une boucle RPG minimale prouvable, pas vers une
 parité Pokémon complète, pas vers Selbrume final, pas vers une UI premium.
@@ -13,7 +14,7 @@ parité Pokémon complète, pas vers Selbrume final, pas vers une UI premium.
 Prochain lot exact :
 
 ```text
-P5-02 — New Game / Initial GameState Builder V0
+P5-03 — Starter / Initial Party Minimal Flow V0
 ```
 
 ## Objectif Phase 5
@@ -137,7 +138,7 @@ aucun contenu final Selbrume
 
 ### P5-02 — New Game / Initial GameState Builder V0
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -156,6 +157,8 @@ aucun Boot Flow complet
 ```
 
 ### P5-03 — Starter / Initial Party Minimal Flow V0
+
+Statut : prochain lot exact.
 
 But :
 
