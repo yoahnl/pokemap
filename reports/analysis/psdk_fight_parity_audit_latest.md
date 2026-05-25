@@ -39,15 +39,15 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Status | Count |
 | --- | ---: |
 | `ported` | 454 |
-| `partial` | 26 |
-| `missing` | 2 |
+| `partial` | 28 |
+| `missing` | 0 |
 | Total effect classes | 482 |
 
 ### Effects by Family
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 240 | 12 | 2 |
+| ability | 240 | 14 | 0 |
 | field | 15 | 0 | 0 |
 | item | 87 | 0 | 0 |
 | mechanics | 4 | 0 | 0 |
@@ -58,7 +58,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Family | Missing effects |
 | --- | ---: |
-| ability | 2 |
 
 ## Runtime Bridge
 

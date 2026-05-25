@@ -92,7 +92,7 @@ BattleDirectDamageResult applyDirectDamage({
     damage: result.amount,
     target: result.state.battlerAt(target),
     events: result.events,
-    event: damageEvents.isEmpty ? null : damageEvents.single,
+    event: damageEvents.isEmpty ? null : damageEvents.first,
   );
 }
 

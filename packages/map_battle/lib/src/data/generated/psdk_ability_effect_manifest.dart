@@ -956,7 +956,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'neutralizing_gas',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 NeutralizingGas.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'NeutralizingGasEffect.partialNoSwitchPrePass',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'no_guard',
@@ -1018,7 +1019,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'parental_bond',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Parental Bond.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'ParentalBondEffect.partialBasicMoveFollowUpOnly',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'pastel_veil',

@@ -872,6 +872,8 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'EchoedVoice',
     'Flinch',
     'FuryCutter',
+    'NeutralizingGas',
+    'ParentalBond',
     'Rainbow',
     'Rollout',
     'Roost',

@@ -66,6 +66,7 @@ import '../domain/handler/battle_weather_change_handler.dart';
 import '../domain/battler/battle_grounding_resolver.dart';
 import '../domain/effect/ability/ability_effect.dart';
 import '../domain/effect/ability/mental_immunity_ability_effect.dart';
+import '../domain/effect/ability/parental_bond_effect.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_hooks.dart';
 import '../domain/effect/battle_effect_scope.dart';
@@ -1137,6 +1138,16 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     events.addAll(applied.events);
     if (applied.damage > 0) {
       successfulTargets.add(targetSlot);
+      final followUp = _resolveParentalBondBasicFollowUp(
+        context: context,
+        state: state,
+        rng: rng,
+        target: targetSlot,
+        targetCount: common.psdkTargets.length,
+      );
+      state = followUp.state;
+      rng = followUp.rng;
+      events.addAll(followUp.events);
     }
   }
 
@@ -1177,6 +1188,101 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     rng: rng,
     events: events,
   );
+}
+
+_ParentalBondBasicFollowUpResult _resolveParentalBondBasicFollowUp({
+  required BattleMoveBehaviorContext context,
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required PsdkBattleSlotRef target,
+  required int targetCount,
+}) {
+  if (!_canParentalBondFollowUp(
+    context: context,
+    state: state,
+    target: target,
+    targetCount: targetCount,
+  )) {
+    return _ParentalBondBasicFollowUpResult(state: state, rng: rng);
+  }
+
+  final user = state.battlerAt(context.user);
+  final targetBattler = state.battlerAt(target);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: targetBattler,
+      move: context.move,
+      rng: rng,
+      field: state.field,
+      state: state,
+      userSlot: context.user,
+      targetSlot: target,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+    ),
+  );
+  final screenedDamage = _screenAdjustedDamage(
+    state: state,
+    user: user,
+    target: target,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final damage = (screenedDamage * 0.5).floor();
+  if (damage <= 0) {
+    return _ParentalBondBasicFollowUpResult(
+      state: state,
+      rng: damageResult.rng,
+    );
+  }
+
+  final applied = applyDirectDamage(
+    state: state,
+    user: context.user,
+    target: target,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+    moveCategory: context.move.category,
+    move: context.move,
+  );
+  return _ParentalBondBasicFollowUpResult(
+    state: applied.state,
+    rng: applied.rng,
+    events: applied.events,
+  );
+}
+
+bool _canParentalBondFollowUp({
+  required BattleMoveBehaviorContext context,
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef target,
+  required int targetCount,
+}) {
+  final user = state.battlerAt(context.user);
+  return targetCount == 1 &&
+      !user.isFainted &&
+      !state.battlerAt(target).isFainted &&
+      user.abilityId == 'parental_bond' &&
+      !user.effects.contains('ability_suppressed') &&
+      ParentalBondEffect.canApplyFollowUp(
+        move: context.move,
+        alreadyFollowUp: false,
+      );
+}
+
+final class _ParentalBondBasicFollowUpResult {
+  const _ParentalBondBasicFollowUpResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
 }
 
 BattleMoveBehaviorResolution _resolveBeatUp(BattleMoveBehaviorContext context) {

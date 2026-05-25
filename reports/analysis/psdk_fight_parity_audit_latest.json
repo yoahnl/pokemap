@@ -9117,14 +9117,14 @@
     "totalEffects": 482,
     "byStatus": {
       "ported": 454,
-      "partial": 26,
-      "missing": 2
+      "partial": 28,
+      "missing": 0
     },
     "byFamilyAndStatus": {
       "ability": {
         "ported": 240,
-        "partial": 12,
-        "missing": 2
+        "partial": 14,
+        "missing": 0
       },
       "move": {
         "ported": 101,
@@ -11395,7 +11395,7 @@
       {
         "effectName": "NeutralizingGas",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 NeutralizingGas.rb",
         "hookFamilies": [
           "ability_change",
@@ -11531,7 +11531,7 @@
       {
         "effectName": "ParentalBond",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Parental Bond.rb",
         "hookFamilies": []
       },

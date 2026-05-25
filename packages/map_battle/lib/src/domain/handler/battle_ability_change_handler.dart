@@ -27,9 +27,18 @@ final class BattleAbilityChangeHandler {
       );
     }
 
+    final removed = context.state.battlerAt(target).effects.dispatchLifecycle(
+          BattleEffectLifecycleContext(
+            state: context.state,
+            rng: context.rng,
+            turn: context.turn,
+            owner: target,
+            phase: BattleEffectLifecyclePhase.removed,
+          ),
+        );
     final baseState = currentAbilityId == 'forecast'
-        ? _resetForecastForm(context.state, target)
-        : context.state;
+        ? _resetForecastForm(removed.state, target)
+        : removed.state;
     var nextState = baseState.updateBattler(
       target,
       (battler) => battler
@@ -38,8 +47,8 @@ final class BattleAbilityChangeHandler {
                   normalizedAbilityId.isEmpty ? null : normalizedAbilityId)
           .withAbilityEffect(target),
     );
-    var nextRng = context.rng;
-    var events = const <PsdkBattleEvent>[];
+    var nextRng = removed.rng;
+    var events = removed.events;
     if (triggerSwitchEvent) {
       final switchResult =
           nextState.battlerAt(target).effects.dispatchSwitchEvent(
@@ -54,7 +63,10 @@ final class BattleAbilityChangeHandler {
               );
       nextState = switchResult.state;
       nextRng = switchResult.rng;
-      events = switchResult.events;
+      events = <PsdkBattleEvent>[
+        ...events,
+        ...switchResult.events,
+      ];
     }
 
     return BattleHandlerResult(

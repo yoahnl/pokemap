@@ -285,8 +285,11 @@ void main() {
       expect(coverage.concreteFactoryAbilityIds, contains('imposter'));
       expect(coverage.concreteFactoryAbilityIds, contains('shadow_tag'));
       expect(coverage.concreteFactoryAbilityIds, contains('zero_to_hero'));
+      expect(coverage.concreteFactoryAbilityIds, contains('neutralizing_gas'));
+      expect(coverage.concreteFactoryAbilityIds, contains('parental_bond'));
       expect(coverage.manifestAbilityIds, contains('zero_to_hero'));
-      expect(coverage.missingAbilityIds, contains('neutralizing_gas'));
+      expect(coverage.missingAbilityIds, isNot(contains('neutralizing_gas')));
+      expect(coverage.missingAbilityIds, isNot(contains('parental_bond')));
     });
 
     test('Lot 98 damage type and accuracy abilities are strict', () {

@@ -419,6 +419,202 @@ void main() {
         isFalse,
       );
     });
+
+    test('Neutralizing Gas suppresses other active abilities on switch-in', () {
+      final state = _doublesState(
+        playerAbilityId: 'neutralizing_gas',
+        playerAllyAbilityId: 'levitate',
+        opponentAbilityId: 'water_absorb',
+      );
+
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains(
+              'neutralizing_gas_activated',
+            ),
+        isTrue,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains(
+              'ability_suppressed',
+            ),
+        isFalse,
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          result.state.battlerAt(_playerAllySlot),
+        ),
+        'neutralizing_gas',
+      );
+      expect(
+        _abilitySuppressionOrigin(
+          result.state.battlerAt(psdkOpponentSlot),
+        ),
+        'neutralizing_gas',
+      );
+    });
+
+    test('Neutralizing Gas restores suppressed abilities when owner leaves',
+        () {
+      final activated = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            playerAllyAbilityId: 'levitate',
+            opponentAbilityId: 'water_absorb',
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      final restored = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: activated.state,
+          rng: activated.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: _playerAllySlot,
+      );
+
+      expect(
+        restored.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('neutralizing_gas_activated'),
+        isFalse,
+      );
+      expect(
+        restored.state
+            .battlerAt(_playerAllySlot)
+            .effects
+            .contains('ability_suppressed'),
+        isFalse,
+      );
+      expect(
+        restored.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('ability_suppressed'),
+        isFalse,
+      );
+    });
+
+    test('Neutralizing Gas releases suppression before ability changes away',
+        () {
+      final activated = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _doublesState(
+            playerAbilityId: 'neutralizing_gas',
+            opponentAbilityId: 'water_absorb',
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+
+      final changed = const BattleAbilityChangeHandler().changeAbility(
+        context: BattleHandlerContext(
+          state: activated.state,
+          rng: activated.rng,
+          turn: 2,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        abilityId: 'run_away',
+      );
+
+      expect(changed.state.battlerAt(psdkPlayerSlot).abilityId, 'run_away');
+      expect(
+        changed.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('ability_suppressed'),
+        isFalse,
+      );
+    });
+
+    test('Parental Bond adds a weaker second hit for simple damaging moves',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'parental_bond',
+            move: _move(id: 'tackle', power: 40).psdk,
+          ),
+          opponent: _combatant(id: 'opponent'),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final hits = result.timeline.events
+          .whereType<PsdkBattleDamageEvent>()
+          .where((event) => event.user == psdkPlayerSlot)
+          .toList(growable: false);
+
+      expect(hits, hasLength(2));
+      expect(hits[1].damage, lessThan(hits[0].damage));
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).currentHp,
+        100 - hits[0].damage - hits[1].damage,
+      );
+    });
+
+    test('Parental Bond skips excluded one-attack methods', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'parental_bond',
+            move: _move(
+              id: 'uproar',
+              power: 40,
+              battleEngineMethod: 's_uproar',
+            ).psdk,
+          ),
+          opponent: _combatant(id: 'opponent'),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final hits = result.timeline.events
+          .whereType<PsdkBattleDamageEvent>()
+          .where((event) => event.user == psdkPlayerSlot)
+          .toList(growable: false);
+
+      expect(hits, hasLength(1));
+    });
   });
 }
 
@@ -529,6 +725,8 @@ PsdkBattleState _singlesState({
 
 PsdkBattleState _doublesState({
   String? playerAbilityId,
+  String? playerAllyAbilityId,
+  String? opponentAbilityId,
   String? playerHeldItemId,
   String? playerAllyHeldItemId,
 }) {
@@ -544,11 +742,12 @@ PsdkBattleState _doublesState({
       _playerAllySlot: PsdkBattleCombatant.fromSetup(
         _combatant(
           id: 'player-ally',
+          abilityId: playerAllyAbilityId,
           heldItemId: playerAllyHeldItemId,
         ),
       ),
       psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
-        _combatant(id: 'opponent'),
+        _combatant(id: 'opponent', abilityId: opponentAbilityId),
       ),
     },
   );
@@ -639,4 +838,13 @@ BattleRngStreams _rng() {
     moveAccuracySeed: 3,
     genericSeed: 4,
   );
+}
+
+String? _abilitySuppressionOrigin(PsdkBattleCombatant battler) {
+  for (final effect in battler.effects.effects) {
+    if (effect is AbilitySuppressedEffect) {
+      return effect.origin;
+    }
+  }
+  return null;
 }

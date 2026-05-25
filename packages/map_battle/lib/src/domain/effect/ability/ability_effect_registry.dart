@@ -30,7 +30,9 @@ import 'mimicry_effect.dart';
 import 'mold_breaker_ability_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'move_type_change_ability_effect.dart';
+import 'neutralizing_gas_effect.dart';
 import 'no_guard_effect.dart';
+import 'parental_bond_effect.dart';
 import 'post_damage_field_ability_effect.dart';
 import 'post_damage_ability_copy_effect.dart';
 import 'post_damage_reactive_ability_effect.dart';
@@ -185,6 +187,9 @@ final class AbilityEffectRegistry {
           abilityId: 'turboblaze',
           scope: scope,
         ),
+    'neutralizing_gas': ({required scope}) =>
+        NeutralizingGasEffect(scope: scope),
+    'parental_bond': ({required scope}) => ParentalBondEffect(scope: scope),
     'big_pecks': ({required scope}) => StatDropPreventionAbilityEffect(
           abilityId: 'big_pecks',
           scope: scope,
