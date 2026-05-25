@@ -6,9 +6,9 @@ Phase 4 — Authoring Workflows Minimal
 
 Statut : 🔜 Phase courante en exécution
 
-Lot courant : P4-04 — Outcome / Battle Outcome Authoring Operations V0
+Lot courant : P4-05 — Predicate / World Rule Authoring Draft V0
 
-Prochain lot exact : P4-04 — Outcome / Battle Outcome Authoring Operations V0
+Prochain lot exact : P4-05 — Predicate / World Rule Authoring Draft V0
 
 Suivi des lots :
 
@@ -16,8 +16,8 @@ Suivi des lots :
 - ✅ P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
 - ✅ P4-02 — Scenario Authoring Draft Model V0
 - ✅ P4-03 — Event Source Authoring Draft Operations V0
-- 🔜 P4-04 — Outcome / Battle Outcome Authoring Operations V0
-- P4-05 — Predicate / World Rule Authoring Draft V0
+- ✅ P4-04 — Outcome / Battle Outcome Authoring Operations V0
+- 🔜 P4-05 — Predicate / World Rule Authoring Draft V0
 - P4-06 — Narrative Validator Authoring Adapter V0
 - P4-07 — Minimal Authoring Golden Path Test V0
 - P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
@@ -30,7 +30,9 @@ P4-02 : ✅ terminé
 
 P4-03 : ✅ terminé
 
-P4-04 : 🔜 prochain lot exact
+P4-04 : ✅ terminé
+
+P4-05 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -249,7 +251,7 @@ Résultat P4-03 :
   migration, aucun runtime, aucun contenu Selbrume et aucun reward/money/XP
   créé.
 
-### 🔜 P4-04 — Outcome / Battle Outcome Authoring Operations V0
+### ✅ P4-04 — Outcome / Battle Outcome Authoring Operations V0
 
 Objectif :
 Rendre authorables les outcomes scénario et battle outcomes sans registry.
@@ -262,7 +264,33 @@ Preuve concrète, pure et testée :
 - opérations ou read models pour brancher victory/defeat V0 ;
 - diagnostics ou validation contre OutcomeRegistry/BattleRegistry implicites.
 
-### P4-05 — Predicate / World Rule Authoring Draft V0
+Résultat P4-04 :
+
+- rapport créé :
+  `reports/roadmap/phase_4/p4_04_outcome_battle_outcome_authoring_operations.md` ;
+- opérations authoring pures ajoutées dans `map_core` :
+  `addDeclaredOutcomeToNarrativeScenarioAuthoringDraft`,
+  `addEmitOutcomeActionToNarrativeScenarioAuthoringDraft`,
+  `createOutcomeReceivedSourceDraftFromNarrativeOutcomeOption`,
+  `addStartTrainerBattleActionToNarrativeScenarioAuthoringDraft`,
+  `narrativeScenarioOutcomeFlagReference`,
+  `narrativeBattleOutcomeFlagReference`,
+  `validateNarrativeOutcomeAuthoringDraft` ;
+- diagnostics Outcome/Battle V0 ajoutés :
+  `emptyOutcomeId`, `emptyBattleId`, `outcomeNotDeclared`,
+  `declaredOutcomeNeverEmitted`, `battleOptionNotFound`,
+  `missingTrainerReference`, `missingNpcEntityReference`,
+  `scenarioOutcomeBattleOutcomeConfusion` ;
+- séparation explicite `scenario.outcome.*` / `battle:*` prouvée ;
+- compilation `draft -> ScenarioAsset` prouvée pour `sourceOutcome` et
+  `startTrainerBattle` ;
+- tests ciblés ajoutés dans
+  `packages/map_core/test/narrative_outcome_authoring_operations_test.dart` ;
+- aucun widget UI, aucun OutcomeRegistry/BattleRegistry, aucun registry
+  persistant, aucune migration, aucun runtime, aucun contenu Selbrume et aucun
+  reward/money/XP créé.
+
+### 🔜 P4-05 — Predicate / World Rule Authoring Draft V0
 
 Objectif :
 Rendre authorables les predicates et world rules passives sans créer
@@ -352,5 +380,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-04 — Outcome / Battle Outcome Authoring Operations V0
+P4-05 — Predicate / World Rule Authoring Draft V0
 ```
