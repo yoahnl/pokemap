@@ -177,6 +177,139 @@ class GameStateMutations {
     return state.copyWith(bag: updatedBag);
   }
 
+  /// Consomme une quantité d'item depuis le sac.
+  ///
+  /// No-op sûr si l'id est vide, la quantité invalide, l'item absent ou la
+  /// quantité disponible insuffisante.
+  GameState consumeItem(
+    GameState state,
+    String itemId,
+    int quantity,
+  ) {
+    final normalizedItemId = itemId.trim();
+    if (normalizedItemId.isEmpty || quantity <= 0) {
+      return state;
+    }
+
+    final nextEntries = <BagEntry>[];
+    var consumed = false;
+
+    for (final entry in state.bag.normalized().entries) {
+      final isRequestedItem =
+          !consumed && entry.itemId.trim() == normalizedItemId;
+      if (!isRequestedItem) {
+        nextEntries.add(entry);
+        continue;
+      }
+
+      if (entry.quantity < quantity) {
+        return state;
+      }
+
+      consumed = true;
+      final nextQuantity = entry.quantity - quantity;
+      if (nextQuantity > 0) {
+        nextEntries.add(entry.copyWith(quantity: nextQuantity));
+      }
+    }
+
+    if (!consumed) {
+      return state;
+    }
+
+    return state.copyWith(
+      bag: Bag(entries: nextEntries).normalized(),
+    );
+  }
+
+  /// Applique un soin HP hors combat à un membre de party.
+  ///
+  /// Le cap HP est fourni par l'appelant car [PlayerPokemon] ne persiste pas de
+  /// maxHp. Cette mutation ne contient donc aucune table d'items ou de stats.
+  GameState applyHpMedicineToPartyMember(
+    GameState state, {
+    required int partyIndex,
+    required String itemId,
+    required int healAmount,
+    required int maxHp,
+  }) {
+    final normalizedItemId = itemId.trim();
+    if (partyIndex < 0 ||
+        partyIndex >= state.party.members.length ||
+        normalizedItemId.isEmpty ||
+        healAmount <= 0 ||
+        maxHp <= 0) {
+      return state;
+    }
+
+    final target = state.party.members[partyIndex];
+    final currentHp = target.currentHp < 0 ? 0 : target.currentHp;
+    if (currentHp >= maxHp) {
+      return state;
+    }
+
+    final hasItem = state.bag.normalized().entries.any(
+          (entry) =>
+              entry.itemId.trim() == normalizedItemId && entry.quantity > 0,
+        );
+    if (!hasItem) {
+      return state;
+    }
+
+    final consumedState = consumeItem(state, normalizedItemId, 1);
+    final healedHp = currentHp + healAmount;
+    final cappedHp = healedHp > maxHp ? maxHp : healedHp;
+    final nextMembers = [...consumedState.party.members];
+    nextMembers[partyIndex] = nextMembers[partyIndex].copyWith(
+      currentHp: cappedHp,
+    );
+
+    return consumedState.copyWith(
+      party: consumedState.party.copyWith(members: nextMembers),
+    );
+  }
+
+  /// Restaure la party à partir de caps HP explicites par index.
+  ///
+  /// Représente un recovery point minimal sans UI ni Pokemon Center persistant.
+  GameState recoverParty(
+    GameState state, {
+    required Map<int, int> maxHpByPartyIndex,
+    bool clearStatus = true,
+  }) {
+    if (state.party.members.isEmpty || maxHpByPartyIndex.isEmpty) {
+      return state;
+    }
+
+    final nextMembers = <PlayerPokemon>[];
+    var changed = false;
+
+    for (var index = 0; index < state.party.members.length; index++) {
+      final member = state.party.members[index];
+      final maxHp = maxHpByPartyIndex[index];
+      if (maxHp == null || maxHp <= 0) {
+        nextMembers.add(member);
+        continue;
+      }
+
+      final nextStatusId = clearStatus ? '' : member.statusId;
+      final nextMember = member.copyWith(
+        currentHp: maxHp,
+        statusId: nextStatusId,
+      );
+      changed = changed || nextMember != member;
+      nextMembers.add(nextMember);
+    }
+
+    if (!changed) {
+      return state;
+    }
+
+    return state.copyWith(
+      party: state.party.copyWith(members: nextMembers),
+    );
+  }
+
   /// Donne un Pokémon au joueur.
   ///
   /// Le [PlayerPokemon] doit être construit par l'appelant (authoring, script,
