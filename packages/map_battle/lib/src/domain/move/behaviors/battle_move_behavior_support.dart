@@ -4,6 +4,7 @@ import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
+import '../../effect/ability/parental_bond_effect.dart';
 import '../../effect/battle_effect_scope.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_heal_handler.dart';
@@ -101,6 +102,90 @@ BattleDirectDamageResult applyDirectDamage({
     target: result.state.battlerAt(target),
     events: result.events,
     event: damageEvents.isEmpty ? null : damageEvents.first,
+  );
+}
+
+BattleDirectDamageResult applyMoveTargetDamage({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required String moveId,
+  required BattleRngStreams rng,
+  required int turn,
+  required int amount,
+  required BattleMoveDefinition move,
+  int targetCount = 1,
+  PsdkBattleMoveCategory? moveCategory,
+  bool criticalHit = false,
+  bool canFlee = false,
+  int? actionOrder,
+  int? targetActionOrder,
+  bool isFinalHit = true,
+  bool alreadyParentalBondFollowUp = false,
+}) {
+  final canAttemptFollowUp = _canAttemptParentalBondFollowUp(
+    state: state,
+    user: user,
+    target: target,
+    move: move,
+    targetCount: targetCount,
+    alreadyFollowUp: alreadyParentalBondFollowUp,
+    firstRawDamage: amount,
+  );
+  final first = applyDirectDamage(
+    state: state,
+    user: user,
+    target: target,
+    moveId: moveId,
+    rng: rng,
+    turn: turn,
+    amount: amount,
+    moveCategory: moveCategory ?? move.category,
+    move: move,
+    criticalHit: criticalHit,
+    canFlee: canFlee,
+    actionOrder: actionOrder,
+    targetActionOrder: targetActionOrder,
+    isFinalHit: canAttemptFollowUp ? false : isFinalHit,
+  );
+  if (!canAttemptFollowUp ||
+      first.damage <= 0 ||
+      first.state.battlerAt(user).isFainted ||
+      first.state.battlerAt(target).isFainted) {
+    return first;
+  }
+
+  final followUpDamage = first.damage ~/ 2;
+  if (followUpDamage <= 0) {
+    return first;
+  }
+  final second = applyDirectDamage(
+    state: first.state,
+    user: user,
+    target: target,
+    moveId: moveId,
+    rng: first.rng,
+    turn: turn,
+    amount: followUpDamage,
+    moveCategory: moveCategory ?? move.category,
+    move: move,
+    criticalHit: criticalHit,
+    canFlee: canFlee,
+    actionOrder: actionOrder,
+    targetActionOrder: targetActionOrder,
+    isFinalHit: isFinalHit,
+  );
+
+  return BattleDirectDamageResult(
+    state: second.state,
+    rng: second.rng,
+    damage: first.damage + second.damage,
+    target: second.target,
+    event: first.event ?? second.event,
+    events: <PsdkBattleEvent>[
+      ...first.events,
+      ...second.events,
+    ],
   );
 }
 
@@ -206,6 +291,30 @@ bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
 
 String _normalizedId(String? id) {
   return id?.trim().toLowerCase().replaceAll('-', '_') ?? '';
+}
+
+bool _canAttemptParentalBondFollowUp({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition move,
+  required int targetCount,
+  required bool alreadyFollowUp,
+  required int firstRawDamage,
+}) {
+  if (user == target || user.bank == target.bank || firstRawDamage <= 1) {
+    return false;
+  }
+  final userBattler = state.battlerAt(user);
+  final targetBattler = state.battlerAt(target);
+  return userBattler.abilityId == 'parental_bond' &&
+      !userBattler.effects.contains('ability_suppressed') &&
+      firstRawDamage < targetBattler.currentHp &&
+      ParentalBondEffect.canApplyFollowUp(
+        move: move,
+        alreadyFollowUp: alreadyFollowUp,
+        targetCount: targetCount,
+      );
 }
 
 final class PreparedBattleMove {

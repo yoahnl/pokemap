@@ -66,7 +66,6 @@ import '../domain/handler/battle_weather_change_handler.dart';
 import '../domain/battler/battle_grounding_resolver.dart';
 import '../domain/effect/ability/ability_effect.dart';
 import '../domain/effect/ability/mental_immunity_ability_effect.dart';
-import '../domain/effect/ability/parental_bond_effect.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_hooks.dart';
 import '../domain/effect/battle_effect_scope.dart';
@@ -1122,7 +1121,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       isCritical: damageResult.isCritical,
     );
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: state,
       user: context.user,
       target: targetSlot,
@@ -1132,6 +1131,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       amount: damage,
       moveCategory: context.move.category,
       move: context.move,
+      targetCount: common.psdkTargets.length,
       canFlee: context.canFlee,
       actionOrder: context.actionOrder,
       targetActionOrder:
@@ -1142,16 +1142,6 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     events.addAll(applied.events);
     if (applied.damage > 0) {
       successfulTargets.add(targetSlot);
-      final followUp = _resolveParentalBondBasicFollowUp(
-        context: context,
-        state: state,
-        rng: rng,
-        target: targetSlot,
-        targetCount: common.psdkTargets.length,
-      );
-      state = followUp.state;
-      rng = followUp.rng;
-      events.addAll(followUp.events);
     }
   }
 
@@ -1192,102 +1182,6 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     rng: rng,
     events: events,
   );
-}
-
-_ParentalBondBasicFollowUpResult _resolveParentalBondBasicFollowUp({
-  required BattleMoveBehaviorContext context,
-  required PsdkBattleState state,
-  required BattleRngStreams rng,
-  required PsdkBattleSlotRef target,
-  required int targetCount,
-}) {
-  if (!_canParentalBondFollowUp(
-    context: context,
-    state: state,
-    target: target,
-    targetCount: targetCount,
-  )) {
-    return _ParentalBondBasicFollowUpResult(state: state, rng: rng);
-  }
-
-  final user = state.battlerAt(context.user);
-  final targetBattler = state.battlerAt(target);
-  final damageResult = const BattleMoveDamageCalculator().calculate(
-    BattleMoveDamageContext(
-      user: user,
-      target: targetBattler,
-      move: context.move,
-      rng: rng,
-      field: state.field,
-      state: state,
-      userSlot: context.user,
-      targetSlot: target,
-      isLastActionOfTurn: context.isLastActionOfTurn,
-    ),
-  );
-  final screenedDamage = _screenAdjustedDamage(
-    state: state,
-    user: user,
-    target: target,
-    move: context.move,
-    damage: damageResult.damage,
-    isCritical: damageResult.isCritical,
-  );
-  final damage = (screenedDamage * 0.5).floor();
-  if (damage <= 0) {
-    return _ParentalBondBasicFollowUpResult(
-      state: state,
-      rng: damageResult.rng,
-    );
-  }
-
-  final applied = applyDirectDamage(
-    state: state,
-    user: context.user,
-    target: target,
-    moveId: context.move.id,
-    rng: damageResult.rng,
-    turn: context.turn,
-    amount: damage,
-    moveCategory: context.move.category,
-    move: context.move,
-    canFlee: context.canFlee,
-  );
-  return _ParentalBondBasicFollowUpResult(
-    state: applied.state,
-    rng: applied.rng,
-    events: applied.events,
-  );
-}
-
-bool _canParentalBondFollowUp({
-  required BattleMoveBehaviorContext context,
-  required PsdkBattleState state,
-  required PsdkBattleSlotRef target,
-  required int targetCount,
-}) {
-  final user = state.battlerAt(context.user);
-  return targetCount == 1 &&
-      !user.isFainted &&
-      !state.battlerAt(target).isFainted &&
-      user.abilityId == 'parental_bond' &&
-      !user.effects.contains('ability_suppressed') &&
-      ParentalBondEffect.canApplyFollowUp(
-        move: context.move,
-        alreadyFollowUp: false,
-      );
-}
-
-final class _ParentalBondBasicFollowUpResult {
-  const _ParentalBondBasicFollowUpResult({
-    required this.state,
-    required this.rng,
-    this.events = const <PsdkBattleEvent>[],
-  });
-
-  final PsdkBattleState state;
-  final BattleRngStreams rng;
-  final List<PsdkBattleEvent> events;
 }
 
 BattleMoveBehaviorResolution _resolveBeatUp(BattleMoveBehaviorContext context) {
@@ -1960,7 +1854,7 @@ BattleMoveBehaviorResolution _resolvePhotonGeyser(
     isCritical: damageResult.isCritical,
   );
 
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -1968,6 +1862,8 @@ BattleMoveBehaviorResolution _resolvePhotonGeyser(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: chosenMove,
+    moveCategory: chosenMove.category,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -1983,7 +1879,7 @@ BattleMoveBehaviorResolution _resolvePhotonGeyser(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -2434,7 +2330,7 @@ BattleMoveBehaviorResolution _resolvePursuit(
     );
   }
 
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -2442,6 +2338,7 @@ BattleMoveBehaviorResolution _resolvePursuit(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damageResult.damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -2457,7 +2354,7 @@ BattleMoveBehaviorResolution _resolvePursuit(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -2551,7 +2448,7 @@ BattleMoveBehaviorResolution _resolveFusionMove(
     );
   }
 
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -2559,6 +2456,7 @@ BattleMoveBehaviorResolution _resolveFusionMove(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damageResult.damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -2574,7 +2472,7 @@ BattleMoveBehaviorResolution _resolveFusionMove(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3028,7 +2926,7 @@ BattleMoveBehaviorResolution _resolveStomp(BattleMoveBehaviorContext context) {
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3036,6 +2934,7 @@ BattleMoveBehaviorResolution _resolveStomp(BattleMoveBehaviorContext context) {
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3051,7 +2950,7 @@ BattleMoveBehaviorResolution _resolveStomp(BattleMoveBehaviorContext context) {
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3099,7 +2998,7 @@ BattleMoveBehaviorResolution _resolveGravApple(
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3107,6 +3006,7 @@ BattleMoveBehaviorResolution _resolveGravApple(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3122,7 +3022,7 @@ BattleMoveBehaviorResolution _resolveGravApple(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3176,7 +3076,7 @@ BattleMoveBehaviorResolution _resolveMagnitude(
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3184,6 +3084,7 @@ BattleMoveBehaviorResolution _resolveMagnitude(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3199,7 +3100,7 @@ BattleMoveBehaviorResolution _resolveMagnitude(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3277,7 +3178,7 @@ BattleMoveBehaviorResolution _resolvePresent(
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3285,6 +3186,7 @@ BattleMoveBehaviorResolution _resolvePresent(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3300,7 +3202,7 @@ BattleMoveBehaviorResolution _resolvePresent(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3378,7 +3280,7 @@ BattleMoveBehaviorResolution _resolveFickleBeam(
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3386,6 +3288,7 @@ BattleMoveBehaviorResolution _resolveFickleBeam(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3401,7 +3304,7 @@ BattleMoveBehaviorResolution _resolveFickleBeam(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3477,7 +3380,7 @@ BattleMoveBehaviorResolution _resolveShellSideArm(
     );
   }
 
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3485,6 +3388,8 @@ BattleMoveBehaviorResolution _resolveShellSideArm(
     rng: chosenResult.rng,
     turn: context.turn,
     amount: damage,
+    move: chosenMove,
+    moveCategory: chosenMove.category,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3500,7 +3405,7 @@ BattleMoveBehaviorResolution _resolveShellSideArm(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3642,7 +3547,7 @@ BattleMoveBehaviorResolution _resolveElectroShot(
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: boosted.state,
     user: context.user,
     target: targetSlot,
@@ -3650,6 +3555,7 @@ BattleMoveBehaviorResolution _resolveElectroShot(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3665,7 +3571,7 @@ BattleMoveBehaviorResolution _resolveElectroShot(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3826,7 +3732,7 @@ BattleMoveBehaviorResolution _resolveLastRespects(
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3834,6 +3740,7 @@ BattleMoveBehaviorResolution _resolveLastRespects(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3849,7 +3756,7 @@ BattleMoveBehaviorResolution _resolveLastRespects(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -3902,7 +3809,7 @@ BattleMoveBehaviorResolution _resolveSuperDuperEffective(
           .multiplier >
       1.0;
   final damage = superEffective ? (baseDamage * 5461) ~/ 4096 : baseDamage;
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -3910,6 +3817,7 @@ BattleMoveBehaviorResolution _resolveSuperDuperEffective(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -3925,7 +3833,7 @@ BattleMoveBehaviorResolution _resolveSuperDuperEffective(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );
@@ -4064,7 +3972,7 @@ BattleMoveBehaviorResolution _resolveJumpKick(
     damage: damageResult.damage,
     isCritical: damageResult.isCritical,
   );
-  final applied = applyDirectDamage(
+  final applied = applyMoveTargetDamage(
     state: prepared.state,
     user: context.user,
     target: targetSlot,
@@ -4072,6 +3980,7 @@ BattleMoveBehaviorResolution _resolveJumpKick(
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -4087,7 +3996,7 @@ BattleMoveBehaviorResolution _resolveJumpKick(
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...prepared.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );

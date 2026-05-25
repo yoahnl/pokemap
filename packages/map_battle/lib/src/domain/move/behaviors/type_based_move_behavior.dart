@@ -109,7 +109,7 @@ final class TypeBasedMoveBehavior implements BattleMoveUserPreventionBehavior {
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -117,6 +117,7 @@ final class TypeBasedMoveBehavior implements BattleMoveUserPreventionBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: move,
       moveCategory: move.category,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
@@ -133,7 +134,7 @@ final class TypeBasedMoveBehavior implements BattleMoveUserPreventionBehavior {
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
       ],
     );

@@ -352,7 +352,7 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
         continue;
       }
 
-      final applied = applyDirectDamage(
+      final applied = applyMoveTargetDamage(
         state: state,
         user: user,
         target: targetSlot,
@@ -362,6 +362,7 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
         amount: damageResult.damage,
         moveCategory: context.move.category,
         move: context.move,
+        targetCount: prepared.psdkTargets.length,
       );
       state = applied.state;
       rng = applied.rng;

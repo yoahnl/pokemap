@@ -219,7 +219,7 @@ final class FieldLocationMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -244,7 +244,7 @@ final class FieldLocationMoveBehavior implements BattleMoveBehavior {
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
       ],
     );

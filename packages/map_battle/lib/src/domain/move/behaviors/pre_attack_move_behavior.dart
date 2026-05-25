@@ -112,7 +112,7 @@ final class PreAttackMoveBehavior implements BattleMoveUserPreventionBehavior {
         isCritical: damage.isCritical,
       );
 
-      final applied = applyDirectDamage(
+      final applied = applyMoveTargetDamage(
         state: state,
         user: context.user,
         target: targetSlot,
@@ -122,6 +122,7 @@ final class PreAttackMoveBehavior implements BattleMoveUserPreventionBehavior {
         amount: adjustedDamage,
         moveCategory: context.move.category,
         move: context.move,
+        targetCount: prepared.psdkTargets.length,
         criticalHit: damage.isCritical,
       );
       state = applied.state;

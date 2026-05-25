@@ -1741,6 +1741,112 @@ void main() {
       expect(nonHealing.move.priority, 0);
     });
 
+    test('Parental Bond adds a second hit for dedicated damage behaviors', () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        playerMove: _move(
+          id: 'brine',
+          type: 'water',
+          category: PsdkBattleMoveCategory.special,
+          power: 65,
+          battleEngineMethod: 's_brine',
+          pp: 10,
+          currentPp: 10,
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'brine');
+
+      expect(hits, hasLength(2));
+      expect(hits.last.damage, hits.first.damage ~/ 2);
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).moves.single.currentPp,
+        9,
+      );
+    });
+
+    test('Parental Bond drains from the combined target damage', () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        playerCurrentHp: 50,
+        playerMove: _move(
+          id: 'giga_drain',
+          type: 'grass',
+          category: PsdkBattleMoveCategory.special,
+          power: 75,
+          battleEngineMethod: 's_absorb',
+          pp: 10,
+          currentPp: 10,
+        ),
+      );
+
+      final hits = _damageEvents(result, moveId: 'giga_drain');
+      final heals = result.timeline.events
+          .whereType<PsdkBattleHealEvent>()
+          .where((event) => event.moveId == 'giga_drain')
+          .toList(growable: false);
+      final totalDamage = hits.fold<int>(0, (sum, event) => sum + event.damage);
+
+      expect(hits, hasLength(2));
+      expect(hits.last.damage, hits.first.damage ~/ 2);
+      expect(heals, hasLength(1));
+      expect(heals.single.amount, totalDamage ~/ 2);
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).currentHp,
+        50 + heals.single.amount,
+      );
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).moves.single.currentPp,
+        9,
+      );
+    });
+
+    test('Parental Bond recoil is based on the combined target damage', () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        playerMove: _move(
+          id: 'take_down',
+          power: 40,
+          battleEngineMethod: 's_recoil',
+          pp: 10,
+          currentPp: 10,
+        ),
+      );
+
+      final damage = _damageEvents(result, moveId: 'take_down');
+      final targetHits = damage
+          .where((event) => event.target == psdkOpponentSlot)
+          .toList(growable: false);
+      final recoilHits = damage
+          .where((event) => event.target == psdkPlayerSlot)
+          .toList(growable: false);
+      final totalTargetDamage =
+          targetHits.fold<int>(0, (sum, event) => sum + event.damage);
+
+      expect(targetHits, hasLength(2));
+      expect(targetHits.last.damage, targetHits.first.damage ~/ 2);
+      expect(recoilHits, hasLength(1));
+      expect(recoilHits.single.damage, totalTargetDamage ~/ 4);
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).moves.single.currentPp,
+        9,
+      );
+    });
+
+    test('Parental Bond does not add extra hits to native multi-hit moves', () {
+      final result = _runMove(
+        playerAbilityId: 'parental_bond',
+        opponentCurrentHp: 120,
+        playerMove: _move(
+          id: 'double_kick',
+          power: 30,
+          battleEngineMethod: 's_2hits',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'double_kick'), hasLength(2));
+    });
+
     test('Hadron Engine sets Electric Terrain and boosts Special Attack', () {
       final switchIn =
           _dispatchAbilitySwitchIn(playerAbilityId: 'hadron_engine');

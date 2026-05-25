@@ -17,11 +17,14 @@ final class ParentalBondEffect extends BattleAbilityEffect {
   static bool canApplyFollowUp({
     required BattleMoveDefinition move,
     required bool alreadyFollowUp,
+    int targetCount = 1,
   }) {
     return !alreadyFollowUp &&
+        targetCount == 1 &&
         move.category != PsdkBattleMoveCategory.status &&
         move.power > 0 &&
-        !_excludedMethods.contains(_normalizedId(move.battleEngineMethod));
+        !_excludedMethods.contains(_normalizedId(move.battleEngineMethod)) &&
+        !_multiHitMethods.contains(_normalizedId(move.battleEngineMethod));
   }
 }
 
@@ -38,6 +41,17 @@ const _excludedMethods = <String>{
   's_ice_ball',
   's_relic_sound',
   's_electro_shot',
+};
+
+const _multiHitMethods = <String>{
+  's_2hits',
+  's_3hits',
+  's_multi_hit',
+  's_triple_kick',
+  's_population_bomb',
+  's_water_shuriken',
+  's_scale_shot',
+  's_dragon_darts',
 };
 
 String _normalizedId(String value) {

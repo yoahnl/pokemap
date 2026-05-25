@@ -76,7 +76,7 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
         continue;
       }
 
-      final damage = applyDirectDamage(
+      final damage = applyMoveTargetDamage(
         state: state,
         user: context.user,
         target: targetSlot,
@@ -84,12 +84,12 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
         rng: rng,
         turn: context.turn,
         amount: damageResult.damage,
+        move: context.move,
+        targetCount: prepared.psdkTargets.length,
       );
       state = damage.state;
       rng = damage.rng;
-      if (damage.event != null) {
-        events.add(damage.event!);
-      }
+      events.addAll(damage.events);
       if (damage.damage <= 0) {
         continue;
       }

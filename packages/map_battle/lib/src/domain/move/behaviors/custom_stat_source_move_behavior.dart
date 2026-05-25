@@ -89,7 +89,7 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final applied = applyDirectDamage(
+    final applied = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -97,6 +97,7 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: context.move,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -112,7 +113,7 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
-        if (applied.event != null) applied.event!,
+        ...applied.events,
         ...secondary.events,
       ],
     );

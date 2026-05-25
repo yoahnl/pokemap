@@ -42,9 +42,9 @@ const Set<String> _recoilFromUserCurrentHp = <String>{
 ///
 /// The target hit still uses the normal damage formula and shared move
 /// procedure. Recoil is represented as a second damage event targeting the
-/// user. The strict subset includes regular recoil, Rock Head prevention and
-/// Reckless power; Parental Bond, dedicated messages and Basculin evolution
-/// bookkeeping remain outside this lot.
+/// user. The strict subset includes regular recoil, Rock Head prevention,
+/// Reckless power and Parental Bond's combined recoil base; dedicated messages
+/// and Basculin evolution bookkeeping remain outside this lot.
 final class RecoilMoveBehavior implements BattleMoveBehavior {
   const RecoilMoveBehavior.psdkRecoil() : battleEngineMethod = 's_recoil';
 
@@ -112,7 +112,7 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
       );
     }
 
-    final targetDamage = applyDirectDamage(
+    final targetDamage = applyMoveTargetDamage(
       state: prepared.state,
       user: context.user,
       target: targetSlot,
@@ -120,16 +120,17 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      move: context.move,
     );
     var state = targetDamage.state;
     final events = <PsdkBattleEvent>[
       ...prepared.events,
-      if (targetDamage.event != null) targetDamage.event!,
+      ...targetDamage.events,
     ];
     if (targetDamage.damage <= 0) {
       return BattleMoveBehaviorResolution(
         state: state,
-        rng: damageResult.rng,
+        rng: targetDamage.rng,
         events: events,
       );
     }
