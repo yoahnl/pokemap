@@ -47,12 +47,12 @@ final class BattleMoveDamageCalculator {
 
     final stabMultiplier = _typeProcessor.resolveStabMultiplier(
       moveType: moveType,
-      userTypes: context.user.types,
+      userTypes: _effectiveVisibleTypes(context.user),
       extraUserTypes: _extraTypes(context.user),
     );
     final effectiveness = _typeProcessor.resolveEffectiveness(
       moveType: moveType,
-      targetTypes: context.target.types,
+      targetTypes: _effectiveVisibleTypes(context.target),
       extraTargetTypes: _extraTypes(context.target),
       forceGrounded: moveType == 'ground' &&
           _groundingResolver.isGrounded(
@@ -424,10 +424,33 @@ bool _hasBattleEffect(BattleMoveDamageContext context, String id) {
 }
 
 Iterable<String> _extraTypes(PsdkBattleCombatant battler) {
-  return <String>[
+  final types = <String>[
     if (battler.type3 != null) battler.type3!,
     ...battler.temporaryTypes,
   ];
+  if (!battler.effects.contains('roost')) {
+    return types;
+  }
+  return types.where((type) => type.trim().toLowerCase() != 'flying');
+}
+
+PsdkBattleTypes _effectiveVisibleTypes(PsdkBattleCombatant battler) {
+  if (!battler.effects.contains('roost')) {
+    return battler.types;
+  }
+  final types = <String>[
+    battler.types.primary,
+    if (battler.types.secondary != null) battler.types.secondary!,
+  ]
+      .where((type) => type.trim().toLowerCase() != 'flying')
+      .toList(growable: false);
+  if (types.isEmpty) {
+    return const PsdkBattleTypes(primary: 'normal');
+  }
+  return PsdkBattleTypes(
+    primary: types.first,
+    secondary: types.length > 1 ? types[1] : null,
+  );
 }
 
 int _effectiveCriticalRate(BattleMoveDamageContext context) {

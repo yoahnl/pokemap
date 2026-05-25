@@ -9116,8 +9116,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 472,
-      "partial": 10,
+      "ported": 473,
+      "partial": 9,
       "missing": 0
     },
     "byFamilyAndStatus": {
@@ -9127,8 +9127,8 @@
         "missing": 0
       },
       "move": {
-        "ported": 112,
-        "partial": 3,
+        "ported": 113,
+        "partial": 2,
         "missing": 0
       },
       "item": {
@@ -11970,7 +11970,7 @@
       {
         "effectName": "Roost",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Roost.rb",
         "hookFamilies": []
       },

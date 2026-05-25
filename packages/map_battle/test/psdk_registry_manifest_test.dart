@@ -668,6 +668,7 @@ void main() {
         'Mark',
         'Rainbow',
         'Rollout',
+        'Roost',
         'ShedTail',
         'SleepPrevention',
         'SmackDown',
@@ -683,7 +684,6 @@ void main() {
       for (final effectName in <String>[
         'Bestow',
         'Bide',
-        'Roost',
       ]) {
         expect(
           byFamilyAndName['move:$effectName']?.status,

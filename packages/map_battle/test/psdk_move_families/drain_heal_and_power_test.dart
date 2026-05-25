@@ -443,6 +443,51 @@ void main() {
       expect(_healJson(result, moveId: 'roost')['amount'], 50);
     });
 
+    test('s_roost neutralizes Flying type until the end of the turn', () {
+      final noRoost = _runMove(
+        playerTypes: const PsdkBattleTypes(primary: 'flying'),
+        playerMove: _move(
+          id: 'splash',
+          battleEngineMethod: 's_splash',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+        opponentMove: _move(
+          id: 'mud_shot',
+          type: 'ground',
+          category: PsdkBattleMoveCategory.special,
+          power: 40,
+        ),
+      );
+      final roost = _runMove(
+        playerCurrentHp: 50,
+        playerTypes: const PsdkBattleTypes(primary: 'flying'),
+        playerMove: _move(
+          id: 'roost',
+          battleEngineMethod: 's_roost',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+        opponentMove: _move(
+          id: 'mud_shot',
+          type: 'ground',
+          category: PsdkBattleMoveCategory.special,
+          power: 40,
+        ),
+      );
+
+      expect(_damageEvents(noRoost, moveId: 'mud_shot'), isEmpty);
+      expect(
+        noRoost.timeline.events.map((event) => event.kind),
+        contains('move_immune'),
+      );
+      expect(_damage(roost, moveId: 'mud_shot'), greaterThan(0));
+      expect(roost.state.battlerAt(psdkPlayerSlot).effects.contains('roost'),
+          isFalse);
+    });
+
     test('s_shore_up heals more in a sandstorm', () {
       final noWeather = _runMove(
         playerCurrentHp: 10,
@@ -536,10 +581,12 @@ PsdkBattleTurnResult _runMove({
   int playerCurrentHp = 100,
   String? playerHeldItemId,
   String? playerAbilityId,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'fire'),
   bool playerItemConsumed = false,
   PsdkBattleStatStages? playerStatStages,
   PsdkBattleEffectStack? playerEffects,
   PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleMoveData? opponentMove,
   int opponentCurrentHp = 100,
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleEffectStack? opponentEffects,
@@ -557,15 +604,17 @@ PsdkBattleTurnResult _runMove({
         effects: playerEffects,
         majorStatus: playerMajorStatus,
         abilityId: playerAbilityId,
+        types: playerTypes,
       ),
       opponent: _combatant(
         id: 'opponent',
         currentHp: opponentCurrentHp,
-        move: _move(
-          id: 'opponent_wait',
-          power: 0,
-          accuracy: 1,
-        ),
+        move: opponentMove ??
+            _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 1,
+            ),
         majorStatus: opponentMajorStatus,
         effects: opponentEffects,
         abilityId: opponentAbilityId,
@@ -592,6 +641,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleEffectStack? effects,
   PsdkBattleMajorStatus? majorStatus,
   String? abilityId,
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'fire'),
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -600,7 +650,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
-    types: const PsdkBattleTypes(primary: 'fire'),
+    types: types,
     stats: const PsdkBattleStats(
       attack: 50,
       defense: 50,

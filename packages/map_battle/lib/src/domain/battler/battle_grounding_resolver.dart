@@ -68,6 +68,6 @@ final class BattleGroundingResolver {
       return false;
     }
 
-    return !battler.hasType('flying');
+    return battler.effects.contains('roost') || !battler.hasType('flying');
   }
 }

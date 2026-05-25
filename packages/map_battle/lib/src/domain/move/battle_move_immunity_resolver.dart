@@ -131,7 +131,7 @@ final class BattleMoveImmunityResolver {
 
     final effectiveness = _typeProcessor.resolveEffectiveness(
       moveType: moveType,
-      targetTypes: target.types,
+      targetTypes: _effectiveVisibleTypes(target),
       extraTargetTypes: _extraTypes(target),
       forceGrounded: moveType == 'ground' &&
           _groundingResolver.isGrounded(
@@ -197,12 +197,10 @@ final class BattleMoveImmunityResolver {
 
   bool _isGroundMoveBlockedByGrounding(
     String moveType,
-    PsdkBattleCombatant target,
-    {
+    PsdkBattleCombatant target, {
     required PsdkBattleState state,
     required PsdkBattleSlotRef targetSlot,
-  }
-  ) {
+  }) {
     return moveType == 'ground' &&
         !_groundingResolver.isGrounded(
           target,
@@ -341,8 +339,8 @@ String _effectiveMoveType(
       moveType = overridden;
     }
   }
-  for (final effect
-      in execution.context.state.activeItemEffectsAt(execution.psdkActualUser)) {
+  for (final effect in execution.context.state
+      .activeItemEffectsAt(execution.psdkActualUser)) {
     final overridden = effect.moveTypeOverride(
       BattleItemMoveTypeContext(
         user: user,
@@ -364,17 +362,39 @@ bool _hasBattleWideEffect(PsdkBattleState state, String effectId) {
         battler.effects.contains(effectId) ||
         battler.effects.effects.any(
           (effect) =>
-              effect.id == effectId &&
-              effect.scope is FieldBattleEffectScope,
+              effect.id == effectId && effect.scope is FieldBattleEffectScope,
         ),
   );
 }
 
 Iterable<String> _extraTypes(PsdkBattleCombatant battler) {
-  return <String>[
+  final types = <String>[
     if (battler.type3 != null) battler.type3!,
     ...battler.temporaryTypes,
   ];
+  if (!battler.effects.contains('roost')) {
+    return types;
+  }
+  return types.where((type) => type.trim().toLowerCase() != 'flying');
+}
+
+PsdkBattleTypes _effectiveVisibleTypes(PsdkBattleCombatant battler) {
+  if (!battler.effects.contains('roost')) {
+    return battler.types;
+  }
+  final types = <String>[
+    battler.types.primary,
+    if (battler.types.secondary != null) battler.types.secondary!,
+  ]
+      .where((type) => type.trim().toLowerCase() != 'flying')
+      .toList(growable: false);
+  if (types.isEmpty) {
+    return const PsdkBattleTypes(primary: 'normal');
+  }
+  return PsdkBattleTypes(
+    primary: types.first,
+    secondary: types.length > 1 ? types[1] : null,
+  );
 }
 
 PsdkBattleSlotRef _psdkSlotFromBattlePosition(BattlePositionRef slot) {

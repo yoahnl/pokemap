@@ -3,6 +3,8 @@ import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
+import '../../effect/battle_effect_scope.dart';
+import '../../effect/move/roost_effect.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_status_change_handler.dart';
 import '../../timeline/battle_timeline_event.dart';
@@ -117,6 +119,16 @@ final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
       rng = heal.rng;
       if (heal.event != null) {
         events.add(heal.event!);
+      }
+      if (_kind == _HealMoveKind.roost && heal.amount > 0) {
+        state = state.updateBattler(
+          target,
+          (battler) => battler.copyWith(
+            effects: battler.effects.addEffect(
+              RoostEffect(scope: BattlerBattleEffectScope(target)),
+            ),
+          ),
+        );
       }
       if (_kind != _HealMoveKind.jungleHealing) {
         continue;

@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-25T05:54:43.535694Z
+Generated: 2026-05-25T09:20:14.257442Z
 
 ## Final Gate Axes
 
@@ -8,7 +8,7 @@ Generated: 2026-05-25T05:54:43.535694Z
 | --- | ---: | ---: | ---: |
 | Attacks | 728 / 728 | 100.0% | 0 |
 | Methods | 330 / 330 | 100.0% | 0 |
-| Effects | 472 / 482 | 97.9% | 10 |
+| Effects | 473 / 482 | 98.1% | 9 |
 
 ## Effects By Family
 
@@ -18,7 +18,7 @@ Generated: 2026-05-25T05:54:43.535694Z
 | field | 15 | 0 | 0 | 0 |
 | item | 87 | 0 | 0 | 0 |
 | mechanics | 4 | 0 | 0 | 0 |
-| move | 112 | 3 | 0 | 3 |
+| move | 113 | 2 | 0 | 2 |
 | status | 7 | 0 | 0 | 0 |
 
 ## Ability Effect Backlog

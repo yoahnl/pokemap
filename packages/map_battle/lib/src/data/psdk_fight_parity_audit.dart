@@ -830,6 +830,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Rain',
     'Reflect',
     'Rollout',
+    'Roost',
     'Safeguard',
     'SaltCure',
     'Sandstorm',
@@ -878,7 +879,6 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Commanded',
     'Commanding',
     'ParentalBond',
-    'Roost',
   };
   if (portedEffects.contains(effectName)) {
     return PsdkPortStatus.ported;

@@ -40,6 +40,7 @@ import 'move/magic_coat_effect.dart';
 import 'move/powder_effect.dart';
 import 'move/prevent_targets_move_effect.dart';
 import 'move/protect_effect.dart';
+import 'move/roost_effect.dart';
 import 'move/rollout_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
@@ -137,6 +138,7 @@ final class BattleEffectRegistry {
       'prevent_targets_move' =>
         const PreventTargetsMoveEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
+      'roost' => const RoostEffect(scope: LocalBattleEffectScope()),
       'rollout' => const RolloutEffect(
           scope: LocalBattleEffectScope(),
           forcedMoveId: 'rollout',
