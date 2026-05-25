@@ -6,16 +6,16 @@ Phase 4 — Authoring Workflows Minimal
 
 Statut : 🔜 Phase courante en exécution
 
-Lot courant : P4-02 — Scenario Authoring Draft Model V0
+Lot courant : P4-03 — Event Source Authoring Draft Operations V0
 
-Prochain lot exact : P4-02 — Scenario Authoring Draft Model V0
+Prochain lot exact : P4-03 — Event Source Authoring Draft Operations V0
 
 Suivi des lots :
 
 - ✅ P4-00 — Phase 4 Roadmap Recalibration / Authoring Workflow Audit
 - ✅ P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
-- 🔜 P4-02 — Scenario Authoring Draft Model V0
-- P4-03 — Event Source Authoring Draft Operations V0
+- ✅ P4-02 — Scenario Authoring Draft Model V0
+- 🔜 P4-03 — Event Source Authoring Draft Operations V0
 - P4-04 — Outcome / Battle Outcome Authoring Operations V0
 - P4-05 — Predicate / World Rule Authoring Draft V0
 - P4-06 — Narrative Validator Authoring Adapter V0
@@ -26,7 +26,9 @@ P4-00 : ✅ terminé
 
 P4-01 : ✅ terminé
 
-P4-02 : 🔜 prochain lot exact
+P4-02 : ✅ terminé
+
+P4-03 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -173,7 +175,7 @@ Résultat P4-01 :
 - aucun widget UI, aucun registry persistant, aucune migration, aucun runtime,
   aucun contenu Selbrume et aucun reward/money/XP créé.
 
-### 🔜 P4-02 — Scenario Authoring Draft Model V0
+### ✅ P4-02 — Scenario Authoring Draft Model V0
 
 Objectif :
 Créer ou stabiliser un draft model pur permettant de décrire un scenario minimal
@@ -188,7 +190,27 @@ Preuve concrète, pure et testée :
   conversion est prématurée ;
 - tests unitaires sans UI.
 
-### P4-03 — Event Source Authoring Draft Operations V0
+Résultat P4-02 :
+
+- rapport créé :
+  `reports/roadmap/phase_4/p4_02_scenario_authoring_draft_model.md` ;
+- draft model pur ajouté dans `map_core` :
+  `NarrativeScenarioAuthoringDraft`,
+  `NarrativeScenarioAuthoringSourceDraft`,
+  `NarrativeScenarioAuthoringActionDraft` ;
+- diagnostics authoring V0 ajoutés :
+  `emptyScenarioId`, `emptyScenarioName`, `missingSource`,
+  `missingSourceReference`, `emptyActionReference`,
+  `emitOutcomeNotDeclared`, `declaredOutcomeNeverEmitted` ;
+- compilation déterministe `draft -> ScenarioAsset` ajoutée :
+  graphe linéaire `start -> source -> actions -> end`,
+  node ids et edge ids stables, outcomes déclarés conservés ;
+- tests ciblés ajoutés dans
+  `packages/map_core/test/narrative_scenario_authoring_draft_test.dart` ;
+- aucun widget UI, aucun registry persistant, aucune migration, aucun runtime,
+  aucun contenu Selbrume et aucun reward/money/XP créé.
+
+### 🔜 P4-03 — Event Source Authoring Draft Operations V0
 
 Objectif :
 Rendre authorables les sources `mapEnter`, `triggerEnter`, `entityInteract` et
@@ -306,5 +328,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-02 — Scenario Authoring Draft Model V0
+P4-03 — Event Source Authoring Draft Operations V0
 ```
