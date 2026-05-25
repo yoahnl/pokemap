@@ -245,6 +245,124 @@ void main() {
       expect(diagnostics.single.severity, NarrativeValidationSeverity.warning);
     });
 
+    test('declared outcome never emitted produces warning', () {
+      final scenario = _localScenario(
+        declaredOutcomes: const ['test_outcome', 'unused_outcome'],
+      );
+
+      final report = diagnoseNarrativeProject(
+        _manifest(scenarios: [scenario]),
+        maps: [_map()],
+      );
+
+      final diagnostics = report.byKind(
+        NarrativeValidationDiagnosticKind.declaredOutcomeNeverEmitted,
+      );
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.referencedId, 'unused_outcome');
+      expect(diagnostics.single.severity, NarrativeValidationSeverity.warning);
+    });
+
+    test('emitOutcome not declared by scenario produces warning', () {
+      final scenario = _localScenario(declaredOutcomes: const []);
+
+      final report = diagnoseNarrativeProject(
+        _manifest(scenarios: [scenario]),
+        maps: [_map()],
+      );
+
+      final diagnostics = report.byKind(
+        NarrativeValidationDiagnosticKind.emitOutcomeNotDeclared,
+      );
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.referencedId, 'test_outcome');
+      expect(diagnostics.single.severity, NarrativeValidationSeverity.warning);
+    });
+
+    test('conditional visibility rule without predicate produces error', () {
+      final report = diagnoseNarrativeProject(
+        _manifest(),
+        maps: [
+          _map(
+            visibilityRule: const MapEntityNpcVisibilityRule(
+              mode: MapEntityNpcVisibilityMode.visibleWhen,
+            ),
+          ),
+        ],
+      );
+
+      final diagnostics = report.byKind(
+        NarrativeValidationDiagnosticKind
+            .visibilityRuleConditionalMissingPredicate,
+      );
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.mapId, 'test_map');
+      expect(diagnostics.single.entityId, 'test_entity');
+      expect(diagnostics.single.severity, NarrativeValidationSeverity.error);
+    });
+
+    test('world rule predicate with empty refId produces error', () {
+      final report = diagnoseNarrativeProject(
+        _manifest(),
+        maps: [
+          _map(
+            visibilityRule: const MapEntityNpcVisibilityRule(
+              mode: MapEntityNpcVisibilityMode.hiddenWhen,
+              predicate: MapEntityRuntimePredicate(
+                kind: MapEntityRuntimePredicateKind.stepCompleted,
+                refId: ' ',
+              ),
+            ),
+          ),
+        ],
+      );
+
+      final diagnostics = report.byKind(
+        NarrativeValidationDiagnosticKind.worldRulePredicateEmptyRefId,
+      );
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.path,
+          'maps.test_map.entities.test_entity.visibilityRule.predicate.refId');
+      expect(diagnostics.single.severity, NarrativeValidationSeverity.error);
+    });
+
+    test('choice node produces runtime unsupported warning', () {
+      final scenario = _localScenario(
+        nodes: [
+          _sourceNode(),
+          const ScenarioNode(id: 'test_choice', type: ScenarioNodeType.choice),
+          _setFlagNode(),
+          _completeStepNode(),
+          _emitOutcomeNode(),
+          _endNode(),
+        ],
+        edges: [
+          _edge('test_edge_source_choice', 'test_source', 'test_choice'),
+          _edge('test_edge_choice_flag', 'test_choice', 'test_set_flag'),
+          _edge('test_edge_choice_end', 'test_choice', 'test_end'),
+          _edge('test_edge_flag_step', 'test_set_flag', 'test_complete_step'),
+          _edge(
+            'test_edge_step_outcome',
+            'test_complete_step',
+            'test_emit_outcome',
+          ),
+          _edge('test_edge_outcome_end', 'test_emit_outcome', 'test_end'),
+        ],
+      );
+
+      final report = diagnoseNarrativeProject(
+        _manifest(scenarios: [scenario]),
+        maps: [_map()],
+      );
+
+      final diagnostics = report.byKind(
+        NarrativeValidationDiagnosticKind.scenarioChoiceNodeRuntimeUnsupported,
+      );
+      expect(diagnostics, hasLength(1));
+      expect(diagnostics.single.nodeId, 'test_choice');
+      expect(diagnostics.single.severity, NarrativeValidationSeverity.warning);
+    });
+
     test('setFlag used by condition does not warn as unused', () {
       final report = diagnoseNarrativeProject(
         _manifest(),
@@ -339,26 +457,29 @@ ProjectManifest _manifest({
   );
 }
 
-MapData _map() {
-  return const MapData(
+MapData _map({
+  MapEntityNpcVisibilityRule? visibilityRule,
+}) {
+  return MapData(
     id: 'test_map',
     name: 'Test Map',
-    size: GridSize(width: 10, height: 10),
+    size: const GridSize(width: 10, height: 10),
     entities: [
       MapEntity(
         id: 'test_entity',
         kind: MapEntityKind.npc,
-        pos: GridPos(x: 1, y: 1),
+        pos: const GridPos(x: 1, y: 1),
         npc: MapEntityNpcData(
           displayName: 'Test Entity',
-          dialogue: DialogueRef(dialogueId: 'test_dialogue'),
-          visibilityRule: MapEntityNpcVisibilityRule(
-            mode: MapEntityNpcVisibilityMode.visibleWhen,
-            predicate: MapEntityRuntimePredicate(
-              kind: MapEntityRuntimePredicateKind.storyFlagSet,
-              refId: 'test_fact',
-            ),
-          ),
+          dialogue: const DialogueRef(dialogueId: 'test_dialogue'),
+          visibilityRule: visibilityRule ??
+              const MapEntityNpcVisibilityRule(
+                mode: MapEntityNpcVisibilityMode.visibleWhen,
+                predicate: MapEntityRuntimePredicate(
+                  kind: MapEntityRuntimePredicateKind.storyFlagSet,
+                  refId: 'test_fact',
+                ),
+              ),
           conditionalDialogues: [
             MapEntityConditionalDialogue(
               when: MapEntityRuntimePredicate(
@@ -375,6 +496,7 @@ MapData _map() {
 }
 
 ScenarioAsset _localScenario({
+  List<String> declaredOutcomes = const ['test_outcome'],
   ScenarioNode? source,
   List<ScenarioNode>? nodes,
   List<ScenarioNode> extraNodes = const [],
@@ -384,6 +506,7 @@ ScenarioAsset _localScenario({
     id: 'test_scene_local',
     name: 'Test Local Scene',
     entryNodeId: 'test_source',
+    declaredOutcomes: declaredOutcomes,
     nodes: nodes ??
         [
           source ?? _sourceNode(),

@@ -6,9 +6,9 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-09 — Narrative Validator Diagnostic Expansion
+Lot courant : P2-10 — Reference Picker Read Models
 
-Prochain lot exact : P2-09 — Narrative Validator Diagnostic Expansion
+Prochain lot exact : P2-10 — Reference Picker Read Models
 
 Suivi des lots :
 
@@ -21,8 +21,8 @@ Suivi des lots :
 - ✅ P2-06 — Battle Reference / Outcome Contract
 - ✅ P2-07 — Fact Descriptor / Presentation Layer
 - ✅ P2-08 — World Rule Predicate Adapter Contract
-- 🔜 P2-09 — Narrative Validator Diagnostic Expansion
-- P2-10 — Reference Picker Read Models
+- ✅ P2-09 — Narrative Validator Diagnostic Expansion
+- 🔜 P2-10 — Reference Picker Read Models
 - P2-CHECKPOINT-01 — Domain Contracts Readiness Review
 
 P2-00 : ✅ terminé
@@ -43,7 +43,9 @@ P2-07 : ✅ terminé
 
 P2-08 : ✅ terminé
 
-P2-09 : 🔜 prochain lot exact
+P2-09 : ✅ terminé
+
+P2-10 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -776,11 +778,64 @@ Pas de World Rule qui écrit des Facts ou complète des Steps.
 Dépendances :
 P2-07.
 
-### P2-09 — Narrative Validator Diagnostic Expansion
+### ✅ P2-09 — Narrative Validator Diagnostic Expansion
 
 Objectif :
 Étendre les diagnostics narratifs prioritaires par domaine : Story Step, Event,
 Scene, outcomes, Battle, Fact, World Rule et side quest.
+
+Résultat :
+P2-09 ajoute un premier batch borné de diagnostics au validator narratif
+existant, sans créer de validator parallèle, registry, modèle persistant,
+JSON/migration ou UI. Le lot implémente cinq diagnostics actionnables :
+`declaredOutcomeNeverEmitted`, `emitOutcomeNotDeclared`,
+`visibilityRuleConditionalMissingPredicate`, `worldRulePredicateEmptyRefId` et
+`scenarioChoiceNodeRuntimeUnsupported`. Les tests ciblés
+`packages/map_core/test/narrative_validator_test.dart` couvrent chaque nouveau
+diagnostic, et `dart analyze` passe dans `packages/map_core`.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_09_narrative_validator_diagnostic_expansion.md`
+
+Fichiers modifiés :
+
+- `packages/map_core/lib/src/operations/narrative_validator.dart`
+- `packages/map_core/test/narrative_validator_test.dart`
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `find packages/map_core/test -type f -name '*test.dart' | sort`
+- `rg -n "NarrativeValidator|NarrativeDiagnostic|ProjectValidator|flagReadNeverProduced|stepReadNeverCompleted|sourceOutcomeWithoutMatchingEmitOutcome|conditionalDialogueReferencesUnknownDialogue|startTrainerBattleMissingTrainerId|startTrainerBattleReferencesUnknownTrainer|startTrainerBattleMissingNpcEntityId|startTrainerBattleBlankBattleId|declaredOutcomes|emitOutcome|sourceOutcome|choice|reference|authoringPlaceholder|visibilityRule" packages/map_core/test packages/map_core/lib`
+- `dart test test/narrative_validator_test.dart`
+- `dart format lib/src/operations/narrative_validator.dart test/narrative_validator_test.dart`
+- `dart test --reporter compact test/narrative_validator_test.dart`
+- `dart analyze`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_09_narrative_validator_diagnostic_expansion.md || true`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle packages/map_runtime packages/map_editor packages/map_gameplay examples/playable_runtime_host`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+
+Diagnostics ajoutés :
+
+- `declaredOutcomeNeverEmitted`
+- `emitOutcomeNotDeclared`
+- `visibilityRuleConditionalMissingPredicate`
+- `worldRulePredicateEmptyRefId`
+- `scenarioChoiceNodeRuntimeUnsupported`
+
+Diagnostics reportés :
+
+- diagnostics post-battle victory/defeat jamais lus ;
+- diagnostics Step Studio world presence target/source ;
+- conflit world presence / visibility rule ;
+- diagnostics Fact Presentation ;
+- diagnostics side quest ;
+- diagnostics runtime placeholder plus larges.
 
 Risque :
 Produire trop de diagnostics non actionnables.
@@ -880,5 +935,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-09 — Narrative Validator Diagnostic Expansion
+P2-10 — Reference Picker Read Models
 ```

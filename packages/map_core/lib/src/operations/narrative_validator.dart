@@ -43,7 +43,12 @@ enum NarrativeValidationDiagnosticKind {
   sourceEntityInteractReferencesUnknownEntity,
   sourceOutcomeWithoutMatchingEmitOutcome,
   emitOutcomeWithoutMatchingSourceOutcome,
+  declaredOutcomeNeverEmitted,
+  emitOutcomeNotDeclared,
   conditionalDialogueReferencesUnknownDialogue,
+  visibilityRuleConditionalMissingPredicate,
+  worldRulePredicateEmptyRefId,
+  scenarioChoiceNodeRuntimeUnsupported,
   flagReadNeverProduced,
   setFlagNeverRead,
   stepReadNeverCompleted,
@@ -245,8 +250,32 @@ void _collectMapDiagnostics({
       continue;
     }
     final basePath = 'maps.$mapId.entities.$entityId';
-    final visibilityPredicate = npc.visibilityRule?.predicate;
+    final visibilityRule = npc.visibilityRule;
+    final visibilityPredicate = visibilityRule?.predicate;
+    if (visibilityRule != null &&
+        visibilityRule.mode != MapEntityNpcVisibilityMode.always &&
+        visibilityPredicate == null) {
+      diagnostics.add(
+        NarrativeValidationDiagnostic(
+          severity: NarrativeValidationSeverity.error,
+          kind: NarrativeValidationDiagnosticKind
+              .visibilityRuleConditionalMissingPredicate,
+          message: 'NPC "$entityId" has a conditional visibility rule without '
+              'a predicate.',
+          path: '$basePath.visibilityRule.predicate',
+          mapId: mapId,
+          entityId: entityId,
+        ),
+      );
+    }
     if (visibilityPredicate != null) {
+      _collectWorldRulePredicateDiagnostics(
+        visibilityPredicate,
+        path: '$basePath.visibilityRule.predicate',
+        mapId: mapId,
+        entityId: entityId,
+        diagnostics: diagnostics,
+      );
       _collectRuntimePredicateReads(
         visibilityPredicate,
         ref: _NarrativeRef(
@@ -261,6 +290,13 @@ void _collectMapDiagnostics({
     for (var i = 0; i < npc.conditionalDialogues.length; i++) {
       final conditional = npc.conditionalDialogues[i];
       final path = '$basePath.conditionalDialogues.$i';
+      _collectWorldRulePredicateDiagnostics(
+        conditional.when,
+        path: '$path.when',
+        mapId: mapId,
+        entityId: entityId,
+        diagnostics: diagnostics,
+      );
       _collectRuntimePredicateReads(
         conditional.when,
         ref: _NarrativeRef(
@@ -308,6 +344,20 @@ void _collectScenarioDiagnostics({
   final scenarioId = scenario.id.trim();
   final nodeIds = _nonBlankIds(scenario.nodes.map((node) => node.id));
   final sourceNodeIds = <String>{};
+  final declaredOutcomeRefs = <String, List<_NarrativeRef>>{};
+  final emittedOutcomeRefs = <String, List<_NarrativeRef>>{};
+
+  for (var i = 0; i < scenario.declaredOutcomes.length; i++) {
+    _addRef(
+      declaredOutcomeRefs,
+      scenario.declaredOutcomes[i],
+      _NarrativeRef(
+        path: 'scenarios.$scenarioId.declaredOutcomes.$i',
+        scenarioId: scenarioId,
+      ),
+    );
+  }
+  final declaredOutcomeIds = declaredOutcomeRefs.keys.toSet();
 
   if (scenario.activationCondition != null) {
     _collectScriptConditionReads(
@@ -332,6 +382,20 @@ void _collectScenarioDiagnostics({
         _sourceKinds.contains(actionKind)) {
       sourceNodeIds.add(nodeId);
     }
+    if (node.type == ScenarioNodeType.choice) {
+      diagnostics.add(
+        NarrativeValidationDiagnostic(
+          severity: NarrativeValidationSeverity.warning,
+          kind: NarrativeValidationDiagnosticKind
+              .scenarioChoiceNodeRuntimeUnsupported,
+          message: 'Choice node "$nodeId" is not supported by the scenario '
+              'runtime yet.',
+          path: '${ref.path}.type',
+          scenarioId: scenarioId,
+          nodeId: nodeId,
+        ),
+      );
+    }
     if (node.payload.condition != null) {
       _collectScriptConditionReads(
         node.payload.condition!,
@@ -354,9 +418,11 @@ void _collectScenarioDiagnostics({
       knownMapIds: knownMapIds,
       mapsById: mapsById,
       emittedOutcomes: emittedOutcomes,
+      emittedOutcomeRefs: emittedOutcomeRefs,
       consumedOutcomes: consumedOutcomes,
       producedFlags: producedFlags,
       completedSteps: completedSteps,
+      declaredOutcomeIds: declaredOutcomeIds,
       diagnostics: diagnostics,
     );
   }
@@ -380,6 +446,11 @@ void _collectScenarioDiagnostics({
     sourceNodeIds: sourceNodeIds,
     diagnostics: diagnostics,
   );
+  _collectDeclaredOutcomeDiagnostics(
+    declaredOutcomeRefs: declaredOutcomeRefs,
+    emittedOutcomeRefs: emittedOutcomeRefs,
+    diagnostics: diagnostics,
+  );
 }
 
 void _collectNodeReferenceDiagnostics({
@@ -393,9 +464,11 @@ void _collectNodeReferenceDiagnostics({
   required Set<String> knownMapIds,
   required Map<String, MapData> mapsById,
   required Map<String, List<_NarrativeRef>> emittedOutcomes,
+  required Map<String, List<_NarrativeRef>> emittedOutcomeRefs,
   required Map<String, List<_NarrativeRef>> consumedOutcomes,
   required Map<String, List<_NarrativeRef>> producedFlags,
   required Map<String, List<_NarrativeRef>> completedSteps,
+  required Set<String> declaredOutcomeIds,
   required List<NarrativeValidationDiagnostic> diagnostics,
 }) {
   if (node.type == ScenarioNodeType.dialogue ||
@@ -430,7 +503,23 @@ void _collectNodeReferenceDiagnostics({
     case _sourceOutcome:
       _addRef(consumedOutcomes, node.binding.outcomeId, ref);
     case _actionEmitOutcome:
-      _addRef(emittedOutcomes, node.binding.outcomeId, ref);
+      final outcomeId = node.binding.outcomeId?.trim() ?? '';
+      _addRef(emittedOutcomes, outcomeId, ref);
+      _addRef(emittedOutcomeRefs, outcomeId, ref);
+      if (outcomeId.isNotEmpty && !declaredOutcomeIds.contains(outcomeId)) {
+        diagnostics.add(
+          NarrativeValidationDiagnostic(
+            severity: NarrativeValidationSeverity.warning,
+            kind: NarrativeValidationDiagnosticKind.emitOutcomeNotDeclared,
+            message: 'Outcome "$outcomeId" is emitted but not declared by '
+                'scenario "$scenarioId".',
+            path: '${ref.path}.binding.outcomeId',
+            referencedId: outcomeId,
+            scenarioId: scenarioId,
+            nodeId: nodeId,
+          ),
+        );
+      }
     case _actionSetFlag:
       _addRef(producedFlags, node.binding.flagName, ref);
     case _actionCompleteStep:
@@ -444,6 +533,29 @@ void _collectNodeReferenceDiagnostics({
         diagnostics: diagnostics,
       );
   }
+}
+
+void _collectWorldRulePredicateDiagnostics(
+  MapEntityRuntimePredicate predicate, {
+  required String path,
+  required String mapId,
+  required String entityId,
+  required List<NarrativeValidationDiagnostic> diagnostics,
+}) {
+  if (predicate.refId.trim().isNotEmpty) {
+    return;
+  }
+  diagnostics.add(
+    NarrativeValidationDiagnostic(
+      severity: NarrativeValidationSeverity.error,
+      kind: NarrativeValidationDiagnosticKind.worldRulePredicateEmptyRefId,
+      message: 'World rule predicate "${predicate.kind.name}" has an empty '
+          'refId.',
+      path: '$path.refId',
+      mapId: mapId,
+      entityId: entityId,
+    ),
+  );
 }
 
 void _collectSourceEntityInteractDiagnostics({
@@ -686,6 +798,30 @@ void _collectOutcomeMismatchDiagnostics({
           referencedId: entry.key,
           scenarioId: ref.scenarioId,
           nodeId: ref.nodeId,
+        ),
+      );
+    }
+  }
+}
+
+void _collectDeclaredOutcomeDiagnostics({
+  required Map<String, List<_NarrativeRef>> declaredOutcomeRefs,
+  required Map<String, List<_NarrativeRef>> emittedOutcomeRefs,
+  required List<NarrativeValidationDiagnostic> diagnostics,
+}) {
+  for (final entry in declaredOutcomeRefs.entries) {
+    if (emittedOutcomeRefs.containsKey(entry.key)) {
+      continue;
+    }
+    for (final ref in entry.value) {
+      diagnostics.add(
+        NarrativeValidationDiagnostic(
+          severity: NarrativeValidationSeverity.warning,
+          kind: NarrativeValidationDiagnosticKind.declaredOutcomeNeverEmitted,
+          message: 'Outcome "${entry.key}" is declared but never emitted.',
+          path: ref.path,
+          referencedId: entry.key,
+          scenarioId: ref.scenarioId,
         ),
       );
     }
