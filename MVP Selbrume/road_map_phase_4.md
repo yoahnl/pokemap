@@ -4,25 +4,27 @@
 
 Phase 4 — Authoring Workflows Minimal
 
-Statut : 🔜 Phase courante
+Statut : 🔜 Phase courante recalibrée
 
-Lot courant : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+Lot courant : P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
 
-Prochain lot exact : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+Prochain lot exact : P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
 
 Suivi des lots :
 
-- 🔜 P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
-- P4-01 — Narrative Reference Picker Coverage Review
-- P4-02 — Scenario Authoring Minimal Workflow Design
-- P4-03 — Event Source Authoring Minimal Workflow Design
-- P4-04 — Outcome / Battle Outcome Authoring Minimal Workflow Design
-- P4-05 — Fact / Predicate / World Rule Authoring Minimal Workflow Design
-- P4-06 — Narrative Validator Integration Readiness
-- P4-07 — Minimal Authoring Golden Path Proposal
+- ✅ P4-00 — Phase 4 Roadmap Recalibration / Authoring Workflow Audit
+- 🔜 P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
+- P4-02 — Scenario Authoring Draft Model V0
+- P4-03 — Event Source Authoring Draft Operations V0
+- P4-04 — Outcome / Battle Outcome Authoring Operations V0
+- P4-05 — Predicate / World Rule Authoring Draft V0
+- P4-06 — Narrative Validator Authoring Adapter V0
+- P4-07 — Minimal Authoring Golden Path Test V0
 - P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
-P4-00 : 🔜 prochain lot exact
+P4-00 : ✅ terminé
+
+P4-01 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -66,12 +68,12 @@ Inclus :
 
 - audit des workflows authoring existants ;
 - couverture des read models de pickers ;
-- design de workflow minimal pour ScenarioAsset ;
-- design de workflow minimal pour sources Event ;
-- design de workflow minimal pour outcomes et battle outcomes ;
-- design de workflow minimal pour facts, predicates et world rules passives ;
-- préparation de l'intégration validator ;
-- proposition d'un golden path authoring minimal ;
+- read models manquants strictement dérivés ;
+- draft models purs pour authoring minimal ;
+- opérations pures testées pour produire ou modifier des fragments
+  `ScenarioAsset` ;
+- adapters diagnostics/validator orientés authoring ;
+- golden path authoring minimal testé ;
 - checkpoint Phase 4.
 
 Exclus :
@@ -103,85 +105,139 @@ Exclus :
 10. Mettre à jour cette roadmap vivante.
 11. Ne modifier `road_map_global.md` qu'au checkpoint ou sur demande explicite.
 
-## 7. Lots Phase 4 proposés
+## 7. Lots Phase 4 recalibrés
 
-### P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+### ✅ P4-00 — Phase 4 Roadmap Recalibration / Authoring Workflow Audit
 
 Objectif :
-Auditer l'existant côté editor/authoring, confirmer le découpage Phase 4 et
-identifier les preuves nécessaires avant toute implémentation.
+Auditer l'existant côté editor/authoring, critiquer la roadmap Phase 4 initiale
+et la recalibrer pour éviter une phase uniquement documentaire.
 
 Résultat attendu :
-Roadmap Phase 4 confirmée ou ajustée, risques authoring listés, prochain lot
-P4-01 clarifié.
+Roadmap Phase 4 recalibrée, risques authoring listés, prochains lots orientés
+preuves concrètes, prochain lot P4-01 clarifié.
 
 Non-objectifs :
 Pas de widget UI, pas de Scene Builder, pas de Selbrume final, pas de gameplay
 rewards.
 
-### P4-01 — Narrative Reference Picker Coverage Review
+Résultat P4-00 :
+
+- rapport créé :
+  `reports/roadmap/phase_4/p4_00_phase_4_roadmap_recalibration_authoring_workflow_audit.md` ;
+- diagnostic :
+  la roadmap initiale était cohérente mais trop documentaire dans son vocabulaire
+  et risquait de produire des reviews/designs sans briques authoring exploitables ;
+- décision :
+  P4-01 à P4-07 doivent produire des preuves authoring concrètes, surtout des
+  read models manquants, drafts, opérations pures, adapters validator et tests ;
+- `road_map_global.md` non modifiée ;
+- aucun code, test, widget, registry, runtime ou contenu Selbrume créé.
+
+### 🔜 P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
 
 Objectif :
-Vérifier que les read models P2-10 couvrent les références nécessaires aux
-workflows authoring minimaux, et lister les pickers encore manquants.
+Compléter la couverture de pickers strictement nécessaire au démarrage des
+workflows authoring minimaux.
 
 Résultat attendu :
-Couverture Scenario / Outcome / Battle validée, gaps Story Step / Fact / World
-Rule / Event Source classés.
+Preuve concrète, pure et testée :
 
-### P4-02 — Scenario Authoring Minimal Workflow Design
+- confirmer les read models existants Scenario / Outcome / Battle ;
+- ajouter seulement les read models manquants V0 qui partagent les sources
+  stables existantes, en priorité Event Source, Story Step et Predicate/Fact
+  reference si l'audit du lot les confirme ;
+- garder Dialogue / Map / NPC / Trigger pickers comme consommateurs potentiels
+  de sources déjà existantes ou comme reports si le scope gonfle ;
+- aucun widget UI, aucun registry, aucune persistence.
+
+### P4-02 — Scenario Authoring Draft Model V0
 
 Objectif :
-Définir le workflow minimal pour authorer un `ScenarioAsset` sans exposer le
-graphe technique comme expérience principale.
+Créer ou stabiliser un draft model pur permettant de décrire un scenario minimal
+sans saisir directement le graphe technique.
 
 Résultat attendu :
-Contrat de workflow et limites claires, sans créer Scene Builder complet.
+Preuve concrète, pure et testée :
 
-### P4-03 — Event Source Authoring Minimal Workflow Design
+- draft minimal avec id/name/scope/source/actions/outcomes ;
+- validation draft ciblée ;
+- conversion draft -> `ScenarioAsset` ou recommandation documentée si une
+  conversion est prématurée ;
+- tests unitaires sans UI.
+
+### P4-03 — Event Source Authoring Draft Operations V0
 
 Objectif :
-Définir comment l'auteur choisit `mapEnter`, `triggerEnter`, `entityInteract` et
-`outcomeReceived` à partir de sources lisibles.
+Rendre authorables les sources `mapEnter`, `triggerEnter`, `entityInteract` et
+`outcomeReceived` via opérations pures.
 
 Résultat attendu :
-Workflow minimal source Event, diagnostics nécessaires, reports explicites.
+Preuve concrète, pure et testée :
 
-### P4-04 — Outcome / Battle Outcome Authoring Minimal Workflow Design
+- draft/operation pour produire des source nodes valides ;
+- validation des références map/trigger/entity/outcome à partir des sources
+  existantes ;
+- cas négatifs pour éviter les faux déclenchements ;
+- pas d'EventRegistry.
+
+### P4-04 — Outcome / Battle Outcome Authoring Operations V0
 
 Objectif :
-Définir l'authoring minimal des outcomes scénario et battle outcomes sans
-OutcomeRegistry ni BattleRegistry.
+Rendre authorables les outcomes scénario et battle outcomes sans registry.
 
 Résultat attendu :
-Workflow lisible pour déclarer, émettre, recevoir et brancher les outcomes.
+Preuve concrète, pure et testée :
 
-### P4-05 — Fact / Predicate / World Rule Authoring Minimal Workflow Design
+- opérations pour déclarer / émettre / recevoir un outcome scénario ;
+- helpers authoring pour distinguer `scenario.outcome.*` et `battle:*` ;
+- opérations ou read models pour brancher victory/defeat V0 ;
+- diagnostics ou validation contre OutcomeRegistry/BattleRegistry implicites.
+
+### P4-05 — Predicate / World Rule Authoring Draft V0
 
 Objectif :
-Définir l'authoring minimal des facts techniques, predicates et world rules
-passives sans FactRegistry ni WorldRuleRegistry.
+Rendre authorables les predicates et world rules passives sans créer
+FactRegistry ni WorldRuleRegistry.
 
 Résultat attendu :
-Workflow minimal de projection passive, limites avec GameState et reports.
+Preuve concrète, pure et testée :
 
-### P4-06 — Narrative Validator Integration Readiness
+- draft de predicate / visibility rule / conditional dialogue minimal ;
+- mapping pur vers `MapEntityRuntimePredicate`,
+  `MapEntityNpcVisibilityRule` et `MapEntityConditionalDialogue` ;
+- réutilisation ou généralisation prudente des helpers PNJ existants ;
+- cas négatifs refId vide / cible inconnue.
+
+### P4-06 — Narrative Validator Authoring Adapter V0
 
 Objectif :
-Vérifier comment les diagnostics P2-09 peuvent être exposés dans les workflows
-authoring minimaux sans créer d'auto-fix ou d'UI premium.
+Créer un adapter pur qui transforme les diagnostics narratifs existants en
+messages authoring exploitables, sans auto-fix et sans UI premium.
 
 Résultat attendu :
-Plan d'intégration validator, priorités de diagnostics, garde-fous.
+Preuve concrète, pure et testée :
 
-### P4-07 — Minimal Authoring Golden Path Proposal
+- mapping diagnostics P2-09 vers libellés/action hints auteur ;
+- filtrage/sévérité conservant la vérité du validator ;
+- aucune correction automatique ;
+- tests sur diagnostics outcome, predicate, choice runtime unsupported.
+
+### P4-07 — Minimal Authoring Golden Path Test V0
 
 Objectif :
-Proposer un golden path authoring minimal reliant pickers, scenario, sources,
-outcomes, predicates et diagnostics.
+Prouver un workflow authoring minimal complet sans UI premium.
 
 Résultat attendu :
-Proposition prête pour checkpoint, sans créer Selbrume final.
+Preuve concrète et testée :
+
+- sélection de références via read models ;
+- draft scenario minimal ;
+- source Event ;
+- outcome émis/reçu ;
+- predicate/world rule passive ;
+- diagnostics authoring ;
+- export ou conversion vers structures existantes, sans créer Selbrume final.
 
 ### P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
@@ -209,7 +265,7 @@ Phase 4 pourra être clôturée si :
 
 - Confirmer cette roadmap Phase 4.
 - Choisir le niveau de preuve authoring attendu.
-- Définir si P4 reste design-first ou commence des prototypes purs ciblés.
+- Confirmer que P4-01 et suivants produisent des preuves authoring concrètes.
 - Confirmer que l'UI premium reste Phase 7.
 - Confirmer que rewards / money / XP restent Phase 5.
 - Confirmer que Selbrume final reste Phase 6.
@@ -222,10 +278,11 @@ Phase 4 ne crée pas UI premium.
 Phase 4 ne crée pas Selbrume final.
 Phase 4 ne crée pas de registry persistant.
 Phase 4 n'ouvre pas rewards / money / XP.
+Phase 4 doit produire des preuves authoring concrètes après P4-00.
 ```
 
 Le prochain lot exact est :
 
 ```text
-P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
 ```
