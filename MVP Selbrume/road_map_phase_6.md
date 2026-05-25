@@ -6,9 +6,15 @@ Phase 6 ouverte par le checkpoint Phase 5.
 
 Statut : 🟡 active
 
-Lot courant : ➡️ P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+SELBRUME_EXISTING_PROJECT_PATH :
 
-Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+```text
+/Users/karim/Desktop/selbrume
+```
+
+Lot courant : ➡️ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+
+Prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
 Légende :
 
@@ -19,17 +25,18 @@ Légende :
 - ⏭️ reporté
 
 Phase 6 assemble un golden slice Selbrume jouable à partir des briques
-techniques prouvées en Phase 5. Elle ne doit pas devenir une campagne complète,
-une UI premium, un Boot Flow complet ou une quête de parité Pokémon.
+techniques prouvées en Phase 5 et du projet Selbrume existant fourni par Karim.
+Elle ne part pas de zéro et ne doit pas devenir une campagne complète, une UI
+premium, un Boot Flow complet ou une quête de parité Pokémon.
 
 Suivi des lots :
 
-- ➡️ P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
-- ⏳ P6-01 — Selbrume Project Skeleton / Disk Layout V0
+- ➡️ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+- ⏳ P6-01 — Existing Selbrume Disk Layout Alignment V0
 - ⏳ P6-02 — Selbrume Start Map / Spawn / New Game Wiring V0
-- ⏳ P6-03 — Selbrume Starter / Initial Party / Bag Setup V0
-- ⏳ P6-04 — Selbrume First Trainer Battle Golden Slice V0
-- ⏳ P6-05 — Selbrume Capture Encounter Golden Slice V0
+- ⏳ P6-03 — Selbrume Initial Party / Bag Setup V0
+- ⏳ P6-04 — Selbrume First Narrative Interaction V0
+- ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
 - ⏳ P6-07 — Selbrume Beta Validator Pass V0
 - ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
@@ -40,28 +47,35 @@ P6-00 : ➡️ prochain lot exact
 Prochain lot exact :
 
 ```text
-P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 ```
 
 ## Objectif Phase 6
 
-Assembler un golden slice Selbrume jouable à partir des preuves Phase 5 :
+Auditer et réconcilier le projet Selbrume existant, déjà partiellement créé par
+Karim, afin d'en extraire un premier golden slice court, jouable, validé et
+sauvegardable.
+
+La trajectoire attendue est :
 
 ```text
-projet disque réel
+projet Selbrume existant
+-> audit léger puis audit complet P6-00
+-> choix d'un mini-parcours golden slice
+-> alignement disque / données / runtime
 -> maps et spawn Selbrume V0
 -> New Game minimal
 -> party initiale / bag minimal
+-> première interaction narrative
 -> trainer battle
 -> rewards
--> capture
 -> save/load
 -> validator bêta
 -> runtime smoke
 ```
 
-Le contenu Selbrume doit rester borné : une preuve jouable courte, pas une
-campagne finale.
+Le contenu Selbrume doit rester borné : une preuve jouable courte extraite du
+projet existant, pas une campagne finale et pas une création from scratch.
 
 ## Préconditions héritées de Phase 5
 
@@ -85,36 +99,51 @@ campagne finale.
   Pokémon complète ;
 - ne pas créer de système audio sauf décision dédiée ultérieure.
 
+## Décision P5-CHECKPOINT-01-bis
+
+La Phase 6 part du projet Selbrume existant fourni par Karim :
+
+```text
+/Users/karim/Desktop/selbrume
+```
+
+P6-00 devra auditer ce projet existant, verrouiller un périmètre de golden
+slice court, puis proposer les corrections ou alignements nécessaires. Cette
+roadmap ne demande pas de recréer Selbrume from scratch.
+
 ## Roadmap
 
-### ➡️ P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+### ➡️ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
 Statut : prochain lot exact.
 
 But :
 
 ```text
-auditer le contenu et les fixtures Selbrume existants
+auditer le projet Selbrume existant fourni par Karim
 vérifier quelles preuves Phase 5 peuvent être réutilisées telles quelles
-fixer la roadmap Phase 6 détaillée si un ajustement est nécessaire
+choisir un mini-parcours golden slice à partir de l'état réel du projet
+fixer les corrections / alignements nécessaires
 ```
 
 Preuve attendue :
 
 ```text
 rapport P6-00
-inventaire contenu Selbrume
+inventaire du projet Selbrume existant
 gaps de contenu classés
-prochain lot exact confirmé
+scope golden slice verrouillé
+prochain lot exact confirmé ou ajusté
 aucun lancement de production de contenu massif
 ```
 
-### ⏳ P6-01 — Selbrume Project Skeleton / Disk Layout V0
+### ⏳ P6-01 — Existing Selbrume Disk Layout Alignment V0
 
 But :
 
 ```text
-poser ou valider un projet disque Selbrume minimal avec layout runtime propre.
+aligner strictement le layout disque du projet Selbrume existant avec ce que le
+runtime PokeMap peut charger.
 ```
 
 ### ⏳ P6-02 — Selbrume Start Map / Spawn / New Game Wiring V0
@@ -125,7 +154,7 @@ But :
 brancher une map de départ Selbrume, un spawn et un New Game minimal.
 ```
 
-### ⏳ P6-03 — Selbrume Starter / Initial Party / Bag Setup V0
+### ⏳ P6-03 — Selbrume Initial Party / Bag Setup V0
 
 But :
 
@@ -133,20 +162,20 @@ But :
 fournir une party initiale et un bag minimal utilisables dans le golden slice.
 ```
 
-### ⏳ P6-04 — Selbrume First Trainer Battle Golden Slice V0
+### ⏳ P6-04 — Selbrume First Narrative Interaction V0
+
+But :
+
+```text
+prouver une première interaction narrative courte dans le mini-parcours choisi.
+```
+
+### ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 
 But :
 
 ```text
 prouver un premier trainer battle Selbrume court avec reward minimal.
-```
-
-### ⏳ P6-05 — Selbrume Capture Encounter Golden Slice V0
-
-But :
-
-```text
-prouver une capture Selbrume bornée avec destination party-or-storage.
 ```
 
 ### ⏳ P6-06 — Selbrume Save/Load Golden Slice V0

@@ -8,7 +8,7 @@ Statut : ✅ clôturée avec réserves mineures
 
 Lot courant : ✅ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
-Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+Prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
 Légende :
 
@@ -67,7 +67,15 @@ P5-10 Audio : ⏭️ reporté hors scope Phase 5 immédiate
 Prochain lot exact :
 
 ```text
-P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+```
+
+Note P5-CHECKPOINT-01-bis :
+
+```text
+P6-00 audite désormais le projet Selbrume existant fourni par Karim :
+/Users/karim/Desktop/selbrume
+Phase 6 ne part pas d'une création Selbrume from scratch.
 ```
 
 ## Objectif Phase 5
@@ -413,7 +421,7 @@ Verdict :
 ```text
 Phase 5 : clôturée avec réserves mineures.
 P5-10 Audio : reporté hors scope Phase 5 immédiate.
-Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit.
+Prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock.
 ```
 
 ## Reports explicites

@@ -7,7 +7,7 @@ Verdict :
 ```text
 Phase 5 : clôturée avec réserves mineures.
 Phase suivante : Phase 6 — Selbrume Golden Slice réel.
-Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit.
+Prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock.
 ```
 
 La Phase 5 a suffisamment prouvé la boucle gameplay minimale pour passer à la
@@ -46,8 +46,8 @@ Réponses obligatoires :
     persistée complète, moves learned, évolution, formules officielles,
     economy/shop complets, PC UI et parité Pokémon.
 16. Quelle est la prochaine phase ? Phase 6 — Selbrume Golden Slice réel.
-17. Quel est le prochain lot exact ? P6-00 — Phase 6 Roadmap Bootstrap /
-    Selbrume Beta Content Audit.
+17. Quel est le prochain lot exact ? P6-00 — Existing Selbrume Project Audit /
+    Golden Slice Scope Lock.
 
 ## 2. Scope du checkpoint
 
@@ -251,14 +251,23 @@ Le nom exact vient de `MVP Selbrume/road_map_global.md`. La roadmap créée pour
 Phase 6 garde l'intention attendue : assembler un golden slice Selbrume bêta,
 court et jouable, à partir des preuves Phase 5.
 
+Correction P5-CHECKPOINT-01-bis :
+
+```text
+La Phase 6 ne doit pas être interprétée comme une création de Selbrume from scratch.
+Karim dispose déjà d'un projet Selbrume partiel :
+/Users/karim/Desktop/selbrume
+La Phase 6 doit auditer ce projet existant et l'utiliser comme base pour le golden slice.
+```
+
 Roadmap Phase 6 proposée :
 
-- P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
-- P6-01 — Selbrume Project Skeleton / Disk Layout V0
+- P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+- P6-01 — Existing Selbrume Disk Layout Alignment V0
 - P6-02 — Selbrume Start Map / Spawn / New Game Wiring V0
-- P6-03 — Selbrume Starter / Initial Party / Bag Setup V0
-- P6-04 — Selbrume First Trainer Battle Golden Slice V0
-- P6-05 — Selbrume Capture Encounter Golden Slice V0
+- P6-03 — Selbrume Initial Party / Bag Setup V0
+- P6-04 — Selbrume First Narrative Interaction V0
+- P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - P6-06 — Selbrume Save/Load Golden Slice V0
 - P6-07 — Selbrume Beta Validator Pass V0
 - P6-08 — Selbrume Playable Runtime Smoke V0
@@ -271,30 +280,32 @@ Roadmap Phase 6 proposée :
 - P5-CHECKPOINT-01 : terminé ;
 - Phase 5 : clôturée avec réserves mineures ;
 - P5-10 Audio : reporté hors scope Phase 5 immédiate ;
-- prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta
-  Content Audit.
+- prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice
+  Scope Lock.
 
 `MVP Selbrume/road_map_global.md` indique désormais :
 
 - Phase 5 — Gameplay Gaps Prioritaires : clôturée avec réserves mineures ;
 - Phase courante : Phase 6 — Selbrume Golden Slice réel ;
 - roadmap de phase courante : `MVP Selbrume/road_map_phase_6.md` ;
-- prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta
-  Content Audit ;
+- prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice
+  Scope Lock ;
 - historique global mis à jour avec le résultat Phase 5.
 
 `MVP Selbrume/road_map_phase_6.md` a été créée comme roadmap vivante de la
-phase suivante avec suivi à icônes.
+phase suivante avec suivi à icônes, puis corrigée par P5-CHECKPOINT-01-bis pour
+partir du projet Selbrume existant fourni par Karim.
 
 ## 12. Prochain lot exact
 
 ```text
-P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 ```
 
 P6-00 ne doit pas créer Selbrume final, ne doit pas démarrer une UI premium, ne
 doit pas créer le Boot Flow complet et ne doit pas réouvrir la parité Pokémon.
-Il doit auditer le contenu et cadrer l'assemblage du golden slice.
+Il doit auditer le projet Selbrume existant fourni par Karim et cadrer
+l'assemblage du golden slice.
 
 ## 13. Modifications effectuées
 

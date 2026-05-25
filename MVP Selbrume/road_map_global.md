@@ -10,9 +10,9 @@ Phase courante : Phase 6 — Selbrume Golden Slice réel
 
 Roadmap de phase courante : `MVP Selbrume/road_map_phase_6.md`
 
-Lot courant : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+Lot courant : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
-Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+Prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
 Suivi global :
 
@@ -23,7 +23,7 @@ Suivi global :
 - Phase 4 — Authoring Workflows Minimal : ✅ clôturée avec réserves mineures
 - Phase 5 — Gameplay Gaps Prioritaires : ✅ clôturée avec réserves mineures
 - Phase 6 — Selbrume Golden Slice réel : 🔜 phase courante
-- P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit : 🔜 prochain lot exact
+- P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock : 🔜 prochain lot exact
 
 ## 2. Objectif final de PokeMap
 
@@ -546,13 +546,15 @@ Réserves conservées :
 ## 12. Phase 6 — Selbrume Golden Slice réel
 
 Objectif :
-Créer ou valider, par l’utilisateur dans l’éditeur, le premier vrai Golden Slice
-Selbrume, sans que l’agent génère tout le jeu à sa place.
+Auditer et réconcilier le projet Selbrume existant fourni par Karim afin d'en
+extraire un premier Golden Slice court, jouable, validé et sauvegardable, sans
+que l'agent génère tout le jeu à sa place.
 
 Pourquoi :
 Selbrume est le scénario de référence qui vérifie la grammaire complète avec un
 cas concret, mais il doit rester un test du produit, pas un contenu fabriqué par
-l’agent dans le repo.
+l’agent dans le repo. La Phase 6 ne part pas de zéro : elle doit utiliser le
+projet existant situé à `/Users/karim/Desktop/selbrume` comme base.
 
 Préconditions :
 
@@ -563,14 +565,16 @@ Préconditions :
 
 Périmètre :
 
-- checklist auteur ;
-- validation d’un projet réel ;
+- inspection puis audit du projet Selbrume existant ;
+- verrouillage d'un périmètre golden slice court ;
+- validation d’un projet réel existant ;
 - smoke runtime ;
 - corrections génériques si le projet révèle des gaps.
 
 Non-objectifs :
 
 - ne pas générer Selbrume automatiquement ;
+- ne pas recréer Selbrume from scratch ;
 - ne pas finaliser tout le mini-jeu ;
 - ne pas produire toutes les maps, PNJ, dialogues et trainers.
 
@@ -659,7 +663,7 @@ Roadmap de phase :
 `MVP Selbrume/road_map_phase_6.md`
 
 Prochain lot de la phase :
-P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
 Note :
 P5-CHECKPOINT-01 a clôturé Phase 5 et créé la roadmap vivante Phase 6. Il ne
@@ -667,15 +671,16 @@ démarre pas P6-00.
 
 ## 15. Prochain lot exact
 
-P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
+P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
-P6-00 doit rester audit-first et cadrer l'assemblage Selbrume bêta :
-réutiliser les preuves Phase 5, inventorier le contenu disponible, vérifier le
-chemin projet disque réel et fixer les lots de contenu golden slice.
+P6-00 doit rester audit-first et cadrer l'assemblage Selbrume bêta depuis le
+projet existant fourni par Karim : réutiliser les preuves Phase 5, inventorier
+le contenu disponible, vérifier le chemin projet disque réel et verrouiller un
+mini-parcours golden slice.
 
 P6-00 ne doit pas créer Selbrume final, ne doit pas lancer l'UI premium, ne doit
-pas créer le Boot Flow complet et ne doit pas réouvrir la parité Pokémon
-complète.
+pas créer le Boot Flow complet, ne doit pas modifier massivement le projet
+existant et ne doit pas réouvrir la parité Pokémon complète.
 
 ## 16. Critères de changement de phase
 
@@ -727,6 +732,8 @@ ou si l’utilisateur le demande explicitement.
 
 - La refonte UI moderne / premium est une phase tardive.
 - Selbrume est un scénario de référence, pas du contenu à générer.
+- P5-CHECKPOINT-01-bis : Phase 6 doit partir du projet Selbrume existant fourni
+  par Karim (`/Users/karim/Desktop/selbrume`), pas d'une création from scratch.
 - Les roadmaps doivent être découpées par phases.
 - Chaque phase a sa roadmap détaillée.
 - À la fin de chaque phase, la roadmap globale doit être mise à jour.
@@ -807,3 +814,9 @@ ou si l’utilisateur le demande explicitement.
   Golden Slice réel. Roadmap de phase courante fixée à
   `MVP Selbrume/road_map_phase_6.md`. Prochain lot exact fixé à P6-00 — Phase 6
   Roadmap Bootstrap / Selbrume Beta Content Audit.
+- 2026-05-25 — P5-CHECKPOINT-01-bis — Correction documentaire ciblée :
+  Phase 6 doit partir du projet Selbrume existant fourni par Karim
+  (`/Users/karim/Desktop/selbrume`) et non d'une création from scratch. P6-00
+  est recadré comme audit du projet existant et verrouillage du périmètre golden
+  slice court : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope
+  Lock.
