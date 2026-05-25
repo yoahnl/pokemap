@@ -1,18 +1,47 @@
+import 'dart:convert';
+
 import 'package:meta/meta.dart' show immutable;
 
+import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
+import '../models/script_conditions.dart';
 
 const String _actionEmitOutcome = 'emitoutcome';
 const String _actionSourceOutcome = 'sourceoutcome';
 const String _actionStartTrainerBattle = 'starttrainerbattle';
 const String _outcomeIdParam = 'outcomeId';
 const String _battleIdParam = 'battleId';
+const String _stepStudioDocumentMetadataKey = 'authoring.stepStudioDocument';
+const String _legacyStepIdMetadataKey = 'step.id';
+const String _legacyStepNameMetadataKey = 'step.name';
+const String _legacyStepDescriptionMetadataKey = 'step.description';
+const String _legacyStepCutsceneIdsMetadataKey = 'step.cutsceneIds';
 
 enum NarrativeBattleOutcomeKind {
   victory,
   defeat,
+}
+
+enum NarrativeStoryStepPickerSource {
+  stepStudio,
+  legacyMetadata,
+}
+
+enum NarrativeEventSourceKind {
+  mapEnter,
+  triggerEnter,
+  entityInteract,
+  outcomeReceived,
+}
+
+enum NarrativePredicateReferenceKind {
+  storyFlag,
+  storyStep,
+  cutscene,
+  scenarioOutcome,
+  battleOutcome,
 }
 
 @immutable
@@ -63,6 +92,164 @@ final class NarrativeScenarioPickerOption {
         Object.hashAll(declaredOutcomeIds),
         nodeCount,
         edgeCount,
+        debugTechnicalLabel,
+      );
+}
+
+@immutable
+final class NarrativeStoryStepPickerOption {
+  NarrativeStoryStepPickerOption({
+    required this.stepId,
+    required this.humanLabel,
+    required this.description,
+    required this.sourceScenarioId,
+    required this.sourceScenarioLabel,
+    required this.sourceKind,
+    required this.order,
+    required List<String> linkedCutsceneIds,
+    required List<String> expectedOutcomeIds,
+    required List<String> emittedOutcomeIds,
+    required this.debugTechnicalLabel,
+  })  : linkedCutsceneIds = List<String>.unmodifiable(linkedCutsceneIds),
+        expectedOutcomeIds = List<String>.unmodifiable(expectedOutcomeIds),
+        emittedOutcomeIds = List<String>.unmodifiable(emittedOutcomeIds);
+
+  final String stepId;
+  final String humanLabel;
+  final String description;
+  final String sourceScenarioId;
+  final String sourceScenarioLabel;
+  final NarrativeStoryStepPickerSource sourceKind;
+  final int order;
+  final List<String> linkedCutsceneIds;
+  final List<String> expectedOutcomeIds;
+  final List<String> emittedOutcomeIds;
+  final String debugTechnicalLabel;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NarrativeStoryStepPickerOption &&
+          other.stepId == stepId &&
+          other.humanLabel == humanLabel &&
+          other.description == description &&
+          other.sourceScenarioId == sourceScenarioId &&
+          other.sourceScenarioLabel == sourceScenarioLabel &&
+          other.sourceKind == sourceKind &&
+          other.order == order &&
+          _listEquals(other.linkedCutsceneIds, linkedCutsceneIds) &&
+          _listEquals(other.expectedOutcomeIds, expectedOutcomeIds) &&
+          _listEquals(other.emittedOutcomeIds, emittedOutcomeIds) &&
+          other.debugTechnicalLabel == debugTechnicalLabel;
+
+  @override
+  int get hashCode => Object.hash(
+        stepId,
+        humanLabel,
+        description,
+        sourceScenarioId,
+        sourceScenarioLabel,
+        sourceKind,
+        order,
+        Object.hashAll(linkedCutsceneIds),
+        Object.hashAll(expectedOutcomeIds),
+        Object.hashAll(emittedOutcomeIds),
+        debugTechnicalLabel,
+      );
+}
+
+@immutable
+final class NarrativeEventSourcePickerOption {
+  const NarrativeEventSourcePickerOption({
+    required this.sourceId,
+    required this.sourceKind,
+    required this.humanLabel,
+    required this.mapId,
+    required this.mapLabel,
+    required this.entityId,
+    required this.entityLabel,
+    required this.triggerId,
+    required this.triggerLabel,
+    required this.outcomeId,
+    required this.debugTechnicalLabel,
+  });
+
+  final String sourceId;
+  final NarrativeEventSourceKind sourceKind;
+  final String humanLabel;
+  final String mapId;
+  final String mapLabel;
+  final String entityId;
+  final String entityLabel;
+  final String triggerId;
+  final String triggerLabel;
+  final String outcomeId;
+  final String debugTechnicalLabel;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NarrativeEventSourcePickerOption &&
+          other.sourceId == sourceId &&
+          other.sourceKind == sourceKind &&
+          other.humanLabel == humanLabel &&
+          other.mapId == mapId &&
+          other.mapLabel == mapLabel &&
+          other.entityId == entityId &&
+          other.entityLabel == entityLabel &&
+          other.triggerId == triggerId &&
+          other.triggerLabel == triggerLabel &&
+          other.outcomeId == outcomeId &&
+          other.debugTechnicalLabel == debugTechnicalLabel;
+
+  @override
+  int get hashCode => Object.hash(
+        sourceId,
+        sourceKind,
+        humanLabel,
+        mapId,
+        mapLabel,
+        entityId,
+        entityLabel,
+        triggerId,
+        triggerLabel,
+        outcomeId,
+        debugTechnicalLabel,
+      );
+}
+
+@immutable
+final class NarrativePredicateReferencePickerOption {
+  NarrativePredicateReferencePickerOption({
+    required this.referenceId,
+    required this.referenceKind,
+    required this.humanLabel,
+    required List<String> sourceScenarioIds,
+    required this.debugTechnicalLabel,
+  }) : sourceScenarioIds = List<String>.unmodifiable(sourceScenarioIds);
+
+  final String referenceId;
+  final NarrativePredicateReferenceKind referenceKind;
+  final String humanLabel;
+  final List<String> sourceScenarioIds;
+  final String debugTechnicalLabel;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NarrativePredicateReferencePickerOption &&
+          other.referenceId == referenceId &&
+          other.referenceKind == referenceKind &&
+          other.humanLabel == humanLabel &&
+          _listEquals(other.sourceScenarioIds, sourceScenarioIds) &&
+          other.debugTechnicalLabel == debugTechnicalLabel;
+
+  @override
+  int get hashCode => Object.hash(
+        referenceId,
+        referenceKind,
+        humanLabel,
+        Object.hashAll(sourceScenarioIds),
         debugTechnicalLabel,
       );
 }
@@ -258,6 +445,168 @@ List<NarrativeOutcomePickerOption> buildNarrativeOutcomePickerOptions(
   return List<NarrativeOutcomePickerOption>.unmodifiable(options);
 }
 
+List<NarrativeStoryStepPickerOption> buildNarrativeStoryStepPickerOptions(
+  ProjectManifest manifest,
+) {
+  final byStepId = <String, NarrativeStoryStepPickerOption>{};
+
+  for (final scenario in manifest.scenarios) {
+    if (scenario.scope != ScenarioScope.globalStory) {
+      continue;
+    }
+    for (final option in _storyStepOptionsForScenario(scenario)) {
+      byStepId.putIfAbsent(option.stepId, () => option);
+    }
+  }
+
+  final options = byStepId.values.toList(growable: false);
+  options.sort((a, b) {
+    final byScenario = _compareStringsCaseInsensitive(
+        a.sourceScenarioLabel, b.sourceScenarioLabel);
+    if (byScenario != 0) {
+      return byScenario;
+    }
+    final byOrder = a.order.compareTo(b.order);
+    if (byOrder != 0) {
+      return byOrder;
+    }
+    final byLabel = _compareStringsCaseInsensitive(a.humanLabel, b.humanLabel);
+    if (byLabel != 0) {
+      return byLabel;
+    }
+    return _compareStringsCaseInsensitive(a.stepId, b.stepId);
+  });
+  return List<NarrativeStoryStepPickerOption>.unmodifiable(options);
+}
+
+List<NarrativeEventSourcePickerOption> buildNarrativeEventSourcePickerOptions(
+  ProjectManifest manifest, {
+  Iterable<MapData> maps = const [],
+}) {
+  final mapEntriesById = <String, ProjectMapEntry>{
+    for (final map in manifest.maps)
+      if (map.id.trim().isNotEmpty) map.id.trim(): map,
+  };
+  final optionsBySourceId = <String, NarrativeEventSourcePickerOption>{};
+
+  void add(NarrativeEventSourcePickerOption option) {
+    optionsBySourceId.putIfAbsent(option.sourceId, () => option);
+  }
+
+  for (final mapEntry in manifest.maps) {
+    final mapId = mapEntry.id.trim();
+    if (mapId.isEmpty) {
+      continue;
+    }
+    final mapLabel = _labelOrId(mapEntry.name, mapId);
+    add(
+      NarrativeEventSourcePickerOption(
+        sourceId: 'mapEnter:$mapId',
+        sourceKind: NarrativeEventSourceKind.mapEnter,
+        humanLabel: 'Map enter: $mapLabel',
+        mapId: mapId,
+        mapLabel: mapLabel,
+        entityId: '',
+        entityLabel: '',
+        triggerId: '',
+        triggerLabel: '',
+        outcomeId: '',
+        debugTechnicalLabel: 'sourceMapEnter:$mapId',
+      ),
+    );
+  }
+
+  for (final map in maps) {
+    final mapId = map.id.trim();
+    if (mapId.isEmpty) {
+      continue;
+    }
+    final mapLabel = _mapLabelFor(mapId, map.name, mapEntriesById);
+
+    for (final trigger in map.triggers) {
+      final triggerId = trigger.id.trim();
+      if (triggerId.isEmpty) {
+        continue;
+      }
+      final triggerLabel = _labelOrId(trigger.name, triggerId);
+      add(
+        NarrativeEventSourcePickerOption(
+          sourceId: 'triggerEnter:$mapId:$triggerId',
+          sourceKind: NarrativeEventSourceKind.triggerEnter,
+          humanLabel: 'Trigger enter: $triggerLabel ($mapLabel)',
+          mapId: mapId,
+          mapLabel: mapLabel,
+          entityId: '',
+          entityLabel: '',
+          triggerId: triggerId,
+          triggerLabel: triggerLabel,
+          outcomeId: '',
+          debugTechnicalLabel: 'sourceTriggerEnter:$mapId:$triggerId',
+        ),
+      );
+    }
+
+    for (final entity in map.entities) {
+      final entityId = entity.id.trim();
+      if (entityId.isEmpty) {
+        continue;
+      }
+      final entityLabel = _labelOrId(entity.inspectorHeadline, entityId);
+      add(
+        NarrativeEventSourcePickerOption(
+          sourceId: 'entityInteract:$mapId:$entityId',
+          sourceKind: NarrativeEventSourceKind.entityInteract,
+          humanLabel: 'Entity interact: $entityLabel ($mapLabel)',
+          mapId: mapId,
+          mapLabel: mapLabel,
+          entityId: entityId,
+          entityLabel: entityLabel,
+          triggerId: '',
+          triggerLabel: '',
+          outcomeId: '',
+          debugTechnicalLabel: 'sourceEntityInteract:$mapId:$entityId',
+        ),
+      );
+    }
+  }
+
+  for (final outcome in buildNarrativeOutcomePickerOptions(manifest)) {
+    final outcomeId = outcome.outcomeId.trim();
+    if (outcomeId.isEmpty) {
+      continue;
+    }
+    add(
+      NarrativeEventSourcePickerOption(
+        sourceId: 'outcomeReceived:$outcomeId',
+        sourceKind: NarrativeEventSourceKind.outcomeReceived,
+        humanLabel: 'Outcome received: ${outcome.humanLabel}',
+        mapId: '',
+        mapLabel: '',
+        entityId: '',
+        entityLabel: '',
+        triggerId: '',
+        triggerLabel: '',
+        outcomeId: outcomeId,
+        debugTechnicalLabel: 'sourceOutcome:$outcomeId',
+      ),
+    );
+  }
+
+  final options = optionsBySourceId.values.toList(growable: false);
+  options.sort((a, b) {
+    final byKind = a.sourceKind.index.compareTo(b.sourceKind.index);
+    if (byKind != 0) {
+      return byKind;
+    }
+    final byLabel = _compareStringsCaseInsensitive(a.humanLabel, b.humanLabel);
+    if (byLabel != 0) {
+      return byLabel;
+    }
+    return _compareStringsCaseInsensitive(a.sourceId, b.sourceId);
+  });
+  return List<NarrativeEventSourcePickerOption>.unmodifiable(options);
+}
+
 List<NarrativeBattleReferencePickerOption>
     buildNarrativeBattleReferencePickerOptions(ProjectManifest manifest) {
   final trainersById = <String, ProjectTrainerEntry>{
@@ -316,6 +665,123 @@ List<NarrativeBattleReferencePickerOption>
   return List<NarrativeBattleReferencePickerOption>.unmodifiable(options);
 }
 
+List<NarrativePredicateReferencePickerOption>
+    buildNarrativePredicateReferencePickerOptions(ProjectManifest manifest) {
+  final byKey = <String, _MutablePredicateReferencePickerOption>{};
+
+  void add({
+    required NarrativePredicateReferenceKind kind,
+    required String referenceId,
+    required String humanLabel,
+    required String sourceScenarioId,
+  }) {
+    final id = referenceId.trim();
+    if (id.isEmpty) {
+      return;
+    }
+    final key = '${kind.name}:$id';
+    byKey
+        .putIfAbsent(
+          key,
+          () => _MutablePredicateReferencePickerOption(
+            referenceId: id,
+            referenceKind: kind,
+            humanLabel: _labelOrId(humanLabel, id),
+          ),
+        )
+        .addSourceScenarioId(sourceScenarioId);
+  }
+
+  for (final scenario in manifest.scenarios) {
+    final scenarioId = scenario.id.trim();
+    for (final flagName in _flagNamesForScenario(scenario)) {
+      add(
+        kind: NarrativePredicateReferenceKind.storyFlag,
+        referenceId: flagName,
+        humanLabel: _humanizeTechnicalId(flagName),
+        sourceScenarioId: scenarioId,
+      );
+    }
+  }
+
+  for (final step in buildNarrativeStoryStepPickerOptions(manifest)) {
+    add(
+      kind: NarrativePredicateReferenceKind.storyStep,
+      referenceId: step.stepId,
+      humanLabel: step.humanLabel,
+      sourceScenarioId: step.sourceScenarioId,
+    );
+  }
+
+  for (final scenario in manifest.scenarios) {
+    if (scenario.scope != ScenarioScope.localEventFlow) {
+      continue;
+    }
+    add(
+      kind: NarrativePredicateReferenceKind.cutscene,
+      referenceId: scenario.id,
+      humanLabel: _labelOrId(scenario.name, scenario.id),
+      sourceScenarioId: scenario.id,
+    );
+  }
+
+  for (final outcome in buildNarrativeOutcomePickerOptions(manifest)) {
+    final outcomeId = outcome.outcomeId.trim();
+    if (outcomeId.isEmpty) {
+      continue;
+    }
+    final sourceScenarioIds = _dedupeAndSort([
+      ...outcome.declaredByScenarioIds,
+      ...outcome.emittedByScenarioIds,
+      ...outcome.consumedByScenarioIds,
+    ]);
+    for (final scenarioId in sourceScenarioIds) {
+      add(
+        kind: NarrativePredicateReferenceKind.scenarioOutcome,
+        referenceId: 'scenario.outcome.$outcomeId',
+        humanLabel: 'Scenario outcome: ${outcome.humanLabel}',
+        sourceScenarioId: scenarioId,
+      );
+    }
+  }
+
+  for (final battle in buildNarrativeBattleReferencePickerOptions(manifest)) {
+    for (final outcomeKind in battle.supportedOutcomeKinds) {
+      final suffix = outcomeKind.name;
+      add(
+        kind: NarrativePredicateReferenceKind.battleOutcome,
+        referenceId: 'battle:${battle.battleId}:$suffix',
+        humanLabel:
+            '${_capitalizeFirst(_humanizeTechnicalId(battle.battleId))} $suffix',
+        sourceScenarioId: battle.sourceScenarioId,
+      );
+    }
+  }
+
+  final options = byKey.values.map((entry) {
+    return NarrativePredicateReferencePickerOption(
+      referenceId: entry.referenceId,
+      referenceKind: entry.referenceKind,
+      humanLabel: entry.humanLabel,
+      sourceScenarioIds: _dedupeAndSort(entry.sourceScenarioIds),
+      debugTechnicalLabel: entry.referenceId,
+    );
+  }).toList(growable: false);
+
+  options.sort((a, b) {
+    final byKind = a.referenceKind.index.compareTo(b.referenceKind.index);
+    if (byKind != 0) {
+      return byKind;
+    }
+    final byLabel = _compareStringsCaseInsensitive(a.humanLabel, b.humanLabel);
+    if (byLabel != 0) {
+      return byLabel;
+    }
+    return _compareStringsCaseInsensitive(a.referenceId, b.referenceId);
+  });
+  return List<NarrativePredicateReferencePickerOption>.unmodifiable(options);
+}
+
 class _MutableOutcomePickerOption {
   _MutableOutcomePickerOption(this.outcomeId);
 
@@ -325,12 +791,186 @@ class _MutableOutcomePickerOption {
   final List<String> consumedByScenarioIds = <String>[];
 }
 
+class _MutablePredicateReferencePickerOption {
+  _MutablePredicateReferencePickerOption({
+    required this.referenceId,
+    required this.referenceKind,
+    required this.humanLabel,
+  });
+
+  final String referenceId;
+  final NarrativePredicateReferenceKind referenceKind;
+  final String humanLabel;
+  final List<String> sourceScenarioIds = <String>[];
+
+  void addSourceScenarioId(String scenarioId) {
+    final id = scenarioId.trim();
+    if (id.isNotEmpty) {
+      sourceScenarioIds.add(id);
+    }
+  }
+}
+
+Iterable<NarrativeStoryStepPickerOption> _storyStepOptionsForScenario(
+  ScenarioAsset scenario,
+) sync* {
+  final sourceScenarioId = scenario.id.trim();
+  final sourceScenarioLabel = _labelOrId(scenario.name, sourceScenarioId);
+  final parsedOptions = <NarrativeStoryStepPickerOption>[];
+
+  final rawDocument = scenario.metadata[_stepStudioDocumentMetadataKey]?.trim();
+  if (rawDocument != null && rawDocument.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(rawDocument);
+      final document = _mapValue(decoded);
+      final steps = _listValue(document?['steps']);
+      for (var i = 0; i < steps.length; i++) {
+        final step = _mapValue(steps[i]);
+        if (step == null) {
+          continue;
+        }
+        final stepId = _stringValue(step['id']);
+        if (stepId.isEmpty) {
+          continue;
+        }
+        final activation = _mapValue(step['activation']);
+        final completion = _mapValue(step['completion']);
+        final cutsceneIds = <String>[
+          ..._idsFromObjectList(step['cutscenes'], 'cutsceneId'),
+          _stringValue(completion?['cutsceneId']),
+        ];
+        final expectedOutcomeIds = <String>[
+          _stringValue(activation?['outcomeId']),
+        ];
+        final emittedOutcomeIds = <String>[
+          _stringValue(completion?['outcomeId']),
+          ..._idsFromObjectList(step['outcomes'], 'outcomeId'),
+        ];
+
+        parsedOptions.add(
+          NarrativeStoryStepPickerOption(
+            stepId: stepId,
+            humanLabel: _labelOrId(_stringValue(step['name']), stepId),
+            description: _stringValue(step['description']),
+            sourceScenarioId: sourceScenarioId,
+            sourceScenarioLabel: sourceScenarioLabel,
+            sourceKind: NarrativeStoryStepPickerSource.stepStudio,
+            order: _intValue(step['order'], fallback: i),
+            linkedCutsceneIds: _dedupeAndSort(cutsceneIds),
+            expectedOutcomeIds: _dedupeAndSort(expectedOutcomeIds),
+            emittedOutcomeIds: _dedupeAndSort(emittedOutcomeIds),
+            debugTechnicalLabel: '$sourceScenarioId:$stepId',
+          ),
+        );
+      }
+    } catch (_) {
+      // Invalid authoring metadata remains non-fatal for picker derivation.
+    }
+  }
+
+  if (parsedOptions.isNotEmpty) {
+    yield* parsedOptions;
+    return;
+  }
+
+  final legacyStepId =
+      _stringValue(scenario.metadata[_legacyStepIdMetadataKey]);
+  if (legacyStepId.isEmpty) {
+    return;
+  }
+
+  yield NarrativeStoryStepPickerOption(
+    stepId: legacyStepId,
+    humanLabel: _labelOrId(
+      scenario.metadata[_legacyStepNameMetadataKey] ?? '',
+      legacyStepId,
+    ),
+    description: _stringValue(
+      scenario.metadata[_legacyStepDescriptionMetadataKey],
+    ),
+    sourceScenarioId: sourceScenarioId,
+    sourceScenarioLabel: sourceScenarioLabel,
+    sourceKind: NarrativeStoryStepPickerSource.legacyMetadata,
+    order: 0,
+    linkedCutsceneIds: _dedupeAndSort(
+      (scenario.metadata[_legacyStepCutsceneIdsMetadataKey] ?? '').split(','),
+    ),
+    expectedOutcomeIds: const [],
+    emittedOutcomeIds: const [],
+    debugTechnicalLabel: '$sourceScenarioId:$legacyStepId',
+  );
+}
+
 List<String> _outcomeIdsForNode(ScenarioNode node) {
   final values = <String>[
     node.binding.outcomeId ?? '',
     node.payload.params[_outcomeIdParam] ?? '',
   ];
   return _dedupeAndSort(values);
+}
+
+Iterable<String> _flagNamesForScenario(ScenarioAsset scenario) sync* {
+  yield* _flagNamesFromCondition(scenario.activationCondition);
+  for (final node in scenario.nodes) {
+    final directFlagName = node.binding.flagName?.trim() ?? '';
+    if (directFlagName.isNotEmpty) {
+      yield directFlagName;
+    }
+    yield* _flagNamesFromCondition(node.payload.condition);
+  }
+  yield* _flagNamesFromStepStudioMetadata(scenario);
+}
+
+Iterable<String> _flagNamesFromCondition(ScriptCondition? condition) sync* {
+  if (condition == null) {
+    return;
+  }
+  switch (condition.type) {
+    case ScriptConditionType.flagIsSet:
+    case ScriptConditionType.flagIsUnset:
+      final flagName = condition.params[ScriptConditionParams.flagName]?.trim();
+      if (flagName != null && flagName.isNotEmpty) {
+        yield flagName;
+      }
+      break;
+    default:
+      break;
+  }
+  for (final child in condition.children) {
+    yield* _flagNamesFromCondition(child);
+  }
+}
+
+Iterable<String> _flagNamesFromStepStudioMetadata(
+  ScenarioAsset scenario,
+) sync* {
+  final rawDocument = scenario.metadata[_stepStudioDocumentMetadataKey]?.trim();
+  if (rawDocument == null || rawDocument.isEmpty) {
+    return;
+  }
+  try {
+    final decoded = jsonDecode(rawDocument);
+    final document = _mapValue(decoded);
+    final steps = _listValue(document?['steps']);
+    for (final stepObject in steps) {
+      final step = _mapValue(stepObject);
+      if (step == null) {
+        continue;
+      }
+      final activation = _mapValue(step['activation']);
+      final completion = _mapValue(step['completion']);
+      final activationFlag = _stringValue(activation?['flagName']);
+      if (activationFlag.isNotEmpty) {
+        yield activationFlag;
+      }
+      final completionFlag = _stringValue(completion?['flagName']);
+      if (completionFlag.isNotEmpty) {
+        yield completionFlag;
+      }
+    }
+  } catch (_) {
+    return;
+  }
 }
 
 String _normalizedActionKind(ScenarioNode node) {
@@ -343,6 +983,18 @@ String _normalizedActionKind(ScenarioNode node) {
 String _labelOrId(String label, String id) {
   final trimmed = label.trim();
   return trimmed.isNotEmpty ? trimmed : id;
+}
+
+String _mapLabelFor(
+  String mapId,
+  String mapDataName,
+  Map<String, ProjectMapEntry> mapEntriesById,
+) {
+  final entry = mapEntriesById[mapId];
+  if (entry != null) {
+    return _labelOrId(entry.name, mapId);
+  }
+  return _labelOrId(mapDataName, mapId);
 }
 
 String _battleHumanLabel({
@@ -360,6 +1012,40 @@ String _battleHumanLabel({
     ]);
   }
   return _firstNonBlank([trainerId, battleId, battleReferenceId]);
+}
+
+Map<String, Object?>? _mapValue(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  return value.map((key, entry) => MapEntry(key.toString(), entry));
+}
+
+List<Object?> _listValue(Object? value) {
+  if (value is! List) {
+    return const [];
+  }
+  return value.cast<Object?>();
+}
+
+List<String> _idsFromObjectList(Object? value, String key) {
+  return [
+    for (final entry in _listValue(value)) _stringValue(_mapValue(entry)?[key]),
+  ];
+}
+
+String _stringValue(Object? value) {
+  return value?.toString().trim() ?? '';
+}
+
+int _intValue(Object? value, {required int fallback}) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  return int.tryParse(value?.toString() ?? '') ?? fallback;
 }
 
 String _joinNonBlank(Iterable<String?> values) {
@@ -389,6 +1075,14 @@ String _humanizeTechnicalId(String value) {
       .where((part) => part.isNotEmpty)
       .join(' ');
   return label.isEmpty ? trimmed : label;
+}
+
+String _capitalizeFirst(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  return trimmed[0].toUpperCase() + trimmed.substring(1);
 }
 
 List<String> _dedupeAndSort(Iterable<String> values) {

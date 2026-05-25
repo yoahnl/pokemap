@@ -4,17 +4,17 @@
 
 Phase 4 — Authoring Workflows Minimal
 
-Statut : 🔜 Phase courante recalibrée
+Statut : 🔜 Phase courante en exécution
 
-Lot courant : P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
+Lot courant : P4-02 — Scenario Authoring Draft Model V0
 
-Prochain lot exact : P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
+Prochain lot exact : P4-02 — Scenario Authoring Draft Model V0
 
 Suivi des lots :
 
 - ✅ P4-00 — Phase 4 Roadmap Recalibration / Authoring Workflow Audit
-- 🔜 P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
-- P4-02 — Scenario Authoring Draft Model V0
+- ✅ P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
+- 🔜 P4-02 — Scenario Authoring Draft Model V0
 - P4-03 — Event Source Authoring Draft Operations V0
 - P4-04 — Outcome / Battle Outcome Authoring Operations V0
 - P4-05 — Predicate / World Rule Authoring Draft V0
@@ -24,7 +24,9 @@ Suivi des lots :
 
 P4-00 : ✅ terminé
 
-P4-01 : 🔜 prochain lot exact
+P4-01 : ✅ terminé
+
+P4-02 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -134,7 +136,7 @@ Résultat P4-00 :
 - `road_map_global.md` non modifiée ;
 - aucun code, test, widget, registry, runtime ou contenu Selbrume créé.
 
-### 🔜 P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
+### ✅ P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
 
 Objectif :
 Compléter la couverture de pickers strictement nécessaire au démarrage des
@@ -151,7 +153,27 @@ Preuve concrète, pure et testée :
   de sources déjà existantes ou comme reports si le scope gonfle ;
 - aucun widget UI, aucun registry, aucune persistence.
 
-### P4-02 — Scenario Authoring Draft Model V0
+Résultat P4-01 :
+
+- rapport créé :
+  `reports/roadmap/phase_4/p4_01_narrative_reference_picker_coverage_missing_read_models.md` ;
+- read models existants Scenario / Outcome / Battle confirmés et conservés ;
+- batch V0 ajouté dans `map_core` :
+  `NarrativeStoryStepPickerOption`, `NarrativeEventSourcePickerOption`,
+  `NarrativePredicateReferencePickerOption` ;
+- builders ajoutés :
+  `buildNarrativeStoryStepPickerOptions`,
+  `buildNarrativeEventSourcePickerOptions`,
+  `buildNarrativePredicateReferencePickerOptions` ;
+- sources strictement dérivées :
+  `ScenarioAsset.metadata`, `ProjectManifest.maps`, `MapData.entities`,
+  `MapData.triggers`, outcomes déclarés/émis/consommés, battle refs ;
+- tests ciblés ajoutés dans
+  `packages/map_core/test/narrative_reference_picker_read_models_test.dart` ;
+- aucun widget UI, aucun registry persistant, aucune migration, aucun runtime,
+  aucun contenu Selbrume et aucun reward/money/XP créé.
+
+### 🔜 P4-02 — Scenario Authoring Draft Model V0
 
 Objectif :
 Créer ou stabiliser un draft model pur permettant de décrire un scenario minimal
@@ -284,5 +306,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
+P4-02 — Scenario Authoring Draft Model V0
 ```
