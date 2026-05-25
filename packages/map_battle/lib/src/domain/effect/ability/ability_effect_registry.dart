@@ -11,12 +11,14 @@ import 'air_lock_effect.dart';
 import 'apply_status_to_move_target_ability_effect.dart';
 import 'ball_fetch_effect.dart';
 import 'cloud_nine_effect.dart';
+import 'commander_effect.dart';
 import 'contact_disable_ability_effect.dart';
 import 'contact_punish_ability_effect.dart';
 import 'contact_reaction_ability_effect.dart';
 import 'contact_status_ability_effect.dart';
 import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
+import 'dancer_effect.dart';
 import 'flee_passthrough_ability_effect.dart';
 import 'form_change_ability_effect.dart';
 import 'gorilla_tactics_effect.dart';
@@ -69,7 +71,9 @@ final class AbilityEffectRegistry {
       <String, AbilityEffectFactory>{
     'air_lock': ({required scope}) => AirLockEffect(scope: scope),
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
+    'commander': ({required scope}) => CommanderEffect(scope: scope),
     'damp': ({required scope}) => DampEffect(scope: scope),
+    'dancer': ({required scope}) => DancerEffect(scope: scope),
     'run_away': ({required scope}) => RunAwayEffect(scope: scope),
     'cheek_pouch': ({required scope}) => CheekPouchEffect(scope: scope),
     'cud_chew': ({required scope}) => CudChewEffect(scope: scope),

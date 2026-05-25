@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-25T00:31:32.307431Z
+Generated: 2026-05-25T01:14:49.271431Z
 
 ## Final Gate Axes
 
@@ -14,7 +14,7 @@ Generated: 2026-05-25T00:31:32.307431Z
 
 | Family | Ported | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: | ---: |
-| ability | 240 | 8 | 6 | 14 |
+| ability | 240 | 12 | 2 | 14 |
 | field | 15 | 0 | 0 | 0 |
 | item | 87 | 0 | 0 | 0 |
 | mechanics | 4 | 0 | 0 | 0 |
@@ -27,11 +27,11 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 
 | Hook family | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: |
-| post_damage | 5 | 2 | 7 |
-| switch | 1 | 4 | 5 |
+| post_damage | 6 | 1 | 7 |
+| switch | 4 | 1 | 5 |
 | action_order | 2 | 0 | 2 |
-| move_prevention | 1 | 1 | 2 |
-| unclassified | 0 | 2 | 2 |
+| move_prevention | 2 | 0 | 2 |
+| unclassified | 1 | 1 | 2 |
 | ability_change | 0 | 1 | 1 |
 | end_turn | 1 | 0 | 1 |
 | item_change | 1 | 0 | 1 |

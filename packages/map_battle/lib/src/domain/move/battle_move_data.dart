@@ -80,6 +80,7 @@ final class BattleMoveDefinition {
         pulse: move.pulse,
         wind: move.wind,
         ballistics: move.ballistics,
+        dance: move.dance,
         kingRockUtility: move.kingRockUtility,
       ),
       charge: move.charge,
@@ -205,6 +206,7 @@ final class BattleMoveDefinition {
       pulse: flags.pulse,
       wind: flags.wind,
       ballistics: flags.ballistics,
+      dance: flags.dance,
       kingRockUtility: flags.kingRockUtility,
       heal: heal,
       charge: charge,
@@ -238,6 +240,7 @@ final class BattleMoveFlags {
     this.pulse = false,
     this.wind = false,
     this.ballistics = false,
+    this.dance = false,
     this.kingRockUtility = false,
   });
 
@@ -251,6 +254,7 @@ final class BattleMoveFlags {
   final bool pulse;
   final bool wind;
   final bool ballistics;
+  final bool dance;
   final bool kingRockUtility;
 }
 

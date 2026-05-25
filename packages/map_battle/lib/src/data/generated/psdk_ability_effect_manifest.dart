@@ -210,7 +210,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'commander',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Commander.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'CommanderEffect.partialNoQueuedSwitchActionRewrite',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'competitive',
@@ -293,7 +294,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'dancer',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Dancer.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'DancerEffect.partialTurnRunnerReplayNoImportedStudioDanceFlag',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'dark_aura',

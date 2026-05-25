@@ -191,6 +191,234 @@ void main() {
       expect(result.state.field.lastBallUsedId, isNull);
       expect(result.state.field.ballFetchEligibleSlots, isEmpty);
     });
+
+    test('Dancer immediately replays dance moves without PP or history', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(id: 'fiery_dance', power: 40).psdk.copyWith(
+                  dance: true,
+                ),
+            speed: 80,
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'dancer',
+            move: _move(id: 'wait', power: 0).psdk,
+            speed: 40,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final danceDamage = result.timeline.events
+          .whereType<PsdkBattleDamageEvent>()
+          .where((event) => event.moveId == 'fiery_dance')
+          .toList(growable: false);
+      final fieryPpEvents = result.timeline.events
+          .whereType<PsdkBattleMovePpSpentEvent>()
+          .where((event) => event.moveId == 'fiery_dance')
+          .toList(growable: false);
+      final opponentHistory =
+          result.state.battlerAt(psdkOpponentSlot).moveHistory;
+
+      expect(
+        danceDamage.map((event) => event.user),
+        <PsdkBattleSlotRef>[psdkPlayerSlot, psdkOpponentSlot],
+      );
+      expect(
+        danceDamage.map((event) => event.target),
+        <PsdkBattleSlotRef>[psdkOpponentSlot, psdkPlayerSlot],
+      );
+      expect(fieryPpEvents.map((event) => event.user), <PsdkBattleSlotRef>[
+        psdkPlayerSlot,
+      ]);
+      expect(opponentHistory.usedMoveIds, isNot(contains('fiery_dance')));
+      expect(
+        opponentHistory.successfulMoveIds,
+        isNot(contains('fiery_dance')),
+      );
+    });
+
+    test('Dancer replay does not lock Thrash-style dance moves', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(
+              id: 'thrash',
+              power: 40,
+              battleEngineMethod: 's_thrash',
+            ).psdk.copyWith(dance: true),
+            speed: 80,
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'dancer',
+            move: _move(id: 'wait', power: 0).psdk,
+            speed: 40,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(
+        result.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('force_next_move_base'),
+        isFalse,
+      );
+    });
+
+    test('Commander marks Tatsugiri and sharply boosts allied Dondozo', () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+      final tatsugiri = result.state.battlerAt(psdkPlayerSlot);
+      final dondozo = result.state.battlerAt(_playerAllySlot);
+
+      expect(tatsugiri.effects.contains('commanding'), isTrue);
+      expect(dondozo.effects.contains('commanded'), isTrue);
+      expect(dondozo.statStages.valueOf('attack'), 2);
+      expect(dondozo.statStages.valueOf('defense'), 2);
+      expect(dondozo.statStages.valueOf('specialAttack'), 2);
+      expect(dondozo.statStages.valueOf('specialDefense'), 2);
+      expect(dondozo.statStages.valueOf('speed'), 2);
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>(),
+        hasLength(5),
+      );
+    });
+
+    test('Commander also activates when allied Dondozo switches in', () {
+      final result = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(),
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        who: _playerAllySlot,
+        replacement: _playerAllySlot,
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('commanding'),
+        isTrue,
+      );
+      expect(
+        result.state.battlerAt(_playerAllySlot).effects.contains('commanded'),
+        isTrue,
+      );
+    });
+
+    test('Commanding and Commanded prevent actions until Dondozo faints', () {
+      final commander = const BattleSwitchHandler().dispatchSwitchEvents(
+        context: BattleHandlerContext(
+          state: _commanderState(),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        who: psdkPlayerSlot,
+        replacement: psdkPlayerSlot,
+      );
+      final commandingPrevention =
+          commander.state.battlerAt(psdkPlayerSlot).effects.userMovePrevention(
+                BattleEffectUserMovePreventionContext(
+                  state: commander.state,
+                  rng: _rng(),
+                  turn: 1,
+                  user: psdkPlayerSlot,
+                  target: psdkOpponentSlot,
+                  move: _move(id: 'tackle', power: 40).definition,
+                ),
+              );
+      final tatsugiriSwitch =
+          const BattleSwitchHandler().resolveSwitchPrevention(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+      );
+      final dondozoSwitch = const BattleSwitchHandler().resolveSwitchPrevention(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: _playerAllySlot,
+        ),
+        target: _playerAllySlot,
+      );
+      final ko = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: _playerAllySlot,
+        moveId: 'ko_hit',
+        rawDamage: 100,
+      );
+      final outOfReach = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: commander.state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        moveId: 'target_commander',
+        rawDamage: 20,
+      );
+
+      expect(commandingPrevention?.prevented, isTrue);
+      expect(
+          commandingPrevention?.reason, BattleMoveFailureReason.unusableByUser);
+      expect(
+        commander.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('out_of_reach_base'),
+        isTrue,
+      );
+      expect(outOfReach.applied, isFalse);
+      expect(outOfReach.reason, BattleMoveFailureReason.protected.jsonName);
+      expect(tatsugiriSwitch.applied, isFalse);
+      expect(tatsugiriSwitch.reason, 'commanding');
+      expect(dondozoSwitch.applied, isFalse);
+      expect(dondozoSwitch.reason, 'commanded');
+      expect(
+        ko.state.battlerAt(psdkPlayerSlot).effects.contains('commanding'),
+        isFalse,
+      );
+    });
   });
 }
 
@@ -326,10 +554,34 @@ PsdkBattleState _doublesState({
   );
 }
 
+PsdkBattleState _commanderState() {
+  return PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'tatsugiri',
+          speciesId: 'tatsugiri',
+          abilityId: 'commander',
+        ),
+      ),
+      _playerAllySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'dondozo',
+          speciesId: 'dondozo',
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'opponent'),
+      ),
+    },
+  );
+}
+
 ({BattleMoveDefinition definition, PsdkBattleMoveData psdk}) _move({
   required String id,
   required int power,
   int accuracy = 100,
+  String battleEngineMethod = 's_basic',
 }) {
   final definition = BattleMoveDefinition(
     id: id,
@@ -341,7 +593,7 @@ PsdkBattleState _doublesState({
     accuracy: accuracy,
     pp: 35,
     priority: 0,
-    battleEngineMethod: 's_basic',
+    battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
   );
   return (definition: definition, psdk: definition.psdkMove);
@@ -349,30 +601,33 @@ PsdkBattleState _doublesState({
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? speciesId,
   String? abilityId,
   String? heldItemId,
   PsdkBattleStatStages? statStages,
+  PsdkBattleMoveData? move,
+  int speed = 80,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
-    speciesId: id,
+    speciesId: speciesId ?? id,
     displayName: id,
     level: 50,
     maxHp: 100,
     currentHp: 100,
     types: const PsdkBattleTypes(primary: 'normal'),
-    stats: const PsdkBattleStats(
+    stats: PsdkBattleStats(
       attack: 80,
       defense: 80,
       specialAttack: 80,
       specialDefense: 80,
-      speed: 80,
+      speed: speed,
     ),
     abilityId: abilityId,
     heldItemId: heldItemId,
     statStages: statStages,
     moves: <PsdkBattleMoveData>[
-      _move(id: 'tackle', power: 40).psdk,
+      move ?? _move(id: 'tackle', power: 40).psdk,
     ],
   );
 }

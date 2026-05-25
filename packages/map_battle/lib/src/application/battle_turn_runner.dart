@@ -10,6 +10,7 @@ import '../domain/action/battle_shift_action_handler.dart';
 import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
+import '../domain/effect/ability/dancer_effect.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/battle_effect_hooks.dart';
@@ -30,6 +31,7 @@ import '../domain/timeline/battle_timeline.dart';
 import '../domain/timeline/battle_timeline_builder.dart';
 import '../domain/timeline/battle_timeline_event.dart';
 import '../psdk/application/psdk_battle_move_behavior.dart';
+import '../psdk/domain/psdk_battle_combatant.dart';
 import '../psdk/domain/psdk_battle_move.dart';
 import '../psdk/domain/psdk_battle_outcome.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
@@ -472,6 +474,20 @@ final class BattleTurnRunner {
             nextRng: postAction.rng,
           );
           timeline.addPsdkAll(postAction.events);
+          final dancerReplays = _resolveDancerReplays(
+            user: action.user,
+            target: action.target,
+            move: moveAfterPp,
+            actions: actions,
+            actionIndex: actionIndex,
+          );
+          if (dancerReplays.applied || dancerReplays.events.isNotEmpty) {
+            _context.applyStateAndRng(
+              nextState: dancerReplays.state,
+              nextRng: dancerReplays.rng,
+            );
+            timeline.addPsdkAll(dancerReplays.events);
+          }
         }
 
         final outcome = _context.resolveOutcome();
@@ -748,6 +764,97 @@ final class BattleTurnRunner {
     );
   }
 
+  BattleHandlerResult _resolveDancerReplays({
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+    required PsdkBattleMoveData move,
+    required List<PsdkBattleAction> actions,
+    required int actionIndex,
+  }) {
+    if (!_isDanceMove(move)) {
+      return BattleHandlerResult(
+        state: _context.state,
+        rng: _context.rng,
+        applied: false,
+      );
+    }
+    if (_context.state.battlerAt(user).effects.contains('snatched')) {
+      return BattleHandlerResult(
+        state: _context.state,
+        rng: _context.rng,
+        applied: false,
+      );
+    }
+
+    var nextState = _context.state;
+    var nextRng = _context.rng;
+    final events = <PsdkBattleEvent>[];
+    final dancers = <PsdkBattleSlotRef>[
+      for (final slot in nextState.aliveSlots())
+        if (slot != user && _hasActiveDancerEffect(nextState, slot)) slot,
+    ]..sort((left, right) {
+        final speed = nextState
+            .battlerAt(left)
+            .effectiveStat('speed')
+            .compareTo(nextState.battlerAt(right).effectiveStat('speed'));
+        return speed == 0 ? _comparePsdkSlots(left, right) : speed;
+      });
+
+    for (final dancer in dancers) {
+      final battler = nextState.battlerAt(dancer);
+      if (battler.isFainted || _dancerReplayIsBlocked(battler)) {
+        continue;
+      }
+      final dancerTarget = _dancerReplayTarget(
+        originalUser: user,
+        originalTarget: target,
+        dancer: dancer,
+        move: move,
+      );
+      if (nextState.battlerAt(dancerTarget).isFainted) {
+        continue;
+      }
+      final replayState = _setDancerReplayActivated(
+        state: nextState,
+        dancer: dancer,
+        activated: true,
+      );
+      final resolution = _moveBehaviorRegistry.resolve(
+        method: move.battleEngineMethod,
+        context: PsdkBattleMoveContext(
+          state: replayState,
+          rng: nextRng,
+          turn: _context.turnNumber,
+          user: dancer,
+          target: dancerTarget,
+          move: move,
+          canFlee: _context.setup.canFlee,
+          isLastActionOfTurn: !_hasRunnableActionAfter(actions, actionIndex),
+          moveProcedureHooks: _moveProcedureHooks,
+          announcedMoveFor: (battler) => _announcedFightActionAfter(
+            actions,
+            actionIndex,
+            battler,
+          ),
+        ),
+      );
+      nextState = _setDancerReplayActivated(
+        state: resolution.state,
+        dancer: dancer,
+        activated: false,
+      );
+      nextRng = resolution.rng;
+      events.addAll(resolution.events);
+    }
+
+    return BattleHandlerResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: events.isNotEmpty,
+    );
+  }
+
   BattleStatusUserPreventionResult? _resolveStatusUserPrevention({
     required PsdkBattleFightAction action,
     required BattleMoveDefinition move,
@@ -901,6 +1008,100 @@ final class BattleTurnRunner {
     );
   }
 }
+
+bool _isDanceMove(PsdkBattleMoveData move) {
+  return move.dance || _danceMoveIds.contains(_normalizedMoveId(move));
+}
+
+bool _hasActiveDancerEffect(PsdkBattleState state, PsdkBattleSlotRef slot) {
+  return state.battlerAt(slot).abilityEffects.any(
+        (effect) => effect is DancerEffect || effect.abilityId == 'dancer',
+      );
+}
+
+PsdkBattleState _setDancerReplayActivated({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef dancer,
+  required bool activated,
+}) {
+  final battler = state.battlerAt(dancer);
+  var changed = false;
+  var effects = battler.effects;
+  for (final effect in battler.effects.effects) {
+    if (effect is DancerEffect) {
+      changed = true;
+      effects = effects.addEffect(effect.copyWithActivated(activated));
+      break;
+    }
+  }
+  effects = activated
+      ? effects.addEffect(
+          GenericBattleEffect(
+            id: _dancerReplayActivatedEffectId,
+            scope: BattlerBattleEffectScope(dancer),
+          ),
+        )
+      : effects.remove(_dancerReplayActivatedEffectId);
+  if (!changed &&
+      battler.effects.contains(_dancerReplayActivatedEffectId) ==
+          effects.contains(_dancerReplayActivatedEffectId)) {
+    return state;
+  }
+  return state.updateBattler(
+    dancer,
+    (current) => current.copyWith(effects: effects),
+  );
+}
+
+bool _dancerReplayIsBlocked(PsdkBattleCombatant battler) {
+  return battler.effects.contains('out_of_reach') ||
+      battler.effects.contains('out_of_reach_base') ||
+      battler.effects.contains('flinch');
+}
+
+PsdkBattleSlotRef _dancerReplayTarget({
+  required PsdkBattleSlotRef originalUser,
+  required PsdkBattleSlotRef originalTarget,
+  required PsdkBattleSlotRef dancer,
+  required PsdkBattleMoveData move,
+}) {
+  final sameBankAsUser = originalUser.bank == dancer.bank;
+  final originalUserWasNotTarget = originalUser != originalTarget;
+  if (sameBankAsUser && originalUserWasNotTarget) {
+    return originalTarget;
+  }
+  if (!sameBankAsUser &&
+      originalUserWasNotTarget &&
+      _normalizedMoveId(move) != 'lunar_dance') {
+    return originalUser;
+  }
+  return dancer;
+}
+
+int _comparePsdkSlots(PsdkBattleSlotRef left, PsdkBattleSlotRef right) {
+  final byBank = left.bank.compareTo(right.bank);
+  return byBank == 0 ? left.position.compareTo(right.position) : byBank;
+}
+
+String _normalizedMoveId(PsdkBattleMoveData move) {
+  final raw = move.dbSymbol.trim().isEmpty ? move.id : move.dbSymbol;
+  return raw.trim().toLowerCase().replaceAll('-', '_');
+}
+
+const Set<String> _danceMoveIds = <String>{
+  'dragon_dance',
+  'feather_dance',
+  'fiery_dance',
+  'lunar_dance',
+  'petal_dance',
+  'quiver_dance',
+  'revelation_dance',
+  'swords_dance',
+  'teeter_dance',
+  'victory_dance',
+};
+
+const _dancerReplayActivatedEffectId = 'dancer_replay_activated';
 
 bool _hasActiveFieldEffect(PsdkBattleState state, String effectId) {
   return state.combatants.values.any(

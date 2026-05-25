@@ -866,6 +866,8 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Bestow',
     'Bide',
     'CantSwitch',
+    'Commanded',
+    'Commanding',
     'Confusion',
     'EchoedVoice',
     'Flinch',

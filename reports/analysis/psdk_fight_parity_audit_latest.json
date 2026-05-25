@@ -9117,14 +9117,14 @@
     "totalEffects": 482,
     "byStatus": {
       "ported": 454,
-      "partial": 22,
-      "missing": 6
+      "partial": 26,
+      "missing": 2
     },
     "byFamilyAndStatus": {
       "ability": {
         "ported": 240,
-        "partial": 8,
-        "missing": 6
+        "partial": 12,
+        "missing": 2
       },
       "move": {
         "ported": 101,
@@ -9718,7 +9718,7 @@
       {
         "effectName": "Commanded",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb",
         "hookFamilies": [
           "post_damage",
@@ -9728,7 +9728,7 @@
       {
         "effectName": "Commander",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Commander.rb",
         "hookFamilies": [
           "switch"
@@ -9737,7 +9737,7 @@
       {
         "effectName": "Commanding",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb",
         "hookFamilies": [
           "move_prevention",
@@ -9867,7 +9867,7 @@
       {
         "effectName": "Dancer",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Dancer.rb",
         "hookFamilies": []
       },

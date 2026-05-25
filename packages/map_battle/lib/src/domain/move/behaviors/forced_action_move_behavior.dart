@@ -1,4 +1,6 @@
+import '../../../domain/effect/ability/ability_effect.dart';
 import '../../../domain/effect/ability/mental_immunity_ability_effect.dart';
+import '../../../domain/effect/ability/dancer_effect.dart';
 import '../../../domain/effect/battle_effect_scope.dart';
 import '../../../domain/effect/move/confusion_effect.dart';
 import '../../../domain/effect/move/force_next_move_base_effect.dart';
@@ -68,6 +70,7 @@ final class ForcedActionMoveBehavior
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    final dancerReplay = _isDancerReplay(context.state.battlerAt(context.user));
     final prevention = preventUser(context);
     if (prevention != null) {
       return BattleMoveBehaviorResolution(
@@ -136,6 +139,7 @@ final class ForcedActionMoveBehavior
       turn: context.turn,
       user: context.user,
       moveId: context.move.id,
+      dancerReplay: dancerReplay,
     );
 
     return BattleMoveBehaviorResolution(
@@ -156,14 +160,21 @@ final class ForcedActionMoveBehavior
     required int turn,
     required PsdkBattleSlotRef user,
     required String moveId,
+    required bool dancerReplay,
   }) {
     return switch (_kind) {
       _ForcedActionMoveKind.gigatonHammer =>
         _ForcedActionEffectResult(state: state, rng: rng),
       _ForcedActionMoveKind.thrash ||
       _ForcedActionMoveKind.outrage =>
-        _applyRepeatedMoveLock(
-            state: state, rng: rng, user: user, moveId: moveId),
+        dancerReplay
+            ? _ForcedActionEffectResult(state: state, rng: rng)
+            : _applyRepeatedMoveLock(
+                state: state,
+                rng: rng,
+                user: user,
+                moveId: moveId,
+              ),
       _ForcedActionMoveKind.uproar => _applyUproarEffect(
           state: state,
           rng: rng,
@@ -305,6 +316,15 @@ final class ForcedActionMoveBehavior
         user.moveHistory.lastMoveId == moveId;
   }
 }
+
+bool _isDancerReplay(PsdkBattleCombatant user) {
+  return user.effects.contains(_dancerReplayActivatedEffectId) ||
+      user.abilityEffects.any(
+        (effect) => effect is DancerEffect && effect.activated,
+      );
+}
+
+const _dancerReplayActivatedEffectId = 'dancer_replay_activated';
 
 final class _ForcedActionEffectResult {
   const _ForcedActionEffectResult({
