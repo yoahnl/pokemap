@@ -2,13 +2,13 @@
 
 ## Statut de la phase
 
-Phase 5 active.
+Phase 5 clôturée avec réserves mineures.
 
-Statut : 🟡 active
+Statut : ✅ clôturée avec réserves mineures
 
-Lot courant : ➡️ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+Lot courant : ✅ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
-Prochain lot exact : P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
 
 Légende :
 
@@ -34,7 +34,7 @@ Suivi des lots :
 - ✅ P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
 - ✅ P5-09 — Beta Playability Validator V0
 - ⏭️ P5-10 — Audio Minimal Runtime Proof V0
-- ➡️ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+- ✅ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
 P5-00 : ✅ terminé
 
@@ -58,12 +58,16 @@ P5-09 : ✅ terminé
 
 P5-10 : ⏭️ reporté hors scope Phase 5 immédiate
 
-P5-CHECKPOINT-01 : ➡️ prochain lot exact
+P5-CHECKPOINT-01 : ✅ terminé
+
+Phase 5 : ✅ clôturée avec réserves mineures
+
+P5-10 Audio : ⏭️ reporté hors scope Phase 5 immédiate
 
 Prochain lot exact :
 
 ```text
-P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
 ```
 
 ## Objectif Phase 5
@@ -384,9 +388,9 @@ fallback silencieux documenté si assets absents
 pas de direction artistique finale
 ```
 
-### ➡️ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+### ✅ P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -402,6 +406,14 @@ classement des preuves
 gaps restants
 verdict de clôture
 prochain lot exact
+```
+
+Verdict :
+
+```text
+Phase 5 : clôturée avec réserves mineures.
+P5-10 Audio : reporté hors scope Phase 5 immédiate.
+Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit.
 ```
 
 ## Reports explicites

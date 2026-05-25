@@ -6,13 +6,13 @@ Roadmap globale : active
 
 Bloc NS-GS-01 → NS-GS-18 : ✅ terminé comme bloc mechanics-first Level 2 Application
 
-Phase courante : Phase 5 — Gameplay Gaps Prioritaires
+Phase courante : Phase 6 — Selbrume Golden Slice réel
 
-Roadmap de phase courante : `MVP Selbrume/road_map_phase_5.md`
+Roadmap de phase courante : `MVP Selbrume/road_map_phase_6.md`
 
-Lot courant : P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
+Lot courant : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
 
-Prochain lot exact : P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
+Prochain lot exact : P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
 
 Suivi global :
 
@@ -21,8 +21,9 @@ Suivi global :
 - Phase 2 — Domain Model & Contracts : ✅ clôturée avec réserves mineures
 - Phase 3 — Runtime / Application / Flame / Disk Validation : ✅ clôturée avec réserves mineures
 - Phase 4 — Authoring Workflows Minimal : ✅ clôturée avec réserves mineures
-- Phase 5 — Gameplay Gaps Prioritaires : 🔜 phase courante
-- P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit : 🔜 prochain lot exact
+- Phase 5 — Gameplay Gaps Prioritaires : ✅ clôturée avec réserves mineures
+- Phase 6 — Selbrume Golden Slice réel : 🔜 phase courante
+- P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit : 🔜 prochain lot exact
 
 ## 2. Objectif final de PokeMap
 
@@ -103,7 +104,10 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 → source de vérité détaillée pour la Phase 4 clôturée.
 
 `MVP Selbrume/road_map_phase_5.md`
-→ source de vérité détaillée pour la Phase 5 courante.
+→ source de vérité détaillée pour la Phase 5 clôturée.
+
+`MVP Selbrume/road_map_phase_6.md`
+→ source de vérité détaillée pour la Phase 6 courante.
 
 `MVP Selbrume/road_map.md`
 → roadmap historique NS-GS clôturée, conservée comme archive de preuves et contexte.
@@ -124,8 +128,8 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 - ✅ Phase 2 — Domain Model & Contracts
 - ✅ Phase 3 — Runtime / Application / Flame / Disk Validation
 - ✅ Phase 4 — Authoring Workflows Minimal
-- 🔜 Phase 5 — Gameplay Gaps Prioritaires
-- Phase 6 — Selbrume Golden Slice réel
+- ✅ Phase 5 — Gameplay Gaps Prioritaires
+- 🔜 Phase 6 — Selbrume Golden Slice réel
 - Phase 7 — UI / UX moderne finale
 
 ## 6. Phase 0 — Audit global & roadmap reset
@@ -514,7 +518,30 @@ Checkpoint final :
 - P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
 Statut :
-🔜 phase courante.
+✅ clôturée avec réserves mineures.
+
+Résultat de clôture :
+
+- projet disque technique -> `RuntimeMapBundle` -> `PlayableMapGame.onLoad`
+  prouvé par smoke runtime ciblé ;
+- New Game minimal, spawn, position, facing, party initiale, bag vide,
+  argent initial et progression initiale prouvés par tests purs ;
+- opérations minimales party / bag / medicine / recover party prouvées sans UI ;
+- rewards money et level-up direct minimal prouvés, avec XP persistée complète
+  explicitement reportée ;
+- capture party-or-storage et persistence `PokemonStorage` prouvées ;
+- save/load gameplay bêta prouvé par vrai roundtrip disque runtime ;
+- runtime smoke New Game -> trainer battle -> reward -> save/load prouvé ;
+- validator bêta V0 prouvé côté `map_core`.
+
+Réserves conservées :
+
+- pas de campagne Selbrume finale ;
+- pas de Boot Flow complet ;
+- pas d'UI interactive finale pour party, bag, reward, PC/box ou save/load ;
+- pas de parité Pokémon complète, pas de XP persistée complète, pas de moves
+  learned ni évolution ;
+- audio runtime reporté hors scope Phase 5 immédiate.
 
 ## 12. Phase 6 — Selbrume Golden Slice réel
 
@@ -565,7 +592,7 @@ Checkpoint final :
 - P6-CHECKPOINT-01 — Selbrume Golden Slice Validation Review
 
 Statut :
-future.
+🔜 phase courante.
 
 ## 13. Phase 7 — UI / UX moderne finale
 
@@ -626,29 +653,29 @@ future tardive.
 ## 14. Phase courante
 
 Phase courante :
-Phase 5 — Gameplay Gaps Prioritaires
+Phase 6 — Selbrume Golden Slice réel
 
 Roadmap de phase :
-`MVP Selbrume/road_map_phase_5.md`
+`MVP Selbrume/road_map_phase_6.md`
 
 Prochain lot de la phase :
-P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
+P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
 
 Note :
-P4-CHECKPOINT-01 a clôturé Phase 4 et créé la roadmap vivante Phase 5. Il ne
-démarre pas P5-00.
+P5-CHECKPOINT-01 a clôturé Phase 5 et créé la roadmap vivante Phase 6. Il ne
+démarre pas P6-00.
 
 ## 15. Prochain lot exact
 
-P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
+P6-00 — Phase 6 Roadmap Bootstrap / Selbrume Beta Content Audit
 
-P5-00 doit rester audit-first et cadrer la boucle RPG minimale : New Game,
-GameState initial, party, bag, heal center, rewards/money/XP, capture,
-save/load gameplay et validation de jouabilité.
+P6-00 doit rester audit-first et cadrer l'assemblage Selbrume bêta :
+réutiliser les preuves Phase 5, inventorier le contenu disponible, vérifier le
+chemin projet disque réel et fixer les lots de contenu golden slice.
 
-P5-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l'UI
-premium, ne doit pas implémenter rewards/money/XP en code pendant l'audit et ne
-doit pas transformer la Phase 5 en parité Pokémon complète.
+P6-00 ne doit pas créer Selbrume final, ne doit pas lancer l'UI premium, ne doit
+pas créer le Boot Flow complet et ne doit pas réouvrir la parité Pokémon
+complète.
 
 ## 16. Critères de changement de phase
 
@@ -709,17 +736,20 @@ ou si l’utilisateur le demande explicitement.
 
 ## 19. Gaps globaux suivis
 
-- Level 3 Flame / PlayableMapGame Golden Slice complet : non entièrement prouvé.
-- Level 4 projet disque / host narratif technique : prouvé partiellement en
-  Phase 3 ; vrai projet créé dans l'éditeur non prouvé.
+- Level 3 Flame / PlayableMapGame Golden Slice complet : smoke runtime prouvé en
+  Phase 5 ; session interactive complète reportée.
+- Level 4 projet disque / host narratif technique : prouvé par projet disque
+  technique en Phase 5 ; vrai contenu Selbrume utilisateur reporté Phase 6.
 - Storyline / Chapter / Story Step contract ou descriptor : décision Phase 2 faite, picker V0 prouvé en Phase 4.
 - Event authoring source contract : décision Phase 2 faite, picker et opérations V0 prouvés en Phase 4.
 - Scene / ScenarioAsset adapter : décision Phase 2 faite, preuve runtime Phase 3.
 - FactDescriptor / Fact Presentation Layer : décision Phase 2 faite, predicate references V0 prouvées en Phase 4 sans registry.
 - World Rule Predicate Adapter : décision Phase 2 faite, preuve runtime Phase 3 et draft authoring passif V0 Phase 4.
 - Validator UI et intégration authoring : adapter authoring prouvé en Phase 4, UI reportée Phase 7.
-- Reward Model, money, XP, level-up : Phase 5.
-- Static wild encounter authorable réel : Phase 5.
+- Reward Model, money, XP, level-up : money et level-up direct minimal prouvés
+  en Phase 5 ; XP persistée complète reportée.
+- Static wild encounter authorable réel : capture party-or-storage prouvée en
+  Phase 5 ; contenu Selbrume réel reporté Phase 6.
 - Selbrume Golden Slice réel : Phase 6.
 - UI / UX moderne finale : Phase 7.
 
@@ -765,3 +795,15 @@ ou si l’utilisateur le demande explicitement.
   Roadmap de phase courante fixée à `MVP Selbrume/road_map_phase_5.md`.
   Prochain lot exact fixé à P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop
   Audit.
+- 2026-05-25 — P5-CHECKPOINT-01 — Phase 5 clôturée avec réserves mineures.
+  La Phase 5 a prouvé la boucle gameplay minimale par couches : projet disque
+  technique -> runtime bundle -> `PlayableMapGame.onLoad`, New Game minimal,
+  party initiale, bag/heal, rewards money et level-up direct minimal, capture
+  party-or-storage, save/load gameplay disque, runtime smoke New Game ->
+  trainer battle -> reward -> save/load et validator bêta V0. Les réserves
+  restantes concernent l'UI interactive finale, le Boot Flow complet, Selbrume
+  final, XP persistée complète, moves learned / évolution, parité Pokémon et
+  audio runtime reporté. Phase courante mise à jour vers Phase 6 — Selbrume
+  Golden Slice réel. Roadmap de phase courante fixée à
+  `MVP Selbrume/road_map_phase_6.md`. Prochain lot exact fixé à P6-00 — Phase 6
+  Roadmap Bootstrap / Selbrume Beta Content Audit.
