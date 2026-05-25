@@ -23912,6 +23912,9 @@
         0,
         0,
         0,
+        904,
+        905,
+        906,
         0,
         0,
         0,
@@ -23964,6 +23967,9 @@
         0,
         0,
         0,
+        941,
+        942,
+        943,
         0,
         0,
         0,
@@ -24016,6 +24022,9 @@
         0,
         0,
         0,
+        978,
+        979,
+        980,
         0,
         0,
         0,
@@ -24068,6 +24077,9 @@
         0,
         0,
         0,
+        1015,
+        1016,
+        1017,
         0,
         0,
         0,
@@ -24120,21 +24132,9 @@
         0,
         0,
         0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
+        1052,
+        1053,
+        1054,
         0,
         0,
         0,
@@ -51189,36 +51189,6 @@
       "properties": {}
     },
     {
-      "id": "l_tile_parasol_lampadaire::23::17",
-      "layerId": "l_tile_parasol_lampadaire",
-      "elementId": "lampadaire",
-      "pos": {
-        "x": 23,
-        "y": 17
-      },
-      "applyCollision": true,
-      "opacity": 1.0,
-      "animation": null,
-      "shadowOverride": null,
-      "behaviors": [],
-      "properties": {}
-    },
-    {
-      "id": "l_tile_parasol_lampadaire::30::17",
-      "layerId": "l_tile_parasol_lampadaire",
-      "elementId": "lampadaire",
-      "pos": {
-        "x": 30,
-        "y": 17
-      },
-      "applyCollision": true,
-      "opacity": 1.0,
-      "animation": null,
-      "shadowOverride": null,
-      "behaviors": [],
-      "properties": {}
-    },
-    {
       "id": "l_tile_maison_selbrume::24::12",
       "layerId": "l_tile_maison_selbrume",
       "elementId": "selbrum_maison_3",
@@ -67485,6 +67455,51 @@
       "pos": {
         "x": 50,
         "y": 49
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
+      "id": "l_tile_parasol_lampadaire::23::17",
+      "layerId": "l_tile_parasol_lampadaire",
+      "elementId": "lampadaire",
+      "pos": {
+        "x": 23,
+        "y": 17
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
+      "id": "l_tile_parasol_lampadaire::30::17",
+      "layerId": "l_tile_parasol_lampadaire",
+      "elementId": "lampadaire",
+      "pos": {
+        "x": 30,
+        "y": 17
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
+      "id": "l_tile_parasol_lampadaire::41::29",
+      "layerId": "l_tile_parasol_lampadaire",
+      "elementId": "lampadaire",
+      "pos": {
+        "x": 41,
+        "y": 29
       },
       "applyCollision": true,
       "opacity": 1.0,
