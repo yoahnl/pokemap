@@ -133,4 +133,5 @@ export 'src/operations/project_dialogue_refs.dart';
 export 'src/validation/validators.dart';
 export 'src/validation/dialogue_validation.dart';
 export 'src/validation/entity_editor_visual_validation.dart';
+export 'src/validation/beta_playability_validator.dart';
 export 'src/exceptions/map_exceptions.dart';

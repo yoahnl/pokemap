@@ -1,25 +1,68 @@
-# Phase 5 — Gameplay Gaps Prioritaires
+# Phase 5 Roadmap — Gameplay Gaps Prioritaires
 
-## Statut
+## Statut de la phase
 
 Phase 5 active.
 
-P5-00 : terminé.
-P5-01 : terminé.
-P5-02 : terminé.
-P5-03 : terminé.
-P5-04 : terminé.
-P5-05 : terminé.
-P5-06 : terminé.
-P5-07 : terminé.
+Statut : 🟡 active
+
+Lot courant : ➡️ P5-10 — Audio Minimal Runtime Proof V0
+
+Prochain lot exact : P5-10 — Audio Minimal Runtime Proof V0
+
+Légende :
+
+- ✅ terminé
+- ➡️ prochain lot exact
+- ⏳ à venir
+- 🧭 checkpoint
 
 Phase 5 reste orientée vers une boucle RPG minimale prouvable, pas vers une
 parité Pokémon complète, pas vers Selbrume final, pas vers une UI premium.
 
+Suivi des lots :
+
+- ✅ P5-00 — Phase 5 Roadmap Recalibration / Gameplay Loop Audit
+- ✅ P5-01 — Runtime Project Disk Smoke / Editor-created Project Proof
+- ✅ P5-02 — New Game / Initial GameState Builder V0
+- ✅ P5-03 — Starter / Initial Party Minimal Flow V0
+- ✅ P5-04 — Party / Bag / Heal Minimal Operations V0
+- ✅ P5-05 — Battle Rewards / Money / XP Minimal Apply V0
+- ✅ P5-06 — Capture Destination Party-or-Box V0
+- ✅ P5-07 — Gameplay Save/Load Beta Roundtrip V0
+- ✅ P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
+- ✅ P5-09 — Beta Playability Validator V0
+- ➡️ P5-10 — Audio Minimal Runtime Proof V0
+- 🧭 P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+
+P5-00 : ✅ terminé
+
+P5-01 : ✅ terminé
+
+P5-02 : ✅ terminé
+
+P5-03 : ✅ terminé
+
+P5-04 : ✅ terminé
+
+P5-05 : ✅ terminé
+
+P5-06 : ✅ terminé
+
+P5-07 : ✅ terminé
+
+P5-08 : ✅ terminé
+
+P5-09 : ✅ terminé
+
+P5-10 : ➡️ prochain lot exact
+
+P5-CHECKPOINT-01 : 🧭 à venir
+
 Prochain lot exact :
 
 ```text
-P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
+P5-10 — Audio Minimal Runtime Proof V0
 ```
 
 ## Objectif Phase 5
@@ -98,7 +141,7 @@ lancement, après preuve du New Game minimal.
 
 ## Roadmap recalibrée
 
-### P5-00 — Phase 5 Roadmap Recalibration / Gameplay Loop Audit
+### ✅ P5-00 — Phase 5 Roadmap Recalibration / Gameplay Loop Audit
 
 Statut : terminé.
 
@@ -119,7 +162,7 @@ roadmap Phase 5 recalibrée
 aucun code modifié
 ```
 
-### P5-01 — Runtime Project Disk Smoke / Editor-created Project Proof
+### ✅ P5-01 — Runtime Project Disk Smoke / Editor-created Project Proof
 
 Statut : terminé.
 
@@ -141,7 +184,7 @@ runtime host ou PlayableMapGame smoke ciblé
 aucun contenu final Selbrume
 ```
 
-### P5-02 — New Game / Initial GameState Builder V0
+### ✅ P5-02 — New Game / Initial GameState Builder V0
 
 Statut : terminé.
 
@@ -161,7 +204,7 @@ tests ciblés
 aucun Boot Flow complet
 ```
 
-### P5-03 — Starter / Initial Party Minimal Flow V0
+### ✅ P5-03 — Starter / Initial Party Minimal Flow V0
 
 Statut : terminé.
 
@@ -179,7 +222,7 @@ validation species / moves / level minimale
 roundtrip save/load ciblé
 ```
 
-### P5-04 — Party / Bag / Heal Minimal Operations V0
+### ✅ P5-04 — Party / Bag / Heal Minimal Operations V0
 
 Statut : terminé.
 
@@ -199,7 +242,7 @@ healParty / heal center operation V0
 tests purs
 ```
 
-### P5-05 — Battle Rewards / Money / XP Minimal Apply V0
+### ✅ P5-05 — Battle Rewards / Money / XP Minimal Apply V0
 
 Statut : terminé.
 
@@ -220,7 +263,7 @@ tests ciblés
 pas de système complet de moves learned / evolution
 ```
 
-### P5-06 — Capture Destination Party-or-Box V0
+### ✅ P5-06 — Capture Destination Party-or-Box V0
 
 Statut : terminé.
 
@@ -238,7 +281,7 @@ pas de PC UI premium
 tests party full / party not full
 ```
 
-### P5-07 — Gameplay Save/Load Beta Roundtrip V0
+### ✅ P5-07 — Gameplay Save/Load Beta Roundtrip V0
 
 Statut : terminé.
 
@@ -261,9 +304,9 @@ rewards / XP si ajoutés
 runtime save/load ciblé
 ```
 
-### P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
+### ✅ P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -282,7 +325,9 @@ save/load
 aucune UI premium
 ```
 
-### P5-09 — Beta Playability Validator V0
+### ✅ P5-09 — Beta Playability Validator V0
+
+Statut : terminé.
 
 But :
 
@@ -303,7 +348,9 @@ save/load prerequisites
 diagnostics actionnables
 ```
 
-### P5-10 — Audio Minimal Runtime Proof V0
+### ➡️ P5-10 — Audio Minimal Runtime Proof V0
+
+Statut : prochain lot exact.
 
 But :
 
@@ -320,7 +367,7 @@ fallback silencieux documenté si assets absents
 pas de direction artistique finale
 ```
 
-### P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
+### 🧭 P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
 But :
 
