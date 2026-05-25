@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-06 — Selbrume Save/Load Golden Slice V0
+Lot courant : ✅ P6-07 — Selbrume Beta Validator Pass V0
 
-Prochain lot exact : P6-07 — Selbrume Beta Validator Pass V0
+Prochain lot exact : P6-08 — Selbrume Playable Runtime Smoke V0
 
 Légende :
 
@@ -46,8 +46,8 @@ Suivi des lots :
 - ✅ P6-04-ter — Selbrume Grant Reconciliation / P6-03 Regression Fix
 - ✅ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ✅ P6-06 — Selbrume Save/Load Golden Slice V0
-- ➡️ P6-07 — Selbrume Beta Validator Pass V0
-- ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
+- ✅ P6-07 — Selbrume Beta Validator Pass V0
+- ➡️ P6-08 — Selbrume Playable Runtime Smoke V0
 - 🧭 P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
 P6-00 : ✅ terminé
@@ -68,12 +68,14 @@ P6-05 : ✅ terminé
 
 P6-06 : ✅ terminé
 
-P6-07 : ➡️ prochain lot exact
+P6-07 : ✅ terminé
+
+P6-08 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-07 — Selbrume Beta Validator Pass V0
+P6-08 — Selbrume Playable Runtime Smoke V0
 ```
 
 ## Objectif Phase 6
@@ -443,6 +445,51 @@ Aucun code production et aucun fichier selbrume/ n'est modifié en P6-06.
 Prochain lot exact : P6-07 — Selbrume Beta Validator Pass V0.
 ```
 
+## Résultat P6-07
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json est chargé via loadRuntimeMapBundle
+maps chargées explicitement : Selbrume et route 1
+les 10 maps déclarées sont fournies au validator via mapsById
+startMapId validator : Selbrume
+spawn joueur : spawn, x=17, y=24, facing south
+initial party source : pidgeotto avec moves gust/tackle
+capture prerequisite : poke-ball présent dans le catalogue items et seedé par P6-02
+encounter Route 1 : grass_path_route_1, kind walk, pidgeotto niveau 1-5
+trainer battle prerequisite : NPC grant référence trainer grant
+team Grant vérifiée : bulbasaur, metapod, ivysaur
+moves Grant vérifiés : growl, tackle, harden, sweet_scent, growth, leech_seed
+save/load support : P6-06 prouve SaveGameUseCase + LoadGameUseCase + FileGameSaveRepository
+```
+
+Diagnostics validator :
+
+```text
+errors : 0
+warnings : 0
+infos : 0
+diagnostics bloquants : aucun
+```
+
+Niveau de preuve validator :
+
+```text
+validator pass strict : aucun diagnostic bloquant et aucune warning/info
+pas de modification du validator
+pas de modification selbrume/
+pas de runtime smoke complet
+```
+
+Décision roadmap :
+
+```text
+P6-07 est concluant.
+Aucun code production et aucun fichier selbrume/ n'est modifié en P6-07.
+Prochain lot exact : P6-08 — Selbrume Playable Runtime Smoke V0.
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -596,9 +643,9 @@ Preuve :
 packages/map_runtime/test/p6_selbrume_save_load_golden_slice_test.dart
 ```
 
-### ➡️ P6-07 — Selbrume Beta Validator Pass V0
+### ✅ P6-07 — Selbrume Beta Validator Pass V0
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -606,7 +653,15 @@ But :
 faire passer le projet Selbrume minimal dans le validator bêta.
 ```
 
-### ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
+Preuve :
+
+```text
+packages/map_runtime/test/p6_selbrume_beta_validator_pass_test.dart
+```
+
+### ➡️ P6-08 — Selbrume Playable Runtime Smoke V0
+
+Statut : prochain lot exact.
 
 But :
 
