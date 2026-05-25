@@ -1,0 +1,28 @@
+{
+  "id": "p3_test_map",
+  "name": "P3 Test Map",
+  "size": {
+    "width": 3,
+    "height": 3
+  },
+  "version": "v1",
+  "mapMetadata": {
+    "defaultSpawnId": "p3_spawn_start"
+  },
+  "entities": [
+    {
+      "id": "p3_spawn_start",
+      "name": "P3 Spawn Start",
+      "kind": "spawn",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "south"
+      }
+    }
+  ]
+}

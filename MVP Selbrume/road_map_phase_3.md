@@ -6,16 +6,16 @@ Phase 3 — Runtime / Application / Flame / Disk Validation
 
 Statut : 🔜 En cours
 
-Lot courant : P3-02 — ScenarioAsset Runtime Execution Golden Path
+Lot courant : P3-03 — Event Source to Scenario Runtime Bridge Validation
 
-Prochain lot exact : P3-02 — ScenarioAsset Runtime Execution Golden Path
+Prochain lot exact : P3-03 — Event Source to Scenario Runtime Bridge Validation
 
 Suivi des lots :
 
 - ✅ P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
 - ✅ P3-01 — Project Disk Narrative Asset Loading Audit
-- 🔜 P3-02 — ScenarioAsset Runtime Execution Golden Path
-- P3-03 — Event Source to Scenario Runtime Bridge Validation
+- ✅ P3-02 — ScenarioAsset Runtime Execution Golden Path
+- 🔜 P3-03 — Event Source to Scenario Runtime Bridge Validation
 - P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
 - P3-05 — Fact / World Rule Runtime Projection Validation
 - P3-06 — Save/Load Narrative State Roundtrip Validation
@@ -26,7 +26,9 @@ P3-00 : ✅ terminé
 
 P3-01 : ✅ terminé
 
-P3-02 : 🔜 prochain lot exact
+P3-02 : ✅ terminé
+
+P3-03 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 3
 
@@ -193,7 +195,7 @@ P3-02 reste le prochain lot exact. Il devra prouver un golden path
 `ScenarioAsset` et assumer explicitement qu'une fixture technique narrative
 minimale est encore absente du repo actuel.
 
-### P3-02 — ScenarioAsset Runtime Execution Golden Path
+### ✅ P3-02 — ScenarioAsset Runtime Execution Golden Path
 
 Objectif :
 Prouver un chemin minimal d'exécution `ScenarioAsset` dans le runtime, sans
@@ -201,6 +203,35 @@ Prouver un chemin minimal d'exécution `ScenarioAsset` dans le runtime, sans
 
 Résultat attendu :
 Preuve ciblée que le graphe existant s'exécute comme attendu ou liste de gaps.
+
+Résultat P3-02 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_02_scenario_asset_runtime_execution_golden_path.md` ;
+- fixture technique non-Selbrume créée :
+  `packages/map_runtime/test/fixtures/p3_scenario_runtime_golden_path/` ;
+- test ciblé créé :
+  `packages/map_runtime/test/p3_scenario_runtime_golden_path_test.dart` ;
+- preuve obtenue :
+  - vrai `project.json` chargé par `loadRuntimeMapBundle` ;
+  - `ScenarioAsset` embedded disponible via `RuntimeMapBundle.manifest.scenarios` ;
+  - `ScenarioRuntimeExecutor` déclenché par `ScenarioRuntimeSourceEvent.mapEnter` ;
+  - `GameState.storyFlags` reçoit `p3.flag.executed` ;
+  - `GameState.progression.completedStepIds` reçoit `p3.step.completed` ;
+  - `emitOutcome` pose `scenario.outcome.p3.outcome.done` ;
+- niveau de preuve : Level 4 partiel pour disque + Level 2/3 contrôlé pour executor ;
+- non prouvé volontairement : hook complet `PlayableMapGame`, host smoke, dialogue
+  Yarn réel, battle continuation, save/load roundtrip, World Rules ;
+- tests lancés :
+  - `cd packages/map_runtime && flutter test test/p3_scenario_runtime_golden_path_test.dart`
+  - `cd packages/map_runtime && flutter test test/scenario_runtime_executor_test.dart`
+  - `cd packages/map_runtime && flutter test test/outcome_scene_branch_readiness_test.dart`
+  - `cd packages/map_runtime && dart format --set-exit-if-changed test/p3_scenario_runtime_golden_path_test.dart`
+
+Décision :
+P3-03 devient le prochain lot exact, car P3-02 a prouvé le scénario chargé
+depuis disque et exécuté par le chemin application runtime sans ouvrir les
+sources Event runtime complètes.
 
 ### P3-03 — Event Source to Scenario Runtime Bridge Validation
 
@@ -289,5 +320,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-02 — ScenarioAsset Runtime Execution Golden Path
+P3-03 — Event Source to Scenario Runtime Bridge Validation
 ```

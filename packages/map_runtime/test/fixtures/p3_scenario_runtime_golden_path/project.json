@@ -1,0 +1,106 @@
+{
+  "name": "P3 Scenario Runtime Golden Path",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "p3_test_map",
+      "name": "P3 Test Map",
+      "relativePath": "maps/p3_scenario_field.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "scenarios": [
+    {
+      "id": "p3_test_scenario",
+      "name": "P3 Test Scenario",
+      "description": "Technical fixture proving ScenarioAsset execution from disk.",
+      "scope": "localEventFlow",
+      "entryNodeId": "p3_start",
+      "declaredOutcomes": [
+        "p3.outcome.done"
+      ],
+      "nodes": [
+        {
+          "id": "p3_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_test_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceMapEnter"
+          },
+          "binding": {
+            "mapId": "p3_test_map"
+          }
+        },
+        {
+          "id": "p3_set_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.flag.executed"
+          }
+        },
+        {
+          "id": "p3_complete_step",
+          "type": "action",
+          "payload": {
+            "actionKind": "completeStep",
+            "params": {
+              "stepId": "p3.step.completed"
+            }
+          }
+        },
+        {
+          "id": "p3_emit_outcome",
+          "type": "action",
+          "payload": {
+            "actionKind": "emitOutcome"
+          },
+          "binding": {
+            "outcomeId": "p3.outcome.done"
+          }
+        },
+        {
+          "id": "p3_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_edge_start_source",
+          "fromNodeId": "p3_start",
+          "toNodeId": "p3_test_source"
+        },
+        {
+          "id": "p3_edge_source_flag",
+          "fromNodeId": "p3_test_source",
+          "toNodeId": "p3_set_flag"
+        },
+        {
+          "id": "p3_edge_flag_step",
+          "fromNodeId": "p3_set_flag",
+          "toNodeId": "p3_complete_step"
+        },
+        {
+          "id": "p3_edge_step_outcome",
+          "fromNodeId": "p3_complete_step",
+          "toNodeId": "p3_emit_outcome"
+        },
+        {
+          "id": "p3_edge_outcome_end",
+          "fromNodeId": "p3_emit_outcome",
+          "toNodeId": "p3_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-02"
+      }
+    }
+  ]
+}
