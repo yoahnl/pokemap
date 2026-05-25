@@ -310,6 +310,73 @@ class GameStateMutations {
     );
   }
 
+  /// Ajoute de l'argent au profil joueur.
+  ///
+  /// No-op sûr si [amount] est nul ou négatif. Cette mutation reste un reward
+  /// minimal : elle ne crée ni shop, ni moteur économique.
+  GameState addMoney(GameState state, int amount) {
+    if (amount <= 0) {
+      return state;
+    }
+
+    return state.copyWith(
+      trainerProfile: state.trainerProfile.copyWith(
+        money: state.trainerProfile.money + amount,
+      ),
+    );
+  }
+
+  /// Applique les récompenses minimales d'une victoire de combat.
+  ///
+  /// `PlayerPokemon` ne persiste pas encore d'XP courante. Le chemin V0 expose
+  /// donc uniquement un level-up direct et déterministe fourni par l'appelant.
+  /// La policy `trainer_defeated:{trainerId}` reste portée par le runtime.
+  GameState applyBattleRewards(
+    GameState state, {
+    int moneyReward = 0,
+    Map<int, int> levelUpsByPartyIndex = const {},
+  }) {
+    var nextState = addMoney(state, moneyReward);
+
+    if (levelUpsByPartyIndex.isEmpty || nextState.party.members.isEmpty) {
+      return nextState;
+    }
+
+    final nextMembers = List<PlayerPokemon>.of(
+      nextState.party.members,
+      growable: false,
+    );
+    var changed = false;
+
+    for (final entry in levelUpsByPartyIndex.entries) {
+      final partyIndex = entry.key;
+      final levelIncrement = entry.value;
+      if (partyIndex < 0 ||
+          partyIndex >= nextMembers.length ||
+          levelIncrement <= 0) {
+        continue;
+      }
+
+      final member = nextMembers[partyIndex];
+      final nextLevel = member.level + levelIncrement;
+      final cappedLevel = nextLevel > 100 ? 100 : nextLevel;
+      if (cappedLevel == member.level) {
+        continue;
+      }
+
+      nextMembers[partyIndex] = member.copyWith(level: cappedLevel);
+      changed = true;
+    }
+
+    if (!changed) {
+      return nextState;
+    }
+
+    return nextState.copyWith(
+      party: nextState.party.copyWith(members: nextMembers),
+    );
+  }
+
   /// Donne un Pokémon au joueur.
   ///
   /// Le [PlayerPokemon] doit être construit par l'appelant (authoring, script,
