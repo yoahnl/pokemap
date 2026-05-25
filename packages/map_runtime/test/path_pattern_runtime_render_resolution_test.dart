@@ -15,7 +15,9 @@ void main() {
           variants: [
             PathPresetVariantMapping(
               variant: TerrainPathVariant.cornerNE,
-              frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 1))],
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 1))
+              ],
             ),
           ],
         ),
@@ -82,7 +84,9 @@ void main() {
           variants: [
             PathPresetVariantMapping(
               variant: TerrainPathVariant.cornerNE,
-              frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 1))],
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 1))
+              ],
             ),
           ],
         ),
@@ -174,7 +178,7 @@ void main() {
                 PathCenterPatternCell(
                   localX: 0,
                   localY: 0,
-                  frames: [
+                  frames: const [
                     TilesetVisualFrame(
                       source: TilesetSourceRect(x: 1, y: 0),
                       durationMs: 200,
@@ -217,6 +221,52 @@ void main() {
       expect(frame1?.sourceRect, const TilesetSourceRect(x: 2, y: 0));
     });
 
+    test('staticFrame garde la première frame PathPattern animée', () {
+      final manifest = _manifest(
+        pathPresets: [_basePresetNoVariants()],
+        pathPatterns: [
+          ProjectPathPatternPreset(
+            id: 'animated',
+            name: 'Animated',
+            basePathPresetId: 'base',
+            centerPattern: PathCenterPattern(
+              size: PathCenterPatternSize(width: 1, height: 1),
+              cells: [
+                PathCenterPatternCell(
+                  localX: 0,
+                  localY: 0,
+                  frames: [
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 1, y: 0),
+                      durationMs: 200,
+                    ),
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 2, y: 0),
+                      durationMs: 200,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final legacy = RuntimePathAutotileSet.fromPreset(_basePresetNoVariants());
+
+      final resolution = resolvePathPatternRuntimeRenderResolution(
+        manifest: manifest,
+        basePathPresetId: 'base',
+        variant: TerrainPathVariant.cross,
+        mapX: 0,
+        mapY: 0,
+        elapsedMs: 200,
+        playback: const PathPatternRuntimePlayback.staticFrame(),
+        legacyAutotileSet: legacy,
+      );
+
+      expect(resolution?.sourceRect, const TilesetSourceRect(x: 1, y: 0));
+    });
+
     test('variant configuré conserve ses frames legacy', () {
       final manifest = _manifest(
         pathPresets: [
@@ -227,14 +277,17 @@ void main() {
             variants: [
               PathPresetVariantMapping(
                 variant: TerrainPathVariant.endNorth,
-                frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 11, y: 3))],
+                frames: [
+                  TilesetVisualFrame(source: TilesetSourceRect(x: 11, y: 3))
+                ],
               ),
             ],
           ),
         ],
         pathPatterns: [_pattern2x2(baseId: 'base')],
       );
-      final legacy = RuntimePathAutotileSet.fromPreset(manifest.pathPresets.first);
+      final legacy =
+          RuntimePathAutotileSet.fromPreset(manifest.pathPresets.first);
 
       final resolution = resolvePathPatternRuntimeRenderResolution(
         manifest: manifest,
@@ -289,14 +342,17 @@ void main() {
             variants: [
               PathPresetVariantMapping(
                 variant: TerrainPathVariant.cross,
-                frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 77, y: 77))],
+                frames: [
+                  TilesetVisualFrame(source: TilesetSourceRect(x: 77, y: 77))
+                ],
               ),
             ],
           ),
         ],
         pathPatterns: [_pattern2x2(baseId: 'base')],
       );
-      final legacy = RuntimePathAutotileSet.fromPreset(manifest.pathPresets.first);
+      final legacy =
+          RuntimePathAutotileSet.fromPreset(manifest.pathPresets.first);
 
       final resolution = resolvePathPatternRuntimeRenderResolution(
         manifest: manifest,

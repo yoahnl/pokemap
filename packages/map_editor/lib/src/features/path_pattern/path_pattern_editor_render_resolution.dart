@@ -8,6 +8,11 @@ enum PathPatternEditorRenderResolutionSource {
   ambiguousPathPatternFallback,
 }
 
+enum PathPatternEditorPlaybackMode {
+  loop,
+  staticFrame,
+}
+
 final class PathPatternEditorRenderResolution {
   const PathPatternEditorRenderResolution({
     required this.source,
@@ -30,12 +35,15 @@ PathPatternEditorRenderResolution? resolvePathPatternEditorRenderResolution({
   required int mapY,
   required double elapsedMs,
   required PathAutotileSet? legacyAutotileSet,
+  PathPatternEditorPlaybackMode playbackMode =
+      PathPatternEditorPlaybackMode.loop,
 }) {
   final normalizedPresetId = basePathPresetId.trim();
   if (project == null || normalizedPresetId.isEmpty) {
     return _resolveLegacy(
       variant: variant,
       elapsedMs: elapsedMs,
+      playbackMode: playbackMode,
       legacyAutotileSet: legacyAutotileSet,
       source: PathPatternEditorRenderResolutionSource.legacy,
     );
@@ -49,6 +57,7 @@ PathPatternEditorRenderResolution? resolvePathPatternEditorRenderResolution({
     return _resolveLegacy(
       variant: variant,
       elapsedMs: elapsedMs,
+      playbackMode: playbackMode,
       legacyAutotileSet: legacyAutotileSet,
       source:
           PathPatternEditorRenderResolutionSource.ambiguousPathPatternFallback,
@@ -58,6 +67,7 @@ PathPatternEditorRenderResolution? resolvePathPatternEditorRenderResolution({
     return _resolveLegacy(
       variant: variant,
       elapsedMs: elapsedMs,
+      playbackMode: playbackMode,
       legacyAutotileSet: legacyAutotileSet,
       source: PathPatternEditorRenderResolutionSource.legacy,
     );
@@ -74,6 +84,7 @@ PathPatternEditorRenderResolution? resolvePathPatternEditorRenderResolution({
     return _resolveLegacy(
       variant: variant,
       elapsedMs: elapsedMs,
+      playbackMode: playbackMode,
       legacyAutotileSet: legacyAutotileSet,
       source: PathPatternEditorRenderResolutionSource.legacy,
     );
@@ -89,11 +100,13 @@ PathPatternEditorRenderResolution? resolvePathPatternEditorRenderResolution({
   final frame = _resolveAnimatedFrame(
     frames: visual.frames,
     elapsedMs: elapsedMs,
+    playbackMode: playbackMode,
   );
   if (frame == null) {
     return _resolveLegacy(
       variant: variant,
       elapsedMs: elapsedMs,
+      playbackMode: playbackMode,
       legacyAutotileSet: legacyAutotileSet,
       source: PathPatternEditorRenderResolutionSource.legacy,
     );
@@ -105,6 +118,7 @@ PathPatternEditorRenderResolution? resolvePathPatternEditorRenderResolution({
     return _resolveLegacy(
       variant: variant,
       elapsedMs: elapsedMs,
+      playbackMode: playbackMode,
       legacyAutotileSet: legacyAutotileSet,
       source: PathPatternEditorRenderResolutionSource.legacy,
     );
@@ -120,16 +134,19 @@ PathPatternEditorRenderResolution? resolvePathPatternEditorRenderResolution({
 PathPatternEditorRenderResolution? _resolveLegacy({
   required TerrainPathVariant variant,
   required double elapsedMs,
+  required PathPatternEditorPlaybackMode playbackMode,
   required PathAutotileSet? legacyAutotileSet,
   required PathPatternEditorRenderResolutionSource source,
 }) {
   if (legacyAutotileSet == null) {
     return null;
   }
-  final frame = legacyAutotileSet.frameForVariantAt(
-    variant,
-    elapsedMs: elapsedMs,
-  );
+  final frame = playbackMode == PathPatternEditorPlaybackMode.staticFrame
+      ? legacyAutotileSet.frameForVariantStatic(variant)
+      : legacyAutotileSet.frameForVariantAt(
+          variant,
+          elapsedMs: elapsedMs,
+        );
   if (frame == null) {
     return null;
   }
@@ -150,11 +167,15 @@ PathPatternEditorRenderResolution? _resolveLegacy({
 TilesetVisualFrame? _resolveAnimatedFrame({
   required List<TilesetVisualFrame> frames,
   required double elapsedMs,
+  required PathPatternEditorPlaybackMode playbackMode,
 }) {
   if (frames.isEmpty) {
     return null;
   }
   if (frames.length == 1) {
+    return frames.first;
+  }
+  if (playbackMode == PathPatternEditorPlaybackMode.staticFrame) {
     return frames.first;
   }
   final index = resolvePlacedElementAnimationFrameIndex(

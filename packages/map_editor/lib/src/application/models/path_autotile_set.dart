@@ -125,6 +125,14 @@ class PathAutotileSet {
     return frames[index];
   }
 
+  TilesetVisualFrame? frameForVariantStatic(TerrainPathVariant variant) {
+    final frames = variants[variant];
+    if (frames == null || frames.isEmpty) {
+      return null;
+    }
+    return frames.first;
+  }
+
   TilesetSourceRect? sourceForVariantAt(
     TerrainPathVariant variant, {
     required double elapsedMs,

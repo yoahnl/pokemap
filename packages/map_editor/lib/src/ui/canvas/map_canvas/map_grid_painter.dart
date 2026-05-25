@@ -1449,6 +1449,7 @@ class MapGridPainter extends CustomPainter {
       canvas,
       basePathPresetId: activePathLayer.presetId,
       legacyAutotileSet: autotileSet,
+      playbackMode: _pathPatternPlaybackModeForLayer(activePathLayer),
       variant: variant,
       mapX: origin.x,
       mapY: origin.y,
@@ -2160,6 +2161,7 @@ class MapGridPainter extends CustomPainter {
       canvas,
       basePathPresetId: layer.presetId,
       legacyAutotileSet: autotileSet,
+      playbackMode: _pathPatternPlaybackModeForLayer(layer),
       variant: variant,
       mapX: x,
       mapY: y,
@@ -2173,6 +2175,7 @@ class MapGridPainter extends CustomPainter {
     Canvas canvas, {
     required String basePathPresetId,
     required PathAutotileSet? legacyAutotileSet,
+    required PathPatternEditorPlaybackMode playbackMode,
     required TerrainPathVariant variant,
     required int mapX,
     required int mapY,
@@ -2191,6 +2194,7 @@ class MapGridPainter extends CustomPainter {
       mapY: mapY,
       elapsedMs: elapsedMs,
       legacyAutotileSet: legacyAutotileSet,
+      playbackMode: playbackMode,
     );
     if (resolved == null) {
       return false;
@@ -2227,6 +2231,14 @@ class MapGridPainter extends CustomPainter {
       Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
     );
     return true;
+  }
+
+  PathPatternEditorPlaybackMode _pathPatternPlaybackModeForLayer(
+    PathLayer layer,
+  ) {
+    return layer.animationMode == PathAnimationMode.alwaysActive
+        ? PathPatternEditorPlaybackMode.loop
+        : PathPatternEditorPlaybackMode.staticFrame;
   }
 
   bool _paintTerrainPresetCell(

@@ -287,6 +287,52 @@ void main() {
       expect(frame1?.sourceRect, const TilesetSourceRect(x: 2, y: 0));
       expect(frameLoop?.sourceRect, const TilesetSourceRect(x: 1, y: 0));
     });
+
+    test('staticFrame garde la première frame du centerPattern animé', () {
+      final project = _project(
+        pathPresets: [_basePresetNoVariants()],
+        pathPatterns: [
+          ProjectPathPatternPreset(
+            id: 'animated',
+            name: 'Animated',
+            basePathPresetId: 'base',
+            centerPattern: PathCenterPattern(
+              size: PathCenterPatternSize(width: 1, height: 1),
+              cells: [
+                PathCenterPatternCell(
+                  localX: 0,
+                  localY: 0,
+                  frames: const [
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 1, y: 0),
+                      durationMs: 200,
+                    ),
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 2, y: 0),
+                      durationMs: 200,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final legacySet = PathAutotileSet.defaultForTileset('tileset-main');
+
+      final resolution = resolvePathPatternEditorRenderResolution(
+        project: project,
+        basePathPresetId: 'base',
+        variant: TerrainPathVariant.cross,
+        mapX: 0,
+        mapY: 0,
+        elapsedMs: 200,
+        legacyAutotileSet: legacySet,
+        playbackMode: PathPatternEditorPlaybackMode.staticFrame,
+      );
+
+      expect(resolution?.sourceRect, const TilesetSourceRect(x: 1, y: 0));
+    });
   });
 }
 

@@ -97,7 +97,8 @@ PathPatternRuntimeRenderResolution? resolvePathPatternRuntimeRenderResolution({
       elapsedMs: elapsedMs,
       playback: playback,
       legacyAutotileSet: legacyAutotileSet,
-      source: PathPatternRuntimeRenderResolutionSource.ambiguousPathPatternFallback,
+      source:
+          PathPatternRuntimeRenderResolutionSource.ambiguousPathPatternFallback,
     );
   }
   if (matchedPatterns.isEmpty) {
@@ -182,7 +183,7 @@ TilesetVisualFrame? _resolveLegacyFrame({
     case PathPatternRuntimePlaybackKind.alwaysLoop:
       return legacyAutotileSet.frameForVariantAt(variant, elapsedMs: elapsedMs);
     case PathPatternRuntimePlaybackKind.staticFrame:
-      return legacyAutotileSet.frameForVariantAt(variant, elapsedMs: elapsedMs);
+      return legacyAutotileSet.frameForVariantStatic(variant);
     case PathPatternRuntimePlaybackKind.loopFrom:
       return legacyAutotileSet.frameForVariantAt(
         variant,
@@ -217,8 +218,9 @@ TilesetVisualFrame? _resolveAnimatedFrameForPlayback({
         elapsedMs: elapsedMs - playback.startedAtMs,
       );
       return frames[oneShot.frameIndex.clamp(0, frames.length - 1)];
-    case PathPatternRuntimePlaybackKind.alwaysLoop:
     case PathPatternRuntimePlaybackKind.staticFrame:
+      return frames.first;
+    case PathPatternRuntimePlaybackKind.alwaysLoop:
     case PathPatternRuntimePlaybackKind.loopFrom:
       final resolvedElapsed =
           playback.kind == PathPatternRuntimePlaybackKind.loopFrom
