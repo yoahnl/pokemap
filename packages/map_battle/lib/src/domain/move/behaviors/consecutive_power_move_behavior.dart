@@ -3,6 +3,7 @@ import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../effect/battle_effect_scope.dart';
+import '../../effect/move/echoed_voice_effect.dart';
 import '../../effect/move/rollout_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -73,6 +74,12 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       ),
       forceAccuracyBypass: accuracyBypass,
     );
+    final declaredState = _kind == _ConsecutivePowerKind.echoedVoice
+        ? _increaseEchoedVoiceEffect(
+            state: prepared.state,
+            user: context.user,
+          )
+        : prepared.state;
     if (!prepared.shouldExecuteBehavior) {
       if (_isRolloutFamily) {
         return BattleMoveBehaviorResolution(
@@ -82,15 +89,20 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
           successful: false,
         );
       }
-      return prepared.toResolution();
+      return BattleMoveBehaviorResolution(
+        state: declaredState,
+        rng: prepared.rng,
+        events: prepared.events,
+        successful: false,
+      );
     }
 
     final targetSlot = prepared.psdkTargets.single;
-    final user = prepared.state.battlerAt(context.user);
-    final target = prepared.state.battlerAt(targetSlot);
+    final user = declaredState.battlerAt(context.user);
+    final target = declaredState.battlerAt(targetSlot);
     final move = _effectiveMove(
       BattleMoveBehaviorContext(
-        state: prepared.state,
+        state: declaredState,
         rng: prepared.rng,
         turn: context.turn,
         user: context.user,
@@ -107,8 +119,8 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: move,
         rng: prepared.rng,
-        field: prepared.state.field,
-        state: prepared.state,
+        field: declaredState.field,
+        state: declaredState,
         userSlot: context.user,
         targetSlot: targetSlot,
       ),
@@ -116,8 +128,8 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
     if (damageResult.damage <= 0) {
       return BattleMoveBehaviorResolution(
         state: _isRolloutFamily
-            ? _clearRolloutEffect(prepared.state, context.user)
-            : prepared.state,
+            ? _clearRolloutEffect(declaredState, context.user)
+            : declaredState,
         rng: damageResult.rng,
         events: prepared.events,
         successful: !_isRolloutFamily,
@@ -125,7 +137,7 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
     }
 
     final applied = applyDirectDamage(
-      state: prepared.state,
+      state: declaredState,
       user: context.user,
       target: targetSlot,
       moveId: context.move.id,
@@ -164,7 +176,7 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
     final user = context.state.battlerAt(context.user);
     final power = switch (_kind) {
       _ConsecutivePowerKind.echoedVoice =>
-        (context.move.power + 40 * _sameMoveStreak(user, context.move.id))
+        (context.move.power + 40 * _echoedVoiceSuccessiveTurns(context.state))
             .clamp(0, 200)
             .toInt(),
       _ConsecutivePowerKind.furyCutter => (context.move.power *
@@ -249,6 +261,50 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
   bool _hasDefenseCurlSuccess(PsdkBattleCombatant user) {
     return user.moveHistory.successes.any(
       (entry) => entry.moveId == 'defense_curl',
+    );
+  }
+
+  int _echoedVoiceSuccessiveTurns(PsdkBattleState state) {
+    return _currentEchoedVoiceEffect(state)?.effect.successiveTurns ?? 0;
+  }
+
+  ({PsdkBattleSlotRef owner, EchoedVoiceEffect effect})?
+      _currentEchoedVoiceEffect(PsdkBattleState state) {
+    for (final entry in state.combatants.entries) {
+      for (final effect in entry.value.effects.effects) {
+        if (effect is EchoedVoiceEffect &&
+            effect.scope is FieldBattleEffectScope) {
+          return (owner: entry.key, effect: effect);
+        }
+      }
+    }
+    return null;
+  }
+
+  PsdkBattleState _increaseEchoedVoiceEffect({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+  }) {
+    final current = _currentEchoedVoiceEffect(state);
+    if (current != null) {
+      return state.updateBattler(
+        current.owner,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(current.effect.increase()),
+        ),
+      );
+    }
+
+    return state.updateBattler(
+      user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          const EchoedVoiceEffect(
+            scope: FieldBattleEffectScope(),
+            hasIncreased: true,
+          ),
+        ),
+      ),
     );
   }
 

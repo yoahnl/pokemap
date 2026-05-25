@@ -756,6 +756,7 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Drowsiness',
     'EffectBase',
     'EffectsHandler',
+    'EchoedVoice',
     'Electric',
     'Embargo',
     'Encore',
@@ -876,7 +877,6 @@ PsdkPortStatus _explicitEffectStatusFor(String effectName) {
     'Bide',
     'Commanded',
     'Commanding',
-    'EchoedVoice',
     'ParentalBond',
     'Roost',
   };

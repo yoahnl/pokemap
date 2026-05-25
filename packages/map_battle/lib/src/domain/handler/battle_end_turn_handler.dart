@@ -2,6 +2,7 @@ import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/battle_effect_hooks.dart';
+import '../effect/battle_effect_scope.dart';
 import '../effect/status/status_effect_registry.dart';
 import 'battle_heal_handler.dart';
 import 'battle_handler_context.dart';
@@ -88,10 +89,8 @@ final class BattleEndTurnHandler {
     final events = <PsdkBattleEvent>[];
     var changed = false;
 
-    for (final slot in context.state.aliveSlots()) {
-      if (nextState.battlerAt(slot).isFainted) {
-        continue;
-      }
+    for (final slot in context.state.combatants.keys) {
+      final ownerIsFainted = nextState.battlerAt(slot).isFainted;
       final result = nextState.battlerAt(slot).effects.dispatchEndTurn(
             BattleEffectEndTurnContext(
               state: nextState,
@@ -99,7 +98,9 @@ final class BattleEndTurnHandler {
               turn: context.turn,
               owner: slot,
             ),
-            where: (effect) => effect is! BattleMajorStatusEffect,
+            where: (effect) =>
+                effect is! BattleMajorStatusEffect &&
+                (!ownerIsFainted || effect.scope is FieldBattleEffectScope),
           );
       nextState = result.state;
       nextRng = result.rng;

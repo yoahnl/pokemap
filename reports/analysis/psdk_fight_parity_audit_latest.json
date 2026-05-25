@@ -9116,8 +9116,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 471,
-      "partial": 11,
+      "ported": 472,
+      "partial": 10,
       "missing": 0
     },
     "byFamilyAndStatus": {
@@ -9127,8 +9127,8 @@
         "missing": 0
       },
       "move": {
-        "ported": 111,
-        "partial": 4,
+        "ported": 112,
+        "partial": 3,
         "missing": 0
       },
       "item": {
@@ -10037,7 +10037,7 @@
       {
         "effectName": "EchoedVoice",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 EchoedVoice.rb",
         "hookFamilies": [
           "end_turn"

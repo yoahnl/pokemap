@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_battle/src/domain/effect/move/echoed_voice_effect.dart';
 import 'package:map_battle/src/domain/effect/move/rollout_effect.dart';
 import 'package:test/test.dart';
 
@@ -273,28 +274,159 @@ void main() {
       });
     }
 
-    test('s_echo gains power after recent Echoed Voice success', () {
+    test('s_echo gains power from the field chain counter', () {
       final first = _runMove(
-        playerMove: _move(
-          id: 'echoed_voice',
-          category: PsdkBattleMoveCategory.special,
-          power: 40,
-          battleEngineMethod: 's_echo',
-        ),
+        playerMove: _echoedVoice(),
       );
       final boosted = _runMove(
-        playerMoveHistory: _successes('echoed_voice', count: 2),
-        playerMove: _move(
-          id: 'echoed_voice',
-          category: PsdkBattleMoveCategory.special,
-          power: 40,
-          battleEngineMethod: 's_echo',
+        playerEffects: PsdkBattleEffectStack(
+          effects: const <BattleEffect>[
+            EchoedVoiceEffect(
+              scope: FieldBattleEffectScope(),
+              successiveTurns: 2,
+              hasIncreased: false,
+            ),
+          ],
         ),
+        playerMove: _echoedVoice(),
       );
 
       expect(
         _damage(boosted, moveId: 'echoed_voice'),
         greaterThan(_damage(first, moveId: 'echoed_voice')),
+      );
+    });
+
+    test('s_echo gains power from any previous turn user on the field', () {
+      final baseline = _runMove(
+        playerMove: _echoedVoice(),
+      );
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'splash',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_splash',
+          ),
+          _echoedVoice(),
+        ],
+        opponentMove: _echoedVoice(id: 'opponent_echoed_voice'),
+      );
+
+      engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final boosted =
+          engine.submit(const PsdkBattleDecision.fight(moveSlot: 1));
+
+      expect(
+        _damage(boosted, moveId: 'echoed_voice'),
+        greaterThan(_damage(baseline, moveId: 'echoed_voice')),
+      );
+    });
+
+    test('s_echo resets after a turn without Echoed Voice', () {
+      final baseline = _runMove(playerMove: _echoedVoice());
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _echoedVoice(),
+          _move(
+            id: 'splash',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_splash',
+          ),
+        ],
+      );
+
+      engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      engine.submit(const PsdkBattleDecision.fight(moveSlot: 1));
+      final reset = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(
+        reset.state.combatants.values.any(
+          (battler) => battler.effects.contains('echoed_voice'),
+        ),
+        isTrue,
+      );
+      expect(
+        _damage(reset, moveId: 'echoed_voice'),
+        _damage(baseline, moveId: 'echoed_voice'),
+      );
+    });
+
+    test('s_echo chain advances even when its field-effect owner faints', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              speed: 100,
+              move: _echoedVoice(),
+              currentHp: 0,
+              effects: PsdkBattleEffectStack(
+                effects: const <BattleEffect>[
+                  EchoedVoiceEffect(
+                    scope: FieldBattleEffectScope(),
+                    hasIncreased: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'opponent', speed: 1, move: _echoedVoice()),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(state.battlerAt(psdkPlayerSlot).isFainted, isTrue);
+      expect(_echoedVoiceEffectIn(result.state).successiveTurns, 1);
+      expect(_echoedVoiceEffectIn(result.state).hasIncreased, isFalse);
+    });
+
+    test('s_echo caps field-chain power at 200', () {
+      final capped = _runMove(
+        playerEffects: PsdkBattleEffectStack(
+          effects: const <BattleEffect>[
+            EchoedVoiceEffect(
+              scope: FieldBattleEffectScope(),
+              successiveTurns: 4,
+              hasIncreased: false,
+            ),
+          ],
+        ),
+        playerMove: _echoedVoice(),
+      );
+      final overCapped = _runMove(
+        playerEffects: PsdkBattleEffectStack(
+          effects: const <BattleEffect>[
+            EchoedVoiceEffect(
+              scope: FieldBattleEffectScope(),
+              successiveTurns: 12,
+              hasIncreased: false,
+            ),
+          ],
+        ),
+        playerMove: _echoedVoice(),
+      );
+
+      expect(
+        _damage(overCapped, moveId: 'echoed_voice'),
+        _damage(capped, moveId: 'echoed_voice'),
       );
     });
 
@@ -652,6 +784,7 @@ PsdkBattleTurnResult _runMove({
 
 PsdkBattleEngine _engine({
   required List<PsdkBattleMoveData> playerMoves,
+  PsdkBattleMoveData? opponentMove,
 }) {
   return PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -664,13 +797,14 @@ PsdkBattleEngine _engine({
       opponent: _combatant(
         id: 'opponent',
         speed: 1,
-        move: _move(
-          id: 'opponent_wait',
-          power: 0,
-          accuracy: 0,
-          category: PsdkBattleMoveCategory.status,
-          battleEngineMethod: 's_splash',
-        ),
+        move: opponentMove ??
+            _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 0,
+              category: PsdkBattleMoveCategory.status,
+              battleEngineMethod: 's_splash',
+            ),
       ),
       rngSeeds: const PsdkBattleRngSeeds(
         moveDamage: 1,
@@ -689,6 +823,7 @@ PsdkBattleCombatantSetup _combatant({
   List<PsdkBattleMoveData> extraMoves = const <PsdkBattleMoveData>[],
   PsdkBattleMoveHistory? moveHistory,
   PsdkBattleEffectStack? effects,
+  int currentHp = 100,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -696,7 +831,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 20,
     maxHp: 100,
-    currentHp: 100,
+    currentHp: currentHp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: PsdkBattleStats(
       attack: 50,
@@ -711,10 +846,26 @@ PsdkBattleCombatantSetup _combatant({
   );
 }
 
+EchoedVoiceEffect _echoedVoiceEffectIn(PsdkBattleState state) {
+  return state.combatants.values
+      .expand((battler) => battler.effects.effects)
+      .whereType<EchoedVoiceEffect>()
+      .single;
+}
+
 bool _failed(PsdkBattleTurnResult result, {required String moveId}) {
   return result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().any(
         (event) => event.moveId == moveId,
       );
+}
+
+PsdkBattleMoveData _echoedVoice({String id = 'echoed_voice'}) {
+  return _move(
+    id: id,
+    category: PsdkBattleMoveCategory.special,
+    power: 40,
+    battleEngineMethod: 's_echo',
+  );
 }
 
 PsdkBattleMoveData _move({

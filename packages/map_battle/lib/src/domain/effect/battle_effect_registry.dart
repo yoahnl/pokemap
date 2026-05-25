@@ -15,6 +15,7 @@ import 'move/curse_effect.dart';
 import 'move/destiny_bond_effect.dart';
 import 'move/disable_effect.dart';
 import 'move/drowsiness_effect.dart';
+import 'move/echoed_voice_effect.dart';
 import 'move/embargo_effect.dart';
 import 'move/encore_effect.dart';
 import 'move/endure_effect.dart';
@@ -96,6 +97,8 @@ final class BattleEffectRegistry {
           scope: LocalBattleEffectScope(),
           origin: psdkOpponentSlot,
         ),
+      'echoed_voice' =>
+        const EchoedVoiceEffect(scope: FieldBattleEffectScope()),
       'embargo' => const EmbargoEffect(scope: LocalBattleEffectScope()),
       'endure' => const EndureEffect(scope: LocalBattleEffectScope()),
       'encore' => const EncoreEffect(
