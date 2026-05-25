@@ -70,6 +70,7 @@ BattleDirectDamageResult applyDirectDamage({
   bool criticalHit = false,
   int? actionOrder,
   int? targetActionOrder,
+  bool isFinalHit = true,
 }) {
   final result = const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
@@ -86,6 +87,7 @@ BattleDirectDamageResult applyDirectDamage({
     moveCategory: moveCategory,
     move: move,
     criticalHit: criticalHit,
+    isFinalHit: isFinalHit,
   );
   final damageEvents = result.events
       .whereType<PsdkBattleDamageEvent>()

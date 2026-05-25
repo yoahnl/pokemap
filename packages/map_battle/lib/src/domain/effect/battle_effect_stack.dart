@@ -187,6 +187,7 @@ final class BattleEffectObjectStack {
           criticalHit: context.criticalHit,
           userActionOrder: context.userActionOrder,
           targetActionOrder: context.targetActionOrder,
+          isFinalHit: context.isFinalHit,
         ),
       );
       if (result == null) {

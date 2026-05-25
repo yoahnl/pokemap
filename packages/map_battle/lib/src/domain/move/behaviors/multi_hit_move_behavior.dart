@@ -168,12 +168,14 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
         rng: rng,
         turn: context.turn,
         amount: damage.damage,
+        move: context.move,
+        isFinalHit: hitIndex == hitPlan.hitCount - 1,
       );
       state = applied.state;
       rng = applied.rng;
       if (applied.event != null) {
         dealtDamage = true;
-        events.add(applied.event!);
+        events.addAll(applied.events);
       }
     }
 

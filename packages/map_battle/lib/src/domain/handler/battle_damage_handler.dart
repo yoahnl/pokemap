@@ -23,6 +23,7 @@ final class BattleDamageHandler {
     PsdkBattleMoveCategory? moveCategory,
     BattleMoveDefinition? move,
     bool criticalHit = false,
+    bool isFinalHit = true,
   }) {
     final targetBattler = context.state.battlerAt(target);
     final moveDefinition = move ??
@@ -112,6 +113,7 @@ final class BattleDamageHandler {
       move: moveDefinition,
       damage: damage,
       criticalHit: criticalHit,
+      isFinalHit: isFinalHit,
     );
 
     return BattleHandlerResult(
@@ -134,6 +136,7 @@ final class BattleDamageHandler {
     required BattleMoveDefinition move,
     required int damage,
     required bool criticalHit,
+    required bool isFinalHit,
   }) {
     var nextState = state;
     var nextRng = rng;
@@ -164,6 +167,7 @@ final class BattleDamageHandler {
               criticalHit: criticalHit,
               userActionOrder: context.actionOrder,
               targetActionOrder: context.targetActionOrder,
+              isFinalHit: isFinalHit,
             ),
           );
       nextState = result.state;

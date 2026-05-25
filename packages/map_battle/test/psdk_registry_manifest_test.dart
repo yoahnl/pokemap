@@ -489,6 +489,30 @@ void main() {
       );
     });
 
+    test('effect parity promotes Lot 261 quick closure ability effects',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'BallFetch',
+        'ColorChange',
+        'Dancer',
+        'WindRider',
+      ]) {
+        expect(
+          byFamilyAndName['ability:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test(
         'effect parity promotes Cotton Down and scopes Mirror Armor reflection',
         () async {

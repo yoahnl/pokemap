@@ -229,6 +229,38 @@ void main() {
       expect(result.state.field.ballFetchEligibleSlots, isEmpty);
     });
 
+    test('Ball Fetch only lets the first eligible battler retrieve the ball',
+        () {
+      final state = _doublesState(
+        playerAbilityId: 'ball_fetch',
+        playerAllyAbilityId: 'ball_fetch',
+        field: const PsdkBattleFieldState(
+          lastBallUsedId: 'poke_ball',
+          ballFetchEligibleSlots: <PsdkBattleSlotRef>[
+            _playerAllySlot,
+            psdkPlayerSlot,
+          ],
+        ),
+      );
+
+      final result = const BattleEndTurnHandler().resolveEndTurn(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+        result.state.battlerAt(_playerAllySlot).heldItemId,
+        'poke_ball',
+      );
+      expect(result.state.field.lastBallUsedId, isNull);
+      expect(result.state.field.ballFetchEligibleSlots, isEmpty);
+    });
+
     test('Dancer immediately replays dance moves without PP or history', () {
       final engine = PsdkBattleEngine(
         setup: PsdkBattleSetup.singles(
@@ -282,6 +314,48 @@ void main() {
         opponentHistory.successfulMoveIds,
         isNot(contains('fiery_dance')),
       );
+    });
+
+    test('Color Change waits until the final successful multi-hit damage', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(
+              id: 'double_slap',
+              power: 20,
+              battleEngineMethod: 's_2hits',
+            ).psdk.copyWith(type: 'fire'),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'color_change',
+            move: _move(id: 'wait', power: 0).psdk,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final events = result.timeline.events;
+      final damageIndexes = <int>[
+        for (var index = 0; index < events.length; index += 1)
+          if (events[index] is PsdkBattleDamageEvent) index,
+      ];
+      final colorChangeIndex = events.indexWhere(
+        (event) =>
+            event is PsdkBattleEffectEvent &&
+            event.effectId == 'color_change:fire',
+      );
+
+      expect(damageIndexes, hasLength(2));
+      expect(colorChangeIndex, greaterThan(damageIndexes.last));
+      expect(result.state.battlerAt(psdkOpponentSlot).types.primary, 'fire');
     });
 
     test('Dancer replay does not lock Thrash-style dance moves', () {
@@ -766,6 +840,7 @@ PsdkBattleState _doublesState({
   String? opponentAbilityId,
   String? playerHeldItemId,
   String? playerAllyHeldItemId,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   return PsdkBattleState(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
@@ -787,6 +862,7 @@ PsdkBattleState _doublesState({
         _combatant(id: 'opponent', abilityId: opponentAbilityId),
       ),
     },
+    field: field,
   );
 }
 

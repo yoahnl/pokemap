@@ -30,6 +30,7 @@ final class ColorChangeEffect extends BattleAbilityEffect {
         context.user == context.target ||
         context.damage <= 0 ||
         context.targetFainted ||
+        !context.isFinalHit ||
         context.move.category == PsdkBattleMoveCategory.status ||
         _sheerForceAlreadyActivated(context)) {
       return null;

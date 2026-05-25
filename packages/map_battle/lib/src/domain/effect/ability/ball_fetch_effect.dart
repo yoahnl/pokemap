@@ -22,11 +22,13 @@ final class BallFetchEffect extends BattleAbilityEffect {
     }
     final battler = context.state.battlerAt(context.owner);
     final ballId = context.state.field.lastBallUsedId;
+    final eligibleSlots = context.state.field.ballFetchEligibleSlots;
     if (battler.abilityId != abilityId ||
         battler.isFainted ||
         battler.heldItemId != null ||
         ballId == null ||
-        !context.state.field.ballFetchEligibleSlots.contains(context.owner)) {
+        eligibleSlots.isEmpty ||
+        eligibleSlots.first != context.owner) {
       return null;
     }
 

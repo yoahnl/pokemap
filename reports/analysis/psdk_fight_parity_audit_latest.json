@@ -9116,14 +9116,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 463,
-      "partial": 19,
+      "ported": 467,
+      "partial": 15,
       "missing": 0
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 242,
-        "partial": 12,
+        "ported": 246,
+        "partial": 8,
         "missing": 0
       },
       "move": {
@@ -9365,7 +9365,7 @@
       {
         "effectName": "BallFetch",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 BallFetch.rb",
         "hookFamilies": [
           "end_turn"
@@ -9700,7 +9700,7 @@
       {
         "effectName": "ColorChange",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Color Change.rb",
         "hookFamilies": [
           "post_damage"
@@ -9867,7 +9867,7 @@
       {
         "effectName": "Dancer",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Dancer.rb",
         "hookFamilies": []
       },
@@ -13196,7 +13196,7 @@
       {
         "effectName": "WindRider",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 WindRider.rb",
         "hookFamilies": [
           "action_order",

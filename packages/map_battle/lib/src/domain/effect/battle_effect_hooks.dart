@@ -157,6 +157,7 @@ final class BattleEffectPostDamageContext {
     this.criticalHit = false,
     this.userActionOrder,
     this.targetActionOrder,
+    this.isFinalHit = true,
   });
 
   final PsdkBattleState state;
@@ -171,6 +172,7 @@ final class BattleEffectPostDamageContext {
   final bool criticalHit;
   final int? userActionOrder;
   final int? targetActionOrder;
+  final bool isFinalHit;
 }
 
 final class BattleEffectPostDamageResult {

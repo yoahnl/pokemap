@@ -100,8 +100,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'ball_fetch',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 BallFetch.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'BallFetchEffect.partialRequiresCaptureBridgeState',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'BallFetchEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'battery',
@@ -196,8 +196,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'color_change',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Color Change.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'ColorChangeEffect.partialNoMultiHitLastHitState',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ColorChangeEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'comatose',
@@ -294,8 +294,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'dancer',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Dancer.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'DancerEffect.partialTurnRunnerReplayNoImportedStudioDanceFlag',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'DancerEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'dark_aura',
@@ -1913,8 +1913,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'wind_rider',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 WindRider.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'WindRiderEffect.partialNoTargetPrecheckMutation',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'WindRiderEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wonder_guard',

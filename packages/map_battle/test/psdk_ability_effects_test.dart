@@ -4856,9 +4856,24 @@ void main() {
         moveId: 'gust',
         flags: const BattleMoveFlags(wind: true),
       );
+      final moldBreaker = _applyDirectAbilityDamage(
+        playerAbilityId: 'mold_breaker',
+        opponentAbilityId: 'wind_rider',
+        moveId: 'gust',
+        flags: const BattleMoveFlags(wind: true),
+      );
       final ordinary = _applyDirectAbilityDamage(
         opponentAbilityId: 'wind_rider',
         moveId: 'tackle',
+      );
+      final tailwindSwitchIn = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'wind_rider',
+        playerEffects: PsdkBattleEffectStack().addEffect(
+          const GenericBattleEffect(
+            id: 'tailwind',
+            scope: BankBattleEffectScope(0),
+          ),
+        ),
       );
 
       expect(_damageEventsForHandler(blocked), isEmpty);
@@ -4867,7 +4882,22 @@ void main() {
         1,
       );
       expect(_statEventsForHandler(blocked).single.stat, 'attack');
+      expect(_damageEventsForHandler(moldBreaker), hasLength(1));
+      expect(
+        moldBreaker.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('attack'),
+        0,
+      );
       expect(_damageEventsForHandler(ordinary), hasLength(1));
+      expect(
+        tailwindSwitchIn.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('attack'),
+        1,
+      );
     });
 
     test('Toxic Debris lays and empowers Toxic Spikes on the attacker bank',

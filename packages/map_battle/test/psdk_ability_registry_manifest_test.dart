@@ -39,6 +39,7 @@ void main() {
         'anger_point',
         'anger_shell',
         'armor_tail',
+        'ball_fetch',
         'battery',
         'beast_boost',
         'berserk',
@@ -46,12 +47,14 @@ void main() {
         'chilling_neigh',
         'chlorophyll',
         'cloud_nine',
+        'color_change',
         'comatose',
         'compound_eyes',
         'cotton_down',
         'cud_chew',
         'cursed_body',
         'damp',
+        'dancer',
         'dark_aura',
         'dauntless_shield',
         'dazzling',
@@ -202,6 +205,7 @@ void main() {
         'weak_armor',
         'well_baked_body',
         'wind_power',
+        'wind_rider',
         'wonder_skin',
         'run_away',
         'aroma_veil',
@@ -223,7 +227,6 @@ void main() {
       }
 
       for (final abilityId in <String>[
-        'color_change',
         'mirror_armor',
       ]) {
         final entry = byId[abilityId];
@@ -267,6 +270,28 @@ void main() {
       );
       expect(byId['speed_boost']?.dartEffect, 'SpeedBoostEffect');
       expect(AbilityEffectRegistry().create('speed_boost'), isNotNull);
+    });
+
+    test('Lot 261 quick closure ability effects are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'ball_fetch',
+        'color_change',
+        'dancer',
+        'wind_rider',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+        expect(byId[abilityId]?.dartEffect, isNotNull, reason: abilityId);
+        expect(AbilityEffectRegistry().create(abilityId), isNotNull,
+            reason: abilityId);
+      }
     });
 
     test('unknown abilities hydrate as safe inert ability markers', () {
