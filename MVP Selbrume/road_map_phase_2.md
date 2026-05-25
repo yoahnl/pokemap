@@ -6,9 +6,9 @@ Phase 2 — Domain Model & Contracts
 
 Statut : 🔜 En cours
 
-Lot courant : P2-06 — Battle Reference / Outcome Contract
+Lot courant : P2-07 — Fact Descriptor / Presentation Layer
 
-Prochain lot exact : P2-06 — Battle Reference / Outcome Contract
+Prochain lot exact : P2-07 — Fact Descriptor / Presentation Layer
 
 Suivi des lots :
 
@@ -18,8 +18,8 @@ Suivi des lots :
 - ✅ P2-03 — Event Authoring Source Contract
 - ✅ P2-04 — Scene / ScenarioAsset Adapter Contract
 - ✅ P2-05 — Outcome Reference Contracts
-- 🔜 P2-06 — Battle Reference / Outcome Contract
-- P2-07 — Fact Descriptor / Presentation Layer
+- ✅ P2-06 — Battle Reference / Outcome Contract
+- 🔜 P2-07 — Fact Descriptor / Presentation Layer
 - P2-08 — World Rule Predicate Adapter Contract
 - P2-09 — Narrative Validator Diagnostic Expansion
 - P2-10 — Reference Picker Read Models
@@ -37,7 +37,9 @@ P2-04 : ✅ terminé
 
 P2-05 : ✅ terminé
 
-P2-06 : 🔜 prochain lot exact
+P2-06 : ✅ terminé
+
+P2-07 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 2
 
@@ -552,11 +554,70 @@ Pas de parser Yarn complet.
 Dépendances :
 P2-04.
 
-### P2-06 — Battle Reference / Outcome Contract
+### ✅ P2-06 — Battle Reference / Outcome Contract
 
 Objectif :
 Stabiliser un contrat minimal de référence battle et outcomes `victory` /
 `defeat`.
+
+Résultat :
+P2-06 reste design-only. Le lot décide de ne créer aucun modèle persistant,
+aucun `BattleRegistry`, aucune migration `ProjectManifest` et aucune
+modification `map_battle`. Les sources techniques actuelles restent
+`startTrainerBattle`, `ProjectManifest.trainers`, `ScenarioRuntimeEffect.battle`
+et les flags `battle:<battleId>:<suffix>`. Le V0 narratif recommandé se limite
+à `victory` / `defeat` ; `flee` et `captured` sont reconnus comme suffixes
+techniques existants mais restent hors contrat narratif V0. Rewards, money, XP,
+level-up, capture authoring et static wild authoring restent reportés hors
+P2-06. La trajectoire recommandée est un futur `BattleReferenceReadModel` non
+persistant dérivé de `ScenarioAsset` + `ProjectManifest.trainers`, si P2-09 /
+P2-10 le justifient.
+
+Fichiers créés :
+
+- `reports/roadmap/phase_2/p2_06_battle_reference_outcome_contract.md`
+
+Fichiers modifiés :
+
+- `MVP Selbrume/road_map_phase_2.md`
+
+Commandes exécutées :
+
+- `git status --short --untracked-files=all`
+- `find .. -name AGENTS.md -print`
+- `test -f skills/README.md && sed -n '1,220p' skills/README.md || true`
+- `ctx_search(sort="timeline", source="session-events", queries=[...], limit=3)`
+- `ctx_batch_execute(commands=[P2-06 mandatory roadmap and report references, Battle source grep in core runtime editor, ScenarioAsset battle-related definitions, Scenario runtime models battle effect, Scenario runtime executor battle handling, Scenario battle outcome flags, Narrative validator battle diagnostics, ProjectManifest trainers, Map battle and battle package outcome search, Narrative workspace battle summaries], queries=[...])`
+- `ctx_search(queries=[...], limit=5)`
+- `sed -n '1,420p' "MVP Selbrume/road_map_phase_2.md"`
+- `sed -n '420,820p' "MVP Selbrume/road_map_phase_2.md"`
+- `grep -nE "class ProjectTrainerEntry|ProjectTrainerEntry|trainerClass|team|party|pokemon|name" packages/map_core/lib/src/models/project_trainer.dart packages/map_core/lib/src/models/project_manifest.dart`
+- `find packages/map_runtime/lib/src/application packages/map_battle/lib -type f -name '*.dart' -print | xargs grep -nE "BattleOutcome|outcome|victory|defeat|flee|captured|capture|reward|money|xp|level|ScenarioRuntimeEffectType\\.battle|scenarioBattleOutcomeFlagName" || true`
+- `sed -n '1,120p' packages/map_core/lib/src/models/project_trainer.dart`
+- `sed -n '1,220p' packages/map_battle/lib/src/domain/battle/battle_outcome.dart`
+- `grep -nE "scenarioBattleOutcomeFlagName|kBattleOutcomeSuffix|battle:<|BattleOutcome|isVictory|isDefeat|victory|defeat|flee|captured|capture|trainer_defeated|onBattleFinished|BattleOutcome" packages/map_runtime/lib/src/application/scenario_runtime/scenario_battle_outcome_flags.dart packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_models.dart packages/map_runtime/lib/src/application/story_flags_manager.dart packages/map_runtime/lib/src/application/scenario_conditions.dart packages/map_runtime/lib/src/application/runtime_battle*.dart packages/map_battle/lib/src/domain/battle/battle_outcome.dart packages/map_battle/lib/src/battle_state.dart`
+- `grep -nE "startTrainerBattle|trainerId|battleId|npcEntityId|ScenarioRuntimeEffectType\\.battle|Graphe suspendu|battle handoff" packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_models.dart`
+- `sed -n '160,240p' packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+- `sed -n '1,110p' packages/map_runtime/lib/src/application/scenario_conditions.dart && sed -n '1,80p' packages/map_runtime/lib/src/application/story_flags_manager.dart`
+- `sed -n '760,890p' packages/map_core/lib/src/validation/validators.dart && sed -n '1110,1155p' packages/map_core/lib/src/validation/validators.dart`
+- `git diff --no-index --check /dev/null reports/roadmap/phase_2/p2_06_battle_reference_outcome_contract.md || true`
+- `git diff --name-only -- "MVP Selbrume/road_map_global.md" "MVP Selbrume/road_map_phase_1.md" packages/map_battle examples/playable_runtime_host`
+- `git diff --name-only -- packages/map_core packages/map_gameplay packages/map_runtime packages/map_editor examples/playable_runtime_host`
+- `git diff --check`
+- `git diff --stat`
+- `git diff --name-only`
+- `git status --short --untracked-files=all`
+
+Décisions utilisateur nouvelles :
+Aucune décision utilisateur imposée. La décision recommandée pour la suite est
+de garder battle outcome séparé de scenario outcome et de réserver un éventuel
+`BattleReferenceReadModel` non persistant à P2-09/P2-10 si les diagnostics ou
+pickers le justifient.
+
+Changements de périmètre :
+Aucun changement de périmètre. P2-06 confirme que rewards, money, XP,
+level-up, capture authoring, flee authoring et static wild authoring restent
+hors Phase 2 contractuelle immédiate et hors P2-06.
 
 Risque :
 Aspirer money, XP, static wild et rewards dans Phase 2.
@@ -711,5 +772,5 @@ Phase 2 ne prouve pas le runtime Flame complet.
 Le prochain lot exact est :
 
 ```text
-P2-06 — Battle Reference / Outcome Contract
+P2-07 — Fact Descriptor / Presentation Layer
 ```
