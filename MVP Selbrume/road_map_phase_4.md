@@ -4,11 +4,11 @@
 
 Phase 4 — Authoring Workflows Minimal
 
-Statut : 🔜 Phase courante en exécution
+Statut : ✅ clôturée avec réserves mineures
 
-Lot courant : P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
+Lot courant : P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 
-Prochain lot exact : P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
+Prochain lot exact : P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 
 Suivi des lots :
 
@@ -20,7 +20,7 @@ Suivi des lots :
 - ✅ P4-05 — Predicate / World Rule Authoring Draft V0
 - ✅ P4-06 — Narrative Validator Authoring Adapter V0
 - ✅ P4-07 — Minimal Authoring Golden Path Test V0
-- 🔜 P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
+- ✅ P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
 P4-00 : ✅ terminé
 
@@ -38,7 +38,11 @@ P4-06 : ✅ terminé
 
 P4-07 : ✅ terminé
 
-P4-CHECKPOINT-01 : 🔜 prochain lot exact
+P4-CHECKPOINT-01 : ✅ terminé
+
+Phase 4 : ✅ clôturée avec réserves mineures
+
+Prochain lot exact : P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 
 ## 2. Objectif de la Phase 4
 
@@ -380,6 +384,23 @@ passage vers la phase suivante.
 Résultat attendu :
 Verdict Phase 4, roadmaps mises à jour, prochain lot exact fixé.
 
+Résultat P4-CHECKPOINT-01 :
+
+- rapport créé :
+  `reports/roadmap/phase_4/p4_checkpoint_01_authoring_workflow_readiness_review.md` ;
+- décision :
+  Phase 4 clôturée avec réserves mineures ;
+- preuve retenue :
+  authoring pur `map_core` / in-memory validé par read models, drafts,
+  opérations, adapter diagnostics et golden path P4-07 ;
+- réserves conservées :
+  pas d'UI editor interactive, pas de runtime/disque Phase 4, pas de produit
+  final, pas de Scene Builder/Cinematic Builder ;
+- roadmap globale mise à jour vers Phase 5 ;
+- roadmap Phase 5 créée ;
+- prochain lot exact :
+  P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit.
+
 ## 8. Critères de sortie Phase 4
 
 Phase 4 pourra être clôturée si :
@@ -416,5 +437,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
+P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 ```

@@ -6,13 +6,13 @@ Roadmap globale : active
 
 Bloc NS-GS-01 → NS-GS-18 : ✅ terminé comme bloc mechanics-first Level 2 Application
 
-Phase courante : Phase 4 — Authoring Workflows Minimal
+Phase courante : Phase 5 — Gameplay Gaps Prioritaires
 
-Roadmap de phase courante : `MVP Selbrume/road_map_phase_4.md`
+Roadmap de phase courante : `MVP Selbrume/road_map_phase_5.md`
 
-Lot courant : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+Lot courant : P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 
-Prochain lot exact : P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+Prochain lot exact : P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 
 Suivi global :
 
@@ -20,8 +20,9 @@ Suivi global :
 - Phase 1 — Canonical Product Model / Narrative Studio Foundations : ✅ clôturée avec réserves mineures
 - Phase 2 — Domain Model & Contracts : ✅ clôturée avec réserves mineures
 - Phase 3 — Runtime / Application / Flame / Disk Validation : ✅ clôturée avec réserves mineures
-- Phase 4 — Authoring Workflows Minimal : 🔜 phase courante
-- P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit : 🔜 prochain lot exact
+- Phase 4 — Authoring Workflows Minimal : ✅ clôturée avec réserves mineures
+- Phase 5 — Gameplay Gaps Prioritaires : 🔜 phase courante
+- P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit : 🔜 prochain lot exact
 
 ## 2. Objectif final de PokeMap
 
@@ -99,7 +100,10 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 → source de vérité détaillée pour la Phase 3 clôturée.
 
 `MVP Selbrume/road_map_phase_4.md`
-→ source de vérité détaillée pour la Phase 4 courante.
+→ source de vérité détaillée pour la Phase 4 clôturée.
+
+`MVP Selbrume/road_map_phase_5.md`
+→ source de vérité détaillée pour la Phase 5 courante.
 
 `MVP Selbrume/road_map.md`
 → roadmap historique NS-GS clôturée, conservée comme archive de preuves et contexte.
@@ -119,8 +123,8 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 - ✅ Phase 1 — Canonical Product Model / Narrative Studio Foundations
 - ✅ Phase 2 — Domain Model & Contracts
 - ✅ Phase 3 — Runtime / Application / Flame / Disk Validation
-- 🔜 Phase 4 — Authoring Workflows Minimal
-- Phase 5 — Gameplay Gaps Prioritaires
+- ✅ Phase 4 — Authoring Workflows Minimal
+- 🔜 Phase 5 — Gameplay Gaps Prioritaires
 - Phase 6 — Selbrume Golden Slice réel
 - Phase 7 — UI / UX moderne finale
 
@@ -440,10 +444,23 @@ Critères de sortie :
 
 Checkpoint final :
 
-- P4-CHECKPOINT-01 — Minimal Authoring Workflow Review
+- P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
 Statut :
-🔜 phase courante.
+✅ clôturée avec réserves mineures.
+
+Résultat de clôture :
+
+- read models et pickers narratifs V0 prouvés côté `map_core` ;
+- draft scenario minimal, opérations Event Source, operations Outcome/Battle,
+  drafts Predicate/World Rule et adapter diagnostics authoring prouvés par
+  tests purs ;
+- golden path authoring minimal P4-07 validant le chaînage
+  read models -> draft -> source -> outcome -> predicate -> compilation ->
+  diagnostics authoring ;
+- réserves conservées : pas d'UI editor interactive, pas de preuve disque P4,
+  pas de runtime P4, pas de produit final, pas de Scene Builder/Cinematic
+  Builder, pas de Selbrume final.
 
 ## 11. Phase 5 — Gameplay Gaps Prioritaires
 
@@ -461,6 +478,7 @@ Préconditions :
 - modèle produit stabilisé ;
 - workflows authoring minimaux orientent les besoins gameplay ;
 - NS-GS-18 reclassé comme audit de gaps rewards.
+- Phase 4 clôturée avec réserves mineures.
 
 Périmètre :
 
@@ -493,10 +511,10 @@ Critères de sortie :
 
 Checkpoint final :
 
-- P5-CHECKPOINT-01 — Gameplay Gaps Readiness Review
+- P5-CHECKPOINT-01 — Gameplay Loop Readiness Review
 
 Statut :
-future.
+🔜 phase courante.
 
 ## 12. Phase 6 — Selbrume Golden Slice réel
 
@@ -608,30 +626,29 @@ future tardive.
 ## 14. Phase courante
 
 Phase courante :
-Phase 4 — Authoring Workflows Minimal
+Phase 5 — Gameplay Gaps Prioritaires
 
 Roadmap de phase :
-`MVP Selbrume/road_map_phase_4.md`
+`MVP Selbrume/road_map_phase_5.md`
 
 Prochain lot de la phase :
-P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 
 Note :
-P3-CHECKPOINT-01 a clôturé Phase 3 et créé la roadmap vivante Phase 4. Il ne
-démarre pas P4-00.
+P4-CHECKPOINT-01 a clôturé Phase 4 et créé la roadmap vivante Phase 5. Il ne
+démarre pas P5-00.
 
 ## 15. Prochain lot exact
 
-P4-00 — Phase 4 Roadmap Bootstrap / Authoring Workflow Audit
+P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop Audit
 
-P4-00 doit rester audit-first et documentaire / cadrage authoring minimal. Il
-doit inventorier les workflows auteur existants, les pickers/read models
-disponibles, les diagnostics utilisables et les gaps d'authoring avant toute
-implémentation UI.
+P5-00 doit rester audit-first et cadrer la boucle RPG minimale : New Game,
+GameState initial, party, bag, heal center, rewards/money/XP, capture,
+save/load gameplay et validation de jouabilité.
 
-P4-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l'UI
-premium, ne doit pas ouvrir les gaps gameplay Phase 5 et ne doit pas transformer
-la roadmap Phase 4 en Scene Builder complet.
+P5-00 ne doit pas créer de contenu Selbrume final, ne doit pas lancer l'UI
+premium, ne doit pas implémenter rewards/money/XP en code pendant l'audit et ne
+doit pas transformer la Phase 5 en parité Pokémon complète.
 
 ## 16. Critères de changement de phase
 
@@ -695,12 +712,12 @@ ou si l’utilisateur le demande explicitement.
 - Level 3 Flame / PlayableMapGame Golden Slice complet : non entièrement prouvé.
 - Level 4 projet disque / host narratif technique : prouvé partiellement en
   Phase 3 ; vrai projet créé dans l'éditeur non prouvé.
-- Storyline / Chapter / Story Step contract ou descriptor : décision Phase 2 faite, picker reporté Phase 4.
-- Event authoring source contract : décision Phase 2 faite, picker reporté Phase 4.
+- Storyline / Chapter / Story Step contract ou descriptor : décision Phase 2 faite, picker V0 prouvé en Phase 4.
+- Event authoring source contract : décision Phase 2 faite, picker et opérations V0 prouvés en Phase 4.
 - Scene / ScenarioAsset adapter : décision Phase 2 faite, preuve runtime Phase 3.
-- FactDescriptor / Fact Presentation Layer : décision Phase 2 faite, picker reporté Phase 4.
-- World Rule Predicate Adapter : décision Phase 2 faite, preuve runtime Phase 3.
-- Validator UI et intégration authoring : Phase 4 puis Phase 7.
+- FactDescriptor / Fact Presentation Layer : décision Phase 2 faite, predicate references V0 prouvées en Phase 4 sans registry.
+- World Rule Predicate Adapter : décision Phase 2 faite, preuve runtime Phase 3 et draft authoring passif V0 Phase 4.
+- Validator UI et intégration authoring : adapter authoring prouvé en Phase 4, UI reportée Phase 7.
 - Reward Model, money, XP, level-up : Phase 5.
 - Static wild encounter authorable réel : Phase 5.
 - Selbrume Golden Slice réel : Phase 6.
@@ -738,3 +755,13 @@ ou si l’utilisateur le demande explicitement.
   Minimal. Roadmap de phase courante fixée à
   `MVP Selbrume/road_map_phase_4.md`. Prochain lot exact fixé à P4-00 — Phase 4
   Roadmap Bootstrap / Authoring Workflow Audit.
+- 2026-05-25 — P4-CHECKPOINT-01 — Phase 4 clôturée avec réserves mineures.
+  La Phase 4 a prouvé l'authoring minimal pur : read models / pickers,
+  scenario draft, opérations Event Source, opérations Outcome/Battle, drafts
+  Predicate/World Rule, adapter diagnostics authoring et golden path in-memory.
+  Les réserves restantes concernent l'UI editor, le runtime/disque des
+  workflows authoring, le produit final, Selbrume réel et les gaps gameplay.
+  Phase courante mise à jour vers Phase 5 — Gameplay Gaps Prioritaires.
+  Roadmap de phase courante fixée à `MVP Selbrume/road_map_phase_5.md`.
+  Prochain lot exact fixé à P5-00 — Phase 5 Roadmap Bootstrap / Gameplay Loop
+  Audit.
