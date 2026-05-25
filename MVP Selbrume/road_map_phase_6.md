@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-07 — Selbrume Beta Validator Pass V0
+Lot courant : ✅ P6-08 — Selbrume Playable Runtime Smoke V0
 
-Prochain lot exact : P6-08 — Selbrume Playable Runtime Smoke V0
+Prochain lot exact : P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
 Légende :
 
@@ -47,8 +47,8 @@ Suivi des lots :
 - ✅ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ✅ P6-06 — Selbrume Save/Load Golden Slice V0
 - ✅ P6-07 — Selbrume Beta Validator Pass V0
-- ➡️ P6-08 — Selbrume Playable Runtime Smoke V0
-- 🧭 P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
+- ✅ P6-08 — Selbrume Playable Runtime Smoke V0
+- ➡️ P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
 P6-00 : ✅ terminé
 
@@ -70,12 +70,14 @@ P6-06 : ✅ terminé
 
 P6-07 : ✅ terminé
 
-P6-08 : ➡️ prochain lot exact
+P6-08 : ✅ terminé
+
+P6-CHECKPOINT-01 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-08 — Selbrume Playable Runtime Smoke V0
+P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 ```
 
 ## Objectif Phase 6
@@ -490,6 +492,40 @@ Aucun code production et aucun fichier selbrume/ n'est modifié en P6-07.
 Prochain lot exact : P6-08 — Selbrume Playable Runtime Smoke V0.
 ```
 
+## Résultat P6-08
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json est chargé via loadRuntimeMapBundle
+maps chargées explicitement : Selbrume et route 1
+niveau de smoke obtenu : Level B
+API runtime : PlayableMapGame + onLoad + update(0)
+état utilisé : New Game Selbrume/spawn seedé avec party/bag P6-02 et flag/step P6-03
+map active runtime : Selbrume
+position joueur runtime : x=17, y=24
+facing : south
+flow runtime : overworld
+tilesets Selbrume chargés depuis les assets repo-local
+aucun crash PlayableMapGame.onLoad
+```
+
+Limite honnête :
+
+```text
+P6-08 ne lance pas une session joueur interactive complète.
+P6-08 n'injecte pas encore l'état sauvegardé complet P6-06 dans route 1.
+La preuve est un smoke runtime New Game Selbrume/spawn, pas un Boot Flow.
+```
+
+Décision roadmap :
+
+```text
+P6-08 est concluant.
+Aucun code production et aucun fichier selbrume/ n'est modifié en P6-08.
+Prochain lot exact : P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review.
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -659,9 +695,9 @@ Preuve :
 packages/map_runtime/test/p6_selbrume_beta_validator_pass_test.dart
 ```
 
-### ➡️ P6-08 — Selbrume Playable Runtime Smoke V0
+### ✅ P6-08 — Selbrume Playable Runtime Smoke V0
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -669,7 +705,15 @@ But :
 prouver un smoke runtime jouable court sur le projet Selbrume minimal.
 ```
 
-### 🧭 P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
+Preuve :
+
+```text
+packages/map_runtime/test/p6_selbrume_playable_runtime_smoke_test.dart
+```
+
+### ➡️ P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
+
+Statut : prochain lot exact.
 
 But :
 
