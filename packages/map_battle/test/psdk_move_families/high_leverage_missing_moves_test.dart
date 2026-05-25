@@ -1083,6 +1083,31 @@ void main() {
       });
     }
 
+    test('s_wonder_room removes the active field marker when toggled', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'wonder_room',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_wonder_room',
+          target: PsdkBattleMoveTarget.none,
+        ),
+        playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(
+            id: 'wonder_room',
+            scope: FieldBattleEffectScope(),
+            remainingTurns: 3,
+          ),
+        ),
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('wonder_room'),
+        isFalse,
+      );
+    });
+
     for (final entry in <({String method, String moveId, String abilityId})>[
       (method: 's_simple_beam', moveId: 'simple_beam', abilityId: 'simple'),
       (method: 's_worry_seed', moveId: 'worry_seed', abilityId: 'insomnia'),

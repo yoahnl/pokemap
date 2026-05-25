@@ -280,8 +280,21 @@ int? _modifiedChance(
   for (final effect in context.state.activeAbilityEffects()) {
     multiplier *= effect.secondaryEffectChanceMultiplier(context);
   }
+  multiplier *= _rainbowPledgeSecondaryEffectChanceMultiplier(context);
   final modified = (chance * multiplier).floor();
   return modified > 100 ? 100 : modified;
+}
+
+double _rainbowPledgeSecondaryEffectChanceMultiplier(
+  BattleAbilitySecondaryEffectContext context,
+) {
+  if (!_bankHasEffect(context.state, context.user.bank, 'pledge_rainbow') ||
+      context.move.statuses.any(
+        (status) => status.volatileStatus == PsdkBattleVolatileStatus.flinch,
+      )) {
+    return 1;
+  }
+  return 2;
 }
 
 bool _safeguardPreventsVolatileStatus({

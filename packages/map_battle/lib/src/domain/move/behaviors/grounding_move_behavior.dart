@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../battler/battle_grounding_resolver.dart';
@@ -6,6 +7,7 @@ import '../../effect/battle_effect_scope.dart';
 import '../../effect/move/smack_down_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
+import '../battle_move_data.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
@@ -65,6 +67,7 @@ final class GroundingMoveBehavior implements BattleMoveBehavior {
     final nextState = _applySmackDownEffect(
       state: secondary.state,
       targetSlot: targetSlot,
+      move: context.move,
     );
 
     return BattleMoveBehaviorResolution(
@@ -82,22 +85,37 @@ final class GroundingMoveBehavior implements BattleMoveBehavior {
 PsdkBattleState _applySmackDownEffect({
   required PsdkBattleState state,
   required PsdkBattleSlotRef targetSlot,
+  required BattleMoveDefinition move,
 }) {
   final target = state.battlerAt(targetSlot);
+  final targetIsOutOfReach = target.effects.contains('out_of_reach_base');
   if (target.isFainted ||
       target.effects.contains('smack_down') ||
+      (target.effects.contains('substitute') && !move.flags.sound) ||
       target.effects.contains('ingrain') ||
       target.heldItemId == 'iron_ball' ||
-      const BattleGroundingResolver().isGrounded(target)) {
+      (const BattleGroundingResolver().isGrounded(target) &&
+          !targetIsOutOfReach)) {
     return state;
   }
 
   return state.updateBattler(
     targetSlot,
-    (battler) => battler.copyWith(
-      effects: battler.effects.addEffect(
-        SmackDownEffect(scope: BattlerBattleEffectScope(targetSlot)),
-      ),
-    ),
+    (battler) {
+      var nextEffects =
+          battler.effects.remove('magnet_rise').remove('telekinesis');
+      if (targetIsOutOfReach) {
+        nextEffects = nextEffects
+            .remove('out_of_reach')
+            .remove('out_of_reach_base')
+            .remove(PsdkBattleEffectIds.forceNextMoveBase)
+            .remove(PsdkBattleEffectIds.twoTurnCharge);
+      }
+      return battler.copyWith(
+        effects: nextEffects.addEffect(
+          SmackDownEffect(scope: BattlerBattleEffectScope(targetSlot)),
+        ),
+      );
+    },
   );
 }

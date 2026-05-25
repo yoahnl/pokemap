@@ -625,17 +625,24 @@ void main() {
       };
 
       for (final effectName in <String>[
+        'BatonPass',
+        'CantSwitch',
         'ChangeType',
+        'Confusion',
         'DestinyBond',
         'FutureSight',
+        'FuryCutter',
         'Grudge',
         'HealingWish',
         'Instruct',
         'IonDeluge',
         'LunarDance',
         'Mark',
+        'Rainbow',
         'ShedTail',
         'SleepPrevention',
+        'SmackDown',
+        'WonderRoom',
       ]) {
         expect(
           byFamilyAndName['move:$effectName']?.status,
@@ -648,7 +655,6 @@ void main() {
         'Bestow',
         'Bide',
         'EchoedVoice',
-        'FuryCutter',
         'Rollout',
         'Roost',
       ]) {

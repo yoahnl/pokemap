@@ -56,6 +56,34 @@ void main() {
       );
     });
 
+    test('s_fury_cutter resets when the previous attempt failed', () {
+      final first = _runMove(
+        playerMove: _move(
+          id: 'fury_cutter',
+          type: 'bug',
+          power: 40,
+          battleEngineMethod: 's_fury_cutter',
+        ),
+      );
+      final reset = _runMove(
+        playerMoveHistory: _history(
+          attempts: const <String>['fury_cutter', 'fury_cutter'],
+          successes: const <String>['fury_cutter'],
+        ),
+        playerMove: _move(
+          id: 'fury_cutter',
+          type: 'bug',
+          power: 40,
+          battleEngineMethod: 's_fury_cutter',
+        ),
+      );
+
+      expect(
+        _damage(reset, moveId: 'fury_cutter'),
+        _damage(first, moveId: 'fury_cutter'),
+      );
+    });
+
     test('s_fury_cutter caps at 160 base power', () {
       final capped = _runMove(
         playerMoveHistory: _successes('fury_cutter', count: 2),
@@ -325,12 +353,16 @@ PsdkBattleMoveHistory _successes(String moveId, {required int count}) {
   ]);
 }
 
-PsdkBattleMoveHistory _history({required List<String> successes}) {
+PsdkBattleMoveHistory _history({
+  List<String>? attempts,
+  required List<String> successes,
+}) {
+  final attemptIds = attempts ?? successes;
   return PsdkBattleMoveHistory(
     attempts: <PsdkBattleMoveHistoryEntry>[
-      for (var i = 0; i < successes.length; i++)
+      for (var i = 0; i < attemptIds.length; i++)
         PsdkBattleMoveHistoryEntry(
-          moveId: successes[i],
+          moveId: attemptIds[i],
           turn: i + 1,
           targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
         ),

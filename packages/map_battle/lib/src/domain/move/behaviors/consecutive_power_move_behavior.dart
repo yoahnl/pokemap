@@ -141,10 +141,10 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
         (context.move.power + 40 * _sameMoveStreak(user, context.move.id))
             .clamp(0, 200)
             .toInt(),
-      _ConsecutivePowerKind.furyCutter =>
-        (context.move.power * (1 << _sameMoveStreak(user, context.move.id)))
-            .clamp(0, 160)
-            .toInt(),
+      _ConsecutivePowerKind.furyCutter => (context.move.power *
+              (1 << _sameSuccessfulAttemptStreak(user, context.move.id)))
+          .clamp(0, 160)
+          .toInt(),
       _ConsecutivePowerKind.round => _allyUsedRoundThisTurn(context)
           ? context.move.power * 2
           : context.move.power,
@@ -191,6 +191,33 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       streak++;
     }
     return streak;
+  }
+
+  int _sameSuccessfulAttemptStreak(PsdkBattleCombatant user, String moveId) {
+    var streak = 0;
+    final attempts = user.moveHistory.attempts;
+    final successes = user.moveHistory.successes;
+    for (var index = attempts.length - 1; index >= 0; index--) {
+      final attempt = attempts[index];
+      if (attempt.moveId != moveId ||
+          !_hasMatchingSuccess(successes: successes, attempt: attempt)) {
+        break;
+      }
+      streak++;
+    }
+    return streak;
+  }
+
+  bool _hasMatchingSuccess({
+    required List<PsdkBattleMoveHistoryEntry> successes,
+    required PsdkBattleMoveHistoryEntry attempt,
+  }) {
+    return successes.any(
+      (success) =>
+          success.moveId == attempt.moveId &&
+          success.turn == attempt.turn &&
+          success.attackOrder == attempt.attackOrder,
+    );
   }
 
   bool _hasDefenseCurlSuccess(PsdkBattleCombatant user) {

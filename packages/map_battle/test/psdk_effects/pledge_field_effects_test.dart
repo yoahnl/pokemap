@@ -100,6 +100,78 @@ void main() {
       expect(effects[1], isA<SeaOfFirePledgeEffect>());
       expect(effects[2], isA<SwampPledgeEffect>());
     });
+
+    test('Rainbow doubles non-flinch secondary effect chances', () {
+      final state = _state(
+        player: _combatant(
+          id: 'player',
+          effects: const PsdkBattleEffectStack.empty().addEffect(
+            RainbowPledgeEffect(scope: BankBattleEffectScope(0)),
+          ),
+        ),
+      );
+
+      final result = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: _rng(genericSeed: 99),
+        user: psdkPlayerSlot,
+        target: psdkOpponentSlot,
+        move: BattleMoveDefinition.fromPsdk(
+          _move(
+            id: 'status_move',
+            effectChance: 50,
+            statuses: <PsdkBattleMoveStatus>[
+              PsdkBattleMoveStatus(
+                status: PsdkBattleMajorStatus.burn,
+                chance: 100,
+              ),
+            ],
+          ),
+        ),
+        turn: 2,
+      );
+
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).majorStatus,
+        PsdkBattleMajorStatus.burn,
+      );
+    });
+
+    test('Rainbow does not double flinch secondary effect chances', () {
+      final state = _state(
+        player: _combatant(
+          id: 'player',
+          effects: const PsdkBattleEffectStack.empty().addEffect(
+            RainbowPledgeEffect(scope: BankBattleEffectScope(0)),
+          ),
+        ),
+      );
+
+      final result = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: _rng(genericSeed: 99),
+        user: psdkPlayerSlot,
+        target: psdkOpponentSlot,
+        move: BattleMoveDefinition.fromPsdk(
+          _move(
+            id: 'flinch_move',
+            effectChance: 50,
+            statuses: <PsdkBattleMoveStatus>[
+              PsdkBattleMoveStatus.volatile(
+                status: PsdkBattleVolatileStatus.flinch,
+                chance: 100,
+              ),
+            ],
+          ),
+        ),
+        turn: 2,
+      );
+
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains('flinch'),
+        isFalse,
+      );
+    });
   });
 }
 
@@ -146,7 +218,11 @@ PsdkBattleCombatantSetup _combatant({
   );
 }
 
-PsdkBattleMoveData _move({required String id}) {
+PsdkBattleMoveData _move({
+  required String id,
+  int? effectChance,
+  List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
+}) {
   return PsdkBattleMoveData(
     id: id,
     dbSymbol: id,
@@ -157,16 +233,18 @@ PsdkBattleMoveData _move({required String id}) {
     accuracy: 100,
     pp: 35,
     priority: 0,
+    effectChance: effectChance,
     battleEngineMethod: 's_basic',
     target: PsdkBattleMoveTarget.adjacentFoe,
+    statuses: statuses,
   );
 }
 
-BattleRngStreams _rng() {
+BattleRngStreams _rng({int genericSeed = 4}) {
   return BattleRngStreams.fromSeeds(
     moveDamageSeed: 1,
     moveCriticalSeed: 2,
     moveAccuracySeed: 3,
-    genericSeed: 4,
+    genericSeed: genericSeed,
   );
 }

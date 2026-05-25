@@ -5954,6 +5954,20 @@ BattleMoveBehaviorResolution _resolveFieldMarker(
   }
 
   final effectId = _partialFieldMarkerMethods[context.move.battleEngineMethod]!;
+  final existingFieldEffect = _firstFieldEffectWithId(prepared.state, effectId);
+  if (effectId == 'wonder_room' && existingFieldEffect != null) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state.updateBattler(
+        existingFieldEffect.owner,
+        (battler) => battler.copyWith(
+          effects: battler.effects.remove(effectId),
+        ),
+      ),
+      rng: prepared.rng,
+      events: prepared.events,
+    );
+  }
+
   return _addEffectToUser(
     context: context,
     state: prepared.state,

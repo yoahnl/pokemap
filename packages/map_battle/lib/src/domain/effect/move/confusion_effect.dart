@@ -31,6 +31,14 @@ final class ConfusionEffect extends BattleEffect {
   }
 
   @override
+  BattleEffect? onBatonPassTransfer(BattleEffectBatonPassContext context) {
+    return ConfusionEffect(
+      scope: BattlerBattleEffectScope(context.target),
+      remainingConfusionTurns: remainingConfusionTurns,
+    );
+  }
+
+  @override
   BattleEffectUserMovePreventionResult? onUserMovePrevention(
     BattleEffectUserMovePreventionContext context,
   ) {

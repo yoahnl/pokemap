@@ -9116,8 +9116,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 456,
-      "partial": 26,
+      "ported": 463,
+      "partial": 19,
       "missing": 0
     },
     "byFamilyAndStatus": {
@@ -9127,8 +9127,8 @@
         "missing": 0
       },
       "move": {
-        "ported": 101,
-        "partial": 14,
+        "ported": 108,
+        "partial": 7,
         "missing": 0
       },
       "item": {
@@ -9388,7 +9388,7 @@
       {
         "effectName": "BatonPass",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 BatonPass.rb",
         "hookFamilies": [
           "switch"
@@ -9585,7 +9585,7 @@
       {
         "effectName": "CantSwitch",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 CantSwitch.rb",
         "hookFamilies": [
           "switch"
@@ -9768,7 +9768,7 @@
       {
         "effectName": "Confusion",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Confusion.rb",
         "hookFamilies": [
           "move_prevention"
@@ -10416,7 +10416,7 @@
       {
         "effectName": "FuryCutter",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 FuryCutter.rb",
         "hookFamilies": []
       },
@@ -11871,7 +11871,7 @@
       {
         "effectName": "Rainbow",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 Rainbow.rb",
         "hookFamilies": [
           "lifecycle"
@@ -12277,7 +12277,7 @@
       {
         "effectName": "SmackDown",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 SmackDown.rb",
         "hookFamilies": [
           "damage_change"
@@ -13225,7 +13225,7 @@
       {
         "effectName": "WonderRoom",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 WonderRoom.rb",
         "hookFamilies": [
           "lifecycle"
