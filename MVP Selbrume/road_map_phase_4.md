@@ -6,9 +6,9 @@ Phase 4 — Authoring Workflows Minimal
 
 Statut : 🔜 Phase courante en exécution
 
-Lot courant : P4-06 — Narrative Validator Authoring Adapter V0
+Lot courant : P4-07 — Minimal Authoring Golden Path Test V0
 
-Prochain lot exact : P4-06 — Narrative Validator Authoring Adapter V0
+Prochain lot exact : P4-07 — Minimal Authoring Golden Path Test V0
 
 Suivi des lots :
 
@@ -18,8 +18,8 @@ Suivi des lots :
 - ✅ P4-03 — Event Source Authoring Draft Operations V0
 - ✅ P4-04 — Outcome / Battle Outcome Authoring Operations V0
 - ✅ P4-05 — Predicate / World Rule Authoring Draft V0
-- 🔜 P4-06 — Narrative Validator Authoring Adapter V0
-- P4-07 — Minimal Authoring Golden Path Test V0
+- ✅ P4-06 — Narrative Validator Authoring Adapter V0
+- 🔜 P4-07 — Minimal Authoring Golden Path Test V0
 - P4-CHECKPOINT-01 — Authoring Workflow Readiness Review
 
 P4-00 : ✅ terminé
@@ -34,7 +34,9 @@ P4-04 : ✅ terminé
 
 P4-05 : ✅ terminé
 
-P4-06 : 🔜 prochain lot exact
+P4-06 : ✅ terminé
+
+P4-07 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -313,7 +315,7 @@ Preuve concrète, pure et testée :
 - aucun widget UI, aucun FactRegistry/WorldRuleRegistry, aucune migration,
   aucun runtime, aucun contenu Selbrume et aucun reward/money/XP créé.
 
-### P4-06 — Narrative Validator Authoring Adapter V0
+### ✅ P4-06 — Narrative Validator Authoring Adapter V0
 
 Objectif :
 Créer un adapter pur qui transforme les diagnostics narratifs existants en
@@ -322,10 +324,28 @@ messages authoring exploitables, sans auto-fix et sans UI premium.
 Résultat attendu :
 Preuve concrète, pure et testée :
 
-- mapping diagnostics P2-09 vers libellés/action hints auteur ;
-- filtrage/sévérité conservant la vérité du validator ;
-- aucune correction automatique ;
-- tests sur diagnostics outcome, predicate, choice runtime unsupported.
+- adapter pur ajouté dans `map_core` :
+  `buildNarrativeAuthoringDiagnosticView`,
+  `buildNarrativeAuthoringDiagnosticViews`,
+  `NarrativeAuthoringDiagnosticView` ;
+- catégories authoring V0 :
+  `scenarioStructure`, `eventSource`, `dialogueReference`,
+  `trainerBattleReference`, `outcomeAuthoring`, `predicateAuthoring`,
+  `runtimeSupport`, `unknown` ;
+- action hints V0 sans auto-fix :
+  `inspectScenario`, `selectValidReference`, `declareOutcome`, `emitOutcome`,
+  `addOutcomeReceiver`, `fixPredicate`, `replaceUnsupportedNode`,
+  `noAutomaticFix` ;
+- diagnostics P2-09 couverts :
+  `declaredOutcomeNeverEmitted`, `emitOutcomeNotDeclared`,
+  `visibilityRuleConditionalMissingPredicate`,
+  `worldRulePredicateEmptyRefId`,
+  `scenarioChoiceNodeRuntimeUnsupported` ;
+- sévérité, path, referencedId et contexte technique conservés ;
+- tests ciblés ajoutés dans
+  `packages/map_core/test/narrative_validator_authoring_adapter_test.dart` ;
+- aucun widget UI, aucun auto-fix, aucun registry persistant, aucune migration,
+  aucun runtime, aucun contenu Selbrume et aucun reward/money/XP créé.
 
 ### P4-07 — Minimal Authoring Golden Path Test V0
 
@@ -388,5 +408,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-06 — Narrative Validator Authoring Adapter V0
+P4-07 — Minimal Authoring Golden Path Test V0
 ```
