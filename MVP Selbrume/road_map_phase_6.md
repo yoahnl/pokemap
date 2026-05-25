@@ -9,12 +9,18 @@ Statut : 🟡 active
 SELBRUME_EXISTING_PROJECT_PATH :
 
 ```text
+/Users/karim/Project/pokemonProject/selbrume
+```
+
+Ancien chemin historique :
+
+```text
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+Lot courant : ✅ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
 
-Prochain lot exact : P6-01 — Existing Selbrume Loadability / Start Map Contract V0
+Prochain lot exact : P6-02 — Selbrume Initial Party / Bag Setup V0
 
 Légende :
 
@@ -32,8 +38,8 @@ premium, un Boot Flow complet ou une quête de parité Pokémon.
 Suivi des lots :
 
 - ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
-- ➡️ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
-- ⏳ P6-02 — Selbrume Initial Party / Bag Setup V0
+- ✅ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
+- ➡️ P6-02 — Selbrume Initial Party / Bag Setup V0
 - ⏳ P6-03 — Selbrume First Narrative Interaction V0
 - ⏳ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 - ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
@@ -44,12 +50,14 @@ Suivi des lots :
 
 P6-00 : ✅ terminé
 
-P6-01 : ➡️ prochain lot exact
+P6-01 : ✅ terminé
+
+P6-02 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-01 — Existing Selbrume Loadability / Start Map Contract V0
+P6-02 — Selbrume Initial Party / Bag Setup V0
 ```
 
 ## Objectif Phase 6
@@ -113,6 +121,20 @@ P6-00 devra auditer ce projet existant, verrouiller un périmètre de golden
 slice court, puis proposer les corrections ou alignements nécessaires. Cette
 roadmap ne demande pas de recréer Selbrume from scratch.
 
+## Changement de chemin actif P6-01
+
+Après P6-00, le projet Selbrume a été intégré directement dans le repo Git.
+
+Chemin actif Phase 6 :
+
+```text
+/Users/karim/Project/pokemonProject/selbrume
+```
+
+L'ancien chemin Desktop reste une information historique du checkpoint bis et
+de l'audit P6-00. Les preuves actives P6-01 et suivantes doivent utiliser le
+dossier repo-local `selbrume/`.
+
 ## Résultat P6-00
 
 Audit réalisé en lecture seule :
@@ -152,6 +174,32 @@ capture item / party / bag initial non authorés dans le projet Selbrume
 validator bêta susceptible de signaler starter/initial party, trainer et capture source
 ```
 
+## Résultat P6-01
+
+Preuve ciblée réalisée sur le projet repo-local :
+
+```text
+selbrume/project.json existe
+loadRuntimeMapBundle charge explicitement la map Selbrume
+loadRuntimeMapBundle charge explicitement la map route 1
+la première map du manifest reste route 1
+le contrat de départ ne dépend donc pas de la première map déclarée
+start map retenue : Selbrume
+spawn retenu : spawn
+position attendue : x=17, y=24
+facing attendu : south
+createNewGameStateFromMap construit un GameState initial depuis Selbrume/spawn
+```
+
+Décision `defaultSpawnId` :
+
+```text
+Selbrume.mapMetadata.defaultSpawnId reste null dans les données existantes.
+P6-01 ne modifie pas les données Selbrume, car le dossier selbrume/ était déjà
+massivement ajouté à l'état Git au Gate 0. Le contrat P6-01 est donc prouvé par
+sélection explicite startMapId=Selbrume et spawnId=spawn dans le test.
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -178,7 +226,9 @@ prochain lot exact confirmé ou ajusté
 aucun lancement de production de contenu massif
 ```
 
-### ➡️ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
+### ✅ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
+
+Statut : terminé.
 
 But :
 
@@ -187,7 +237,13 @@ prouver ou corriger minimalement la charge du projet Selbrume existant et fixer
 le contrat de start map / spawn sans créer de contenu final.
 ```
 
-### ⏳ P6-02 — Selbrume Initial Party / Bag Setup V0
+Preuve :
+
+```text
+packages/map_runtime/test/p6_existing_selbrume_loadability_start_map_contract_test.dart
+```
+
+### ➡️ P6-02 — Selbrume Initial Party / Bag Setup V0
 
 But :
 

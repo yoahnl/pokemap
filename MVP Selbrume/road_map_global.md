@@ -552,9 +552,9 @@ que l'agent génère tout le jeu à sa place.
 
 Pourquoi :
 Selbrume est le scénario de référence qui vérifie la grammaire complète avec un
-cas concret, mais il doit rester un test du produit, pas un contenu fabriqué par
-l’agent dans le repo. La Phase 6 ne part pas de zéro : elle doit utiliser le
-projet existant situé à `/Users/karim/Desktop/selbrume` comme base.
+cas concret, mais il doit rester un test du produit. La Phase 6 ne part pas de
+zéro : elle doit utiliser le projet existant désormais intégré au repo comme
+base active, situé à `/Users/karim/Project/pokemonProject/selbrume`.
 
 Préconditions :
 
