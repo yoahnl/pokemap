@@ -529,9 +529,9 @@ packages/map_runtime/test/p6_existing_selbrume_loadability_start_map_contract_te
 packages/map_runtime/test/p6_selbrume_first_narrative_interaction_test.dart
 ```
 
-### ➡️ P6-05 — Selbrume First Trainer Battle Golden Slice V0
+### ✅ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -539,7 +539,9 @@ But :
 prouver un premier trainer battle Selbrume court avec reward minimal.
 ```
 
-### ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
+### ➡️ P6-06 — Selbrume Save/Load Golden Slice V0
+
+Statut : prochain lot exact.
 
 But :
 
