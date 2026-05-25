@@ -6,15 +6,15 @@ Phase 3 — Runtime / Application / Flame / Disk Validation
 
 Statut : 🔜 En cours
 
-Lot courant : P3-01 — Project Disk Narrative Asset Loading Audit
+Lot courant : P3-02 — ScenarioAsset Runtime Execution Golden Path
 
-Prochain lot exact : P3-01 — Project Disk Narrative Asset Loading Audit
+Prochain lot exact : P3-02 — ScenarioAsset Runtime Execution Golden Path
 
 Suivi des lots :
 
 - ✅ P3-00 — Phase 3 Roadmap Bootstrap / Runtime & Disk Validation Audit
-- 🔜 P3-01 — Project Disk Narrative Asset Loading Audit
-- P3-02 — ScenarioAsset Runtime Execution Golden Path
+- ✅ P3-01 — Project Disk Narrative Asset Loading Audit
+- 🔜 P3-02 — ScenarioAsset Runtime Execution Golden Path
 - P3-03 — Event Source to Scenario Runtime Bridge Validation
 - P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
 - P3-05 — Fact / World Rule Runtime Projection Validation
@@ -24,7 +24,9 @@ Suivi des lots :
 
 P3-00 : ✅ terminé
 
-P3-01 : 🔜 prochain lot exact
+P3-01 : ✅ terminé
+
+P3-02 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 3
 
@@ -153,7 +155,7 @@ P3-01 reste nécessaire avant tout golden path runtime plus ambitieux, car le li
 `projet disque -> assets narratifs disponibles -> runtime narratif prouvé` reste
 le premier gap à fermer.
 
-### P3-01 — Project Disk Narrative Asset Loading Audit
+### ✅ P3-01 — Project Disk Narrative Asset Loading Audit
 
 Objectif :
 Auditer comment un projet disque charge maps, scenarios, dialogues, trainers et
@@ -161,6 +163,35 @@ assets narratifs.
 
 Résultat attendu :
 Frontière claire entre `ProjectManifest`, fichiers disque et runtime loader.
+
+Résultat P3-01 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_01_project_disk_narrative_asset_loading_audit.md` ;
+- chemin disque clarifié :
+  `project.json -> ProjectManifest -> RuntimeMapBundle -> PlayableMapGame` ;
+- `ProjectManifest.scenarios` et `ProjectManifest.trainers` sont embedded dans
+  `project.json` ;
+- `ProjectManifest.dialogues` porte des métadonnées et chemins relatifs vers
+  des fichiers Yarn externes, mais aucun fichier `.yarn` versionné n'a été trouvé ;
+- les maps sont chargées depuis fichiers externes via `ProjectMapEntry.relativePath` ;
+- `RuntimeMapBundle` expose le manifest, la map active, la racine projet et les
+  chemins tilesets résolus ;
+- `PlayableMapGame` lit les scénarios, dialogues et trainers depuis
+  `_bundle.manifest` ;
+- le host jouable charge une `runtime_host_launch_save.json` adjacente au
+  `project.json` si elle existe ;
+- la fixture disque `golden_battle_slice` prouve map + trainer + battle + save,
+  mais ne prouve pas encore un flux narratif disque complet avec scenarios +
+  dialogues ;
+- aucun code modifié ;
+- aucun test lancé, car le lot est documentaire et les tests existants ont été
+  lus seulement comme preuves.
+
+Décision :
+P3-02 reste le prochain lot exact. Il devra prouver un golden path
+`ScenarioAsset` et assumer explicitement qu'une fixture technique narrative
+minimale est encore absente du repo actuel.
 
 ### P3-02 — ScenarioAsset Runtime Execution Golden Path
 
@@ -258,5 +289,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-01 — Project Disk Narrative Asset Loading Audit
+P3-02 — ScenarioAsset Runtime Execution Golden Path
 ```
