@@ -7,6 +7,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
   final normalizedProgression = _normalizePokedexProgression(
     progression: normalizedSaveData.progression,
     party: normalizedSaveData.party,
+    pokemonStorage: normalizedSaveData.pokemonStorage,
   );
   final migratedFlags = normalizedSaveData.progression.storyFlags
       .map((flag) => flag.trim())
@@ -20,6 +21,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     playerFacing: normalizedSaveData.playerFacing,
     playerMovementMode: MovementMode.walk,
     party: normalizedSaveData.party,
+    pokemonStorage: normalizedSaveData.pokemonStorage,
     trainerProfile: normalizedSaveData.trainerProfile,
     bag: normalizedSaveData.bag,
     progression: normalizedProgression,
@@ -40,6 +42,7 @@ SaveData saveDataFromGameState(GameState gameState) {
       storyFlags: mergedProgressionFlags.toList(growable: false),
     ),
     party: gameState.party,
+    pokemonStorage: gameState.pokemonStorage,
   );
 
   return SaveData(
@@ -48,6 +51,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     playerPosition: gameState.playerPosition,
     playerFacing: gameState.playerFacing,
     party: gameState.party,
+    pokemonStorage: gameState.pokemonStorage,
     trainerProfile: gameState.trainerProfile,
     bag: gameState.bag,
     progression: normalizedProgression,
@@ -59,6 +63,7 @@ GameState normalizeLoadedGameState(GameState state) {
   final normalizedProgression = _normalizePokedexProgression(
     progression: state.progression,
     party: state.party,
+    pokemonStorage: state.pokemonStorage,
   );
   if (state.storyFlags.activeFlags.isNotEmpty ||
       normalizedProgression.storyFlags.isEmpty) {
@@ -105,6 +110,7 @@ GameState markSpeciesSeenInGameState(
       ],
     ),
     party: state.party,
+    pokemonStorage: state.pokemonStorage,
   );
 
   return state.copyWith(
@@ -115,6 +121,7 @@ GameState markSpeciesSeenInGameState(
 PlayerProgression _normalizePokedexProgression({
   required PlayerProgression progression,
   required PlayerParty party,
+  required PokemonStorage pokemonStorage,
 }) {
   // Invariant métier lot 12 :
   // - une espèce possédée via la vraie party du joueur est "caught" ;
@@ -124,7 +131,12 @@ PlayerProgression _normalizePokedexProgression({
   final ownedSpeciesIds = party.members
       .map((member) => member.speciesId.trim())
       .where((speciesId) => speciesId.isNotEmpty)
-      .toList(growable: false);
+      .toList(growable: true)
+    ..addAll(
+      pokemonStorage.storedPokemon
+          .map((member) => member.speciesId.trim())
+          .where((speciesId) => speciesId.isNotEmpty),
+    );
 
   return progression.copyWith(
     caughtSpeciesIds: <String>[

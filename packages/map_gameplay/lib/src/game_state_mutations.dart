@@ -1,5 +1,49 @@
 import 'package:map_core/map_core.dart';
 
+enum CaptureDestinationKind {
+  none,
+  party,
+  storage,
+}
+
+class CaptureDestinationResult {
+  const CaptureDestinationResult({
+    required this.state,
+    required this.destination,
+    this.partyIndex,
+    this.storageIndex,
+  });
+
+  const CaptureDestinationResult.none(GameState state)
+      : this(
+          state: state,
+          destination: CaptureDestinationKind.none,
+        );
+
+  const CaptureDestinationResult.party({
+    required GameState state,
+    required int partyIndex,
+  }) : this(
+          state: state,
+          destination: CaptureDestinationKind.party,
+          partyIndex: partyIndex,
+        );
+
+  const CaptureDestinationResult.storage({
+    required GameState state,
+    required int storageIndex,
+  }) : this(
+          state: state,
+          destination: CaptureDestinationKind.storage,
+          storageIndex: storageIndex,
+        );
+
+  final GameState state;
+  final CaptureDestinationKind destination;
+  final int? partyIndex;
+  final int? storageIndex;
+}
+
 /// Mutations pures de l'état de partie.
 ///
 /// Chaque fonction prend un [GameState] et retourne un nouveau [GameState]
@@ -374,6 +418,59 @@ class GameStateMutations {
 
     return nextState.copyWith(
       party: nextState.party.copyWith(members: nextMembers),
+    );
+  }
+
+  /// Applique une capture réussie vers la party ou le storage minimal.
+  ///
+  /// Le storage est un simple état persistant de Pokémon capturés hors party :
+  /// aucune UI PC, aucun nom de box et aucune règle de gestion avancée ne sont
+  /// ouverts ici.
+  CaptureDestinationResult applyCapturedPokemon(
+    GameState state, {
+    required PlayerPokemon pokemon,
+    int maxPartySize = 6,
+  }) {
+    final normalizedSpeciesId = pokemon.speciesId.trim();
+    if (normalizedSpeciesId.isEmpty || maxPartySize <= 0) {
+      return CaptureDestinationResult.none(state);
+    }
+
+    final normalizedPokemon = pokemon.copyWith(
+      speciesId: normalizedSpeciesId,
+    );
+
+    if (state.party.members.length < maxPartySize) {
+      final partyIndex = state.party.members.length;
+      final nextMembers = [...state.party.members, normalizedPokemon];
+      final nextState = normalizeLoadedGameState(
+        state.copyWith(
+          party: state.party.copyWith(members: nextMembers),
+        ),
+      );
+
+      return CaptureDestinationResult.party(
+        state: nextState,
+        partyIndex: partyIndex,
+      );
+    }
+
+    final storageIndex = state.pokemonStorage.storedPokemon.length;
+    final nextStorage = [
+      ...state.pokemonStorage.storedPokemon,
+      normalizedPokemon,
+    ];
+    final nextState = normalizeLoadedGameState(
+      state.copyWith(
+        pokemonStorage: state.pokemonStorage.copyWith(
+          storedPokemon: nextStorage,
+        ),
+      ),
+    );
+
+    return CaptureDestinationResult.storage(
+      state: nextState,
+      storageIndex: storageIndex,
     );
   }
 

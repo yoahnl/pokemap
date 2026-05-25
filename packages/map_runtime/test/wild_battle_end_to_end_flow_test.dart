@@ -413,7 +413,8 @@ void main() {
       expect(snapshot.progression.caughtSpeciesIds, contains('sparkitten'));
     });
 
-    test('wild battle BAG capture does not work when party is full', () async {
+    test('wild battle BAG capture remains available when party is full',
+        () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
       final world = GameplayWorldState.fromMap(
@@ -496,7 +497,7 @@ void main() {
         request: request,
       );
 
-      expect(setup.allowCapture, isFalse);
+      expect(setup.allowCapture, isTrue);
 
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
@@ -514,9 +515,9 @@ void main() {
           overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(
           commandPanel.currentBagEntryLabels, const <String>['Poké Ball x2']);
-      expect(commandPanel.currentBagStatusLabels, const <String>['Party full']);
-      expect(overlay.validateSelectedChoice(), isFalse);
-      expect(pickedChoice, isNull);
+      expect(commandPanel.currentBagStatusLabels, const <String>['OK']);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(pickedChoice, isA<PlayerBattleChoiceCapture>());
     });
 
     test('battle BAG potion use persists to PlayableMapGame state', () async {

@@ -164,12 +164,12 @@ class RuntimeBattleSetupMapper {
       // On garde donc la décision de "peut-on capturer ?" ici, au point où le
       // runtime possède encore les vraies données save/projet nécessaires.
       //
-      // Lot 14 reste volontairement borné :
+      // Lot 14/P5-06 reste volontairement borné :
       // - combat sauvage uniquement ;
-      // - aucune capture si la party est pleine (pas de PC/boxes ici) ;
+      // - capture autorisée si la party est pleine, car P5-06 fournit un
+      //   storage minimal persistant ;
       // - aucune capture sans Poké Ball réelle dans le bag du joueur.
       allowCapture: request is WildBattleStartRequest &&
-          gameState.party.members.length < 6 &&
           _playerHasAtLeastOnePokeBall(gameState.bag),
     );
   }

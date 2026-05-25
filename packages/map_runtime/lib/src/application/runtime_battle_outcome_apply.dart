@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
 import 'story_flags_manager.dart';
@@ -191,35 +192,23 @@ GameState applyRuntimeBattleOutcomeToGameState({
       );
     }
 
-    // Garde-fou lot 13/14 :
-    // le moteur ne doit normalement jamais proposer Capture si la party est
-    // pleine ou sans Poké Ball, mais on revalide ici pour qu'un call site forcé
-    // ne fasse jamais "disparaître" un Pokémon capturé faute de boîte/PC ou
-    // contourne le coût réel de capture introduit par le lot 14.
-    if (stateWithPlayerHp.party.members.length >= 6) {
-      throw StateError(
-        'Impossible d’ajouter un Pokémon capturé : la party du joueur est pleine.',
-      );
-    }
-
     final bagAfterConsumption =
         _consumeOnePokeBallOrThrow(stateWithPlayerHp.bag);
     final capturedPokemon = _buildCapturedWildPlayerPokemon(
       enemy: outcome.finalState.enemy,
     );
-    final nextMembers = List<PlayerPokemon>.of(
-      stateWithPlayerHp.party.members,
-      growable: true,
-    )..add(capturedPokemon);
 
-    // Lot 12 garantit déjà "party -> caught -> seen". On réutilise donc cette
-    // normalisation partagée au lieu d'introduire un deuxième pipeline Pokédex.
-    return normalizeLoadedGameState(
+    // P5-06 garde le write-back capture honnête quand la party est pleine :
+    // l'opération pure choisit party ou storage minimal persistant, puis la
+    // normalisation partagée synchronise caught/seen.
+    final captureResult = const GameStateMutations().applyCapturedPokemon(
       stateWithPlayerHp.copyWith(
-        party: stateWithPlayerHp.party.copyWith(members: nextMembers),
         bag: bagAfterConsumption,
       ),
+      pokemon: capturedPokemon,
     );
+
+    return captureResult.state;
   }
 
   if (outcome.isVictory && request is TrainerBattleStartRequest) {

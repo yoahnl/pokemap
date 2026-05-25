@@ -85,6 +85,7 @@ class GameState with _$GameState {
 
     /// Équipe du joueur.
     @Default(PlayerParty()) PlayerParty party,
+    @Default(PokemonStorage()) PokemonStorage pokemonStorage,
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
     @Default(Bag()) Bag bag,
 

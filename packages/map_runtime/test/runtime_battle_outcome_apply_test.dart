@@ -407,7 +407,8 @@ void main() {
       );
     });
 
-    test('captured outcome is rejected when the party is already full', () {
+    test('captured wild battle stores the pokemon when party is already full',
+        () {
       final fullPartyState = _baseState().copyWith(
         party: PlayerParty(
           members: <PlayerPokemon>[
@@ -448,24 +449,39 @@ void main() {
         ),
       );
 
-      expect(
-        () => applyRuntimeBattleOutcomeToGameState(
-          gameState: fullPartyState,
-          context: RuntimeActiveBattleContext(
-            request: _wildRequest(),
-            playerPartyIndex: 0,
-          ),
-          outcome: _finishedOutcome(
-            type: BattleOutcomeType.captured,
-            playerCurrentHp: 19,
-            enemySpeciesId: 'wildmon',
-            enemyLevel: 12,
-            enemyCurrentHp: 7,
-            enemyAbilityId: 'intimidate',
-            enemyMoveIds: const <String>['scratch'],
-          ),
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: fullPartyState,
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
         ),
-        throwsA(isA<StateError>()),
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.captured,
+          playerCurrentHp: 19,
+          enemySpeciesId: 'wildmon',
+          enemyLevel: 12,
+          enemyCurrentHp: 7,
+          enemyAbilityId: 'intimidate',
+          enemyMoveIds: const <String>['scratch'],
+        ),
+      );
+
+      expect(updatedState.party.members, hasLength(6));
+      expect(updatedState.pokemonStorage.storedPokemon, hasLength(1));
+      expect(
+        updatedState.pokemonStorage.storedPokemon.single.speciesId,
+        'wildmon',
+      );
+      expect(updatedState.progression.caughtSpeciesIds, contains('wildmon'));
+      expect(updatedState.progression.seenSpeciesIds, contains('wildmon'));
+      expect(
+        updatedState.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ],
+        ),
       );
     });
 

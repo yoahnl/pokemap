@@ -192,6 +192,25 @@ class PlayerParty with _$PlayerParty {
 }
 
 @freezed
+class PokemonStorage with _$PokemonStorage {
+  const PokemonStorage._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory PokemonStorage({
+    @Default([]) List<PlayerPokemon> storedPokemon,
+  }) = _PokemonStorage;
+
+  factory PokemonStorage.fromJson(Map<String, dynamic> json) =>
+      _$PokemonStorageFromJson(json);
+
+  PokemonStorage normalized() => copyWith(
+        storedPokemon: storedPokemon
+            .map((member) => member.normalized())
+            .toList(growable: false),
+      );
+}
+
+@freezed
 class PlayerProgression with _$PlayerProgression {
   const PlayerProgression._();
 
@@ -348,6 +367,7 @@ class SaveData with _$SaveData {
     @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
     @Default(EntityFacing.south) EntityFacing playerFacing,
     @Default(PlayerParty()) PlayerParty party,
+    @Default(PokemonStorage()) PokemonStorage pokemonStorage,
     @Default(TrainerProfile(name: 'Player')) TrainerProfile trainerProfile,
     @Default(Bag()) Bag bag,
     @Default(PlayerProgression()) PlayerProgression progression,
@@ -369,6 +389,7 @@ class SaveData with _$SaveData {
       saveId: normalizedSaveId,
       currentMapId: normalizedCurrentMapId,
       party: party.normalized(),
+      pokemonStorage: pokemonStorage.normalized(),
       trainerProfile: trainerProfile.normalized(),
       bag: bag.normalized(),
       progression: progression.normalized(),

@@ -955,6 +955,7 @@ mixin _$GameState {
 
   /// Équipe du joueur.
   PlayerParty get party => throw _privateConstructorUsedError;
+  PokemonStorage get pokemonStorage => throw _privateConstructorUsedError;
   TrainerProfile get trainerProfile => throw _privateConstructorUsedError;
   Bag get bag => throw _privateConstructorUsedError;
 
@@ -995,6 +996,7 @@ abstract class $GameStateCopyWith<$Res> {
       EntityFacing playerFacing,
       MovementMode playerMovementMode,
       PlayerParty party,
+      PokemonStorage pokemonStorage,
       TrainerProfile trainerProfile,
       Bag bag,
       PlayerProgression progression,
@@ -1005,6 +1007,7 @@ abstract class $GameStateCopyWith<$Res> {
 
   $GridPosCopyWith<$Res> get playerPosition;
   $PlayerPartyCopyWith<$Res> get party;
+  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   $BagCopyWith<$Res> get bag;
   $PlayerProgressionCopyWith<$Res> get progression;
@@ -1033,6 +1036,7 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
     Object? playerFacing = null,
     Object? playerMovementMode = null,
     Object? party = null,
+    Object? pokemonStorage = null,
     Object? trainerProfile = null,
     Object? bag = null,
     Object? progression = null,
@@ -1066,6 +1070,10 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
               as PlayerParty,
+      pokemonStorage: null == pokemonStorage
+          ? _value.pokemonStorage
+          : pokemonStorage // ignore: cast_nullable_to_non_nullable
+              as PokemonStorage,
       trainerProfile: null == trainerProfile
           ? _value.trainerProfile
           : trainerProfile // ignore: cast_nullable_to_non_nullable
@@ -1114,6 +1122,16 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
   $PlayerPartyCopyWith<$Res> get party {
     return $PlayerPartyCopyWith<$Res>(_value.party, (value) {
       return _then(_value.copyWith(party: value) as $Val);
+    });
+  }
+
+  /// Create a copy of GameState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PokemonStorageCopyWith<$Res> get pokemonStorage {
+    return $PokemonStorageCopyWith<$Res>(_value.pokemonStorage, (value) {
+      return _then(_value.copyWith(pokemonStorage: value) as $Val);
     });
   }
 
@@ -1183,6 +1201,7 @@ abstract class _$$GameStateImplCopyWith<$Res>
       EntityFacing playerFacing,
       MovementMode playerMovementMode,
       PlayerParty party,
+      PokemonStorage pokemonStorage,
       TrainerProfile trainerProfile,
       Bag bag,
       PlayerProgression progression,
@@ -1195,6 +1214,8 @@ abstract class _$$GameStateImplCopyWith<$Res>
   $GridPosCopyWith<$Res> get playerPosition;
   @override
   $PlayerPartyCopyWith<$Res> get party;
+  @override
+  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   @override
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   @override
@@ -1226,6 +1247,7 @@ class __$$GameStateImplCopyWithImpl<$Res>
     Object? playerFacing = null,
     Object? playerMovementMode = null,
     Object? party = null,
+    Object? pokemonStorage = null,
     Object? trainerProfile = null,
     Object? bag = null,
     Object? progression = null,
@@ -1259,6 +1281,10 @@ class __$$GameStateImplCopyWithImpl<$Res>
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
               as PlayerParty,
+      pokemonStorage: null == pokemonStorage
+          ? _value.pokemonStorage
+          : pokemonStorage // ignore: cast_nullable_to_non_nullable
+              as PokemonStorage,
       trainerProfile: null == trainerProfile
           ? _value.trainerProfile
           : trainerProfile // ignore: cast_nullable_to_non_nullable
@@ -1302,6 +1328,7 @@ class _$GameStateImpl implements _GameState {
       this.playerFacing = EntityFacing.south,
       this.playerMovementMode = MovementMode.walk,
       this.party = const PlayerParty(),
+      this.pokemonStorage = const PokemonStorage(),
       this.trainerProfile = const TrainerProfile(name: 'Player'),
       this.bag = const Bag(),
       this.progression = const PlayerProgression(),
@@ -1343,6 +1370,9 @@ class _$GameStateImpl implements _GameState {
   @override
   @JsonKey()
   final PlayerParty party;
+  @override
+  @JsonKey()
+  final PokemonStorage pokemonStorage;
   @override
   @JsonKey()
   final TrainerProfile trainerProfile;
@@ -1391,7 +1421,7 @@ class _$GameStateImpl implements _GameState {
 
   @override
   String toString() {
-    return 'GameState(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, scriptVariables: $scriptVariables, storyFlags: $storyFlags, consumedEventIds: $consumedEventIds, metadata: $metadata)';
+    return 'GameState(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, scriptVariables: $scriptVariables, storyFlags: $storyFlags, consumedEventIds: $consumedEventIds, metadata: $metadata)';
   }
 
   @override
@@ -1409,6 +1439,8 @@ class _$GameStateImpl implements _GameState {
             (identical(other.playerMovementMode, playerMovementMode) ||
                 other.playerMovementMode == playerMovementMode) &&
             (identical(other.party, party) || other.party == party) &&
+            (identical(other.pokemonStorage, pokemonStorage) ||
+                other.pokemonStorage == pokemonStorage) &&
             (identical(other.trainerProfile, trainerProfile) ||
                 other.trainerProfile == trainerProfile) &&
             (identical(other.bag, bag) || other.bag == bag) &&
@@ -1433,6 +1465,7 @@ class _$GameStateImpl implements _GameState {
       playerFacing,
       playerMovementMode,
       party,
+      pokemonStorage,
       trainerProfile,
       bag,
       progression,
@@ -1465,6 +1498,7 @@ abstract class _GameState implements GameState {
       final EntityFacing playerFacing,
       final MovementMode playerMovementMode,
       final PlayerParty party,
+      final PokemonStorage pokemonStorage,
       final TrainerProfile trainerProfile,
       final Bag bag,
       final PlayerProgression progression,
@@ -1499,6 +1533,8 @@ abstract class _GameState implements GameState {
   /// Équipe du joueur.
   @override
   PlayerParty get party;
+  @override
+  PokemonStorage get pokemonStorage;
   @override
   TrainerProfile get trainerProfile;
   @override

@@ -633,7 +633,8 @@ void main() {
       );
     });
 
-    test('disables capture in wild battles when the party is already full',
+    test(
+        'keeps capture enabled in wild battles when full party can use storage',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
@@ -677,7 +678,7 @@ void main() {
       );
 
       expect(setup.isTrainerBattle, isFalse);
-      expect(setup.allowCapture, isFalse);
+      expect(setup.allowCapture, isTrue);
     });
 
     test(

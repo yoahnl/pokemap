@@ -880,6 +880,170 @@ abstract class _PlayerParty extends PlayerParty {
       throw _privateConstructorUsedError;
 }
 
+PokemonStorage _$PokemonStorageFromJson(Map<String, dynamic> json) {
+  return _PokemonStorage.fromJson(json);
+}
+
+/// @nodoc
+mixin _$PokemonStorage {
+  List<PlayerPokemon> get storedPokemon => throw _privateConstructorUsedError;
+
+  /// Serializes this PokemonStorage to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of PokemonStorage
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $PokemonStorageCopyWith<PokemonStorage> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $PokemonStorageCopyWith<$Res> {
+  factory $PokemonStorageCopyWith(
+          PokemonStorage value, $Res Function(PokemonStorage) then) =
+      _$PokemonStorageCopyWithImpl<$Res, PokemonStorage>;
+  @useResult
+  $Res call({List<PlayerPokemon> storedPokemon});
+}
+
+/// @nodoc
+class _$PokemonStorageCopyWithImpl<$Res, $Val extends PokemonStorage>
+    implements $PokemonStorageCopyWith<$Res> {
+  _$PokemonStorageCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of PokemonStorage
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? storedPokemon = null,
+  }) {
+    return _then(_value.copyWith(
+      storedPokemon: null == storedPokemon
+          ? _value.storedPokemon
+          : storedPokemon // ignore: cast_nullable_to_non_nullable
+              as List<PlayerPokemon>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$PokemonStorageImplCopyWith<$Res>
+    implements $PokemonStorageCopyWith<$Res> {
+  factory _$$PokemonStorageImplCopyWith(_$PokemonStorageImpl value,
+          $Res Function(_$PokemonStorageImpl) then) =
+      __$$PokemonStorageImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({List<PlayerPokemon> storedPokemon});
+}
+
+/// @nodoc
+class __$$PokemonStorageImplCopyWithImpl<$Res>
+    extends _$PokemonStorageCopyWithImpl<$Res, _$PokemonStorageImpl>
+    implements _$$PokemonStorageImplCopyWith<$Res> {
+  __$$PokemonStorageImplCopyWithImpl(
+      _$PokemonStorageImpl _value, $Res Function(_$PokemonStorageImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of PokemonStorage
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? storedPokemon = null,
+  }) {
+    return _then(_$PokemonStorageImpl(
+      storedPokemon: null == storedPokemon
+          ? _value._storedPokemon
+          : storedPokemon // ignore: cast_nullable_to_non_nullable
+              as List<PlayerPokemon>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$PokemonStorageImpl extends _PokemonStorage {
+  const _$PokemonStorageImpl(
+      {final List<PlayerPokemon> storedPokemon = const []})
+      : _storedPokemon = storedPokemon,
+        super._();
+
+  factory _$PokemonStorageImpl.fromJson(Map<String, dynamic> json) =>
+      _$$PokemonStorageImplFromJson(json);
+
+  final List<PlayerPokemon> _storedPokemon;
+  @override
+  @JsonKey()
+  List<PlayerPokemon> get storedPokemon {
+    if (_storedPokemon is EqualUnmodifiableListView) return _storedPokemon;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_storedPokemon);
+  }
+
+  @override
+  String toString() {
+    return 'PokemonStorage(storedPokemon: $storedPokemon)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$PokemonStorageImpl &&
+            const DeepCollectionEquality()
+                .equals(other._storedPokemon, _storedPokemon));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, const DeepCollectionEquality().hash(_storedPokemon));
+
+  /// Create a copy of PokemonStorage
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$PokemonStorageImplCopyWith<_$PokemonStorageImpl> get copyWith =>
+      __$$PokemonStorageImplCopyWithImpl<_$PokemonStorageImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$PokemonStorageImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _PokemonStorage extends PokemonStorage {
+  const factory _PokemonStorage({final List<PlayerPokemon> storedPokemon}) =
+      _$PokemonStorageImpl;
+  const _PokemonStorage._() : super._();
+
+  factory _PokemonStorage.fromJson(Map<String, dynamic> json) =
+      _$PokemonStorageImpl.fromJson;
+
+  @override
+  List<PlayerPokemon> get storedPokemon;
+
+  /// Create a copy of PokemonStorage
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$PokemonStorageImplCopyWith<_$PokemonStorageImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 PlayerProgression _$PlayerProgressionFromJson(Map<String, dynamic> json) {
   return _PlayerProgression.fromJson(json);
 }
@@ -1777,6 +1941,7 @@ mixin _$SaveData {
   GridPos get playerPosition => throw _privateConstructorUsedError;
   EntityFacing get playerFacing => throw _privateConstructorUsedError;
   PlayerParty get party => throw _privateConstructorUsedError;
+  PokemonStorage get pokemonStorage => throw _privateConstructorUsedError;
   TrainerProfile get trainerProfile => throw _privateConstructorUsedError;
   Bag get bag => throw _privateConstructorUsedError;
   PlayerProgression get progression => throw _privateConstructorUsedError;
@@ -1803,6 +1968,7 @@ abstract class $SaveDataCopyWith<$Res> {
       GridPos playerPosition,
       EntityFacing playerFacing,
       PlayerParty party,
+      PokemonStorage pokemonStorage,
       TrainerProfile trainerProfile,
       Bag bag,
       PlayerProgression progression,
@@ -1810,6 +1976,7 @@ abstract class $SaveDataCopyWith<$Res> {
 
   $GridPosCopyWith<$Res> get playerPosition;
   $PlayerPartyCopyWith<$Res> get party;
+  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   $BagCopyWith<$Res> get bag;
   $PlayerProgressionCopyWith<$Res> get progression;
@@ -1835,6 +2002,7 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
     Object? playerPosition = null,
     Object? playerFacing = null,
     Object? party = null,
+    Object? pokemonStorage = null,
     Object? trainerProfile = null,
     Object? bag = null,
     Object? progression = null,
@@ -1861,6 +2029,10 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
               as PlayerParty,
+      pokemonStorage: null == pokemonStorage
+          ? _value.pokemonStorage
+          : pokemonStorage // ignore: cast_nullable_to_non_nullable
+              as PokemonStorage,
       trainerProfile: null == trainerProfile
           ? _value.trainerProfile
           : trainerProfile // ignore: cast_nullable_to_non_nullable
@@ -1897,6 +2069,16 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
   $PlayerPartyCopyWith<$Res> get party {
     return $PlayerPartyCopyWith<$Res>(_value.party, (value) {
       return _then(_value.copyWith(party: value) as $Val);
+    });
+  }
+
+  /// Create a copy of SaveData
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $PokemonStorageCopyWith<$Res> get pokemonStorage {
+    return $PokemonStorageCopyWith<$Res>(_value.pokemonStorage, (value) {
+      return _then(_value.copyWith(pokemonStorage: value) as $Val);
     });
   }
 
@@ -1945,6 +2127,7 @@ abstract class _$$SaveDataImplCopyWith<$Res>
       GridPos playerPosition,
       EntityFacing playerFacing,
       PlayerParty party,
+      PokemonStorage pokemonStorage,
       TrainerProfile trainerProfile,
       Bag bag,
       PlayerProgression progression,
@@ -1954,6 +2137,8 @@ abstract class _$$SaveDataImplCopyWith<$Res>
   $GridPosCopyWith<$Res> get playerPosition;
   @override
   $PlayerPartyCopyWith<$Res> get party;
+  @override
+  $PokemonStorageCopyWith<$Res> get pokemonStorage;
   @override
   $TrainerProfileCopyWith<$Res> get trainerProfile;
   @override
@@ -1980,6 +2165,7 @@ class __$$SaveDataImplCopyWithImpl<$Res>
     Object? playerPosition = null,
     Object? playerFacing = null,
     Object? party = null,
+    Object? pokemonStorage = null,
     Object? trainerProfile = null,
     Object? bag = null,
     Object? progression = null,
@@ -2006,6 +2192,10 @@ class __$$SaveDataImplCopyWithImpl<$Res>
           ? _value.party
           : party // ignore: cast_nullable_to_non_nullable
               as PlayerParty,
+      pokemonStorage: null == pokemonStorage
+          ? _value.pokemonStorage
+          : pokemonStorage // ignore: cast_nullable_to_non_nullable
+              as PokemonStorage,
       trainerProfile: null == trainerProfile
           ? _value.trainerProfile
           : trainerProfile // ignore: cast_nullable_to_non_nullable
@@ -2036,6 +2226,7 @@ class _$SaveDataImpl extends _SaveData {
       this.playerPosition = const GridPos(x: 0, y: 0),
       this.playerFacing = EntityFacing.south,
       this.party = const PlayerParty(),
+      this.pokemonStorage = const PokemonStorage(),
       this.trainerProfile = const TrainerProfile(name: 'Player'),
       this.bag = const Bag(),
       this.progression = const PlayerProgression(),
@@ -2062,6 +2253,9 @@ class _$SaveDataImpl extends _SaveData {
   final PlayerParty party;
   @override
   @JsonKey()
+  final PokemonStorage pokemonStorage;
+  @override
+  @JsonKey()
   final TrainerProfile trainerProfile;
   @override
   @JsonKey()
@@ -2080,7 +2274,7 @@ class _$SaveDataImpl extends _SaveData {
 
   @override
   String toString() {
-    return 'SaveData(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, properties: $properties)';
+    return 'SaveData(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, properties: $properties)';
   }
 
   @override
@@ -2096,6 +2290,8 @@ class _$SaveDataImpl extends _SaveData {
             (identical(other.playerFacing, playerFacing) ||
                 other.playerFacing == playerFacing) &&
             (identical(other.party, party) || other.party == party) &&
+            (identical(other.pokemonStorage, pokemonStorage) ||
+                other.pokemonStorage == pokemonStorage) &&
             (identical(other.trainerProfile, trainerProfile) ||
                 other.trainerProfile == trainerProfile) &&
             (identical(other.bag, bag) || other.bag == bag) &&
@@ -2114,6 +2310,7 @@ class _$SaveDataImpl extends _SaveData {
       playerPosition,
       playerFacing,
       party,
+      pokemonStorage,
       trainerProfile,
       bag,
       progression,
@@ -2142,6 +2339,7 @@ abstract class _SaveData extends SaveData {
       final GridPos playerPosition,
       final EntityFacing playerFacing,
       final PlayerParty party,
+      final PokemonStorage pokemonStorage,
       final TrainerProfile trainerProfile,
       final Bag bag,
       final PlayerProgression progression,
@@ -2161,6 +2359,8 @@ abstract class _SaveData extends SaveData {
   EntityFacing get playerFacing;
   @override
   PlayerParty get party;
+  @override
+  PokemonStorage get pokemonStorage;
   @override
   TrainerProfile get trainerProfile;
   @override

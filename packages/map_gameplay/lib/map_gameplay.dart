@@ -60,6 +60,7 @@ export 'src/los_detection.dart' show checkLineOfSight;
 export 'src/script_condition_evaluator.dart'
     show ScriptConditionEvaluator, ScriptEvaluationContext;
 export 'src/event_page_resolver.dart' show EventPageResolver;
-export 'src/game_state_mutations.dart' show GameStateMutations;
+export 'src/game_state_mutations.dart'
+    show CaptureDestinationKind, CaptureDestinationResult, GameStateMutations;
 export 'src/new_game_state_builder.dart'
     show createNewGameState, createNewGameStateFromMap;

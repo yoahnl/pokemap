@@ -134,6 +134,46 @@ void main() {
         containsAll(<String>['bulbasaur', 'charmander', 'pikachu']),
       );
     });
+
+    test('syncs stored species into caught and seen for persistence', () {
+      const state = GameState(
+        saveId: 'save_storage_seen_caught',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'bulbasaur',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+            ),
+          ],
+        ),
+        pokemonStorage: PokemonStorage(
+          storedPokemon: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'stored_pidgey',
+              natureId: 'hardy',
+              abilityId: 'keen-eye',
+            ),
+          ],
+        ),
+      );
+
+      final save = saveDataFromGameState(state);
+      final reloaded = normalizeLoadedGameState(gameStateFromSaveData(save));
+
+      expect(
+          save.pokemonStorage.storedPokemon.single.speciesId, 'stored_pidgey');
+      expect(reloaded.pokemonStorage.storedPokemon.single.speciesId,
+          'stored_pidgey');
+      expect(
+        reloaded.progression.caughtSpeciesIds,
+        containsAll(<String>['bulbasaur', 'stored_pidgey']),
+      );
+      expect(
+        reloaded.progression.seenSpeciesIds,
+        containsAll(<String>['bulbasaur', 'stored_pidgey']),
+      );
+    });
   });
 
   group('normalizeLoadedGameState', () {

@@ -162,6 +162,38 @@ void main() {
     });
   });
 
+  group('PokemonStorage', () {
+    test('serialization round-trip', () {
+      const storage = PokemonStorage(
+        storedPokemon: [
+          PlayerPokemon(
+            speciesId: 'stored_lapras',
+            natureId: 'modest',
+            abilityId: 'water-absorb',
+            knownMoveIds: ['surf'],
+          ),
+          PlayerPokemon(
+            speciesId: 'stored_pikachu',
+            natureId: 'timid',
+            abilityId: 'static',
+          ),
+        ],
+      );
+
+      final json = storage.toJson();
+      final restored = PokemonStorage.fromJson(json);
+
+      expect(restored.storedPokemon.length, 2);
+      expect(restored.storedPokemon.first.speciesId, 'stored_lapras');
+    });
+
+    test('default is empty storage', () {
+      const storage = PokemonStorage();
+
+      expect(storage.storedPokemon, isEmpty);
+    });
+  });
+
   group('PlayerProgression', () {
     test('serialization round-trip', () {
       const progression = PlayerProgression(
