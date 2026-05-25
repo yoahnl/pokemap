@@ -6,17 +6,17 @@ Phase 4 — Authoring Workflows Minimal
 
 Statut : 🔜 Phase courante en exécution
 
-Lot courant : P4-03 — Event Source Authoring Draft Operations V0
+Lot courant : P4-04 — Outcome / Battle Outcome Authoring Operations V0
 
-Prochain lot exact : P4-03 — Event Source Authoring Draft Operations V0
+Prochain lot exact : P4-04 — Outcome / Battle Outcome Authoring Operations V0
 
 Suivi des lots :
 
 - ✅ P4-00 — Phase 4 Roadmap Recalibration / Authoring Workflow Audit
 - ✅ P4-01 — Narrative Reference Picker Coverage & Missing Read Models V0
 - ✅ P4-02 — Scenario Authoring Draft Model V0
-- 🔜 P4-03 — Event Source Authoring Draft Operations V0
-- P4-04 — Outcome / Battle Outcome Authoring Operations V0
+- ✅ P4-03 — Event Source Authoring Draft Operations V0
+- 🔜 P4-04 — Outcome / Battle Outcome Authoring Operations V0
 - P4-05 — Predicate / World Rule Authoring Draft V0
 - P4-06 — Narrative Validator Authoring Adapter V0
 - P4-07 — Minimal Authoring Golden Path Test V0
@@ -28,7 +28,9 @@ P4-01 : ✅ terminé
 
 P4-02 : ✅ terminé
 
-P4-03 : 🔜 prochain lot exact
+P4-03 : ✅ terminé
+
+P4-04 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 4
 
@@ -210,7 +212,7 @@ Résultat P4-02 :
 - aucun widget UI, aucun registry persistant, aucune migration, aucun runtime,
   aucun contenu Selbrume et aucun reward/money/XP créé.
 
-### 🔜 P4-03 — Event Source Authoring Draft Operations V0
+### ✅ P4-03 — Event Source Authoring Draft Operations V0
 
 Objectif :
 Rendre authorables les sources `mapEnter`, `triggerEnter`, `entityInteract` et
@@ -225,7 +227,29 @@ Preuve concrète, pure et testée :
 - cas négatifs pour éviter les faux déclenchements ;
 - pas d'EventRegistry.
 
-### P4-04 — Outcome / Battle Outcome Authoring Operations V0
+Résultat P4-03 :
+
+- rapport créé :
+  `reports/roadmap/phase_4/p4_03_event_source_authoring_draft_operations.md` ;
+- opérations authoring pures ajoutées dans `map_core` :
+  `createNarrativeScenarioAuthoringSourceDraftFromEventSourceOption`,
+  `narrativeEventSourceIdForAuthoringSourceDraft`,
+  `findNarrativeEventSourcePickerOptionForAuthoringSourceDraft`,
+  `validateNarrativeScenarioAuthoringSourceDraftAgainstEventSourceOptions`,
+  `replaceNarrativeScenarioAuthoringDraftSource` ;
+- diagnostics Event Source V0 ajoutés :
+  `missingSourceReference`, `sourceOptionNotFound`,
+  `unsupportedEventSourceKind` ;
+- conversion depuis `NarrativeEventSourcePickerOption` prouvée pour
+  `mapEnter`, `triggerEnter`, `entityInteract`, `outcomeReceived` ;
+- compilation `draft -> ScenarioAsset` prouvée pour les quatre sources ;
+- tests ciblés ajoutés dans
+  `packages/map_core/test/narrative_event_source_authoring_operations_test.dart` ;
+- aucun widget UI, aucun EventRegistry, aucun registry persistant, aucune
+  migration, aucun runtime, aucun contenu Selbrume et aucun reward/money/XP
+  créé.
+
+### 🔜 P4-04 — Outcome / Battle Outcome Authoring Operations V0
 
 Objectif :
 Rendre authorables les outcomes scénario et battle outcomes sans registry.
@@ -328,5 +352,5 @@ Phase 4 doit produire des preuves authoring concrètes après P4-00.
 Le prochain lot exact est :
 
 ```text
-P4-03 — Event Source Authoring Draft Operations V0
+P4-04 — Outcome / Battle Outcome Authoring Operations V0
 ```

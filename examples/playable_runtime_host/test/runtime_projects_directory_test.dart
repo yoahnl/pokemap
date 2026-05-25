@@ -1,29 +1,65 @@
 import 'dart:io';
 
-import 'package:pokemap_loader/src/runtime_projects_directory.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_loader/src/runtime_projects_directory.dart';
 
 void main() {
-  test('creates playable_projects under the app documents directory', () async {
-    final tempRoot = await Directory.systemTemp.createTemp(
-      'runtime_projects_directory_test',
-    );
+  test('importRuntimeProjectToRuntimeProjectsDirectory replaces stale copy',
+      () async {
+    final temp =
+        await Directory.systemTemp.createTemp('runtime_project_import_');
     addTearDown(() async {
-      if (await tempRoot.exists()) {
-        await tempRoot.delete(recursive: true);
+      if (await temp.exists()) {
+        await temp.delete(recursive: true);
       }
     });
 
-    final documentsDirectory = Directory(p.join(tempRoot.path, 'app_docs'));
-    await documentsDirectory.create(recursive: true);
+    final source = Directory(p.join(temp.path, 'selbrume'));
+    await File(p.join(source.path, 'project.json')).create(recursive: true);
+    await File(p.join(source.path, 'maps', 'Selbrume.json'))
+        .create(recursive: true);
+    await File(p.join(source.path, 'data', 'pokemon', 'species', 'fresh.json'))
+        .create(recursive: true);
 
-    final projectsDirectory = await ensureRuntimeProjectsDirectory(
-      getDocumentsDirectory: () async => documentsDirectory,
+    final projectsDirectory = Directory(p.join(temp.path, 'playable_projects'));
+    final staleTarget = Directory(p.join(projectsDirectory.path, 'selbrume'));
+    await File(p.join(staleTarget.path, 'project.json'))
+        .create(recursive: true);
+    await File(p.join(staleTarget.path, 'maps', 'old.json'))
+        .create(recursive: true);
+    await File(
+            p.join(staleTarget.path, 'data', 'pokemon', 'species', 'old.json'))
+        .create(recursive: true);
+
+    final importedProjectJsonPath =
+        await importRuntimeProjectToRuntimeProjectsDirectory(
+      projectJsonPath: p.join(source.path, 'project.json'),
+      projectsDirectory: projectsDirectory,
     );
 
-    expect(projectsDirectory.path,
-        p.join(documentsDirectory.path, 'playable_projects'));
-    expect(await projectsDirectory.exists(), isTrue);
+    expect(
+      importedProjectJsonPath,
+      p.join(staleTarget.path, 'project.json'),
+    );
+    expect(await File(p.join(staleTarget.path, 'project.json')).exists(), true);
+    expect(
+        await File(p.join(staleTarget.path, 'maps', 'Selbrume.json')).exists(),
+        true);
+    expect(
+      await File(
+        p.join(staleTarget.path, 'data', 'pokemon', 'species', 'fresh.json'),
+      ).exists(),
+      true,
+    );
+    expect(await File(p.join(staleTarget.path, 'maps', 'old.json')).exists(),
+        false);
+    expect(
+      await File(
+        p.join(staleTarget.path, 'data', 'pokemon', 'species', 'old.json'),
+      ).exists(),
+      false,
+    );
+    expect(await File(p.join(source.path, 'project.json')).exists(), true);
   });
 }

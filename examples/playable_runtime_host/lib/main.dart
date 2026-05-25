@@ -10,7 +10,6 @@ import 'package:gamepads/gamepads.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:path/path.dart' as p;
 
 import 'src/in_game_menu.dart';
 import 'src/runtime_demo_party_seed.dart';
@@ -383,22 +382,11 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   }
 
   Future<String> _ensureProjectCopiedToDocuments(String projectJsonPath) async {
-    final projectDir = Directory(p.dirname(projectJsonPath));
-    final projectName = p.basename(projectDir.path);
     final docsDir = await _getProjectsDirectory();
-    final targetDir = Directory(p.join(docsDir.path, projectName));
-    final mapsDir = Directory(p.join(targetDir.path, 'maps'));
-
-    await _copyDirectory(projectDir, targetDir);
-
-    if (!await mapsDir.exists()) {
-      throw Exception(
-        'Le dossier maps/ est manquant après copie. '
-        'Source: ${projectDir.path}, Cible: ${targetDir.path}',
-      );
-    }
-
-    return p.join(targetDir.path, 'project.json');
+    return importRuntimeProjectToRuntimeProjectsDirectory(
+      projectJsonPath: projectJsonPath,
+      projectsDirectory: docsDir,
+    );
   }
 
   Future<Directory> _getProjectsDirectory() async {
@@ -408,24 +396,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     return ensureRuntimeProjectsDirectory(
       getDocumentsDirectory: getApplicationDocumentsDirectory,
     );
-  }
-
-  Future<void> _copyDirectory(Directory source, Directory target) async {
-    if (!await target.exists()) {
-      await target.create(recursive: true);
-    }
-    await for (final entity in source.list(recursive: true)) {
-      final relativePath = p.relative(entity.path, from: source.path);
-      final newPath = p.join(target.path, relativePath);
-      if (entity is File) {
-        final newFile = File(newPath);
-        await newFile.parent.create(recursive: true);
-        await entity.copy(newPath);
-      } else if (entity is Directory) {
-        final newDir = Directory(newPath);
-        await newDir.create(recursive: true);
-      }
-    }
   }
 
   Future<void> _pickProjectFile() async {
