@@ -12,9 +12,9 @@ SELBRUME_EXISTING_PROJECT_PATH :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ➡️ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+Lot courant : ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
-Prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+Prochain lot exact : P6-01 — Existing Selbrume Loadability / Start Map Contract V0
 
 Légende :
 
@@ -31,23 +31,25 @@ premium, un Boot Flow complet ou une quête de parité Pokémon.
 
 Suivi des lots :
 
-- ➡️ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
-- ⏳ P6-01 — Existing Selbrume Disk Layout Alignment V0
-- ⏳ P6-02 — Selbrume Start Map / Spawn / New Game Wiring V0
-- ⏳ P6-03 — Selbrume Initial Party / Bag Setup V0
-- ⏳ P6-04 — Selbrume First Narrative Interaction V0
+- ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+- ➡️ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
+- ⏳ P6-02 — Selbrume Initial Party / Bag Setup V0
+- ⏳ P6-03 — Selbrume First Narrative Interaction V0
+- ⏳ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
 - ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
 - ⏳ P6-06 — Selbrume Save/Load Golden Slice V0
 - ⏳ P6-07 — Selbrume Beta Validator Pass V0
 - ⏳ P6-08 — Selbrume Playable Runtime Smoke V0
 - 🧭 P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
-P6-00 : ➡️ prochain lot exact
+P6-00 : ✅ terminé
+
+P6-01 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+P6-01 — Existing Selbrume Loadability / Start Map Contract V0
 ```
 
 ## Objectif Phase 6
@@ -111,11 +113,50 @@ P6-00 devra auditer ce projet existant, verrouiller un périmètre de golden
 slice court, puis proposer les corrections ou alignements nécessaires. Cette
 roadmap ne demande pas de recréer Selbrume from scratch.
 
+## Résultat P6-00
+
+Audit réalisé en lecture seule :
+
+```text
+project.json lisible
+10 maps déclarées et présentes
+30 tilesets déclarés et présents
+1 dialogue Yarn présent mais placeholder
+2 scénarios présents mais non branchés à une interaction exploitable
+1 spawn player_start présent sur la map Selbrume
+route 1 contient des zones de rencontre walk
+1 table d'encounter existe avec pidgeotto
+0 trainer déclaré
+```
+
+Golden slice candidat retenu :
+
+```text
+Départ : map Selbrume, spawn entity id "spawn", facing south
+Étape 1 : première interaction narrative courte à créer / brancher
+Étape 2 : transition Selbrume -> route 1 via connexion est/ouest
+Étape 3 : rencontre route 1, puis trainer battle dès qu'un trainer minimal existe
+Étape 4 : reward minimal
+Étape 5 : save/load
+Étape 6 : validator bêta
+```
+
+Gaps principaux :
+
+```text
+start map contract non explicite dans project.json
+defaultSpawnId non renseigné malgré un spawn joueur existant
+dialogue Yarn placeholder et non branché
+aucun trainer déclaré
+capture item / party / bag initial non authorés dans le projet Selbrume
+validator bêta susceptible de signaler starter/initial party, trainer et capture source
+```
+
 ## Roadmap
 
-### ➡️ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -137,24 +178,16 @@ prochain lot exact confirmé ou ajusté
 aucun lancement de production de contenu massif
 ```
 
-### ⏳ P6-01 — Existing Selbrume Disk Layout Alignment V0
+### ➡️ P6-01 — Existing Selbrume Loadability / Start Map Contract V0
 
 But :
 
 ```text
-aligner strictement le layout disque du projet Selbrume existant avec ce que le
-runtime PokeMap peut charger.
+prouver ou corriger minimalement la charge du projet Selbrume existant et fixer
+le contrat de start map / spawn sans créer de contenu final.
 ```
 
-### ⏳ P6-02 — Selbrume Start Map / Spawn / New Game Wiring V0
-
-But :
-
-```text
-brancher une map de départ Selbrume, un spawn et un New Game minimal.
-```
-
-### ⏳ P6-03 — Selbrume Initial Party / Bag Setup V0
+### ⏳ P6-02 — Selbrume Initial Party / Bag Setup V0
 
 But :
 
@@ -162,12 +195,21 @@ But :
 fournir une party initiale et un bag minimal utilisables dans le golden slice.
 ```
 
-### ⏳ P6-04 — Selbrume First Narrative Interaction V0
+### ⏳ P6-03 — Selbrume First Narrative Interaction V0
 
 But :
 
 ```text
 prouver une première interaction narrative courte dans le mini-parcours choisi.
+```
+
+### ⏳ P6-04 — Selbrume Route 1 Encounter / Capture Golden Slice V0
+
+But :
+
+```text
+prouver une rencontre route 1 bornée et une capture minimale si le bag initial
+fournit une source de capture.
 ```
 
 ### ⏳ P6-05 — Selbrume First Trainer Battle Golden Slice V0
