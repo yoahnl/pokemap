@@ -11,6 +11,7 @@ P5-03 : terminé.
 P5-04 : terminé.
 P5-05 : terminé.
 P5-06 : terminé.
+P5-07 : terminé.
 
 Phase 5 reste orientée vers une boucle RPG minimale prouvable, pas vers une
 parité Pokémon complète, pas vers Selbrume final, pas vers une UI premium.
@@ -18,7 +19,7 @@ parité Pokémon complète, pas vers Selbrume final, pas vers une UI premium.
 Prochain lot exact :
 
 ```text
-P5-07 — Gameplay Save/Load Beta Roundtrip V0
+P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
 ```
 
 ## Objectif Phase 5
@@ -239,7 +240,7 @@ tests party full / party not full
 
 ### P5-07 — Gameplay Save/Load Beta Roundtrip V0
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -261,6 +262,8 @@ runtime save/load ciblé
 ```
 
 ### P5-08 — Beta Runtime Smoke : New Game -> Battle -> Reward -> Save/Load
+
+Statut : prochain lot exact.
 
 But :
 
