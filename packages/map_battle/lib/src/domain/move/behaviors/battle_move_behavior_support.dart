@@ -68,6 +68,8 @@ BattleDirectDamageResult applyDirectDamage({
   PsdkBattleMoveCategory? moveCategory,
   BattleMoveDefinition? move,
   bool criticalHit = false,
+  int? actionOrder,
+  int? targetActionOrder,
 }) {
   final result = const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
@@ -75,6 +77,8 @@ BattleDirectDamageResult applyDirectDamage({
       rng: rng,
       turn: turn,
       user: user,
+      actionOrder: actionOrder,
+      targetActionOrder: targetActionOrder,
     ),
     target: target,
     moveId: moveId,

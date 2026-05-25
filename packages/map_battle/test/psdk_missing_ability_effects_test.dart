@@ -140,6 +140,43 @@ void main() {
       expect(result.state.battlerAt(psdkOpponentSlot).switching, isFalse);
     });
 
+    test('Emergency Exit skips force-switch and Sky Drop move families', () {
+      for (final entry in <({String moveId, String method})>[
+        (moveId: 'dragon_tail', method: 's_dragon_tail'),
+        (moveId: 'sky_drop', method: 's_sky_drop'),
+      ]) {
+        final state = _singlesState(
+          opponentAbilityId: 'emergency_exit',
+          opponentReserves: <PsdkBattleCombatantSetup>[
+            _combatant(id: 'opponent-reserve'),
+          ],
+        );
+
+        final result = const BattleDamageHandler().applyDamage(
+          context: BattleHandlerContext(
+            state: state,
+            rng: _rng(),
+            turn: 1,
+            user: psdkPlayerSlot,
+          ),
+          target: psdkOpponentSlot,
+          moveId: entry.moveId,
+          rawDamage: 60,
+          move: _move(
+            id: entry.moveId,
+            power: 40,
+            battleEngineMethod: entry.method,
+          ).definition,
+        );
+
+        expect(
+          result.state.battlerAt(psdkOpponentSlot).switching,
+          isFalse,
+          reason: entry.method,
+        );
+      }
+    });
+
     test('Symbiosis gives the owner held item to an ally that consumed one',
         () {
       final state = _doublesState(

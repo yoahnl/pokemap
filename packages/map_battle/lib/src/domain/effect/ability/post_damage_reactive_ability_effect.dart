@@ -150,7 +150,7 @@ final class ElectromorphosisEffect extends BattleAbilityEffect {
     }
 
     const chargeEffectId = 'charge';
-    const chargeRemainingTurns = 2;
+    final chargeRemainingTurns = _chargeRemainingTurns(context);
     final charge = GenericBattleEffect(
       id: chargeEffectId,
       scope: BattlerBattleEffectScope(context.target),
@@ -202,6 +202,7 @@ final class WindPowerEffect extends BattleAbilityEffect {
       state: context.state,
       owner: context.owner,
       turn: context.turn,
+      remainingTurns: _chargeRemainingTurns(context),
       reason: 'ability:$abilityId',
     );
     if (charged == null) {
@@ -228,6 +229,7 @@ final class WindPowerEffect extends BattleAbilityEffect {
       state: context.state,
       owner: context.owner,
       turn: context.turn,
+      remainingTurns: 2,
       reason: 'ability:$abilityId',
     );
     if (charged == null) {
@@ -351,6 +353,7 @@ final class EmergencyExitEffect extends BattleAbilityEffect {
         context.user == context.target ||
         context.damage <= 0 ||
         context.targetFainted ||
+        _skillPreventsEmergencyExit(context.move) ||
         _sheerForceAlreadyActivated(context)) {
       return null;
     }
@@ -386,6 +389,13 @@ final class EmergencyExitEffect extends BattleAbilityEffect {
       events: switched.events,
     );
   }
+}
+
+bool _skillPreventsEmergencyExit(BattleMoveDefinition move) {
+  return switch (move.battleEngineMethod) {
+    's_dragon_tail' || 's_roar' || 's_sky_drop' => true,
+    _ => false,
+  };
 }
 
 final class StenchEffect extends BattleAbilityEffect {
@@ -481,17 +491,17 @@ _ChargeResult? _addCharge({
   required PsdkBattleState state,
   required PsdkBattleSlotRef owner,
   required int turn,
+  required int remainingTurns,
   required String reason,
 }) {
   final battler = state.battlerAt(owner);
   if (battler.effects.contains('charge')) {
     return null;
   }
-  const chargeRemainingTurns = 2;
   final charge = GenericBattleEffect(
     id: 'charge',
     scope: BattlerBattleEffectScope(owner),
-    remainingTurns: chargeRemainingTurns,
+    remainingTurns: remainingTurns,
   );
   return _ChargeResult(
     state: state.updateBattler(
@@ -510,6 +520,15 @@ _ChargeResult? _addCharge({
       ),
     ],
   );
+}
+
+int _chargeRemainingTurns(BattleEffectPostDamageContext context) {
+  final userOrder = context.userActionOrder;
+  final targetOrder = context.targetActionOrder;
+  if (userOrder != null && targetOrder != null && userOrder < targetOrder) {
+    return 1;
+  }
+  return 2;
 }
 
 BattleHandlerResult _raiseAttack({

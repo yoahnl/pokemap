@@ -319,6 +319,7 @@ final class BattleTurnRunner {
                 move: moveBeforePp,
                 canFlee: _context.setup.canFlee,
                 moveSlot: action.moveSlot,
+                actionOrder: actionIndex,
                 isLastActionOfTurn: !_hasRunnableActionAfter(
                   actions,
                   actionIndex,
@@ -428,6 +429,7 @@ final class BattleTurnRunner {
             move: moveAfterPp,
             canFlee: _context.setup.canFlee,
             moveSlot: action.moveSlot,
+            actionOrder: actionIndex,
             isLastActionOfTurn: !_hasRunnableActionAfter(
               actions,
               actionIndex,
@@ -829,6 +831,7 @@ final class BattleTurnRunner {
           target: dancerTarget,
           move: move,
           canFlee: _context.setup.canFlee,
+          actionOrder: actionIndex,
           isLastActionOfTurn: !_hasRunnableActionAfter(actions, actionIndex),
           moveProcedureHooks: _moveProcedureHooks,
           announcedMoveFor: (battler) => _announcedFightActionAfter(
@@ -945,6 +948,7 @@ final class BattleTurnRunner {
         target: action.target,
         moveSlot: action.moveSlot,
         move: action.move,
+        actionOrder: index,
       );
     }
     return null;

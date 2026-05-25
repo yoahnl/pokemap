@@ -155,6 +155,8 @@ final class BattleEffectPostDamageContext {
     required this.damage,
     this.targetFainted = false,
     this.criticalHit = false,
+    this.userActionOrder,
+    this.targetActionOrder,
   });
 
   final PsdkBattleState state;
@@ -167,6 +169,8 @@ final class BattleEffectPostDamageContext {
   final int damage;
   final bool targetFainted;
   final bool criticalHit;
+  final int? userActionOrder;
+  final int? targetActionOrder;
 }
 
 final class BattleEffectPostDamageResult {

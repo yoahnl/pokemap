@@ -197,7 +197,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Color Change.rb',
     status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'ColorChangeEffect.partialNoSheerForceMultiHitState',
+    dartEffect: 'ColorChangeEffect.partialNoMultiHitLastHitState',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'comatose',
@@ -413,9 +413,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'electromorphosis',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Electromorphosis.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect:
-        'ElectromorphosisEffect.partialNoAttackOrderDurationCalibration',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ElectromorphosisEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'embody_aspect',
@@ -429,7 +428,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb',
     status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'EmergencyExitEffect.partialNoWildFleeOrItemPrevention',
+    dartEffect: 'EmergencyExitEffect.partialNoWildFleeMultiHitBerryPrevention',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'fairy_aura',
@@ -1901,14 +1900,14 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb',
     status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'EmergencyExitEffect.partialNoWildFleeOrItemPrevention',
+    dartEffect: 'EmergencyExitEffect.partialNoWildFleeMultiHitBerryPrevention',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wind_power',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 WindPower.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'WindPowerEffect.partialNoAttackOrderDurationCalibration',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'WindPowerEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wind_rider',

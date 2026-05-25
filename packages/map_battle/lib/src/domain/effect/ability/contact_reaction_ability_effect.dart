@@ -30,7 +30,8 @@ final class ColorChangeEffect extends BattleAbilityEffect {
         context.user == context.target ||
         context.damage <= 0 ||
         context.targetFainted ||
-        context.move.category == PsdkBattleMoveCategory.status) {
+        context.move.category == PsdkBattleMoveCategory.status ||
+        _sheerForceAlreadyActivated(context)) {
       return null;
     }
 
@@ -60,6 +61,30 @@ final class ColorChangeEffect extends BattleAbilityEffect {
       ],
     );
   }
+}
+
+bool _sheerForceAlreadyActivated(BattleEffectPostDamageContext context) {
+  final attacker = context.state.battlerAt(context.user);
+  if (attacker.abilityId != 'sheer_force' ||
+      attacker.effects.contains('ability_suppressed') ||
+      context.move.category == PsdkBattleMoveCategory.status) {
+    return false;
+  }
+  if (context.move.statuses.any(
+        (status) => status.majorStatus != null || status.volatileStatus != null,
+      ) ||
+      context.move.effectChance != null) {
+    return true;
+  }
+  if (context.move.stageMods.isEmpty) {
+    return false;
+  }
+  final onlyPositive = context.move.stageMods.every((mod) => mod.stages > 0);
+  final onlyNegative = context.move.stageMods.every((mod) => mod.stages < 0);
+  return switch (context.move.target) {
+    PsdkBattleMoveTarget.self || PsdkBattleMoveTarget.user => onlyPositive,
+    _ => onlyNegative,
+  };
 }
 
 final class PerishBodyEffect extends BattleAbilityEffect {

@@ -8,10 +8,14 @@ final class BattleHandlerContext {
     required this.rng,
     required this.turn,
     required this.user,
+    this.actionOrder,
+    this.targetActionOrder,
   });
 
   final PsdkBattleState state;
   final BattleRngStreams rng;
   final int turn;
   final PsdkBattleSlotRef user;
+  final int? actionOrder;
+  final int? targetActionOrder;
 }

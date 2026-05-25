@@ -481,7 +481,11 @@ void main() {
       }
       expect(
         byFamilyAndName['ability:Electromorphosis']?.status,
-        PsdkPortStatus.partial,
+        PsdkPortStatus.ported,
+      );
+      expect(
+        byFamilyAndName['ability:WindPower']?.status,
+        PsdkPortStatus.ported,
       );
     });
 

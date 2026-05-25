@@ -63,6 +63,7 @@ void main() {
         'earth_eater',
         'effect_spore',
         'electric_surge',
+        'electromorphosis',
         'defeatist',
         'fairy_aura',
         'flash_fire',
@@ -200,6 +201,7 @@ void main() {
         'wandering_spirit',
         'weak_armor',
         'well_baked_body',
+        'wind_power',
         'wonder_skin',
         'run_away',
         'aroma_veil',
@@ -222,7 +224,6 @@ void main() {
 
       for (final abilityId in <String>[
         'color_change',
-        'electromorphosis',
         'mirror_armor',
       ]) {
         final entry = byId[abilityId];

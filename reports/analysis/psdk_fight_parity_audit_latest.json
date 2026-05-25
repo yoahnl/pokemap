@@ -9116,14 +9116,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 454,
-      "partial": 28,
+      "ported": 456,
+      "partial": 26,
       "missing": 0
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 240,
-        "partial": 14,
+        "ported": 242,
+        "partial": 12,
         "missing": 0
       },
       "move": {
@@ -10128,7 +10128,7 @@
       {
         "effectName": "Electromorphosis",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Electromorphosis.rb",
         "hookFamilies": [
           "post_damage"
@@ -13186,7 +13186,7 @@
       {
         "effectName": "WindPower",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 WindPower.rb",
         "hookFamilies": [
           "action_order",

@@ -16,6 +16,7 @@ final class BattleMoveBehaviorContext {
     required this.move,
     this.canFlee = false,
     this.moveSlot,
+    this.actionOrder,
     this.isLastActionOfTurn = false,
     this.moveProcedureHooks = BattleMoveProcedureHooks.none,
     this.announcedMoveFor,
@@ -29,6 +30,7 @@ final class BattleMoveBehaviorContext {
   final BattleMoveDefinition move;
   final bool canFlee;
   final int? moveSlot;
+  final int? actionOrder;
   final bool isLastActionOfTurn;
   final BattleMoveProcedureHooks moveProcedureHooks;
   final BattleAnnouncedMove? Function(PsdkBattleSlotRef battler)?
@@ -41,12 +43,14 @@ final class BattleAnnouncedMove {
     required this.target,
     required this.moveSlot,
     required this.move,
+    this.actionOrder,
   });
 
   final PsdkBattleSlotRef user;
   final PsdkBattleSlotRef target;
   final int moveSlot;
   final PsdkBattleMoveData move;
+  final int? actionOrder;
 }
 
 final class BattleMoveBehaviorResolution {

@@ -1132,6 +1132,9 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       amount: damage,
       moveCategory: context.move.category,
       move: context.move,
+      actionOrder: context.actionOrder,
+      targetActionOrder:
+          context.announcedMoveFor?.call(targetSlot)?.actionOrder,
     );
     state = applied.state;
     rng = applied.rng;

@@ -185,6 +185,8 @@ final class BattleEffectObjectStack {
           damage: context.damage,
           targetFainted: context.targetFainted,
           criticalHit: context.criticalHit,
+          userActionOrder: context.userActionOrder,
+          targetActionOrder: context.targetActionOrder,
         ),
       );
       if (result == null) {

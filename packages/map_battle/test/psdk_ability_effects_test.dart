@@ -4680,6 +4680,11 @@ void main() {
       final charged = _applyDirectAbilityDamage(
         opponentAbilityId: 'electromorphosis',
       );
+      final chargedAfterEarlierAttacker = _applyDirectAbilityDamage(
+        opponentAbilityId: 'electromorphosis',
+        userActionOrder: 0,
+        targetActionOrder: 1,
+      );
       final chargedOnLethalHit = _applyDirectAbilityDamage(
         opponentAbilityId: 'electromorphosis',
         opponentCurrentHp: 100,
@@ -4698,6 +4703,14 @@ void main() {
 
       final charge = _effectFor(charged.state, psdkOpponentSlot, 'charge');
       expect(charge.remainingTurns, 2);
+      expect(
+        _effectFor(
+          chargedAfterEarlierAttacker.state,
+          psdkOpponentSlot,
+          'charge',
+        ).remainingTurns,
+        1,
+      );
       expect(_effectEventsForHandler(charged).single.effectId, 'charge');
       expect(
         _effectFor(chargedOnLethalHit.state, psdkOpponentSlot, 'charge')
@@ -4763,6 +4776,13 @@ void main() {
         moveType: 'water',
         opponentTypes: const PsdkBattleTypes(primary: 'water'),
       );
+      final sheerForceBoosted = _applyDirectAbilityDamage(
+        playerAbilityId: 'sheer_force',
+        opponentAbilityId: 'color_change',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        effectChance: 10,
+      );
 
       final changedOpponent = changed.state.battlerAt(psdkOpponentSlot);
       expect(changedOpponent.types.primary, 'fire');
@@ -4782,6 +4802,14 @@ void main() {
       );
       expect(sameType.state.battlerAt(psdkOpponentSlot).types.primary, 'water');
       expect(sameType.events.whereType<PsdkBattleEffectEvent>(), isEmpty);
+      expect(
+        sheerForceBoosted.state.battlerAt(psdkOpponentSlot).types.primary,
+        'normal',
+      );
+      expect(
+        sheerForceBoosted.events.whereType<PsdkBattleEffectEvent>(),
+        isEmpty,
+      );
     });
 
     test('Wind Power charges the holder after wind damage', () {
@@ -4789,6 +4817,13 @@ void main() {
         opponentAbilityId: 'wind_power',
         moveId: 'gust',
         flags: const BattleMoveFlags(wind: true),
+      );
+      final chargedAfterEarlierAttacker = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wind_power',
+        moveId: 'gust',
+        flags: const BattleMoveFlags(wind: true),
+        userActionOrder: 0,
+        targetActionOrder: 1,
       );
       final ordinary = _applyDirectAbilityDamage(
         opponentAbilityId: 'wind_power',
@@ -4798,6 +4833,14 @@ void main() {
       expect(
         _effectFor(charged.state, psdkOpponentSlot, 'charge').remainingTurns,
         2,
+      );
+      expect(
+        _effectFor(
+          chargedAfterEarlierAttacker.state,
+          psdkOpponentSlot,
+          'charge',
+        ).remainingTurns,
+        1,
       );
       expect(
           _effectEventsForHandler(charged).single.reason, 'ability:wind_power');
@@ -7339,6 +7382,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
   String moveType = 'normal',
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.special,
   BattleMoveFlags flags = const BattleMoveFlags(),
+  int? effectChance,
   int opponentCurrentHp = 100,
   int rawDamage = 30,
   bool criticalHit = false,
@@ -7351,6 +7395,8 @@ BattleHandlerResult _applyDirectAbilityDamage({
   PsdkBattleGender opponentGender = PsdkBattleGender.unknown,
   PsdkBattleEffectStack? playerEffects,
   PsdkBattleEffectStack? opponentEffects,
+  int? userActionOrder,
+  int? targetActionOrder,
   BattleRngSeeds rngSeeds = const BattleRngSeeds(
     moveDamage: 1,
     moveCritical: 99999,
@@ -7391,6 +7437,8 @@ BattleHandlerResult _applyDirectAbilityDamage({
       rng: BattleRngStreams.fromSeedSnapshot(rngSeeds),
       turn: 1,
       user: psdkPlayerSlot,
+      actionOrder: userActionOrder,
+      targetActionOrder: targetActionOrder,
     ),
     target: psdkOpponentSlot,
     moveId: moveId,
@@ -7406,6 +7454,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
       accuracy: 100,
       pp: 35,
       priority: 0,
+      effectChance: effectChance,
       battleEngineMethod: 's_basic',
       target: PsdkBattleMoveTarget.adjacentFoe,
       flags: flags,
