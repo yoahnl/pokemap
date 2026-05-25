@@ -1,0 +1,48 @@
+{
+  "id": "p3_narrative_smoke_map",
+  "name": "P3 Narrative Smoke Map",
+  "size": {
+    "width": 4,
+    "height": 4
+  },
+  "version": "v1",
+  "mapMetadata": {
+    "defaultSpawnId": "p3_smoke_spawn"
+  },
+  "entities": [
+    {
+      "id": "p3_smoke_spawn",
+      "name": "P3 Smoke Spawn",
+      "kind": "spawn",
+      "pos": {
+        "x": 1,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "south"
+      }
+    },
+    {
+      "id": "p3_smoke_npc",
+      "name": "P3 Smoke NPC",
+      "kind": "npc",
+      "pos": {
+        "x": 2,
+        "y": 1
+      },
+      "blocksMovement": false,
+      "npc": {
+        "displayName": "P3 Smoke NPC",
+        "visibilityRule": {
+          "mode": "visibleWhen",
+          "predicate": {
+            "kind": "storyFlagSet",
+            "refId": "p3.smoke.flag.visible"
+          }
+        }
+      }
+    }
+  ]
+}

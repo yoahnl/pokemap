@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:PokeMap_Loader/src/runtime_launch_save.dart';
+import 'package:pokemap_loader/src/runtime_launch_save.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

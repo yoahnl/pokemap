@@ -6,9 +6,9 @@ Phase 3 — Runtime / Application / Flame / Disk Validation
 
 Statut : 🔜 En cours
 
-Lot courant : P3-07 — Playable Runtime Host Narrative Smoke Test
+Lot courant : P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
-Prochain lot exact : P3-07 — Playable Runtime Host Narrative Smoke Test
+Prochain lot exact : P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
 Suivi des lots :
 
@@ -19,8 +19,8 @@ Suivi des lots :
 - ✅ P3-04 — Outcome / Battle Outcome Runtime Continuation Validation
 - ✅ P3-05 — Fact / World Rule Runtime Projection Validation
 - ✅ P3-06 — Save/Load Narrative State Roundtrip Validation
-- 🔜 P3-07 — Playable Runtime Host Narrative Smoke Test
-- P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
+- ✅ P3-07 — Playable Runtime Host Narrative Smoke Test
+- 🔜 P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
 P3-00 : ✅ terminé
 
@@ -36,7 +36,9 @@ P3-05 : ✅ terminé
 
 P3-06 : ✅ terminé
 
-P3-07 : 🔜 prochain lot exact
+P3-07 : ✅ terminé
+
+P3-CHECKPOINT-01 : 🔜 prochain lot exact
 
 ## 2. Objectif de la Phase 3
 
@@ -439,7 +441,7 @@ P3-07 devient le prochain lot exact, car P3-06 a prouvé que les vérités
 narratives techniques produites ou lues par P3-02 à P3-05 survivent au
 roundtrip save/load disque sans créer de nouveau modèle, registry ou migration.
 
-### P3-07 — Playable Runtime Host Narrative Smoke Test
+### ✅ P3-07 — Playable Runtime Host Narrative Smoke Test
 
 Objectif :
 Ajouter ou auditer un smoke test runtime host ciblé, si les lots précédents
@@ -447,6 +449,50 @@ montrent que le périmètre est prêt.
 
 Résultat attendu :
 Preuve d'exécution end-to-end minimale ou décision documentée de report.
+
+Résultat P3-07 :
+
+- rapport créé :
+  `reports/roadmap/phase_3/p3_07_playable_runtime_host_narrative_smoke_test.md` ;
+- fixture host technique non-Selbrume créée :
+  `examples/playable_runtime_host/p3_narrative_smoke_slice/` ;
+- test ciblé host créé :
+  `examples/playable_runtime_host/test/p3_narrative_smoke_slice_test.dart` ;
+- correction de test existant :
+  `examples/playable_runtime_host/test/runtime_launch_save_test.dart` importe
+  maintenant le package réel `pokemap_loader` au lieu de l'ancien nom
+  `PokeMap_Loader` ;
+- preuve obtenue :
+  - vrai `project.json` host chargé par `loadRuntimeMapBundle` ;
+  - vraie `runtime_host_launch_save.json` chargée par
+    `loadRuntimeHostLaunchSaveData` ;
+  - `RuntimeMapBundle` contient la map et le `ScenarioAsset` narratif ;
+  - `PlayableMapGame` est instancié avec le bundle et la save host ;
+  - `PlayableMapGame.onLoad()` est exécuté après `onGameResize` ;
+  - le hook runtime mapEnter privé déclenche le scenario disque
+    `p3_narrative_smoke_scenario` ;
+  - `gameStateSnapshot` expose après load le flag `p3.smoke.flag.visible` et la
+    step `p3.smoke.step.completed` ;
+  - `isNpcRuntimePresentOnMap` projette le NPC `p3_smoke_npc` comme visible
+    après le dispatch mapEnter ;
+- niveau de preuve : Level 4 partiel pour fixture host disque + launch save,
+  Level 3 partiel pour `PlayableMapGame.onLoad`, Level 2/3 contrôlé pour
+  assertions runtime publiques ;
+- non prouvé volontairement : UI complète, input joueur complet, combat complet,
+  Scene Builder, Cinematic Builder, Selbrume final, rewards, money, XP ;
+- tests lancés :
+  - `cd examples/playable_runtime_host && dart format --set-exit-if-changed test/p3_narrative_smoke_slice_test.dart`
+  - `cd examples/playable_runtime_host && flutter test test/p3_narrative_smoke_slice_test.dart`
+  - `cd examples/playable_runtime_host && dart format --set-exit-if-changed test/runtime_launch_save_test.dart test/p3_narrative_smoke_slice_test.dart`
+  - `cd examples/playable_runtime_host && flutter test test/runtime_launch_save_test.dart`
+  - `cd examples/playable_runtime_host && flutter test test/phase_a_golden_slice_launch_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_save_load_narrative_state_roundtrip_test.dart`
+  - `cd packages/map_runtime && flutter test test/p3_fact_world_rule_projection_test.dart`
+
+Décision :
+P3-CHECKPOINT-01 devient le prochain lot exact, car P3-07 a prouvé le lien
+minimal host / `PlayableMapGame` / scenario runtime / projection sans ouvrir UI,
+Selbrume, rewards, money ou XP.
 
 ### P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 
@@ -491,5 +537,5 @@ Phase 3 n'ouvre pas les gaps gameplay hors lot explicite.
 Le prochain lot exact est :
 
 ```text
-P3-07 — Playable Runtime Host Narrative Smoke Test
+P3-CHECKPOINT-01 — Runtime & Disk Readiness Review
 ```

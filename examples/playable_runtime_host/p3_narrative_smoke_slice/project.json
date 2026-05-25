@@ -1,0 +1,88 @@
+{
+  "name": "P3 Narrative Smoke Slice",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "p3_narrative_smoke_map",
+      "name": "P3 Narrative Smoke Map",
+      "relativePath": "maps/p3_narrative_smoke_field.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "scenarios": [
+    {
+      "id": "p3_narrative_smoke_scenario",
+      "name": "P3 Narrative Smoke Scenario",
+      "description": "Technical fixture proving PlayableMapGame can dispatch a mapEnter scenario from host-loaded disk data.",
+      "scope": "localEventFlow",
+      "entryNodeId": "p3_smoke_start",
+      "nodes": [
+        {
+          "id": "p3_smoke_start",
+          "type": "start"
+        },
+        {
+          "id": "p3_smoke_source",
+          "type": "reference",
+          "payload": {
+            "actionKind": "sourceMapEnter"
+          },
+          "binding": {
+            "mapId": "p3_narrative_smoke_map"
+          }
+        },
+        {
+          "id": "p3_smoke_set_flag",
+          "type": "action",
+          "payload": {
+            "actionKind": "setFlag"
+          },
+          "binding": {
+            "flagName": "p3.smoke.flag.visible"
+          }
+        },
+        {
+          "id": "p3_smoke_complete_step",
+          "type": "action",
+          "payload": {
+            "actionKind": "completeStep",
+            "params": {
+              "stepId": "p3.smoke.step.completed"
+            }
+          }
+        },
+        {
+          "id": "p3_smoke_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "p3_smoke_edge_start_source",
+          "fromNodeId": "p3_smoke_start",
+          "toNodeId": "p3_smoke_source"
+        },
+        {
+          "id": "p3_smoke_edge_source_flag",
+          "fromNodeId": "p3_smoke_source",
+          "toNodeId": "p3_smoke_set_flag"
+        },
+        {
+          "id": "p3_smoke_edge_flag_step",
+          "fromNodeId": "p3_smoke_set_flag",
+          "toNodeId": "p3_smoke_complete_step"
+        },
+        {
+          "id": "p3_smoke_edge_step_end",
+          "fromNodeId": "p3_smoke_complete_step",
+          "toNodeId": "p3_smoke_end"
+        }
+      ],
+      "metadata": {
+        "phase": "P3-07"
+      }
+    }
+  ]
+}

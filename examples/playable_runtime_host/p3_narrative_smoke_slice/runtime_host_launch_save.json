@@ -1,0 +1,19 @@
+{
+  "saveId": "p3_narrative_smoke_save",
+  "currentMapId": "p3_narrative_smoke_map",
+  "playerPosition": {
+    "x": 1,
+    "y": 1
+  },
+  "playerFacing": "east",
+  "progression": {
+    "storyFlags": [
+      "p3.smoke.launch.flag"
+    ],
+    "completedStepIds": [],
+    "completedCutsceneIds": []
+  },
+  "trainerProfile": {
+    "name": "P3 Smoke Tester"
+  }
+}
