@@ -78,6 +78,7 @@ final class BattleMoveDefinition {
         sound: move.sound,
         bite: move.bite,
         pulse: move.pulse,
+        wind: move.wind,
         ballistics: move.ballistics,
         kingRockUtility: move.kingRockUtility,
       ),
@@ -202,6 +203,7 @@ final class BattleMoveDefinition {
       sound: flags.sound,
       bite: flags.bite,
       pulse: flags.pulse,
+      wind: flags.wind,
       ballistics: flags.ballistics,
       kingRockUtility: flags.kingRockUtility,
       heal: heal,
@@ -234,6 +236,7 @@ final class BattleMoveFlags {
     this.slicing = false,
     this.bite = false,
     this.pulse = false,
+    this.wind = false,
     this.ballistics = false,
     this.kingRockUtility = false,
   });
@@ -246,6 +249,7 @@ final class BattleMoveFlags {
   final bool slicing;
   final bool bite;
   final bool pulse;
+  final bool wind;
   final bool ballistics;
   final bool kingRockUtility;
 }

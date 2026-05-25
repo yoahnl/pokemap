@@ -89,6 +89,42 @@ void main() {
       expect(event.reason, 'expired');
     });
 
+    test('item_stolen marker clears when the holder receives an item', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              effects: const PsdkBattleEffectStack.empty().add('item_stolen'),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'opponent'),
+          ),
+        },
+      );
+
+      final result =
+          state.battlerAt(psdkPlayerSlot).effects.dispatchPostItemChange(
+                BattleEffectItemChangeContext(
+                  state: state,
+                  rng: _rng(),
+                  turn: 3,
+                  owner: psdkPlayerSlot,
+                  target: psdkPlayerSlot,
+                  previousItemId: null,
+                  nextItemId: 'leftovers',
+                  consumedItemId: null,
+                  reason: 'changed',
+                ),
+              );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('item_stolen'),
+        isFalse,
+      );
+    });
+
     test('effect lifecycle events map to clean timeline events', () {
       const event = PsdkBattleEffectEvent.ticked(
         turn: 6,

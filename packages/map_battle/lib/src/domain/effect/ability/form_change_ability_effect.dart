@@ -6,6 +6,7 @@ import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_stat_change_handler.dart';
 import '../../handler/battle_status_change_handler.dart';
+import '../../move/battle_move_data.dart';
 import '../../move/battle_move_prevention.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
@@ -238,6 +239,47 @@ final class TeraShiftEffect extends BattleAbilityEffect {
       rng: context.rng,
     );
   }
+}
+
+final class StanceChangeEffect extends BattleAbilityEffect {
+  const StanceChangeEffect({required BattleEffectScope scope})
+      : super(abilityId: 'stance_change', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return StanceChangeEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPreAccuracyResult? onPreAccuracy(
+    BattleEffectPreAccuracyContext context,
+  ) {
+    if (!isOwnedBy(context.user)) {
+      return null;
+    }
+    final nextForm = _stanceFormForMove(context.move);
+    if (nextForm == null ||
+        context.state.battlerAt(context.user).form == nextForm) {
+      return null;
+    }
+    return BattleEffectPreAccuracyResult(
+      state: context.state.updateBattler(
+        context.user,
+        (current) => current.copyWith(form: nextForm),
+      ),
+      rng: context.rng,
+    );
+  }
+}
+
+int? _stanceFormForMove(BattleMoveDefinition move) {
+  if (_normalizedMoveId(move.dbSymbol) == 'king_s_shield') {
+    return 0;
+  }
+  if (move.category != PsdkBattleMoveCategory.status && move.power > 0) {
+    return 1;
+  }
+  return null;
 }
 
 final class IceFaceEffect extends BattleAbilityEffect {
@@ -610,4 +652,8 @@ bool _isEnteringOwner(BattleEffectSwitchEventContext context) {
 bool _isSnowing(PsdkBattleFieldState field) {
   return field.isWeatherActive(PsdkBattleWeatherId.hail) ||
       field.isWeatherActive(PsdkBattleWeatherId.snow);
+}
+
+String _normalizedMoveId(String id) {
+  return id.trim().toLowerCase().replaceAll('-', '_');
 }

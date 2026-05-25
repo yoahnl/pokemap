@@ -539,6 +539,94 @@ void main() {
           player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isTrue);
     });
 
+    test('s_sky_drop prevents the carried target same-turn action', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'sky_drop',
+                type: 'flying',
+                power: 60,
+                battleEngineMethod: 's_sky_drop',
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 40),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_damageEvents(result, moveId: 'sky_drop'), isEmpty);
+      expect(_damageEvents(result, moveId: 'tackle'), isEmpty);
+      expect(_failed(result, moveId: 'tackle'), isTrue);
+      expect(
+        result.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.preventTargetsMove),
+        isTrue,
+      );
+    });
+
+    test('s_sky_drop keeps a faster carried target from acting before release',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'sky_drop',
+                type: 'flying',
+                power: 60,
+                battleEngineMethod: 's_sky_drop',
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 40),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final charge = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final release =
+          engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_damageEvents(charge, moveId: 'tackle'), hasLength(1));
+      expect(_damageEvents(charge, moveId: 'sky_drop'), isEmpty);
+      expect(_damageEvents(release, moveId: 'tackle'), isEmpty);
+      expect(_failed(release, moveId: 'tackle'), isTrue);
+      expect(_damageEvents(release, moveId: 'sky_drop'), hasLength(1));
+    });
+
     test('s_2turns preserves the charge when sleep stops release', () {
       final engine = _engine(
         playerMajorStatus: PsdkBattleMajorStatus.sleep,

@@ -466,8 +466,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'flower_gift',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Flower Gift.rb',
-    status: PsdkAbilityPortStatus.partial,
-    dartEffect: 'FlowerGiftStatAbilityEffect.partialNoCherrimForm',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'FlowerGiftStatAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'flower_veil',
@@ -785,7 +785,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'libero',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Libero - Protean.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ProteanTypeChangeAbilityEffect.libero',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'lightning_rod',
@@ -1131,7 +1132,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'protean',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Libero - Protean.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ProteanTypeChangeAbilityEffect.protean',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'protosynthesis',
@@ -1494,7 +1496,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'stance_change',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Stance Change.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'StanceChangeEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'static',
@@ -1895,13 +1898,15 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'wind_power',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 WindPower.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'WindPowerEffect.partialNoAttackOrderDurationCalibration',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wind_rider',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 WindRider.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'WindRiderEffect.partialNoTargetPrecheckMutation',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wonder_guard',

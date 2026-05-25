@@ -96,6 +96,7 @@ import '../domain/effect/move/lock_on_effect.dart';
 import '../domain/effect/move/magic_coat_effect.dart';
 import '../domain/effect/move/no_retreat_effect.dart';
 import '../domain/effect/move/octolock_effect.dart';
+import '../domain/effect/move/prevent_targets_move_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
 import '../domain/effect/move/shed_tail_effect.dart';
 import '../domain/effect/move/snatch_effect.dart';
@@ -6407,11 +6408,37 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
     }
   }
 
+  var chargedState = chargeEffects.state;
+  final chargedEvents = <PsdkBattleEvent>[...chargeEffects.events];
+  if (context.move.battleEngineMethod == 's_sky_drop') {
+    chargedState = chargedState.updateBattler(
+      context.target,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          PreventTargetsMoveEffect(
+            scope: BattlerBattleEffectScope(context.target),
+            targets: <PsdkBattleSlotRef>[context.target],
+            remainingTurns: 1,
+          ),
+        ),
+      ),
+    );
+    chargedEvents.add(
+      PsdkBattleEffectEvent.added(
+        turn: context.turn,
+        target: context.target,
+        effectId: PsdkBattleEffectIds.preventTargetsMove,
+        remainingTurns: 1,
+        reason: 'move:${context.move.id}',
+      ),
+    );
+  }
+
   return _addEffectToUser(
     context: context,
-    state: chargeEffects.state,
+    state: chargedState,
     rng: chargeEffects.rng,
-    events: chargeEffects.events,
+    events: chargedEvents,
     effect: TwoTurnChargeEffect(
       scope: BattlerBattleEffectScope(context.user),
       chargedMoveId: context.move.id,

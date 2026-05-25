@@ -34,6 +34,7 @@ import '../psdk/domain/psdk_battle_move.dart';
 import '../psdk/domain/psdk_battle_outcome.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
 import '../psdk/domain/psdk_battle_state.dart';
+import '../psdk/domain/psdk_battle_timeline.dart';
 
 /// Result of submitting one decision to [BattleTurnRunner].
 final class BattleEngineTurnResult {
@@ -399,6 +400,19 @@ final class BattleTurnRunner {
             remainingPp: moveAfterPp.currentPp,
           ),
         );
+        final cleanMoveAfterPp = BattleMoveDefinition.fromPsdk(moveAfterPp);
+        final preAccuracy = _resolvePreAccuracy(
+          user: action.user,
+          target: action.target,
+          move: cleanMoveAfterPp,
+        );
+        if (preAccuracy.applied || preAccuracy.events.isNotEmpty) {
+          _context.applyStateAndRng(
+            nextState: preAccuracy.state,
+            nextRng: preAccuracy.rng,
+          );
+          timeline.addPsdkAll(preAccuracy.events);
+        }
 
         final stateBeforeResolution = _context.state;
         final resolution = _moveBehaviorRegistry.resolve(
@@ -448,6 +462,16 @@ final class BattleTurnRunner {
             targets: historyTargets,
             attackOrder: actionIndex,
           );
+          final postAction = _resolvePostAction(
+            user: action.user,
+            move: cleanMoveAfterPp,
+            successful: true,
+          );
+          _context.applyStateAndRng(
+            nextState: postAction.state,
+            nextRng: postAction.rng,
+          );
+          timeline.addPsdkAll(postAction.events);
         }
 
         final outcome = _context.resolveOutcome();
@@ -668,6 +692,59 @@ final class BattleTurnRunner {
         user: action.user,
       ),
       action: action,
+    );
+  }
+
+  BattleEffectPreAccuracyResult _resolvePreAccuracy({
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+    required BattleMoveDefinition move,
+  }) {
+    return _context.state.battlerAt(user).effects.dispatchPreAccuracy(
+          BattleEffectPreAccuracyContext(
+            state: _context.state,
+            rng: _context.rng,
+            turn: _context.turnNumber,
+            owner: user,
+            user: user,
+            target: target,
+            move: move,
+          ),
+          where: (effect) => effect is! BattleMajorStatusEffect,
+        );
+  }
+
+  BattleEffectPostActionResult _resolvePostAction({
+    required PsdkBattleSlotRef user,
+    required BattleMoveDefinition move,
+    required bool successful,
+  }) {
+    var nextState = _context.state;
+    var nextRng = _context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+    for (final owner in _context.state.aliveSlots()) {
+      final postAction = nextState.battlerAt(owner).effects.dispatchPostAction(
+            BattleEffectPostActionContext(
+              state: nextState,
+              rng: nextRng,
+              turn: _context.turnNumber,
+              owner: owner,
+              user: user,
+              move: move,
+              successful: successful,
+            ),
+          );
+      nextState = postAction.state;
+      nextRng = postAction.rng;
+      events.addAll(postAction.events);
+      changed = changed || postAction.applied || postAction.events.isNotEmpty;
+    }
+    return BattleEffectPostActionResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
     );
   }
 

@@ -217,6 +217,40 @@ final class BattleEffectPostActionResult {
   final bool applied;
 }
 
+final class BattleEffectPreAccuracyContext {
+  const BattleEffectPreAccuracyContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.target,
+    required this.move,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final BattleMoveDefinition move;
+}
+
+final class BattleEffectPreAccuracyResult {
+  const BattleEffectPreAccuracyResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
 final class BattleEffectItemChangeContext {
   const BattleEffectItemChangeContext({
     required this.state,

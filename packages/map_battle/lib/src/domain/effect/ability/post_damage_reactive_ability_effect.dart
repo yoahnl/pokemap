@@ -1,7 +1,13 @@
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_handler_result.dart';
 import '../../handler/battle_stat_change_handler.dart';
+import '../../move/battle_move_data.dart';
+import '../../move/battle_move_prevention.dart';
+import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
@@ -169,6 +175,161 @@ final class ElectromorphosisEffect extends BattleAbilityEffect {
   }
 }
 
+final class WindPowerEffect extends BattleAbilityEffect {
+  const WindPowerEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'wind_power', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return WindPowerEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        context.damage <= 0 ||
+        context.targetFainted ||
+        !_isWindMove(context.move)) {
+      return null;
+    }
+    final charged = _addCharge(
+      state: context.state,
+      owner: context.owner,
+      turn: context.turn,
+      reason: 'ability:$abilityId',
+    );
+    if (charged == null) {
+      return null;
+    }
+    return BattleEffectPostDamageResult(
+      state: charged.state,
+      rng: context.rng,
+      events: charged.events,
+    );
+  }
+
+  @override
+  BattleEffectPostActionResult? onPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    if (context.owner.bank != context.user.bank ||
+        !context.successful ||
+        !_isTailwindMove(context.move) ||
+        context.state.battlerAt(context.owner).isFainted) {
+      return null;
+    }
+    final charged = _addCharge(
+      state: context.state,
+      owner: context.owner,
+      turn: context.turn,
+      reason: 'ability:$abilityId',
+    );
+    if (charged == null) {
+      return null;
+    }
+    return BattleEffectPostActionResult(
+      state: charged.state,
+      rng: context.rng,
+      events: charged.events,
+    );
+  }
+}
+
+final class WindRiderEffect extends BattleAbilityEffect {
+  const WindRiderEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'wind_rider', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return WindRiderEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectDamagePreventionResult? onDamagePrevention(
+    BattleEffectDamagePreventionContext context,
+  ) {
+    if (context.owner != context.target ||
+        context.user == context.target ||
+        !_isWindMove(context.move)) {
+      return null;
+    }
+    final boosted = _raiseAttack(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: context.owner,
+      move: context.move,
+      abilityId: abilityId,
+    );
+    return BattleEffectDamagePreventionResult(
+      state: boosted.state,
+      rng: boosted.rng,
+      prevented: true,
+      reason: BattleMoveFailureReason.immunity,
+      events: boosted.events,
+    );
+  }
+
+  @override
+  BattleEffectPostActionResult? onPostAction(
+    BattleEffectPostActionContext context,
+  ) {
+    if (context.owner.bank != context.user.bank ||
+        !context.successful ||
+        !_isTailwindMove(context.move) ||
+        context.state.battlerAt(context.owner).isFainted) {
+      return null;
+    }
+    final boosted = _raiseAttack(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: context.owner,
+      move: context.move,
+      abilityId: abilityId,
+    );
+    if (!boosted.applied && boosted.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectPostActionResult(
+      state: boosted.state,
+      rng: boosted.rng,
+      events: boosted.events,
+    );
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (context.owner != context.replacement ||
+        !_bankHasTailwind(context.state, context.owner.bank)) {
+      return null;
+    }
+    final boosted = _raiseAttack(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      owner: context.owner,
+      move: null,
+      abilityId: abilityId,
+    );
+    if (!boosted.applied && boosted.events.isEmpty) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: boosted.state,
+      rng: boosted.rng,
+      events: boosted.events,
+    );
+  }
+}
+
 final class StenchEffect extends BattleAbilityEffect {
   const StenchEffect({
     required BattleEffectScope scope,
@@ -232,4 +393,116 @@ final class StenchEffect extends BattleAbilityEffect {
   bool _heldItemSuppressesStench(String? itemId) {
     return itemId == 'king_s_rock' || itemId == 'razor_fang';
   }
+}
+
+_ChargeResult? _addCharge({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef owner,
+  required int turn,
+  required String reason,
+}) {
+  final battler = state.battlerAt(owner);
+  if (battler.effects.contains('charge')) {
+    return null;
+  }
+  const chargeRemainingTurns = 2;
+  final charge = GenericBattleEffect(
+    id: 'charge',
+    scope: BattlerBattleEffectScope(owner),
+    remainingTurns: chargeRemainingTurns,
+  );
+  return _ChargeResult(
+    state: state.updateBattler(
+      owner,
+      (current) => current.copyWith(
+        effects: current.effects.addEffect(charge),
+      ),
+    ),
+    events: <PsdkBattleEvent>[
+      PsdkBattleEffectEvent.added(
+        turn: turn,
+        target: owner,
+        effectId: 'charge',
+        remainingTurns: charge.remainingTurns,
+        reason: reason,
+      ),
+    ],
+  );
+}
+
+BattleHandlerResult _raiseAttack({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef owner,
+  required BattleMoveDefinition? move,
+  required String abilityId,
+}) {
+  return const BattleStatChangeHandler().applyStatChange(
+    context: BattleHandlerContext(
+      state: state,
+      rng: rng,
+      turn: turn,
+      user: owner,
+    ),
+    target: owner,
+    stat: 'attack',
+    stages: 1,
+    move: move,
+    sourceAbilityId: abilityId,
+  );
+}
+
+bool _isWindMove(BattleMoveDefinition move) {
+  return move.flags.wind || _windMoveIds.contains(_normalizedId(move.dbSymbol));
+}
+
+bool _isTailwindMove(BattleMoveDefinition move) {
+  return _normalizedId(move.dbSymbol) == 'tailwind';
+}
+
+bool _bankHasTailwind(PsdkBattleState state, int bank) {
+  return state.combatants.values.any(
+    (battler) => battler.effects.effects.any((effect) {
+      final scope = effect.scope;
+      return effect.id == 'tailwind' &&
+          scope is BankBattleEffectScope &&
+          scope.bank == bank;
+    }),
+  );
+}
+
+String _normalizedId(String id) {
+  return id.trim().toLowerCase().replaceAll('-', '_');
+}
+
+const _windMoveIds = <String>{
+  'air_cutter',
+  'bleakwind_storm',
+  'blizzard',
+  'fairy_wind',
+  'gust',
+  'heat_wave',
+  'hurricane',
+  'icy_wind',
+  'ominous_wind',
+  'petal_blizzard',
+  'razor_wind',
+  'sandsear_storm',
+  'silver_wind',
+  'springtide_storm',
+  'tailwind',
+  'twister',
+  'whirlwind',
+  'wildbolt_storm',
+};
+
+final class _ChargeResult {
+  const _ChargeResult({
+    required this.state,
+    required this.events,
+  });
+
+  final PsdkBattleState state;
+  final List<PsdkBattleEvent> events;
 }

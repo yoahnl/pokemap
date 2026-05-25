@@ -98,6 +98,31 @@ final class FlowerGiftStatAbilityEffect extends BattleAbilityEffect {
   }
 
   @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (context.owner != context.replacement) {
+      return null;
+    }
+    return _calibrateCherrimForm(
+      state: context.state,
+      rng: context.rng,
+      owner: context.owner,
+    )?.toSwitchResult();
+  }
+
+  @override
+  BattleEffectFieldChangeResult? onPostWeatherChange(
+    BattleEffectWeatherChangeContext context,
+  ) {
+    return _calibrateCherrimForm(
+      state: context.state,
+      rng: context.rng,
+      owner: context.owner,
+    )?.toFieldResult();
+  }
+
+  @override
   double statMultiplier(BattleAbilityStatContext context) {
     final ownerSlot = owner;
     final battlerSlot = context.battlerSlot;
@@ -111,6 +136,57 @@ final class FlowerGiftStatAbilityEffect extends BattleAbilityEffect {
       'attack' || 'specialDefense' => 1.5,
       _ => 1,
     };
+  }
+
+  _FlowerGiftFormResult? _calibrateCherrimForm({
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required PsdkBattleSlotRef owner,
+  }) {
+    final battler = state.battlerAt(owner);
+    if (_normalizedId(battler.speciesId) != 'cherrim') {
+      return null;
+    }
+    final nextForm = hasSunnyWeather(
+      BattleAbilityStatContext(
+        field: state.field,
+        battler: battler,
+        stat: 'attack',
+        state: state,
+        battlerSlot: owner,
+        weatherEffectsSuppressed: state.weatherEffectsSuppressed,
+      ),
+    )
+        ? 1
+        : 0;
+    if (battler.form == nextForm) {
+      return null;
+    }
+    return _FlowerGiftFormResult(
+      state: state.updateBattler(
+        owner,
+        (current) => current.copyWith(form: nextForm),
+      ),
+      rng: rng,
+    );
+  }
+}
+
+final class _FlowerGiftFormResult {
+  const _FlowerGiftFormResult({
+    required this.state,
+    required this.rng,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+
+  BattleEffectSwitchEventResult toSwitchResult() {
+    return BattleEffectSwitchEventResult(state: state, rng: rng);
+  }
+
+  BattleEffectFieldChangeResult toFieldResult() {
+    return BattleEffectFieldChangeResult(state: state, rng: rng);
   }
 }
 
@@ -588,6 +664,10 @@ bool hasRainWeather(BattleAbilityStatContext context) {
   return !context.weatherEffectsSuppressed &&
       (context.field.isWeatherActive(PsdkBattleWeatherId.rain) ||
           context.field.isWeatherActive(PsdkBattleWeatherId.hardrain));
+}
+
+String _normalizedId(String? id) {
+  return id?.trim().toLowerCase().replaceAll('-', '_') ?? '';
 }
 
 bool hasSandstormWeather(BattleAbilityStatContext context) {

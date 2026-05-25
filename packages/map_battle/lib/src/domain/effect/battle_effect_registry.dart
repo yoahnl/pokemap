@@ -28,6 +28,7 @@ import 'move/grudge_effect.dart';
 import 'move/imprison_effect.dart';
 import 'move/ingrain_effect.dart';
 import 'move/item_burnt_effect.dart';
+import 'move/item_stolen_effect.dart';
 import 'move/leech_seed_effect.dart';
 import 'move/lock_on_effect.dart';
 import 'move/nightmare_effect.dart';
@@ -36,6 +37,7 @@ import 'move/octolock_effect.dart';
 import 'move/perish_song_effect.dart';
 import 'move/magic_coat_effect.dart';
 import 'move/powder_effect.dart';
+import 'move/prevent_targets_move_effect.dart';
 import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
@@ -110,6 +112,7 @@ final class BattleEffectRegistry {
       'imprison' => ImprisonEffect(scope: const LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
       'item_burnt' => const ItemBurntEffect(scope: LocalBattleEffectScope()),
+      'item_stolen' => const ItemStolenEffect(scope: LocalBattleEffectScope()),
       'leech_seed' => const LeechSeedEffect(
           scope: LocalBattleEffectScope(),
           source: psdkOpponentSlot,
@@ -127,6 +130,8 @@ final class BattleEffectRegistry {
       'perish_song' => const PerishSongEffect(scope: LocalBattleEffectScope()),
       'magic_coat' => const MagicCoatEffect(scope: LocalBattleEffectScope()),
       'powder' => const PowderEffect(scope: LocalBattleEffectScope()),
+      'prevent_targets_move' =>
+        const PreventTargetsMoveEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
       'pledge_rainbow' =>
         const RainbowPledgeEffect(scope: LocalBattleEffectScope()),

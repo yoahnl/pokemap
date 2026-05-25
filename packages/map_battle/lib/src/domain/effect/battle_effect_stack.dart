@@ -248,6 +248,54 @@ final class BattleEffectObjectStack {
     );
   }
 
+  BattleEffectPreAccuracyResult dispatchPreAccuracy(
+    BattleEffectPreAccuracyContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPreAccuracy(
+        BattleEffectPreAccuracyContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          target: context.target,
+          move: context.move,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectPreAccuracyResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   BattleEffectItemChangeResult dispatchPostItemChange(
     BattleEffectItemChangeContext context,
   ) {

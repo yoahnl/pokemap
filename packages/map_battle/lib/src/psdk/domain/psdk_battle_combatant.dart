@@ -451,6 +451,13 @@ class PsdkBattleEffectStack {
     return _stack.dispatchPostAction(context);
   }
 
+  BattleEffectPreAccuracyResult dispatchPreAccuracy(
+    BattleEffectPreAccuracyContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.dispatchPreAccuracy(context, where: where);
+  }
+
   BattleEffectItemChangeResult dispatchPostItemChange(
     BattleEffectItemChangeContext context,
   ) {

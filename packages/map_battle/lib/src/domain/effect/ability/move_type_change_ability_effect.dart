@@ -1,4 +1,8 @@
+import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_effect.dart';
+import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
 import 'ability_effect.dart';
 
@@ -62,6 +66,82 @@ final class MoveTypeChangeAbilityEffect extends BattleAbilityEffect {
   }
 }
 
+final class ProteanTypeChangeAbilityEffect extends BattleAbilityEffect {
+  const ProteanTypeChangeAbilityEffect({
+    required String abilityId,
+    required BattleEffectScope scope,
+  }) : super(abilityId: abilityId, scope: scope);
+
+  static const Set<String> _noActivationMethods = <String>{
+    's_struggle',
+    's_metronome',
+    's_me_first',
+    's_assist',
+    's_mirror_move',
+    's_nature_power',
+    's_sleep_talk',
+  };
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ProteanTypeChangeAbilityEffect(
+      abilityId: abilityId,
+      scope: scope,
+    );
+  }
+
+  @override
+  BattleEffectPreAccuracyResult? onPreAccuracy(
+    BattleEffectPreAccuracyContext context,
+  ) {
+    if (!isOwnedBy(context.user) ||
+        context.owner != context.user ||
+        _noActivationMethods.contains(_normalizedId(
+          context.move.battleEngineMethod,
+        )) ||
+        context.move.category == PsdkBattleMoveCategory.status) {
+      return null;
+    }
+    final nextType = _normalizedId(context.move.type);
+    if (nextType.isEmpty || nextType == 'none') {
+      return null;
+    }
+    final user = context.state.battlerAt(context.user);
+    if (_isSingleType(user) && user.hasType(nextType)) {
+      return null;
+    }
+    return BattleEffectPreAccuracyResult(
+      state: context.state.updateBattler(
+        context.user,
+        (battler) => battler.copyWith(
+          types: PsdkBattleTypes(primary: nextType),
+          type3: null,
+          temporaryTypes: const <String>[],
+        ),
+      ),
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.user,
+          effectId: '$abilityId:$nextType',
+          reason: 'ability:$abilityId',
+        ),
+      ],
+    );
+  }
+}
+
 bool _isWeatherBall(String battleEngineMethod) {
   return battleEngineMethod == 's_weather_ball';
+}
+
+bool _isSingleType(PsdkBattleCombatant battler) {
+  return battler.types.secondary == null &&
+      battler.type3 == null &&
+      battler.temporaryTypes.isEmpty;
+}
+
+String _normalizedId(String id) {
+  return id.trim().toLowerCase().replaceAll('-', '_');
 }

@@ -2191,6 +2191,121 @@ void main() {
       );
     });
 
+    test('Flower Gift calibrates Cherrim forms on switch and weather changes',
+        () {
+      const sunnyField = PsdkBattleFieldState(
+        weather: PsdkBattleWeatherState(
+          id: PsdkBattleWeatherId.sunny,
+          remainingTurns: 5,
+        ),
+      );
+      final switchInSun = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'flower_gift',
+        playerSpeciesId: 'cherrim',
+        field: sunnyField,
+      );
+      final switchInClear = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'flower_gift',
+        playerSpeciesId: 'cherrim',
+        playerForm: 1,
+      );
+      final weatherSun = _changeWeatherForAbility(
+        playerAbilityId: 'flower_gift',
+        playerSpeciesId: 'cherrim',
+        weather: PsdkBattleWeatherId.sunny,
+      );
+      final weatherClear = _clearWeatherForAbility(
+        playerAbilityId: 'flower_gift',
+        playerSpeciesId: 'cherrim',
+        playerForm: 1,
+        field: sunnyField,
+      );
+
+      expect(switchInSun.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(switchInClear.state.battlerAt(psdkPlayerSlot).form, 0);
+      expect(weatherSun.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(weatherClear.state.battlerAt(psdkPlayerSlot).form, 0);
+    });
+
+    test('Stance Change swaps Aegislash forms before selected moves', () {
+      final blade = _runMove(
+        playerAbilityId: 'stance_change',
+        playerSpeciesId: 'aegislash',
+        playerForm: 0,
+        playerMove: _move(id: 'iron_head', type: 'steel', power: 80),
+      );
+      final shield = _runMove(
+        playerAbilityId: 'stance_change',
+        playerSpeciesId: 'aegislash',
+        playerForm: 1,
+        playerMove: _move(
+          id: 'king_s_shield',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_protect',
+          target: PsdkBattleMoveTarget.self,
+        ),
+      );
+
+      expect(blade.state.battlerAt(psdkPlayerSlot).form, 1);
+      expect(_damageEvents(blade, moveId: 'iron_head'), hasLength(1));
+      expect(shield.state.battlerAt(psdkPlayerSlot).form, 0);
+    });
+
+    test('Stance Change does not swap forms when the selected move has no PP',
+        () {
+      final result = _runMove(
+        playerAbilityId: 'stance_change',
+        playerSpeciesId: 'aegislash',
+        playerForm: 0,
+        playerMove: _move(
+          id: 'iron_head',
+          type: 'steel',
+          power: 80,
+          pp: 5,
+          currentPp: 0,
+        ),
+      );
+
+      final failures =
+          result.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+      expect(result.state.battlerAt(psdkPlayerSlot).form, 0);
+      expect(_damageEvents(result, moveId: 'iron_head'), isEmpty);
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, BattleMoveFailureReason.pp.jsonName);
+    });
+
+    test('Libero and Protean rewrite the user type before the move lands', () {
+      final protean = _runMove(
+        playerAbilityId: 'protean',
+        playerTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _move(id: 'flamethrower', type: 'fire', power: 90),
+      );
+      final libero = _runMove(
+        playerAbilityId: 'libero',
+        playerTypes: const PsdkBattleTypes(
+          primary: 'normal',
+          secondary: 'flying',
+        ),
+        playerMove: _move(id: 'water_gun', type: 'water', power: 40),
+      );
+      final sameSingleType = _runMove(
+        playerAbilityId: 'protean',
+        playerTypes: const PsdkBattleTypes(primary: 'fire'),
+        playerMove: _move(id: 'ember', type: 'fire', power: 40),
+      );
+
+      expect(protean.state.battlerAt(psdkPlayerSlot).types.primary, 'fire');
+      expect(protean.state.battlerAt(psdkPlayerSlot).types.secondary, isNull);
+      expect(libero.state.battlerAt(psdkPlayerSlot).types.primary, 'water');
+      expect(libero.state.battlerAt(psdkPlayerSlot).types.secondary, isNull);
+      expect(
+          sameSingleType.timeline.events.whereType<PsdkBattleEffectEvent>(),
+          isNot(contains(predicate<PsdkBattleEffectEvent>(
+            (event) => event.reason == 'ability:protean',
+          ))));
+    });
+
     test('defensive stat modifier abilities reduce matching physical damage',
         () {
       final baseline = _runMove(
@@ -4669,6 +4784,49 @@ void main() {
       expect(sameType.events.whereType<PsdkBattleEffectEvent>(), isEmpty);
     });
 
+    test('Wind Power charges the holder after wind damage', () {
+      final charged = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wind_power',
+        moveId: 'gust',
+        flags: const BattleMoveFlags(wind: true),
+      );
+      final ordinary = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wind_power',
+        moveId: 'tackle',
+      );
+
+      expect(
+        _effectFor(charged.state, psdkOpponentSlot, 'charge').remainingTurns,
+        2,
+      );
+      expect(
+          _effectEventsForHandler(charged).single.reason, 'ability:wind_power');
+      expect(
+        ordinary.state.battlerAt(psdkOpponentSlot).effects.contains('charge'),
+        isFalse,
+      );
+    });
+
+    test('Wind Rider blocks wind damage and raises Attack', () {
+      final blocked = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wind_rider',
+        moveId: 'gust',
+        flags: const BattleMoveFlags(wind: true),
+      );
+      final ordinary = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wind_rider',
+        moveId: 'tackle',
+      );
+
+      expect(_damageEventsForHandler(blocked), isEmpty);
+      expect(
+        blocked.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        1,
+      );
+      expect(_statEventsForHandler(blocked).single.stat, 'attack');
+      expect(_damageEventsForHandler(ordinary), hasLength(1));
+    });
+
     test('Toxic Debris lays and empowers Toxic Spikes on the attacker bank',
         () {
       final firstLayer = _applyDirectAbilityDamage(
@@ -5985,6 +6143,9 @@ void main() {
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   String? playerAbilityId,
+  String? playerSpeciesId,
+  int playerForm = 0,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   String? opponentAbilityId,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleMajorStatus? opponentMajorStatus,
@@ -6003,8 +6164,11 @@ PsdkBattleTurnResult _runMove({
     setup: BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        speciesId: playerSpeciesId,
         currentHp: playerCurrentHp,
         abilityId: playerAbilityId,
+        form: playerForm,
+        types: playerTypes,
         majorStatus: playerMajorStatus,
         speed: 100,
         move: playerMove,
@@ -6197,6 +6361,86 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
     ),
     who: benchSlot,
     replacement: psdkPlayerSlot,
+  );
+}
+
+BattleHandlerResult _changeWeatherForAbility({
+  required String playerAbilityId,
+  required PsdkBattleWeatherId weather,
+  String? playerSpeciesId,
+  int playerForm = 0,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        speciesId: playerSpeciesId,
+        abilityId: playerAbilityId,
+        form: playerForm,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      field: field,
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleWeatherChangeHandler().changeWeather(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    weather: weather,
+  );
+}
+
+BattleHandlerResult _clearWeatherForAbility({
+  required String playerAbilityId,
+  String? playerSpeciesId,
+  int playerForm = 0,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        speciesId: playerSpeciesId,
+        abilityId: playerAbilityId,
+        form: playerForm,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      field: field,
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleWeatherChangeHandler().clearWeather(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
   );
 }
 
@@ -6793,6 +7037,7 @@ PsdkBattleMoveData _move({
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
   bool protectable = true,
   bool sound = false,
+  bool wind = false,
   bool ballistics = false,
   bool heal = false,
   int? pp,
@@ -6814,6 +7059,7 @@ PsdkBattleMoveData _move({
     target: target,
     protectable: protectable,
     sound: sound,
+    wind: wind,
     ballistics: ballistics,
     heal: heal,
   );
@@ -7088,6 +7334,7 @@ int _calculatedDoublesDamage({
 BattleHandlerResult _applyDirectAbilityDamage({
   String? opponentAbilityId,
   String? playerAbilityId,
+  String moveId = 'typed_hit',
   int playerForm = 0,
   String moveType = 'normal',
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.special,
@@ -7122,7 +7369,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
         heldItemId: playerHeldItemId,
         majorStatus: playerMajorStatus,
         effects: playerEffects,
-        move: _move(id: 'typed_hit', type: moveType, power: 60),
+        move: _move(id: moveId, type: moveType, power: 60),
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -7146,13 +7393,13 @@ BattleHandlerResult _applyDirectAbilityDamage({
       user: psdkPlayerSlot,
     ),
     target: psdkOpponentSlot,
-    moveId: 'typed_hit',
+    moveId: moveId,
     rawDamage: rawDamage,
     criticalHit: criticalHit,
     move: BattleMoveDefinition(
-      id: 'typed_hit',
-      dbSymbol: 'typed_hit',
-      name: 'typed_hit',
+      id: moveId,
+      dbSymbol: moveId,
+      name: moveId,
       type: moveType,
       category: category,
       power: 60,

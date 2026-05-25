@@ -129,6 +129,7 @@ class PsdkBattleMoveData {
     this.sound = false,
     this.bite = false,
     this.pulse = false,
+    this.wind = false,
     this.ballistics = false,
     this.kingRockUtility = false,
     this.heal = false,
@@ -188,6 +189,7 @@ class PsdkBattleMoveData {
   final bool sound;
   final bool bite;
   final bool pulse;
+  final bool wind;
   final bool ballistics;
   final bool kingRockUtility;
   final bool heal;
@@ -240,6 +242,7 @@ class PsdkBattleMoveData {
     bool? sound,
     bool? bite,
     bool? pulse,
+    bool? wind,
     bool? ballistics,
     bool? kingRockUtility,
     bool? heal,
@@ -271,6 +274,7 @@ class PsdkBattleMoveData {
       sound: sound ?? this.sound,
       bite: bite ?? this.bite,
       pulse: pulse ?? this.pulse,
+      wind: wind ?? this.wind,
       ballistics: ballistics ?? this.ballistics,
       kingRockUtility: kingRockUtility ?? this.kingRockUtility,
       heal: heal ?? this.heal,

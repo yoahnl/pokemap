@@ -75,7 +75,16 @@ void main() {
             .battlerAt(psdkOpponentSlot)
             .effects
             .contains('heal_block'),
-        isTrue,
+        isFalse,
+        reason: 'Oblivious lets Psychic Noise apply Heal Block, then cures the '
+            'mental effect during the PSDK post-action hook.',
+      );
+      expect(
+        oblivious.timeline.events
+            .whereType<PsdkBattleEffectEvent>()
+            .where((event) => event.effectId == 'heal_block')
+            .map((event) => event.kind),
+        contains('effect_removed'),
       );
     });
 

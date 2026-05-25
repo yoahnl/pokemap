@@ -281,6 +281,14 @@ final class AbilityEffectRegistry {
           convertedType: 'ice',
           powerMultiplier: 1.3,
         ),
+    'libero': ({required scope}) => ProteanTypeChangeAbilityEffect(
+          abilityId: 'libero',
+          scope: scope,
+        ),
+    'protean': ({required scope}) => ProteanTypeChangeAbilityEffect(
+          abilityId: 'protean',
+          scope: scope,
+        ),
     'normalize': ({required scope}) => MoveTypeChangeAbilityEffect(
           abilityId: 'normalize',
           scope: scope,
@@ -940,6 +948,8 @@ final class AbilityEffectRegistry {
     'shield_dust': ({required scope}) => ShieldDustEffect(scope: scope),
     'electromorphosis': ({required scope}) =>
         ElectromorphosisEffect(scope: scope),
+    'wind_power': ({required scope}) => WindPowerEffect(scope: scope),
+    'wind_rider': ({required scope}) => WindRiderEffect(scope: scope),
     'protosynthesis': ({required scope}) => ParadoxStatBoostAbilityEffect(
           abilityId: 'protosynthesis',
           scope: scope,
@@ -957,6 +967,7 @@ final class AbilityEffectRegistry {
     'hydration': ({required scope}) => HydrationEffect(scope: scope),
     'ice_body': ({required scope}) => IceBodyEffect(scope: scope),
     'ice_face': ({required scope}) => IceFaceEffect(scope: scope),
+    'stance_change': ({required scope}) => StanceChangeEffect(scope: scope),
     'dry_skin': ({required scope}) => DrySkinEffect(scope: scope),
     'solar_power': ({required scope}) => SolarPowerEffect(scope: scope),
     'shed_skin': ({required scope}) => ShedSkinEffect(scope: scope),

@@ -186,6 +186,7 @@ PsdkBattleMoveData _copyMoveWithPriority(
     sound: move.sound,
     bite: move.bite,
     pulse: move.pulse,
+    wind: move.wind,
     ballistics: move.ballistics,
     kingRockUtility: move.kingRockUtility,
     heal: move.heal,

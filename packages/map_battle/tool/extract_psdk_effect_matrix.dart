@@ -368,6 +368,8 @@ String _notesFor(String effectName) {
       'Object-backed PerishSongEffect counts down at end turn, transfers through Baton Pass and faints the holder when the counter resolves.',
     'Powder' =>
       'Object-backed PowderEffect prevents Fire move execution for its holder and applies one-quarter max HP damage.',
+    'PreventTargetsMove' =>
+      'Object-backed PreventTargetsMoveEffect blocks carried targets through the user-prevention hook and Sky Drop installs the one-turn marker on its first turn.',
     'Protect' =>
       'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.',
     'QuickGuard' =>

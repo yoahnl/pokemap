@@ -72,6 +72,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectPreAccuracyResult? onPreAccuracy(
+    BattleEffectPreAccuracyContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectItemChangeResult? onPostItemChange(
     BattleEffectItemChangeContext context,
   ) {
