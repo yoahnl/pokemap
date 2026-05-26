@@ -12,9 +12,9 @@ Roadmap source précédente :
 MVP Selbrume/road_map_phase_6.md
 ```
 
-Lot courant : ✅ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
+Lot courant : ✅ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
 
-Prochain lot exact : P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+Prochain lot exact : P7-03 — Narrative Studio First Screen / Golden Path UX Design
 
 Légende :
 
@@ -131,8 +131,8 @@ audio runtime complet non prouvé
 
 - ✅ P7-00 — Phase 7 Roadmap Bootstrap / Narrative Studio Modern UI Scope Audit
 - ✅ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
-- ➡️ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
-- ⏳ P7-03 — Narrative Studio First Screen / Golden Path UX Design
+- ✅ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+- ➡️ P7-03 — Narrative Studio First Screen / Golden Path UX Design
 - ⏳ P7-04 — Narrative Studio Interaction Model / No-Code Authoring Controls V0
 - ⏳ P7-05 — Validator & Diagnostics UI Integration Design
 - ⏳ P7-06 — Narrative Studio Visual System / Component Rules V0
@@ -144,12 +144,14 @@ P7-00 : ✅ terminé
 
 P7-01 : ✅ terminé
 
-P7-02 : ➡️ prochain lot exact
+P7-02 : ✅ terminé
+
+P7-03 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+P7-03 — Narrative Studio First Screen / Golden Path UX Design
 ```
 
 ## Roadmap
@@ -219,9 +221,9 @@ Events, Scenes, Dialogues, Conditions, Facts, World Rules, Outcomes,
 Validator et previews.
 ```
 
-### ➡️ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+### ✅ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -230,7 +232,38 @@ définir l'architecture d'information moderne du Narrative Studio : Storyline,
 Chapter, Story Step, Event, Scene, Dialogue, Fact, World Rule, Validator.
 ```
 
-### ⏳ P7-03 — Narrative Studio First Screen / Golden Path UX Design
+Résultat P7-02 :
+
+```text
+Architecture recommandée : un Narrative Studio unique avec sections internes,
+fondé sur un hub Storyline Dashboard et une navigation interne persistante.
+
+Modèle mental retenu : Story Map, Scenes & Dialogue, Logic & World,
+Consequences, Validation & Preview.
+
+Les sous-studios existants restent des vues spécialisées réutilisables :
+Global Story Studio, Step Studio, Cutscene Studio et Dialogue Studio ne sont
+pas supprimés, mais repositionnés derrière une IA créateur plus claire.
+
+Vocabulaire UI : masquer le jargon moteur en remplaçant scenario/local event
+flow/node/entry/outcomeId/flag/predicate par récit, scène, étape, résultat,
+condition, état du monde, problème à corriger et aperçu.
+```
+
+Décision pour P7-03 :
+
+```text
+P7-03 doit concevoir le premier écran du Narrative Studio : Storyline Dashboard
++ Golden Path. Il doit montrer la structure de l'histoire, les prochaines
+actions créateur, les problèmes à corriger et l'accès preview, sans afficher
+les détails bas niveau des flows, IDs, predicates ou diagnostics bruts.
+```
+
+### ➡️ P7-03 — Narrative Studio First Screen / Golden Path UX Design
+
+Statut : prochain lot exact.
+
+But :
 
 But :
 
