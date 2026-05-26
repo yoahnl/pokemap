@@ -55,33 +55,204 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        _KpiCardsSection(
+          metrics: [
+            readModel.metrics.chapters,
+            readModel.metrics.scenes,
+            readModel.metrics.cutscenes,
+            readModel.metrics.quests,
+            readModel.metrics.dialogues,
+            readModel.metrics.openIssues,
+          ],
+        ),
+        const SizedBox(height: 12),
         _OverviewSection(
-          title: 'Disponibilité des données principales',
+          title: 'V0 volontairement limitée',
           children: [
-            _MetricLine(metric: readModel.metrics.dialogues),
-            _MetricLine(metric: readModel.metrics.chapters),
-            _MetricLine(metric: readModel.metrics.scenes),
-            _MetricLine(metric: readModel.metrics.openIssues),
-            _MetricLine(metric: readModel.metrics.quests),
+            const Text(
+              'Les sections détaillées seront construites dans les lots suivants.',
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Aucun compteur fake, aucune activité récente inventée, aucune notification simulée.',
+            ),
+            const SizedBox(height: 6),
             _MetricLine(metric: readModel.metrics.facts),
             _FeatureLine(feature: readModel.recentActivity),
             _FeatureLine(feature: readModel.notifications),
           ],
         ),
-        const SizedBox(height: 12),
-        const _OverviewSection(
-          title: 'V0 volontairement limitée',
-          children: [
-            Text(
-              'Les sections détaillées seront construites dans les lots suivants.',
-            ),
-            SizedBox(height: 6),
-            Text(
-              'Aucun compteur fake, aucune activité récente inventée, aucune notification simulée.',
-            ),
-          ],
+      ],
+    );
+  }
+}
+
+class _KpiCardsSection extends StatelessWidget {
+  const _KpiCardsSection({
+    required this.metrics,
+  });
+
+  final List<NarrativeMetricSummary> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    return _OverviewSection(
+      title: 'Indicateurs auteur',
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = 10.0;
+            final maxWidth = constraints.maxWidth;
+            final columns = switch (maxWidth) {
+              >= 1080 => 6,
+              >= 720 => 3,
+              _ => 2,
+            };
+            final cardWidth = (maxWidth - spacing * (columns - 1)) / columns;
+
+            return Wrap(
+              key: const ValueKey('narrative-overview-kpi-grid'),
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final metric in metrics)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _KpiCard(metric: metric),
+                  ),
+              ],
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _KpiCard extends StatelessWidget {
+  const _KpiCard({required this.metric});
+
+  final NarrativeMetricSummary metric;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _availabilityAccent(context, metric.availability);
+    return Container(
+      key: ValueKey('narrative-overview-kpi-${metric.id}'),
+      height: 154,
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: accent.withValues(alpha: 0.1),
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.34)),
+        boxShadow: EditorChrome.sectionCardShadows(context),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _MetricIcon(metricId: metric.id, accent: accent),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  metric.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: EditorChrome.primaryLabel(context),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            _metricCardValue(metric),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: _metricCardValue(metric).length > 12 ? 18 : 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 6),
+          _AvailabilityPill(
+            label: _metricSupportLabel(metric),
+            accent: accent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricIcon extends StatelessWidget {
+  const _MetricIcon({
+    required this.metricId,
+    required this.accent,
+  });
+
+  final String metricId;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.26)),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        _metricIcon(metricId),
+        size: 18,
+        color: accent,
+      ),
+    );
+  }
+}
+
+class _AvailabilityPill extends StatelessWidget {
+  const _AvailabilityPill({
+    required this.label,
+    required this.accent,
+  });
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 24),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.24)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      child: Text(
+        label,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: accent,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
@@ -97,6 +268,7 @@ class _OverviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inheritedFontFamily = DefaultTextStyle.of(context).style.fontFamily;
     return Container(
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
@@ -127,6 +299,7 @@ class _OverviewSection extends StatelessWidget {
               child: DefaultTextStyle(
                 style: TextStyle(
                   color: EditorChrome.subtleLabel(context),
+                  fontFamily: inheritedFontFamily,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -178,12 +351,36 @@ class _OverviewLine extends StatelessWidget {
   }
 }
 
+String _metricCardValue(NarrativeMetricSummary metric) {
+  return switch (metric.availability) {
+    NarrativeOverviewAvailability.available ||
+    NarrativeOverviewAvailability.empty =>
+      '${metric.count ?? 0}',
+    NarrativeOverviewAvailability.unavailable => 'Indisponible',
+    NarrativeOverviewAvailability.notEvaluated => 'Non évalué',
+    NarrativeOverviewAvailability.outOfScope => 'Hors scope V0',
+    NarrativeOverviewAvailability.needsModel => 'Nécessite un modèle',
+  };
+}
+
 String _metricValue(NarrativeMetricSummary metric) {
   return switch (metric.availability) {
     NarrativeOverviewAvailability.available ||
     NarrativeOverviewAvailability.empty =>
       '${metric.count ?? 0}',
     _ => _availabilityValue(metric.availability),
+  };
+}
+
+String _metricSupportLabel(NarrativeMetricSummary metric) {
+  return switch (metric.availability) {
+    NarrativeOverviewAvailability.available => 'Disponible',
+    NarrativeOverviewAvailability.empty => 'Disponible',
+    NarrativeOverviewAvailability.unavailable => metric.unavailableMessage,
+    NarrativeOverviewAvailability.notEvaluated => 'Validation non lancée',
+    NarrativeOverviewAvailability.outOfScope =>
+      metric.id == 'quests' ? 'Pas de modèle Quest' : metric.unavailableMessage,
+    NarrativeOverviewAvailability.needsModel => 'Registre absent',
   };
 }
 
@@ -195,6 +392,33 @@ String _availabilityValue(NarrativeOverviewAvailability availability) {
     NarrativeOverviewAvailability.notEvaluated => 'non évalué',
     NarrativeOverviewAvailability.outOfScope => 'hors scope V0',
     NarrativeOverviewAvailability.needsModel => 'nécessite un modèle',
+  };
+}
+
+Color _availabilityAccent(
+  BuildContext context,
+  NarrativeOverviewAvailability availability,
+) {
+  return switch (availability) {
+    NarrativeOverviewAvailability.available => EditorChrome.accentJade,
+    NarrativeOverviewAvailability.empty => EditorChrome.accentPrimary,
+    NarrativeOverviewAvailability.unavailable => EditorChrome.accentCoral,
+    NarrativeOverviewAvailability.notEvaluated => EditorChrome.accentWarm,
+    NarrativeOverviewAvailability.outOfScope =>
+      EditorChrome.subtleLabel(context),
+    NarrativeOverviewAvailability.needsModel => EditorChrome.inspectorJoyPlum,
+  };
+}
+
+IconData _metricIcon(String metricId) {
+  return switch (metricId) {
+    'chapters' => CupertinoIcons.book_fill,
+    'scenes' => CupertinoIcons.rectangle_stack_fill,
+    'cutscenes' => CupertinoIcons.film_fill,
+    'quests' => CupertinoIcons.flag_fill,
+    'dialogues' => CupertinoIcons.chat_bubble_2_fill,
+    'open_issues' => CupertinoIcons.exclamationmark_triangle_fill,
+    _ => CupertinoIcons.chart_bar_fill,
   };
 }
 
