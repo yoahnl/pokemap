@@ -6,13 +6,13 @@ Roadmap globale : active
 
 Bloc NS-GS-01 → NS-GS-18 : ✅ terminé comme bloc mechanics-first Level 2 Application
 
-Phase courante : Phase 6 — Selbrume Golden Slice réel
+Phase courante : Phase 7 — Modern UI / UX Productization
 
-Roadmap de phase courante : `MVP Selbrume/road_map_phase_6.md`
+Roadmap de phase courante : `MVP Selbrume/road_map_phase_7.md`
 
-Lot courant : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+Lot courant : P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
 
-Prochain lot exact : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+Prochain lot exact : P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
 
 Suivi global :
 
@@ -22,8 +22,9 @@ Suivi global :
 - Phase 3 — Runtime / Application / Flame / Disk Validation : ✅ clôturée avec réserves mineures
 - Phase 4 — Authoring Workflows Minimal : ✅ clôturée avec réserves mineures
 - Phase 5 — Gameplay Gaps Prioritaires : ✅ clôturée avec réserves mineures
-- Phase 6 — Selbrume Golden Slice réel : 🔜 phase courante
-- P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock : 🔜 prochain lot exact
+- Phase 6 — Selbrume Golden Slice réel : ✅ clôturée avec réserves mineures
+- Phase 7 — Modern UI / UX Productization : 🔜 phase courante
+- P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit : 🔜 prochain lot exact
 
 ## 2. Objectif final de PokeMap
 
@@ -129,8 +130,8 @@ Chaque phase doit produire un checkpoint de fermeture indiquant :
 - ✅ Phase 3 — Runtime / Application / Flame / Disk Validation
 - ✅ Phase 4 — Authoring Workflows Minimal
 - ✅ Phase 5 — Gameplay Gaps Prioritaires
-- 🔜 Phase 6 — Selbrume Golden Slice réel
-- Phase 7 — UI / UX moderne finale
+- ✅ Phase 6 — Selbrume Golden Slice réel
+- 🔜 Phase 7 — Modern UI / UX Productization
 
 ## 6. Phase 0 — Audit global & roadmap reset
 
@@ -593,94 +594,123 @@ Critères de sortie :
 
 Checkpoint final :
 
-- P6-CHECKPOINT-01 — Selbrume Golden Slice Validation Review
+- P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
 Statut :
-🔜 phase courante.
+✅ clôturée avec réserves mineures.
 
-## 13. Phase 7 — UI / UX moderne finale
+Résultat de clôture :
+
+- projet Selbrume repo-local utilisé comme base active à
+  `/Users/karim/Project/pokemonProject/selbrume` ;
+- start map `Selbrume` / spawn `spawn` prouvé ;
+- party initiale `pidgeotto` niveau 8 et bag `poke-ball` / `potion` prouvés ;
+- première interaction narrative technique `p6_03_intro_sign` prouvée ;
+- rencontre Route 1 `grass_path_route_1` et capture `pidgeotto` prouvées ;
+- trainer battle Grant prouvé au niveau runtime-application avec outcome
+  victoire contrôlé ;
+- reward minimal argent + level-up direct prouvé ;
+- save/load disque réel du golden slice prouvé ;
+- validator bêta strict passé sans diagnostic ;
+- smoke `PlayableMapGame.onLoad` Level B prouvé.
+
+Réserves :
+
+- pas de campagne Selbrume finale ;
+- pas de session joueur UI interactive complète ;
+- pas de Boot Flow, écran titre ou slots UI ;
+- pas de victoire battle engine complète ;
+- pas d'injection de l'état disque complet P6-06 dans `PlayableMapGame` ;
+- pas de parité Pokémon complète ;
+- pas d'audio runtime complet.
+
+## 13. Phase 7 — Modern UI / UX Productization
 
 Objectif :
-Refondre ou construire l’UI moderne et premium : App Shell, Narrative Studio,
-Scene Builder, Storyline Graph, Cinematic Builder et Validator UI.
+Transformer les preuves techniques et le golden slice Selbrume en expérience
+produit utilisable : UI moderne, workflows guidés, authoring compréhensible,
+validation visible, menus runtime utiles et productisation progressive sans
+réécrire les fondations.
 
 Pourquoi :
-L’UI finale doit servir un modèle produit prouvé, pas compenser des concepts
-flous. La décision utilisateur place cette refonte parmi les dernières grandes
-phases.
+La Phase 6 a prouvé un beta-slice technique court, chargeable, validé,
+sauvegardable et smoke-testé au runtime. La prochaine étape doit rendre ces
+preuves utilisables et compréhensibles pour un créateur, sans masquer les
+réserves restantes.
 
 Préconditions :
 
 - modèle produit stabilisé ;
 - contrats domaine suffisamment solides ;
-- runtime/disk et workflows authoring prouvés ;
-- retour d’un Golden Slice réel si possible.
+- runtime/disk, validator et workflows authoring prouvés ;
+- retour d'un Golden Slice Selbrume réel.
 
 Périmètre :
 
 - Modern App Shell ;
-- Narrative Studio premium ;
-- Storyline Board / Graph ;
-- Event Builder ;
-- Scene Builder ;
-- Cinematic Builder ;
-- Facts & World Rules UI ;
-- Validator UI ;
+- inventaire UX du golden slice ;
+- menus runtime save/load, party et bag minimaux ;
+- review UX des interactions narratives, encounters et battles ;
+- Validator UI Productization V0 ;
 - UX no-code guidée.
 
 Non-objectifs :
 
-- ne pas inventer de nouvelles mécaniques dans la UI ;
-- ne pas masquer les gaps runtime ;
-- ne pas exposer les flags techniques comme expérience principale.
+- ne pas réécrire le moteur ;
+- ne pas rouvrir la parité Pokémon complète ;
+- ne pas créer toute la campagne Selbrume finale ;
+- ne pas créer tous les assets finaux ;
+- ne pas traiter l'audio complet sauf décision dédiée.
 
 Livrables :
 
-- roadmap vivante Phase 7 ;
-- design system final ou stabilisé ;
-- composants UI ;
-- tests widget / interaction ;
+- `MVP Selbrume/road_map_phase_7.md` ;
+- audits UX ciblés ;
+- designs et preuves UI bornées ;
+- tests widget / interaction si du code UI est créé ;
 - checkpoint Phase 7.
 
 Critères de sortie :
 
 - un créateur non développeur peut authorer, diagnostiquer et comprendre son
-  fangame court dans une UI moderne.
+  fangame court dans une UI moderne ;
+- les menus runtime minimaux nécessaires au golden slice sont productisés ou
+  explicitement reportés ;
+- les réserves P6 sont transformées en décisions UX claires.
 
 Checkpoint final :
 
-- P7-CHECKPOINT-01 — Modern UI Product Readiness Review
+- P7-CHECKPOINT-01 — Modern UI Productization Readiness Review
 
 Statut :
-future tardive.
+🔜 phase courante.
 
 ## 14. Phase courante
 
 Phase courante :
-Phase 6 — Selbrume Golden Slice réel
+Phase 7 — Modern UI / UX Productization
 
 Roadmap de phase :
-`MVP Selbrume/road_map_phase_6.md`
+`MVP Selbrume/road_map_phase_7.md`
 
 Prochain lot de la phase :
-P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
 
 Note :
-P5-CHECKPOINT-01 a clôturé Phase 5 et créé la roadmap vivante Phase 6. Il ne
-démarre pas P6-00.
+P6-CHECKPOINT-01 a clôturé Phase 6 et créé la roadmap vivante Phase 7. Il ne
+démarre pas P7-00.
 
 ## 15. Prochain lot exact
 
-P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
+P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
 
-P6-00 doit rester audit-first et cadrer l'assemblage Selbrume bêta depuis le
-projet existant fourni par Karim : réutiliser les preuves Phase 5, inventorier
-le contenu disponible, vérifier le chemin projet disque réel et verrouiller un
-mini-parcours golden slice.
+P7-00 doit rester audit-first : inventorier les preuves Phase 6, classer les
+gaps UX / produit, préciser les premiers lots UI modernes et éviter toute
+refonte cosmétique massive sans preuve utilisateur ciblée.
 
-P6-00 ne doit pas créer Selbrume final, ne doit pas lancer l'UI premium, ne doit
-pas créer le Boot Flow complet, ne doit pas modifier massivement le projet
-existant et ne doit pas réouvrir la parité Pokémon complète.
+P7-00 ne doit pas réécrire le moteur, ne doit pas créer Selbrume final, ne doit
+pas rouvrir la parité Pokémon complète et ne doit pas masquer les limites du
+runtime technique prouvé en Phase 6.
 
 ## 16. Critères de changement de phase
 
@@ -757,7 +787,8 @@ ou si l’utilisateur le demande explicitement.
   en Phase 5 ; XP persistée complète reportée.
 - Static wild encounter authorable réel : capture party-or-storage prouvée en
   Phase 5 ; contenu Selbrume réel reporté Phase 6.
-- Selbrume Golden Slice réel : Phase 6.
+- Selbrume Golden Slice réel : prouvé en Phase 6 comme beta-slice technique
+  avec réserves.
 - UI / UX moderne finale : Phase 7.
 
 ## 20. Historique des mises à jour globales
@@ -820,3 +851,15 @@ ou si l’utilisateur le demande explicitement.
   est recadré comme audit du projet existant et verrouillage du périmètre golden
   slice court : P6-00 — Existing Selbrume Project Audit / Golden Slice Scope
   Lock.
+- 2026-05-26 — P6-CHECKPOINT-01 — Phase 6 clôturée avec réserves mineures.
+  La Phase 6 a validé un beta-slice technique Selbrume depuis le projet
+  repo-local actif (`/Users/karim/Project/pokemonProject/selbrume`) :
+  loadability, start map/spawn, party/bag, interaction narrative, encounter /
+  capture Route 1, trainer battle Grant, reward minimal, save/load disque réel,
+  validator strict et smoke `PlayableMapGame` Level B. Les réserves restantes
+  concernent l'UI interactive complète, le Boot Flow, la campagne Selbrume
+  finale, la victoire battle engine complète, l'injection de sauvegarde complète
+  dans `PlayableMapGame`, la parité Pokémon et l'audio runtime. Phase courante
+  mise à jour vers Phase 7 — Modern UI / UX Productization. Roadmap de phase
+  courante fixée à `MVP Selbrume/road_map_phase_7.md`. Prochain lot exact fixé à
+  P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit.

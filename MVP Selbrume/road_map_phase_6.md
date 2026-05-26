@@ -4,7 +4,7 @@
 
 Phase 6 ouverte par le checkpoint Phase 5.
 
-Statut : 🟡 active
+Statut : ✅ clôturée avec réserves mineures
 
 SELBRUME_EXISTING_PROJECT_PATH :
 
@@ -18,9 +18,9 @@ Ancien chemin historique :
 /Users/karim/Desktop/selbrume
 ```
 
-Lot courant : ✅ P6-08 — Selbrume Playable Runtime Smoke V0
+Lot courant : ✅ P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
-Prochain lot exact : P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
+Prochain lot exact : P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
 
 Légende :
 
@@ -48,7 +48,7 @@ Suivi des lots :
 - ✅ P6-06 — Selbrume Save/Load Golden Slice V0
 - ✅ P6-07 — Selbrume Beta Validator Pass V0
 - ✅ P6-08 — Selbrume Playable Runtime Smoke V0
-- ➡️ P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
+- ✅ P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
 P6-00 : ✅ terminé
 
@@ -72,12 +72,12 @@ P6-07 : ✅ terminé
 
 P6-08 : ✅ terminé
 
-P6-CHECKPOINT-01 : ➡️ prochain lot exact
+P6-CHECKPOINT-01 : ✅ terminé
 
 Prochain lot exact :
 
 ```text
-P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
+P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
 ```
 
 ## Objectif Phase 6
@@ -526,6 +526,51 @@ Aucun code production et aucun fichier selbrume/ n'est modifié en P6-08.
 Prochain lot exact : P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review.
 ```
 
+## Résultat P6-CHECKPOINT-01
+
+Verdict de clôture :
+
+```text
+Phase 6 clôturée avec réserves mineures.
+Le golden slice Selbrume minimal est un beta-slice technique validé.
+```
+
+Preuves retenues :
+
+```text
+projet Selbrume repo-local utilisé comme base active
+start map Selbrume / spawn prouvé
+party initiale et bag minimal prouvés
+première interaction narrative technique prouvée
+Route 1 encounter / capture minimale prouvée
+trainer battle Grant prouvé au niveau runtime-application
+reward minimal money + level-up direct prouvé
+save/load disque réel prouvé
+validator bêta strict passé
+PlayableMapGame smoke Level B passé
+```
+
+Réserves explicites :
+
+```text
+pas de campagne Selbrume finale
+pas d'UI interactive complète
+pas de Boot Flow
+pas d'écran titre ou slots UI
+pas de victoire battle engine complète
+pas d'injection de l'état P6-06 complet dans PlayableMapGame
+pas de parité Pokémon complète
+pas d'audio runtime complet
+```
+
+Décision roadmap :
+
+```text
+Phase suivante recommandée : Phase 7 — Modern UI / UX Productization.
+Prochain lot exact : P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit.
+P7-00 n'est pas lancé par ce checkpoint.
+```
+
 ## Roadmap
 
 ### ✅ P6-00 — Existing Selbrume Project Audit / Golden Slice Scope Lock
@@ -711,14 +756,31 @@ Preuve :
 packages/map_runtime/test/p6_selbrume_playable_runtime_smoke_test.dart
 ```
 
-### ➡️ P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
+### ✅ P6-CHECKPOINT-01 — Selbrume Beta Slice Readiness Review
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
 ```text
 déterminer si le golden slice Selbrume minimal est prêt pour la phase suivante.
+```
+
+Preuve :
+
+```text
+reports/roadmap/phase_6/p6_checkpoint_01_selbrume_beta_slice_readiness_review.md
+```
+
+### ➡️ P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
+
+Statut : prochain lot exact hors Phase 6.
+
+But :
+
+```text
+auditer le scope UI/UX moderne à partir du beta-slice technique Phase 6 sans
+réécrire les fondations ni lancer une refonte cosmétique massive.
 ```
 
 ## Reports explicites
