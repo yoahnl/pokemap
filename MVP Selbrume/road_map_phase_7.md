@@ -1,4 +1,4 @@
-# Phase 7 Roadmap — Modern UI / UX Productization
+# Phase 7 Roadmap — Narrative Studio Modern UI Productization
 
 ## Statut de la phase
 
@@ -12,9 +12,9 @@ Roadmap source précédente :
 MVP Selbrume/road_map_phase_6.md
 ```
 
-Lot courant : ➡️ P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
+Lot courant : ✅ P7-00 — Phase 7 Roadmap Bootstrap / Narrative Studio Modern UI Scope Audit
 
-Prochain lot exact : P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
+Prochain lot exact : P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
 
 Légende :
 
@@ -24,12 +24,44 @@ Légende :
 - 🧭 checkpoint
 - ⏭️ reporté
 
+## Décision P7-00
+
+P7-00 recadre Phase 7 autour de la demande utilisateur :
+
+```text
+Je veux avancer vers une nouvelle belle UI pour le Narrative Studio.
+```
+
+Priorité initiale actée :
+
+```text
+Modern App Shell
+Narrative Studio moderne
+workflows no-code guidés
+navigation produit claire
+validation visible
+expérience créateur compréhensible
+```
+
+Les menus runtime restent importants, mais ils ne sont pas le premier axe de
+Phase 7 :
+
+```text
+Runtime save/load UX
+Runtime party / bag UX
+Runtime battle / encounter UX
+Boot Flow / title / slots
+```
+
+Ces sujets sont reportés dans un backlog UX runtime à cadrer après les décisions
+Shell + Narrative Studio.
+
 ## Objectif Phase 7
 
 Transformer les preuves techniques et le golden slice Selbrume en expérience
-produit utilisable : UI moderne, workflows guidés, authoring compréhensible,
-validation visible, menus runtime utiles et productisation progressive sans
-réécrire les fondations.
+produit utilisable pour un créateur : une UI moderne, lisible, guidée, qui rend
+les concepts narratifs manipulables sans forcer l'édition JSON ni masquer les
+limites runtime.
 
 Phase 7 doit partir des preuves Phase 6 :
 
@@ -46,6 +78,27 @@ validator bêta strict
 PlayableMapGame smoke Level B
 ```
 
+## État UI / Narrative Studio au bootstrap P7
+
+Constats P7-00 :
+
+```text
+les concepts narratifs existent déjà dans le code et les rapports
+Step Studio, Global Story Studio, Cutscene Studio et Dialogue editor existent par morceaux
+des read models narratifs existent côté map_core
+des validations et diagnostics existent côté map_core
+le shell/editor possède déjà des notions de workspace, panels et providers
+la preuve Selbrume P6 reste surtout technique et test-only
+l'expérience créateur unifiée Narrative Studio n'est pas encore productisée
+```
+
+Risque principal :
+
+```text
+partir trop vite sur des menus runtime isolés ou une refonte cosmétique massive
+avant d'avoir cadré l'architecture d'information du Narrative Studio.
+```
+
 ## Non-objectifs Phase 7 initiaux
 
 ```text
@@ -54,10 +107,11 @@ ne pas rouvrir la parité Pokémon complète
 ne pas créer toute la campagne Selbrume finale
 ne pas créer tous les assets finaux
 ne pas traiter l'audio complet sauf décision dédiée
-ne pas masquer les limites Phase 6 derrière de la décoration UI
+ne pas créer une refonte cosmétique massive sans audit UX
+ne pas démarrer par les menus runtime secondaires
 ```
 
-## Réserves héritées de Phase 6
+## Réserves héritées de Phase 6 à convertir en décisions UX
 
 ```text
 session joueur interactive complète non prouvée
@@ -75,125 +129,152 @@ audio runtime complet non prouvé
 
 ## Suivi des lots
 
-- ➡️ P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
-- ⏳ P7-01 — Golden Slice UX Inventory / Product Gaps Audit
-- ⏳ P7-02 — Runtime Save/Load UX Minimal Design
-- ⏳ P7-03 — Runtime Party / Bag UX Minimal Design
-- ⏳ P7-04 — Narrative Interaction UX Review
-- ⏳ P7-05 — Battle / Encounter UX Review
-- ⏳ P7-06 — Validator UI Productization V0
-- ⏳ P7-07 — Selbrume Golden Slice User Journey Smoke V0
-- 🧭 P7-CHECKPOINT-01 — Modern UI Productization Readiness Review
+- ✅ P7-00 — Phase 7 Roadmap Bootstrap / Narrative Studio Modern UI Scope Audit
+- ➡️ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
+- ⏳ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+- ⏳ P7-03 — Narrative Studio First Screen / Golden Path UX Design
+- ⏳ P7-04 — Narrative Studio Interaction Model / No-Code Authoring Controls V0
+- ⏳ P7-05 — Validator & Diagnostics UI Integration Design
+- ⏳ P7-06 — Narrative Studio Visual System / Component Rules V0
+- ⏳ P7-07 — Narrative Studio Minimal Interactive Prototype V0
+- ⏳ P7-08 — Runtime UX Backlog Triage / Deferred Menus Scope
+- 🧭 P7-CHECKPOINT-01 — Narrative Studio Modern UI Readiness Review
 
-P7-00 : ➡️ prochain lot exact
+P7-00 : ✅ terminé
+
+P7-01 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
+P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
 ```
 
 ## Roadmap
 
-### ➡️ P7-00 — Phase 7 Roadmap Bootstrap / Modern UI Scope Audit
+### ✅ P7-00 — Phase 7 Roadmap Bootstrap / Narrative Studio Modern UI Scope Audit
+
+Statut : terminé.
+
+But :
+
+```text
+relire Phase 6, auditer les surfaces UI existantes et recadrer Phase 7 autour
+du shell moderne et du Narrative Studio.
+```
+
+Preuve :
+
+```text
+reports/roadmap/phase_7/p7_00_phase_7_roadmap_bootstrap_narrative_studio_modern_ui_scope_audit.md
+```
+
+### ➡️ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
 
 Statut : prochain lot exact.
 
 But :
 
 ```text
-auditer les preuves Phase 6 et cadrer les premiers lots UI/UX modernes sans
-lancer de refonte massive ni modifier les fondations techniques.
+inventorier l'UI editor actuelle, le shell, la navigation, les workspaces et les
+surfaces Narrative Studio existantes pour identifier les douleurs produit avant
+design ou code.
 ```
 
 Livrables attendus :
 
 ```text
-inventaire UX du golden slice Selbrume
-classification des gaps UI runtime / editor / validator
-priorisation des premiers lots Phase 7
-définition des preuves UI attendues
+inventaire des écrans et workspaces existants
+cartographie Shell -> Narrative Studio -> sous-studios
+liste des surfaces obsolètes ou trop techniques
+priorités UX créateur
+prochain lot design strict
 ```
 
-### ⏳ P7-01 — Golden Slice UX Inventory / Product Gaps Audit
+### ⏳ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
 
 But :
 
 ```text
-identifier précisément ce qui manque pour transformer le beta-slice technique
-en parcours compréhensible pour un créateur et un joueur.
+définir l'architecture d'information moderne du Narrative Studio : Storyline,
+Chapter, Story Step, Event, Scene, Dialogue, Fact, World Rule, Validator.
 ```
 
-### ⏳ P7-02 — Runtime Save/Load UX Minimal Design
+### ⏳ P7-03 — Narrative Studio First Screen / Golden Path UX Design
 
 But :
 
 ```text
-cadrer l'expérience minimale de sauvegarde / chargement runtime sans créer un
-Boot Flow complet prématuré.
+concevoir le premier écran et le parcours créateur minimal qui rend le golden
+slice narratif compréhensible.
 ```
 
-### ⏳ P7-03 — Runtime Party / Bag UX Minimal Design
+### ⏳ P7-04 — Narrative Studio Interaction Model / No-Code Authoring Controls V0
 
 But :
 
 ```text
-cadrer l'affichage et les interactions minimales party / bag nécessaires au
-golden slice.
+cadrer les contrôles no-code nécessaires : pickers, panneaux d'édition, états,
+prévisualisations, diagnostics et feedback utilisateur.
 ```
 
-### ⏳ P7-04 — Narrative Interaction UX Review
+### ⏳ P7-05 — Validator & Diagnostics UI Integration Design
 
 But :
 
 ```text
-relire l'expérience utilisateur de la première interaction narrative et décider
-ce qui doit être productisé.
+intégrer les diagnostics validator dans l'expérience Narrative Studio sans les
+masquer et sans ajouter d'auto-fix prématuré.
 ```
 
-### ⏳ P7-05 — Battle / Encounter UX Review
+### ⏳ P7-06 — Narrative Studio Visual System / Component Rules V0
 
 But :
 
 ```text
-relire les preuves encounter, capture et trainer battle pour cadrer les besoins
-UI runtime sans créer une Battle UI finale d'un seul coup.
+définir les règles visuelles et composants nécessaires au Narrative Studio
+moderne, en cohérence avec le shell et les workflows créateur.
 ```
 
-### ⏳ P7-06 — Validator UI Productization V0
+### ⏳ P7-07 — Narrative Studio Minimal Interactive Prototype V0
 
 But :
 
 ```text
-rendre les diagnostics validator visibles et utiles côté produit, sans masquer
-les diagnostics ni ajouter d'auto-fix prématuré.
+produire une première preuve interactive bornée du Narrative Studio moderne,
+après les audits et designs.
 ```
 
-### ⏳ P7-07 — Selbrume Golden Slice User Journey Smoke V0
+### ⏳ P7-08 — Runtime UX Backlog Triage / Deferred Menus Scope
 
 But :
 
 ```text
-prouver un parcours utilisateur court à travers les surfaces UI créées en Phase 7.
+reclasser save/load, party/bag, battle/encounter, Boot Flow et autres menus
+runtime après cadrage Narrative Studio, sans les laisser disparaître.
 ```
 
-### 🧭 P7-CHECKPOINT-01 — Modern UI Productization Readiness Review
+### 🧭 P7-CHECKPOINT-01 — Narrative Studio Modern UI Readiness Review
 
 But :
 
 ```text
-décider si la productisation UI moderne est prête à être clôturée ou si une
-phase dédiée supplémentaire est nécessaire.
+décider si la modernisation UI Narrative Studio est suffisamment cadrée ou
+prototypée pour passer à une phase de build plus large.
 ```
 
 ## Reports explicites
 
-Reportés hors Phase 7 initiale sauf décision dédiée :
+Reportés hors premier axe Phase 7 sauf décision dédiée :
 
 ```text
 campagne Selbrume finale complète
 parité Pokémon complète
 audio runtime complet
 tous les assets finaux
-refonte totale non guidée par les preuves Phase 6
+runtime save/load UI comme priorité 1
+runtime party/bag UI comme priorité 1
+runtime battle/capture UI comme priorité 1
+Boot Flow complet comme priorité 1
+refonte totale non guidée par audit
 ```
