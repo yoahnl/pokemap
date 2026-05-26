@@ -12,9 +12,9 @@ Roadmap source précédente :
 MVP Selbrume/road_map_phase_6.md
 ```
 
-Lot courant : ✅ P7-00 — Phase 7 Roadmap Bootstrap / Narrative Studio Modern UI Scope Audit
+Lot courant : ✅ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
 
-Prochain lot exact : P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
+Prochain lot exact : P7-02 — Narrative Studio Information Architecture / Creator Journey Design
 
 Légende :
 
@@ -130,8 +130,8 @@ audio runtime complet non prouvé
 ## Suivi des lots
 
 - ✅ P7-00 — Phase 7 Roadmap Bootstrap / Narrative Studio Modern UI Scope Audit
-- ➡️ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
-- ⏳ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+- ✅ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
+- ➡️ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
 - ⏳ P7-03 — Narrative Studio First Screen / Golden Path UX Design
 - ⏳ P7-04 — Narrative Studio Interaction Model / No-Code Authoring Controls V0
 - ⏳ P7-05 — Validator & Diagnostics UI Integration Design
@@ -142,12 +142,14 @@ audio runtime complet non prouvé
 
 P7-00 : ✅ terminé
 
-P7-01 : ➡️ prochain lot exact
+P7-01 : ✅ terminé
+
+P7-02 : ➡️ prochain lot exact
 
 Prochain lot exact :
 
 ```text
-P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
+P7-02 — Narrative Studio Information Architecture / Creator Journey Design
 ```
 
 ## Roadmap
@@ -169,9 +171,9 @@ Preuve :
 reports/roadmap/phase_7/p7_00_phase_7_roadmap_bootstrap_narrative_studio_modern_ui_scope_audit.md
 ```
 
-### ➡️ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
+### ✅ P7-01 — Modern App Shell & Narrative Studio UX Inventory Audit
 
-Statut : prochain lot exact.
+Statut : terminé.
 
 But :
 
@@ -191,7 +193,35 @@ priorités UX créateur
 prochain lot design strict
 ```
 
-### ⏳ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+Résultat P7-01 :
+
+```text
+Shell actuel identifié : EditorShellPage, TopToolbar, EditorCanvasHost,
+ProjectExplorerPanel, panels/inspectors et workspace controller.
+
+Surfaces Narrative Studio identifiées : NarrativeWorkspaceCanvas,
+Global Story Studio, Step Studio, Cutscene Studio, Dialogue Studio,
+Narrative Inspector/Library, projection narrative, providers et use cases.
+
+Douleurs créateur principales : shell dense, navigation narrative fragmentée,
+vocabulaire technique visible, IDs/outcomes/flow labels exposés, states et
+diagnostics à intégrer dans un parcours auteur plus clair.
+```
+
+Décision :
+
+```text
+garder les briques existantes comme matière première
+ne pas remplacer le shell sans architecture d'information
+ne pas coder de nouvelle UI avant P7-02
+préparer une IA Narrative Studio qui clarifie Storyline, Chapter, Step,
+Events, Scenes, Dialogues, Conditions, Facts, World Rules, Outcomes,
+Validator et previews.
+```
+
+### ➡️ P7-02 — Narrative Studio Information Architecture / Creator Journey Design
+
+Statut : prochain lot exact.
 
 But :
 
