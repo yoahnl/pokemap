@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
@@ -11,6 +12,7 @@ import '../shared/cupertino_editor_widgets.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'global_story_studio_workspace.dart';
+import 'narrative_overview_workspace.dart';
 import 'step_studio_workspace.dart';
 
 /// Workspace central du studio narratif.
@@ -72,6 +74,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       children: [
         _NarrativeModeStrip(
           workspaceMode: editor.workspaceMode,
+          onSelectOverview: editorNotifier.selectNarrativeOverviewWorkspace,
           onSelectGlobal: () {
             editorNotifier.selectGlobalStoryWorkspace();
             narrativeController.openGlobalStory(
@@ -96,6 +99,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         const SizedBox(height: 12),
         Expanded(
           child: switch (editor.workspaceMode) {
+            EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
+                readModel: buildNarrativeOverviewReadModel(
+                  project: editor.project!,
+                ),
+              ),
             EditorWorkspaceMode.globalStory => GlobalStoryStudioWorkspace(
                 editorNotifier: editorNotifier,
                 project: editor.project,
@@ -218,6 +226,7 @@ NarrativeStepSummary? _resolveStepById(
 class _NarrativeModeStrip extends StatelessWidget {
   const _NarrativeModeStrip({
     required this.workspaceMode,
+    required this.onSelectOverview,
     required this.onSelectGlobal,
     required this.onSelectStep,
     required this.onSelectCutscene,
@@ -225,6 +234,7 @@ class _NarrativeModeStrip extends StatelessWidget {
   });
 
   final EditorWorkspaceMode workspaceMode;
+  final VoidCallback onSelectOverview;
   final VoidCallback onSelectGlobal;
   final VoidCallback onSelectStep;
   final VoidCallback onSelectCutscene;
@@ -234,6 +244,12 @@ class _NarrativeModeStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
+        _ModeChip(
+          label: 'Aperçu',
+          selected: workspaceMode == EditorWorkspaceMode.narrativeOverview,
+          onTap: onSelectOverview,
+        ),
+        const SizedBox(width: 8),
         _ModeChip(
           label: 'Global Story',
           selected: workspaceMode == EditorWorkspaceMode.globalStory,

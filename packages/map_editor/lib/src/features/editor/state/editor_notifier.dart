@@ -1515,6 +1515,14 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectTrainerWorkspace(state);
   }
 
+  /// Ouvre le workspace central "Aperçu" du Narrative Studio.
+  ///
+  /// Navigation pure de shell : les données affichées sont dérivées par le
+  /// read model overview, pas recalculées dans le notifier.
+  void selectNarrativeOverviewWorkspace() {
+    state = _editorWorkspaceController.selectNarrativeOverviewWorkspace(state);
+  }
+
   /// Ouvre le workspace central "Global Story".
   ///
   /// Ce changement est purement une navigation d'espace de travail:

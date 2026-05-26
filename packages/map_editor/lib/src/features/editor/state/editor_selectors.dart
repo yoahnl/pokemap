@@ -147,6 +147,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
     EditorWorkspaceMode.trainer => 'Trainer Studio',
     EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
+    EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
     EditorWorkspaceMode.globalStory => 'Global Story Workspace',
     EditorWorkspaceMode.step => 'Step Studio',
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
@@ -166,6 +167,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Créez des dresseurs, des équipes et des listes prêtes au combat sans éditer de JSON brut.',
     EditorWorkspaceMode.pokedex =>
       'Pokédex, Moves et Items réunis dans un même pôle de catalogues Pokémon.',
+    EditorWorkspaceMode.narrativeOverview =>
+      'Vue d’ensemble auteur : métriques disponibles, statuts honnêtes et prochaines sections du dashboard.',
     EditorWorkspaceMode.globalStory =>
       'Progression narrative macro : arcs, jalons et branches de haut niveau.',
     EditorWorkspaceMode.step =>

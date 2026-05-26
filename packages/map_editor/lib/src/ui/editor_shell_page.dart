@@ -101,6 +101,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
     final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final supportsRightInspector = switch (workspaceMode) {
+      EditorWorkspaceMode.narrativeOverview => false,
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.pathStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
@@ -122,6 +123,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
     });
 
     final isNarrativeWorkspace = switch (workspaceMode) {
+      EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
@@ -461,6 +463,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
                                                   EditorChrome.islandWarmTint,
                                                 EditorWorkspaceMode.pokedex =>
                                                   EditorChrome.islandWarmTint,
+                                                EditorWorkspaceMode.narrativeOverview =>
+                                                  EditorChrome.islandCoolTint,
                                                 EditorWorkspaceMode.globalStory =>
                                                   EditorChrome.islandCoolTint,
                                                 EditorWorkspaceMode.step =>
@@ -482,6 +486,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
                                                 EditorWorkspaceMode.trainer =>
                                                   const _EmptyWorkspaceInspector(),
                                                 EditorWorkspaceMode.pokedex =>
+                                                  const _EmptyWorkspaceInspector(),
+                                                EditorWorkspaceMode.narrativeOverview =>
                                                   const _EmptyWorkspaceInspector(),
                                                 EditorWorkspaceMode.pathStudio =>
                                                   const _EmptyWorkspaceInspector(),
@@ -627,6 +633,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.tileset => colors.brandCyan,
       EditorWorkspaceMode.trainer => colors.combat,
       EditorWorkspaceMode.pokedex => colors.reward,
+      EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
@@ -640,6 +647,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.tileset => PokeMapBadgeVariant.neutral,
       EditorWorkspaceMode.trainer => PokeMapBadgeVariant.combat,
       EditorWorkspaceMode.pokedex => PokeMapBadgeVariant.info,
+      EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
@@ -652,6 +660,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.tileset => 'Bibliothèque',
       EditorWorkspaceMode.trainer => 'Dresseurs',
       EditorWorkspaceMode.pokedex => 'Catalogues',
+      EditorWorkspaceMode.narrativeOverview => 'Aperçu',
       EditorWorkspaceMode.globalStory => 'Macro-Récit',
       EditorWorkspaceMode.step => 'Étapes',
       EditorWorkspaceMode.cutscene => 'Cinématiques',
@@ -796,6 +805,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
               EditorWorkspaceMode.trainer => CupertinoIcons.person_3_fill,
               EditorWorkspaceMode.pokedex => CupertinoIcons.book,
+              EditorWorkspaceMode.narrativeOverview => CupertinoIcons.house,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,

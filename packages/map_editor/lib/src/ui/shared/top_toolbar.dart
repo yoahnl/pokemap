@@ -436,6 +436,15 @@ class TopToolbar extends ConsumerWidget {
                 : null,
           ),
           ToolbarCapsuleButton(
+            icon: CupertinoIcons.house,
+            tooltip: 'Switch to Narrative Overview',
+            selected:
+                toolbar.workspaceMode == EditorWorkspaceMode.narrativeOverview,
+            onPressed: toolbar.project != null
+                ? notifier.selectNarrativeOverviewWorkspace
+                : null,
+          ),
+          ToolbarCapsuleButton(
             icon: CupertinoIcons.link,
             tooltip: 'Switch to global story workspace',
             selected: toolbar.workspaceMode == EditorWorkspaceMode.globalStory,
@@ -519,6 +528,7 @@ class TopToolbar extends ConsumerWidget {
           EditorWorkspaceMode.tileset => 'Tileset Studio',
           EditorWorkspaceMode.trainer => 'Trainer Studio',
           EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
+          EditorWorkspaceMode.narrativeOverview => 'Narrative Overview',
           EditorWorkspaceMode.globalStory => 'Global Story',
           EditorWorkspaceMode.step => 'Step Studio',
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',

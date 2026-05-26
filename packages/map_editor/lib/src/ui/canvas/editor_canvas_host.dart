@@ -23,6 +23,7 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.tileset => const TilesetEditorCanvas(),
       EditorWorkspaceMode.trainer => const TrainerLibraryPanel(),
       EditorWorkspaceMode.pokedex => const PokemonCatalogsWorkspace(),
+      EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||

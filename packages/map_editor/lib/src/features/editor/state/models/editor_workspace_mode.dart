@@ -30,6 +30,7 @@ enum EditorWorkspaceMode {
   //   premier plan (pas comme des "petits panneaux" latéraux).
   // - la colonne gauche sert à naviguer/ouvrir.
   // - la colonne droite sert à inspecter le contexte sélectionné.
+  narrativeOverview,
   globalStory,
   step,
   cutscene,

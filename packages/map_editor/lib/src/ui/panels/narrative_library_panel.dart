@@ -58,6 +58,7 @@ class NarrativeLibraryPanel extends ConsumerWidget {
       children: [
         _WorkspaceQuickActions(
           editor: editor,
+          onOverview: notifier.selectNarrativeOverviewWorkspace,
           onGlobal: () {
             notifier.selectGlobalStoryWorkspace();
             narrativeController.openGlobalStory(
@@ -184,6 +185,7 @@ class NarrativeLibraryPanel extends ConsumerWidget {
 class _WorkspaceQuickActions extends StatelessWidget {
   const _WorkspaceQuickActions({
     required this.editor,
+    required this.onOverview,
     required this.onGlobal,
     required this.onStep,
     required this.onCutscene,
@@ -191,6 +193,7 @@ class _WorkspaceQuickActions extends StatelessWidget {
   });
 
   final EditorState editor;
+  final VoidCallback onOverview;
   final VoidCallback onGlobal;
   final VoidCallback onStep;
   final VoidCallback onCutscene;
@@ -202,6 +205,11 @@ class _WorkspaceQuickActions extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
+        _ActionChip(
+          label: 'Aperçu',
+          selected: editor.workspaceMode == EditorWorkspaceMode.narrativeOverview,
+          onTap: onOverview,
+        ),
         _ActionChip(
           label: 'Histoire globale',
           selected: editor.workspaceMode == EditorWorkspaceMode.globalStory,

@@ -42,6 +42,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.trainer);
   }
 
+  EditorState selectNarrativeOverviewWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.narrativeOverview);
+  }
+
   EditorState selectGlobalStoryWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.globalStory);
   }

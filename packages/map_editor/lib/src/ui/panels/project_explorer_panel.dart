@@ -348,7 +348,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           icon: CupertinoIcons.link_circle_fill,
           accentColor: colors.narrative,
           count: project.scenarios.length,
-          selected: snapshot.workspaceMode == EditorWorkspaceMode.globalStory ||
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.narrativeOverview ||
+              snapshot.workspaceMode == EditorWorkspaceMode.globalStory ||
               snapshot.workspaceMode == EditorWorkspaceMode.step ||
               snapshot.workspaceMode == EditorWorkspaceMode.cutscene ||
               snapshot.workspaceMode == EditorWorkspaceMode.dialogue,
