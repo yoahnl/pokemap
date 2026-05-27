@@ -97,13 +97,15 @@ void main() {
       await tester.pump();
 
       final shell = find.byKey(const ValueKey('narrative-studio-shell'));
-      final navigation =
-          find.byKey(const ValueKey('narrative-studio-transitional-navigation'));
+      final sidebar = find.byKey(const ValueKey('narrative-studio-sidebar'));
+      final transientNavigation = find
+          .byKey(const ValueKey('narrative-studio-transitional-navigation'));
       final mainContent =
           find.byKey(const ValueKey('narrative-studio-main-content'));
 
       expect(shell, findsOneWidget);
-      expect(navigation, findsOneWidget);
+      expect(sidebar, findsOneWidget);
+      expect(transientNavigation, findsNothing);
       expect(mainContent, findsOneWidget);
       expect(
         find.descendant(
@@ -117,51 +119,96 @@ void main() {
         findsNothing,
       );
 
-      for (final label in <String>[
-        'Aperçu',
-        'Histoire globale',
-        'Étape',
-        'Cinématique',
-        'Dialogue',
-      ]) {
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('narrative-studio-sidebar-overview')),
+          matching: find.text('Actif'),
+        ),
+        findsOneWidget,
+      );
+
+      for (final label in <String>['Aperçu', 'Storylines', 'Scènes']) {
         expect(
-          find.descendant(of: navigation, matching: find.text(label)),
+          find.descendant(of: sidebar, matching: find.text(label)),
           findsOneWidget,
         );
       }
-      for (final unavailable in <String>['Facts', 'World Rules', 'Validateur']) {
+      for (final label in <String>['Cinématiques', 'Dialogues']) {
         expect(
-          find.descendant(of: navigation, matching: find.text(unavailable)),
-          findsNothing,
+          find.descendant(of: sidebar, matching: find.text(label)),
+          findsOneWidget,
         );
       }
 
       await tester.tap(
-        find.descendant(of: navigation, matching: find.text('Histoire globale')),
+        find.descendant(of: sidebar, matching: find.text('Storylines')),
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:globalStory'), findsOneWidget);
 
       await tester.tap(
-        find.descendant(of: navigation, matching: find.text('Étape')),
+        find.descendant(of: sidebar, matching: find.text('Scènes')),
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:step'), findsOneWidget);
 
       await tester.tap(
-        find.descendant(of: navigation, matching: find.text('Cinématique')),
+        find.descendant(of: sidebar, matching: find.text('Cinématiques')),
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:cutscene'), findsOneWidget);
 
       await tester.tap(
-        find.descendant(of: navigation, matching: find.text('Dialogue')),
+        find.descendant(of: sidebar, matching: find.text('Dialogues')),
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:dialogue'), findsOneWidget);
 
       await tester.tap(
-        find.descendant(of: navigation, matching: find.text('Aperçu')),
+        find.descendant(of: sidebar, matching: find.text('Aperçu')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+
+      expect(
+        find.descendant(of: sidebar, matching: find.text('Maps')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: sidebar, matching: find.text('À clarifier')),
+        findsNothing,
+      );
+
+      for (final disabled in <String>[
+        'Facts',
+        'Règles du monde',
+        'Validateur',
+      ]) {
+        expect(
+          find.descendant(of: sidebar, matching: find.text(disabled)),
+          findsOneWidget,
+        );
+      }
+      for (final disabledState in <String>[
+        'Nécessite un modèle',
+        'À venir',
+        'Non branché',
+      ]) {
+        expect(
+          find.descendant(of: sidebar, matching: find.text(disabledState)),
+          findsOneWidget,
+        );
+      }
+
+      await tester
+          .tap(find.descendant(of: sidebar, matching: find.text('Facts')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: sidebar, matching: find.text('Règles du monde')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: sidebar, matching: find.text('Validateur')),
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:narrativeOverview'), findsOneWidget);
@@ -628,6 +675,49 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         '${captureMedium ? 'ns_home_16_narrative_studio_shell_medium.png' : captureFocus ? 'ns_home_16_narrative_studio_shell_focus.png' : 'ns_home_16_narrative_studio_shell_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-17 internal sidebar screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_17_CAPTURE_INTERNAL_SIDEBAR_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_17_CAPTURE_INTERNAL_SIDEBAR_FOCUS');
+      const captureMedium =
+          bool.fromEnvironment('NS_HOME_17_CAPTURE_INTERNAL_SIDEBAR_MEDIUM');
+      if (!captureDesktop && !captureFocus && !captureMedium) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_17_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: captureMedium
+            ? const Size(1180, 1000)
+            : captureFocus
+                ? const Size(1600, 700)
+                : const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureMedium ? 'ns_home_17_internal_sidebar_medium.png' : captureFocus ? 'ns_home_17_internal_sidebar_focus.png' : 'ns_home_17_internal_sidebar_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(
