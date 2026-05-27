@@ -29,10 +29,10 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       key: const ValueKey('narrative-overview-scroll'),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
       children: [
         const _OverviewPageHeader(),
-        const SizedBox(height: 8),
+        const SizedBox(height: 7),
         _OverviewResponsiveBody(
           readModel: readModel,
           onOpenStorylines: onOpenStorylines,
@@ -67,21 +67,21 @@ class _OverviewPageHeader extends StatelessWidget {
             _BreadcrumbSegment(label: 'Aperçu', current: true),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           'Aperçu',
           style: TextStyle(
             color: EditorChrome.primaryLabel(context),
-            fontSize: 24,
+            fontSize: 22,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 2),
         Text(
           'Vue d’ensemble auteur : métriques et statuts honnêtes.',
           style: TextStyle(
             color: EditorChrome.subtleLabel(context),
-            fontSize: 13,
+            fontSize: 12.5,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -184,10 +184,10 @@ class _OverviewResponsiveBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: mainColumn),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               SizedBox(
                 key: const ValueKey('narrative-overview-structure-column'),
-                width: 348,
+                width: 340,
                 child: structureInspector,
               ),
             ],
@@ -239,7 +239,7 @@ class _OverviewMainColumn extends StatelessWidget {
             readModel.projectHealth.healthKind,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _KpiCardsSection(
           metrics: [
             readModel.metrics.chapters,
@@ -254,25 +254,25 @@ class _OverviewMainColumn extends StatelessWidget {
           onOpenCutscenes: onOpenCutscenes,
           onOpenDialogues: onOpenDialogues,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _MainStoryCard(
           story: readModel.mainStory,
           onOpenStorylines: onOpenStorylines,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _ModuleCardsSection(
           modules: readModel.modules,
           onOpenCutscenes: onOpenCutscenes,
           onOpenDialogues: onOpenDialogues,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         NarrativeOverviewUnavailableDataSection(
           facts: readModel.metrics.facts,
           recentActivity: readModel.recentActivity,
           notifications: readModel.notifications,
           footer: readModel.footer,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         NarrativeOverviewFooter(
           projectName: readModel.projectName,
           footer: readModel.footer,
@@ -302,12 +302,12 @@ class _ProjectSummaryStrip extends StatelessWidget {
           context,
           tint: EditorChrome.islandCoolTint.withValues(alpha: 0.14),
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.22),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
       child: Wrap(
         spacing: 14,
         runSpacing: 8,
@@ -381,7 +381,7 @@ class _ModuleCardsSection extends StatelessWidget {
             const spacing = 10.0;
             final maxWidth = constraints.maxWidth;
             final columns = switch (maxWidth) {
-              >= 960 => 3,
+              >= 900 => 3,
               >= 620 => 2,
               _ => 1,
             };
@@ -431,17 +431,17 @@ class _ModuleCard extends StatelessWidget {
     final accent = _availabilityAccent(context, module.availability);
     final content = Container(
       key: ValueKey('narrative-overview-module-${module.id}'),
-      constraints: const BoxConstraints(minHeight: 168),
+      constraints: const BoxConstraints(minHeight: 156),
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
           context,
           tint: accent.withValues(alpha: 0.1),
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.all(13),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -542,7 +542,7 @@ class _ModuleIcon extends StatelessWidget {
       height: 34,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(9),
         border: Border.all(color: accent.withValues(alpha: 0.26)),
       ),
       alignment: Alignment.center,
@@ -666,11 +666,11 @@ class _MainStoryCard extends StatelessWidget {
           context,
           tint: EditorChrome.islandCoolTint.withValues(alpha: 0.18),
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: accent.withValues(alpha: 0.32)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -739,10 +739,10 @@ class _MainStoryVisual extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 104,
-      height: 96,
+      height: 88,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.11),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accent.withValues(alpha: 0.24)),
       ),
       alignment: Alignment.center,
@@ -1115,8 +1115,8 @@ class _KpiCardsSection extends StatelessWidget {
             const spacing = 10.0;
             final maxWidth = constraints.maxWidth;
             final columns = switch (maxWidth) {
-              >= 1080 => 6,
-              >= 720 => 3,
+              >= 900 => 6,
+              >= 640 => 3,
               _ => 2,
             };
             final cardWidth = (maxWidth - spacing * (columns - 1)) / columns;
@@ -1167,17 +1167,17 @@ class _KpiCard extends StatelessWidget {
     final accent = _availabilityAccent(context, metric.availability);
     final content = Container(
       key: ValueKey('narrative-overview-kpi-${metric.id}'),
-      height: 148,
+      height: 130,
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
           context,
           tint: accent.withValues(alpha: 0.1),
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accent.withValues(alpha: 0.34)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1185,7 +1185,7 @@ class _KpiCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _MetricIcon(metricId: metric.id, accent: accent),
-              const SizedBox(width: 9),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   metric.label,
@@ -1193,7 +1193,7 @@ class _KpiCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: EditorChrome.primaryLabel(context),
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1215,7 +1215,7 @@ class _KpiCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: EditorChrome.primaryLabel(context),
-              fontSize: _metricCardValue(metric).length > 12 ? 17 : 23,
+              fontSize: _metricCardValue(metric).length > 12 ? 15 : 21,
               fontWeight: FontWeight.w900,
               letterSpacing: 0,
             ),
@@ -1252,17 +1252,17 @@ class _MetricIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 34,
-      height: 34,
+      width: 30,
+      height: 30,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: accent.withValues(alpha: 0.26)),
       ),
       alignment: Alignment.center,
       child: Icon(
         _metricIcon(metricId),
-        size: 18,
+        size: 16,
         color: accent,
       ),
     );
@@ -1281,20 +1281,20 @@ class _AvailabilityPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 22),
+      constraints: const BoxConstraints(minHeight: 20),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: accent.withValues(alpha: 0.24)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       child: Text(
         label,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: accent,
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -1320,12 +1320,12 @@ class _OverviewSection extends StatelessWidget {
           context,
           tint: EditorChrome.islandCoolTint.withValues(alpha: 0.16),
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.28),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1337,10 +1337,10 @@ class _OverviewSection extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
           ...children.map(
             (child) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: 2),
               child: DefaultTextStyle(
                 style: TextStyle(
                   color: EditorChrome.subtleLabel(context),

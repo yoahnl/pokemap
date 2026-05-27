@@ -29,11 +29,11 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
           context,
           tint: EditorChrome.islandCoolTint.withValues(alpha: 0.2),
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: accent.withValues(alpha: 0.28)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -57,32 +57,32 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _InspectorIdentity(
             projectName: inspector.projectName,
             statusLabel: inspector.globalStatusLabel,
             accent: accent,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           _InspectorDivider(),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           _InspectorCounters(counters: inspector.counters),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _InspectorSection(
             title: 'DESCRIPTION',
             child: _DescriptionBlock(inspector: inspector),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _InspectorSection(
             title: 'TAGS',
             child: _TagsBlock(inspector: inspector),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _InspectorSection(
             title: 'CHAPITRES (${inspector.chapters.length})',
             child: _ChaptersBlock(chapters: inspector.chapters),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _InspectorSection(
             title: 'STATUT ÉDITORIAL',
             child: _EditorialStatusBlock(
@@ -113,18 +113,18 @@ class _InspectorIdentity extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 52,
-          height: 52,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
             color: accent.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: accent.withValues(alpha: 0.24)),
           ),
           alignment: Alignment.center,
           child: Icon(
             CupertinoIcons.compass_fill,
             color: accent,
-            size: 25,
+            size: 23,
           ),
         ),
         const SizedBox(width: 12),

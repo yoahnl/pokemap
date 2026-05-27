@@ -625,6 +625,83 @@ void main() {
   );
 
   testWidgets(
+    'EditorShellPage keeps the NS-HOME-21 visual harmonization contract',
+    (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_21_visual_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: const Size(1600, 1000),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('project-explorer-toggle')));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('project-explorer-reduced')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('narrative-studio-header')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
+          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('narrative-overview-structure-inspector')),
+        findsOneWidget,
+      );
+
+      final kpiGrid = tester.getRect(
+        find.byKey(const ValueKey('narrative-overview-kpi-grid')),
+      );
+      final mainStory = tester.getRect(
+        find.byKey(const ValueKey('narrative-overview-main-story-card')),
+      );
+      expect(kpiGrid.top, lessThan(mainStory.top));
+      expect(kpiGrid.height, lessThanOrEqualTo(130));
+
+      final sidebar = find.byKey(const ValueKey('narrative-studio-sidebar'));
+      expect(find.descendant(of: sidebar, matching: find.text('Maps')),
+          findsNothing);
+      for (final disabled in <String>[
+        'Facts',
+        'Règles du monde',
+        'Validateur',
+      ]) {
+        expect(
+          find.descendant(of: sidebar, matching: find.text(disabled)),
+          findsOneWidget,
+        );
+      }
+
+      for (final key in <String>[
+        'narrative-studio-header-action-new-storyline',
+        'narrative-studio-header-action-validate',
+        'narrative-studio-header-action-search',
+        'narrative-studio-header-action-notifications',
+        'narrative-studio-header-action-settings',
+      ]) {
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
+
+      expect(
+        find.byKey(
+          const ValueKey('narrative-studio-header-notifications-badge'),
+        ),
+        findsNothing,
+      );
+      expect(find.textContaining('Selbrume'), findsNothing);
+      expect(find.text('FR'), findsNothing);
+      expect(find.text('v0.3.0'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace captures a full editor shell screenshot when requested',
     (tester) async {
       if (!const bool.fromEnvironment('NS_HOME_09_CAPTURE_FULL_SHELL')) {
@@ -981,6 +1058,56 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         '${captureDisabledActions ? 'ns_home_20_internal_header_disabled_actions.png' : captureFocus ? 'ns_home_20_internal_header_focus.png' : 'ns_home_20_internal_header_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-21 visual harmonization screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_21_CAPTURE_VISUAL_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_21_CAPTURE_VISUAL_FOCUS');
+      const captureMedium =
+          bool.fromEnvironment('NS_HOME_21_CAPTURE_VISUAL_MEDIUM');
+      const captureAgainstTarget =
+          bool.fromEnvironment('NS_HOME_21_CAPTURE_VISUAL_AGAINST_TARGET');
+      if (!captureDesktop &&
+          !captureFocus &&
+          !captureMedium &&
+          !captureAgainstTarget) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_21_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: captureMedium
+            ? const Size(1180, 1000)
+            : captureFocus
+                ? const Size(1600, 700)
+                : const Size(1600, 1000),
+      );
+      await tester.tap(find.byKey(const ValueKey('project-explorer-toggle')));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureAgainstTarget ? 'ns_home_21_visual_harmonization_against_target.png' : captureMedium ? 'ns_home_21_visual_harmonization_medium.png' : captureFocus ? 'ns_home_21_visual_harmonization_focus.png' : 'ns_home_21_visual_harmonization_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(

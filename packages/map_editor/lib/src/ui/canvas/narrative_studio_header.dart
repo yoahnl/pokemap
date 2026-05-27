@@ -18,12 +18,12 @@ class NarrativeStudioHeader extends StatelessWidget {
     final currentLabel = _workspaceLabel(workspaceMode);
     return Container(
       key: const ValueKey('narrative-studio-header'),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF102033).withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF102033).withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: EditorChrome.activeAccent(context).withValues(alpha: 0.24),
+          color: EditorChrome.activeAccent(context).withValues(alpha: 0.3),
         ),
       ),
       child: LayoutBuilder(
@@ -94,7 +94,7 @@ class _HeaderTitle extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: EditorChrome.primaryLabel(context),
-            fontSize: 15,
+            fontSize: 14.5,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -105,7 +105,7 @@ class _HeaderTitle extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: EditorChrome.subtleLabel(context),
-            fontSize: 11.5,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -209,14 +209,14 @@ class _HeaderActionPillState extends State<_HeaderActionPill> {
             ? EditorChrome.accentPrimary
             : EditorChrome.subtleLabel(context);
     final fill = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.16)
+        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.18)
         : enabled && _hovered
             ? EditorChrome.activeAccent(context).withValues(alpha: 0.12)
             : enabled
                 ? const Color(0xFF14263A)
                 : const Color(0xFF111B27);
     final border = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.58)
+        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.68)
         : enabled && _hovered
             ? EditorChrome.activeAccent(context).withValues(alpha: 0.38)
             : const Color(0x334A89FF);
@@ -226,10 +226,10 @@ class _HeaderActionPillState extends State<_HeaderActionPill> {
 
     final content = AnimatedContainer(
       duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: border),
       ),
       child: Row(

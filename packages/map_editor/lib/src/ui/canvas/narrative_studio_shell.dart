@@ -45,7 +45,7 @@ class NarrativeStudioShell extends StatelessWidget {
                 onSelectDialogue: onSelectDialogue,
                 compact: compactSidebar,
               ),
-              SizedBox(width: compactSidebar ? 8 : 10),
+              SizedBox(width: compactSidebar ? 7 : 8),
               Expanded(
                 key: const ValueKey('narrative-studio-main-content'),
                 child: Column(
@@ -55,7 +55,7 @@ class NarrativeStudioShell extends StatelessWidget {
                       workspaceMode: workspaceMode,
                       onSelectOverview: onSelectOverview,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 7),
                     Expanded(child: child),
                   ],
                 ),

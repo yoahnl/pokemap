@@ -30,15 +30,15 @@ class NarrativeStudioSidebar extends StatelessWidget {
       label: 'Navigation interne Narrative Studio',
       child: Container(
         key: const ValueKey('narrative-studio-sidebar'),
-        width: compact ? 132 : 154,
+        width: compact ? 136 : 164,
         decoration: BoxDecoration(
           color: _NarrativeSidebarColors.panelFill,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _NarrativeSidebarColors.panelBorder,
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -64,7 +64,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(height: 8),
               _SidebarEntry(
                 key: const ValueKey('narrative-studio-sidebar-overview'),
                 icon: CupertinoIcons.square_grid_2x2,
@@ -162,20 +162,20 @@ class _SidebarEntry extends StatelessWidget {
             ? EditorChrome.accentPrimary
             : _NarrativeSidebarColors.disabledText;
     final borderColor = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.72)
+        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.82)
         : _NarrativeSidebarColors.itemBorder;
     final fill = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.14)
+        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.18)
         : _enabled
             ? _NarrativeSidebarColors.itemFill
             : _NarrativeSidebarColors.disabledFill;
 
     final content = Container(
       margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
       child: Row(
