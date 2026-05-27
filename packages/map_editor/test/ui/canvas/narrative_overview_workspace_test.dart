@@ -35,7 +35,7 @@ void main() {
       expect(find.text('Aperçu'), findsWidgets);
       expect(
         find.text(
-          'Vue d’ensemble auteur : métriques disponibles, statuts honnêtes et prochaines sections du dashboard.',
+          'Vue d’ensemble auteur : métriques et statuts honnêtes.',
         ),
         findsOneWidget,
       );
@@ -258,7 +258,7 @@ void main() {
       expect(find.text('Aperçu'), findsWidgets);
       expect(
         find.text(
-          'Vue d’ensemble auteur : métriques disponibles, statuts honnêtes et prochaines sections du dashboard.',
+          'Vue d’ensemble auteur : métriques et statuts honnêtes.',
         ),
         findsOneWidget,
       );
@@ -266,6 +266,30 @@ void main() {
       expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
           findsOneWidget);
       expect(_textInKpi('cutscenes', '0'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace keeps KPI cards visible after header density polish',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 720);
+
+      final header = find.byKey(
+        const ValueKey('narrative-overview-page-header'),
+      );
+      final kpiGrid = find.byKey(
+        const ValueKey('narrative-overview-kpi-grid'),
+      );
+
+      expect(header, findsOneWidget);
+      expect(kpiGrid, findsOneWidget);
+      expect(tester.getTopLeft(kpiGrid).dy, lessThanOrEqualTo(165));
+      expect(find.text('Indicateurs auteur'), findsOneWidget);
+      expect(find.text('Histoire principale'), findsOneWidget);
     },
   );
 

@@ -96,7 +96,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           },
           onSelectDialogue: editorNotifier.selectDialogueWorkspace,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Expanded(
           child: switch (editor.workspaceMode) {
             EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
@@ -249,25 +249,25 @@ class _NarrativeModeStrip extends StatelessWidget {
           selected: workspaceMode == EditorWorkspaceMode.narrativeOverview,
           onTap: onSelectOverview,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _ModeChip(
           label: 'Global Story',
           selected: workspaceMode == EditorWorkspaceMode.globalStory,
           onTap: onSelectGlobal,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _ModeChip(
           label: 'Step',
           selected: workspaceMode == EditorWorkspaceMode.step,
           onTap: onSelectStep,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _ModeChip(
           label: 'Cutscene',
           selected: workspaceMode == EditorWorkspaceMode.cutscene,
           onTap: onSelectCutscene,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         _ModeChip(
           label: 'Dialogue',
           selected: workspaceMode == EditorWorkspaceMode.dialogue,
@@ -295,7 +295,7 @@ class _ModeChip extends StatelessWidget {
         ? EditorChrome.inspectorJoyCyan
         : EditorChrome.subtleLabel(context);
     return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       minimumSize: Size.zero,
       onPressed: onTap,
       child: Container(
@@ -306,12 +306,12 @@ class _ModeChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: accent.withValues(alpha: 0.7)),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Text(
           label,
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 12,
+            fontSize: 11,
             color: accent,
           ),
         ),
@@ -420,7 +420,7 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
                             onSelectReplacement: onSelectCutscene,
                           );
                         },
-                        child: Icon(
+                        child: const Icon(
                           CupertinoIcons.trash,
                           size: 17,
                           color: EditorChrome.inspectorJoyCoral,

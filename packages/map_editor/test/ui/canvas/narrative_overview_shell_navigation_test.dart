@@ -443,6 +443,49 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-14 header density screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_14_CAPTURE_HEADER_DENSITY_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_14_CAPTURE_HEADER_DENSITY_FOCUS');
+      const captureMedium =
+          bool.fromEnvironment('NS_HOME_14_CAPTURE_HEADER_DENSITY_MEDIUM');
+      if (!captureDesktop && !captureFocus && !captureMedium) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_14_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: captureMedium
+            ? const Size(1180, 1000)
+            : captureFocus
+                ? const Size(1600, 700)
+                : const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureMedium ? 'ns_home_14_header_density_medium.png' : captureFocus ? 'ns_home_14_header_density_focus.png' : 'ns_home_14_header_density_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace captures NS-HOME-10 shell chrome screenshots when requested',
     (tester) async {
       const captureDesktop =
