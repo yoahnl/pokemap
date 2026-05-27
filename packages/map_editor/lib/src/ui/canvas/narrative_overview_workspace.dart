@@ -66,6 +66,8 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        _MainStoryCard(story: readModel.mainStory),
+        const SizedBox(height: 12),
         _OverviewSection(
           title: 'V0 volontairement limitée',
           children: [
@@ -83,6 +85,423 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _MainStoryCard extends StatelessWidget {
+  const _MainStoryCard({required this.story});
+
+  final MainStoryOverviewSummary story;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _sourceStatusAccent(context, story.sourceStatus);
+    return Container(
+      key: const ValueKey('narrative-overview-main-story-card'),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.18),
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.32)),
+        boxShadow: EditorChrome.sectionCardShadows(context),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                CupertinoIcons.star_fill,
+                color: EditorChrome.accentPrimary,
+                size: 14,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Histoire principale',
+                  style: TextStyle(
+                    color: EditorChrome.primaryLabel(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              _DisabledEditAffordance(accent: accent),
+            ],
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final useWideLayout = constraints.maxWidth >= 760;
+              final visual = _MainStoryVisual(accent: accent);
+              final content = _MainStoryContent(story: story, accent: accent);
+              if (!useWideLayout) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    visual,
+                    const SizedBox(height: 14),
+                    content,
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  visual,
+                  const SizedBox(width: 18),
+                  Expanded(child: content),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MainStoryVisual extends StatelessWidget {
+  const _MainStoryVisual({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 118,
+      height: 108,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.24)),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        CupertinoIcons.compass_fill,
+        color: accent,
+        size: 40,
+      ),
+    );
+  }
+}
+
+class _MainStoryContent extends StatelessWidget {
+  const _MainStoryContent({
+    required this.story,
+    required this.accent,
+  });
+
+  final MainStoryOverviewSummary story;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              _mainStoryTitle(story),
+              style: TextStyle(
+                color: EditorChrome.primaryLabel(context),
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            _SourceStatusPill(
+              label: _sourceStatusLabel(story.sourceStatus),
+              accent: accent,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _mainStoryDescription(story),
+          style: TextStyle(
+            color: EditorChrome.subtleLabel(context),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 14),
+        _MainStoryMetricsRow(story: story),
+        const SizedBox(height: 14),
+        _ChapterSummaryRow(story: story),
+      ],
+    );
+  }
+}
+
+class _MainStoryMetricsRow extends StatelessWidget {
+  const _MainStoryMetricsRow({required this.story});
+
+  final MainStoryOverviewSummary story;
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = <NarrativeMetricSummary>[
+      story.linkedScenes,
+      story.linkedDialogues,
+      story.openIssues,
+    ];
+    return Wrap(
+      spacing: 12,
+      runSpacing: 10,
+      children: [
+        for (final metric in metrics)
+          _MainStoryMetric(
+            metric: metric,
+            accent: _availabilityAccent(context, metric.availability),
+          ),
+      ],
+    );
+  }
+}
+
+class _MainStoryMetric extends StatelessWidget {
+  const _MainStoryMetric({
+    required this.metric,
+    required this.accent,
+  });
+
+  final NarrativeMetricSummary metric;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 136),
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: accent.withValues(alpha: 0.44)),
+        ),
+      ),
+      padding: const EdgeInsets.only(left: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            metric.label,
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _metricCardValue(metric),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: _metricCardValue(metric).length > 12 ? 16 : 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChapterSummaryRow extends StatelessWidget {
+  const _ChapterSummaryRow({required this.story});
+
+  final MainStoryOverviewSummary story;
+
+  @override
+  Widget build(BuildContext context) {
+    final chapters = story.chapters;
+    final hasFallbackChapters = chapters.any(
+      (chapter) =>
+          chapter.sourceStatus == NarrativeOverviewSourceStatus.fallback,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Chapitres',
+              style: TextStyle(
+                color: EditorChrome.subtleLabel(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (hasFallbackChapters) ...[
+              const SizedBox(width: 8),
+              const _SourceStatusPill(
+                label: 'Chapitres issus d’un fallback',
+                accent: EditorChrome.accentWarm,
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (chapters.isEmpty)
+          Text(
+            'Aucun chapitre authoré.',
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final chapter in chapters) _ChapterChip(chapter: chapter),
+              _DisabledChapterAffordance(),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _ChapterChip extends StatelessWidget {
+  const _ChapterChip({required this.chapter});
+
+  final NarrativeChapterOverviewSummary chapter;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _chapterStatusAccent(chapter.status);
+    return Container(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            chapter.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _chapterStatusLabel(chapter.status),
+            style: TextStyle(
+              color: accent,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DisabledEditAffordance extends StatelessWidget {
+  const _DisabledEditAffordance({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      enabled: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: accent.withValues(alpha: 0.2)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.pencil, color: accent, size: 13),
+            const SizedBox(width: 6),
+            Text(
+              'Modifier à venir',
+              style: TextStyle(
+                color: accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DisabledChapterAffordance extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final accent = EditorChrome.subtleLabel(context);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: 0.32)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Text(
+        '+ Chapitre à venir',
+        style: TextStyle(
+          color: accent,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _SourceStatusPill extends StatelessWidget {
+  const _SourceStatusPill({
+    required this.label,
+    required this.accent,
+  });
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.22)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: accent,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
@@ -419,6 +838,69 @@ IconData _metricIcon(String metricId) {
     'dialogues' => CupertinoIcons.chat_bubble_2_fill,
     'open_issues' => CupertinoIcons.exclamationmark_triangle_fill,
     _ => CupertinoIcons.chart_bar_fill,
+  };
+}
+
+String _mainStoryTitle(MainStoryOverviewSummary story) {
+  if (story.availability == NarrativeOverviewAvailability.empty) {
+    return 'Aucune histoire principale';
+  }
+  if (story.sourceStatus == NarrativeOverviewSourceStatus.ambiguous) {
+    return 'Sélection requise';
+  }
+  return story.title?.trim().isNotEmpty == true
+      ? story.title!.trim()
+      : 'Histoire principale sans titre';
+}
+
+String _mainStoryDescription(MainStoryOverviewSummary story) {
+  if (story.availability != NarrativeOverviewAvailability.available) {
+    return story.message;
+  }
+  return story.description?.trim().isNotEmpty == true
+      ? story.description!.trim()
+      : 'Synopsis non renseigné.';
+}
+
+String _sourceStatusLabel(NarrativeOverviewSourceStatus sourceStatus) {
+  return switch (sourceStatus) {
+    NarrativeOverviewSourceStatus.explicit => 'Source explicite',
+    NarrativeOverviewSourceStatus.fallback => 'Source fallback',
+    NarrativeOverviewSourceStatus.missing => 'Source manquante',
+    NarrativeOverviewSourceStatus.ambiguous => 'Source ambiguë',
+    NarrativeOverviewSourceStatus.notApplicable => 'Non applicable',
+  };
+}
+
+Color _sourceStatusAccent(
+  BuildContext context,
+  NarrativeOverviewSourceStatus sourceStatus,
+) {
+  return switch (sourceStatus) {
+    NarrativeOverviewSourceStatus.explicit => EditorChrome.accentPrimary,
+    NarrativeOverviewSourceStatus.fallback => EditorChrome.accentWarm,
+    NarrativeOverviewSourceStatus.missing => EditorChrome.subtleLabel(context),
+    NarrativeOverviewSourceStatus.ambiguous => EditorChrome.accentCoral,
+    NarrativeOverviewSourceStatus.notApplicable =>
+      EditorChrome.subtleLabel(context),
+  };
+}
+
+String _chapterStatusLabel(NarrativeChapterEditorialStatus status) {
+  return switch (status) {
+    NarrativeChapterEditorialStatus.defined => 'Défini',
+    NarrativeChapterEditorialStatus.inProgress => 'En cours',
+    NarrativeChapterEditorialStatus.draft => 'Brouillon',
+    NarrativeChapterEditorialStatus.notEvaluated => 'Non évalué',
+  };
+}
+
+Color _chapterStatusAccent(NarrativeChapterEditorialStatus status) {
+  return switch (status) {
+    NarrativeChapterEditorialStatus.defined => EditorChrome.accentJade,
+    NarrativeChapterEditorialStatus.inProgress => EditorChrome.accentPrimary,
+    NarrativeChapterEditorialStatus.draft => EditorChrome.accentLilac,
+    NarrativeChapterEditorialStatus.notEvaluated => EditorChrome.accentWarm,
   };
 }
 
