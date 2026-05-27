@@ -42,7 +42,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Aperçu'), findsWidgets);
-      expect(find.textContaining('test_project'), findsOneWidget);
+      expect(find.textContaining('test_project'), findsWidgets);
       expect(find.textContaining('Non évalué'), findsWidgets);
       expect(find.textContaining('Selbrume'), findsNothing);
       expect(find.text('42'), findsNothing);

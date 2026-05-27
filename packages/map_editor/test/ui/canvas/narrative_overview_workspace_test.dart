@@ -26,7 +26,7 @@ void main() {
         find.text('Vue d’ensemble auteur du Narrative Studio.'),
         findsOneWidget,
       );
-      expect(find.textContaining('test_project'), findsOneWidget);
+      expect(find.textContaining('test_project'), findsWidgets);
       expect(find.textContaining('Non évalué'), findsWidgets);
       expect(find.text('Indicateurs auteur'), findsOneWidget);
       for (final label in <String>[
@@ -160,7 +160,7 @@ void main() {
       expect(find.text('Aperçu'), findsOneWidget);
       expect(find.text('Vue d’ensemble auteur du Narrative Studio.'),
           findsOneWidget);
-      expect(find.textContaining('test_project'), findsOneWidget);
+      expect(find.textContaining('test_project'), findsWidgets);
       expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
           findsOneWidget);
       expect(_textInKpi('cutscenes', '0'), findsOneWidget);
@@ -219,8 +219,8 @@ void main() {
       expect(_textInMainStory('1'), findsNWidgets(2));
       expect(_textInMainStory('Problèmes ouverts'), findsOneWidget);
       expect(_textInMainStory('Non évalué'), findsWidgets);
-      expect(find.text('Test Chapter One'), findsOneWidget);
-      expect(find.text('Test Chapter Two'), findsOneWidget);
+      expect(find.text('Test Chapter One'), findsWidgets);
+      expect(find.text('Test Chapter Two'), findsWidgets);
       expect(find.textContaining('Fallback'), findsNothing);
       expect(find.textContaining('Selbrume'), findsNothing);
       expect(find.textContaining('La brume du phare'), findsNothing);
@@ -463,6 +463,178 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeOverviewWorkspace renders an honest structure inspector panel',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 980);
+
+      expect(
+        find.byKey(
+          const ValueKey('narrative-overview-structure-inspector'),
+        ),
+        findsOneWidget,
+      );
+      expect(_textInStructureInspector('STRUCTURE NARRATIVE'), findsOneWidget);
+      expect(_textInStructureInspector('test_project'), findsOneWidget);
+      expect(_textInStructureInspector('Non évalué'), findsWidgets);
+      expect(_textInStructureInspector('À jour'), findsNothing);
+      expect(
+        _textInStructureInspector('Description non disponible en V0.'),
+        findsOneWidget,
+      );
+      expect(
+        _textInStructureInspector('Tags non disponibles en V0.'),
+        findsOneWidget,
+      );
+      expect(
+        _textInStructureInspector('Aucun chapitre authoré.'),
+        findsOneWidget,
+      );
+      expect(
+        _textInStructureInspector('Validation non lancée'),
+        findsOneWidget,
+      );
+      expect(_textInStructureCounter('facts', 'Facts'), findsOneWidget);
+      expect(
+        _textInStructureCounter('facts', 'Nécessite un modèle'),
+        findsOneWidget,
+      );
+
+      for (final forbidden in <String>[
+        'Selbrume',
+        'Port Selbrume',
+        'Phare',
+        'Mystère',
+        'Exploration',
+        'Fantastique',
+        'Côtiers',
+      ]) {
+        expect(find.textContaining(forbidden), findsNothing);
+      }
+      expect(find.text('42'), findsNothing);
+      expect(find.text('24'), findsNothing);
+      expect(find.text('12'), findsNothing);
+      expect(find.text('312'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace structure inspector consumes read model counters and chapters',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject(
+          'test_project',
+          scenarios: <ScenarioAsset>[
+            _globalStoryWithDocuments(),
+            _cutsceneScenario(
+              id: 'test_cutscene_1',
+              dialogueId: 'test_dialogue_1',
+            ),
+          ],
+          dialogues: const <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'test_dialogue_1',
+              name: 'Test Dialogue',
+              relativePath: 'dialogues/test_dialogue_1.yarn',
+            ),
+          ],
+        ),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 980);
+
+      expect(_textInStructureCounter('chapters', '2'), findsOneWidget);
+      expect(_textInStructureCounter('scenes', '1'), findsOneWidget);
+      expect(_textInStructureCounter('cutscenes', '1'), findsOneWidget);
+      expect(_textInStructureCounter('dialogues', '1'), findsOneWidget);
+      expect(
+        _textInStructureCounter('facts', 'Nécessite un modèle'),
+        findsOneWidget,
+      );
+      expect(_textInStructureInspector('Test Chapter One'), findsOneWidget);
+      expect(_textInStructureInspector('Test Chapter Two'), findsOneWidget);
+      expect(_textInStructureInspector('KPI cards'), findsNothing);
+      expect(find.textContaining('Selbrume'), findsNothing);
+      expect(find.textContaining('La brume du phare'), findsNothing);
+      expect(find.text('42'), findsNothing);
+      expect(find.text('27'), findsNothing);
+      expect(find.text('412'), findsNothing);
+      expect(find.text('312'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace structure inspector shows clean validation as up to date',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+        narrativeValidationReport: NarrativeValidationReport(
+          diagnostics: const <NarrativeValidationDiagnostic>[],
+        ),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 980);
+
+      expect(_textInStructureInspector('À jour'), findsWidgets);
+      expect(
+        _textInStructureInspector('0 diagnostic(s) narratif(s)'),
+        findsOneWidget,
+      );
+      expect(_textInStructureEditorial('validation', 'À jour'), findsOneWidget);
+      expect(_textInStructureEditorial('review', '0'), findsOneWidget);
+      expect(_textInStructureEditorial('blocking', '0'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace structure inspector maps warnings to review state',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+        narrativeValidationReport: NarrativeValidationReport(
+          diagnostics: <NarrativeValidationDiagnostic>[
+            _diagnostic(NarrativeValidationSeverity.warning),
+          ],
+        ),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 980);
+
+      expect(_textInStructureInspector('À revoir'), findsWidgets);
+      expect(
+          _textInStructureEditorial('validation', 'À revoir'), findsOneWidget);
+      expect(_textInStructureEditorial('review', '1'), findsOneWidget);
+      expect(_textInStructureEditorial('blocking', '0'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace structure inspector maps errors to blocking state',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+        narrativeValidationReport: NarrativeValidationReport(
+          diagnostics: <NarrativeValidationDiagnostic>[
+            _diagnostic(NarrativeValidationSeverity.error),
+          ],
+        ),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 980);
+
+      expect(_textInStructureInspector('Bloquant'), findsWidgets);
+      expect(
+          _textInStructureEditorial('validation', 'Bloquant'), findsOneWidget);
+      expect(_textInStructureEditorial('review', '0'), findsOneWidget);
+      expect(_textInStructureEditorial('blocking', '1'), findsOneWidget);
+      expect(_textInStructureInspector('À jour'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace captures KPI cards screenshot when requested',
     (tester) async {
       if (!const bool.fromEnvironment('NS_HOME_04_CAPTURE_SCREENSHOT')) {
@@ -676,6 +848,80 @@ void main() {
       expect(screenshotFile.existsSync(), isTrue);
     },
   );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures structure inspector screenshot when requested',
+    (tester) async {
+      if (!const bool.fromEnvironment('NS_HOME_07_CAPTURE_SCREENSHOT')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      tester.view.physicalSize = const Size(1440, 980);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject(
+          'test_project',
+          scenarios: <ScenarioAsset>[
+            _globalStoryWithDocuments(),
+            _cutsceneScenario(
+              id: 'test_cutscene_1',
+              dialogueId: 'test_dialogue_1',
+            ),
+          ],
+          dialogues: const <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'test_dialogue_1',
+              name: 'Test Dialogue',
+              relativePath: 'dialogues/test_dialogue_1.yarn',
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: ColoredBox(
+                key: const ValueKey('ns-home-07-screenshot-root'),
+                color: const Color(0xFF07111F),
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(fontFamily: _screenshotFontFamily),
+                  child: Center(
+                    child: SizedBox(
+                      width: 1440,
+                      height: 980,
+                      child: NarrativeOverviewWorkspace(readModel: readModel),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        'ns_home_07_overview_structure_inspector.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('ns-home-07-screenshot-root')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
 }
 
 const _screenshotFontFamily = 'NsHome04ScreenshotFont';
@@ -706,6 +952,41 @@ Finder _textInModule(String moduleId, String text) {
   return find.descendant(
     of: find.byKey(ValueKey('narrative-overview-module-$moduleId')),
     matching: find.text(text),
+  );
+}
+
+Finder _textInStructureInspector(String text) {
+  return find.descendant(
+    of: find.byKey(
+      const ValueKey('narrative-overview-structure-inspector'),
+    ),
+    matching: find.text(text),
+  );
+}
+
+Finder _textInStructureCounter(String metricId, String text) {
+  return find.descendant(
+    of: find.byKey(ValueKey('narrative-overview-structure-counter-$metricId')),
+    matching: find.text(text),
+  );
+}
+
+Finder _textInStructureEditorial(String slot, String text) {
+  return find.descendant(
+    of: find.byKey(ValueKey('narrative-overview-structure-editorial-$slot')),
+    matching: find.text(text),
+  );
+}
+
+NarrativeValidationDiagnostic _diagnostic(
+  NarrativeValidationSeverity severity,
+) {
+  return NarrativeValidationDiagnostic(
+    severity: severity,
+    kind: NarrativeValidationDiagnosticKind.scenarioGraphHasNoSource,
+    message: 'Test diagnostic',
+    path: 'scenarios/test_global_story',
+    scenarioId: 'test_global_story',
   );
 }
 

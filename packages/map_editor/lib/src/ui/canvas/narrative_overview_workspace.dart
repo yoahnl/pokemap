@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
 import '../shared/cupertino_editor_widgets.dart';
+import 'narrative_overview_structure_inspector.dart';
 
 /// Shell V0 de la page "Aperçu" du Narrative Studio.
 ///
@@ -38,6 +39,60 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
+        _OverviewResponsiveBody(readModel: readModel),
+      ],
+    );
+  }
+}
+
+class _OverviewResponsiveBody extends StatelessWidget {
+  const _OverviewResponsiveBody({required this.readModel});
+
+  final NarrativeOverviewReadModel readModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mainColumn = _OverviewMainColumn(readModel: readModel);
+        final structureInspector = NarrativeOverviewStructureInspector(
+          inspector: readModel.structureInspector,
+          editorialStatus: readModel.editorialStatus,
+          projectHealth: readModel.projectHealth,
+        );
+        if (constraints.maxWidth >= 1180) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: mainColumn),
+              const SizedBox(width: 14),
+              SizedBox(width: 360, child: structureInspector),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            mainColumn,
+            const SizedBox(height: 12),
+            structureInspector,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _OverviewMainColumn extends StatelessWidget {
+  const _OverviewMainColumn({required this.readModel});
+
+  final NarrativeOverviewReadModel readModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         _OverviewSection(
           title: 'Projet',
           children: [
@@ -274,21 +329,29 @@ class _ModuleSecondaryStat extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            stat.label,
-            style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+          Flexible(
+            child: Text(
+              stat.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: EditorChrome.subtleLabel(context),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
           const SizedBox(width: 6),
-          Text(
-            _metricCardValue(stat),
-            style: TextStyle(
-              color: accent,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
+          Flexible(
+            child: Text(
+              _metricCardValue(stat),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
