@@ -290,7 +290,7 @@ Interprétation V0 :
 | Lot | Title | Type | Status | Next |
 |---|---|---|---|---|
 | NS-STORYLINES-01 | Storylines Read Model / Data Contract V0 | core/design | DONE | NS-STORYLINES-02 |
-| NS-STORYLINES-02 | Current Global Story Characterization / Anti-Fake Tests V0 | test/audit | TODO | NS-STORYLINES-03 |
+| NS-STORYLINES-02 | Current Global Story Characterization / Anti-Fake Tests V0 | test/audit | DONE | NS-STORYLINES-03 |
 | NS-STORYLINES-03 | Storylines Workspace Shell Layout V0 | editor UI | TODO | NS-STORYLINES-04 |
 | NS-STORYLINES-04 | Storylines Secondary List Panel Read-only V0 | editor UI | TODO | NS-STORYLINES-05 |
 | NS-STORYLINES-05 | Storyline Header / Tabs / KPI Read-only V0 | editor UI | TODO | NS-STORYLINES-06 |
@@ -340,7 +340,15 @@ Interprétation V0 :
 - Visual Gate : optionnel.
 - Risques : figer une UI destinée à être remplacée.
 - Design system impact : aucun nouveau composant local.
-- Statut : TODO.
+- Statut : DONE.
+- Résultat NS-STORYLINES-02 : ajout d'un test de caractérisation anti-fake qui verrouille l'ancien Global Story Studio sans toucher au code production.
+- Fichiers créés : `packages/map_editor/test/storylines_current_global_story_characterization_test.dart`, `reports/narrativeStudio/storylines/ns_storylines_02_current_global_story_characterization_anti_fake_tests_v0.md`.
+- Fichiers modifiés : `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Code production : aucun fichier `packages/map_editor/lib`, `map_core`, `map_runtime`, `map_gameplay` ou `map_battle` modifié.
+- Tests exécutés : `flutter test test/storylines_current_global_story_characterization_test.dart`, régression groupée Global Story / Projection.
+- Analyse exécutée : `flutter analyze test/storylines_current_global_story_characterization_test.dart`.
+- Design System Gate : confirmé ; aucun widget production, aucune couleur, aucune primitive design system modifiée.
+- Fake data : aucune donnée cible ajoutée ; les chaînes cible sont assertées absentes quand la fixture neutre ne les contient pas.
 - Prochain lot attendu : NS-STORYLINES-03.
 
 ### NS-STORYLINES-03 — Storylines Workspace Shell Layout V0
@@ -620,9 +628,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-01
+Current lot: NS-STORYLINES-02
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-02 — Current Global Story Characterization / Anti-Fake Tests V0
+Next recommended lot: NS-STORYLINES-03 — Storylines Workspace Shell Layout V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -630,7 +638,7 @@ Next recommended lot: NS-STORYLINES-02 — Current Global Story Characterization
 | NS-STORYLINES-00 | DONE | 2026-05-27 | Audit actuel/cible produit. |
 | NS-STORYLINES-ROADMAP-00 | DONE | 2026-05-27 | Roadmap vivante créée. |
 | NS-STORYLINES-01 | DONE | 2026-05-27 | Contrat de données Storylines V0 documenté ; aucun code/test modifié. |
-| NS-STORYLINES-02 | TODO | 2026-05-27 | Prochain lot recommandé : caractérisation et anti-fake tests. |
+| NS-STORYLINES-02 | DONE | 2026-05-27 | Tests de caractérisation anti-fake ajoutés ; ancien Global Story Studio verrouillé sans code production. |
 | NS-STORYLINES-03 | TODO | 2026-05-27 | UI shell après contrat/tests. |
 | NS-STORYLINES-04 | TODO | 2026-05-27 | Secondary list read-only. |
 | NS-STORYLINES-05 | TODO | 2026-05-27 | Header/tabs/KPI read-only. |
@@ -643,6 +651,18 @@ Next recommended lot: NS-STORYLINES-02 — Current Global Story Characterization
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-27 — NS-STORYLINES-02
+
+- Ajout du test `storylines_current_global_story_characterization_test.dart`.
+- Vérification que `EditorWorkspaceMode.globalStory` rend encore `NarrativeWorkspaceCanvas > NarrativeStudioShell > GlobalStoryStudioWorkspace`.
+- Vérification que les données visibles viennent du `ScenarioAsset globalStory` et des metadata `GlobalStoryStudioDocument` / `StepStudioDocument`.
+- Vérification anti-fake : données cible Storylines (`La brume du phare`, quêtes annexes cible, tags cible, `412`, `18`, etc.) absentes avec une fixture neutre.
+- Vérification que `localEventFlow` n'est pas affiché comme quête annexe Storylines.
+- Vérification que `Maps` reste absent de la sidebar interne Narrative Studio.
+- Régressions Global Story / Projection passées et analyse ciblée clean.
+- Aucun code production, modèle, widget ou design system modifié.
+- Prochain lot recommandé : `NS-STORYLINES-03 — Storylines Workspace Shell Layout V0`.
 
 ### 2026-05-27 — NS-STORYLINES-01
 
