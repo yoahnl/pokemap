@@ -289,7 +289,7 @@ Interprétation V0 :
 
 | Lot | Title | Type | Status | Next |
 |---|---|---|---|---|
-| NS-STORYLINES-01 | Storylines Read Model / Data Contract V0 | core/design | TODO | NS-STORYLINES-02 |
+| NS-STORYLINES-01 | Storylines Read Model / Data Contract V0 | core/design | DONE | NS-STORYLINES-02 |
 | NS-STORYLINES-02 | Current Global Story Characterization / Anti-Fake Tests V0 | test/audit | TODO | NS-STORYLINES-03 |
 | NS-STORYLINES-03 | Storylines Workspace Shell Layout V0 | editor UI | TODO | NS-STORYLINES-04 |
 | NS-STORYLINES-04 | Storylines Secondary List Panel Read-only V0 | editor UI | TODO | NS-STORYLINES-05 |
@@ -317,7 +317,14 @@ Interprétation V0 :
 - Visual Gate : non.
 - Risques : inférer trop de données depuis des noms ; confondre `ScenarioAsset` et `Storyline`.
 - Design system impact : rappel du gate, pas de code UI.
-- Statut : TODO.
+- Statut : DONE.
+- Résultat NS-STORYLINES-01 : contrat de données Storylines V0 documenté dans `reports/narrativeStudio/storylines/ns_storylines_01_read_model_data_contract_v0.md`.
+- Fichiers créés : `reports/narrativeStudio/storylines/ns_storylines_01_read_model_data_contract_v0.md`.
+- Fichiers modifiés : `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Code : aucun fichier Dart modifié.
+- Tests/analyze : non lancés, car lot documentation-only / no-code / no-test-change.
+- Design System Gate : confirmé pour les futurs lots UI ; aucune couleur hardcodée ajoutée.
+- Fake data : aucune donnée cible ou fixture Selbrume ajoutée ; les champs `Missing` / `Fake risk` restent disabled, cachés ou reportés.
 - Prochain lot attendu : NS-STORYLINES-02.
 
 ### NS-STORYLINES-02 — Current Global Story Characterization / Anti-Fake Tests V0
@@ -612,18 +619,18 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: BOOTSTRAPPED
-Current lot: NS-STORYLINES-ROADMAP-00
+Roadmap status: ACTIVE
+Current lot: NS-STORYLINES-01
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-01 — Storylines Read Model / Data Contract V0
+Next recommended lot: NS-STORYLINES-02 — Current Global Story Characterization / Anti-Fake Tests V0
 ```
 
 | Lot | Status | Last update | Notes |
 |---|---|---|---|
 | NS-STORYLINES-00 | DONE | 2026-05-27 | Audit actuel/cible produit. |
 | NS-STORYLINES-ROADMAP-00 | DONE | 2026-05-27 | Roadmap vivante créée. |
-| NS-STORYLINES-01 | TODO | 2026-05-27 | Prochain lot recommandé. |
-| NS-STORYLINES-02 | TODO | 2026-05-27 | À lancer après data contract. |
+| NS-STORYLINES-01 | DONE | 2026-05-27 | Contrat de données Storylines V0 documenté ; aucun code/test modifié. |
+| NS-STORYLINES-02 | TODO | 2026-05-27 | Prochain lot recommandé : caractérisation et anti-fake tests. |
 | NS-STORYLINES-03 | TODO | 2026-05-27 | UI shell après contrat/tests. |
 | NS-STORYLINES-04 | TODO | 2026-05-27 | Secondary list read-only. |
 | NS-STORYLINES-05 | TODO | 2026-05-27 | Header/tabs/KPI read-only. |
@@ -636,6 +643,18 @@ Next recommended lot: NS-STORYLINES-01 — Storylines Read Model / Data Contract
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-27 — NS-STORYLINES-01
+
+- Création du contrat de données Storylines V0.
+- Clarification du mapping `Storyline = ScenarioAsset globalStory` en V0.
+- Clarification `Chapter = GlobalStoryChapter`.
+- Clarification `Step = Étape narrative` et prudence sur le terme `Scène`.
+- Documentation des KPI affichables, disabled ou fake risk.
+- Documentation du graph V0 read-only et de l'inspecteur V0.
+- Confirmation que `Maps` reste absent de la sidebar interne en V0.
+- Aucun code, test, modèle, widget ou provider modifié.
+- Prochain lot recommandé : `NS-STORYLINES-02 — Current Global Story Characterization / Anti-Fake Tests V0`.
 
 ### 2026-05-27 — NS-STORYLINES-ROADMAP-00
 
