@@ -79,7 +79,7 @@ class NarrativeOverviewUnavailableDataSection extends StatelessWidget {
         ),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -101,7 +101,7 @@ class NarrativeOverviewUnavailableDataSection extends StatelessWidget {
               height: 1.25,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, constraints) {
               const spacing = 10.0;
@@ -157,7 +157,7 @@ class NarrativeOverviewFooter extends StatelessWidget {
           color: EditorChrome.subtleSeparator(context).withValues(alpha: 0.8),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Wrap(
         spacing: 18,
         runSpacing: 8,
@@ -194,13 +194,13 @@ class _UnavailableDataTile extends StatelessWidget {
     final accent = _availabilityAccent(context, item.availability);
     return Container(
       key: ValueKey('narrative-overview-empty-state-${item.slot}'),
-      constraints: const BoxConstraints(minHeight: 126),
+      constraints: const BoxConstraints(minHeight: 112),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: accent.withValues(alpha: 0.22)),
       ),
-      padding: const EdgeInsets.all(13),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -208,8 +208,8 @@ class _UnavailableDataTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.13),
                   borderRadius: BorderRadius.circular(10),
@@ -240,7 +240,7 @@ class _UnavailableDataTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             item.detail,
             maxLines: 3,

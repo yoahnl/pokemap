@@ -33,7 +33,7 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.28)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -57,32 +57,32 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _InspectorIdentity(
             projectName: inspector.projectName,
             statusLabel: inspector.globalStatusLabel,
             accent: accent,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           _InspectorDivider(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _InspectorCounters(counters: inspector.counters),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _InspectorSection(
             title: 'DESCRIPTION',
             child: _DescriptionBlock(inspector: inspector),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _InspectorSection(
             title: 'TAGS',
             child: _TagsBlock(inspector: inspector),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _InspectorSection(
             title: 'CHAPITRES (${inspector.chapters.length})',
             child: _ChaptersBlock(chapters: inspector.chapters),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _InspectorSection(
             title: 'STATUT ÉDITORIAL',
             child: _EditorialStatusBlock(
@@ -113,8 +113,8 @@ class _InspectorIdentity extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 58,
-          height: 58,
+          width: 52,
+          height: 52,
           decoration: BoxDecoration(
             color: accent.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(14),
@@ -124,7 +124,7 @@ class _InspectorIdentity extends StatelessWidget {
           child: Icon(
             CupertinoIcons.compass_fill,
             color: accent,
-            size: 28,
+            size: 25,
           ),
         ),
         const SizedBox(width: 12),
@@ -142,7 +142,7 @@ class _InspectorIdentity extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               _InspectorPill(label: statusLabel, accent: accent),
             ],
           ),
@@ -177,7 +177,7 @@ class _StructureCounterRow extends StatelessWidget {
     final accent = _availabilityAccent(context, counter.availability);
     return Container(
       key: ValueKey('narrative-overview-structure-counter-${counter.id}'),
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Icon(_counterIcon(counter.id), color: accent, size: 14),
@@ -229,7 +229,7 @@ class _InspectorSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _InspectorDivider(),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Text(
           title,
           style: TextStyle(
@@ -239,7 +239,7 @@ class _InspectorSection extends StatelessWidget {
             letterSpacing: 0,
           ),
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 7),
         child,
       ],
     );
@@ -325,7 +325,7 @@ class _ChapterRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _chapterAccent(chapter.status);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.only(bottom: 5),
       child: Row(
         children: [
           Container(
@@ -418,9 +418,9 @@ class _EditorialStatusBlock extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 8),
         _BodyText(editorialStatus.diagnosticSourceSummary),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         _BodyText(
           'Project Health : ${_projectHealthLabel(projectHealth.healthKind)}',
         ),
@@ -446,13 +446,13 @@ class _EditorialStatusTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       key: ValueKey('narrative-overview-structure-editorial-$slot'),
-      constraints: const BoxConstraints(minWidth: 96),
+      constraints: const BoxConstraints(minWidth: 92),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accent.withValues(alpha: 0.24)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

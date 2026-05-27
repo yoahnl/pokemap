@@ -717,6 +717,99 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeOverviewWorkspace keeps the structure inspector beside the main column on large desktop',
+    (tester) async {
+      final readModel = _storyOverviewReadModel();
+
+      await _pumpOverview(tester, readModel, width: 1600, height: 1400);
+
+      final mainColumn = find.byKey(
+        const ValueKey('narrative-overview-main-column'),
+      );
+      final structureColumn = find.byKey(
+        const ValueKey('narrative-overview-structure-column'),
+      );
+
+      expect(mainColumn, findsOneWidget);
+      expect(structureColumn, findsOneWidget);
+
+      final mainRect = tester.getRect(mainColumn);
+      final structureRect = tester.getRect(structureColumn);
+
+      expect(structureRect.left, greaterThan(mainRect.right));
+      expect((structureRect.top - mainRect.top).abs(), lessThanOrEqualTo(1));
+      expect(find.text('Indicateurs auteur'), findsOneWidget);
+      expect(find.text('Histoire principale'), findsOneWidget);
+      expect(find.text('Modules narratifs'), findsOneWidget);
+      expect(find.text('Données à venir'), findsOneWidget);
+      expect(find.text('STRUCTURE NARRATIVE'), findsOneWidget);
+      expect(find.byKey(const ValueKey('narrative-overview-footer')),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace stacks the structure inspector after the main column on medium desktop',
+    (tester) async {
+      final readModel = _storyOverviewReadModel();
+
+      await _pumpOverview(tester, readModel, width: 1180, height: 1900);
+
+      final mainColumn = find.byKey(
+        const ValueKey('narrative-overview-main-column'),
+      );
+      final structureColumn = find.byKey(
+        const ValueKey('narrative-overview-structure-column'),
+      );
+
+      expect(mainColumn, findsOneWidget);
+      expect(structureColumn, findsOneWidget);
+
+      final mainRect = tester.getRect(mainColumn);
+      final structureRect = tester.getRect(structureColumn);
+
+      expect(structureRect.top, greaterThan(mainRect.bottom));
+      expect(structureRect.left, closeTo(mainRect.left, 1));
+      expect(find.text('Indicateurs auteur'), findsOneWidget);
+      expect(find.text('Histoire principale'), findsOneWidget);
+      expect(find.text('Modules narratifs'), findsOneWidget);
+      expect(find.text('Données à venir'), findsOneWidget);
+      expect(find.text('STRUCTURE NARRATIVE'), findsOneWidget);
+      expect(find.byKey(const ValueKey('narrative-overview-footer')),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace keeps V0 unavailable data honest after responsive polish',
+    (tester) async {
+      final readModel = _storyOverviewReadModel();
+
+      await _pumpOverview(tester, readModel, width: 1600, height: 1400);
+
+      expect(_textInEmptyState('facts', 'Nécessite un modèle'), findsOneWidget);
+      expect(
+        _textInEmptyState('recent_activity', 'Hors scope V0'),
+        findsOneWidget,
+      );
+      expect(
+        _textInEmptyState('notifications', 'Hors scope V0'),
+        findsOneWidget,
+      );
+      expect(find.text('FR'), findsNothing);
+      expect(find.text('v0.3.0'), findsNothing);
+      expect(find.textContaining('Selbrume'), findsNothing);
+      expect(find.text('42'), findsNothing);
+      expect(find.text('1 236'), findsNothing);
+      expect(find.text('1236'), findsNothing);
+      expect(find.text('24'), findsNothing);
+      expect(find.text('12'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace captures KPI cards screenshot when requested',
     (tester) async {
       if (!const bool.fromEnvironment('NS_HOME_04_CAPTURE_SCREENSHOT')) {
@@ -1078,6 +1171,119 @@ void main() {
       expect(screenshotFile.existsSync(), isTrue);
     },
   );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures responsive polish desktop screenshot when requested',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+          'NS_HOME_09_CAPTURE_DESKTOP_SCREENSHOT')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      tester.view.physicalSize = const Size(1600, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final readModel = _storyOverviewReadModel();
+
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: ColoredBox(
+                key: const ValueKey('ns-home-09-desktop-screenshot-root'),
+                color: const Color(0xFF07111F),
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(fontFamily: _screenshotFontFamily),
+                  child: Center(
+                    child: SizedBox(
+                      width: 1600,
+                      height: 1800,
+                      child: NarrativeOverviewWorkspace(readModel: readModel),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        'ns_home_09_overview_responsive_polish_desktop.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('ns-home-09-desktop-screenshot-root')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures responsive polish medium screenshot when requested',
+    (tester) async {
+      if (!const bool.fromEnvironment('NS_HOME_09_CAPTURE_MEDIUM_SCREENSHOT')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      tester.view.physicalSize = const Size(1180, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final readModel = _storyOverviewReadModel();
+
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: ColoredBox(
+                key: const ValueKey('ns-home-09-medium-screenshot-root'),
+                color: const Color(0xFF07111F),
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(fontFamily: _screenshotFontFamily),
+                  child: Center(
+                    child: SizedBox(
+                      width: 1180,
+                      height: 2400,
+                      child: NarrativeOverviewWorkspace(readModel: readModel),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        'ns_home_09_overview_responsive_polish_medium.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('ns-home-09-medium-screenshot-root')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
 }
 
 const _screenshotFontFamily = 'NsHome04ScreenshotFont';
@@ -1157,6 +1363,28 @@ NarrativeValidationDiagnostic _diagnostic(
     message: 'Test diagnostic',
     path: 'scenarios/test_global_story',
     scenarioId: 'test_global_story',
+  );
+}
+
+NarrativeOverviewReadModel _storyOverviewReadModel() {
+  return buildNarrativeOverviewReadModel(
+    project: _minimalProject(
+      'test_project',
+      scenarios: <ScenarioAsset>[
+        _globalStoryWithDocuments(),
+        _cutsceneScenario(
+          id: 'test_cutscene_1',
+          dialogueId: 'test_dialogue_1',
+        ),
+      ],
+      dialogues: const <ProjectDialogueEntry>[
+        ProjectDialogueEntry(
+          id: 'test_dialogue_1',
+          name: 'Test Dialogue',
+          relativePath: 'dialogues/test_dialogue_1.yarn',
+        ),
+      ],
+    ),
   );
 }
 

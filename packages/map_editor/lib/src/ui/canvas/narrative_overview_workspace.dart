@@ -20,13 +20,14 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      key: const ValueKey('narrative-overview-scroll'),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       children: [
         Text(
           'Aperçu',
           style: TextStyle(
             color: EditorChrome.primaryLabel(context),
-            fontSize: 28,
+            fontSize: 26,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -39,7 +40,7 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
         _OverviewResponsiveBody(readModel: readModel),
       ],
     );
@@ -66,8 +67,12 @@ class _OverviewResponsiveBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: mainColumn),
-              const SizedBox(width: 14),
-              SizedBox(width: 360, child: structureInspector),
+              const SizedBox(width: 12),
+              SizedBox(
+                key: const ValueKey('narrative-overview-structure-column'),
+                width: 348,
+                child: structureInspector,
+              ),
             ],
           );
         }
@@ -75,8 +80,11 @@ class _OverviewResponsiveBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             mainColumn,
-            const SizedBox(height: 12),
-            structureInspector,
+            const SizedBox(height: 10),
+            KeyedSubtree(
+              key: const ValueKey('narrative-overview-structure-column'),
+              child: structureInspector,
+            ),
           ],
         );
       },
@@ -92,25 +100,19 @@ class _OverviewMainColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      key: const ValueKey('narrative-overview-main-column'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _OverviewSection(
-          title: 'Projet',
-          children: [
-            _OverviewLine(label: 'Nom', value: readModel.projectName),
-            _OverviewLine(
-              label: 'Statut éditorial',
-              value: _editorialStatusLabel(
-                readModel.editorialStatus.validationState,
-              ),
-            ),
-            _OverviewLine(
-              label: 'Project Health',
-              value: _projectHealthLabel(readModel.projectHealth.healthKind),
-            ),
-          ],
+        _ProjectSummaryStrip(
+          projectName: readModel.projectName,
+          editorialStatusLabel: _editorialStatusLabel(
+            readModel.editorialStatus.validationState,
+          ),
+          projectHealthLabel: _projectHealthLabel(
+            readModel.projectHealth.healthKind,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _KpiCardsSection(
           metrics: [
             readModel.metrics.chapters,
@@ -121,23 +123,101 @@ class _OverviewMainColumn extends StatelessWidget {
             readModel.metrics.openIssues,
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _MainStoryCard(story: readModel.mainStory),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _ModuleCardsSection(modules: readModel.modules),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         NarrativeOverviewUnavailableDataSection(
           facts: readModel.metrics.facts,
           recentActivity: readModel.recentActivity,
           notifications: readModel.notifications,
           footer: readModel.footer,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         NarrativeOverviewFooter(
           projectName: readModel.projectName,
           footer: readModel.footer,
         ),
       ],
+    );
+  }
+}
+
+class _ProjectSummaryStrip extends StatelessWidget {
+  const _ProjectSummaryStrip({
+    required this.projectName,
+    required this.editorialStatusLabel,
+    required this.projectHealthLabel,
+  });
+
+  final String projectName;
+  final String editorialStatusLabel;
+  final String projectHealthLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('narrative-overview-project-summary'),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.14),
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.22),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Wrap(
+        spacing: 14,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'Projet',
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          _ProjectSummaryItem(label: 'Nom', value: projectName),
+          _ProjectSummaryItem(
+            label: 'Statut éditorial',
+            value: editorialStatusLabel,
+          ),
+          _ProjectSummaryItem(
+            label: 'Project Health',
+            value: projectHealthLabel,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectSummaryItem extends StatelessWidget {
+  const _ProjectSummaryItem({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '$label : $value',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: EditorChrome.subtleLabel(context),
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+      ),
     );
   }
 }
@@ -192,7 +272,7 @@ class _ModuleCard extends StatelessWidget {
     final accent = _availabilityAccent(context, module.availability);
     return Container(
       key: ValueKey('narrative-overview-module-${module.id}'),
-      constraints: const BoxConstraints(minHeight: 184),
+      constraints: const BoxConstraints(minHeight: 168),
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
           context,
@@ -202,7 +282,7 @@ class _ModuleCard extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.3)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(13),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -235,7 +315,7 @@ class _ModuleCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             module.description,
             maxLines: 2,
@@ -247,7 +327,7 @@ class _ModuleCard extends StatelessWidget {
               height: 1.3,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             _moduleCardValue(module),
             maxLines: 2,
@@ -260,7 +340,7 @@ class _ModuleCard extends StatelessWidget {
             ),
           ),
           if (module.secondaryStats.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -270,7 +350,7 @@ class _ModuleCard extends StatelessWidget {
               ],
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _ModuleDestinationPill(module: module),
         ],
       ),
@@ -290,8 +370,8 @@ class _ModuleIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: 34,
+      height: 34,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(11),
@@ -301,7 +381,7 @@ class _ModuleIcon extends StatelessWidget {
       child: Icon(
         _moduleIcon(moduleId),
         color: accent,
-        size: 19,
+        size: 18,
       ),
     );
   }
@@ -418,7 +498,7 @@ class _MainStoryCard extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.32)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -443,7 +523,7 @@ class _MainStoryCard extends StatelessWidget {
               _DisabledEditAffordance(accent: accent),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
               final useWideLayout = constraints.maxWidth >= 760;
@@ -454,7 +534,7 @@ class _MainStoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     visual,
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     content,
                   ],
                 );
@@ -463,7 +543,7 @@ class _MainStoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   visual,
-                  const SizedBox(width: 18),
+                  const SizedBox(width: 14),
                   Expanded(child: content),
                 ],
               );
@@ -483,8 +563,8 @@ class _MainStoryVisual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 118,
-      height: 108,
+      width: 104,
+      height: 96,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.11),
         borderRadius: BorderRadius.circular(14),
@@ -494,7 +574,7 @@ class _MainStoryVisual extends StatelessWidget {
       child: Icon(
         CupertinoIcons.compass_fill,
         color: accent,
-        size: 40,
+        size: 36,
       ),
     );
   }
@@ -543,9 +623,9 @@ class _MainStoryContent extends StatelessWidget {
             height: 1.35,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         _MainStoryMetricsRow(story: story),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         _ChapterSummaryRow(story: story),
       ],
     );
@@ -565,8 +645,8 @@ class _MainStoryMetricsRow extends StatelessWidget {
       story.openIssues,
     ];
     return Wrap(
-      spacing: 12,
-      runSpacing: 10,
+      spacing: 10,
+      runSpacing: 8,
       children: [
         for (final metric in metrics)
           _MainStoryMetric(
@@ -590,7 +670,7 @@ class _MainStoryMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 136),
+      constraints: const BoxConstraints(minWidth: 128),
       decoration: BoxDecoration(
         border: Border(
           left: BorderSide(color: accent.withValues(alpha: 0.44)),
@@ -608,7 +688,7 @@ class _MainStoryMetric extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             _metricCardValue(metric),
             maxLines: 2,
@@ -697,7 +777,7 @@ class _ChapterChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accent.withValues(alpha: 0.28)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -868,7 +948,7 @@ class _KpiCard extends StatelessWidget {
     final accent = _availabilityAccent(context, metric.availability);
     return Container(
       key: ValueKey('narrative-overview-kpi-${metric.id}'),
-      height: 154,
+      height: 148,
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
           context,
@@ -878,7 +958,7 @@ class _KpiCard extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.34)),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -894,7 +974,7 @@ class _KpiCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: EditorChrome.primaryLabel(context),
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -908,12 +988,12 @@ class _KpiCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: EditorChrome.primaryLabel(context),
-              fontSize: _metricCardValue(metric).length > 12 ? 18 : 24,
+              fontSize: _metricCardValue(metric).length > 12 ? 17 : 23,
               fontWeight: FontWeight.w900,
               letterSpacing: 0,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           _AvailabilityPill(
             label: _metricSupportLabel(metric),
             accent: accent,
@@ -965,13 +1045,13 @@ class _AvailabilityPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 24),
+      constraints: const BoxConstraints(minHeight: 22),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: accent.withValues(alpha: 0.24)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Text(
         label,
         maxLines: 2,
@@ -1009,7 +1089,7 @@ class _OverviewSection extends StatelessWidget {
           color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.28),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1021,10 +1101,10 @@ class _OverviewSection extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           ...children.map(
             (child) => Padding(
-              padding: const EdgeInsets.only(bottom: 7),
+              padding: const EdgeInsets.only(bottom: 4),
               child: DefaultTextStyle(
                 style: TextStyle(
                   color: EditorChrome.subtleLabel(context),
@@ -1039,21 +1119,6 @@ class _OverviewSection extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _OverviewLine extends StatelessWidget {
-  const _OverviewLine({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text('$label : $value');
   }
 }
 

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -7,7 +10,10 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
+import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/panels/narrative_library_panel.dart';
+
+import '../../shell_chrome_test_harness.dart';
 
 void main() {
   testWidgets(
@@ -106,6 +112,54 @@ void main() {
       await tester.pump();
     },
   );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures a full editor shell screenshot when requested',
+    (tester) async {
+      if (!const bool.fromEnvironment('NS_HOME_09_CAPTURE_FULL_SHELL')) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_09_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        'ns_home_09_overview_full_shell.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+}
+
+Future<void> _loadShellScreenshotFonts() async {
+  final fontBytes =
+      File('/System/Library/Fonts/Supplemental/Arial.ttf').readAsBytesSync();
+  for (final family in <String>[
+    'Roboto',
+    'Arial',
+    '.SF Pro Text',
+    'SF Pro Text',
+  ]) {
+    final loader = FontLoader(family)
+      ..addFont(Future<ByteData>.value(ByteData.sublistView(fontBytes)));
+    await loader.load();
+  }
 }
 
 ProjectManifest _minimalProject(String name) {
