@@ -53,18 +53,15 @@ void main() {
         );
       }
       await tester.scrollUntilVisible(
-        find.textContaining(
-          'Les sections détaillées seront construites dans les lots suivants.',
+        find.byKey(
+          const ValueKey('narrative-overview-empty-states-section'),
           skipOffstage: false,
         ),
         320,
       );
       await tester.pump();
       expect(
-        find.textContaining(
-          'Les sections détaillées seront construites dans les lots suivants.',
-          skipOffstage: false,
-        ),
+        find.text('Données à venir', skipOffstage: false),
         findsOneWidget,
       );
     },
@@ -89,32 +86,117 @@ void main() {
         findsOneWidget,
       );
       await tester.scrollUntilVisible(
-        find.textContaining('Activité récente : hors scope V0',
-            skipOffstage: false),
+        find.byKey(
+          const ValueKey('narrative-overview-empty-states-section'),
+          skipOffstage: false,
+        ),
         320,
       );
       await tester.pump();
       expect(
-        find.textContaining('Facts : nécessite un modèle', skipOffstage: false),
+        _textInEmptyState('facts', 'Nécessite un modèle'),
         findsOneWidget,
       );
       expect(
-        find.textContaining(
-          'Activité récente : hors scope V0',
-          skipOffstage: false,
-        ),
+        _textInEmptyState('recent_activity', 'Hors scope V0'),
         findsOneWidget,
       );
       expect(
-        find.textContaining(
-          'Notifications : hors scope V0',
-          skipOffstage: false,
-        ),
+        _textInEmptyState('notifications', 'Hors scope V0'),
         findsOneWidget,
       );
 
       expect(find.textContaining('Selbrume'), findsNothing);
       expect(find.textContaining('La brume du phare'), findsNothing);
+      expect(find.text('42'), findsNothing);
+      expect(find.text('1 236'), findsNothing);
+      expect(find.text('1236'), findsNothing);
+      expect(find.text('24'), findsNothing);
+      expect(find.text('12'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace renders honest upcoming data states and footer metadata',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 1180);
+
+      await tester.scrollUntilVisible(
+        find.byKey(
+          const ValueKey('narrative-overview-empty-states-section'),
+          skipOffstage: false,
+        ),
+        360,
+      );
+      await tester.pump();
+
+      expect(find.text('Données à venir', skipOffstage: false), findsOneWidget);
+      expect(_textInEmptyState('facts', 'Facts'), findsOneWidget);
+      expect(_textInEmptyState('facts', 'Nécessite un modèle'), findsOneWidget);
+      expect(
+        _textInEmptyState(
+          'facts',
+          'Registre de connaissances à définir avant affichage.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        _textInEmptyState('recent_activity', 'Activité récente'),
+        findsOneWidget,
+      );
+      expect(
+        _textInEmptyState('recent_activity', 'Hors scope V0'),
+        findsOneWidget,
+      );
+      expect(
+        _textInEmptyState('notifications', 'Notifications'),
+        findsOneWidget,
+      );
+      expect(
+        _textInEmptyState('notifications', 'Hors scope V0'),
+        findsOneWidget,
+      );
+      expect(_textInEmptyState('footer_locale', 'Locale'), findsOneWidget);
+      expect(_textInEmptyState('footer_locale', 'Non définie'), findsOneWidget);
+      expect(_textInEmptyState('footer_version', 'Version'), findsOneWidget);
+      expect(
+        _textInEmptyState('footer_version', 'Non définie'),
+        findsOneWidget,
+      );
+
+      await tester.scrollUntilVisible(
+        find.byKey(
+          const ValueKey('narrative-overview-footer'),
+          skipOffstage: false,
+        ),
+        320,
+      );
+      await tester.pump();
+
+      expect(_textInFooter('project', 'Projet : test_project'), findsOneWidget);
+      expect(_textInFooter('locale', 'Locale : non définie'), findsOneWidget);
+      expect(_textInFooter('version', 'Version : non définie'), findsOneWidget);
+
+      for (final fakeActivity in <String>[
+        'Cinématique modifiée',
+        'Dialogue ajouté',
+        'Chapitre édité',
+        'Problème résolu',
+        'Fact créé',
+        'Il y a 15 min',
+        'il y a 15 min',
+      ]) {
+        expect(find.textContaining(fakeActivity), findsNothing);
+      }
+      expect(find.text('FR'), findsNothing);
+      expect(find.text('v0.3.0'), findsNothing);
+      expect(find.textContaining('Selbrume'), findsNothing);
+      expect(find.textContaining('Port Selbrume'), findsNothing);
+      expect(find.textContaining('Mystère'), findsNothing);
       expect(find.text('42'), findsNothing);
       expect(find.text('1 236'), findsNothing);
       expect(find.text('1236'), findsNothing);
@@ -922,6 +1004,80 @@ void main() {
       expect(screenshotFile.existsSync(), isTrue);
     },
   );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures empty states and footer screenshot when requested',
+    (tester) async {
+      if (!const bool.fromEnvironment('NS_HOME_08_CAPTURE_SCREENSHOT')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      tester.view.physicalSize = const Size(1600, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject(
+          'test_project',
+          scenarios: <ScenarioAsset>[
+            _globalStoryWithDocuments(),
+            _cutsceneScenario(
+              id: 'test_cutscene_1',
+              dialogueId: 'test_dialogue_1',
+            ),
+          ],
+          dialogues: const <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'test_dialogue_1',
+              name: 'Test Dialogue',
+              relativePath: 'dialogues/test_dialogue_1.yarn',
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: ColoredBox(
+                key: const ValueKey('ns-home-08-screenshot-root'),
+                color: const Color(0xFF07111F),
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(fontFamily: _screenshotFontFamily),
+                  child: Center(
+                    child: SizedBox(
+                      width: 1600,
+                      height: 1800,
+                      child: NarrativeOverviewWorkspace(readModel: readModel),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        'ns_home_08_overview_empty_states_footer.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('ns-home-08-screenshot-root')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
 }
 
 const _screenshotFontFamily = 'NsHome04ScreenshotFont';
@@ -974,6 +1130,20 @@ Finder _textInStructureCounter(String metricId, String text) {
 Finder _textInStructureEditorial(String slot, String text) {
   return find.descendant(
     of: find.byKey(ValueKey('narrative-overview-structure-editorial-$slot')),
+    matching: find.text(text),
+  );
+}
+
+Finder _textInEmptyState(String slot, String text) {
+  return find.descendant(
+    of: find.byKey(ValueKey('narrative-overview-empty-state-$slot')),
+    matching: find.text(text),
+  );
+}
+
+Finder _textInFooter(String slot, String text) {
+  return find.descendant(
+    of: find.byKey(ValueKey('narrative-overview-footer-$slot')),
     matching: find.text(text),
   );
 }

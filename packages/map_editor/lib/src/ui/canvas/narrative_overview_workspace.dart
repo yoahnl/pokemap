@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
 import '../shared/cupertino_editor_widgets.dart';
+import 'narrative_overview_empty_states.dart';
 import 'narrative_overview_structure_inspector.dart';
 
 /// Shell V0 de la page "Aperçu" du Narrative Studio.
@@ -125,21 +126,16 @@ class _OverviewMainColumn extends StatelessWidget {
         const SizedBox(height: 12),
         _ModuleCardsSection(modules: readModel.modules),
         const SizedBox(height: 12),
-        _OverviewSection(
-          title: 'V0 volontairement limitée',
-          children: [
-            const Text(
-              'Les sections détaillées seront construites dans les lots suivants.',
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Aucun compteur fake, aucune activité récente inventée, aucune notification simulée.',
-            ),
-            const SizedBox(height: 6),
-            _MetricLine(metric: readModel.metrics.facts),
-            _FeatureLine(feature: readModel.recentActivity),
-            _FeatureLine(feature: readModel.notifications),
-          ],
+        NarrativeOverviewUnavailableDataSection(
+          facts: readModel.metrics.facts,
+          recentActivity: readModel.recentActivity,
+          notifications: readModel.notifications,
+          footer: readModel.footer,
+        ),
+        const SizedBox(height: 12),
+        NarrativeOverviewFooter(
+          projectName: readModel.projectName,
+          footer: readModel.footer,
         ),
       ],
     );
@@ -1046,29 +1042,6 @@ class _OverviewSection extends StatelessWidget {
   }
 }
 
-class _MetricLine extends StatelessWidget {
-  const _MetricLine({required this.metric});
-
-  final NarrativeMetricSummary metric;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text('${metric.label} : ${_metricValue(metric)}');
-  }
-}
-
-class _FeatureLine extends StatelessWidget {
-  const _FeatureLine({required this.feature});
-
-  final NarrativeOverviewFeatureSummary feature;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-        '${feature.label} : ${_availabilityValue(feature.availability)}');
-  }
-}
-
 class _OverviewLine extends StatelessWidget {
   const _OverviewLine({
     required this.label,
@@ -1093,15 +1066,6 @@ String _metricCardValue(NarrativeMetricSummary metric) {
     NarrativeOverviewAvailability.notEvaluated => 'Non évalué',
     NarrativeOverviewAvailability.outOfScope => 'Hors scope V0',
     NarrativeOverviewAvailability.needsModel => 'Nécessite un modèle',
-  };
-}
-
-String _metricValue(NarrativeMetricSummary metric) {
-  return switch (metric.availability) {
-    NarrativeOverviewAvailability.available ||
-    NarrativeOverviewAvailability.empty =>
-      '${metric.count ?? 0}',
-    _ => _availabilityValue(metric.availability),
   };
 }
 
@@ -1137,17 +1101,6 @@ String _moduleSupportLabel(NarrativeModuleSummary module) {
     NarrativeOverviewAvailability.notEvaluated => 'Validation non lancée',
     NarrativeOverviewAvailability.outOfScope => module.emptyStateMessage,
     NarrativeOverviewAvailability.needsModel => module.emptyStateMessage,
-  };
-}
-
-String _availabilityValue(NarrativeOverviewAvailability availability) {
-  return switch (availability) {
-    NarrativeOverviewAvailability.available => 'disponible',
-    NarrativeOverviewAvailability.empty => '0',
-    NarrativeOverviewAvailability.unavailable => 'indisponible',
-    NarrativeOverviewAvailability.notEvaluated => 'non évalué',
-    NarrativeOverviewAvailability.outOfScope => 'hors scope V0',
-    NarrativeOverviewAvailability.needsModel => 'nécessite un modèle',
   };
 }
 
