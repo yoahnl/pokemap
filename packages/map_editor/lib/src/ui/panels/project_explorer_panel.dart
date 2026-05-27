@@ -103,55 +103,60 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final colors = context.pokeMapColors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: widget.onCollapse,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: colors.borderSubtle,
-                width: 1.25,
-              ),
-              color: colors.surfaceBase,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: colors.borderStrong.withValues(alpha: 0.5),
-                      width: 1.15,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    CupertinoIcons.chevron_left,
-                    size: 13,
-                    color: colors.textSecondary,
-                  ),
+      child: Semantics(
+        button: true,
+        label: 'Réduire l’explorateur global',
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            key: const ValueKey('project-explorer-toggle'),
+            onTap: widget.onCollapse,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: colors.borderSubtle,
+                  width: 1.25,
                 ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text(
-                    'Réduire l\'explorateur',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
+                color: colors.surfaceBase,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: colors.borderStrong.withValues(alpha: 0.5),
+                        width: 1.15,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      CupertinoIcons.chevron_left,
+                      size: 13,
                       color: colors.textSecondary,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      'Réduire l\'explorateur',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
