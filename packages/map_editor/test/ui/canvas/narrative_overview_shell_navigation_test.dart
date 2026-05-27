@@ -61,6 +61,117 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeWorkspaceCanvas renders the internal Narrative Studio shell',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            editorNotifierProvider.overrideWith(
+              () => _SeededEditorNotifier(
+                EditorState(
+                  workspaceMode: EditorWorkspaceMode.narrativeOverview,
+                  project: _minimalProject('test_project'),
+                ),
+              ),
+            ),
+          ],
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 1200,
+                  height: 760,
+                  child: Column(
+                    children: [
+                      Expanded(child: NarrativeWorkspaceCanvas()),
+                      _WorkspaceModeProbe(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final shell = find.byKey(const ValueKey('narrative-studio-shell'));
+      final navigation =
+          find.byKey(const ValueKey('narrative-studio-transitional-navigation'));
+      final mainContent =
+          find.byKey(const ValueKey('narrative-studio-main-content'));
+
+      expect(shell, findsOneWidget);
+      expect(navigation, findsOneWidget);
+      expect(mainContent, findsOneWidget);
+      expect(
+        find.descendant(
+          of: shell,
+          matching: find.byKey(const ValueKey('narrative-overview-scroll')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: shell, matching: find.byType(ProjectExplorerPanel)),
+        findsNothing,
+      );
+
+      for (final label in <String>[
+        'Aperçu',
+        'Histoire globale',
+        'Étape',
+        'Cinématique',
+        'Dialogue',
+      ]) {
+        expect(
+          find.descendant(of: navigation, matching: find.text(label)),
+          findsOneWidget,
+        );
+      }
+      for (final unavailable in <String>['Facts', 'World Rules', 'Validateur']) {
+        expect(
+          find.descendant(of: navigation, matching: find.text(unavailable)),
+          findsNothing,
+        );
+      }
+
+      await tester.tap(
+        find.descendant(of: navigation, matching: find.text('Histoire globale')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:globalStory'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(of: navigation, matching: find.text('Étape')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:step'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(of: navigation, matching: find.text('Cinématique')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:cutscene'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(of: navigation, matching: find.text('Dialogue')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:dialogue'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(of: navigation, matching: find.text('Aperçu')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
+
+  testWidgets(
     'NarrativeLibraryPanel exposes overview without removing existing studios',
     (tester) async {
       await tester.pumpWidget(
@@ -182,9 +293,9 @@ void main() {
       );
 
       expect(find.text('Aperçu'), findsWidgets);
-      expect(find.text('Histoire globale'), findsOneWidget);
-      expect(find.text('Étape'), findsOneWidget);
-      expect(find.text('Cinématique'), findsOneWidget);
+      expect(find.text('Histoire globale'), findsWidgets);
+      expect(find.text('Étape'), findsWidgets);
+      expect(find.text('Cinématique'), findsWidgets);
       expect(find.text('Dialogue'), findsWidgets);
       expect(find.text('World Maps'), findsOneWidget);
       expect(find.text('Tileset Library'), findsOneWidget);
@@ -474,6 +585,49 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         '${captureMedium ? 'ns_home_14_header_density_medium.png' : captureFocus ? 'ns_home_14_header_density_focus.png' : 'ns_home_14_header_density_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-16 internal shell screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_16_CAPTURE_STUDIO_SHELL_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_16_CAPTURE_STUDIO_SHELL_FOCUS');
+      const captureMedium =
+          bool.fromEnvironment('NS_HOME_16_CAPTURE_STUDIO_SHELL_MEDIUM');
+      if (!captureDesktop && !captureFocus && !captureMedium) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_16_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: captureMedium
+            ? const Size(1180, 1000)
+            : captureFocus
+                ? const Size(1600, 700)
+                : const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureMedium ? 'ns_home_16_narrative_studio_shell_medium.png' : captureFocus ? 'ns_home_16_narrative_studio_shell_focus.png' : 'ns_home_16_narrative_studio_shell_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(

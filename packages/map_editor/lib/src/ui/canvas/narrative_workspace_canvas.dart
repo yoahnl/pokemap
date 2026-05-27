@@ -13,6 +13,7 @@ import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'global_story_studio_workspace.dart';
 import 'narrative_overview_workspace.dart';
+import 'narrative_studio_shell.dart';
 import 'step_studio_workspace.dart';
 
 /// Workspace central du studio narratif.
@@ -69,129 +70,122 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       fallback: projection.steps.isNotEmpty ? projection.steps.first : null,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _NarrativeModeStrip(
-          workspaceMode: editor.workspaceMode,
-          onSelectOverview: editorNotifier.selectNarrativeOverviewWorkspace,
-          onSelectGlobal: () {
-            editorNotifier.selectGlobalStoryWorkspace();
-            narrativeController.openGlobalStory(
-              scenarioId: selectedGlobal?.id,
-            );
+    final mainContent = switch (editor.workspaceMode) {
+      EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
+          readModel: buildNarrativeOverviewReadModel(
+            project: editor.project!,
+          ),
+        ),
+      EditorWorkspaceMode.globalStory => GlobalStoryStudioWorkspace(
+          editorNotifier: editorNotifier,
+          project: editor.project,
+          projection: projection,
+          selectedGlobalStoryId: narrative.selectedGlobalStoryId,
+          selectedStepId: narrative.selectedStepId,
+          onSelectGlobalStory: (scenarioId) {
+            if (scenarioId == null || scenarioId.trim().isEmpty) {
+              return;
+            }
+            narrativeController.selectGlobalStory(scenarioId);
+            narrativeController.openGlobalStory(scenarioId: scenarioId);
           },
-          onSelectStep: () {
-            editorNotifier.selectStepWorkspace();
+          onSelectStep: (stepId) {
+            if (stepId == null || stepId.trim().isEmpty) {
+              return;
+            }
+            final step = projection.steps
+                .where((item) => item.id == stepId)
+                .cast<NarrativeStepSummary?>()
+                .firstWhere((item) => item != null, orElse: () => null);
+            narrativeController.selectStep(stepId);
+            if (step != null) {
+              narrativeController.selectGlobalStory(step.globalScenarioId);
+            }
+          },
+          onOpenStepStudio: (stepId) {
+            final step = projection.steps
+                .where((item) => item.id == stepId)
+                .cast<NarrativeStepSummary?>()
+                .firstWhere((item) => item != null, orElse: () => null);
+            narrativeController.selectStep(stepId);
             narrativeController.openStep(
-              stepId: selectedStep?.id,
-              globalScenarioId: selectedStep?.globalScenarioId,
+              stepId: stepId,
+              globalScenarioId: step?.globalScenarioId,
+            );
+            editorNotifier.selectStepWorkspace();
+          },
+        ),
+      EditorWorkspaceMode.step => _StepWorkspaceBody(
+          projection: projection,
+          selectedStep: selectedStep,
+          onSelectStep: (stepId) {
+            final step = projection.steps
+                .where((s) => s.id == stepId)
+                .cast<NarrativeStepSummary?>()
+                .firstWhere((s) => s != null, orElse: () => null);
+            narrativeController.selectStep(stepId);
+            narrativeController.openStep(
+              stepId: stepId,
+              globalScenarioId: step?.globalScenarioId,
             );
           },
-          onSelectCutscene: () {
-            editorNotifier.selectCutsceneWorkspace();
+          onSelectOutcome: narrativeController.selectOutcome,
+          onOpenCutsceneStudio: (cutsceneScenarioId) {
+            // Même séquence que la bibliothèque narrative : sélection +
+            // état de vue, puis bascule du workspace éditeur.
+            narrativeController.selectCutscene(cutsceneScenarioId);
             narrativeController.openCutscene(
-              cutsceneScenarioId: selectedCutscene?.id,
+              cutsceneScenarioId: cutsceneScenarioId,
+            );
+            editorNotifier.selectCutsceneWorkspace();
+          },
+          editorNotifier: editorNotifier,
+          project: editor.project,
+          activeMap: editor.activeMap,
+        ),
+      EditorWorkspaceMode.cutscene => _CutsceneWorkspaceBody(
+          editorNotifier: editorNotifier,
+          project: editor.project,
+          activeMap: editor.activeMap,
+          projection: projection,
+          selectedCutscene: selectedCutscene,
+          onSelectCutscene: (scenarioId) {
+            narrativeController.selectCutscene(scenarioId);
+            narrativeController.openCutscene(
+              cutsceneScenarioId: scenarioId,
             );
           },
-          onSelectDialogue: editorNotifier.selectDialogueWorkspace,
+          onSelectOutcome: narrativeController.selectOutcome,
         ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: switch (editor.workspaceMode) {
-            EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
-                readModel: buildNarrativeOverviewReadModel(
-                  project: editor.project!,
-                ),
-              ),
-            EditorWorkspaceMode.globalStory => GlobalStoryStudioWorkspace(
-                editorNotifier: editorNotifier,
-                project: editor.project,
-                projection: projection,
-                selectedGlobalStoryId: narrative.selectedGlobalStoryId,
-                selectedStepId: narrative.selectedStepId,
-                onSelectGlobalStory: (scenarioId) {
-                  if (scenarioId == null || scenarioId.trim().isEmpty) {
-                    return;
-                  }
-                  narrativeController.selectGlobalStory(scenarioId);
-                  narrativeController.openGlobalStory(scenarioId: scenarioId);
-                },
-                onSelectStep: (stepId) {
-                  if (stepId == null || stepId.trim().isEmpty) {
-                    return;
-                  }
-                  final step = projection.steps
-                      .where((item) => item.id == stepId)
-                      .cast<NarrativeStepSummary?>()
-                      .firstWhere((item) => item != null, orElse: () => null);
-                  narrativeController.selectStep(stepId);
-                  if (step != null) {
-                    narrativeController
-                        .selectGlobalStory(step.globalScenarioId);
-                  }
-                },
-                onOpenStepStudio: (stepId) {
-                  final step = projection.steps
-                      .where((item) => item.id == stepId)
-                      .cast<NarrativeStepSummary?>()
-                      .firstWhere((item) => item != null, orElse: () => null);
-                  narrativeController.selectStep(stepId);
-                  narrativeController.openStep(
-                    stepId: stepId,
-                    globalScenarioId: step?.globalScenarioId,
-                  );
-                  editorNotifier.selectStepWorkspace();
-                },
-              ),
-            EditorWorkspaceMode.step => _StepWorkspaceBody(
-                projection: projection,
-                selectedStep: selectedStep,
-                onSelectStep: (stepId) {
-                  final step = projection.steps
-                      .where((s) => s.id == stepId)
-                      .cast<NarrativeStepSummary?>()
-                      .firstWhere((s) => s != null, orElse: () => null);
-                  narrativeController.selectStep(stepId);
-                  narrativeController.openStep(
-                    stepId: stepId,
-                    globalScenarioId: step?.globalScenarioId,
-                  );
-                },
-                onSelectOutcome: narrativeController.selectOutcome,
-                onOpenCutsceneStudio: (cutsceneScenarioId) {
-                  // Même séquence que la bibliothèque narrative : sélection +
-                  // état de vue, puis bascule du workspace éditeur.
-                  narrativeController.selectCutscene(cutsceneScenarioId);
-                  narrativeController.openCutscene(
-                    cutsceneScenarioId: cutsceneScenarioId,
-                  );
-                  editorNotifier.selectCutsceneWorkspace();
-                },
-                editorNotifier: editorNotifier,
-                project: editor.project,
-                activeMap: editor.activeMap,
-              ),
-            EditorWorkspaceMode.cutscene => _CutsceneWorkspaceBody(
-                editorNotifier: editorNotifier,
-                project: editor.project,
-                activeMap: editor.activeMap,
-                projection: projection,
-                selectedCutscene: selectedCutscene,
-                onSelectCutscene: (scenarioId) {
-                  narrativeController.selectCutscene(scenarioId);
-                  narrativeController.openCutscene(
-                    cutsceneScenarioId: scenarioId,
-                  );
-                },
-                onSelectOutcome: narrativeController.selectOutcome,
-              ),
-            EditorWorkspaceMode.dialogue => const DialogueStudioWorkspace(),
-            // Workspaces non narratifs: ce widget ne doit pas être utilisé.
-            _ => const SizedBox.shrink(),
-          },
-        ),
-      ],
+      EditorWorkspaceMode.dialogue => const DialogueStudioWorkspace(),
+      // Workspaces non narratifs: ce widget ne doit pas être utilisé.
+      _ => const SizedBox.shrink(),
+    };
+
+    return NarrativeStudioShell(
+      workspaceMode: editor.workspaceMode,
+      onSelectOverview: editorNotifier.selectNarrativeOverviewWorkspace,
+      onSelectGlobal: () {
+        editorNotifier.selectGlobalStoryWorkspace();
+        narrativeController.openGlobalStory(
+          scenarioId: selectedGlobal?.id,
+        );
+      },
+      onSelectStep: () {
+        editorNotifier.selectStepWorkspace();
+        narrativeController.openStep(
+          stepId: selectedStep?.id,
+          globalScenarioId: selectedStep?.globalScenarioId,
+        );
+      },
+      onSelectCutscene: () {
+        editorNotifier.selectCutsceneWorkspace();
+        narrativeController.openCutscene(
+          cutsceneScenarioId: selectedCutscene?.id,
+        );
+      },
+      onSelectDialogue: editorNotifier.selectDialogueWorkspace,
+      child: mainContent,
     );
   }
 }
@@ -221,103 +215,6 @@ NarrativeStepSummary? _resolveStepById(
     }
   }
   return fallback;
-}
-
-class _NarrativeModeStrip extends StatelessWidget {
-  const _NarrativeModeStrip({
-    required this.workspaceMode,
-    required this.onSelectOverview,
-    required this.onSelectGlobal,
-    required this.onSelectStep,
-    required this.onSelectCutscene,
-    required this.onSelectDialogue,
-  });
-
-  final EditorWorkspaceMode workspaceMode;
-  final VoidCallback onSelectOverview;
-  final VoidCallback onSelectGlobal;
-  final VoidCallback onSelectStep;
-  final VoidCallback onSelectCutscene;
-  final VoidCallback onSelectDialogue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _ModeChip(
-          label: 'Aperçu',
-          selected: workspaceMode == EditorWorkspaceMode.narrativeOverview,
-          onTap: onSelectOverview,
-        ),
-        const SizedBox(width: 6),
-        _ModeChip(
-          label: 'Global Story',
-          selected: workspaceMode == EditorWorkspaceMode.globalStory,
-          onTap: onSelectGlobal,
-        ),
-        const SizedBox(width: 6),
-        _ModeChip(
-          label: 'Step',
-          selected: workspaceMode == EditorWorkspaceMode.step,
-          onTap: onSelectStep,
-        ),
-        const SizedBox(width: 6),
-        _ModeChip(
-          label: 'Cutscene',
-          selected: workspaceMode == EditorWorkspaceMode.cutscene,
-          onTap: onSelectCutscene,
-        ),
-        const SizedBox(width: 6),
-        _ModeChip(
-          label: 'Dialogue',
-          selected: workspaceMode == EditorWorkspaceMode.dialogue,
-          onTap: onSelectDialogue,
-        ),
-      ],
-    );
-  }
-}
-
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = selected
-        ? EditorChrome.inspectorJoyCyan
-        : EditorChrome.subtleLabel(context);
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      minimumSize: Size.zero,
-      onPressed: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: selected
-              ? EditorChrome.islandFillElevated(context)
-              : EditorChrome.sidebarHoverFill(context),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: accent.withValues(alpha: 0.7)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 11,
-            color: accent,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _StepWorkspaceBody extends StatelessWidget {
