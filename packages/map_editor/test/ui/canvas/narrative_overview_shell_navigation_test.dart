@@ -367,6 +367,44 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-12 top bar screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_12_CAPTURE_TOP_BAR_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_12_CAPTURE_TOP_BAR_FOCUS');
+      if (!captureDesktop && !captureFocus) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_12_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize:
+            captureFocus ? const Size(1600, 700) : const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureFocus ? 'ns_home_12_top_bar_action_focus.png' : 'ns_home_12_top_bar_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace captures NS-HOME-10 shell chrome screenshots when requested',
     (tester) async {
       const captureDesktop =

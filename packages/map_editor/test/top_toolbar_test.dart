@@ -88,6 +88,59 @@ void main() {
       );
       expect(overviewButton.selected, isTrue);
       expect(overviewButton.onPressed, isNotNull);
+
+      expect(find.text('Carte'), findsNothing);
+      expect(find.text('Affichage'), findsNothing);
+      expect(find.text('Calques'), findsNothing);
+
+      ToolbarCapsuleButton buttonWithTooltip(String tooltip) {
+        return tester.widget<ToolbarCapsuleButton>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is ToolbarCapsuleButton && widget.tooltip == tooltip,
+          ),
+        );
+      }
+
+      expect(
+        buttonWithTooltip(
+                'Nouvelle storyline à venir — création non branchée en V0')
+            .onPressed,
+        isNull,
+      );
+      expect(
+        buttonWithTooltip(
+                'Validation narrative à venir — aucun validateur global branché en V0')
+            .onPressed,
+        isNull,
+      );
+      expect(
+        buttonWithTooltip(
+                'Recherche narrative à venir — aucune recherche globale branchée en V0')
+            .onPressed,
+        isNull,
+      );
+      expect(
+        buttonWithTooltip(
+                'Notifications indisponibles — aucune source fiable en V0')
+            .onPressed,
+        isNull,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton && widget.tooltip == 'New Map',
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton &&
+              widget.tooltip == 'Masquer/Afficher le panneau des calques',
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('enables project save and disables map history in Path Studio',
