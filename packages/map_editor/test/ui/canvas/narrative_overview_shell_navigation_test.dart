@@ -13,6 +13,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_explorer_module_card.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/panels/narrative_library_panel.dart';
+import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 
 import '../../shell_chrome_test_harness.dart';
 
@@ -109,6 +110,14 @@ void main() {
         findsOneWidget,
       );
 
+      await tester.tap(find.text('Histoire globale'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('workspace:globalStory'),
+        findsOneWidget,
+      );
+
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     },
@@ -130,6 +139,12 @@ void main() {
       expect(find.textContaining('Narrative Studio / Aperçu'), findsWidgets);
       expect(find.textContaining('Vue d’ensemble auteur'), findsWidgets);
       expect(find.textContaining('Narrative Overview'), findsNothing);
+      expect(
+        find.text(
+            'Aperçu, histoire globale, étapes, cinématiques et dialogues'),
+        findsOneWidget,
+      );
+      expect(find.text('World Explorer'), findsNothing);
 
       expect(
         find.byWidgetPredicate(
@@ -141,11 +156,56 @@ void main() {
         findsOneWidget,
       );
 
+      final narrativeCard = find.byWidgetPredicate(
+        (widget) =>
+            widget is ProjectExplorerModuleCard &&
+            widget.title == 'Narrative Studio',
+      );
+      final tilesetCard = find.byWidgetPredicate(
+        (widget) =>
+            widget is ProjectExplorerModuleCard &&
+            widget.title == 'Tileset Library',
+      );
+      final catalogsCard = find.byWidgetPredicate(
+        (widget) =>
+            widget is ProjectExplorerModuleCard &&
+            widget.title == 'Catalogues Pokémon',
+      );
+
+      expect(
+        tester.getTopLeft(narrativeCard).dy,
+        lessThan(tester.getTopLeft(tilesetCard).dy),
+      );
+      expect(
+        tester.getTopLeft(narrativeCard).dy,
+        lessThan(tester.getTopLeft(catalogsCard).dy),
+      );
+
       expect(find.text('Aperçu'), findsWidgets);
       expect(find.text('Histoire globale'), findsOneWidget);
       expect(find.text('Étape'), findsOneWidget);
       expect(find.text('Cinématique'), findsOneWidget);
       expect(find.text('Dialogue'), findsWidgets);
+      expect(find.text('World Maps'), findsOneWidget);
+      expect(find.text('Tileset Library'), findsOneWidget);
+      expect(find.text('Catalogues Pokémon'), findsOneWidget);
+      expect(find.text('Trainer Studio'), findsOneWidget);
+      expect(find.text('Path Library'), findsOneWidget);
+      expect(find.text('Environment Studio'), findsWidgets);
+      final projectExplorer = find.byType(ProjectExplorerPanel);
+      expect(
+        find.descendant(of: projectExplorer, matching: find.text('Facts')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+            of: projectExplorer, matching: find.text('World Rules')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: projectExplorer, matching: find.text('Validateur')),
+        findsNothing,
+      );
 
       expect(find.text('Locale : FR'), findsNothing);
       expect(find.text('v0.3.0'), findsNothing);
@@ -157,6 +217,81 @@ void main() {
       expect(find.text('1236'), findsNothing);
       expect(find.text('24'), findsNothing);
       expect(find.text('12'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'ProjectExplorerPanel prioritizes narrative navigation in overview mode',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            editorNotifierProvider.overrideWith(
+              () => _SeededEditorNotifier(
+                EditorState(
+                  projectRootPath: '/tmp/ns_home_11_sidebar_project',
+                  workspaceMode: EditorWorkspaceMode.narrativeOverview,
+                  project: _minimalProject('test_project'),
+                ),
+              ),
+            ),
+          ],
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 380,
+                  height: 900,
+                  child: ProjectExplorerPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.text(
+            'Aperçu, histoire globale, étapes, cinématiques et dialogues'),
+        findsOneWidget,
+      );
+      expect(find.text('World Explorer'), findsNothing);
+
+      final narrativeCard = find.byWidgetPredicate(
+        (widget) =>
+            widget is ProjectExplorerModuleCard &&
+            widget.title == 'Narrative Studio' &&
+            widget.selected,
+      );
+      final tilesetCard = find.byWidgetPredicate(
+        (widget) =>
+            widget is ProjectExplorerModuleCard &&
+            widget.title == 'Tileset Library',
+      );
+
+      expect(narrativeCard, findsOneWidget);
+      expect(tilesetCard, findsOneWidget);
+      expect(
+        tester.getTopLeft(narrativeCard).dy,
+        lessThan(tester.getTopLeft(tilesetCard).dy),
+      );
+
+      expect(find.text('Aperçu'), findsOneWidget);
+      expect(find.text('Histoire globale'), findsOneWidget);
+      expect(find.text('Étape'), findsOneWidget);
+      expect(find.text('Cinématique'), findsOneWidget);
+      expect(find.text('Dialogue'), findsOneWidget);
+      expect(find.text('World Maps'), findsOneWidget);
+      expect(find.text('Tileset Library'), findsOneWidget);
+      expect(find.text('Catalogues Pokémon'), findsOneWidget);
+      expect(find.text('Facts'), findsNothing);
+      expect(find.text('World Rules'), findsNothing);
+      expect(find.text('Validateur'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
     },
   );
 
@@ -182,6 +317,44 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         'ns_home_09_overview_full_shell.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-11 sidebar navigation screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_11_CAPTURE_SIDEBAR_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_11_CAPTURE_SIDEBAR_FOCUS');
+      if (!captureDesktop && !captureFocus) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_11_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize:
+            captureFocus ? const Size(1180, 1000) : const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureFocus ? 'ns_home_11_sidebar_navigation_focus.png' : 'ns_home_11_sidebar_navigation_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(

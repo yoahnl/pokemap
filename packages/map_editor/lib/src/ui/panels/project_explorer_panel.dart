@@ -59,7 +59,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildHeader(context),
+                      _buildHeader(context, snapshot.workspaceMode),
                       const SizedBox(height: 2),
                       Expanded(
                         child: Center(
@@ -83,7 +83,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeader(context),
+                        _buildHeader(context, snapshot.workspaceMode),
                         const SizedBox(height: 10),
                         _buildTree(context, project, snapshot, notifier),
                       ],
@@ -159,10 +159,21 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, EditorWorkspaceMode workspaceMode) {
     final colors = context.pokeMapColors;
     final subtle = colors.textMuted;
     final label = colors.textPrimary;
+    final isNarrativeWorkspace = _isNarrativeWorkspace(workspaceMode);
+    final accent =
+        isNarrativeWorkspace ? colors.narrative : colors.brandPrimary;
+    final icon = isNarrativeWorkspace
+        ? CupertinoIcons.link_circle_fill
+        : CupertinoIcons.square_stack_3d_up;
+    final title = isNarrativeWorkspace ? 'Narrative Studio' : 'World Explorer';
+    final subtitle = isNarrativeWorkspace
+        ? 'Aperçu, histoire globale, étapes, cinématiques et dialogues'
+        : 'Cartes, tilesets, surfaces — dialogues dans Dialogue Studio';
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       child: Row(
@@ -175,21 +186,21 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color.lerp(colors.surfaceRaised, colors.brandPrimary, 0.4)!,
-                  Color.lerp(colors.surfaceBase, colors.brandPrimary, 0.2)!,
+                  Color.lerp(colors.surfaceRaised, accent, 0.4)!,
+                  Color.lerp(colors.surfaceBase, accent, 0.2)!,
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Color.lerp(colors.borderSubtle, colors.brandPrimary, 0.5)!,
+                color: Color.lerp(colors.borderSubtle, accent, 0.5)!,
                 width: 1.15,
               ),
             ),
             alignment: Alignment.center,
             child: Icon(
-              CupertinoIcons.square_stack_3d_up,
+              icon,
               size: 18,
-              color: colors.brandPrimary,
+              color: accent,
             ),
           ),
           const SizedBox(width: 10),
@@ -198,7 +209,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'World Explorer',
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -210,7 +221,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Cartes, tilesets, surfaces — dialogues dans Dialogue Studio',
+                  subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -225,6 +236,14 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ],
       ),
     );
+  }
+
+  bool _isNarrativeWorkspace(EditorWorkspaceMode workspaceMode) {
+    return workspaceMode == EditorWorkspaceMode.narrativeOverview ||
+        workspaceMode == EditorWorkspaceMode.globalStory ||
+        workspaceMode == EditorWorkspaceMode.step ||
+        workspaceMode == EditorWorkspaceMode.cutscene ||
+        workspaceMode == EditorWorkspaceMode.dialogue;
   }
 
   Widget _buildTree(
@@ -295,9 +314,18 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hEnvironment = (screenH * 0.22).clamp(180.0, 280.0);
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
+    final isNarrativeWorkspace = _isNarrativeWorkspace(snapshot.workspaceMode);
+    final narrativeModuleCard = _buildNarrativeModuleCard(
+      context,
+      project,
+      snapshot,
+      hNarrative,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (isNarrativeWorkspace) narrativeModuleCard,
         ProjectExplorerModuleCard(
           title: 'Tileset Library',
           description: 'Dossiers, imports et peinture de carte',
@@ -306,7 +334,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           count: project.tilesets.length,
           selected: snapshot.workspaceMode == EditorWorkspaceMode.tileset,
           expanded: _expandTileLib,
-          onExpandToggle: () => setState(() => _expandTileLib = !_expandTileLib),
+          onExpandToggle: () =>
+              setState(() => _expandTileLib = !_expandTileLib),
           expandedHeight: hTileset,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -332,32 +361,18 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         ProjectExplorerModuleCard(
           title: 'Catalogues Pokémon',
-          description: 'Pokédex, capacités et objets dans un espace guidé unique',
+          description:
+              'Pokédex, capacités et objets dans un espace guidé unique',
           icon: CupertinoIcons.book_fill,
           accentColor: colors.fact,
           selected: snapshot.workspaceMode == EditorWorkspaceMode.pokedex,
           expanded: _expandPokedex,
-          onExpandToggle: () => setState(() => _expandPokedex = !_expandPokedex),
+          onExpandToggle: () =>
+              setState(() => _expandPokedex = !_expandPokedex),
           expandedHeight: hPokedex,
           child: _buildPokemonCatalogsCard(context, snapshot, notifier),
         ),
-        ProjectExplorerModuleCard(
-          title: 'Narrative Studio',
-          description:
-              'Histoire globale, étapes, cinématiques et résultats (ouvre les espaces centraux)',
-          icon: CupertinoIcons.link_circle_fill,
-          accentColor: colors.narrative,
-          count: project.scenarios.length,
-          selected: snapshot.workspaceMode == EditorWorkspaceMode.narrativeOverview ||
-              snapshot.workspaceMode == EditorWorkspaceMode.globalStory ||
-              snapshot.workspaceMode == EditorWorkspaceMode.step ||
-              snapshot.workspaceMode == EditorWorkspaceMode.cutscene ||
-              snapshot.workspaceMode == EditorWorkspaceMode.dialogue,
-          expanded: _expandNarrative,
-          onExpandToggle: () => setState(() => _expandNarrative = !_expandNarrative),
-          expandedHeight: hNarrative,
-          child: const NarrativeLibraryPanel(embedded: true),
-        ),
+        if (!isNarrativeWorkspace) narrativeModuleCard,
         ProjectExplorerModuleCard(
           title: 'World Maps',
           description:
@@ -389,7 +404,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           count: project.terrainPresets.length,
           selected: false,
           expanded: _expandTerrains,
-          onExpandToggle: () => setState(() => _expandTerrains = !_expandTerrains),
+          onExpandToggle: () =>
+              setState(() => _expandTerrains = !_expandTerrains),
           expandedHeight: hTerrains,
           child: const TerrainLibraryPanel(embedded: true),
         ),
@@ -398,7 +414,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           description: 'Chemins hérités et recettes Path Studio',
           icon: CupertinoIcons.arrow_branch,
           accentColor: colors.warning,
-          countLabel: '${project.pathPresets.length}/${project.pathPatternPresets.length}',
+          countLabel:
+              '${project.pathPresets.length}/${project.pathPatternPresets.length}',
           selected: snapshot.workspaceMode == EditorWorkspaceMode.pathStudio,
           expanded: _expandPaths,
           onExpandToggle: () => setState(() => _expandPaths = !_expandPaths),
@@ -411,7 +428,8 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           icon: CupertinoIcons.tree,
           accentColor: colors.worldRule,
           count: project.environmentPresets.length,
-          selected: snapshot.workspaceMode == EditorWorkspaceMode.environmentStudio,
+          selected:
+              snapshot.workspaceMode == EditorWorkspaceMode.environmentStudio,
           expanded: _expandEnvironment,
           onExpandToggle: () =>
               setState(() => _expandEnvironment = !_expandEnvironment),
@@ -420,13 +438,15 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         ProjectExplorerModuleCard(
           title: 'Trainer Studio',
-          description: 'Équipes et dresseurs de combat (ouvre l\'espace de travail central)',
+          description:
+              'Équipes et dresseurs de combat (ouvre l\'espace de travail central)',
           icon: CupertinoIcons.person_2_fill,
           accentColor: colors.combat,
           count: project.trainers.length,
           selected: snapshot.workspaceMode == EditorWorkspaceMode.trainer,
           expanded: _expandTrainers,
-          onExpandToggle: () => setState(() => _expandTrainers = !_expandTrainers),
+          onExpandToggle: () =>
+              setState(() => _expandTrainers = !_expandTrainers),
           expandedHeight: hTrainers,
           child: const TrainerLibraryPanel(embedded: true),
         ),
@@ -444,6 +464,28 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           child: const CharacterLibraryPanel(embedded: true),
         ),
       ],
+    );
+  }
+
+  Widget _buildNarrativeModuleCard(
+    BuildContext context,
+    ProjectManifest project,
+    EditorProjectExplorerSnapshot snapshot,
+    double expandedHeight,
+  ) {
+    final colors = context.pokeMapColors;
+    return ProjectExplorerModuleCard(
+      title: 'Narrative Studio',
+      description: 'Accès aux espaces auteur narratifs existants',
+      icon: CupertinoIcons.link_circle_fill,
+      accentColor: colors.narrative,
+      count: project.scenarios.length,
+      selected: _isNarrativeWorkspace(snapshot.workspaceMode),
+      expanded: _expandNarrative,
+      onExpandToggle: () =>
+          setState(() => _expandNarrative = !_expandNarrative),
+      expandedHeight: expandedHeight,
+      child: const NarrativeLibraryPanel(embedded: true),
     );
   }
 
