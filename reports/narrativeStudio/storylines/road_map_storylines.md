@@ -291,7 +291,7 @@ Interprétation V0 :
 |---|---|---|---|---|
 | NS-STORYLINES-01 | Storylines Read Model / Data Contract V0 | core/design | DONE | NS-STORYLINES-02 |
 | NS-STORYLINES-02 | Current Global Story Characterization / Anti-Fake Tests V0 | test/audit | DONE | NS-STORYLINES-03 |
-| NS-STORYLINES-03 | Storylines Workspace Shell Layout V0 | editor UI | TODO | NS-STORYLINES-04 |
+| NS-STORYLINES-03 | Storylines Workspace Shell Layout V0 | editor UI | DONE | NS-STORYLINES-04 |
 | NS-STORYLINES-04 | Storylines Secondary List Panel Read-only V0 | editor UI | TODO | NS-STORYLINES-05 |
 | NS-STORYLINES-05 | Storyline Header / Tabs / KPI Read-only V0 | editor UI | TODO | NS-STORYLINES-06 |
 | NS-STORYLINES-06 | Storyline Graph Read-only Placeholder V0 | editor UI / visual gate | TODO | NS-STORYLINES-07 |
@@ -364,7 +364,16 @@ Interprétation V0 :
 - Visual Gate : desktop + focus.
 - Risques : créer un shell visuel sans source de données.
 - Design system impact : fort ; bloquer si primitive manquante.
-- Statut : TODO.
+- Statut : DONE.
+- Résultat NS-STORYLINES-03 : premier shell Storylines V0 livré et branché sur `EditorWorkspaceMode.globalStory`, avec panneau secondaire, zone centrale et inspecteur placeholder.
+- Fichiers créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, captures Visual Gate sous `reports/narrativeStudio/storylines/screenshots/`.
+- Fichiers modifiés : `packages/map_editor/lib/src/ui/canvas/narrative_workspace_canvas.dart`, `packages/map_editor/test/storylines_current_global_story_characterization_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Données : `ScenarioAsset.name`, `ScenarioAsset.description`, nombre réel de global stories et nombre dérivé de steps affichés ; aucune donnée cible hardcodée.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/global_story_studio_workspace_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze` global lancé et échoué sur dette préexistante ; analyse ciblée des fichiers touchés propre.
+- Visual Gate : `ns_storylines_03_shell_desktop.png`, `ns_storylines_03_shell_focus.png`, `ns_storylines_03_shell_panels.png`.
+- Design System Gate : confirmé ; primitives `PokeMapPageSurface`, `PokeMapInspectorPanel`, `PokeMapStatusTile`, `PokeMapIconTile`, `PokeMapTone` utilisées ; aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers du lot.
+- Fake data : aucune donnée Selbrume/cible ajoutée ; actions futures affichées disabled/read-only.
 - Prochain lot attendu : NS-STORYLINES-04.
 
 ### NS-STORYLINES-04 — Storylines Secondary List Panel Read-only V0
@@ -628,9 +637,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-02
+Current lot: NS-STORYLINES-03
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-03 — Storylines Workspace Shell Layout V0
+Next recommended lot: NS-STORYLINES-04 — Storylines Secondary List Panel Read-only V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -639,7 +648,7 @@ Next recommended lot: NS-STORYLINES-03 — Storylines Workspace Shell Layout V0
 | NS-STORYLINES-ROADMAP-00 | DONE | 2026-05-27 | Roadmap vivante créée. |
 | NS-STORYLINES-01 | DONE | 2026-05-27 | Contrat de données Storylines V0 documenté ; aucun code/test modifié. |
 | NS-STORYLINES-02 | DONE | 2026-05-27 | Tests de caractérisation anti-fake ajoutés ; ancien Global Story Studio verrouillé sans code production. |
-| NS-STORYLINES-03 | TODO | 2026-05-27 | UI shell après contrat/tests. |
+| NS-STORYLINES-03 | DONE | 2026-05-28 | Shell Storylines V0 read-only livré avec layout 3 zones, anti-fake, captures Visual Gate et tests ciblés. |
 | NS-STORYLINES-04 | TODO | 2026-05-27 | Secondary list read-only. |
 | NS-STORYLINES-05 | TODO | 2026-05-27 | Header/tabs/KPI read-only. |
 | NS-STORYLINES-06 | TODO | 2026-05-27 | Graph read-only placeholder. |
@@ -651,6 +660,18 @@ Next recommended lot: NS-STORYLINES-03 — Storylines Workspace Shell Layout V0
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-03
+
+- Création de `StorylinesWorkspace`, premier shell Storylines V0 read-only.
+- Branchement de `EditorWorkspaceMode.globalStory` vers le shell Storylines V0 dans `NarrativeWorkspaceCanvas`.
+- Conservation des anciens fichiers Global Story Studio sans suppression.
+- Adaptation du test de caractérisation NS-STORYLINES-02 pour préserver les garanties anti-fake sur le nouveau shell.
+- Ajout de `storylines_workspace_shell_test.dart` couvrant le shell, les données réelles, les actions disabled, l'absence de Maps et le gate anti-couleurs.
+- Production des captures Visual Gate desktop, focus et medium/panels.
+- Confirmation : aucune donnée cible hardcodée, aucune action future activée, aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers du lot.
+- Tests ciblés Storylines / Global Story / Projection passés ; analyse ciblée clean.
+- Prochain lot recommandé : `NS-STORYLINES-04 — Storylines Secondary List Panel Read-only V0`.
 
 ### 2026-05-27 — NS-STORYLINES-02
 

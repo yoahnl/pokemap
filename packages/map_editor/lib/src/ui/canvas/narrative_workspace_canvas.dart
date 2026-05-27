@@ -11,10 +11,10 @@ import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
-import 'global_story_studio_workspace.dart';
 import 'narrative_overview_workspace.dart';
 import 'narrative_studio_shell.dart';
 import 'step_studio_workspace.dart';
+import 'storylines_workspace.dart';
 
 /// Workspace central du studio narratif.
 ///
@@ -110,44 +110,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           onOpenCutscenes: openCutscene,
           onOpenDialogues: openDialogue,
         ),
-      EditorWorkspaceMode.globalStory => GlobalStoryStudioWorkspace(
-          editorNotifier: editorNotifier,
-          project: editor.project,
+      EditorWorkspaceMode.globalStory => StorylinesWorkspace(
           projection: projection,
           selectedGlobalStoryId: narrative.selectedGlobalStoryId,
-          selectedStepId: narrative.selectedStepId,
-          onSelectGlobalStory: (scenarioId) {
-            if (scenarioId == null || scenarioId.trim().isEmpty) {
-              return;
-            }
-            narrativeController.selectGlobalStory(scenarioId);
-            narrativeController.openGlobalStory(scenarioId: scenarioId);
-          },
-          onSelectStep: (stepId) {
-            if (stepId == null || stepId.trim().isEmpty) {
-              return;
-            }
-            final step = projection.steps
-                .where((item) => item.id == stepId)
-                .cast<NarrativeStepSummary?>()
-                .firstWhere((item) => item != null, orElse: () => null);
-            narrativeController.selectStep(stepId);
-            if (step != null) {
-              narrativeController.selectGlobalStory(step.globalScenarioId);
-            }
-          },
-          onOpenStepStudio: (stepId) {
-            final step = projection.steps
-                .where((item) => item.id == stepId)
-                .cast<NarrativeStepSummary?>()
-                .firstWhere((item) => item != null, orElse: () => null);
-            narrativeController.selectStep(stepId);
-            narrativeController.openStep(
-              stepId: stepId,
-              globalScenarioId: step?.globalScenarioId,
-            );
-            editorNotifier.selectStepWorkspace();
-          },
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,

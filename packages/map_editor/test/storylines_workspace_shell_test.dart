@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,100 +7,132 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';
-import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_workspace_state.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 
 void main() {
-  group('NS-STORYLINES-02 current Global Story characterization', () {
+  group('NS-STORYLINES-03 Storylines shell V0', () {
     testWidgets(
-      'renders the current Storylines shell from manifest and authoring metadata',
+      'renders a read-only three-pane shell from real global story data',
       (tester) async {
         await tester.binding.setSurfaceSize(const Size(1600, 1000));
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
-        final project = _auditProject();
+        final harness = await _pumpStorylinesShell(tester);
 
-        await _pumpGlobalStoryCanvas(tester, project);
-
-        expect(find.byType(NarrativeWorkspaceCanvas), findsOneWidget);
-        expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
-            findsOneWidget);
-        expect(find.byKey(const ValueKey('narrative-studio-header')),
-            findsOneWidget);
         expect(find.byKey(const ValueKey('storylines-workspace-shell')),
             findsOneWidget);
+        expect(find.byKey(const ValueKey('storylines-secondary-panel')),
+            findsOneWidget);
+        expect(find.byKey(const ValueKey('storylines-main-panel')),
+            findsOneWidget);
+        expect(find.byKey(const ValueKey('storylines-inspector-placeholder')),
+            findsOneWidget);
 
-        expect(find.text('Storylines'), findsWidgets);
         expect(find.text('Audit Story From Scenario'), findsWidgets);
         expect(find.text('Audit description from scenario'), findsOneWidget);
-        expect(find.text('Étapes réelles'), findsOneWidget);
-        expect(find.text('1'), findsWidgets);
-
         expect(find.text('Mode lecture seule'), findsOneWidget);
+        expect(find.text('Storylines V0'), findsWidgets);
         expect(find.text('Graph — à venir'), findsOneWidget);
         expect(find.text('Chapitres — à venir'), findsOneWidget);
-        expect(find.text('Valider'), findsWidgets);
-
-        // Future Storylines action exists in the internal header shell, but is
-        // disabled by the widget contract.
-        expect(find.text('Nouvelle storyline'), findsOneWidget);
-
-        // NS-HOME guardrail: Maps is not an internal Narrative Studio entry.
-        expect(find.text('Maps'), findsNothing);
-        expect(find.text('Facts'), findsOneWidget);
-        expect(find.text('Règles du monde'), findsWidgets);
-        expect(find.text('Validateur'), findsOneWidget);
-
-        // localEventFlow is available to the projection, but is not displayed
-        // as a side quest/storyline in the legacy Global Story workspace.
+        expect(find.text('Inspecteur Storyline — à venir'), findsOneWidget);
         expect(find.text('Audit Local Event Flow'), findsNothing);
 
         for (final forbidden in _targetOnlyStrings) {
           expect(
             find.text(forbidden),
             findsNothing,
-            reason: '$forbidden must not be injected from target imagery.',
+            reason: '$forbidden must not be injected in Storylines shell V0.',
           );
         }
-      },
-    );
 
-    test(
-      'keeps globalStory and localEventFlow separated in the current projection',
-      () {
-        final project = _auditProject();
+        expect(find.text('Maps'), findsNothing);
+        expect(find.text('Facts'), findsOneWidget);
+        expect(find.text('Règles du monde'), findsWidgets);
+        expect(find.text('Validateur'), findsOneWidget);
 
-        final projection = buildNarrativeWorkspaceProjection(project);
-
-        expect(projection.globalStories, hasLength(1));
-        expect(projection.globalStories.single.id, 'audit_global_story');
         expect(
-          projection.globalStories.single.name,
-          'Audit Story From Scenario',
-        );
-        expect(
-          projection.globalStories.single.description,
-          'Audit description from scenario',
-        );
-
-        expect(projection.localEventFlows, hasLength(1));
-        expect(projection.localEventFlows.single.id, 'audit_local_event_flow');
-        expect(
-          projection.localEventFlows.single.name,
-          'Audit Local Event Flow',
-        );
-
-        expect(projection.steps, hasLength(1));
-        expect(projection.steps.single.id, 'audit_step');
-        expect(projection.steps.single.name, 'Audit Step From Metadata');
-        expect(
-          projection.steps.single.description,
-          'Audit Step Detail From Metadata',
+          harness.container.read(editorNotifierProvider).workspaceMode,
+          EditorWorkspaceMode.globalStory,
         );
       },
     );
+
+    testWidgets(
+      'keeps future header actions disabled and non-mutating',
+      (tester) async {
+        final harness = await _pumpStorylinesShell(tester);
+
+        await tester.tap(
+          find.byKey(
+            const ValueKey('narrative-studio-header-action-new-storyline'),
+          ),
+          warnIfMissed: false,
+        );
+        await tester.pump();
+
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-studio-header-action-validate')),
+          warnIfMissed: false,
+        );
+        await tester.pump();
+
+        expect(
+          harness.container.read(editorNotifierProvider).workspaceMode,
+          EditorWorkspaceMode.globalStory,
+        );
+        expect(find.text('Audit Story From Scenario'), findsWidgets);
+      },
+    );
+
+    test('storylines UI source keeps raw colors out of the feature', () {
+      final source = File('lib/src/ui/canvas/storylines_workspace.dart');
+      expect(source.existsSync(), isTrue);
+
+      final contents = source.readAsStringSync();
+
+      expect(contents.contains('Color(0x'), isFalse);
+      expect(contents.contains('Colors.'), isFalse);
+    });
+
+    testWidgets('writes Visual Gate screenshots', (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 1000),
+      );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_03_shell_desktop.png',
+        ),
+      );
+
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 700),
+      );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_03_shell_focus.png',
+        ),
+      );
+
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1180, 1000),
+      );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_03_shell_panels.png',
+        ),
+      );
+    });
   });
 }
 
@@ -117,10 +151,13 @@ const _targetOnlyStrings = <String>[
   'DERNIÈRE ACTIVITÉ',
 ];
 
-Future<void> _pumpGlobalStoryCanvas(
-  WidgetTester tester,
-  ProjectManifest project,
-) async {
+Future<_StorylinesHarness> _pumpStorylinesShell(
+  WidgetTester tester, {
+  Size surfaceSize = const Size(1600, 1000),
+}) async {
+  await tester.binding.setSurfaceSize(surfaceSize);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
   final container = ProviderContainer();
   addTearDown(container.dispose);
   final editorSubscription = container.listen(
@@ -130,25 +167,22 @@ Future<void> _pumpGlobalStoryCanvas(
   addTearDown(editorSubscription.close);
 
   container.read(editorNotifierProvider.notifier).state = EditorState(
-    project: project,
+    project: _auditProject(),
     workspaceMode: EditorWorkspaceMode.globalStory,
   );
   container
       .read(narrativeWorkspaceControllerProvider.notifier)
       .openGlobalStory(scenarioId: 'audit_global_story');
-  container
-      .read(narrativeWorkspaceControllerProvider.notifier)
-      .selectStep('audit_step');
 
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(
+      child: MaterialApp(
         home: Scaffold(
           body: SizedBox(
-            width: 1600,
-            height: 1000,
-            child: NarrativeWorkspaceCanvas(),
+            width: surfaceSize.width,
+            height: surfaceSize.height,
+            child: const NarrativeWorkspaceCanvas(),
           ),
         ),
       ),
@@ -156,6 +190,8 @@ Future<void> _pumpGlobalStoryCanvas(
   );
   await tester.pump();
   await tester.pump();
+
+  return _StorylinesHarness(container);
 }
 
 ProjectManifest _auditProject() {
@@ -224,4 +260,10 @@ ProjectManifest _auditProject() {
       ),
     ],
   );
+}
+
+class _StorylinesHarness {
+  const _StorylinesHarness(this.container);
+
+  final ProviderContainer container;
 }
