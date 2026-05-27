@@ -92,8 +92,8 @@ abstract final class EditorChrome {
   static Color toolbarPulldownTrackFill(BuildContext context) =>
       _isDark(context)
           ? Color.lerp(
-              EditorVisualTokens.toolbarCapsuleDark,
-              accentPrimary,
+              context.pokeMapColors.surfaceRaised,
+              context.pokeMapColors.brandPrimary,
               0.08,
             )!
           : const Color(0xFFE8ECF2);
@@ -101,8 +101,8 @@ abstract final class EditorChrome {
   /// Survol discret dans les capsules toolbar.
   static Color toolbarMutedHoverFill(BuildContext context) => _isDark(context)
       ? Color.lerp(
-          EditorVisualTokens.toolbarCapsuleDark,
-          accentPrimary,
+          context.pokeMapColors.surfaceRaised,
+          context.pokeMapColors.brandPrimary,
           0.1,
         )!
       : const Color(0x14000000);
@@ -130,8 +130,9 @@ abstract final class EditorChrome {
       ? context.pokeMapColors.divider
       : CupertinoColors.separator.resolveFrom(context);
 
-  static Color subtleSeparator(BuildContext context) =>
-      _isDark(context) ? context.pokeMapColors.borderSubtle : const Color(0x14000000);
+  static Color subtleSeparator(BuildContext context) => _isDark(context)
+      ? context.pokeMapColors.borderSubtle
+      : const Color(0x14000000);
 
   static Color subtleLabel(BuildContext context) =>
       context.pokeMapColors.textMuted;
@@ -142,11 +143,13 @@ abstract final class EditorChrome {
   static Color activeAccent(BuildContext context) =>
       context.pokeMapColors.brandPrimary;
 
-  static Color statusTint(BuildContext context) =>
-      _isDark(context) ? context.pokeMapColors.infoSoft : const Color(0xFFF2EBE6);
+  static Color statusTint(BuildContext context) => _isDark(context)
+      ? context.pokeMapColors.infoSoft
+      : const Color(0xFFF2EBE6);
 
-  static Color errorTint(BuildContext context) =>
-      _isDark(context) ? context.pokeMapColors.errorSoft : const Color(0xFFF8E8EA);
+  static Color errorTint(BuildContext context) => _isDark(context)
+      ? context.pokeMapColors.errorSoft
+      : const Color(0xFFF8E8EA);
 
   /// Remplissage discret, **opaque** (pas de translucidité type verre).
   static Color chipFill(BuildContext context) => _isDark(context)
@@ -453,17 +456,14 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
 
     final fill = widget.selected
         ? colors.surfaceSelected
-        : (_hovered
-            ? colors.surfaceHover
-            : Colors.transparent);
+        : (_hovered ? colors.surfaceHover : Colors.transparent);
 
     final fgColor = widget.selected
         ? colors.brandPrimary
         : (_hovered ? colors.textPrimary : colors.textSecondary);
 
-    final subtitleColor = widget.selected
-        ? colors.textSecondary
-        : colors.textMuted;
+    final subtitleColor =
+        widget.selected ? colors.textSecondary : colors.textMuted;
 
     const isDisabled = false;
 
@@ -499,7 +499,8 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
                 style: TextStyle(
                   color: fgColor,
                   fontSize: 13,
-                  fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
+                  fontWeight:
+                      widget.selected ? FontWeight.w600 : FontWeight.w500,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -560,7 +561,8 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
                           data: MacosIconThemeData(
                             color: widget.selected
                                 ? colors.brandPrimary
-                                : (widget.leadingIconUnselectedColor ?? fgColor),
+                                : (widget.leadingIconUnselectedColor ??
+                                    fgColor),
                             size: 16,
                           ),
                           child: widget.leading!,
@@ -600,7 +602,8 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
                       style: TextStyle(
                         color: fgColor,
                         fontSize: 13,
-                        fontWeight: widget.selected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight:
+                            widget.selected ? FontWeight.w600 : FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -829,9 +832,7 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
         curve: Curves.easeOutCubic,
         decoration: widget.useEditorMacosSidebarDisclosureStyle
             ? BoxDecoration(
-                color: _hovered
-                    ? colors.surfaceHover
-                    : Colors.transparent,
+                color: _hovered ? colors.surfaceHover : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               )
             : null,
@@ -854,12 +855,15 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
                 if (widget.useEditorMacosSidebarDisclosureStyle)
                   IconTheme.merge(
                     data: IconThemeData(
-                      color: _hovered ? colors.textPrimary : colors.textSecondary,
+                      color:
+                          _hovered ? colors.textPrimary : colors.textSecondary,
                       size: 16,
                     ),
                     child: MacosIconTheme.merge(
                       data: MacosIconThemeData(
-                        color: _hovered ? colors.textPrimary : colors.textSecondary,
+                        color: _hovered
+                            ? colors.textPrimary
+                            : colors.textSecondary,
                         size: 16,
                       ),
                       child: widget.leading!,

@@ -81,7 +81,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   // ==========================================
   // Properties - Neutrals
   // ==========================================
-  
+
   /// Base application background color.
   final Color backgroundApp;
 
@@ -115,7 +115,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   // ==========================================
   // Properties - Text
   // ==========================================
-  
+
   /// Main body/title text color (highest contrast).
   final Color textPrimary;
 
@@ -134,7 +134,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   // ==========================================
   // Properties - Brand / Actions
   // ==========================================
-  
+
   /// Primary brand actions color (e.g. key buttons, primary highlight).
   final Color brandPrimary;
 
@@ -156,7 +156,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   // ==========================================
   // Properties - Statuses
   // ==========================================
-  
+
   /// General success indicator color (validation, checkmarks).
   final Color success;
 
@@ -193,7 +193,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   // ==========================================
   // Properties - Business Colors (Couleurs Métier)
   // ==========================================
-  
+
   /// Narrative sequence theme.
   final Color narrative;
 
@@ -227,7 +227,7 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   // ==========================================
   // Properties - Graph / Nodes Colors
   // ==========================================
-  
+
   /// Narrative Graph Start Node background.
   final Color graphStartBg;
 
@@ -364,76 +364,76 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   /// Static default configuration for PokeMap Dark Mode palette.
   static const PokeMapColorTokens dark = PokeMapColorTokens(
     // Neutrals
-    backgroundApp: Color(0xFF06111F),
-    backgroundShell: Color(0xFF081525),
-    surfaceBase: Color(0xFF0D1B2E),
-    surfaceRaised: Color(0xFF11243A),
-    surfaceSubtle: Color(0xFF0A1728),
-    surfaceHover: Color(0xFF172D47),
-    surfaceSelected: Color(0xFF102B57),
-    borderSubtle: Color(0xFF1E314A),
-    borderStrong: Color(0xFF334B68),
-    divider: Color(0xFF17263A),
+    backgroundApp: Color(0xFF050B14),
+    backgroundShell: Color(0xFF07111D),
+    surfaceBase: Color(0xFF0B1726),
+    surfaceRaised: Color(0xFF101D2D),
+    surfaceSubtle: Color(0xFF0D1928),
+    surfaceHover: Color(0xFF14243A),
+    surfaceSelected: Color(0xFF142A50),
+    borderSubtle: Color(0xFF1B2A3F),
+    borderStrong: Color(0xFF2A3D58),
+    divider: Color(0xFF142235),
 
     // Text
-    textPrimary: Color(0xFFEDF4FF),
-    textSecondary: Color(0xFFB8C4D8),
-    textMuted: Color(0xFF7F8DA6),
-    textDisabled: Color(0xFF536176),
-    textInverse: Color(0xFF06111F),
+    textPrimary: Color(0xFFF1F5FB),
+    textSecondary: Color(0xFFB8C4D4),
+    textMuted: Color(0xFF8795AA),
+    textDisabled: Color(0xFF566477),
+    textInverse: Color(0xFF050B14),
 
     // Brand / Actions
-    brandPrimary: Color(0xFF4F8CFF),
-    brandPrimaryHover: Color(0xFF75A6FF),
-    brandPrimarySoft: Color(0xFF102B57),
-    brandPrimaryBorder: Color(0xFF2F6FE8),
-    brandCyan: Color(0xFF22D3EE),
-    brandCyanSoft: Color(0xFF0C3441),
+    brandPrimary: Color(0xFF5B8EFF),
+    brandPrimaryHover: Color(0xFF75A3FF),
+    brandPrimarySoft: Color(0xFF132B55),
+    brandPrimaryBorder: Color(0xFF376DDB),
+    brandCyan: Color(0xFF24C8D6),
+    brandCyanSoft: Color(0xFF0C2D36),
 
     // Statuses
-    success: Color(0xFF3ED879),
-    successSoft: Color(0xFF0E3320),
-    successBorder: Color(0xFF237A46),
-    warning: Color(0xFFFBBF24),
-    warningSoft: Color(0xFF3A2A0A),
-    warningBorder: Color(0xFF8A6412),
-    error: Color(0xFFFF5D6C),
-    errorSoft: Color(0xFF3A1118),
-    errorBorder: Color(0xFF8A2D38),
-    info: Color(0xFF60A5FA),
-    infoSoft: Color(0xFF0D2747),
+    success: Color(0xFF45D66E),
+    successSoft: Color(0xFF0E2B1C),
+    successBorder: Color(0xFF246B3A),
+    warning: Color(0xFFF5B51B),
+    warningSoft: Color(0xFF33250A),
+    warningBorder: Color(0xFF8B650E),
+    error: Color(0xFFFF5A5F),
+    errorSoft: Color(0xFF331217),
+    errorBorder: Color(0xFF84303A),
+    info: Color(0xFF6AA2FF),
+    infoSoft: Color(0xFF10294A),
 
     // Business Colors (Couleurs Métier)
-    narrative: Color(0xFFA78BFA),
-    narrativeSoft: Color(0xFF251B46),
-    cinematic: Color(0xFFC084FC),
-    dialogue: Color(0xFF60A5FA),
-    event: Color(0xFFA78BFA),
-    combat: Color(0xFFFB7185),
-    reward: Color(0xFFFBBF24),
-    worldRule: Color(0xFF2DD4BF),
-    fact: Color(0xFFFACC15),
-    mapAccent: Color(0xFF4ADE80),
+    narrative: Color(0xFFA77CFF),
+    narrativeSoft: Color(0xFF221B3D),
+    cinematic: Color(0xFFB66DFF),
+    dialogue: Color(0xFF5B8EFF),
+    event: Color(0xFF8B7BFF),
+    combat: Color(0xFFFF6B7C),
+    reward: Color(0xFFF5B51B),
+    worldRule: Color(0xFF21C7C5),
+    fact: Color(0xFFF3B51E),
+    mapAccent: Color(0xFF55D873),
 
     // Graph / Nodes Colors
-    graphStartBg: Color(0xFF0E3320),
-    graphStartBorder: Color(0xFF3ED879),
-    graphDialogueBg: Color(0xFF0D2747),
-    graphDialogueBorder: Color(0xFF60A5FA),
-    graphBranchBg: Color(0xFF251B46),
-    graphBranchBorder: Color(0xFFA78BFA),
-    graphCinematicBg: Color(0xFF2A1A42),
-    graphCinematicBorder: Color(0xFFC084FC),
-    graphCombatBg: Color(0xFF3A1118),
-    graphCombatBorder: Color(0xFFFB7185),
-    graphActionBg: Color(0xFF3A2A0A),
-    graphActionBorder: Color(0xFFFBBF24),
-    graphRewardBg: Color(0xFF332B08),
-    graphRewardBorder: Color(0xFFFACC15),
-    graphMergeBg: Color(0xFF0D2747),
-    graphMergeBorder: Color(0xFF60A5FA),
-    graphEndBg: Color(0xFF3A1118),
-    graphEndBorder: Color(0xFFFF5D6C),
+    graphStartBg: Color(0xFF0E2B1C),
+    graphStartBorder: Color(0xFF45D66E),
+    graphDialogueBg: Color(0xFF10294A),
+    graphDialogueBorder: Color(0xFF5B8EFF),
+    graphBranchBg: Color(0xFF221B3D),
+    graphBranchBorder: Color(0xFFA77CFF),
+    graphCinematicBg: Color(0xFF25183E),
+    graphCinematicBorder: Color(0xFFB66DFF),
+    graphCombatBg: Color(0xFF331217),
+    graphCombatBorder: Color(0xFFFF6B7C),
+    graphActionBg: Color(0xFF33250A),
+    graphActionBorder: Color(0xFFF5B51B),
+    graphRewardBg: Color(0xFF2F2708),
+    graphRewardBorder: Color(0xFFF3B51E),
+    graphMergeBg: Color(0xFF10294A),
+    graphMergeBorder: Color(0xFF6AA2FF),
+    graphEndBg: Color(0xFF331217),
+    graphEndBorder: Color(0xFFFF5A5F),
   );
 
   // ==========================================
@@ -592,9 +592,12 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       textDisabled: Color.lerp(textDisabled, other.textDisabled, t)!,
       textInverse: Color.lerp(textInverse, other.textInverse, t)!,
       brandPrimary: Color.lerp(brandPrimary, other.brandPrimary, t)!,
-      brandPrimaryHover: Color.lerp(brandPrimaryHover, other.brandPrimaryHover, t)!,
-      brandPrimarySoft: Color.lerp(brandPrimarySoft, other.brandPrimarySoft, t)!,
-      brandPrimaryBorder: Color.lerp(brandPrimaryBorder, other.brandPrimaryBorder, t)!,
+      brandPrimaryHover:
+          Color.lerp(brandPrimaryHover, other.brandPrimaryHover, t)!,
+      brandPrimarySoft:
+          Color.lerp(brandPrimarySoft, other.brandPrimarySoft, t)!,
+      brandPrimaryBorder:
+          Color.lerp(brandPrimaryBorder, other.brandPrimaryBorder, t)!,
       brandCyan: Color.lerp(brandCyan, other.brandCyan, t)!,
       brandCyanSoft: Color.lerp(brandCyanSoft, other.brandCyanSoft, t)!,
       success: Color.lerp(success, other.success, t)!,
@@ -619,21 +622,30 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       fact: Color.lerp(fact, other.fact, t)!,
       mapAccent: Color.lerp(mapAccent, other.mapAccent, t)!,
       graphStartBg: Color.lerp(graphStartBg, other.graphStartBg, t)!,
-      graphStartBorder: Color.lerp(graphStartBorder, other.graphStartBorder, t)!,
+      graphStartBorder:
+          Color.lerp(graphStartBorder, other.graphStartBorder, t)!,
       graphDialogueBg: Color.lerp(graphDialogueBg, other.graphDialogueBg, t)!,
-      graphDialogueBorder: Color.lerp(graphDialogueBorder, other.graphDialogueBorder, t)!,
+      graphDialogueBorder:
+          Color.lerp(graphDialogueBorder, other.graphDialogueBorder, t)!,
       graphBranchBg: Color.lerp(graphBranchBg, other.graphBranchBg, t)!,
-      graphBranchBorder: Color.lerp(graphBranchBorder, other.graphBranchBorder, t)!,
-      graphCinematicBg: Color.lerp(graphCinematicBg, other.graphCinematicBg, t)!,
-      graphCinematicBorder: Color.lerp(graphCinematicBorder, other.graphCinematicBorder, t)!,
+      graphBranchBorder:
+          Color.lerp(graphBranchBorder, other.graphBranchBorder, t)!,
+      graphCinematicBg:
+          Color.lerp(graphCinematicBg, other.graphCinematicBg, t)!,
+      graphCinematicBorder:
+          Color.lerp(graphCinematicBorder, other.graphCinematicBorder, t)!,
       graphCombatBg: Color.lerp(graphCombatBg, other.graphCombatBg, t)!,
-      graphCombatBorder: Color.lerp(graphCombatBorder, other.graphCombatBorder, t)!,
+      graphCombatBorder:
+          Color.lerp(graphCombatBorder, other.graphCombatBorder, t)!,
       graphActionBg: Color.lerp(graphActionBg, other.graphActionBg, t)!,
-      graphActionBorder: Color.lerp(graphActionBorder, other.graphActionBorder, t)!,
+      graphActionBorder:
+          Color.lerp(graphActionBorder, other.graphActionBorder, t)!,
       graphRewardBg: Color.lerp(graphRewardBg, other.graphRewardBg, t)!,
-      graphRewardBorder: Color.lerp(graphRewardBorder, other.graphRewardBorder, t)!,
+      graphRewardBorder:
+          Color.lerp(graphRewardBorder, other.graphRewardBorder, t)!,
       graphMergeBg: Color.lerp(graphMergeBg, other.graphMergeBg, t)!,
-      graphMergeBorder: Color.lerp(graphMergeBorder, other.graphMergeBorder, t)!,
+      graphMergeBorder:
+          Color.lerp(graphMergeBorder, other.graphMergeBorder, t)!,
       graphEndBg: Color.lerp(graphEndBg, other.graphEndBg, t)!,
       graphEndBorder: Color.lerp(graphEndBorder, other.graphEndBorder, t)!,
     );

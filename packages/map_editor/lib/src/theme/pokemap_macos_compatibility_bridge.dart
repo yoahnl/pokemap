@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import 'pokemap_color_tokens.dart';
+
 /// A temporary compatibility bridge that provides a [MacosTheme] in the widget tree.
 ///
 /// Since the PokeMap root application has been migrated from [MacosApp] to [MaterialApp],
@@ -23,21 +25,23 @@ class PokeMapMacosCompatibilityBridge extends StatelessWidget {
   Widget build(BuildContext context) {
     final materialTheme = Theme.of(context);
     final isDark = materialTheme.brightness == Brightness.dark;
+    final colors = materialTheme.extension<PokeMapColorTokens>() ??
+        (isDark ? PokeMapColorTokens.dark : PokeMapColorTokens.light);
 
     // Replicate the custom macos theme overrides that main.dart used to configure
     final macosThemeData = isDark
         ? MacosThemeData.dark().copyWith(
             accentColor: AccentColor.blue,
-            primaryColor: const Color(0xFF4D8EF7),
-            canvasColor: const Color(0xFF0E1014),
-            dividerColor: const Color(0x1FFFFFFF),
+            primaryColor: colors.brandPrimary,
+            canvasColor: colors.backgroundApp,
+            dividerColor: colors.divider,
             visualDensity: const VisualDensity(horizontal: 0, vertical: -0.25),
           )
         : MacosThemeData.light().copyWith(
             accentColor: AccentColor.blue,
-            primaryColor: const Color(0xFF4A87F5),
-            canvasColor: const Color(0xFFF5F3EF),
-            dividerColor: const Color(0x14000000),
+            primaryColor: colors.brandPrimary,
+            canvasColor: colors.backgroundApp,
+            dividerColor: colors.divider,
             visualDensity: const VisualDensity(horizontal: 0, vertical: -0.25),
           );
 

@@ -5,11 +5,13 @@ import 'package:map_editor/src/theme/theme.dart';
 
 void main() {
   group('PokeMapTheme and PokeMapColorTokens Tests', () {
-    test('PokeMapTheme.light() creates a ThemeData brightness light with tokens', () {
+    test(
+        'PokeMapTheme.light() creates a ThemeData brightness light with tokens',
+        () {
       final theme = PokeMapTheme.light();
       expect(theme.brightness, Brightness.light);
       expect(theme.useMaterial3, isTrue);
-      
+
       final tokens = theme.extension<PokeMapColorTokens>();
       expect(tokens, isNotNull);
       expect(tokens!.backgroundApp, const Color(0xFFF5F8FC));
@@ -17,19 +19,24 @@ void main() {
       expect(tokens.mapAccent, const Color(0xFF22A06B));
     });
 
-    test('PokeMapTheme.dark() creates a ThemeData brightness dark with tokens', () {
+    test('PokeMapTheme.dark() creates a ThemeData brightness dark with tokens',
+        () {
       final theme = PokeMapTheme.dark();
       expect(theme.brightness, Brightness.dark);
       expect(theme.useMaterial3, isTrue);
 
       final tokens = theme.extension<PokeMapColorTokens>();
       expect(tokens, isNotNull);
-      expect(tokens!.backgroundApp, const Color(0xFF06111F));
-      expect(tokens.textPrimary, const Color(0xFFEDF4FF));
-      expect(tokens.mapAccent, const Color(0xFF4ADE80));
+      expect(tokens!.backgroundApp, const Color(0xFF050B14));
+      expect(tokens.surfaceBase, const Color(0xFF0B1726));
+      expect(tokens.textPrimary, const Color(0xFFF1F5FB));
+      expect(tokens.brandPrimary, const Color(0xFF5B8EFF));
+      expect(tokens.mapAccent, const Color(0xFF55D873));
     });
 
-    test('Light and Dark color tokens are not accidentally identical for major surfaces', () {
+    test(
+        'Light and Dark color tokens are not accidentally identical for major surfaces',
+        () {
       const light = PokeMapColorTokens.light;
       const dark = PokeMapColorTokens.dark;
 
@@ -40,7 +47,8 @@ void main() {
       expect(light.mapAccent, isNot(dark.mapAccent));
     });
 
-    testWidgets('BuildContext.pokeMapColors resolves from MaterialApp Theme', (tester) async {
+    testWidgets('BuildContext.pokeMapColors resolves from MaterialApp Theme',
+        (tester) async {
       late PokeMapColorTokens resolvedColors;
 
       await tester.pumpWidget(
@@ -61,7 +69,9 @@ void main() {
       expect(resolvedColors.backgroundApp, const Color(0xFFF5F8FC));
     });
 
-    testWidgets('BuildContext.pokeMapColors falls back correctly with MacosTheme (Dark)', (tester) async {
+    testWidgets(
+        'BuildContext.pokeMapColors falls back correctly with MacosTheme (Dark)',
+        (tester) async {
       late PokeMapColorTokens resolvedColors;
 
       await tester.pumpWidget(
@@ -77,11 +87,13 @@ void main() {
       );
 
       expect(resolvedColors, isNotNull);
-      expect(resolvedColors.backgroundApp, const Color(0xFF06111F));
-      expect(resolvedColors.textPrimary, const Color(0xFFEDF4FF));
+      expect(resolvedColors.backgroundApp, const Color(0xFF050B14));
+      expect(resolvedColors.textPrimary, const Color(0xFFF1F5FB));
     });
 
-    testWidgets('BuildContext.pokeMapColors falls back correctly with MediaQuery (Light/Dark)', (tester) async {
+    testWidgets(
+        'BuildContext.pokeMapColors falls back correctly with MediaQuery (Light/Dark)',
+        (tester) async {
       late PokeMapColorTokens resolvedColorsLight;
       late PokeMapColorTokens resolvedColorsDark;
 
@@ -110,10 +122,12 @@ void main() {
       );
 
       expect(resolvedColorsLight.backgroundApp, const Color(0xFFF5F8FC));
-      expect(resolvedColorsDark.backgroundApp, const Color(0xFF06111F));
+      expect(resolvedColorsDark.backgroundApp, const Color(0xFF050B14));
     });
 
-    testWidgets('PokeMapMacosCompatibilityBridge maps dark/light Material Theme to MacosTheme brightness', (tester) async {
+    testWidgets(
+        'PokeMapMacosCompatibilityBridge maps dark/light Material Theme to MacosTheme brightness',
+        (tester) async {
       late Brightness macosBrightness;
 
       await tester.pumpWidget(
