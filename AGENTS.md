@@ -128,6 +128,14 @@ No-code first:
 - validations before runtime surprises;
 - no forced JSON editing for normal users.
 
+Design system first for `map_editor` UI:
+
+- use only widgets from the PokeMap design system for editor UI primitives such as surfaces, panels, cards, buttons, icon buttons, badges, sidebars, toolbar controls, empty states, and repeated layout blocks;
+- if the design system does not provide the needed primitive or variant, create a design-system widget or extend an existing one with focused flexibility before using local/ad hoc UI;
+- never hardcode UI colors in feature screens or widgets: no direct `Color(0x...)`, `Colors.*`, or package palette constants for product UI;
+- all UI colors must come from design-system/theme tokens such as `PokeMapColorTokens`, `context.pokeMapColors`, or semantic design-system helpers;
+- new color values belong only in theme/design-system token definitions, with semantic names and existing light/dark behavior preserved.
+
 Mechanics-first when requested:
 
 ```text
