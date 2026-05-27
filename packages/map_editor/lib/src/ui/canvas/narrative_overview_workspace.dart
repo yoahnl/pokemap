@@ -23,6 +23,37 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
       key: const ValueKey('narrative-overview-scroll'),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       children: [
+        const _OverviewPageHeader(),
+        const SizedBox(height: 14),
+        _OverviewResponsiveBody(readModel: readModel),
+      ],
+    );
+  }
+}
+
+class _OverviewPageHeader extends StatelessWidget {
+  const _OverviewPageHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const ValueKey('narrative-overview-page-header'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Wrap(
+          key: ValueKey('narrative-overview-breadcrumb'),
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 7,
+          runSpacing: 4,
+          children: [
+            _BreadcrumbSegment(label: 'PokeMap'),
+            _BreadcrumbSeparator(),
+            _BreadcrumbSegment(label: 'Narrative Studio'),
+            _BreadcrumbSeparator(),
+            _BreadcrumbSegment(label: 'Aperçu', current: true),
+          ],
+        ),
+        const SizedBox(height: 10),
         Text(
           'Aperçu',
           style: TextStyle(
@@ -33,16 +64,72 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Vue d’ensemble auteur du Narrative Studio.',
+          'Vue d’ensemble auteur : métriques disponibles, statuts honnêtes et prochaines sections du dashboard.',
           style: TextStyle(
             color: EditorChrome.subtleLabel(context),
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 14),
-        _OverviewResponsiveBody(readModel: readModel),
       ],
+    );
+  }
+}
+
+class _BreadcrumbSegment extends StatelessWidget {
+  const _BreadcrumbSegment({
+    required this.label,
+    this.current = false,
+  });
+
+  final String label;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = current
+        ? EditorChrome.activeAccent(context)
+        : EditorChrome.subtleLabel(context);
+    final child = Text(
+      label,
+      style: TextStyle(
+        color: textColor,
+        fontSize: 12,
+        fontWeight: current ? FontWeight.w700 : FontWeight.w600,
+      ),
+    );
+    if (!current) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: child,
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: EditorChrome.chipFill(context),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: EditorChrome.activeAccent(context).withValues(alpha: 0.42),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _BreadcrumbSeparator extends StatelessWidget {
+  const _BreadcrumbSeparator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '/',
+      style: TextStyle(
+        color: EditorChrome.subtleLabel(context),
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }

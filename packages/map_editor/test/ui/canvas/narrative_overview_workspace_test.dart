@@ -21,11 +21,27 @@ void main() {
 
       await _pumpOverview(tester, readModel);
 
-      expect(find.text('Aperçu'), findsOneWidget);
       expect(
-        find.text('Vue d’ensemble auteur du Narrative Studio.'),
+        find.byKey(const ValueKey('narrative-overview-page-header')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('narrative-overview-breadcrumb')),
+        findsOneWidget,
+      );
+      expect(find.text('PokeMap'), findsOneWidget);
+      expect(find.widgetWithText(CupertinoButton, 'PokeMap'), findsNothing);
+      expect(find.text('Narrative Studio'), findsOneWidget);
+      expect(find.text('Aperçu'), findsWidgets);
+      expect(
+        find.text(
+          'Vue d’ensemble auteur : métriques disponibles, statuts honnêtes et prochaines sections du dashboard.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Narrative Overview'), findsNothing);
+      expect(find.textContaining('progression'), findsNothing);
+      expect(find.textContaining('jouable'), findsNothing);
       expect(find.textContaining('test_project'), findsWidgets);
       expect(find.textContaining('Non évalué'), findsWidgets);
       expect(find.text('Indicateurs auteur'), findsOneWidget);
@@ -239,9 +255,13 @@ void main() {
 
       await _pumpOverview(tester, readModel, width: 620, height: 720);
 
-      expect(find.text('Aperçu'), findsOneWidget);
-      expect(find.text('Vue d’ensemble auteur du Narrative Studio.'),
-          findsOneWidget);
+      expect(find.text('Aperçu'), findsWidgets);
+      expect(
+        find.text(
+          'Vue d’ensemble auteur : métriques disponibles, statuts honnêtes et prochaines sections du dashboard.',
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('test_project'), findsWidgets);
       expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
           findsOneWidget);
