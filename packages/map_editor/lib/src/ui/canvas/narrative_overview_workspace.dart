@@ -68,6 +68,8 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
         const SizedBox(height: 12),
         _MainStoryCard(story: readModel.mainStory),
         const SizedBox(height: 12),
+        _ModuleCardsSection(modules: readModel.modules),
+        const SizedBox(height: 12),
         _OverviewSection(
           title: 'V0 volontairement limitée',
           children: [
@@ -85,6 +87,255 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _ModuleCardsSection extends StatelessWidget {
+  const _ModuleCardsSection({required this.modules});
+
+  final List<NarrativeModuleSummary> modules;
+
+  @override
+  Widget build(BuildContext context) {
+    return _OverviewSection(
+      title: 'Modules narratifs',
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = 10.0;
+            final maxWidth = constraints.maxWidth;
+            final columns = switch (maxWidth) {
+              >= 960 => 3,
+              >= 620 => 2,
+              _ => 1,
+            };
+            final cardWidth = (maxWidth - spacing * (columns - 1)) / columns;
+
+            return Wrap(
+              key: const ValueKey('narrative-overview-module-grid'),
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final module in modules)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _ModuleCard(module: module),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ModuleCard extends StatelessWidget {
+  const _ModuleCard({required this.module});
+
+  final NarrativeModuleSummary module;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _availabilityAccent(context, module.availability);
+    return Container(
+      key: ValueKey('narrative-overview-module-${module.id}'),
+      constraints: const BoxConstraints(minHeight: 184),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: accent.withValues(alpha: 0.1),
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
+        boxShadow: EditorChrome.sectionCardShadows(context),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ModuleIcon(moduleId: module.id, accent: accent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      module.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: EditorChrome.primaryLabel(context),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    _AvailabilityPill(
+                      label: _moduleSupportLabel(module),
+                      accent: accent,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            module.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _moduleCardValue(module),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: _moduleCardValue(module).length > 12 ? 18 : 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0,
+            ),
+          ),
+          if (module.secondaryStats.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final stat in module.secondaryStats)
+                  _ModuleSecondaryStat(stat: stat),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          _ModuleDestinationPill(module: module),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModuleIcon extends StatelessWidget {
+  const _ModuleIcon({
+    required this.moduleId,
+    required this.accent,
+  });
+
+  final String moduleId;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: accent.withValues(alpha: 0.26)),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        _moduleIcon(moduleId),
+        color: accent,
+        size: 19,
+      ),
+    );
+  }
+}
+
+class _ModuleSecondaryStat extends StatelessWidget {
+  const _ModuleSecondaryStat({required this.stat});
+
+  final NarrativeMetricSummary stat;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _availabilityAccent(context, stat.availability);
+    return Container(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.2)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            stat.label,
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _metricCardValue(stat),
+            style: TextStyle(
+              color: accent,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModuleDestinationPill extends StatelessWidget {
+  const _ModuleDestinationPill({required this.module});
+
+  final NarrativeModuleSummary module;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDestination = module.destination?.trim().isNotEmpty == true;
+    final accent = hasDestination
+        ? EditorChrome.accentPrimary
+        : EditorChrome.subtleLabel(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            hasDestination
+                ? CupertinoIcons.arrow_right_circle
+                : CupertinoIcons.clock,
+            color: accent,
+            size: 12,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            hasDestination ? 'Studio relié' : 'Accès à venir',
+            style: TextStyle(
+              color: accent,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -803,6 +1054,29 @@ String _metricSupportLabel(NarrativeMetricSummary metric) {
   };
 }
 
+String _moduleCardValue(NarrativeModuleSummary module) {
+  return switch (module.availability) {
+    NarrativeOverviewAvailability.available ||
+    NarrativeOverviewAvailability.empty =>
+      '${module.count ?? 0}',
+    NarrativeOverviewAvailability.unavailable => 'Indisponible',
+    NarrativeOverviewAvailability.notEvaluated => 'Non évalué',
+    NarrativeOverviewAvailability.outOfScope => 'Hors scope V0',
+    NarrativeOverviewAvailability.needsModel => 'Nécessite un modèle',
+  };
+}
+
+String _moduleSupportLabel(NarrativeModuleSummary module) {
+  return switch (module.availability) {
+    NarrativeOverviewAvailability.available => 'Disponible',
+    NarrativeOverviewAvailability.empty => module.emptyStateMessage,
+    NarrativeOverviewAvailability.unavailable => module.emptyStateMessage,
+    NarrativeOverviewAvailability.notEvaluated => 'Validation non lancée',
+    NarrativeOverviewAvailability.outOfScope => module.emptyStateMessage,
+    NarrativeOverviewAvailability.needsModel => module.emptyStateMessage,
+  };
+}
+
 String _availabilityValue(NarrativeOverviewAvailability availability) {
   return switch (availability) {
     NarrativeOverviewAvailability.available => 'disponible',
@@ -838,6 +1112,18 @@ IconData _metricIcon(String metricId) {
     'dialogues' => CupertinoIcons.chat_bubble_2_fill,
     'open_issues' => CupertinoIcons.exclamationmark_triangle_fill,
     _ => CupertinoIcons.chart_bar_fill,
+  };
+}
+
+IconData _moduleIcon(String moduleId) {
+  return switch (moduleId) {
+    NarrativeOverviewModuleIds.quests => CupertinoIcons.flag_fill,
+    NarrativeOverviewModuleIds.cutscenes => CupertinoIcons.film_fill,
+    NarrativeOverviewModuleIds.dialogues => CupertinoIcons.chat_bubble_2_fill,
+    NarrativeOverviewModuleIds.conditions => CupertinoIcons.arrow_branch,
+    NarrativeOverviewModuleIds.worldRules => CupertinoIcons.shield_fill,
+    NarrativeOverviewModuleIds.facts => CupertinoIcons.book_fill,
+    _ => CupertinoIcons.square_grid_2x2_fill,
   };
 }
 

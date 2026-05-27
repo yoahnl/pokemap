@@ -28,13 +28,6 @@ void main() {
       );
       expect(find.textContaining('test_project'), findsOneWidget);
       expect(find.textContaining('Non évalué'), findsWidgets);
-      expect(
-        find.textContaining(
-          'Les sections détaillées seront construites dans les lots suivants.',
-          skipOffstage: false,
-        ),
-        findsOneWidget,
-      );
       expect(find.text('Indicateurs auteur'), findsOneWidget);
       for (final label in <String>[
         'Chapitres',
@@ -59,6 +52,21 @@ void main() {
           findsOneWidget,
         );
       }
+      await tester.scrollUntilVisible(
+        find.textContaining(
+          'Les sections détaillées seront construites dans les lots suivants.',
+          skipOffstage: false,
+        ),
+        320,
+      );
+      await tester.pump();
+      expect(
+        find.textContaining(
+          'Les sections détaillées seront construites dans les lots suivants.',
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -80,6 +88,12 @@ void main() {
         _textInKpi('open_issues', 'Validation non lancée'),
         findsOneWidget,
       );
+      await tester.scrollUntilVisible(
+        find.textContaining('Activité récente : hors scope V0',
+            skipOffstage: false),
+        320,
+      );
+      await tester.pump();
       expect(
         find.textContaining('Facts : nécessite un modèle', skipOffstage: false),
         findsOneWidget,
@@ -293,6 +307,162 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeOverviewWorkspace renders honest narrative module cards',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1040, height: 1120);
+
+      expect(find.text('Modules narratifs'), findsOneWidget);
+      expect(find.byKey(const ValueKey('narrative-overview-module-grid')),
+          findsOneWidget);
+      for (final moduleId in <String>[
+        NarrativeOverviewModuleIds.quests,
+        NarrativeOverviewModuleIds.cutscenes,
+        NarrativeOverviewModuleIds.dialogues,
+        NarrativeOverviewModuleIds.conditions,
+        NarrativeOverviewModuleIds.worldRules,
+        NarrativeOverviewModuleIds.facts,
+      ]) {
+        expect(
+          find.byKey(ValueKey('narrative-overview-module-$moduleId')),
+          findsOneWidget,
+        );
+      }
+      for (final label in <String>[
+        'Quêtes annexes',
+        'Cinématiques',
+        'Dialogues',
+        'Conditions narratives',
+        'Règles du monde',
+        'Facts',
+      ]) {
+        expect(find.text(label), findsWidgets);
+      }
+
+      expect(
+        _textInModule(
+          NarrativeOverviewModuleIds.quests,
+          'Hors scope V0',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        _textInModule(
+          NarrativeOverviewModuleIds.quests,
+          'Les quêtes ne sont pas encore modélisées en V0.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        _textInModule(
+          NarrativeOverviewModuleIds.facts,
+          'Nécessite un modèle',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        _textInModule(
+          NarrativeOverviewModuleIds.facts,
+          'Les Facts nécessitent un futur registre de connaissances.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+          _textInModule(NarrativeOverviewModuleIds.quests, '0'), findsNothing);
+      expect(
+          _textInModule(NarrativeOverviewModuleIds.facts, '0'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace module cards consume read model values',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject(
+          'test_project',
+          scenarios: <ScenarioAsset>[
+            _globalStoryWithDocuments(),
+            _cutsceneScenario(
+              id: 'test_cutscene_1',
+              dialogueId: 'test_dialogue_1',
+            ),
+          ],
+          dialogues: const <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'test_dialogue_1',
+              name: 'Test Dialogue',
+              relativePath: 'dialogues/test_dialogue_1.yarn',
+            ),
+          ],
+        ),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1040, height: 1120);
+
+      expect(_textInModule(NarrativeOverviewModuleIds.cutscenes, '1'),
+          findsOneWidget);
+      expect(_textInModule(NarrativeOverviewModuleIds.dialogues, '1'),
+          findsOneWidget);
+      expect(_textInModule(NarrativeOverviewModuleIds.conditions, '2'),
+          findsOneWidget);
+      expect(_textInModule(NarrativeOverviewModuleIds.worldRules, '1'),
+          findsOneWidget);
+      expect(
+        _textInModule(NarrativeOverviewModuleIds.dialogues, 'Indisponible'),
+        findsOneWidget,
+      );
+      expect(
+        _textInModule(
+          NarrativeOverviewModuleIds.dialogues,
+          'Lignes de dialogue',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Selbrume'), findsNothing);
+      expect(find.textContaining('La brume du phare'), findsNothing);
+      expect(find.text('42'), findsNothing);
+      expect(find.text('24'), findsNothing);
+      expect(find.text('12'), findsNothing);
+      expect(find.text('312'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace module grid keeps previous overview blocks visible',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+      );
+
+      await _pumpOverview(tester, readModel, width: 680, height: 1180);
+
+      expect(find.text('Indicateurs auteur'), findsOneWidget);
+      expect(find.byKey(const ValueKey('narrative-overview-main-story-card')),
+          findsOneWidget);
+      expect(find.text('Modules narratifs'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey(
+            'narrative-overview-module-${NarrativeOverviewModuleIds.quests}',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'narrative-overview-module-${NarrativeOverviewModuleIds.facts}',
+          ),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace captures KPI cards screenshot when requested',
     (tester) async {
       if (!const bool.fromEnvironment('NS_HOME_04_CAPTURE_SCREENSHOT')) {
@@ -432,6 +602,80 @@ void main() {
       expect(screenshotFile.existsSync(), isTrue);
     },
   );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures module cards grid screenshot when requested',
+    (tester) async {
+      if (!const bool.fromEnvironment('NS_HOME_06_CAPTURE_SCREENSHOT')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      tester.view.physicalSize = const Size(1180, 1220);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject(
+          'test_project',
+          scenarios: <ScenarioAsset>[
+            _globalStoryWithDocuments(),
+            _cutsceneScenario(
+              id: 'test_cutscene_1',
+              dialogueId: 'test_dialogue_1',
+            ),
+          ],
+          dialogues: const <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'test_dialogue_1',
+              name: 'Test Dialogue',
+              relativePath: 'dialogues/test_dialogue_1.yarn',
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: ColoredBox(
+                key: const ValueKey('ns-home-06-screenshot-root'),
+                color: const Color(0xFF07111F),
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(fontFamily: _screenshotFontFamily),
+                  child: Center(
+                    child: SizedBox(
+                      width: 1180,
+                      height: 1220,
+                      child: NarrativeOverviewWorkspace(readModel: readModel),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        'ns_home_06_overview_module_cards_grid.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('ns-home-06-screenshot-root')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
 }
 
 const _screenshotFontFamily = 'NsHome04ScreenshotFont';
@@ -458,11 +702,18 @@ Finder _textInMainStory(String text) {
   );
 }
 
+Finder _textInModule(String moduleId, String text) {
+  return find.descendant(
+    of: find.byKey(ValueKey('narrative-overview-module-$moduleId')),
+    matching: find.text(text),
+  );
+}
+
 Future<void> _pumpOverview(
   WidgetTester tester,
   NarrativeOverviewReadModel readModel, {
   double width = 900,
-  double height = 900,
+  double height = 1220,
 }) {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -524,6 +775,13 @@ ScenarioAsset _globalStoryWithDocuments({
           StepStudioCutsceneLink(
             cutsceneId: 'test_cutscene_1',
             role: StepStudioCutsceneRole.main,
+          ),
+        ],
+        worldChanges: <StepStudioWorldChange>[
+          StepStudioWorldChange(
+            mapId: 'test_map',
+            entityId: 'test_entity',
+            presenceRule: StepStudioPresenceRule.visibleAfterStepCompletion,
           ),
         ],
       ),
