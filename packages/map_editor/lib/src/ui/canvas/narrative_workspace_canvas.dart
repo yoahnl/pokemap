@@ -70,11 +70,45 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       fallback: projection.steps.isNotEmpty ? projection.steps.first : null,
     );
 
+    void openOverview() {
+      editorNotifier.selectNarrativeOverviewWorkspace();
+    }
+
+    void openGlobalStory() {
+      editorNotifier.selectGlobalStoryWorkspace();
+      narrativeController.openGlobalStory(
+        scenarioId: selectedGlobal?.id,
+      );
+    }
+
+    void openStep() {
+      editorNotifier.selectStepWorkspace();
+      narrativeController.openStep(
+        stepId: selectedStep?.id,
+        globalScenarioId: selectedStep?.globalScenarioId,
+      );
+    }
+
+    void openCutscene() {
+      editorNotifier.selectCutsceneWorkspace();
+      narrativeController.openCutscene(
+        cutsceneScenarioId: selectedCutscene?.id,
+      );
+    }
+
+    void openDialogue() {
+      editorNotifier.selectDialogueWorkspace();
+    }
+
     final mainContent = switch (editor.workspaceMode) {
       EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
           readModel: buildNarrativeOverviewReadModel(
             project: editor.project!,
           ),
+          onOpenStorylines: openGlobalStory,
+          onOpenScenes: openStep,
+          onOpenCutscenes: openCutscene,
+          onOpenDialogues: openDialogue,
         ),
       EditorWorkspaceMode.globalStory => GlobalStoryStudioWorkspace(
           editorNotifier: editorNotifier,
@@ -164,27 +198,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
 
     return NarrativeStudioShell(
       workspaceMode: editor.workspaceMode,
-      onSelectOverview: editorNotifier.selectNarrativeOverviewWorkspace,
-      onSelectGlobal: () {
-        editorNotifier.selectGlobalStoryWorkspace();
-        narrativeController.openGlobalStory(
-          scenarioId: selectedGlobal?.id,
-        );
-      },
-      onSelectStep: () {
-        editorNotifier.selectStepWorkspace();
-        narrativeController.openStep(
-          stepId: selectedStep?.id,
-          globalScenarioId: selectedStep?.globalScenarioId,
-        );
-      },
-      onSelectCutscene: () {
-        editorNotifier.selectCutsceneWorkspace();
-        narrativeController.openCutscene(
-          cutsceneScenarioId: selectedCutscene?.id,
-        );
-      },
-      onSelectDialogue: editorNotifier.selectDialogueWorkspace,
+      onSelectOverview: openOverview,
+      onSelectGlobal: openGlobalStory,
+      onSelectStep: openStep,
+      onSelectCutscene: openCutscene,
+      onSelectDialogue: openDialogue,
       child: mainContent,
     );
   }

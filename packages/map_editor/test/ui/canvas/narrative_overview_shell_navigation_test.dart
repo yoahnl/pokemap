@@ -219,6 +219,124 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeWorkspaceCanvas wires overview cards only to real narrative workspaces',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            editorNotifierProvider.overrideWith(
+              () => _SeededEditorNotifier(
+                EditorState(
+                  workspaceMode: EditorWorkspaceMode.narrativeOverview,
+                  project: _minimalProject('test_project'),
+                ),
+              ),
+            ),
+          ],
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 1200,
+                  height: 1000,
+                  child: Column(
+                    children: [
+                      Expanded(child: NarrativeWorkspaceCanvas()),
+                      _WorkspaceModeProbe(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      Future<void> returnToOverview() async {
+        await tester.tap(find.text('Aperçu').first);
+        await tester.pumpAndSettle();
+        expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+      }
+
+      Future<void> tapOverviewCard(String key) async {
+        final finder = find.byKey(ValueKey(key));
+        await tester.ensureVisible(finder);
+        await tester.pumpAndSettle();
+        await tester.tap(finder);
+        await tester.pumpAndSettle();
+      }
+
+      await tapOverviewCard('narrative-overview-kpi-chapters');
+      expect(find.text('workspace:globalStory'), findsOneWidget);
+      await returnToOverview();
+
+      await tapOverviewCard('narrative-overview-kpi-scenes');
+      expect(find.text('workspace:step'), findsOneWidget);
+      await returnToOverview();
+
+      await tapOverviewCard('narrative-overview-kpi-cutscenes');
+      expect(find.text('workspace:cutscene'), findsOneWidget);
+      await returnToOverview();
+
+      await tapOverviewCard('narrative-overview-kpi-dialogues');
+      expect(find.text('workspace:dialogue'), findsOneWidget);
+      await returnToOverview();
+
+      for (final disabledKpi in <String>[
+        'narrative-overview-kpi-quests',
+        'narrative-overview-kpi-open_issues',
+      ]) {
+        await tapOverviewCard(disabledKpi);
+        expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+      }
+
+      await tapOverviewCard('narrative-overview-module-cutscenes');
+      expect(find.text('workspace:cutscene'), findsOneWidget);
+      await returnToOverview();
+
+      await tapOverviewCard('narrative-overview-module-dialogues');
+      expect(find.text('workspace:dialogue'), findsOneWidget);
+      await returnToOverview();
+
+      for (final disabledModule in <String>[
+        'narrative-overview-module-quests',
+        'narrative-overview-module-conditions',
+        'narrative-overview-module-world_rules',
+        'narrative-overview-module-facts',
+      ]) {
+        await tapOverviewCard(disabledModule);
+        expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+      }
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('narrative-overview-main-story-card')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('narrative-overview-main-story-card')),
+          matching: find.text('Modifier à venir'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+      expect(find.text('Maps'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
+
+  testWidgets(
     'NarrativeLibraryPanel exposes overview without removing existing studios',
     (tester) async {
       await tester.pumpWidget(
@@ -718,6 +836,55 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         '${captureMedium ? 'ns_home_17_internal_sidebar_medium.png' : captureFocus ? 'ns_home_17_internal_sidebar_focus.png' : 'ns_home_17_internal_sidebar_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-18 interaction wiring screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_18_CAPTURE_INTERACTION_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_18_CAPTURE_INTERACTION_FOCUS');
+      const captureDisabledStates = bool.fromEnvironment(
+        'NS_HOME_18_CAPTURE_INTERACTION_DISABLED_STATES',
+      );
+      if (!captureDesktop && !captureFocus && !captureDisabledStates) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_18_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize:
+            captureFocus ? const Size(1600, 700) : const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      if (captureDisabledStates) {
+        await tester.drag(
+          find.byKey(const ValueKey('narrative-overview-scroll')),
+          const Offset(0, -520),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureDisabledStates ? 'ns_home_18_interaction_disabled_states.png' : captureFocus ? 'ns_home_18_interaction_wiring_focus.png' : 'ns_home_18_interaction_wiring_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(

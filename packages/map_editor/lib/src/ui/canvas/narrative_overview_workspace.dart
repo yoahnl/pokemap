@@ -13,9 +13,17 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
   const NarrativeOverviewWorkspace({
     super.key,
     required this.readModel,
+    this.onOpenStorylines,
+    this.onOpenScenes,
+    this.onOpenCutscenes,
+    this.onOpenDialogues,
   });
 
   final NarrativeOverviewReadModel readModel;
+  final VoidCallback? onOpenStorylines;
+  final VoidCallback? onOpenScenes;
+  final VoidCallback? onOpenCutscenes;
+  final VoidCallback? onOpenDialogues;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +33,13 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
       children: [
         const _OverviewPageHeader(),
         const SizedBox(height: 8),
-        _OverviewResponsiveBody(readModel: readModel),
+        _OverviewResponsiveBody(
+          readModel: readModel,
+          onOpenStorylines: onOpenStorylines,
+          onOpenScenes: onOpenScenes,
+          onOpenCutscenes: onOpenCutscenes,
+          onOpenDialogues: onOpenDialogues,
+        ),
       ],
     );
   }
@@ -135,15 +149,31 @@ class _BreadcrumbSeparator extends StatelessWidget {
 }
 
 class _OverviewResponsiveBody extends StatelessWidget {
-  const _OverviewResponsiveBody({required this.readModel});
+  const _OverviewResponsiveBody({
+    required this.readModel,
+    required this.onOpenStorylines,
+    required this.onOpenScenes,
+    required this.onOpenCutscenes,
+    required this.onOpenDialogues,
+  });
 
   final NarrativeOverviewReadModel readModel;
+  final VoidCallback? onOpenStorylines;
+  final VoidCallback? onOpenScenes;
+  final VoidCallback? onOpenCutscenes;
+  final VoidCallback? onOpenDialogues;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final mainColumn = _OverviewMainColumn(readModel: readModel);
+        final mainColumn = _OverviewMainColumn(
+          readModel: readModel,
+          onOpenStorylines: onOpenStorylines,
+          onOpenScenes: onOpenScenes,
+          onOpenCutscenes: onOpenCutscenes,
+          onOpenDialogues: onOpenDialogues,
+        );
         final structureInspector = NarrativeOverviewStructureInspector(
           inspector: readModel.structureInspector,
           editorialStatus: readModel.editorialStatus,
@@ -180,9 +210,19 @@ class _OverviewResponsiveBody extends StatelessWidget {
 }
 
 class _OverviewMainColumn extends StatelessWidget {
-  const _OverviewMainColumn({required this.readModel});
+  const _OverviewMainColumn({
+    required this.readModel,
+    required this.onOpenStorylines,
+    required this.onOpenScenes,
+    required this.onOpenCutscenes,
+    required this.onOpenDialogues,
+  });
 
   final NarrativeOverviewReadModel readModel;
+  final VoidCallback? onOpenStorylines;
+  final VoidCallback? onOpenScenes;
+  final VoidCallback? onOpenCutscenes;
+  final VoidCallback? onOpenDialogues;
 
   @override
   Widget build(BuildContext context) {
@@ -209,11 +249,22 @@ class _OverviewMainColumn extends StatelessWidget {
             readModel.metrics.dialogues,
             readModel.metrics.openIssues,
           ],
+          onOpenStorylines: onOpenStorylines,
+          onOpenScenes: onOpenScenes,
+          onOpenCutscenes: onOpenCutscenes,
+          onOpenDialogues: onOpenDialogues,
         ),
         const SizedBox(height: 10),
-        _MainStoryCard(story: readModel.mainStory),
+        _MainStoryCard(
+          story: readModel.mainStory,
+          onOpenStorylines: onOpenStorylines,
+        ),
         const SizedBox(height: 10),
-        _ModuleCardsSection(modules: readModel.modules),
+        _ModuleCardsSection(
+          modules: readModel.modules,
+          onOpenCutscenes: onOpenCutscenes,
+          onOpenDialogues: onOpenDialogues,
+        ),
         const SizedBox(height: 10),
         NarrativeOverviewUnavailableDataSection(
           facts: readModel.metrics.facts,
@@ -310,9 +361,15 @@ class _ProjectSummaryItem extends StatelessWidget {
 }
 
 class _ModuleCardsSection extends StatelessWidget {
-  const _ModuleCardsSection({required this.modules});
+  const _ModuleCardsSection({
+    required this.modules,
+    required this.onOpenCutscenes,
+    required this.onOpenDialogues,
+  });
 
   final List<NarrativeModuleSummary> modules;
+  final VoidCallback? onOpenCutscenes;
+  final VoidCallback? onOpenDialogues;
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +395,10 @@ class _ModuleCardsSection extends StatelessWidget {
                 for (final module in modules)
                   SizedBox(
                     width: cardWidth,
-                    child: _ModuleCard(module: module),
+                    child: _ModuleCard(
+                      module: module,
+                      onTap: _moduleCallback(module.id),
+                    ),
                   ),
               ],
             );
@@ -347,17 +407,29 @@ class _ModuleCardsSection extends StatelessWidget {
       ],
     );
   }
+
+  VoidCallback? _moduleCallback(String moduleId) {
+    return switch (moduleId) {
+      NarrativeOverviewModuleIds.cutscenes => onOpenCutscenes,
+      NarrativeOverviewModuleIds.dialogues => onOpenDialogues,
+      _ => null,
+    };
+  }
 }
 
 class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({required this.module});
+  const _ModuleCard({
+    required this.module,
+    required this.onTap,
+  });
 
   final NarrativeModuleSummary module;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final accent = _availabilityAccent(context, module.availability);
-    return Container(
+    final content = Container(
       key: ValueKey('narrative-overview-module-${module.id}'),
       constraints: const BoxConstraints(minHeight: 168),
       decoration: BoxDecoration(
@@ -438,9 +510,18 @@ class _ModuleCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 8),
-          _ModuleDestinationPill(module: module),
+          _ModuleDestinationPill(enabled: onTap != null),
         ],
       ),
+    );
+    if (onTap == null) {
+      return content;
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: content,
     );
   }
 }
@@ -524,14 +605,13 @@ class _ModuleSecondaryStat extends StatelessWidget {
 }
 
 class _ModuleDestinationPill extends StatelessWidget {
-  const _ModuleDestinationPill({required this.module});
+  const _ModuleDestinationPill({required this.enabled});
 
-  final NarrativeModuleSummary module;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
-    final hasDestination = module.destination?.trim().isNotEmpty == true;
-    final accent = hasDestination
+    final accent = enabled
         ? EditorChrome.accentPrimary
         : EditorChrome.subtleLabel(context);
     return Container(
@@ -545,15 +625,13 @@ class _ModuleDestinationPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            hasDestination
-                ? CupertinoIcons.arrow_right_circle
-                : CupertinoIcons.clock,
+            enabled ? CupertinoIcons.arrow_right_circle : CupertinoIcons.clock,
             color: accent,
             size: 12,
           ),
           const SizedBox(width: 5),
           Text(
-            hasDestination ? 'Studio relié' : 'Accès à venir',
+            enabled ? 'Studio relié' : 'Accès à venir',
             style: TextStyle(
               color: accent,
               fontSize: 11,
@@ -567,13 +645,20 @@ class _ModuleDestinationPill extends StatelessWidget {
 }
 
 class _MainStoryCard extends StatelessWidget {
-  const _MainStoryCard({required this.story});
+  const _MainStoryCard({
+    required this.story,
+    required this.onOpenStorylines,
+  });
 
   final MainStoryOverviewSummary story;
+  final VoidCallback? onOpenStorylines;
 
   @override
   Widget build(BuildContext context) {
     final accent = _sourceStatusAccent(context, story.sourceStatus);
+    final canOpenStorylines = story.canEdit &&
+        story.availability == NarrativeOverviewAvailability.available &&
+        story.sourceStatus == NarrativeOverviewSourceStatus.explicit;
     return Container(
       key: const ValueKey('narrative-overview-main-story-card'),
       decoration: BoxDecoration(
@@ -607,7 +692,10 @@ class _MainStoryCard extends StatelessWidget {
                   ),
                 ),
               ),
-              _DisabledEditAffordance(accent: accent),
+              _MainStoryActionAffordance(
+                accent: accent,
+                onTap: canOpenStorylines ? onOpenStorylines : null,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -894,39 +982,58 @@ class _ChapterChip extends StatelessWidget {
   }
 }
 
-class _DisabledEditAffordance extends StatelessWidget {
-  const _DisabledEditAffordance({required this.accent});
+class _MainStoryActionAffordance extends StatelessWidget {
+  const _MainStoryActionAffordance({
+    required this.accent,
+    required this.onTap,
+  });
 
   final Color accent;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final content = Container(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: enabled ? 0.16 : 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border:
+            Border.all(color: accent.withValues(alpha: enabled ? 0.34 : 0.2)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            enabled ? CupertinoIcons.arrow_right_circle : CupertinoIcons.pencil,
+            color: accent,
+            size: 13,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            enabled ? 'Ouvrir Storylines' : 'Modifier à venir',
+            style: TextStyle(
+              color: accent,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (enabled) {
+      return CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: onTap,
+        child: content,
+      );
+    }
     return Semantics(
       button: true,
       enabled: false,
-      child: Container(
-        decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: accent.withValues(alpha: 0.2)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(CupertinoIcons.pencil, color: accent, size: 13),
-            const SizedBox(width: 6),
-            Text(
-              'Modifier à venir',
-              style: TextStyle(
-                color: accent,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: content,
     );
   }
 }
@@ -986,9 +1093,17 @@ class _SourceStatusPill extends StatelessWidget {
 class _KpiCardsSection extends StatelessWidget {
   const _KpiCardsSection({
     required this.metrics,
+    required this.onOpenStorylines,
+    required this.onOpenScenes,
+    required this.onOpenCutscenes,
+    required this.onOpenDialogues,
   });
 
   final List<NarrativeMetricSummary> metrics;
+  final VoidCallback? onOpenStorylines;
+  final VoidCallback? onOpenScenes;
+  final VoidCallback? onOpenCutscenes;
+  final VoidCallback? onOpenDialogues;
 
   @override
   Widget build(BuildContext context) {
@@ -1014,7 +1129,10 @@ class _KpiCardsSection extends StatelessWidget {
                 for (final metric in metrics)
                   SizedBox(
                     width: cardWidth,
-                    child: _KpiCard(metric: metric),
+                    child: _KpiCard(
+                      metric: metric,
+                      onTap: _metricCallback(metric.id),
+                    ),
                   ),
               ],
             );
@@ -1023,17 +1141,31 @@ class _KpiCardsSection extends StatelessWidget {
       ],
     );
   }
+
+  VoidCallback? _metricCallback(String metricId) {
+    return switch (metricId) {
+      'chapters' => onOpenStorylines,
+      'scenes' => onOpenScenes,
+      'cutscenes' => onOpenCutscenes,
+      'dialogues' => onOpenDialogues,
+      _ => null,
+    };
+  }
 }
 
 class _KpiCard extends StatelessWidget {
-  const _KpiCard({required this.metric});
+  const _KpiCard({
+    required this.metric,
+    required this.onTap,
+  });
 
   final NarrativeMetricSummary metric;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final accent = _availabilityAccent(context, metric.availability);
-    return Container(
+    final content = Container(
       key: ValueKey('narrative-overview-kpi-${metric.id}'),
       height: 148,
       decoration: BoxDecoration(
@@ -1066,6 +1198,14 @@ class _KpiCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (onTap != null) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  CupertinoIcons.arrow_right_circle,
+                  color: accent,
+                  size: 13,
+                ),
+              ],
             ],
           ),
           const Spacer(),
@@ -1087,6 +1227,15 @@ class _KpiCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (onTap == null) {
+      return content;
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: content,
     );
   }
 }

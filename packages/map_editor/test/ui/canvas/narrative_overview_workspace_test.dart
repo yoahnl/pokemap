@@ -19,7 +19,10 @@ void main() {
         project: _minimalProject('test_project'),
       );
 
-      await _pumpOverview(tester, readModel);
+      await _pumpOverview(
+        tester,
+        readModel,
+      );
 
       expect(
         find.byKey(const ValueKey('narrative-overview-page-header')),
@@ -90,7 +93,10 @@ void main() {
         project: _minimalProject('test_project'),
       );
 
-      await _pumpOverview(tester, readModel);
+      await _pumpOverview(
+        tester,
+        readModel,
+      );
 
       expect(_textInKpi('dialogues', '0'), findsOneWidget);
       expect(_textInKpi('chapters', '0'), findsOneWidget);
@@ -299,8 +305,15 @@ void main() {
       final readModel = buildNarrativeOverviewReadModel(
         project: _minimalProject('test_project'),
       );
+      var openedStorylines = false;
 
-      await _pumpOverview(tester, readModel);
+      await _pumpOverview(
+        tester,
+        readModel,
+        onOpenStorylines: () {
+          openedStorylines = true;
+        },
+      );
 
       expect(find.byKey(const ValueKey('narrative-overview-main-story-card')),
           findsOneWidget);
@@ -310,6 +323,9 @@ void main() {
       expect(find.text('Modifier à venir'), findsOneWidget);
       expect(_textInMainStory('Problèmes ouverts'), findsOneWidget);
       expect(_textInMainStory('Non évalué'), findsWidgets);
+      await tester.tap(find.text('Modifier à venir'));
+      await tester.pumpAndSettle();
+      expect(openedStorylines, isFalse);
     },
   );
 
@@ -354,6 +370,32 @@ void main() {
       expect(find.text('27'), findsNothing);
       expect(find.text('412'), findsNothing);
       expect(find.text('3'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace opens Storylines only for explicit main story data',
+    (tester) async {
+      var openedStorylines = false;
+
+      await _pumpOverview(
+        tester,
+        _storyOverviewReadModel(),
+        width: 1040,
+        height: 960,
+        onOpenStorylines: () {
+          openedStorylines = true;
+        },
+      );
+
+      expect(_textInMainStory('Source explicite'), findsOneWidget);
+      expect(find.text('Ouvrir Storylines'), findsOneWidget);
+      expect(find.text('Modifier à venir'), findsNothing);
+
+      await tester.tap(find.text('Ouvrir Storylines'));
+      await tester.pumpAndSettle();
+
+      expect(openedStorylines, isTrue);
     },
   );
 
@@ -1437,6 +1479,10 @@ Future<void> _pumpOverview(
   NarrativeOverviewReadModel readModel, {
   double width = 900,
   double height = 1220,
+  VoidCallback? onOpenStorylines,
+  VoidCallback? onOpenScenes,
+  VoidCallback? onOpenCutscenes,
+  VoidCallback? onOpenDialogues,
 }) {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -1452,7 +1498,13 @@ Future<void> _pumpOverview(
           child: SizedBox(
             width: width,
             height: height,
-            child: NarrativeOverviewWorkspace(readModel: readModel),
+            child: NarrativeOverviewWorkspace(
+              readModel: readModel,
+              onOpenStorylines: onOpenStorylines,
+              onOpenScenes: onOpenScenes,
+              onOpenCutscenes: onOpenCutscenes,
+              onOpenDialogues: onOpenDialogues,
+            ),
           ),
         ),
       ),
