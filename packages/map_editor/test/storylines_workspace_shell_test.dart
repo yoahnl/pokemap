@@ -9,7 +9,9 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_workspace_state.dart';
+import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('NS-STORYLINES-03 Storylines shell V0', () {
@@ -63,26 +65,79 @@ void main() {
       'keeps future header actions disabled and non-mutating',
       (tester) async {
         final harness = await _pumpStorylinesShell(tester);
-
-        await tester.tap(
-          find.byKey(
-            const ValueKey('narrative-studio-header-action-new-storyline'),
-          ),
-          warnIfMissed: false,
+        final newStorylineAction = find.byKey(
+          const ValueKey('narrative-studio-header-action-new-storyline'),
         );
-        await tester.pump();
-
-        await tester.tap(
-          find.byKey(const ValueKey('narrative-studio-header-action-validate')),
-          warnIfMissed: false,
+        final validateAction = find.byKey(
+          const ValueKey('narrative-studio-header-action-validate'),
         );
-        await tester.pump();
+        final newStorylineButton = find.descendant(
+          of: newStorylineAction,
+          matching: find.byType(PokeMapButton),
+        );
+        final validateButton = find.descendant(
+          of: validateAction,
+          matching: find.byType(PokeMapButton),
+        );
 
+        expect(newStorylineAction, findsOneWidget);
+        expect(validateAction, findsOneWidget);
+        expect(newStorylineButton, findsOneWidget);
+        expect(validateButton, findsOneWidget);
         expect(
-          harness.container.read(editorNotifierProvider).workspaceMode,
-          EditorWorkspaceMode.globalStory,
+          tester.widget<PokeMapButton>(newStorylineButton).onPressed,
+          isNull,
+        );
+        expect(tester.widget<PokeMapButton>(validateButton).onPressed, isNull);
+
+        final beforeEditorState =
+            harness.container.read(editorNotifierProvider);
+        final beforeNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+        final beforeProject = beforeEditorState.project!;
+        final beforeScenarioIds = beforeProject.scenarios
+            .map((scenario) => scenario.id)
+            .toList(growable: false);
+        final beforeScenarioCount = beforeProject.scenarios.length;
+
+        await tester.tap(newStorylineAction);
+        await tester.pump();
+
+        await tester.tap(validateAction);
+        await tester.pump();
+
+        final afterEditorState = harness.container.read(editorNotifierProvider);
+        final afterNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+
+        expect(afterEditorState.workspaceMode, beforeEditorState.workspaceMode);
+        expect(afterEditorState.workspaceMode, EditorWorkspaceMode.globalStory);
+        expect(afterEditorState.project, same(beforeProject));
+        expect(afterEditorState.project!.scenarios.length, beforeScenarioCount);
+        expect(
+          afterEditorState.project!.scenarios
+              .map((scenario) => scenario.id)
+              .toList(growable: false),
+          beforeScenarioIds,
+        );
+        expect(
+          afterNarrativeState.selectedGlobalStoryId,
+          beforeNarrativeState.selectedGlobalStoryId,
+        );
+        expect(
+          afterNarrativeState.selectedStepId,
+          beforeNarrativeState.selectedStepId,
         );
         expect(find.text('Audit Story From Scenario'), findsWidgets);
+        expect(find.text('Audit description from scenario'), findsOneWidget);
+
+        for (final forbidden in _targetOnlyStrings) {
+          expect(
+            find.text(forbidden),
+            findsNothing,
+            reason: '$forbidden must not appear after disabled interactions.',
+          );
+        }
       },
     );
 
@@ -91,9 +146,31 @@ void main() {
       expect(source.existsSync(), isTrue);
 
       final contents = source.readAsStringSync();
+      const rawColorConstructor = 'Color' '(0x';
+      const materialColorAccessor = 'Colors' '.';
 
-      expect(contents.contains('Color(0x'), isFalse);
-      expect(contents.contains('Colors.'), isFalse);
+      expect(contents.contains(rawColorConstructor), isFalse);
+      expect(contents.contains(materialColorAccessor), isFalse);
+    });
+
+    test('storylines action test does not use silent taps', () {
+      final source = File('test/storylines_workspace_shell_test.dart');
+      expect(source.existsSync(), isTrue);
+
+      final contents = source.readAsStringSync();
+      const silentTapArgument = 'warnIfMissed' ': false';
+
+      expect(contents.contains(silentTapArgument), isFalse);
+    });
+
+    testWidgets('uses PokeMap dark theme in the Visual Gate harness',
+        (tester) async {
+      await _pumpStorylinesShell(tester);
+
+      final shellContext =
+          tester.element(find.byKey(const ValueKey('storylines-workspace-shell')));
+
+      expect(Theme.of(shellContext).brightness, Brightness.dark);
     });
 
     testWidgets('writes Visual Gate screenshots', (tester) async {
@@ -178,6 +255,9 @@ Future<_StorylinesHarness> _pumpStorylinesShell(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        theme: PokeMapTheme.light(),
+        darkTheme: PokeMapTheme.dark(),
+        themeMode: ThemeMode.dark,
         home: Scaffold(
           body: SizedBox(
             width: surfaceSize.width,

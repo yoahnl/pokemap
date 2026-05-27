@@ -374,6 +374,7 @@ Interprétation V0 :
 - Visual Gate : `ns_storylines_03_shell_desktop.png`, `ns_storylines_03_shell_focus.png`, `ns_storylines_03_shell_panels.png`.
 - Design System Gate : confirmé ; primitives `PokeMapPageSurface`, `PokeMapInspectorPanel`, `PokeMapStatusTile`, `PokeMapIconTile`, `PokeMapTone` utilisées ; aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers du lot.
 - Fake data : aucune donnée Selbrume/cible ajoutée ; actions futures affichées disabled/read-only.
+- Bis NS-STORYLINES-03-bis : test des actions futures durci avec présence obligatoire, `PokeMapButton.onPressed == null`, non-mutation du projet/workspace/sélection ; harness Visual Gate passé sur `PokeMapTheme.dark()`.
 - Prochain lot attendu : NS-STORYLINES-04.
 
 ### NS-STORYLINES-04 — Storylines Secondary List Panel Read-only V0
@@ -672,6 +673,16 @@ Next recommended lot: NS-STORYLINES-04 — Storylines Secondary List Panel Read-
 - Confirmation : aucune donnée cible hardcodée, aucune action future activée, aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers du lot.
 - Tests ciblés Storylines / Global Story / Projection passés ; analyse ciblée clean.
 - Prochain lot recommandé : `NS-STORYLINES-04 — Storylines Secondary List Panel Read-only V0`.
+
+### 2026-05-28 — NS-STORYLINES-03-bis
+
+- Durcissement du test `keeps future header actions disabled and non-mutating`.
+- Vérification explicite que `Nouvelle storyline` et `Valider` existent, que leurs `PokeMapButton.onPressed` sont `null`, et qu'un tap ne modifie ni workspace, ni projet, ni scénario sélectionné.
+- Suppression du tap silencieux `warnIfMissed: false` dans le test.
+- Application de `PokeMapTheme.light()`, `PokeMapTheme.dark()` et `ThemeMode.dark` dans le harness Visual Gate.
+- Régénération des trois screenshots `ns_storylines_03_shell_desktop.png`, `ns_storylines_03_shell_focus.png`, `ns_storylines_03_shell_panels.png`.
+- Aucun code production, aucune UI, aucun modèle et aucune primitive design system modifiés.
+- Prochain lot recommandé inchangé : `NS-STORYLINES-04 — Storylines Secondary List Panel Read-only V0`.
 
 ### 2026-05-27 — NS-STORYLINES-02
 
