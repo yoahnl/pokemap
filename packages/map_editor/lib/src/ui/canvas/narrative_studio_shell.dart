@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../features/editor/state/models/editor_workspace_mode.dart';
+import 'narrative_studio_header.dart';
 import 'narrative_studio_sidebar.dart';
 
 class NarrativeStudioShell extends StatelessWidget {
@@ -47,7 +48,17 @@ class NarrativeStudioShell extends StatelessWidget {
               SizedBox(width: compactSidebar ? 8 : 10),
               Expanded(
                 key: const ValueKey('narrative-studio-main-content'),
-                child: child,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    NarrativeStudioHeader(
+                      workspaceMode: workspaceMode,
+                      onSelectOverview: onSelectOverview,
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(child: child),
+                  ],
+                ),
               ),
             ],
           );

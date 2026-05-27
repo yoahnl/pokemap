@@ -110,6 +110,15 @@ void main() {
       expect(
         find.descendant(
           of: shell,
+          matching: find.byKey(const ValueKey('narrative-studio-header')),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Narrative Studio / Aperçu'), findsOneWidget);
+      expect(find.text('Dashboard auteur'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: shell,
           matching: find.byKey(const ValueKey('narrative-overview-scroll')),
         ),
         findsOneWidget,
@@ -145,6 +154,14 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:globalStory'), findsOneWidget);
+      expect(find.text('Narrative Studio / Storylines'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('narrative-studio-header-action-overview')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+      expect(find.text('Narrative Studio / Aperçu'), findsOneWidget);
 
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Scènes')),
@@ -211,6 +228,18 @@ void main() {
         find.descendant(of: sidebar, matching: find.text('Validateur')),
       );
       await tester.pumpAndSettle();
+      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+
+      for (final key in <String>[
+        'narrative-studio-header-action-new-storyline',
+        'narrative-studio-header-action-validate',
+        'narrative-studio-header-action-search',
+        'narrative-studio-header-action-notifications',
+        'narrative-studio-header-action-settings',
+      ]) {
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
       expect(find.text('workspace:narrativeOverview'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -485,8 +514,32 @@ void main() {
 
       expect(find.text('Locale : FR'), findsNothing);
       expect(find.text('v0.3.0'), findsNothing);
-      expect(find.text('Nouvelle storyline'), findsNothing);
-      expect(find.text('Valider'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey('narrative-studio-header-action-new-storyline'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-studio-header-action-validate')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-studio-header-action-search')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('narrative-studio-header-action-notifications'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('narrative-studio-header-notifications-badge'),
+        ),
+        findsNothing,
+      );
       expect(find.textContaining('Selbrume'), findsNothing);
       expect(find.text('42'), findsNothing);
       expect(find.text('1 236'), findsNothing);
@@ -885,6 +938,49 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         '${captureDisabledStates ? 'ns_home_18_interaction_disabled_states.png' : captureFocus ? 'ns_home_18_interaction_wiring_focus.png' : 'ns_home_18_interaction_wiring_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-20 internal header screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_20_CAPTURE_INTERNAL_HEADER_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_20_CAPTURE_INTERNAL_HEADER_FOCUS');
+      const captureDisabledActions = bool.fromEnvironment(
+        'NS_HOME_20_CAPTURE_INTERNAL_HEADER_DISABLED_ACTIONS',
+      );
+      if (!captureDesktop && !captureFocus && !captureDisabledActions) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_20_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize:
+            captureDesktop ? const Size(1600, 1000) : const Size(1600, 700),
+      );
+      await tester.tap(find.byKey(const ValueKey('project-explorer-toggle')));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureDisabledActions ? 'ns_home_20_internal_header_disabled_actions.png' : captureFocus ? 'ns_home_20_internal_header_focus.png' : 'ns_home_20_internal_header_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(
