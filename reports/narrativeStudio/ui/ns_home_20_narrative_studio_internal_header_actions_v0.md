@@ -771,3 +771,520 @@ Le prompt est bien cadré : il pousse vers une couche interne propre sans retomb
 La contrainte importante est l'honnêteté des actions. Elle évite de reproduire l'image cible en activant des boutons mensongers.
 
 La seule tension est la densité : ajouter un header interne augmente la hauteur avant les KPI. Le Visual Gate montre que cela reste acceptable en V0, mais un lot d'harmonisation visuelle pourra réduire les redondances ensuite.
+
+## 20. Evidence Pack bis — contenus complets des fichiers créés
+
+Ce complément est ajouté dans le cadre de `NS-HOME-20-bis — NarrativeStudioHeader Evidence Pack Completion`.
+
+Objectif du bis :
+
+- ne modifier aucun code ;
+- ne modifier aucun test ;
+- ne modifier aucun widget ;
+- compléter uniquement le rapport NS-HOME-20 ;
+- inclure le contenu complet des fichiers créés raisonnables en taille ;
+- relancer les vérifications ciblées demandées.
+
+### Contenu complet du widget créé
+
+Fichier :
+
+```text
+packages/map_editor/lib/src/ui/canvas/narrative_studio_header.dart
+```
+
+```dart
+import 'package:flutter/cupertino.dart';
+
+import '../../features/editor/state/models/editor_workspace_mode.dart';
+import '../shared/cupertino_editor_widgets.dart';
+
+class NarrativeStudioHeader extends StatelessWidget {
+  const NarrativeStudioHeader({
+    super.key,
+    required this.workspaceMode,
+    required this.onSelectOverview,
+  });
+
+  final EditorWorkspaceMode workspaceMode;
+  final VoidCallback onSelectOverview;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentLabel = _workspaceLabel(workspaceMode);
+    return Container(
+      key: const ValueKey('narrative-studio-header'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF102033).withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: EditorChrome.activeAccent(context).withValues(alpha: 0.24),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 900;
+          final titleBlock = _HeaderTitle(currentLabel: currentLabel);
+          final actions = _HeaderActions(
+            workspaceMode: workspaceMode,
+            onSelectOverview: onSelectOverview,
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                titleBlock,
+                const SizedBox(height: 8),
+                actions,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: titleBlock),
+              const SizedBox(width: 12),
+              Flexible(
+                flex: 2,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: actions,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  static String _workspaceLabel(EditorWorkspaceMode mode) {
+    return switch (mode) {
+      EditorWorkspaceMode.narrativeOverview => 'Aperçu',
+      EditorWorkspaceMode.globalStory => 'Storylines',
+      EditorWorkspaceMode.step => 'Scènes',
+      EditorWorkspaceMode.cutscene => 'Cinématiques',
+      EditorWorkspaceMode.dialogue => 'Dialogues',
+      _ => 'Aperçu',
+    };
+  }
+}
+
+class _HeaderTitle extends StatelessWidget {
+  const _HeaderTitle({required this.currentLabel});
+
+  final String currentLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Narrative Studio / $currentLabel',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: EditorChrome.primaryLabel(context),
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Dashboard auteur',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: EditorChrome.subtleLabel(context),
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderActions extends StatelessWidget {
+  const _HeaderActions({
+    required this.workspaceMode,
+    required this.onSelectOverview,
+  });
+
+  final EditorWorkspaceMode workspaceMode;
+  final VoidCallback onSelectOverview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      key: const ValueKey('narrative-studio-header-actions'),
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        const _HeaderActionPill(
+          key: ValueKey('narrative-studio-header-action-new-storyline'),
+          icon: CupertinoIcons.add,
+          label: 'Nouvelle storyline',
+          disabledReason: 'Création de storyline à venir',
+        ),
+        _HeaderActionPill(
+          key: const ValueKey('narrative-studio-header-action-overview'),
+          icon: CupertinoIcons.eye,
+          label: 'Aperçu',
+          selected: workspaceMode == EditorWorkspaceMode.narrativeOverview,
+          onTap: onSelectOverview,
+        ),
+        const _HeaderActionPill(
+          key: ValueKey('narrative-studio-header-action-validate'),
+          icon: CupertinoIcons.shield,
+          label: 'Valider',
+          disabledReason: 'Validation narrative globale non branchée en V0',
+        ),
+        const _HeaderActionPill(
+          key: ValueKey('narrative-studio-header-action-search'),
+          icon: CupertinoIcons.search,
+          label: 'Recherche',
+          disabledReason: 'Recherche narrative à venir',
+        ),
+        const _HeaderActionPill(
+          key: ValueKey('narrative-studio-header-action-notifications'),
+          icon: CupertinoIcons.bell,
+          label: 'Notifications',
+          disabledReason: 'Aucune source fiable en V0',
+        ),
+        const _HeaderActionPill(
+          key: ValueKey('narrative-studio-header-action-settings'),
+          icon: CupertinoIcons.gear,
+          label: 'Paramètres',
+          disabledReason: 'Paramètres narratifs à venir',
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderActionPill extends StatefulWidget {
+  const _HeaderActionPill({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.selected = false,
+    this.disabledReason,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final String? disabledReason;
+  final VoidCallback? onTap;
+
+  bool get enabled => onTap != null;
+
+  @override
+  State<_HeaderActionPill> createState() => _HeaderActionPillState();
+}
+
+class _HeaderActionPillState extends State<_HeaderActionPill> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.enabled;
+    final selected = widget.selected;
+    final accent = selected
+        ? EditorChrome.inspectorJoyCyan
+        : enabled
+            ? EditorChrome.accentPrimary
+            : EditorChrome.subtleLabel(context);
+    final fill = selected
+        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.16)
+        : enabled && _hovered
+            ? EditorChrome.activeAccent(context).withValues(alpha: 0.12)
+            : enabled
+                ? const Color(0xFF14263A)
+                : const Color(0xFF111B27);
+    final border = selected
+        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.58)
+        : enabled && _hovered
+            ? EditorChrome.activeAccent(context).withValues(alpha: 0.38)
+            : const Color(0x334A89FF);
+    final textColor = enabled
+        ? EditorChrome.primaryLabel(context)
+        : EditorChrome.subtleLabel(context).withValues(alpha: 0.62);
+
+    final content = AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(widget.icon, size: 13, color: accent),
+          const SizedBox(width: 5),
+          Text(
+            widget.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 11.5,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!enabled) {
+      return Semantics(
+        button: true,
+        enabled: false,
+        label: '${widget.label} — ${widget.disabledReason}',
+        child: content,
+      );
+    }
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: selected ? '${widget.label} — page active' : widget.label,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          onPressed: widget.onTap,
+          child: content,
+        ),
+      ),
+    );
+  }
+}
+```
+
+### Contenu complet du test créé
+
+Fichier :
+
+```text
+packages/map_editor/test/ui/canvas/narrative_studio_header_test.dart
+```
+
+```dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_editor/src/features/editor/state/models/editor_workspace_mode.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio_header.dart';
+
+void main() {
+  testWidgets(
+      'NarrativeStudioHeader renders overview context and honest actions',
+      (tester) async {
+    var overviewTapCount = 0;
+
+    await _pumpHeader(
+      tester,
+      workspaceMode: EditorWorkspaceMode.narrativeOverview,
+      onSelectOverview: () => overviewTapCount++,
+    );
+
+    expect(
+        find.byKey(const ValueKey('narrative-studio-header')), findsOneWidget);
+    expect(find.text('Narrative Studio / Aperçu'), findsOneWidget);
+    expect(find.text('Dashboard auteur'), findsOneWidget);
+    expect(find.text('Aperçu'), findsOneWidget);
+    expect(find.text('Nouvelle storyline'), findsOneWidget);
+    expect(find.text('Valider'), findsOneWidget);
+    expect(find.text('Recherche'), findsOneWidget);
+    expect(find.text('Notifications'), findsOneWidget);
+    expect(find.text('Paramètres'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('narrative-studio-header-notifications-badge')),
+      findsNothing,
+    );
+
+    for (final key in <String>[
+      'narrative-studio-header-action-new-storyline',
+      'narrative-studio-header-action-validate',
+      'narrative-studio-header-action-search',
+      'narrative-studio-header-action-notifications',
+      'narrative-studio-header-action-settings',
+    ]) {
+      await tester.tap(find.byKey(ValueKey(key)));
+      await tester.pump();
+    }
+
+    expect(overviewTapCount, 0);
+  });
+
+  testWidgets('NarrativeStudioHeader labels each narrative workspace mode',
+      (tester) async {
+    final expectations = <EditorWorkspaceMode, String>{
+      EditorWorkspaceMode.narrativeOverview: 'Narrative Studio / Aperçu',
+      EditorWorkspaceMode.globalStory: 'Narrative Studio / Storylines',
+      EditorWorkspaceMode.step: 'Narrative Studio / Scènes',
+      EditorWorkspaceMode.cutscene: 'Narrative Studio / Cinématiques',
+      EditorWorkspaceMode.dialogue: 'Narrative Studio / Dialogues',
+    };
+
+    for (final entry in expectations.entries) {
+      await _pumpHeader(
+        tester,
+        workspaceMode: entry.key,
+        onSelectOverview: () {},
+      );
+      expect(find.text(entry.value), findsOneWidget);
+    }
+  });
+
+  testWidgets('NarrativeStudioHeader overview action returns to overview',
+      (tester) async {
+    var overviewTapCount = 0;
+
+    await _pumpHeader(
+      tester,
+      workspaceMode: EditorWorkspaceMode.globalStory,
+      onSelectOverview: () => overviewTapCount++,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('narrative-studio-header-action-overview')),
+    );
+    await tester.pump();
+
+    expect(overviewTapCount, 1);
+  });
+}
+
+Future<void> _pumpHeader(
+  WidgetTester tester, {
+  required EditorWorkspaceMode workspaceMode,
+  required VoidCallback onSelectOverview,
+}) async {
+  await tester.pumpWidget(
+    CupertinoApp(
+      home: CupertinoPageScaffold(
+        child: Center(
+          child: SizedBox(
+            width: 1100,
+            height: 180,
+            child: NarrativeStudioHeader(
+              workspaceMode: workspaceMode,
+              onSelectOverview: onSelectOverview,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+```
+
+### Vérifications relancées
+
+```text
+cd packages/map_editor && flutter test test/ui/canvas/narrative_studio_header_test.dart
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/ui/canvas/narrative_studio_header_test.dart
+00:00 +0: NarrativeStudioHeader renders overview context and honest actions
+00:00 +1: NarrativeStudioHeader labels each narrative workspace mode
+00:00 +2: NarrativeStudioHeader overview action returns to overview
+00:00 +3: All tests passed!
+```
+
+```text
+cd packages/map_editor && flutter test test/ui/canvas/narrative_overview_shell_navigation_test.dart
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/ui/canvas/narrative_overview_shell_navigation_test.dart
+00:00 +0: NarrativeWorkspaceCanvas routes overview mode to the overview shell
+00:00 +1: NarrativeWorkspaceCanvas renders the internal Narrative Studio shell
+00:01 +2: NarrativeWorkspaceCanvas wires overview cards only to real narrative workspaces
+00:01 +3: NarrativeLibraryPanel exposes overview without removing existing studios
+00:01 +4: EditorShellPage presents coherent Narrative Studio overview chrome
+00:02 +5: ProjectExplorerPanel prioritizes narrative navigation in overview mode
+00:02 +6: NarrativeOverviewWorkspace captures a full editor shell screenshot when requested
+00:02 +7: NarrativeOverviewWorkspace captures NS-HOME-11 sidebar navigation screenshots when requested
+00:02 +8: NarrativeOverviewWorkspace captures NS-HOME-12 top bar screenshots when requested
+00:02 +9: NarrativeOverviewWorkspace captures NS-HOME-13 breadcrumb header screenshots when requested
+00:02 +10: NarrativeOverviewWorkspace captures NS-HOME-14 header density screenshots when requested
+00:02 +11: NarrativeOverviewWorkspace captures NS-HOME-16 internal shell screenshots when requested
+00:02 +12: NarrativeOverviewWorkspace captures NS-HOME-17 internal sidebar screenshots when requested
+00:02 +13: NarrativeOverviewWorkspace captures NS-HOME-18 interaction wiring screenshots when requested
+00:02 +14: NarrativeOverviewWorkspace captures NS-HOME-20 internal header screenshots when requested
+00:02 +15: NarrativeOverviewWorkspace captures NS-HOME-10 shell chrome screenshots when requested
+00:02 +16: All tests passed!
+```
+
+```text
+cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/narrative_studio_header.dart lib/src/ui/canvas/narrative_studio_shell.dart test/ui/canvas/narrative_studio_header_test.dart test/ui/canvas/narrative_overview_shell_navigation_test.dart
+Analyzing 4 items...
+No issues found! (ran in 2.4s)
+```
+
+### Git capturé avant mise à jour du rapport bis
+
+```text
+git status --short --untracked-files=all
+<sortie vide>
+```
+
+```text
+git diff --stat
+<sortie vide>
+```
+
+```text
+git diff --name-only
+<sortie vide>
+```
+
+```text
+git diff --check
+<sortie vide>
+```
+
+### Hashes des fichiers créés audités
+
+```text
+     280 packages/map_editor/lib/src/ui/canvas/narrative_studio_header.dart
+     108 packages/map_editor/test/ui/canvas/narrative_studio_header_test.dart
+     388 total
+eb4cde5c9103960e071af94d25c3bdcb9734b46aa880923dc95c3827c3e0b4fe  packages/map_editor/lib/src/ui/canvas/narrative_studio_header.dart
+cfcca1c77f40d7eebd7538313cb0ff87f591f4882d8b45a01921542644c8a23a  packages/map_editor/test/ui/canvas/narrative_studio_header_test.dart
+```
+
+### Git final après mise à jour du rapport bis
+
+```text
+git status --short --untracked-files=all
+ M reports/narrativeStudio/ui/ns_home_20_narrative_studio_internal_header_actions_v0.md
+```
+
+```text
+git diff --stat
+ ..._narrative_studio_internal_header_actions_v0.md | 517 +++++++++++++++++++++
+ 1 file changed, 517 insertions(+)
+```
+
+```text
+git diff --name-only
+reports/narrativeStudio/ui/ns_home_20_narrative_studio_internal_header_actions_v0.md
+```
+
+```text
+git diff --check
+<sortie vide>
+```
