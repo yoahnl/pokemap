@@ -10,6 +10,7 @@ class PokeMapSidebarItem extends StatefulWidget {
   const PokeMapSidebarItem({
     super.key,
     required this.label,
+    this.subtitle,
     this.icon,
     this.trailing,
     this.selected = false,
@@ -19,6 +20,9 @@ class PokeMapSidebarItem extends StatefulWidget {
 
   /// The primary item label.
   final String label;
+
+  /// Optional secondary line shown under [label].
+  final String? subtitle;
 
   /// Optional prefix icon or graphic widget.
   final Widget? icon;
@@ -50,16 +54,16 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
     final isDisabled = widget.disabled || widget.onTap == null;
 
     // Visual attributes resolution
-    Color bg = Colors.transparent;
+    Color? bg;
     Color fg = colors.textSecondary;
 
     if (isDisabled) {
       fg = colors.textDisabled;
     } else if (isActive) {
-      bg = colors.surfaceSelected;
+      bg = colors.cardSelected;
       fg = colors.brandPrimary;
     } else if (_isHovered) {
-      bg = colors.surfaceHover;
+      bg = colors.cardHover;
       fg = colors.textPrimary;
     }
 
@@ -88,10 +92,12 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
           onTap: isDisabled ? null : widget.onTap,
           behavior: HitTestBehavior.opaque,
           child: MouseRegion(
-            cursor: isDisabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+            cursor: isDisabled
+                ? SystemMouseCursors.basic
+                : SystemMouseCursors.click,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
-              height: 38,
+              height: widget.subtitle == null ? 38 : 46,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: bg,
@@ -114,15 +120,38 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                     const SizedBox(width: 10),
                   ],
                   Expanded(
-                    child: Text(
-                      widget.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: fg,
-                        fontSize: 13,
-                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: fg,
+                            fontSize: 13,
+                            fontWeight:
+                                isActive ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                        ),
+                        if (widget.subtitle != null) ...[
+                          const SizedBox(height: 1),
+                          Text(
+                            widget.subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isActive
+                                  ? colors.brandPrimary
+                                  : colors.textMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   if (widget.trailing != null) ...[

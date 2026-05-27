@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../features/editor/state/models/editor_workspace_mode.dart';
-import '../shared/cupertino_editor_widgets.dart';
+import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 
 class NarrativeStudioSidebar extends StatelessWidget {
   const NarrativeStudioSidebar({
@@ -25,112 +26,108 @@ class NarrativeStudioSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return Semantics(
       container: true,
       label: 'Navigation interne Narrative Studio',
-      child: Container(
+      child: SizedBox(
         key: const ValueKey('narrative-studio-sidebar'),
         width: compact ? 148 : 164,
-        decoration: BoxDecoration(
-          color: _NarrativeSidebarColors.panelFill,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _NarrativeSidebarColors.panelBorder,
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Narrative Studio',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _NarrativeSidebarColors.primaryText,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+        child: PokeMapPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Narrative Studio',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 1),
-              const Text(
-                'Navigation interne',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: _NarrativeSidebarColors.mutedText,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 1),
+                Text(
+                  'Navigation interne',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              _SidebarEntry(
-                key: const ValueKey('narrative-studio-sidebar-overview'),
-                icon: CupertinoIcons.square_grid_2x2,
-                label: 'Aperçu',
-                subtitle: 'Vue d’ensemble',
-                selected:
-                    workspaceMode == EditorWorkspaceMode.narrativeOverview,
-                onTap: onSelectOverview,
-              ),
-              _SidebarEntry(
-                key: const ValueKey('narrative-studio-sidebar-storylines'),
-                icon: CupertinoIcons.doc_text,
-                label: 'Storylines',
-                subtitle: 'Histoire globale',
-                selected: workspaceMode == EditorWorkspaceMode.globalStory,
-                onTap: onSelectGlobal,
-              ),
-              _SidebarEntry(
-                key: const ValueKey('narrative-studio-sidebar-scenes'),
-                icon: CupertinoIcons.square_grid_2x2,
-                label: 'Scènes',
-                subtitle: 'Étapes narratives',
-                selected: workspaceMode == EditorWorkspaceMode.step,
-                onTap: onSelectStep,
-              ),
-              _SidebarEntry(
-                key: const ValueKey('narrative-studio-sidebar-cutscenes'),
-                icon: CupertinoIcons.film,
-                label: 'Cinématiques',
-                subtitle: 'Studio existant',
-                selected: workspaceMode == EditorWorkspaceMode.cutscene,
-                onTap: onSelectCutscene,
-              ),
-              _SidebarEntry(
-                key: const ValueKey('narrative-studio-sidebar-dialogues'),
-                icon: CupertinoIcons.text_bubble,
-                label: 'Dialogues',
-                subtitle: 'Studio existant',
-                selected: workspaceMode == EditorWorkspaceMode.dialogue,
-                onTap: onSelectDialogue,
-              ),
-              const SizedBox(height: 6),
-              const _SidebarSectionLabel('Non branché V0'),
-              const SizedBox(height: 4),
-              const _SidebarEntry(
-                key: ValueKey('narrative-studio-sidebar-facts'),
-                icon: CupertinoIcons.doc_text,
-                label: 'Facts',
-                subtitle: 'Nécessite un modèle',
-                selected: false,
-              ),
-              const _SidebarEntry(
-                key: ValueKey('narrative-studio-sidebar-world-rules'),
-                icon: CupertinoIcons.checkmark_seal,
-                label: 'Règles du monde',
-                subtitle: 'À venir',
-                selected: false,
-              ),
-              const _SidebarEntry(
-                key: ValueKey('narrative-studio-sidebar-validator'),
-                icon: CupertinoIcons.check_mark_circled,
-                label: 'Validateur',
-                subtitle: 'Non branché',
-                selected: false,
-              ),
-            ],
+                const SizedBox(height: 8),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-overview'),
+                  icon: CupertinoIcons.square_grid_2x2,
+                  label: 'Aperçu',
+                  subtitle: 'Vue d’ensemble',
+                  selected:
+                      workspaceMode == EditorWorkspaceMode.narrativeOverview,
+                  onTap: onSelectOverview,
+                ),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-storylines'),
+                  icon: CupertinoIcons.doc_text,
+                  label: 'Storylines',
+                  subtitle: 'Histoire globale',
+                  selected: workspaceMode == EditorWorkspaceMode.globalStory,
+                  onTap: onSelectGlobal,
+                ),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-scenes'),
+                  icon: CupertinoIcons.square_grid_2x2,
+                  label: 'Scènes',
+                  subtitle: 'Étapes narratives',
+                  selected: workspaceMode == EditorWorkspaceMode.step,
+                  onTap: onSelectStep,
+                ),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-cutscenes'),
+                  icon: CupertinoIcons.film,
+                  label: 'Cinématiques',
+                  subtitle: 'Studio existant',
+                  selected: workspaceMode == EditorWorkspaceMode.cutscene,
+                  onTap: onSelectCutscene,
+                ),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-dialogues'),
+                  icon: CupertinoIcons.text_bubble,
+                  label: 'Dialogues',
+                  subtitle: 'Studio existant',
+                  selected: workspaceMode == EditorWorkspaceMode.dialogue,
+                  onTap: onSelectDialogue,
+                ),
+                const SizedBox(height: 6),
+                const _SidebarSectionLabel('Non branché V0'),
+                const SizedBox(height: 4),
+                const _NarrativeSidebarItem(
+                  key: ValueKey('narrative-studio-sidebar-facts'),
+                  icon: CupertinoIcons.doc_text,
+                  label: 'Facts',
+                  subtitle: 'Nécessite un modèle',
+                  selected: false,
+                ),
+                const _NarrativeSidebarItem(
+                  key: ValueKey('narrative-studio-sidebar-world-rules'),
+                  icon: CupertinoIcons.checkmark_seal,
+                  label: 'Règles du monde',
+                  subtitle: 'À venir',
+                  selected: false,
+                ),
+                const _NarrativeSidebarItem(
+                  key: ValueKey('narrative-studio-sidebar-validator'),
+                  icon: CupertinoIcons.check_mark_circled,
+                  label: 'Validateur',
+                  subtitle: 'Non branché',
+                  selected: false,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -145,14 +142,15 @@ class _SidebarSectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return Padding(
       padding: const EdgeInsets.only(left: 2, bottom: 1),
       child: Text(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: _NarrativeSidebarColors.mutedText,
+        style: TextStyle(
+          color: colors.textMuted,
           fontSize: 9,
           fontWeight: FontWeight.w800,
         ),
@@ -161,8 +159,8 @@ class _SidebarSectionLabel extends StatelessWidget {
   }
 }
 
-class _SidebarEntry extends StatelessWidget {
-  const _SidebarEntry({
+class _NarrativeSidebarItem extends StatelessWidget {
+  const _NarrativeSidebarItem({
     super.key,
     required this.icon,
     required this.label,
@@ -177,91 +175,18 @@ class _SidebarEntry extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  bool get _enabled => onTap != null;
-
   @override
   Widget build(BuildContext context) {
-    final accent = selected
-        ? EditorChrome.inspectorJoyCyan
-        : _enabled
-            ? EditorChrome.accentPrimary
-            : _NarrativeSidebarColors.disabledText;
-    final borderColor = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.82)
-        : _NarrativeSidebarColors.itemBorder;
-    final fill = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.18)
-        : _enabled
-            ? _NarrativeSidebarColors.itemFill
-            : _NarrativeSidebarColors.disabledFill;
-
-    final content = Container(
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: borderColor),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: PokeMapSidebarItem(
+        icon: Icon(icon),
+        label: label,
+        subtitle: selected ? 'Actif' : subtitle,
+        selected: selected,
+        disabled: onTap == null,
+        onTap: onTap,
       ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: accent),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: _enabled ? 1 : 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _enabled
-                        ? _NarrativeSidebarColors.primaryText
-                        : _NarrativeSidebarColors.disabledText,
-                    fontSize: 11.2,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  selected ? 'Actif' : subtitle,
-                  maxLines: _enabled ? 1 : 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color:
-                        selected ? accent : _NarrativeSidebarColors.mutedText,
-                    fontSize: 9.1,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (!_enabled) {
-      return content;
-    }
-
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
-      onPressed: onTap,
-      child: content,
     );
   }
-}
-
-abstract final class _NarrativeSidebarColors {
-  static const panelFill = Color(0xFF0F1D2D);
-  static const panelBorder = Color(0x304A89FF);
-  static const itemFill = Color(0xFF14273C);
-  static const disabledFill = Color(0xFF0E1824);
-  static const itemBorder = Color(0x2A6BA8FF);
-  static const primaryText = Color(0xFFE6EEF8);
-  static const mutedText = Color(0xFF8EA0B5);
-  static const disabledText = Color(0xFF718197);
 }

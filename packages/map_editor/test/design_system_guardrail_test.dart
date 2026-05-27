@@ -34,6 +34,21 @@ void main() {
         ].join('\n'),
       );
     });
+
+    test('Narrative Studio keeps the strict palette ratchet', () {
+      final regressions = _narrativeStudioPaletteRegressions();
+
+      expect(
+        regressions,
+        isEmpty,
+        reason: [
+          'Narrative Studio is the palette pilot and must stay calm.',
+          'Use PokeMap design-system widgets and semantic color tokens.',
+          'Allowed temporary debt: 4 legacy imports and 2 CupertinoColors refs.',
+          ...regressions,
+        ].join('\n'),
+      );
+    });
   });
 }
 
@@ -100,6 +115,68 @@ List<String> _legacyChromeImportRegressions() {
   return regressions;
 }
 
+List<String> _narrativeStudioPaletteRegressions() {
+  final regressions = <String>[];
+  var legacyImportCount = 0;
+  final cupertinoColorOffenders = <_Offender>[];
+
+  for (final sourceFile in _sourceFiles()) {
+    final relativePath = sourceFile.relativePath;
+    if (!relativePath.startsWith('lib/src/ui/canvas/narrative_')) {
+      continue;
+    }
+
+    final source = sourceFile.file.readAsStringSync();
+    if (_legacyChromeImportPattern.hasMatch(source)) {
+      legacyImportCount += 1;
+    }
+
+    final lines = source.split('\n');
+    for (var index = 0; index < lines.length; index += 1) {
+      final line = lines[index];
+      if (_narrativeHardColorPattern.hasMatch(line)) {
+        regressions.add(
+          'Narrative hard color: ${_Offender(
+            path: relativePath,
+            line: index + 1,
+            snippet: line.trim(),
+          ).describe()}',
+        );
+      }
+      if (_cupertinoColorPattern.hasMatch(line)) {
+        cupertinoColorOffenders.add(
+          _Offender(
+            path: relativePath,
+            line: index + 1,
+            snippet: line.trim(),
+          ),
+        );
+      }
+    }
+  }
+
+  if (legacyImportCount > _narrativeLegacyImportBaseline) {
+    regressions.add(
+      'Narrative legacy imports: $legacyImportCount '
+      '(baseline $_narrativeLegacyImportBaseline)',
+    );
+  }
+
+  if (cupertinoColorOffenders.length > _narrativeCupertinoColorBaseline) {
+    regressions.add(
+      'Narrative CupertinoColors refs: ${cupertinoColorOffenders.length} '
+      '(baseline $_narrativeCupertinoColorBaseline)',
+    );
+    regressions.addAll(
+      cupertinoColorOffenders
+          .skip(_narrativeCupertinoColorBaseline)
+          .map((offender) => '  ${offender.describe()}'),
+    );
+  }
+
+  return regressions;
+}
+
 List<_SourceFile> _sourceFiles() {
   final packageRoot = Directory.current;
   final sourceRoots = <Directory>[
@@ -138,6 +215,15 @@ final _directColorReferencePattern = RegExp(
 final _legacyChromeImportPattern = RegExp(
   r"cupertino_editor_widgets\.dart",
 );
+
+final _narrativeHardColorPattern = RegExp(
+  r'\bColor\(0x[0-9A-Fa-f]+\)|\bColors\.|\bMacosColors\.',
+);
+
+final _cupertinoColorPattern = RegExp(r'\bCupertinoColors\.');
+
+const _narrativeLegacyImportBaseline = 4;
+const _narrativeCupertinoColorBaseline = 2;
 
 const _legacyDirectColorReferenceBaseline = <String, int>{
   'lib/src/features/environment_studio/environment_studio_panel.dart': 9,
@@ -178,8 +264,6 @@ const _legacyDirectColorReferenceBaseline = <String, int>{
   'lib/src/ui/canvas/global_story_studio/global_story_studio_panels.dart': 5,
   'lib/src/ui/canvas/map_canvas.dart': 2,
   'lib/src/ui/canvas/map_canvas/map_grid_painter.dart': 103,
-  'lib/src/ui/canvas/narrative_studio_header.dart': 5,
-  'lib/src/ui/canvas/narrative_studio_sidebar.dart': 8,
   'lib/src/ui/canvas/narrative_workspace_canvas.dart': 2,
   'lib/src/ui/canvas/pokedex_workspace/pokedex_common_widgets.dart': 1,
   'lib/src/ui/canvas/pokedex_workspace/pokedex_detail_panel.dart': 1,
@@ -245,9 +329,9 @@ const _legacyDirectColorReferenceBaseline = <String, int>{
   'lib/src/ui/panels/trainer_library_panel_workspace_widgets.dart': 3,
   'lib/src/ui/panels/trigger_properties_panel.dart': 11,
   'lib/src/ui/panels/warp_properties_panel.dart': 18,
-  'lib/src/ui/shared/cupertino_editor_widgets.dart': 57,
+  'lib/src/ui/shared/cupertino_editor_widgets.dart': 56,
   'lib/src/ui/shared/editor_paint_palette.dart': 25,
-  'lib/src/ui/shared/editor_visual_tokens.dart': 11,
+  'lib/src/ui/shared/editor_visual_tokens.dart': 8,
   'lib/src/ui/shared/inspector_embedded_widgets.dart': 7,
   'lib/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart': 2,
   'lib/src/ui/shared/top_toolbar/widgets/toolbar_brand.dart': 1,
@@ -277,8 +361,6 @@ const _legacyChromeImportBaseline = <String>{
   'lib/src/ui/canvas/narrative_overview_empty_states.dart',
   'lib/src/ui/canvas/narrative_overview_structure_inspector.dart',
   'lib/src/ui/canvas/narrative_overview_workspace.dart',
-  'lib/src/ui/canvas/narrative_studio_header.dart',
-  'lib/src/ui/canvas/narrative_studio_sidebar.dart',
   'lib/src/ui/canvas/narrative_workspace_canvas.dart',
   'lib/src/ui/canvas/pokedex_workspace/pokedex_workspace_page.dart',
   'lib/src/ui/canvas/pokemon_catalogs_workspace/items_catalog_workspace.dart',

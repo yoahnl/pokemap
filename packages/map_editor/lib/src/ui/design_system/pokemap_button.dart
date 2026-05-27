@@ -46,6 +46,7 @@ class PokeMapButton extends StatefulWidget {
     this.leading,
     this.trailing,
     this.isLoading = false,
+    this.isSelected = false,
   });
 
   /// Action callback. If null, the button is rendered in a disabled state.
@@ -68,6 +69,9 @@ class PokeMapButton extends StatefulWidget {
 
   /// If true, disables action calls and replaces the leading item with a loading spinner.
   final bool isLoading;
+
+  /// If true, applies active/selected styling for toolbars or segmented actions.
+  final bool isSelected;
 
   @override
   State<PokeMapButton> createState() => _PokeMapButtonState();
@@ -120,23 +124,34 @@ class _PokeMapButtonState extends State<PokeMapButton> {
         fg = colors.textInverse;
         break;
       case PokeMapButtonVariant.secondary:
-        bg = _isHovered ? colors.surfaceHover : colors.surfaceSubtle;
-        fg = colors.textPrimary;
-        border = Border.all(color: colors.borderSubtle, width: 1);
+        bg = widget.isSelected
+            ? colors.cardSelected
+            : (_isHovered ? colors.cardHover : colors.controlSurface);
+        fg = widget.isSelected ? colors.brandPrimary : colors.textPrimary;
+        border = Border.all(
+          color: widget.isSelected
+              ? colors.brandPrimaryBorder
+              : colors.borderSubtle,
+          width: 1,
+        );
         break;
       case PokeMapButtonVariant.ghost:
-        bg = _isHovered ? colors.surfaceHover : Colors.transparent;
-        fg = colors.textPrimary;
+        bg = widget.isSelected
+            ? colors.cardSelected
+            : (_isHovered
+                ? colors.cardHover
+                : colors.controlSurface.withValues(alpha: 0));
+        fg = widget.isSelected ? colors.brandPrimary : colors.textPrimary;
         break;
       case PokeMapButtonVariant.danger:
         bg = _isHovered
-            ? Color.lerp(colors.error, Colors.black, 0.08)!
+            ? Color.lerp(colors.error, colors.errorBorder, 0.18)!
             : colors.error;
         fg = colors.textInverse;
         break;
       case PokeMapButtonVariant.success:
         bg = _isHovered
-            ? Color.lerp(colors.success, Colors.black, 0.08)!
+            ? Color.lerp(colors.success, colors.successBorder, 0.18)!
             : colors.success;
         fg = colors.textInverse;
         break;
@@ -145,11 +160,12 @@ class _PokeMapButtonState extends State<PokeMapButton> {
     // Apply disabled values
     if (isDisabled) {
       bg = widget.variant == PokeMapButtonVariant.ghost
-          ? Colors.transparent
+          ? colors.controlSurface.withValues(alpha: 0)
           : bg.withValues(alpha: 0.5);
       fg = fg.withValues(alpha: 0.5);
       if (border != null) {
-        border = Border.all(color: colors.borderSubtle.withValues(alpha: 0.3), width: 1);
+        border = Border.all(
+            color: colors.borderSubtle.withValues(alpha: 0.3), width: 1);
       }
     }
 
@@ -180,7 +196,8 @@ class _PokeMapButtonState extends State<PokeMapButton> {
             height: height,
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(8), // standard border radius: 8
+              borderRadius:
+                  BorderRadius.circular(8), // standard border radius: 8
               border: border,
               boxShadow: _isFocused && !isDisabled
                   ? [

@@ -66,32 +66,37 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
     switch (widget.variant) {
       case PokeMapIconButtonVariant.ghost:
         bg = widget.isSelected
-            ? colors.surfaceSelected
-            : (_isHovered ? colors.surfaceHover : Colors.transparent);
+            ? colors.cardSelected
+            : (_isHovered
+                ? colors.cardHover
+                : colors.controlSurface.withValues(alpha: 0));
         fg = widget.isSelected ? colors.brandPrimary : colors.textSecondary;
         break;
       case PokeMapIconButtonVariant.soft:
         if (widget.isSelected) {
-          bg = colors.surfaceSelected;
+          bg = colors.cardSelected;
           border = Border.all(color: colors.brandPrimaryBorder, width: 1);
           fg = colors.brandPrimary;
         } else {
-          bg = _isHovered ? colors.surfaceHover : colors.surfaceSubtle;
+          bg = _isHovered ? colors.cardHover : colors.controlSurface;
           border = Border.all(color: colors.borderSubtle, width: 1);
           fg = colors.textPrimary;
         }
         break;
       case PokeMapIconButtonVariant.danger:
-        bg = _isHovered ? colors.errorSoft : Colors.transparent;
+        bg = _isHovered
+            ? colors.errorSoft
+            : colors.controlSurface.withValues(alpha: 0);
         fg = colors.error;
         break;
     }
 
     if (isDisabled) {
-      bg = Colors.transparent;
+      bg = colors.controlSurface.withValues(alpha: 0);
       fg = fg.withValues(alpha: 0.35);
       if (border != null) {
-        border = Border.all(color: colors.borderSubtle.withValues(alpha: 0.3), width: 1);
+        border = Border.all(
+            color: colors.borderSubtle.withValues(alpha: 0.3), width: 1);
       }
     }
 
@@ -123,7 +128,8 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
             height: widget.size,
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(widget.size >= 32 ? 6 : 4), // Standard small radius
+              borderRadius: BorderRadius.circular(
+                  widget.size >= 32 ? 6 : 4), // Standard small radius
               border: border,
               boxShadow: _isFocused && !isDisabled
                   ? [

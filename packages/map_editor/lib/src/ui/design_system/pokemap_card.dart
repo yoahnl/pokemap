@@ -39,13 +39,15 @@ class _PokeMapCardState extends State<PokeMapCard> {
     final colors = context.pokeMapColors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final baseBg = isDark ? colors.surfaceRaised : colors.surfaceBase;
-    final bg = (widget.onTap != null && _isHovered) ? colors.surfaceHover : baseBg;
+    final baseBg = isDark ? colors.cardSurface : colors.surfaceBase;
+    final bg = (widget.onTap != null && _isHovered) ? colors.cardHover : baseBg;
 
     final border = Border.all(
       color: widget.selected
           ? colors.brandPrimaryBorder
-          : (_isHovered && widget.onTap != null ? colors.borderStrong : colors.borderSubtle),
+          : (_isHovered && widget.onTap != null
+              ? colors.controlBorder
+              : colors.borderSubtle),
       width: 1.2,
     );
 

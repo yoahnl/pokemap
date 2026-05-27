@@ -25,7 +25,7 @@ class PokeMapToolbarSurface extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colors.surfaceBase,
+        color: colors.topBarBackground,
         border: Border(
           bottom: BorderSide(
             color: colors.divider,
@@ -33,7 +33,8 @@ class PokeMapToolbarSurface extends StatelessWidget {
           ),
         ),
       ),
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: child,
     );
   }

@@ -13,40 +13,40 @@ abstract final class EditorChrome {
   static bool _isDark(BuildContext context) =>
       MacosTheme.brightnessOf(context) == Brightness.dark;
 
-  static const Color accentPrimary = Color(0xFF6BA8FF);
-  static const Color accentCyan = Color(0xFF5FD4E8);
-  static const Color accentJade = Color(0xFF5FD4B0);
-  static const Color accentWarm = Color(0xFFE8B068);
-  static const Color accentCoral = Color(0xFFE8887A);
-  static const Color accentPrune = Color(0xFF7A5A92);
-  static const Color accentLilac = Color(0xFFC8B0F2);
+  static const Color accentPrimary = Color(0xFF5488EC);
+  static const Color accentCyan = Color(0xFF24C8D6);
+  static const Color accentJade = Color(0xFF47D16C);
+  static const Color accentWarm = Color(0xFFF4B84A);
+  static const Color accentCoral = Color(0xFFFF6B7C);
+  static const Color accentPrune = Color(0xFF7D6FF0);
+  static const Color accentLilac = Color(0xFFA77CFF);
 
   /// Rose chaud discret (halos, milieu de dégradé).
-  static const Color accentRose = Color(0xFFD898B0);
+  static const Color accentRose = Color(0xFFC98AA6);
 
   /// Magenta profond, usage rare (accents nobles).
-  static const Color accentMagentaDeep = Color(0xFF6E4A78);
+  static const Color accentMagentaDeep = Color(0xFF5D4777);
 
   /// World Explorer — sarcelle / bleu profond chaleureux (pas gris-bleu admin).
-  static const Color islandCoolTint = Color(0xFF3A5A72);
+  static const Color islandCoolTint = Color(0xFF1B2A3F);
 
   /// Inspector — violet prune rosé.
-  static const Color islandNeutralTint = Color(0xFF5C4670);
+  static const Color islandNeutralTint = Color(0xFF221B3D);
 
   /// Surface Library — ambre / terre chaude.
-  static const Color islandWarmTint = Color(0xFF6B5438);
+  static const Color islandWarmTint = Color(0xFF33250A);
 
-  // --- Accents inspecteur : **chauds & acides** (saturation forte, pas pastel) ---
-  static const Color inspectorJoyHoney = Color(0xFFFFC400);
-  static const Color inspectorJoyApricot = Color(0xFFFF6B2C);
-  static const Color inspectorJoyBlue = Color(0xFFFF9500);
-  static const Color inspectorJoyLilac = Color(0xFFFF3D9A);
-  static const Color inspectorJoyMint = Color(0xFFC8FF2E);
-  static const Color inspectorJoyAmber = Color(0xFFFFB000);
-  static const Color inspectorJoyCyan = Color(0xFF00E8D4);
-  static const Color inspectorJoyPlum = Color(0xFFD930FF);
-  static const Color inspectorJoyCoral = Color(0xFFFF4A2E);
-  static const Color inspectorJoyOrchid = Color(0xFFFF1A8C);
+  // --- Compat legacy : accents remappés vers la palette DS sombre sobre. ---
+  static const Color inspectorJoyHoney = Color(0xFFF4B84A);
+  static const Color inspectorJoyApricot = Color(0xFFEFA65A);
+  static const Color inspectorJoyBlue = Color(0xFF5488EC);
+  static const Color inspectorJoyLilac = Color(0xFFA77CFF);
+  static const Color inspectorJoyMint = Color(0xFF47D16C);
+  static const Color inspectorJoyAmber = Color(0xFFF4B84A);
+  static const Color inspectorJoyCyan = Color(0xFF24C8D6);
+  static const Color inspectorJoyPlum = Color(0xFF8B7BFF);
+  static const Color inspectorJoyCoral = Color(0xFFFF6B7C);
+  static const Color inspectorJoyOrchid = Color(0xFFA77CFF);
 
   // --- Tokens de structure (seuls fonds d’architecture) ---
   static Color appBackground(BuildContext context) =>
@@ -92,18 +92,18 @@ abstract final class EditorChrome {
   static Color toolbarPulldownTrackFill(BuildContext context) =>
       _isDark(context)
           ? Color.lerp(
-              context.pokeMapColors.surfaceRaised,
+              context.pokeMapColors.controlSurface,
               context.pokeMapColors.brandPrimary,
-              0.08,
+              0.06,
             )!
           : const Color(0xFFE8ECF2);
 
   /// Survol discret dans les capsules toolbar.
   static Color toolbarMutedHoverFill(BuildContext context) => _isDark(context)
       ? Color.lerp(
-          context.pokeMapColors.surfaceRaised,
+          context.pokeMapColors.controlSurface,
           context.pokeMapColors.brandPrimary,
-          0.1,
+          0.08,
         )!
       : const Color(0x14000000);
 
@@ -153,36 +153,29 @@ abstract final class EditorChrome {
 
   /// Remplissage discret, **opaque** (pas de translucidité type verre).
   static Color chipFill(BuildContext context) => _isDark(context)
-      ? Color.lerp(
-          islandFillElevated(context),
-          accentPrimary,
-          0.11,
-        )!
+      ? context.pokeMapColors.controlSurface
       : CupertinoColors.black.withValues(alpha: 0.045);
 
   /// Badges / compteurs : chaleureux, lisible, surface nette.
   static Color badgeFill(BuildContext context) => _isDark(context)
-      ? Color.lerp(
-          islandFillElevated(context),
-          accentWarm,
-          0.16,
-        )!
+      ? context.pokeMapColors.warningSoft
       : accentWarm.withValues(alpha: 0.14);
 
-  static Color sidebarHoverFill(BuildContext context) =>
-      _isDark(context) ? const Color(0x1FFFFFFF) : const Color(0x10000000);
+  static Color sidebarHoverFill(BuildContext context) => _isDark(context)
+      ? context.pokeMapColors.cardHover
+      : const Color(0x10000000);
 
-  static Color disclosureHoverFill(BuildContext context) =>
-      _isDark(context) ? const Color(0x12FFFFFF) : const Color(0x0E000000);
+  static Color disclosureHoverFill(BuildContext context) => _isDark(context)
+      ? context.pokeMapColors.cardHover
+      : const Color(0x0E000000);
 
-  static Color panelBorder(BuildContext context) =>
-      _isDark(context) ? const Color(0x04000000) : const Color(0x14000000);
+  static Color panelBorder(BuildContext context) => _isDark(context)
+      ? context.pokeMapColors.borderSubtle
+      : const Color(0x14000000);
 
-  /// Contour net des grands îlots (même logique que les tuiles inspecteur).
-  static const Color editorIslandRimDark = Color(0xFF4D465E);
-
-  static Color editorIslandRim(BuildContext context) =>
-      _isDark(context) ? editorIslandRimDark : const Color(0x22000000);
+  static Color editorIslandRim(BuildContext context) => _isDark(context)
+      ? context.pokeMapColors.controlBorder
+      : const Color(0x22000000);
 
   /// Petit module en thème clair uniquement (cartes légères).
   static LinearGradient panelGradientLight(BuildContext context) {

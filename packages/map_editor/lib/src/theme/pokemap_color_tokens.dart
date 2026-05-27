@@ -17,6 +17,19 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     required this.borderStrong,
     required this.divider,
 
+    // Structural Surfaces
+    required this.chromeBackground,
+    required this.topBarBackground,
+    required this.sidebarSurface,
+    required this.contentSurface,
+    required this.cardSurface,
+    required this.cardHover,
+    required this.cardSelected,
+    required this.controlSurface,
+    required this.controlBorder,
+    required this.focusRing,
+    required this.iconTileSurface,
+
     // Text
     required this.textPrimary,
     required this.textSecondary,
@@ -111,6 +124,43 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
 
   /// Generic thin divider line color.
   final Color divider;
+
+  // ==========================================
+  // Properties - Structural Surfaces
+  // ==========================================
+
+  /// Root chrome/window background.
+  final Color chromeBackground;
+
+  /// Top toolbar/header background.
+  final Color topBarBackground;
+
+  /// Primary navigation/sidebar surface.
+  final Color sidebarSurface;
+
+  /// Main page workspace surface.
+  final Color contentSurface;
+
+  /// Repeated card and tile surface.
+  final Color cardSurface;
+
+  /// Hovered card and tile surface.
+  final Color cardHover;
+
+  /// Selected card, tab, or navigation surface.
+  final Color cardSelected;
+
+  /// Inputs, tool buttons, segmented controls and subdued controls.
+  final Color controlSurface;
+
+  /// Control border and outline.
+  final Color controlBorder;
+
+  /// Focus ring and keyboard focus indicator.
+  final Color focusRing;
+
+  /// Compact icon tile background.
+  final Color iconTileSurface;
 
   // ==========================================
   // Properties - Text
@@ -300,6 +350,19 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     borderStrong: Color(0xFFC7D3E6),
     divider: Color(0xFFEDF1F7),
 
+    // Structural Surfaces
+    chromeBackground: Color(0xFFF1F5FB),
+    topBarBackground: Color(0xFFFFFFFF),
+    sidebarSurface: Color(0xFFFFFFFF),
+    contentSurface: Color(0xFFFFFFFF),
+    cardSurface: Color(0xFFFFFFFF),
+    cardHover: Color(0xFFF1F6FF),
+    cardSelected: Color(0xFFEAF2FF),
+    controlSurface: Color(0xFFF8FAFD),
+    controlBorder: Color(0xFFC7D3E6),
+    focusRing: Color(0xFF256DFF),
+    iconTileSurface: Color(0xFFF1F6FF),
+
     // Text
     textPrimary: Color(0xFF13213A),
     textSecondary: Color(0xFF43516B),
@@ -364,40 +427,53 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
   /// Static default configuration for PokeMap Dark Mode palette.
   static const PokeMapColorTokens dark = PokeMapColorTokens(
     // Neutrals
-    backgroundApp: Color(0xFF050B14),
-    backgroundShell: Color(0xFF07111D),
-    surfaceBase: Color(0xFF0B1726),
-    surfaceRaised: Color(0xFF101D2D),
-    surfaceSubtle: Color(0xFF0D1928),
-    surfaceHover: Color(0xFF14243A),
-    surfaceSelected: Color(0xFF142A50),
-    borderSubtle: Color(0xFF1B2A3F),
-    borderStrong: Color(0xFF2A3D58),
-    divider: Color(0xFF142235),
+    backgroundApp: Color(0xFF00040C),
+    backgroundShell: Color(0xFF030D18),
+    surfaceBase: Color(0xFF091421),
+    surfaceRaised: Color(0xFF0D1928),
+    surfaceSubtle: Color(0xFF0A1421),
+    surfaceHover: Color(0xFF142033),
+    surfaceSelected: Color(0xFF15223C),
+    borderSubtle: Color(0xFF1A2638),
+    borderStrong: Color(0xFF273850),
+    divider: Color(0xFF152031),
+
+    // Structural Surfaces
+    chromeBackground: Color(0xFF00040C),
+    topBarBackground: Color(0xFF030D18),
+    sidebarSurface: Color(0xFF0D1928),
+    contentSurface: Color(0xFF091421),
+    cardSurface: Color(0xFF0D1928),
+    cardHover: Color(0xFF142033),
+    cardSelected: Color(0xFF15223C),
+    controlSurface: Color(0xFF101A2A),
+    controlBorder: Color(0xFF273850),
+    focusRing: Color(0xFF5488EC),
+    iconTileSurface: Color(0xFF101A2A),
 
     // Text
     textPrimary: Color(0xFFF1F5FB),
     textSecondary: Color(0xFFB8C4D4),
     textMuted: Color(0xFF8795AA),
     textDisabled: Color(0xFF566477),
-    textInverse: Color(0xFF050B14),
+    textInverse: Color(0xFF00040C),
 
     // Brand / Actions
-    brandPrimary: Color(0xFF5B8EFF),
-    brandPrimaryHover: Color(0xFF75A3FF),
-    brandPrimarySoft: Color(0xFF132B55),
-    brandPrimaryBorder: Color(0xFF376DDB),
+    brandPrimary: Color(0xFF5488EC),
+    brandPrimaryHover: Color(0xFF6A99F3),
+    brandPrimarySoft: Color(0xFF11234A),
+    brandPrimaryBorder: Color(0xFF315FAE),
     brandCyan: Color(0xFF24C8D6),
-    brandCyanSoft: Color(0xFF0C2D36),
+    brandCyanSoft: Color(0xFF0B2C35),
 
     // Statuses
-    success: Color(0xFF45D66E),
-    successSoft: Color(0xFF0E2B1C),
-    successBorder: Color(0xFF246B3A),
-    warning: Color(0xFFF5B51B),
+    success: Color(0xFF47D16C),
+    successSoft: Color(0xFF0E341D),
+    successBorder: Color(0xFF226B37),
+    warning: Color(0xFFF4B84A),
     warningSoft: Color(0xFF33250A),
     warningBorder: Color(0xFF8B650E),
-    error: Color(0xFFFF5A5F),
+    error: Color(0xFFFF6B7C),
     errorSoft: Color(0xFF331217),
     errorBorder: Color(0xFF84303A),
     info: Color(0xFF6AA2FF),
@@ -410,14 +486,14 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     dialogue: Color(0xFF5B8EFF),
     event: Color(0xFF8B7BFF),
     combat: Color(0xFFFF6B7C),
-    reward: Color(0xFFF5B51B),
+    reward: Color(0xFFF4B84A),
     worldRule: Color(0xFF21C7C5),
-    fact: Color(0xFFF3B51E),
-    mapAccent: Color(0xFF55D873),
+    fact: Color(0xFFF3B84A),
+    mapAccent: Color(0xFF47D16C),
 
     // Graph / Nodes Colors
-    graphStartBg: Color(0xFF0E2B1C),
-    graphStartBorder: Color(0xFF45D66E),
+    graphStartBg: Color(0xFF0E341D),
+    graphStartBorder: Color(0xFF47D16C),
     graphDialogueBg: Color(0xFF10294A),
     graphDialogueBorder: Color(0xFF5B8EFF),
     graphBranchBg: Color(0xFF221B3D),
@@ -427,9 +503,9 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     graphCombatBg: Color(0xFF331217),
     graphCombatBorder: Color(0xFFFF6B7C),
     graphActionBg: Color(0xFF33250A),
-    graphActionBorder: Color(0xFFF5B51B),
+    graphActionBorder: Color(0xFFF4B84A),
     graphRewardBg: Color(0xFF2F2708),
-    graphRewardBorder: Color(0xFFF3B51E),
+    graphRewardBorder: Color(0xFFF3B84A),
     graphMergeBg: Color(0xFF10294A),
     graphMergeBorder: Color(0xFF6AA2FF),
     graphEndBg: Color(0xFF331217),
@@ -452,6 +528,17 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     Color? borderSubtle,
     Color? borderStrong,
     Color? divider,
+    Color? chromeBackground,
+    Color? topBarBackground,
+    Color? sidebarSurface,
+    Color? contentSurface,
+    Color? cardSurface,
+    Color? cardHover,
+    Color? cardSelected,
+    Color? controlSurface,
+    Color? controlBorder,
+    Color? focusRing,
+    Color? iconTileSurface,
     Color? textPrimary,
     Color? textSecondary,
     Color? textMuted,
@@ -514,6 +601,17 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       borderSubtle: borderSubtle ?? this.borderSubtle,
       borderStrong: borderStrong ?? this.borderStrong,
       divider: divider ?? this.divider,
+      chromeBackground: chromeBackground ?? this.chromeBackground,
+      topBarBackground: topBarBackground ?? this.topBarBackground,
+      sidebarSurface: sidebarSurface ?? this.sidebarSurface,
+      contentSurface: contentSurface ?? this.contentSurface,
+      cardSurface: cardSurface ?? this.cardSurface,
+      cardHover: cardHover ?? this.cardHover,
+      cardSelected: cardSelected ?? this.cardSelected,
+      controlSurface: controlSurface ?? this.controlSurface,
+      controlBorder: controlBorder ?? this.controlBorder,
+      focusRing: focusRing ?? this.focusRing,
+      iconTileSurface: iconTileSurface ?? this.iconTileSurface,
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       textMuted: textMuted ?? this.textMuted,
@@ -586,6 +684,19 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       borderStrong: Color.lerp(borderStrong, other.borderStrong, t)!,
       divider: Color.lerp(divider, other.divider, t)!,
+      chromeBackground:
+          Color.lerp(chromeBackground, other.chromeBackground, t)!,
+      topBarBackground:
+          Color.lerp(topBarBackground, other.topBarBackground, t)!,
+      sidebarSurface: Color.lerp(sidebarSurface, other.sidebarSurface, t)!,
+      contentSurface: Color.lerp(contentSurface, other.contentSurface, t)!,
+      cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
+      cardHover: Color.lerp(cardHover, other.cardHover, t)!,
+      cardSelected: Color.lerp(cardSelected, other.cardSelected, t)!,
+      controlSurface: Color.lerp(controlSurface, other.controlSurface, t)!,
+      controlBorder: Color.lerp(controlBorder, other.controlBorder, t)!,
+      focusRing: Color.lerp(focusRing, other.focusRing, t)!,
+      iconTileSurface: Color.lerp(iconTileSurface, other.iconTileSurface, t)!,
       textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       textMuted: Color.lerp(textMuted, other.textMuted, t)!,

@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../features/editor/state/models/editor_workspace_mode.dart';
-import '../shared/cupertino_editor_widgets.dart';
+import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 
 class NarrativeStudioHeader extends StatelessWidget {
   const NarrativeStudioHeader({
@@ -16,16 +17,9 @@ class NarrativeStudioHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentLabel = _workspaceLabel(workspaceMode);
-    return Container(
+    return PokeMapPageSurface(
       key: const ValueKey('narrative-studio-header'),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xFF102033).withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: EditorChrome.activeAccent(context).withValues(alpha: 0.24),
-        ),
-      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 900;
@@ -84,6 +78,7 @@ class _HeaderTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -93,7 +88,7 @@ class _HeaderTitle extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: EditorChrome.primaryLabel(context),
+            color: colors.textPrimary,
             fontSize: 13.5,
             fontWeight: FontWeight.w800,
           ),
@@ -104,7 +99,7 @@ class _HeaderTitle extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: EditorChrome.subtleLabel(context),
+            color: colors.textMuted,
             fontSize: 10.5,
             fontWeight: FontWeight.w600,
           ),
@@ -132,38 +127,38 @@ class _HeaderActions extends StatelessWidget {
       spacing: 5,
       runSpacing: 5,
       children: [
-        const _HeaderActionPill(
+        const _HeaderAction(
           key: ValueKey('narrative-studio-header-action-new-storyline'),
           icon: CupertinoIcons.add,
           label: 'Nouvelle storyline',
           disabledReason: 'Création de storyline à venir',
         ),
-        _HeaderActionPill(
+        _HeaderAction(
           key: const ValueKey('narrative-studio-header-action-overview'),
           icon: CupertinoIcons.eye,
           label: 'Aperçu',
           selected: workspaceMode == EditorWorkspaceMode.narrativeOverview,
           onTap: onSelectOverview,
         ),
-        const _HeaderActionPill(
+        const _HeaderAction(
           key: ValueKey('narrative-studio-header-action-validate'),
           icon: CupertinoIcons.shield,
           label: 'Valider',
           disabledReason: 'Validation narrative globale non branchée en V0',
         ),
-        const _HeaderActionPill(
+        const _HeaderAction(
           key: ValueKey('narrative-studio-header-action-search'),
           icon: CupertinoIcons.search,
           label: 'Recherche',
           disabledReason: 'Recherche narrative à venir',
         ),
-        const _HeaderActionPill(
+        const _HeaderAction(
           key: ValueKey('narrative-studio-header-action-notifications'),
           icon: CupertinoIcons.bell,
           label: 'Notifications',
           disabledReason: 'Aucune source fiable en V0',
         ),
-        const _HeaderActionPill(
+        const _HeaderAction(
           key: ValueKey('narrative-studio-header-action-settings'),
           icon: CupertinoIcons.gear,
           label: 'Paramètres',
@@ -174,8 +169,8 @@ class _HeaderActions extends StatelessWidget {
   }
 }
 
-class _HeaderActionPill extends StatefulWidget {
-  const _HeaderActionPill({
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
     super.key,
     required this.icon,
     required this.label,
@@ -190,97 +185,32 @@ class _HeaderActionPill extends StatefulWidget {
   final String? disabledReason;
   final VoidCallback? onTap;
 
-  bool get enabled => onTap != null;
-
-  @override
-  State<_HeaderActionPill> createState() => _HeaderActionPillState();
-}
-
-class _HeaderActionPillState extends State<_HeaderActionPill> {
-  bool _hovered = false;
-
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.enabled;
-    final selected = widget.selected;
-    final accent = selected
-        ? EditorChrome.inspectorJoyCyan
-        : enabled
-            ? EditorChrome.accentPrimary
-            : EditorChrome.subtleLabel(context).withValues(alpha: 0.44);
-    final fill = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.18)
-        : enabled && _hovered
-            ? EditorChrome.activeAccent(context).withValues(alpha: 0.12)
-            : enabled
-                ? const Color(0xFF14263A)
-                : const Color(0xFF0E1824).withValues(alpha: 0.78);
-    final border = selected
-        ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.68)
-        : enabled && _hovered
-            ? EditorChrome.activeAccent(context).withValues(alpha: 0.38)
-            : enabled
-                ? const Color(0x334A89FF)
-                : const Color(0x1F8EA0B5);
-    final textColor = enabled
-        ? EditorChrome.primaryLabel(context)
-        : EditorChrome.subtleLabel(context).withValues(alpha: 0.5);
-
-    final content = AnimatedContainer(
-      duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(widget.icon, size: 12, color: accent),
-          const SizedBox(width: 5),
-          Text(
-            widget.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 11.2,
-              fontWeight: selected
-                  ? FontWeight.w800
-                  : enabled
-                      ? FontWeight.w700
-                      : FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+    final enabled = onTap != null;
+    final button = PokeMapButton(
+      onPressed: onTap,
+      size: PokeMapButtonSize.small,
+      variant: PokeMapButtonVariant.secondary,
+      isSelected: selected,
+      leading: Icon(icon),
+      child: Text(label),
     );
 
-    if (!enabled) {
+    if (enabled) {
       return Semantics(
         button: true,
-        enabled: false,
-        label: '${widget.label} — ${widget.disabledReason}',
-        child: content,
+        selected: selected,
+        label: selected ? '$label - page active' : label,
+        child: button,
       );
     }
 
     return Semantics(
       button: true,
-      selected: selected,
-      label: selected ? '${widget.label} — page active' : widget.label,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: CupertinoButton(
-          padding: EdgeInsets.zero,
-          minimumSize: Size.zero,
-          onPressed: widget.onTap,
-          child: content,
-        ),
-      ),
+      enabled: false,
+      label: '$label - $disabledReason',
+      child: button,
     );
   }
 }

@@ -41,12 +41,13 @@ class PokeMapPanel extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colors.backgroundShell,
+        color: colors.cardSurface,
         borderRadius: BorderRadius.circular(12), // Standard radius: 12
         border: Border.all(color: colors.borderSubtle, width: 1),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(11), // Inset clip to prevent background spill
+        borderRadius:
+            BorderRadius.circular(11), // Inset clip to prevent background spill
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: expandChild ? MainAxisSize.max : MainAxisSize.min,
@@ -58,10 +59,7 @@ class PokeMapPanel extends StatelessWidget {
                 color: colors.divider,
               ),
             ],
-            if (expandChild)
-              Expanded(child: childWidget)
-            else
-              childWidget,
+            if (expandChild) Expanded(child: childWidget) else childWidget,
             if (footer != null) ...[
               Container(
                 height: 1,

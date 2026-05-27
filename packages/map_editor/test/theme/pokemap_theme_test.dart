@@ -15,6 +15,8 @@ void main() {
       final tokens = theme.extension<PokeMapColorTokens>();
       expect(tokens, isNotNull);
       expect(tokens!.backgroundApp, const Color(0xFFF5F8FC));
+      expect(tokens.chromeBackground, const Color(0xFFF1F5FB));
+      expect(tokens.contentSurface, const Color(0xFFFFFFFF));
       expect(tokens.textPrimary, const Color(0xFF13213A));
       expect(tokens.mapAccent, const Color(0xFF22A06B));
     });
@@ -27,11 +29,15 @@ void main() {
 
       final tokens = theme.extension<PokeMapColorTokens>();
       expect(tokens, isNotNull);
-      expect(tokens!.backgroundApp, const Color(0xFF050B14));
-      expect(tokens.surfaceBase, const Color(0xFF0B1726));
+      expect(tokens!.backgroundApp, const Color(0xFF00040C));
+      expect(tokens.chromeBackground, const Color(0xFF00040C));
+      expect(tokens.topBarBackground, const Color(0xFF030D18));
+      expect(tokens.contentSurface, const Color(0xFF091421));
+      expect(tokens.cardSurface, const Color(0xFF0D1928));
+      expect(tokens.surfaceBase, const Color(0xFF091421));
       expect(tokens.textPrimary, const Color(0xFFF1F5FB));
-      expect(tokens.brandPrimary, const Color(0xFF5B8EFF));
-      expect(tokens.mapAccent, const Color(0xFF55D873));
+      expect(tokens.brandPrimary, const Color(0xFF5488EC));
+      expect(tokens.mapAccent, const Color(0xFF47D16C));
     });
 
     test(
@@ -67,6 +73,7 @@ void main() {
 
       expect(resolvedColors, isNotNull);
       expect(resolvedColors.backgroundApp, const Color(0xFFF5F8FC));
+      expect(resolvedColors.contentSurface, const Color(0xFFFFFFFF));
     });
 
     testWidgets(
@@ -87,7 +94,7 @@ void main() {
       );
 
       expect(resolvedColors, isNotNull);
-      expect(resolvedColors.backgroundApp, const Color(0xFF050B14));
+      expect(resolvedColors.backgroundApp, const Color(0xFF00040C));
       expect(resolvedColors.textPrimary, const Color(0xFFF1F5FB));
     });
 
@@ -122,7 +129,7 @@ void main() {
       );
 
       expect(resolvedColorsLight.backgroundApp, const Color(0xFFF5F8FC));
-      expect(resolvedColorsDark.backgroundApp, const Color(0xFF050B14));
+      expect(resolvedColorsDark.backgroundApp, const Color(0xFF00040C));
     });
 
     testWidgets(
