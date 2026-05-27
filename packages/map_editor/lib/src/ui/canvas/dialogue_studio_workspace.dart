@@ -12,7 +12,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors, SelectableText;
+import 'package:flutter/material.dart' show SelectableText;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -25,6 +25,7 @@ import '../../features/dialogue/application/dialogue_yarn_codec.dart';
 import '../../features/dialogue/application/mistral_dialogue_client.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../theme/theme.dart';
 import '../shared/cupertino_editor_widgets.dart';
 part 'dialogue_studio/dialogs/dialogue_studio_dialogs.dart';
 part 'dialogue_studio/widgets/library/dialogue_library_tree.dart';
@@ -245,7 +246,7 @@ class _DialogueStudioWorkspaceState
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
-                    color: CupertinoColors.label.resolveFrom(context),
+                    color: PokeMapLegacyColors.label(context),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -253,7 +254,7 @@ class _DialogueStudioWorkspaceState
                   'Arborescence réelle du manifeste : dossiers et fichiers .yarn.',
                   style: TextStyle(
                     fontSize: 11,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    color: PokeMapLegacyColors.secondaryLabel(context),
                   ),
                 ),
               ],
@@ -270,7 +271,7 @@ class _DialogueStudioWorkspaceState
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    color: PokeMapLegacyColors.secondaryLabel(context),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -287,7 +288,7 @@ class _DialogueStudioWorkspaceState
                       border: Border.all(
                         color: _sidebarTargetFolderId == null
                             ? EditorChrome.inspectorJoyBlue
-                            : CupertinoColors.separator.resolveFrom(context),
+                            : PokeMapLegacyColors.separator(context),
                         width: _sidebarTargetFolderId == null ? 1.5 : 1,
                       ),
                       color: _sidebarTargetFolderId == null
@@ -301,7 +302,7 @@ class _DialogueStudioWorkspaceState
                         fontWeight: _sidebarTargetFolderId == null
                             ? FontWeight.w700
                             : FontWeight.w500,
-                        color: CupertinoColors.label.resolveFrom(context),
+                        color: PokeMapLegacyColors.label(context),
                       ),
                     ),
                   ),
@@ -314,8 +315,7 @@ class _DialogueStudioWorkspaceState
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
-                      color:
-                          CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color: PokeMapLegacyColors.secondaryLabel(context),
                     ),
                   ),
                 ],
@@ -341,7 +341,7 @@ class _DialogueStudioWorkspaceState
                       child: const Text(
                         '+ Nouveau',
                         style: TextStyle(
-                          color: CupertinoColors.white,
+                          color: PokeMapLegacyColors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
                         ),
@@ -358,7 +358,7 @@ class _DialogueStudioWorkspaceState
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: CupertinoColors.separator.resolveFrom(context),
+                          color: PokeMapLegacyColors.separator(context),
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -368,7 +368,7 @@ class _DialogueStudioWorkspaceState
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
-                          color: CupertinoColors.label.resolveFrom(context),
+                          color: PokeMapLegacyColors.label(context),
                         ),
                       ),
                     ),
@@ -387,7 +387,7 @@ class _DialogueStudioWorkspaceState
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: CupertinoColors.separator.resolveFrom(context),
+                    color: PokeMapLegacyColors.separator(context),
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -397,7 +397,7 @@ class _DialogueStudioWorkspaceState
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
-                    color: CupertinoColors.label.resolveFrom(context),
+                    color: PokeMapLegacyColors.label(context),
                   ),
                 ),
               ),
@@ -513,7 +513,7 @@ class _DialogueStudioWorkspaceState
           ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: CupertinoColors.separator.resolveFrom(context),
+            color: PokeMapLegacyColors.separator(context),
           ),
         ),
         child: Column(
@@ -524,7 +524,7 @@ class _DialogueStudioWorkspaceState
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                color: PokeMapLegacyColors.secondaryLabel(context),
               ),
             ),
             const SizedBox(height: 6),
@@ -539,7 +539,7 @@ class _DialogueStudioWorkspaceState
               '${stats.nodes} nœuds • ${stats.choices} choix • ${stats.ends} fins',
               style: TextStyle(
                 fontSize: 11,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                color: PokeMapLegacyColors.secondaryLabel(context),
               ),
             ),
             const SizedBox(height: 10),
@@ -610,7 +610,7 @@ class _DialogueStudioWorkspaceState
           child: Text(
             'Sélectionnez un dialogue dans la liste à gauche.',
             style: TextStyle(
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              color: PokeMapLegacyColors.secondaryLabel(context),
             ),
           ),
         ),
@@ -646,7 +646,7 @@ class _DialogueStudioWorkspaceState
                   'Montage visuel — le Yarn est un export, pas la vue principale.',
                   style: TextStyle(
                     fontSize: 11,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    color: PokeMapLegacyColors.secondaryLabel(context),
                   ),
                 ),
               ],
@@ -676,11 +676,11 @@ class _DialogueStudioWorkspaceState
                     ),
                     child: _aiBusy
                         ? const CupertinoActivityIndicator(
-                            color: CupertinoColors.white)
+                            color: PokeMapLegacyColors.white)
                         : const Text(
                             'Générer avec IA',
                             style: TextStyle(
-                                color: CupertinoColors.white, fontSize: 12),
+                                color: PokeMapLegacyColors.white, fontSize: 12),
                           ),
                   ),
                 ),
@@ -707,8 +707,10 @@ class _DialogueStudioWorkspaceState
                     ),
                     child: const Text(
                       'Sauvegarder',
-                      style:
-                          TextStyle(color: CupertinoColors.white, fontSize: 12),
+                      style: TextStyle(
+                        color: PokeMapLegacyColors.white,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -727,7 +729,7 @@ class _DialogueStudioWorkspaceState
                   style: TextStyle(
                     fontSize: 10,
                     height: 1.35,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    color: PokeMapLegacyColors.secondaryLabel(context),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -736,7 +738,7 @@ class _DialogueStudioWorkspaceState
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    color: PokeMapLegacyColors.secondaryLabel(context),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -747,7 +749,7 @@ class _DialogueStudioWorkspaceState
                   maxLines: 2,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemGrey6.resolveFrom(context),
+                    color: PokeMapLegacyColors.systemGrey6(context),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -800,12 +802,12 @@ class _DialogueStudioWorkspaceState
         decoration: BoxDecoration(
           color: sel
               ? EditorChrome.inspectorJoyBlue.withValues(alpha: 0.15)
-              : CupertinoColors.systemGrey6.resolveFrom(context),
+              : PokeMapLegacyColors.systemGrey6(context),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: sel
                 ? EditorChrome.inspectorJoyBlue
-                : CupertinoColors.separator.resolveFrom(context),
+                : PokeMapLegacyColors.separator(context),
           ),
         ),
         child: Text(
@@ -815,7 +817,7 @@ class _DialogueStudioWorkspaceState
             fontWeight: FontWeight.w700,
             color: sel
                 ? EditorChrome.inspectorJoyBlue
-                : CupertinoColors.label.resolveFrom(context),
+                : PokeMapLegacyColors.label(context),
           ),
         ),
       ),
@@ -826,10 +828,9 @@ class _DialogueStudioWorkspaceState
     final doc = _doc!;
     return Container(
       decoration: BoxDecoration(
-        color: CupertinoColors.systemBackground.resolveFrom(context),
+        color: PokeMapLegacyColors.systemBackground(context),
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+        border: Border.all(color: PokeMapLegacyColors.separator(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -843,7 +844,7 @@ class _DialogueStudioWorkspaceState
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                    color: PokeMapLegacyColors.secondaryLabel(context),
                   ),
                 ),
                 const Spacer(),
@@ -851,14 +852,16 @@ class _DialogueStudioWorkspaceState
                   'Flux vertical • branches visibles pour les choix',
                   style: TextStyle(
                     fontSize: 10,
-                    color: CupertinoColors.tertiaryLabel.resolveFrom(context),
+                    color: PokeMapLegacyColors.tertiaryLabel(context),
                   ),
                 ),
               ],
             ),
           ),
           Container(
-              height: 1, color: CupertinoColors.separator.resolveFrom(context)),
+            height: 1,
+            color: PokeMapLegacyColors.separator(context),
+          ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -884,7 +887,7 @@ class _DialogueStudioWorkspaceState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6.resolveFrom(context),
+        color: PokeMapLegacyColors.systemGrey6(context),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
       ),
       child: SingleChildScrollView(
@@ -919,7 +922,7 @@ class _DialogueStudioWorkspaceState
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          color: PokeMapLegacyColors.secondaryLabel(context),
         ),
       ),
     );
@@ -932,11 +935,16 @@ class _DialogueStudioWorkspaceState
       child: CupertinoButton(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         minimumSize: Size.zero,
-        color: CupertinoColors.white,
+        color: PokeMapLegacyColors.white,
         borderRadius: BorderRadius.circular(8),
         onPressed: onTap,
-        child: Text(label,
-            style: const TextStyle(fontSize: 11, color: Colors.black87)),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: PokeMapLegacyColors.black87,
+          ),
+        ),
       ),
     );
   }
@@ -946,10 +954,9 @@ class _DialogueStudioWorkspaceState
     final session = _preview!;
     return Container(
       decoration: BoxDecoration(
-        color: CupertinoColors.systemBackground.resolveFrom(context),
+        color: PokeMapLegacyColors.systemBackground(context),
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+        border: Border.all(color: PokeMapLegacyColors.separator(context)),
       ),
       child: Column(
         children: [
@@ -974,8 +981,10 @@ class _DialogueStudioWorkspaceState
                     ),
                     child: const Text(
                       'Rejouer depuis le début',
-                      style:
-                          TextStyle(color: CupertinoColors.white, fontSize: 12),
+                      style: TextStyle(
+                        color: PokeMapLegacyColors.white,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -1022,7 +1031,7 @@ class _DialogueStudioWorkspaceState
                                   child: Text(
                                     '${j + 1}. ${options[j]}',
                                     style: const TextStyle(
-                                      color: CupertinoColors.black,
+                                      color: PokeMapLegacyColors.black,
                                       fontSize: 13,
                                     ),
                                   ),
@@ -1039,8 +1048,7 @@ class _DialogueStudioWorkspaceState
                         style: TextStyle(
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
-                          color: CupertinoColors.secondaryLabel
-                              .resolveFrom(context),
+                          color: PokeMapLegacyColors.secondaryLabel(context),
                         ),
                       ),
                     ),
@@ -1058,10 +1066,9 @@ class _DialogueStudioWorkspaceState
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemBackground.resolveFrom(context),
+        color: PokeMapLegacyColors.systemBackground(context),
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+        border: Border.all(color: PokeMapLegacyColors.separator(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1070,14 +1077,14 @@ class _DialogueStudioWorkspaceState
             'Export Yarn (lecture seule depuis les blocs)',
             style: TextStyle(
               fontSize: 11,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              color: PokeMapLegacyColors.secondaryLabel(context),
             ),
           ),
           const SizedBox(height: 8),
           Expanded(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey6.resolveFrom(context),
+                color: PokeMapLegacyColors.systemGrey6(context),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: SingleChildScrollView(
@@ -1120,7 +1127,7 @@ class _DialogueStudioWorkspaceState
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 14,
-              color: CupertinoColors.label.resolveFrom(context),
+              color: PokeMapLegacyColors.label(context),
             ),
           ),
           const SizedBox(height: 4),
@@ -1128,7 +1135,7 @@ class _DialogueStudioWorkspaceState
             'Détail du bloc sélectionné.',
             style: TextStyle(
               fontSize: 11,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+              color: PokeMapLegacyColors.secondaryLabel(context),
             ),
           ),
           const SizedBox(height: 12),
@@ -1136,7 +1143,7 @@ class _DialogueStudioWorkspaceState
             Text(
               'Cliquez sur un bloc au centre.',
               style: TextStyle(
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                color: PokeMapLegacyColors.secondaryLabel(context),
                 fontSize: 12,
               ),
             )
@@ -1168,7 +1175,7 @@ class _DialogueStudioWorkspaceState
                       fontSize: 11,
                       color: i.severity == DialogueValidationSeverity.error
                           ? EditorChrome.inspectorJoyCoral
-                          : CupertinoColors.secondaryLabel.resolveFrom(context),
+                          : PokeMapLegacyColors.secondaryLabel(context),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -1314,7 +1321,7 @@ class _DialogueStudioWorkspaceState
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          color: PokeMapLegacyColors.secondaryLabel(context),
         ),
       ),
     );

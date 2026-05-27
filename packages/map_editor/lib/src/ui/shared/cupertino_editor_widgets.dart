@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show BoxShadow, Colors, Material;
+import 'package:flutter/material.dart' show BoxShadow, Material;
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 
@@ -13,40 +13,41 @@ abstract final class EditorChrome {
   static bool _isDark(BuildContext context) =>
       MacosTheme.brightnessOf(context) == Brightness.dark;
 
-  static const Color accentPrimary = Color(0xFF5488EC);
-  static const Color accentCyan = Color(0xFF24C8D6);
-  static const Color accentJade = Color(0xFF47D16C);
-  static const Color accentWarm = Color(0xFFF4B84A);
-  static const Color accentCoral = Color(0xFFFF6B7C);
-  static const Color accentPrune = Color(0xFF7D6FF0);
-  static const Color accentLilac = Color(0xFFA77CFF);
+  static const Color accentPrimary = PokeMapLegacyColors.accentPrimary;
+  static const Color accentCyan = PokeMapLegacyColors.accentCyan;
+  static const Color accentJade = PokeMapLegacyColors.accentJade;
+  static const Color accentWarm = PokeMapLegacyColors.accentWarm;
+  static const Color accentCoral = PokeMapLegacyColors.accentCoral;
+  static const Color accentPrune = PokeMapLegacyColors.accentPrune;
+  static const Color accentLilac = PokeMapLegacyColors.accentLilac;
 
   /// Rose chaud discret (halos, milieu de dégradé).
-  static const Color accentRose = Color(0xFFC98AA6);
+  static const Color accentRose = PokeMapLegacyColors.accentRose;
 
   /// Magenta profond, usage rare (accents nobles).
-  static const Color accentMagentaDeep = Color(0xFF5D4777);
+  static const Color accentMagentaDeep = PokeMapLegacyColors.accentMagentaDeep;
 
   /// World Explorer — sarcelle / bleu profond chaleureux (pas gris-bleu admin).
-  static const Color islandCoolTint = Color(0xFF1B2A3F);
+  static const Color islandCoolTint = PokeMapLegacyColors.islandCoolTint;
 
   /// Inspector — violet prune rosé.
-  static const Color islandNeutralTint = Color(0xFF221B3D);
+  static const Color islandNeutralTint = PokeMapLegacyColors.islandNeutralTint;
 
   /// Surface Library — ambre / terre chaude.
-  static const Color islandWarmTint = Color(0xFF33250A);
+  static const Color islandWarmTint = PokeMapLegacyColors.islandWarmTint;
 
   // --- Compat legacy : accents remappés vers la palette DS sombre sobre. ---
-  static const Color inspectorJoyHoney = Color(0xFFF4B84A);
-  static const Color inspectorJoyApricot = Color(0xFFEFA65A);
-  static const Color inspectorJoyBlue = Color(0xFF5488EC);
-  static const Color inspectorJoyLilac = Color(0xFFA77CFF);
-  static const Color inspectorJoyMint = Color(0xFF47D16C);
-  static const Color inspectorJoyAmber = Color(0xFFF4B84A);
-  static const Color inspectorJoyCyan = Color(0xFF24C8D6);
-  static const Color inspectorJoyPlum = Color(0xFF8B7BFF);
-  static const Color inspectorJoyCoral = Color(0xFFFF6B7C);
-  static const Color inspectorJoyOrchid = Color(0xFFA77CFF);
+  static const Color inspectorJoyHoney = PokeMapLegacyColors.accentWarm;
+  static const Color inspectorJoyApricot =
+      PokeMapLegacyColors.inspectorJoyApricot;
+  static const Color inspectorJoyBlue = PokeMapLegacyColors.accentPrimary;
+  static const Color inspectorJoyLilac = PokeMapLegacyColors.accentLilac;
+  static const Color inspectorJoyMint = PokeMapLegacyColors.accentJade;
+  static const Color inspectorJoyAmber = PokeMapLegacyColors.accentWarm;
+  static const Color inspectorJoyCyan = PokeMapLegacyColors.accentCyan;
+  static const Color inspectorJoyPlum = PokeMapLegacyColors.accentPrune;
+  static const Color inspectorJoyCoral = PokeMapLegacyColors.accentCoral;
+  static const Color inspectorJoyOrchid = PokeMapLegacyColors.accentLilac;
 
   // --- Tokens de structure (seuls fonds d’architecture) ---
   static Color appBackground(BuildContext context) =>
@@ -96,7 +97,7 @@ abstract final class EditorChrome {
               context.pokeMapColors.brandPrimary,
               0.06,
             )!
-          : const Color(0xFFE8ECF2);
+          : PokeMapLegacyColors.toolbarPulldownTrackLight;
 
   /// Survol discret dans les capsules toolbar.
   static Color toolbarMutedHoverFill(BuildContext context) => _isDark(context)
@@ -105,7 +106,7 @@ abstract final class EditorChrome {
           context.pokeMapColors.brandPrimary,
           0.08,
         )!
-      : const Color(0x14000000);
+      : PokeMapLegacyColors.lightHoverOverlay;
 
   /// Compat : base d’îlot.
   static Color panelBackground(BuildContext context) => islandFill(context);
@@ -120,7 +121,7 @@ abstract final class EditorChrome {
 
   /// Toujours transparent : le canvas laisse voir le même matériau que l’îlot parent.
   static Color mapCanvasViewportBackground(BuildContext context) =>
-      CupertinoColors.transparent;
+      PokeMapLegacyColors.transparent;
 
   /// Compat : pas de vrai dégradé en thème sombre.
   static LinearGradient windowBackdropGradient(BuildContext context) =>
@@ -128,11 +129,11 @@ abstract final class EditorChrome {
 
   static Color separator(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.divider
-      : CupertinoColors.separator.resolveFrom(context);
+      : PokeMapLegacyColors.separator(context);
 
   static Color subtleSeparator(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.borderSubtle
-      : const Color(0x14000000);
+      : PokeMapLegacyColors.lightHoverOverlay;
 
   static Color subtleLabel(BuildContext context) =>
       context.pokeMapColors.textMuted;
@@ -145,16 +146,16 @@ abstract final class EditorChrome {
 
   static Color statusTint(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.infoSoft
-      : const Color(0xFFF2EBE6);
+      : context.pokeMapColors.infoSoft;
 
   static Color errorTint(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.errorSoft
-      : const Color(0xFFF8E8EA);
+      : context.pokeMapColors.errorSoft;
 
   /// Remplissage discret, **opaque** (pas de translucidité type verre).
   static Color chipFill(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.controlSurface
-      : CupertinoColors.black.withValues(alpha: 0.045);
+      : PokeMapLegacyColors.black.withValues(alpha: 0.045);
 
   /// Badges / compteurs : chaleureux, lisible, surface nette.
   static Color badgeFill(BuildContext context) => _isDark(context)
@@ -163,19 +164,19 @@ abstract final class EditorChrome {
 
   static Color sidebarHoverFill(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.cardHover
-      : const Color(0x10000000);
+      : PokeMapLegacyColors.lightSidebarHoverOverlay;
 
   static Color disclosureHoverFill(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.cardHover
-      : const Color(0x0E000000);
+      : PokeMapLegacyColors.lightDisclosureHoverOverlay;
 
   static Color panelBorder(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.borderSubtle
-      : const Color(0x14000000);
+      : PokeMapLegacyColors.lightHoverOverlay;
 
   static Color editorIslandRim(BuildContext context) => _isDark(context)
       ? context.pokeMapColors.controlBorder
-      : const Color(0x22000000);
+      : PokeMapLegacyColors.lightIslandRim;
 
   /// Petit module en thème clair uniquement (cartes légères).
   static LinearGradient panelGradientLight(BuildContext context) {
@@ -183,8 +184,8 @@ abstract final class EditorChrome {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFFFFFFFF),
-        Color(0xFFF1F4F8),
+        PokeMapLegacyColors.panelLightStart,
+        PokeMapLegacyColors.panelLightEnd,
       ],
     );
   }
@@ -196,7 +197,7 @@ abstract final class EditorChrome {
     }
     return const [
       BoxShadow(
-        color: Color(0x12000000),
+        color: PokeMapLegacyColors.lightPanelShadow,
         blurRadius: 24,
         offset: Offset(0, 12),
       ),
@@ -210,7 +211,7 @@ abstract final class EditorChrome {
     }
     return const [
       BoxShadow(
-        color: Color(0x0C000000),
+        color: PokeMapLegacyColors.lightSectionShadow,
         blurRadius: 12,
         offset: Offset(0, 5),
       ),
@@ -222,12 +223,12 @@ abstract final class EditorChrome {
     if (_isDark(context)) {
       return const [
         BoxShadow(
-          color: Color(0x72000000),
+          color: PokeMapLegacyColors.darkTileShadowStrong,
           blurRadius: 0,
           offset: Offset(0, 2),
         ),
         BoxShadow(
-          color: Color(0x28000000),
+          color: PokeMapLegacyColors.darkTileShadowSoft,
           blurRadius: 3,
           offset: Offset(0, 3),
         ),
@@ -235,7 +236,7 @@ abstract final class EditorChrome {
     }
     return const [
       BoxShadow(
-        color: Color(0x1A000000),
+        color: PokeMapLegacyColors.lightTileShadow,
         blurRadius: 4,
         offset: Offset(0, 2),
       ),
@@ -246,12 +247,12 @@ abstract final class EditorChrome {
     if (_isDark(context)) {
       return const [
         BoxShadow(
-          color: Color(0x5C000000),
+          color: PokeMapLegacyColors.darkToolbarShadowStrong,
           blurRadius: 0,
           offset: Offset(0, 1),
         ),
         BoxShadow(
-          color: Color(0x22000000),
+          color: PokeMapLegacyColors.darkToolbarShadowSoft,
           blurRadius: 2,
           offset: Offset(0, 2),
         ),
@@ -259,14 +260,14 @@ abstract final class EditorChrome {
     }
     return const [
       BoxShadow(
-        color: Color(0x10000000),
+        color: PokeMapLegacyColors.lightToolbarShadow,
         blurRadius: 6,
         offset: Offset(0, 3),
       ),
     ];
   }
 
-  static const Color borderSubtle = Color(0x08FFFFFF);
+  static const Color borderSubtle = PokeMapLegacyColors.subtleWhiteBorder;
 }
 
 class EditorPaneSurface extends StatelessWidget {
@@ -335,36 +336,11 @@ Color editorSidebarSelectionColor(BuildContext context) {
   final isDark = theme.brightness == Brightness.dark;
   final isMain = WindowMainStateListener.instance.isMainWindow;
 
-  if (isDark) {
-    if (!isMain) {
-      return const Color.fromRGBO(72, 56, 118, 0.7);
-    }
-    return switch (accent) {
-      AccentColor.blue => const Color.fromRGBO(88, 62, 152, 0.74),
-      AccentColor.purple => const Color.fromRGBO(154, 53, 173, 0.7),
-      AccentColor.pink => const Color.fromRGBO(201, 81, 146, 0.7),
-      AccentColor.red => const Color.fromRGBO(183, 72, 86, 0.72),
-      AccentColor.orange => const Color.fromRGBO(187, 120, 53, 0.72),
-      AccentColor.yellow => const Color.fromRGBO(188, 157, 71, 0.72),
-      AccentColor.green => const Color.fromRGBO(72, 142, 98, 0.72),
-      AccentColor.graphite => const Color.fromRGBO(112, 117, 124, 0.78),
-    };
-  }
-
-  if (!isMain) {
-    return const Color.fromRGBO(213, 213, 208, 1.0);
-  }
-
-  return switch (accent) {
-    AccentColor.blue => const Color.fromRGBO(9, 129, 255, 0.749),
-    AccentColor.purple => const Color.fromRGBO(162, 28, 165, 0.749),
-    AccentColor.pink => const Color.fromRGBO(234, 81, 152, 0.749),
-    AccentColor.red => const Color.fromRGBO(220, 32, 40, 0.749),
-    AccentColor.orange => const Color.fromRGBO(245, 113, 0, 0.749),
-    AccentColor.yellow => const Color.fromRGBO(240, 180, 2, 0.749),
-    AccentColor.green => const Color.fromRGBO(66, 174, 33, 0.749),
-    AccentColor.graphite => const Color.fromRGBO(174, 174, 167, 0.847),
-  };
+  return PokeMapLegacyColors.sidebarSelection(
+    accent: accent,
+    isDark: isDark,
+    isMainWindow: isMain,
+  );
 }
 
 /// Titre de section type en-tête [SidebarItem] macos_ui (texte gris, non cliquable).
@@ -449,7 +425,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
 
     final fill = widget.selected
         ? colors.surfaceSelected
-        : (_hovered ? colors.surfaceHover : Colors.transparent);
+        : (_hovered ? colors.surfaceHover : PokeMapLegacyColors.transparent);
 
     final fgColor = widget.selected
         ? colors.brandPrimary
@@ -699,9 +675,9 @@ class EditorHorizontalDivider extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.transparent,
+              PokeMapLegacyColors.transparent,
               colors.divider,
-              Colors.transparent,
+              PokeMapLegacyColors.transparent,
             ],
           ),
         ),
@@ -825,7 +801,9 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
         curve: Curves.easeOutCubic,
         decoration: widget.useEditorMacosSidebarDisclosureStyle
             ? BoxDecoration(
-                color: _hovered ? colors.surfaceHover : Colors.transparent,
+                color: _hovered
+                    ? colors.surfaceHover
+                    : PokeMapLegacyColors.transparent,
                 borderRadius: BorderRadius.circular(8),
               )
             : null,
@@ -1067,7 +1045,9 @@ Future<T?> showMacosEditorActionsSheet<T>({
                   PushButton(
                     controlSize: ControlSize.large,
                     secondary: true,
-                    color: a.isDestructive ? MacosColors.appleRed : null,
+                    color: a.isDestructive
+                        ? PokeMapLegacyColors.appleRed(ctx)
+                        : null,
                     onPressed: () => Navigator.of(ctx).pop(a.value),
                     child: Text(a.label),
                   ),
@@ -1101,9 +1081,11 @@ Future<T?> showMacosEditorContextMenu<T>({
 
   final brightness = MacosTheme.brightnessOf(context);
   final isDark = brightness == Brightness.dark;
-  final bg = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFECECEC);
+  final bg = isDark
+      ? PokeMapLegacyColors.editorChipDark
+      : PokeMapLegacyColors.editorChipLight;
   final labelColor = MacosTheme.of(context).typography.body.color ??
-      (isDark ? CupertinoColors.white : CupertinoColors.black);
+      (isDark ? PokeMapLegacyColors.white : PokeMapLegacyColors.black);
 
   const horizontalPadding = 12.0;
   const verticalItemPadding = 8.0;
@@ -1146,7 +1128,7 @@ Future<T?> showMacosEditorContextMenu<T>({
             left: left,
             top: top,
             child: Material(
-              color: Colors.transparent,
+              color: PokeMapLegacyColors.transparent,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: bg,
@@ -1154,7 +1136,7 @@ Future<T?> showMacosEditorContextMenu<T>({
                   border: Border.all(color: EditorChrome.borderSubtle),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x66000000),
+                      color: PokeMapLegacyColors.genericDropShadow,
                       blurRadius: 16,
                       offset: Offset(0, 6),
                     ),
@@ -1185,7 +1167,9 @@ Future<T?> showMacosEditorContextMenu<T>({
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: a.isDestructive
-                                          ? MacosColors.appleRed
+                                          ? PokeMapLegacyColors.appleRed(
+                                              context,
+                                            )
                                           : labelColor,
                                     ),
                                   ),
@@ -1326,7 +1310,7 @@ Future<bool> showMacosEditorTwoChoiceAlert(
       ),
       primaryButton: PushButton(
         controlSize: ControlSize.large,
-        color: primaryIsDestructive ? MacosColors.appleRed : null,
+        color: primaryIsDestructive ? PokeMapLegacyColors.appleRed(ctx) : null,
         onPressed: () {
           chosePrimary = true;
           Navigator.of(ctx).pop();

@@ -336,7 +336,7 @@ Future<void> _showTerrainPresetDialog(
                   'Terrain tilesets cannot be shared with path presets.',
                   style: TextStyle(
                     fontSize: 10,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                    color: PokeMapLegacyColors.secondaryLabel(ctx),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -348,7 +348,7 @@ Future<void> _showTerrainPresetDialog(
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: CupertinoColors.label.resolveFrom(ctx),
+                          color: PokeMapLegacyColors.label(ctx),
                         ),
                       ),
                     ),
@@ -386,7 +386,7 @@ Future<void> _showTerrainPresetDialog(
                       'No visual variant. Renderer will fallback to color overlay.',
                       style: TextStyle(
                         fontSize: 11,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                        color: PokeMapLegacyColors.secondaryLabel(ctx),
                       ),
                     ),
                   )
@@ -551,7 +551,7 @@ Future<void> _showPathPresetDialog(
                       'Surface type',
                       style: TextStyle(
                         fontSize: 12,
-                        color: CupertinoColors.label.resolveFrom(ctx),
+                        color: PokeMapLegacyColors.label(ctx),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -636,7 +636,7 @@ Future<void> _showPathPresetDialog(
                   'Path tilesets cannot be shared with terrain presets.',
                   style: TextStyle(
                     fontSize: 10,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                    color: PokeMapLegacyColors.secondaryLabel(ctx),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -645,7 +645,7 @@ Future<void> _showPathPresetDialog(
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: CupertinoColors.label.resolveFrom(ctx),
+                    color: PokeMapLegacyColors.label(ctx),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -653,7 +653,7 @@ Future<void> _showPathPresetDialog(
                   '${variants.length}/${TerrainPathVariant.values.length} mapped',
                   style: TextStyle(
                     fontSize: 11,
-                    color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                    color: PokeMapLegacyColors.secondaryLabel(ctx),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -703,7 +703,7 @@ Future<void> _showPathPresetDialog(
                       'Select a path tileset first to map variants.',
                       style: TextStyle(
                         fontSize: 10,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                        color: PokeMapLegacyColors.secondaryLabel(ctx),
                       ),
                     ),
                   ),
@@ -972,7 +972,7 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: CupertinoColors.label.resolveFrom(ctx),
+              color: PokeMapLegacyColors.label(ctx),
             ),
           ),
           const SizedBox(height: 6),
@@ -986,7 +986,7 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 11,
-                    color: CupertinoColors.label.resolveFrom(ctx),
+                    color: PokeMapLegacyColors.label(ctx),
                   ),
                 ),
               ),
@@ -997,7 +997,7 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 11,
-                    color: CupertinoColors.label.resolveFrom(ctx),
+                    color: PokeMapLegacyColors.label(ctx),
                   ),
                 ),
               ),
@@ -1015,7 +1015,7 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
             style: TextStyle(
               fontSize: 10,
               height: 1.25,
-              color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+              color: PokeMapLegacyColors.secondaryLabel(ctx),
             ),
           ),
           const SizedBox(height: 16),
@@ -1152,7 +1152,7 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
                           'Selection ${result.width}x${result.height} at (${result.x}, ${result.y})',
                       style: TextStyle(
                         fontSize: 12,
-                        color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                        color: PokeMapLegacyColors.secondaryLabel(ctx),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1163,7 +1163,7 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: CupertinoColors.label.resolveFrom(ctx),
+                            color: PokeMapLegacyColors.label(ctx),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1171,8 +1171,7 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
                           controlSize: ControlSize.regular,
                           secondary: true,
                           onPressed: () => setState(() {
-                            pickerZoom =
-                                (pickerZoom / 1.18).clamp(0.12, 8.0);
+                            pickerZoom = (pickerZoom / 1.18).clamp(0.12, 8.0);
                           }),
                           child: const Icon(CupertinoIcons.minus, size: 16),
                         ),
@@ -1184,8 +1183,7 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 11,
-                              color: CupertinoColors.secondaryLabel
-                                  .resolveFrom(ctx),
+                              color: PokeMapLegacyColors.secondaryLabel(ctx),
                             ),
                           ),
                         ),
@@ -1194,8 +1192,7 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
                           controlSize: ControlSize.regular,
                           secondary: true,
                           onPressed: () => setState(() {
-                            pickerZoom =
-                                (pickerZoom * 1.18).clamp(0.12, 8.0);
+                            pickerZoom = (pickerZoom * 1.18).clamp(0.12, 8.0);
                           }),
                           child: const Icon(CupertinoIcons.plus, size: 16),
                         ),
@@ -1203,8 +1200,7 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
                         PushButton(
                           controlSize: ControlSize.regular,
                           secondary: true,
-                          onPressed: () =>
-                              setState(() => pickerZoom = 1.0),
+                          onPressed: () => setState(() => pickerZoom = 1.0),
                           child: const Text('Reset'),
                         ),
                       ],
@@ -1220,86 +1216,86 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
                             width: canvasWidth,
                             height: canvasHeight,
                             child: GestureDetector(
-                            onPanStart: (details) {
-                              final pos = _gridFromPickerLocal(
-                                details.localPosition,
-                                cellWidth,
-                                cellHeight,
-                                columns,
-                                rows,
-                              );
-                              setState(() {
-                                start = pos;
-                                end = pos;
-                                result = _rectFromGridPoints(start, end);
-                              });
-                            },
-                            onPanUpdate: (details) {
-                              final pos = _gridFromPickerLocal(
-                                details.localPosition,
-                                cellWidth,
-                                cellHeight,
-                                columns,
-                                rows,
-                              );
-                              setState(() {
-                                end = pos;
-                                result = _rectFromGridPoints(start, end);
-                              });
-                            },
-                            onTapUp: (details) {
-                              final pos = _gridFromPickerLocal(
-                                details.localPosition,
-                                cellWidth,
-                                cellHeight,
-                                columns,
-                                rows,
-                              );
-                              setState(() {
-                                start = pos;
-                                end = pos;
-                                result = _rectFromGridPoints(start, end);
-                              });
-                            },
-                            child: CustomPaint(
-                              painter: _TilesetRectSelectionPainter(
-                                image: image,
-                                columns: columns,
-                                rows: rows,
-                                selection: result,
+                              onPanStart: (details) {
+                                final pos = _gridFromPickerLocal(
+                                  details.localPosition,
+                                  cellWidth,
+                                  cellHeight,
+                                  columns,
+                                  rows,
+                                );
+                                setState(() {
+                                  start = pos;
+                                  end = pos;
+                                  result = _rectFromGridPoints(start, end);
+                                });
+                              },
+                              onPanUpdate: (details) {
+                                final pos = _gridFromPickerLocal(
+                                  details.localPosition,
+                                  cellWidth,
+                                  cellHeight,
+                                  columns,
+                                  rows,
+                                );
+                                setState(() {
+                                  end = pos;
+                                  result = _rectFromGridPoints(start, end);
+                                });
+                              },
+                              onTapUp: (details) {
+                                final pos = _gridFromPickerLocal(
+                                  details.localPosition,
+                                  cellWidth,
+                                  cellHeight,
+                                  columns,
+                                  rows,
+                                );
+                                setState(() {
+                                  start = pos;
+                                  end = pos;
+                                  result = _rectFromGridPoints(start, end);
+                                });
+                              },
+                              child: CustomPaint(
+                                painter: _TilesetRectSelectionPainter(
+                                  image: image,
+                                  columns: columns,
+                                  rows: rows,
+                                  selection: result,
+                                ),
+                                child: const SizedBox.expand(),
                               ),
-                              child: const SizedBox.expand(),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      PushButton(
-                        controlSize: ControlSize.large,
-                        secondary: true,
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel'),
-                      ),
-                      const SizedBox(width: 10),
-                      PushButton(
-                        controlSize: ControlSize.large,
-                        onPressed: () => Navigator.pop(ctx, result),
-                        child: const Text('Use Selection'),
-                      ),
-                    ],
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        PushButton(
+                          controlSize: ControlSize.large,
+                          secondary: true,
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 10),
+                        PushButton(
+                          controlSize: ControlSize.large,
+                          onPressed: () => Navigator.pop(ctx, result),
+                          child: const Text('Use Selection'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      );
-    },
+        );
+      },
     ),
   );
 }
@@ -1480,8 +1476,7 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                 Text(
                                   'Step 1: Complete the schema',
                                   style: TextStyle(
-                                    color: CupertinoColors.label
-                                        .resolveFrom(ctx)
+                                    color: PokeMapLegacyColors.label(ctx)
                                         .withValues(alpha: 0.9),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -1491,8 +1486,8 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                 Text(
                                   '${mappings.length}/${TerrainPathVariant.values.length} mapped',
                                   style: TextStyle(
-                                    color: CupertinoColors.secondaryLabel
-                                        .resolveFrom(ctx),
+                                    color:
+                                        PokeMapLegacyColors.secondaryLabel(ctx),
                                     fontSize: 11,
                                   ),
                                 ),
@@ -1503,20 +1498,18 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                     vertical: 7,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: CupertinoColors.systemFill
-                                        .resolveFrom(ctx),
+                                    color: PokeMapLegacyColors.systemFill(ctx),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: CupertinoColors.separator
-                                          .resolveFrom(ctx),
+                                      color: PokeMapLegacyColors.separator(ctx),
                                     ),
                                   ),
                                   child: Text(
                                     'Select a slot in the schema, then click a cell in the tileset on the right to assign it.',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: CupertinoColors.secondaryLabel
-                                          .resolveFrom(ctx),
+                                      color: PokeMapLegacyColors.secondaryLabel(
+                                          ctx),
                                     ),
                                   ),
                                 ),
@@ -1525,12 +1518,12 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: CupertinoColors.systemFill
-                                          .resolveFrom(ctx),
+                                      color:
+                                          PokeMapLegacyColors.systemFill(ctx),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                        color: CupertinoColors.separator
-                                            .resolveFrom(ctx),
+                                        color:
+                                            PokeMapLegacyColors.separator(ctx),
                                       ),
                                     ),
                                     child: _PathSchemaCanvas(
@@ -1552,12 +1545,10 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                             child: Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color:
-                                    CupertinoColors.systemFill.resolveFrom(ctx),
+                                color: PokeMapLegacyColors.systemFill(ctx),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: CupertinoColors.separator
-                                      .resolveFrom(ctx),
+                                  color: PokeMapLegacyColors.separator(ctx),
                                 ),
                               ),
                               child: Column(
@@ -1566,8 +1557,7 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                   Text(
                                     'Step 2: Click the tileset to map "${_pathVariantDisplayName(selectedVariant)}"',
                                     style: TextStyle(
-                                      color: CupertinoColors.label
-                                          .resolveFrom(ctx)
+                                      color: PokeMapLegacyColors.label(ctx)
                                           .withValues(alpha: 0.9),
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
@@ -1577,8 +1567,8 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                   Text(
                                     'Tileset: ${notifier.getTilesetById(normalizedTilesetId)?.name ?? normalizedTilesetId}',
                                     style: TextStyle(
-                                      color: CupertinoColors.secondaryLabel
-                                          .resolveFrom(ctx),
+                                      color: PokeMapLegacyColors.secondaryLabel(
+                                          ctx),
                                       fontSize: 11,
                                     ),
                                   ),
@@ -1590,8 +1580,8 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                           .withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: CupertinoColors.separator
-                                            .resolveFrom(ctx),
+                                        color:
+                                            PokeMapLegacyColors.separator(ctx),
                                       ),
                                     ),
                                     child: Column(
@@ -1602,8 +1592,8 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                           'Active variant: ${_pathVariantDisplayName(selectedVariant)}',
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: CupertinoColors.label
-                                                .resolveFrom(ctx),
+                                            color:
+                                                PokeMapLegacyColors.label(ctx),
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -1640,8 +1630,8 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                           .withValues(alpha: 0.16),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: CupertinoColors.separator
-                                            .resolveFrom(ctx),
+                                        color:
+                                            PokeMapLegacyColors.separator(ctx),
                                       ),
                                     ),
                                     child: Column(
@@ -1654,8 +1644,9 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                               'Transparence preview',
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: CupertinoColors.label
-                                                    .resolveFrom(ctx),
+                                                color:
+                                                    PokeMapLegacyColors.label(
+                                                        ctx),
                                                 fontWeight: FontWeight.w700,
                                               ),
                                             ),
@@ -1824,8 +1815,8 @@ Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
                                         ),
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: CupertinoColors.secondaryLabel
-                                              .resolveFrom(ctx),
+                                          color: PokeMapLegacyColors
+                                              .secondaryLabel(ctx),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -2431,8 +2422,7 @@ bool _sameFrameList(
 
 String _terrainVariantLabel(TerrainPresetVariant variant) {
   final s = variant.frames.primarySource;
-  final base =
-      '(${s.x}, ${s.y}) ${s.width}x${s.height} • w${variant.weight}';
+  final base = '(${s.x}, ${s.y}) ${s.width}x${s.height} • w${variant.weight}';
   if (variant.multiTileLayout == TerrainVariantMultiTileLayout.stableRandom &&
       (s.width > 1 || s.height > 1)) {
     return '$base • rnd';
@@ -2527,7 +2517,7 @@ class _VariantTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemFill.resolveFrom(context),
+        color: PokeMapLegacyColors.systemFill(context),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -2537,7 +2527,7 @@ class _VariantTile extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                color: PokeMapLegacyColors.secondaryLabel(context),
               ),
             ),
           ),

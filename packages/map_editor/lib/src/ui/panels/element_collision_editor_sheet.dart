@@ -3,13 +3,13 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../application/models/element_collision_truth_summary.dart';
 import '../../application/models/player_collision_hitbox_preview.dart';
 import '../../application/services/element_collision_authoring_service.dart';
+import '../../theme/theme.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import '../../ui/widgets/element_collision_triple_mask_editor.dart';
 
@@ -101,8 +101,8 @@ class _ElementCollisionEditorSheetState
     final truthSummary = summarizeElementCollisionTruth(_draftProfile);
     final playerHitboxPreview = buildPlayerCollisionHitboxPreview();
     final pendingPolygonPreviewCells = _buildPendingPolygonPreviewCells();
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
+    final label = PokeMapLegacyColors.label(context);
     return LayoutBuilder(
       builder: (context, constraints) => Focus(
         autofocus: true,
@@ -251,12 +251,13 @@ class _ElementCollisionEditorSheetState
                                 decoration: BoxDecoration(
                                   color: EditorChrome.largeIslandSurfaceColor(
                                     context,
-                                    tint: Colors.white.withValues(alpha: 0.02),
+                                    tint: PokeMapLegacyColors.white
+                                        .withValues(alpha: 0.02),
                                   ),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: CupertinoColors.separator
-                                        .resolveFrom(context),
+                                    color:
+                                        PokeMapLegacyColors.separator(context),
                                   ),
                                 ),
                                 child: Column(
@@ -345,7 +346,8 @@ class _ElementCollisionEditorSheetState
                                                 decoration: BoxDecoration(
                                                   borderRadius:
                                                       BorderRadius.circular(14),
-                                                  color: Colors.black
+                                                  color: PokeMapLegacyColors
+                                                      .black
                                                       .withValues(alpha: 0.14),
                                                   border: Border.all(
                                                     color: CupertinoColors
@@ -704,7 +706,7 @@ class _EditorHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
     return Row(
       children: [
         Expanded(
@@ -839,7 +841,7 @@ class _EditorSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -856,15 +858,15 @@ class _EditorSidebar extends StatelessWidget {
                     label: snapshot.usesManualPrimaryShape
                         ? 'Forme principale ${snapshot.baseCells.length}'
                         : 'Base padding ${snapshot.baseCells.length}',
-                    color: Colors.cyanAccent,
+                    color: PokeMapLegacyColors.cyanAccent,
                   ),
                   _LegendChip(
                     label: '+ ${snapshot.manualAddedCells.length}',
-                    color: Colors.greenAccent,
+                    color: PokeMapLegacyColors.greenAccent,
                   ),
                   _LegendChip(
                     label: '- ${snapshot.manualRemovedCells.length}',
-                    color: Colors.redAccent,
+                    color: PokeMapLegacyColors.redAccent,
                   ),
                   _LegendChip(
                     label: 'Final ${snapshot.finalCells.length}',
@@ -905,7 +907,7 @@ class _EditorSidebar extends StatelessWidget {
                 Text(
                   'Preview backend polygone: $pendingPolygonPreviewCount cellule${pendingPolygonPreviewCount > 1 ? 's' : ''}',
                   style: const TextStyle(
-                    color: Colors.yellowAccent,
+                    color: PokeMapLegacyColors.yellowAccent,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -976,7 +978,7 @@ class _CollisionAuthoringModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
     return Row(
       children: [
         CupertinoSlidingSegmentedControl<_ElementCollisionAuthoringMode>(
@@ -1025,12 +1027,12 @@ class _CollisionTruthBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
+    final label = PokeMapLegacyColors.label(context);
     final accent = switch (summary.mode) {
-      ElementCollisionTruthMode.fineMask => Colors.redAccent,
-      ElementCollisionTruthMode.legacyCells => Colors.orangeAccent,
-      ElementCollisionTruthMode.empty => Colors.greenAccent,
+      ElementCollisionTruthMode.fineMask => PokeMapLegacyColors.redAccent,
+      ElementCollisionTruthMode.legacyCells => PokeMapLegacyColors.orangeAccent,
+      ElementCollisionTruthMode.empty => PokeMapLegacyColors.greenAccent,
     };
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1089,15 +1091,15 @@ class _PlayerFootHitboxPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    final label = CupertinoColors.label.resolveFrom(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
+    final label = PokeMapLegacyColors.label(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blueAccent.withValues(alpha: 0.08),
+        color: PokeMapLegacyColors.blueAccent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.blueAccent.withValues(alpha: 0.30),
+          color: PokeMapLegacyColors.blueAccent.withValues(alpha: 0.30),
         ),
       ),
       child: Row(
@@ -1136,11 +1138,11 @@ class _PlayerFootHitboxPreviewCard extends StatelessWidget {
                   children: [
                     _LegendChip(
                       label: preview.dimensionsLabel,
-                      color: Colors.blueAccent,
+                      color: PokeMapLegacyColors.blueAccent,
                     ),
                     _LegendChip(
                       label: preview.positionLabel,
-                      color: Colors.lightBlueAccent,
+                      color: PokeMapLegacyColors.lightBlueAccent,
                     ),
                   ],
                 ),
@@ -1180,17 +1182,17 @@ class _PlayerFootHitboxPreviewPainter extends CustomPainter {
     );
 
     final spritePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = PokeMapLegacyColors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
     final spriteStroke = Paint()
-      ..color = Colors.white.withValues(alpha: 0.32)
+      ..color = PokeMapLegacyColors.white.withValues(alpha: 0.32)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final hitboxPaint = Paint()
-      ..color = Colors.blueAccent.withValues(alpha: 0.38)
+      ..color = PokeMapLegacyColors.blueAccent.withValues(alpha: 0.38)
       ..style = PaintingStyle.fill;
     final hitboxStroke = Paint()
-      ..color = Colors.lightBlueAccent
+      ..color = PokeMapLegacyColors.lightBlueAccent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -1236,8 +1238,8 @@ class ElementCollisionPaddingEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = CupertinoColors.label.resolveFrom(context);
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = PokeMapLegacyColors.label(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1310,18 +1312,18 @@ class _PaddingStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelColor = CupertinoColors.label.resolveFrom(context);
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final labelColor = PokeMapLegacyColors.label(context);
+    final secondary = PokeMapLegacyColors.secondaryLabel(context);
     final canDecrease = value > 0;
     final canIncrease = value < maxValue;
     return Container(
       width: 120,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.08),
+        color: PokeMapLegacyColors.black.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
+          color: PokeMapLegacyColors.separator(context),
         ),
       ),
       child: Column(
@@ -1387,17 +1389,17 @@ class _SidebarSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = CupertinoColors.label.resolveFrom(context);
+    final label = PokeMapLegacyColors.label(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
           context,
-          tint: Colors.white.withValues(alpha: 0.018),
+          tint: PokeMapLegacyColors.white.withValues(alpha: 0.018),
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
+          color: PokeMapLegacyColors.separator(context),
         ),
       ),
       child: Column(
@@ -1468,7 +1470,7 @@ class _LegendChip extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: CupertinoColors.label.resolveFrom(context),
+          color: PokeMapLegacyColors.label(context),
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
@@ -1491,12 +1493,14 @@ class _ToolButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const accent = EditorChrome.inspectorJoyCoral;
-    final labelColor = CupertinoColors.label.resolveFrom(context);
+    final labelColor = PokeMapLegacyColors.label(context);
     return CupertinoButton(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       minimumSize: Size.zero,
       borderRadius: BorderRadius.circular(10),
-      color: selected ? accent.withValues(alpha: 0.16) : Colors.black26,
+      color: selected
+          ? accent.withValues(alpha: 0.16)
+          : PokeMapLegacyColors.black26,
       onPressed: onPressed,
       child: Text(
         label,
@@ -1573,7 +1577,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(
           targetRect.inflate(10), const Radius.circular(18)),
-      Paint()..color = Colors.black.withValues(alpha: 0.1),
+      Paint()..color = PokeMapLegacyColors.black.withValues(alpha: 0.1),
     );
 
     final sourceRect = Rect.fromLTWH(
@@ -1604,7 +1608,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
           targetRect: targetRect,
           cellWidth: cellWidth,
           cellHeight: cellHeight,
-          color: Colors.cyanAccent.withValues(alpha: 0.16),
+          color: PokeMapLegacyColors.cyanAccent.withValues(alpha: 0.16),
         );
       }
     }
@@ -1631,8 +1635,8 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
           targetRect: targetRect,
           cellWidth: cellWidth,
           cellHeight: cellHeight,
-          color: Colors.yellowAccent.withValues(alpha: 0.14),
-          strokeColor: Colors.yellowAccent.withValues(alpha: 0.85),
+          color: PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.14),
+          strokeColor: PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.85),
         );
       }
     }
@@ -1648,7 +1652,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
         canvas.drawRect(
           cellRect.deflate(2),
           Paint()
-            ..color = Colors.greenAccent
+            ..color = PokeMapLegacyColors.greenAccent
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.8,
         );
@@ -1664,11 +1668,11 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
         canvas.drawRect(
           cellRect,
           Paint()
-            ..color = Colors.redAccent.withValues(alpha: 0.16)
+            ..color = PokeMapLegacyColors.redAccent.withValues(alpha: 0.16)
             ..style = PaintingStyle.fill,
         );
         final strikePaint = Paint()
-          ..color = Colors.redAccent
+          ..color = PokeMapLegacyColors.redAccent
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.4;
         canvas.drawLine(cellRect.topLeft, cellRect.bottomRight, strikePaint);
@@ -1678,7 +1682,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
 
     if (showGrid) {
       final gridPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.22)
+        ..color = PokeMapLegacyColors.white.withValues(alpha: 0.22)
         ..strokeWidth = 1;
       for (var x = 0; x <= source.width; x++) {
         final dx = targetRect.left + x * cellWidth;
@@ -1713,7 +1717,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
       canvas.drawPath(
         path,
         Paint()
-          ..color = Colors.yellowAccent.withValues(alpha: 0.95)
+          ..color = PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.95)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
@@ -1721,7 +1725,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
         canvas.drawCircle(
           point,
           4,
-          Paint()..color = Colors.yellowAccent,
+          Paint()..color = PokeMapLegacyColors.yellowAccent,
         );
       }
       canvas.drawCircle(
@@ -1731,8 +1735,8 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = highlightPolygonClosure ? 3 : 1.5
           ..color = highlightPolygonClosure
-              ? Colors.greenAccent
-              : Colors.yellowAccent.withValues(alpha: 0.8),
+              ? PokeMapLegacyColors.greenAccent
+              : PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.8),
       );
       if (hoverGridPoint != null && highlightPolygonClosure) {
         final hoverPoint = Offset(
@@ -1745,7 +1749,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
           hoverPoint,
           points.first,
           Paint()
-            ..color = Colors.greenAccent.withValues(alpha: 0.85)
+            ..color = PokeMapLegacyColors.greenAccent.withValues(alpha: 0.85)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5,
         );
@@ -1755,7 +1759,7 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
         canvas.drawPath(
           preview,
           Paint()
-            ..color = Colors.yellowAccent.withValues(alpha: 0.12)
+            ..color = PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.12)
             ..style = PaintingStyle.fill,
         );
       }

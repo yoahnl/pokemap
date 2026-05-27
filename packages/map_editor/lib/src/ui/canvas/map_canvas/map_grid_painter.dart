@@ -362,7 +362,7 @@ class MapGridPainter extends CustomPainter {
     }
 
     final gridPaint = Paint()
-      ..color = Colors.white10
+      ..color = PokeMapLegacyColors.white10
       ..strokeWidth = 1.0 / zoom
       ..style = PaintingStyle.stroke;
 
@@ -383,7 +383,7 @@ class MapGridPainter extends CustomPainter {
 
     if (hoveredTile != null) {
       final hoverPaint = Paint()
-        ..color = Colors.cyanAccent.withValues(alpha: 0.3)
+        ..color = PokeMapLegacyColors.cyanAccent.withValues(alpha: 0.3)
         ..style = PaintingStyle.fill;
 
       canvas.drawRect(
@@ -397,7 +397,7 @@ class MapGridPainter extends CustomPainter {
       );
 
       final cursorBorder = Paint()
-        ..color = Colors.cyanAccent
+        ..color = PokeMapLegacyColors.cyanAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom;
 
@@ -451,7 +451,7 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       Rect.fromLTWH(0, 0, gridWidth, gridHeight),
       Paint()
-        ..color = Colors.white
+        ..color = PokeMapLegacyColors.white
         ..style = PaintingStyle.stroke,
     );
 
@@ -465,10 +465,10 @@ class MapGridPainter extends CustomPainter {
     if (mask.cells.length != expected) return;
 
     final fill = Paint()
-      ..color = const Color(0x664CAF50)
+      ..color = PokeMapLegacyColors.collisionAllowedFill
       ..style = PaintingStyle.fill;
     final border = Paint()
-      ..color = const Color(0x992E7D32)
+      ..color = PokeMapLegacyColors.collisionAllowedStroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0 / zoom;
 
@@ -501,10 +501,14 @@ class MapGridPainter extends CustomPainter {
 
     final isErase = overlay.mode == EnvironmentMaskEditMode.erase;
     final fill = Paint()
-      ..color = (isErase ? const Color(0x66FF7043) : const Color(0x6626C6DA))
+      ..color = (isErase
+          ? PokeMapLegacyColors.maskEraseFill
+          : PokeMapLegacyColors.maskPaintFill)
       ..style = PaintingStyle.fill;
     final border = Paint()
-      ..color = isErase ? const Color(0xFFFFB199) : const Color(0xFF80DEEA)
+      ..color = isErase
+          ? PokeMapLegacyColors.maskEraseStroke
+          : PokeMapLegacyColors.maskPaintStroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0 / zoom;
 
@@ -540,14 +544,14 @@ class MapGridPainter extends CustomPainter {
       if (activationRect != rect) {
         final areaPaint = Paint()
           ..color = (warp.triggerMode == MapWarpTriggerMode.onBump
-                  ? Colors.orangeAccent
-                  : Colors.cyanAccent)
+                  ? PokeMapLegacyColors.orangeAccent
+                  : PokeMapLegacyColors.cyanAccent)
               .withValues(alpha: isSelected ? 0.18 : 0.12)
           ..style = PaintingStyle.fill;
         final areaBorder = Paint()
           ..color = (warp.triggerMode == MapWarpTriggerMode.onBump
-                  ? Colors.orangeAccent
-                  : Colors.cyanAccent)
+                  ? PokeMapLegacyColors.orangeAccent
+                  : PokeMapLegacyColors.cyanAccent)
               .withValues(alpha: isSelected ? 0.75 : 0.55)
           ..style = PaintingStyle.stroke
           ..strokeWidth = isSelected ? 1.8 / zoom : 1.2 / zoom;
@@ -557,13 +561,15 @@ class MapGridPainter extends CustomPainter {
       final fillPaint = Paint()
         ..color = (isSelected
                 ? (warp.triggerMode == MapWarpTriggerMode.onBump
-                    ? Colors.orangeAccent
-                    : Colors.cyanAccent)
-                : Colors.purpleAccent)
+                    ? PokeMapLegacyColors.orangeAccent
+                    : PokeMapLegacyColors.cyanAccent)
+                : PokeMapLegacyColors.purpleAccent)
             .withValues(alpha: isSelected ? 0.42 : 0.34)
         ..style = PaintingStyle.fill;
       final borderPaint = Paint()
-        ..color = isSelected ? Colors.white : Colors.purpleAccent
+        ..color = isSelected
+            ? PokeMapLegacyColors.white
+            : PokeMapLegacyColors.purpleAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
       canvas.drawRect(rect, fillPaint);
@@ -579,7 +585,10 @@ class MapGridPainter extends CustomPainter {
         canvas.drawCircle(
           center,
           (tileWidth < tileHeight ? tileWidth : tileHeight) * 0.14,
-          Paint()..color = isSelected ? Colors.white : Colors.purple.shade100,
+          Paint()
+            ..color = isSelected
+                ? PokeMapLegacyColors.white
+                : PokeMapLegacyColors.purpleShade100,
         );
       } else {
         final symbolSize =
@@ -591,7 +600,10 @@ class MapGridPainter extends CustomPainter {
         );
         canvas.drawRect(
           symbolRect,
-          Paint()..color = isSelected ? Colors.white : Colors.orange.shade100,
+          Paint()
+            ..color = isSelected
+                ? PokeMapLegacyColors.white
+                : PokeMapLegacyColors.orangeShade100,
         );
       }
     }
@@ -643,10 +655,10 @@ class MapGridPainter extends CustomPainter {
       height * tileHeight,
     );
     final fill = Paint()
-      ..color = Colors.yellowAccent.withValues(alpha: 0.17)
+      ..color = PokeMapLegacyColors.yellowAccent.withValues(alpha: 0.17)
       ..style = PaintingStyle.fill;
     final border = Paint()
-      ..color = Colors.yellowAccent
+      ..color = PokeMapLegacyColors.yellowAccent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0 / zoom;
     canvas.drawRect(rect, fill);
@@ -674,8 +686,9 @@ class MapGridPainter extends CustomPainter {
       return;
     }
     final markerPaint = Paint()
-      ..color = (isSelected ? Colors.white : Colors.black)
-          .withValues(alpha: isSelected ? 0.95 : 0.7)
+      ..color =
+          (isSelected ? PokeMapLegacyColors.white : PokeMapLegacyColors.black)
+              .withValues(alpha: isSelected ? 0.95 : 0.7)
       ..style = PaintingStyle.fill;
     final markerThickness = (1.8 / zoom).clamp(1.0, 3.0);
     final markerLength =
@@ -767,7 +780,8 @@ class MapGridPainter extends CustomPainter {
         canvas.drawRRect(
           shade,
           Paint()
-            ..color = Colors.black.withValues(alpha: isSelected ? 0.28 : 0.2)
+            ..color = PokeMapLegacyColors.black
+                .withValues(alpha: isSelected ? 0.28 : 0.2)
             ..style = PaintingStyle.fill,
         );
         _paintEntityProjectElementFrame(
@@ -799,14 +813,14 @@ class MapGridPainter extends CustomPainter {
         tileHeight,
       );
       final fill = Paint()
-        ..color = const Color(0xFF35E5D7).withValues(
+        ..color = PokeMapLegacyColors.cyanTag.withValues(
           alpha: isSelected ? 0.4 : 0.26,
         )
         ..style = PaintingStyle.fill;
       final border = Paint()
         ..color = isSelected
-            ? Colors.white
-            : const Color(0xFF35E5D7).withValues(alpha: 0.92)
+            ? PokeMapLegacyColors.white
+            : PokeMapLegacyColors.cyanTag.withValues(alpha: 0.92)
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 2.2 / zoom : 1.4 / zoom;
       canvas.drawRect(rect, fill);
@@ -817,7 +831,10 @@ class MapGridPainter extends CustomPainter {
       canvas.drawCircle(
         center,
         radius,
-        Paint()..color = isSelected ? Colors.white : const Color(0xFF0A4955),
+        Paint()
+          ..color = isSelected
+              ? PokeMapLegacyColors.white
+              : PokeMapLegacyColors.deepCyanText,
       );
 
       if (rect.width < (34 / zoom) || rect.height < (20 / zoom)) {
@@ -829,7 +846,7 @@ class MapGridPainter extends CustomPainter {
         text: TextSpan(
           text: label,
           style: TextStyle(
-            color: Colors.white,
+            color: PokeMapLegacyColors.white,
             fontSize: 10 / zoom,
             fontWeight: FontWeight.w700,
           ),
@@ -908,7 +925,7 @@ class MapGridPainter extends CustomPainter {
       text: TextSpan(
         text: letter,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.92),
+          color: PokeMapLegacyColors.white.withValues(alpha: 0.92),
           fontSize: fontSize,
           fontWeight: FontWeight.w900,
         ),
@@ -944,7 +961,7 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, Radius.circular(5 / zoom)),
       Paint()
-        ..color = (isSelected ? Colors.white : color)
+        ..color = (isSelected ? PokeMapLegacyColors.white : color)
             .withValues(alpha: isSelected ? 0.95 : 0.55)
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 2.4 / zoom : 1.5 / zoom,
@@ -972,7 +989,8 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRRect(
       badge,
       Paint()
-        ..color = Colors.black.withValues(alpha: isSelected ? 0.72 : 0.56)
+        ..color = PokeMapLegacyColors.black
+            .withValues(alpha: isSelected ? 0.72 : 0.56)
         ..style = PaintingStyle.fill,
     );
 
@@ -980,7 +998,7 @@ class MapGridPainter extends CustomPainter {
       text: TextSpan(
         text: _entityShortLabel(entity.kind),
         style: TextStyle(
-          color: Colors.white,
+          color: PokeMapLegacyColors.white,
           fontSize: 9 / zoom,
           fontWeight: FontWeight.w700,
         ),
@@ -1008,14 +1026,14 @@ class MapGridPainter extends CustomPainter {
       text: TextSpan(
         text: label,
         style: TextStyle(
-          color: Colors.white,
+          color: PokeMapLegacyColors.white,
           fontSize: 10 / zoom,
           fontWeight: FontWeight.w600,
           shadows: const [
             Shadow(
               offset: Offset(0.5, 0.5),
               blurRadius: 2,
-              color: Color(0xCC000000),
+              color: PokeMapLegacyColors.blackOverlayStrong,
             ),
           ],
         ),
@@ -1056,7 +1074,9 @@ class MapGridPainter extends CustomPainter {
       canvas.drawRect(
         rect,
         Paint()
-          ..color = isSelected ? Colors.white : color.withValues(alpha: 0.92)
+          ..color = isSelected
+              ? PokeMapLegacyColors.white
+              : color.withValues(alpha: 0.92)
           ..style = PaintingStyle.stroke
           ..strokeWidth = isSelected ? 2.0 / zoom : 1.3 / zoom,
       );
@@ -1071,7 +1091,7 @@ class MapGridPainter extends CustomPainter {
         text: TextSpan(
           text: label,
           style: TextStyle(
-            color: Colors.white,
+            color: PokeMapLegacyColors.white,
             fontSize: 10 / zoom,
             fontWeight: FontWeight.w700,
           ),
@@ -1108,10 +1128,10 @@ class MapGridPainter extends CustomPainter {
         gridHeight,
       );
       final fillPaint = Paint()
-        ..color = const Color(0xFF13212D).withValues(alpha: 0.88)
+        ..color = PokeMapLegacyColors.darkLabelPlate.withValues(alpha: 0.88)
         ..style = PaintingStyle.fill;
       final borderPaint = Paint()
-        ..color = Colors.cyanAccent.withValues(alpha: 0.75)
+        ..color = PokeMapLegacyColors.cyanAccent.withValues(alpha: 0.75)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2 / zoom;
       final badge = RRect.fromRectAndRadius(
@@ -1127,7 +1147,7 @@ class MapGridPainter extends CustomPainter {
         text: TextSpan(
           text: '${_directionShortLabel(connection.direction)}  $label',
           style: TextStyle(
-            color: Colors.white,
+            color: PokeMapLegacyColors.white,
             fontSize: 11 / zoom,
             fontWeight: FontWeight.w700,
           ),
@@ -1239,7 +1259,8 @@ class MapGridPainter extends CustomPainter {
         sourceTileHeight > 0) {
       final alpha =
           preview.validity == MapToolPreviewValidity.valid ? 0.6 : 0.3;
-      final tilePaint = Paint()..color = Colors.white.withValues(alpha: alpha);
+      final tilePaint = Paint()
+        ..color = PokeMapLegacyColors.white.withValues(alpha: alpha);
       for (var y = 0; y < preview.size.height; y++) {
         for (var x = 0; x < preview.size.width; x++) {
           final mapX = preview.origin.x + x;
@@ -1286,13 +1307,13 @@ class MapGridPainter extends CustomPainter {
       canvas.drawRect(
         previewRect,
         Paint()
-          ..color = Colors.redAccent.withValues(alpha: 0.22)
+          ..color = PokeMapLegacyColors.redAccent.withValues(alpha: 0.22)
           ..style = PaintingStyle.fill,
       );
       canvas.drawRect(
         previewRect,
         Paint()
-          ..color = Colors.redAccent
+          ..color = PokeMapLegacyColors.redAccent
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.0 / zoom,
       );
@@ -1301,7 +1322,7 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.35)
+        ..color = PokeMapLegacyColors.white.withValues(alpha: 0.35)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5 / zoom,
     );
@@ -1313,13 +1334,13 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.redAccent.withValues(alpha: 0.20)
+        ..color = PokeMapLegacyColors.redAccent.withValues(alpha: 0.20)
         ..style = PaintingStyle.fill,
     );
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.redAccent
+        ..color = PokeMapLegacyColors.redAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -1331,13 +1352,13 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.orangeAccent.withValues(alpha: 0.24)
+        ..color = PokeMapLegacyColors.orangeAccent.withValues(alpha: 0.24)
         ..style = PaintingStyle.fill,
     );
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.orangeAccent
+        ..color = PokeMapLegacyColors.orangeAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -1377,13 +1398,13 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.tealAccent.withValues(alpha: 0.2)
+        ..color = PokeMapLegacyColors.tealAccent.withValues(alpha: 0.2)
         ..style = PaintingStyle.fill,
     );
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.tealAccent
+        ..color = PokeMapLegacyColors.tealAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -1463,7 +1484,7 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       dstRect,
       Paint()
-        ..color = Colors.tealAccent
+        ..color = PokeMapLegacyColors.tealAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -1530,7 +1551,7 @@ class MapGridPainter extends CustomPainter {
             tileWidth,
             tileHeight,
           ),
-          Paint()..color = Colors.white.withValues(alpha: 0.62),
+          Paint()..color = PokeMapLegacyColors.white.withValues(alpha: 0.62),
         );
         rendered = true;
       }
@@ -1541,7 +1562,7 @@ class MapGridPainter extends CustomPainter {
       canvas.drawRect(
         previewRect,
         Paint()
-          ..color = Colors.white.withValues(alpha: 0.4)
+          ..color = PokeMapLegacyColors.white.withValues(alpha: 0.4)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.6 / zoom,
       );
@@ -1555,13 +1576,13 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.blueGrey.withValues(alpha: 0.24)
+        ..color = PokeMapLegacyColors.blueGrey.withValues(alpha: 0.24)
         ..style = PaintingStyle.fill,
     );
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.blueGrey.shade200
+        ..color = PokeMapLegacyColors.blueGreyShade200
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -1573,13 +1594,13 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.cyanAccent.withValues(alpha: 0.18)
+        ..color = PokeMapLegacyColors.cyanAccent.withValues(alpha: 0.18)
         ..style = PaintingStyle.fill,
     );
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.cyanAccent
+        ..color = PokeMapLegacyColors.cyanAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -1591,13 +1612,13 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.lightBlueAccent.withValues(alpha: 0.24)
+        ..color = PokeMapLegacyColors.lightBlueAccent.withValues(alpha: 0.24)
         ..style = PaintingStyle.fill,
     );
     canvas.drawRect(
       previewRect,
       Paint()
-        ..color = Colors.lightBlueAccent
+        ..color = PokeMapLegacyColors.lightBlueAccent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
@@ -1899,7 +1920,7 @@ class MapGridPainter extends CustomPainter {
           dstRect,
           Paint()
             ..colorFilter = ui.ColorFilter.mode(
-              Colors.white.withValues(alpha: 0.45),
+              PokeMapLegacyColors.white.withValues(alpha: 0.45),
               ui.BlendMode.srcATop,
             ),
         );
@@ -1908,7 +1929,7 @@ class MapGridPainter extends CustomPainter {
     }
     canvas.saveLayer(
       dstRect,
-      Paint()..color = Colors.white.withValues(alpha: opacity),
+      Paint()..color = PokeMapLegacyColors.white.withValues(alpha: opacity),
     );
     canvas.drawImageRect(image, srcRect, dstRect, Paint());
     if (highlight) {
@@ -1918,7 +1939,7 @@ class MapGridPainter extends CustomPainter {
         dstRect,
         Paint()
           ..colorFilter = ui.ColorFilter.mode(
-            Colors.white.withValues(alpha: 0.45),
+            PokeMapLegacyColors.white.withValues(alpha: 0.45),
             ui.BlendMode.srcATop,
           ),
       );
@@ -1946,7 +1967,9 @@ class MapGridPainter extends CustomPainter {
       canvas,
       placed,
       elementById: elementById,
-      color: preview.isValid ? Colors.cyanAccent : Colors.deepOrangeAccent,
+      color: preview.isValid
+          ? PokeMapLegacyColors.cyanAccent
+          : PokeMapLegacyColors.deepOrangeAccent,
       fillAlpha: preview.isValid ? 0.08 : 0.14,
       strokeAlpha: 0.95,
     );
@@ -2016,10 +2039,11 @@ class MapGridPainter extends CustomPainter {
     final fillAlpha = (isActive ? 0.34 : 0.24) * layer.opacity;
     final borderAlpha = (isActive ? 0.75 : 0.5) * layer.opacity;
     final fillPaint = Paint()
-      ..color = Colors.deepOrange.withValues(alpha: fillAlpha)
+      ..color = PokeMapLegacyColors.deepOrange.withValues(alpha: fillAlpha)
       ..style = PaintingStyle.fill;
     final borderPaint = Paint()
-      ..color = Colors.deepOrangeAccent.withValues(alpha: borderAlpha)
+      ..color =
+          PokeMapLegacyColors.deepOrangeAccent.withValues(alpha: borderAlpha)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2 / zoom;
 
@@ -2117,13 +2141,13 @@ class MapGridPainter extends CustomPainter {
         canvas.drawRect(
           cell,
           Paint()
-            ..color = Colors.teal
+            ..color = PokeMapLegacyColors.teal
             ..style = PaintingStyle.fill,
         );
         canvas.drawRect(
           cell,
           Paint()
-            ..color = Colors.tealAccent
+            ..color = PokeMapLegacyColors.tealAccent
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.0 / zoom,
         );
@@ -2228,7 +2252,9 @@ class MapGridPainter extends CustomPainter {
       tilesetImage,
       srcRect,
       dstRect,
-      Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
+      Paint()
+        ..color =
+            PokeMapLegacyColors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
     );
     return true;
   }
@@ -2295,7 +2321,9 @@ class MapGridPainter extends CustomPainter {
       tilesetImage,
       srcRect,
       dstRect,
-      Paint()..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
+      Paint()
+        ..color =
+            PokeMapLegacyColors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
     );
     return true;
   }
@@ -2387,32 +2415,32 @@ class MapGridPainter extends CustomPainter {
 
   Color _terrainColor(TerrainType terrain) {
     return switch (terrain) {
-      TerrainType.none => Colors.transparent,
-      TerrainType.grass => Colors.lightGreenAccent,
-      TerrainType.dirt => const Color(0xFFA46E3D),
-      TerrainType.sand => Colors.amberAccent,
-      TerrainType.rock => Colors.blueGrey,
-      TerrainType.stone => Colors.grey,
-      TerrainType.indoor => const Color(0xFFD8C3A5),
+      TerrainType.none => PokeMapLegacyColors.transparent,
+      TerrainType.grass => PokeMapLegacyColors.lightGreenAccent,
+      TerrainType.dirt => PokeMapLegacyColors.terrainDirt,
+      TerrainType.sand => PokeMapLegacyColors.amberAccent,
+      TerrainType.rock => PokeMapLegacyColors.blueGrey,
+      TerrainType.stone => PokeMapLegacyColors.grey,
+      TerrainType.indoor => PokeMapLegacyColors.terrainIndoor,
     };
   }
 
   Color _terrainBorderColor(TerrainType terrain) {
     switch (terrain) {
       case TerrainType.grass:
-        return Colors.green.shade900;
+        return PokeMapLegacyColors.greenShade900;
       case TerrainType.dirt:
-        return const Color(0xFF6D4524);
+        return PokeMapLegacyColors.terrainDirtDark;
       case TerrainType.sand:
-        return Colors.orange.shade900;
+        return PokeMapLegacyColors.orangeShade900;
       case TerrainType.rock:
-        return Colors.blueGrey.shade900;
+        return PokeMapLegacyColors.blueGreyShade900;
       case TerrainType.stone:
-        return Colors.grey.shade800;
+        return PokeMapLegacyColors.greyShade800;
       case TerrainType.indoor:
-        return const Color(0xFF8D6E63);
+        return PokeMapLegacyColors.terrainIndoorDark;
       case TerrainType.none:
-        return Colors.transparent;
+        return PokeMapLegacyColors.transparent;
     }
   }
 
@@ -2429,13 +2457,15 @@ class MapGridPainter extends CustomPainter {
       canvas.drawRect(
         draftRect,
         Paint()
-          ..color = const Color(0xFF66FF99).withValues(alpha: 0.18)
+          ..color =
+              PokeMapLegacyColors.gameplayEncounter.withValues(alpha: 0.18)
           ..style = PaintingStyle.fill,
       );
       canvas.drawRect(
         draftRect,
         Paint()
-          ..color = const Color(0xFF66FF99).withValues(alpha: 0.85)
+          ..color =
+              PokeMapLegacyColors.gameplayEncounter.withValues(alpha: 0.85)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.0 / zoom
           ..strokeCap = StrokeCap.round,
@@ -2461,7 +2491,9 @@ class MapGridPainter extends CustomPainter {
       canvas.drawRect(
         rect,
         Paint()
-          ..color = isSelected ? Colors.white : color.withValues(alpha: 0.85)
+          ..color = isSelected
+              ? PokeMapLegacyColors.white
+              : color.withValues(alpha: 0.85)
           ..style = PaintingStyle.stroke
           ..strokeWidth = isSelected ? 2.0 / zoom : 1.3 / zoom,
       );
@@ -2476,7 +2508,7 @@ class MapGridPainter extends CustomPainter {
         text: TextSpan(
           text: label,
           style: TextStyle(
-            color: Colors.white,
+            color: PokeMapLegacyColors.white,
             fontSize: 10 / zoom,
             fontWeight: FontWeight.w700,
           ),
@@ -2500,34 +2532,35 @@ class MapGridPainter extends CustomPainter {
 
   Color _gameplayZoneColor(GameplayZoneKind kind) {
     return switch (kind) {
-      GameplayZoneKind.encounter => const Color(0xFF66FF99),
-      GameplayZoneKind.movement => const Color(0xFF66AAFF),
-      GameplayZoneKind.movementEffect => const Color(0xFF66D9FF),
-      GameplayZoneKind.hazard => const Color(0xFFFF6666),
-      GameplayZoneKind.special => const Color(0xFFCC66FF),
-      GameplayZoneKind.custom => const Color(0xFF66FFFF),
+      GameplayZoneKind.encounter => PokeMapLegacyColors.gameplayEncounter,
+      GameplayZoneKind.movement => PokeMapLegacyColors.gameplayMovement,
+      GameplayZoneKind.movementEffect =>
+        PokeMapLegacyColors.gameplayMovementEffect,
+      GameplayZoneKind.hazard => PokeMapLegacyColors.gameplayHazard,
+      GameplayZoneKind.special => PokeMapLegacyColors.gameplaySpecial,
+      GameplayZoneKind.custom => PokeMapLegacyColors.gameplayCustom,
     };
   }
 
   Color _triggerColor(TriggerType type) {
     return switch (type) {
-      TriggerType.warp => Colors.deepPurpleAccent,
-      TriggerType.message => Colors.amberAccent,
-      TriggerType.interaction => Colors.lightBlueAccent,
-      TriggerType.event => Colors.orangeAccent,
-      TriggerType.spawn => Colors.greenAccent,
-      TriggerType.camera => Colors.pinkAccent,
-      TriggerType.custom => Colors.cyanAccent,
+      TriggerType.warp => PokeMapLegacyColors.deepPurpleAccent,
+      TriggerType.message => PokeMapLegacyColors.amberAccent,
+      TriggerType.interaction => PokeMapLegacyColors.lightBlueAccent,
+      TriggerType.event => PokeMapLegacyColors.orangeAccent,
+      TriggerType.spawn => PokeMapLegacyColors.greenAccent,
+      TriggerType.camera => PokeMapLegacyColors.pinkAccent,
+      TriggerType.custom => PokeMapLegacyColors.cyanAccent,
     };
   }
 
   Color _entityColor(MapEntityKind kind) {
     return switch (kind) {
-      MapEntityKind.npc => const Color(0xFF55D0FF),
-      MapEntityKind.sign => const Color(0xFFFFC857),
-      MapEntityKind.item => const Color(0xFF7CE38B),
-      MapEntityKind.spawn => const Color(0xFFFF7B7B),
-      MapEntityKind.custom => const Color(0xFFC18CFF),
+      MapEntityKind.npc => PokeMapLegacyColors.entityNpc,
+      MapEntityKind.sign => PokeMapLegacyColors.entitySign,
+      MapEntityKind.item => PokeMapLegacyColors.entityItem,
+      MapEntityKind.spawn => PokeMapLegacyColors.entitySpawn,
+      MapEntityKind.custom => PokeMapLegacyColors.entityCustom,
     };
   }
 
