@@ -153,7 +153,7 @@ void main() {
       expect(shell.workspaceTitle, 'Trainer Studio');
       expect(
         shell.workspaceSubtitle,
-        contains('battle-ready rosters'),
+        contains('prêtes au combat'),
       );
     });
 

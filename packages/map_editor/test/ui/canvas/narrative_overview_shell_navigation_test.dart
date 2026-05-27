@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_explorer_module_card.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/panels/narrative_library_panel.dart';
 
@@ -114,6 +115,52 @@ void main() {
   );
 
   testWidgets(
+    'EditorShellPage presents coherent Narrative Studio overview chrome',
+    (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_10_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: const Size(1600, 1000),
+      );
+
+      expect(find.textContaining('Narrative Studio / Aperçu'), findsWidgets);
+      expect(find.textContaining('Vue d’ensemble auteur'), findsWidgets);
+      expect(find.textContaining('Narrative Overview'), findsNothing);
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ProjectExplorerModuleCard &&
+              widget.title == 'Narrative Studio' &&
+              widget.selected,
+        ),
+        findsOneWidget,
+      );
+
+      expect(find.text('Aperçu'), findsWidgets);
+      expect(find.text('Histoire globale'), findsOneWidget);
+      expect(find.text('Étape'), findsOneWidget);
+      expect(find.text('Cinématique'), findsOneWidget);
+      expect(find.text('Dialogue'), findsWidgets);
+
+      expect(find.text('Locale : FR'), findsNothing);
+      expect(find.text('v0.3.0'), findsNothing);
+      expect(find.text('Nouvelle storyline'), findsNothing);
+      expect(find.text('Valider'), findsNothing);
+      expect(find.textContaining('Selbrume'), findsNothing);
+      expect(find.text('42'), findsNothing);
+      expect(find.text('1 236'), findsNothing);
+      expect(find.text('1236'), findsNothing);
+      expect(find.text('24'), findsNothing);
+      expect(find.text('12'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace captures a full editor shell screenshot when requested',
     (tester) async {
       if (!const bool.fromEnvironment('NS_HOME_09_CAPTURE_FULL_SHELL')) {
@@ -135,6 +182,56 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         'ns_home_09_overview_full_shell.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-10 shell chrome screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_10_CAPTURE_SHELL_DESKTOP');
+      const captureFooter =
+          bool.fromEnvironment('NS_HOME_10_CAPTURE_SHELL_FOOTER');
+      if (!captureDesktop && !captureFooter) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_10_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize:
+            captureFooter ? const Size(1600, 1300) : const Size(1600, 1000),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      if (captureFooter) {
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('narrative-overview-footer')),
+          650,
+          scrollable: find.descendant(
+            of: find.byKey(const ValueKey('narrative-overview-scroll')),
+            matching: find.byType(Scrollable),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureFooter ? 'ns_home_10_shell_chrome_footer.png' : 'ns_home_10_shell_chrome_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(

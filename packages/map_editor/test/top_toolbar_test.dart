@@ -62,6 +62,34 @@ void main() {
       expect(find.text('Pokemon Map  •  Trainer Studio'), findsOneWidget);
     });
 
+    testWidgets('uses the French Narrative Studio overview chrome label',
+        (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/top_toolbar_narrative_overview',
+          project: buildShellChromeProject(name: 'test_project'),
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+        ),
+      );
+
+      expect(
+        find.text('test_project  •  Narrative Studio / Aperçu'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Narrative Overview'), findsNothing);
+
+      final overviewButton = tester.widget<ToolbarCapsuleButton>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton &&
+              widget.tooltip == 'Ouvrir Narrative Studio / Aperçu',
+        ),
+      );
+      expect(overviewButton.selected, isTrue);
+      expect(overviewButton.onPressed, isNotNull);
+    });
+
     testWidgets('enables project save and disables map history in Path Studio',
         (tester) async {
       final projectDir = Directory('/tmp/top_toolbar_path_studio');

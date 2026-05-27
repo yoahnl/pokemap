@@ -32,6 +32,23 @@ void main() {
       expect(find.text('Zoom 150 %'), findsOneWidget);
     });
 
+    testWidgets(
+        'hides global locale and version metadata in Narrative Overview',
+        (tester) async {
+      await pumpStatusBarHarness(
+        tester,
+        initialState: const EditorState(
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          statusMessage: 'Aperçu narratif prêt',
+        ),
+        surfaceSize: const Size(1280, 200),
+      );
+
+      expect(find.text('Aperçu narratif prêt'), findsOneWidget);
+      expect(find.text('Locale : FR'), findsNothing);
+      expect(find.text('v0.3.0'), findsNothing);
+    });
+
     testWidgets('prioritizes error text over status text', (tester) async {
       await pumpStatusBarHarness(
         tester,

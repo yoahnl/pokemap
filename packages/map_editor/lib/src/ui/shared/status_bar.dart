@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../theme/theme.dart';
 
 class StatusBar extends ConsumerStatefulWidget {
@@ -66,6 +67,8 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     final state = ref.watch(editorNotifierProvider);
     final colors = context.pokeMapColors;
     final activeMap = state.activeMap;
+    final isNarrativeOverview =
+        state.workspaceMode == EditorWorkspaceMode.narrativeOverview;
 
     const pendingProjectSaveMessage =
         'Projet modifié en mémoire — sauvegardez le projet avec la disquette.';
@@ -259,7 +262,7 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                 'Zoom ${(state.zoom * 100).toInt()} %',
                 CupertinoIcons.search,
               ),
-              if (isWide) ...[
+              if (isWide && !isNarrativeOverview) ...[
                 const SizedBox(width: 16),
                 _rightSegment(
                   colors,
