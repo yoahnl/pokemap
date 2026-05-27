@@ -18,12 +18,12 @@ class NarrativeStudioHeader extends StatelessWidget {
     final currentLabel = _workspaceLabel(workspaceMode);
     return Container(
       key: const ValueKey('narrative-studio-header'),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFF102033).withValues(alpha: 0.58),
+        color: const Color(0xFF102033).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: EditorChrome.activeAccent(context).withValues(alpha: 0.3),
+          color: EditorChrome.activeAccent(context).withValues(alpha: 0.24),
         ),
       ),
       child: LayoutBuilder(
@@ -89,23 +89,23 @@ class _HeaderTitle extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Narrative Studio / $currentLabel',
+          'Narrative Studio',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: EditorChrome.primaryLabel(context),
-            fontSize: 14.5,
+            fontSize: 13.5,
             fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 2),
         Text(
-          'Dashboard auteur',
+          'Section : $currentLabel',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: EditorChrome.subtleLabel(context),
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -129,8 +129,8 @@ class _HeaderActions extends StatelessWidget {
       key: const ValueKey('narrative-studio-header-actions'),
       alignment: WrapAlignment.end,
       crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 6,
-      runSpacing: 6,
+      spacing: 5,
+      runSpacing: 5,
       children: [
         const _HeaderActionPill(
           key: ValueKey('narrative-studio-header-action-new-storyline'),
@@ -207,35 +207,37 @@ class _HeaderActionPillState extends State<_HeaderActionPill> {
         ? EditorChrome.inspectorJoyCyan
         : enabled
             ? EditorChrome.accentPrimary
-            : EditorChrome.subtleLabel(context);
+            : EditorChrome.subtleLabel(context).withValues(alpha: 0.44);
     final fill = selected
         ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.18)
         : enabled && _hovered
             ? EditorChrome.activeAccent(context).withValues(alpha: 0.12)
             : enabled
                 ? const Color(0xFF14263A)
-                : const Color(0xFF111B27);
+                : const Color(0xFF0E1824).withValues(alpha: 0.78);
     final border = selected
         ? EditorChrome.inspectorJoyCyan.withValues(alpha: 0.68)
         : enabled && _hovered
             ? EditorChrome.activeAccent(context).withValues(alpha: 0.38)
-            : const Color(0x334A89FF);
+            : enabled
+                ? const Color(0x334A89FF)
+                : const Color(0x1F8EA0B5);
     final textColor = enabled
         ? EditorChrome.primaryLabel(context)
-        : EditorChrome.subtleLabel(context).withValues(alpha: 0.62);
+        : EditorChrome.subtleLabel(context).withValues(alpha: 0.5);
 
     final content = AnimatedContainer(
       duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(7),
         border: Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(widget.icon, size: 13, color: accent),
+          Icon(widget.icon, size: 12, color: accent),
           const SizedBox(width: 5),
           Text(
             widget.label,
@@ -243,8 +245,12 @@ class _HeaderActionPillState extends State<_HeaderActionPill> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: textColor,
-              fontSize: 11.5,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+              fontSize: 11.2,
+              fontWeight: selected
+                  ? FontWeight.w800
+                  : enabled
+                      ? FontWeight.w700
+                      : FontWeight.w600,
             ),
           ),
         ],

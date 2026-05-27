@@ -114,8 +114,8 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Narrative Studio / Aperçu'), findsOneWidget);
-      expect(find.text('Dashboard auteur'), findsOneWidget);
+      expect(find.text('Narrative Studio'), findsWidgets);
+      expect(find.text('Section : Aperçu'), findsOneWidget);
       expect(
         find.descendant(
           of: shell,
@@ -154,14 +154,14 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:globalStory'), findsOneWidget);
-      expect(find.text('Narrative Studio / Storylines'), findsOneWidget);
+      expect(find.text('Section : Storylines'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('narrative-studio-header-action-overview')),
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-      expect(find.text('Narrative Studio / Aperçu'), findsOneWidget);
+      expect(find.text('Section : Aperçu'), findsOneWidget);
 
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Scènes')),
@@ -441,8 +441,9 @@ void main() {
         surfaceSize: const Size(1600, 1000),
       );
 
-      expect(find.textContaining('Narrative Studio / Aperçu'), findsWidgets);
-      expect(find.textContaining('Vue d’ensemble auteur'), findsWidgets);
+      expect(find.text('Narrative Studio'), findsWidgets);
+      expect(find.text('Section : Aperçu'), findsOneWidget);
+      expect(find.textContaining('Métriques disponibles'), findsWidgets);
       expect(find.textContaining('Narrative Overview'), findsNothing);
       expect(
         find.text(
@@ -1108,6 +1109,57 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         '${captureAgainstTarget ? 'ns_home_21_visual_harmonization_against_target.png' : captureMedium ? 'ns_home_21_visual_harmonization_medium.png' : captureFocus ? 'ns_home_21_visual_harmonization_focus.png' : 'ns_home_21_visual_harmonization_desktop.png'}',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures NS-HOME-23 final micro-polish screenshots when requested',
+    (tester) async {
+      const captureDesktop =
+          bool.fromEnvironment('NS_HOME_23_CAPTURE_FINAL_MICRO_POLISH_DESKTOP');
+      const captureFocus =
+          bool.fromEnvironment('NS_HOME_23_CAPTURE_FINAL_MICRO_POLISH_FOCUS');
+      const captureMedium =
+          bool.fromEnvironment('NS_HOME_23_CAPTURE_FINAL_MICRO_POLISH_MEDIUM');
+      const captureAgainstTarget = bool.fromEnvironment(
+        'NS_HOME_23_CAPTURE_FINAL_MICRO_POLISH_AGAINST_TARGET',
+      );
+      if (!captureDesktop &&
+          !captureFocus &&
+          !captureMedium &&
+          !captureAgainstTarget) {
+        return;
+      }
+
+      await _loadShellScreenshotFonts();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/ns_home_23_test_project',
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+          project: _minimalProject('test_project'),
+        ),
+        surfaceSize: captureMedium
+            ? const Size(1180, 1000)
+            : captureFocus
+                ? const Size(1600, 700)
+                : const Size(1600, 1000),
+      );
+      await tester.tap(find.byKey(const ValueKey('project-explorer-toggle')));
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/ui/screenshots/'
+        '${captureAgainstTarget ? 'ns_home_23_final_micro_polish_against_target.png' : captureMedium ? 'ns_home_23_final_micro_polish_medium.png' : captureFocus ? 'ns_home_23_final_micro_polish_focus.png' : 'ns_home_23_final_micro_polish_desktop.png'}',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(

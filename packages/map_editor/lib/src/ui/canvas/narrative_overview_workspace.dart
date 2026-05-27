@@ -29,7 +29,7 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       key: const ValueKey('narrative-overview-scroll'),
-      padding: const EdgeInsets.fromLTRB(18, 6, 18, 18),
+      padding: const EdgeInsets.fromLTRB(18, 5, 18, 18),
       children: [
         const _OverviewPageHeader(),
         const SizedBox(height: 7),
@@ -57,8 +57,8 @@ class _OverviewPageHeader extends StatelessWidget {
         const Wrap(
           key: ValueKey('narrative-overview-breadcrumb'),
           crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 6,
-          runSpacing: 3,
+          spacing: 5,
+          runSpacing: 2,
           children: [
             _BreadcrumbSegment(label: 'PokeMap'),
             _BreadcrumbSeparator(),
@@ -72,16 +72,16 @@ class _OverviewPageHeader extends StatelessWidget {
           'Aperçu',
           style: TextStyle(
             color: EditorChrome.primaryLabel(context),
-            fontSize: 22,
+            fontSize: 21,
             fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 2),
         Text(
-          'Vue d’ensemble auteur : métriques et statuts honnêtes.',
+          'Métriques disponibles et statuts honnêtes.',
           style: TextStyle(
             color: EditorChrome.subtleLabel(context),
-            fontSize: 12.5,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -108,18 +108,18 @@ class _BreadcrumbSegment extends StatelessWidget {
       label,
       style: TextStyle(
         color: textColor,
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: current ? FontWeight.w700 : FontWeight.w600,
       ),
     );
     if (!current) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 1.5),
         child: child,
       );
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
       decoration: BoxDecoration(
         color: EditorChrome.chipFill(context),
         borderRadius: BorderRadius.circular(999),
@@ -141,7 +141,7 @@ class _BreadcrumbSeparator extends StatelessWidget {
       '/',
       style: TextStyle(
         color: EditorChrome.subtleLabel(context),
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -304,20 +304,20 @@ class _ProjectSummaryStrip extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.22),
+          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.18),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+      padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
       child: Wrap(
-        spacing: 14,
-        runSpacing: 8,
+        spacing: 12,
+        runSpacing: 7,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             'Projet',
             style: TextStyle(
               color: EditorChrome.primaryLabel(context),
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -353,7 +353,7 @@ class _ProjectSummaryItem extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
         color: EditorChrome.subtleLabel(context),
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: FontWeight.w800,
       ),
     );

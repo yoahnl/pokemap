@@ -30,7 +30,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
       label: 'Navigation interne Narrative Studio',
       child: Container(
         key: const ValueKey('narrative-studio-sidebar'),
-        width: compact ? 136 : 164,
+        width: compact ? 148 : 164,
         decoration: BoxDecoration(
           color: _NarrativeSidebarColors.panelFill,
           borderRadius: BorderRadius.circular(12),
@@ -38,7 +38,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
             color: _NarrativeSidebarColors.panelBorder,
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -69,7 +69,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
                 key: const ValueKey('narrative-studio-sidebar-overview'),
                 icon: CupertinoIcons.square_grid_2x2,
                 label: 'Aperçu',
-                subtitle: 'Dashboard auteur',
+                subtitle: 'Vue d’ensemble',
                 selected:
                     workspaceMode == EditorWorkspaceMode.narrativeOverview,
                 onTap: onSelectOverview,
@@ -106,6 +106,8 @@ class NarrativeStudioSidebar extends StatelessWidget {
                 selected: workspaceMode == EditorWorkspaceMode.dialogue,
                 onTap: onSelectDialogue,
               ),
+              const SizedBox(height: 6),
+              const _SidebarSectionLabel('Non branché V0'),
               const SizedBox(height: 4),
               const _SidebarEntry(
                 key: ValueKey('narrative-studio-sidebar-facts'),
@@ -130,6 +132,29 @@ class NarrativeStudioSidebar extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarSectionLabel extends StatelessWidget {
+  const _SidebarSectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 1),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: _NarrativeSidebarColors.mutedText,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -171,11 +196,11 @@ class _SidebarEntry extends StatelessWidget {
             : _NarrativeSidebarColors.disabledFill;
 
     final content = Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(9),
         border: Border.all(color: borderColor),
       ),
       child: Row(
@@ -188,25 +213,25 @@ class _SidebarEntry extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  maxLines: 1,
+                  maxLines: _enabled ? 1 : 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _enabled
                         ? _NarrativeSidebarColors.primaryText
                         : _NarrativeSidebarColors.disabledText,
-                    fontSize: 11,
+                    fontSize: 11.2,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   selected ? 'Actif' : subtitle,
-                  maxLines: 1,
+                  maxLines: _enabled ? 1 : 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color:
                         selected ? accent : _NarrativeSidebarColors.mutedText,
-                    fontSize: 9,
+                    fontSize: 9.1,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -231,11 +256,11 @@ class _SidebarEntry extends StatelessWidget {
 }
 
 abstract final class _NarrativeSidebarColors {
-  static const panelFill = Color(0xFF102033);
-  static const panelBorder = Color(0x334A89FF);
-  static const itemFill = Color(0xFF14263A);
-  static const disabledFill = Color(0xFF111B27);
-  static const itemBorder = Color(0x2E6BA8FF);
+  static const panelFill = Color(0xFF0F1D2D);
+  static const panelBorder = Color(0x304A89FF);
+  static const itemFill = Color(0xFF14273C);
+  static const disabledFill = Color(0xFF0E1824);
+  static const itemBorder = Color(0x2A6BA8FF);
   static const primaryText = Color(0xFFE6EEF8);
   static const mutedText = Color(0xFF8EA0B5);
   static const disabledText = Color(0xFF718197);

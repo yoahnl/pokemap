@@ -38,7 +38,7 @@ void main() {
       expect(find.text('Aperçu'), findsWidgets);
       expect(
         find.text(
-          'Vue d’ensemble auteur : métriques et statuts honnêtes.',
+          'Métriques disponibles et statuts honnêtes.',
         ),
         findsOneWidget,
       );
@@ -264,7 +264,7 @@ void main() {
       expect(find.text('Aperçu'), findsWidgets);
       expect(
         find.text(
-          'Vue d’ensemble auteur : métriques et statuts honnêtes.',
+          'Métriques disponibles et statuts honnêtes.',
         ),
         findsOneWidget,
       );

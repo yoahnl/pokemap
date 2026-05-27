@@ -17,8 +17,8 @@ void main() {
 
     expect(
         find.byKey(const ValueKey('narrative-studio-header')), findsOneWidget);
-    expect(find.text('Narrative Studio / Aperçu'), findsOneWidget);
-    expect(find.text('Dashboard auteur'), findsOneWidget);
+    expect(find.text('Narrative Studio'), findsOneWidget);
+    expect(find.text('Section : Aperçu'), findsOneWidget);
     expect(find.text('Aperçu'), findsOneWidget);
     expect(find.text('Nouvelle storyline'), findsOneWidget);
     expect(find.text('Valider'), findsOneWidget);
@@ -47,11 +47,11 @@ void main() {
   testWidgets('NarrativeStudioHeader labels each narrative workspace mode',
       (tester) async {
     final expectations = <EditorWorkspaceMode, String>{
-      EditorWorkspaceMode.narrativeOverview: 'Narrative Studio / Aperçu',
-      EditorWorkspaceMode.globalStory: 'Narrative Studio / Storylines',
-      EditorWorkspaceMode.step: 'Narrative Studio / Scènes',
-      EditorWorkspaceMode.cutscene: 'Narrative Studio / Cinématiques',
-      EditorWorkspaceMode.dialogue: 'Narrative Studio / Dialogues',
+      EditorWorkspaceMode.narrativeOverview: 'Section : Aperçu',
+      EditorWorkspaceMode.globalStory: 'Section : Storylines',
+      EditorWorkspaceMode.step: 'Section : Scènes',
+      EditorWorkspaceMode.cutscene: 'Section : Cinématiques',
+      EditorWorkspaceMode.dialogue: 'Section : Dialogues',
     };
 
     for (final entry in expectations.entries) {
@@ -60,6 +60,7 @@ void main() {
         workspaceMode: entry.key,
         onSelectOverview: () {},
       );
+      expect(find.text('Narrative Studio'), findsOneWidget);
       expect(find.text(entry.value), findsOneWidget);
     }
   });
