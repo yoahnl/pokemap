@@ -302,7 +302,8 @@ Interprétation V0 :
 | NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | DONE | NS-STORYLINES-CHECKPOINT |
 | NS-STORYLINES-CHECKPOINT | Storylines V0 Acceptance Checkpoint | checkpoint | DONE | NS-STORYLINES-V1-00 |
 | NS-STORYLINES-V1-00 | Storyline Semantics Reset / Usable Authoring Contract | product contract | DONE | NS-STORYLINES-V1-01 |
-| NS-STORYLINES-V1-01 | Storyline Authoring Model Decision | model decision | TODO | NS-STORYLINES-V1-02 |
+| NS-STORYLINES-V1-01 | Storyline Authoring Model Decision | model decision | DONE | NS-STORYLINES-V1-02 |
+| NS-STORYLINES-V1-02 | Storyline Authoring Data Shape Contract | data contract | TODO | NS-STORYLINES-V1-03 |
 
 ## 9. Detailed lots
 
@@ -623,10 +624,29 @@ Interprétation V0 :
 
 - Type : model decision / product architecture.
 - Objectif : décider le modèle durable pour créer et relier Storylines, Chapters, Story Steps et Scenes.
-- Non-objectifs : pas d'UI avant décision modèle.
+- Résultat : décision hybride retenue.
+- Modèle recommandé : `StorylineAsset` authoring model + `ScenarioAsset` executable scene flow.
+- Rôle `StorylineAsset` : structure produit auteur, types de storyline, chapters, story steps, scene links, outcomes, relationships, side quest availability, validation issues.
+- Rôle `ScenarioAsset` : flow exécutable, scènes/orchestrations runtime, graph local, outcomes déclarés et conditions.
+- Décisions clés : Structure est source d'authoring ; Graph est généré/read-only en V1 initial ; `localEventFlow` reste exclu comme `sideQuest` par défaut.
+- Risques : migration douce de `ScenarioAsset globalStory`, duplication temporaire pendant transition, besoin d'un contrat précis pour scene placeholders/outcomes.
+- Fichiers créés/modifiés : `reports/narrativeStudio/storylines/ns_storylines_v1_01_storyline_authoring_model_decision.md`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Tests exécutés : aucun, lot documentation-only.
+- Analyse exécutée : aucune, lot documentation-only.
+- Non-objectifs respectés : aucun code, modèle core, widget, test, screenshot ou bouton activé.
 - Dépendances : NS-STORYLINES-V1-00.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-02 — Storyline Authoring Data Shape Contract.
+
+### NS-STORYLINES-V1-02 — Storyline Authoring Data Shape Contract
+
+- Type : data-contract / architecture.
+- Objectif : transformer la décision V1-01 en contrat de données précis avant implémentation.
+- Résultat attendu : champs, enums, invariants, validation rules, migration plan et tests futurs pour le modèle `StorylineAsset`.
+- Non-objectifs : pas d'UI de création avant contrat data shape.
+- Dépendances : NS-STORYLINES-V1-01.
 - Statut : TODO.
-- Prochain lot attendu : NS-STORYLINES-V1-02.
+- Prochain lot attendu : NS-STORYLINES-V1-03.
 
 ## 10. Update protocol for every future lot
 
@@ -744,10 +764,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 PRODUCT CONTRACT ACTIVE
-Current lot: NS-STORYLINES-V1-00
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 MODEL DECISION DONE
+Current lot: NS-STORYLINES-V1-01
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-01 — Storyline Authoring Model Decision
+Next recommended lot: NS-STORYLINES-V1-02 — Storyline Authoring Data Shape Contract
 ```
 
 | Lot | Status | Last update | Notes |
@@ -767,7 +787,8 @@ Next recommended lot: NS-STORYLINES-V1-01 — Storyline Authoring Model Decision
 | NS-STORYLINES-11 | DONE | 2026-05-28 | Interaction wiring V0 livré : sélection locale de globalStory existante, synchronisation zones read-only, actions futures non mutantes, notes V1 Creation Readiness. |
 | NS-STORYLINES-CHECKPOINT | DONE | 2026-05-28 | Storylines V0 acceptance checkpoint livré : ACCEPTED V0 WITH V1 LIMITATIONS ; prochaine phase recommandée V1 semantic/product contract. |
 | NS-STORYLINES-V1-00 | DONE | 2026-05-28 | Reset sémantique produit livré : Storylines V0 techniquement valide, V1 doit clarifier et rendre utilisables Storyline / Chapter / Story Step / Scene / Graph / Structure. |
-| NS-STORYLINES-V1-01 | TODO | 2026-05-28 | Storyline Authoring Model Decision. |
+| NS-STORYLINES-V1-01 | DONE | 2026-05-28 | Modèle hybride retenu : `StorylineAsset` authoring + `ScenarioAsset` executable scene flow ; Structure source d'authoring, Graph généré. |
+| NS-STORYLINES-V1-02 | TODO | 2026-05-28 | Storyline Authoring Data Shape Contract. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -789,13 +810,24 @@ Suite V1 documentaire recommandée :
 
 - `NS-STORYLINES-V1-00 — Storyline Semantics Reset / Usable Authoring Contract`
 - `NS-STORYLINES-V1-01 — Storyline Authoring Model Decision`
-- `NS-STORYLINES-V1-02 — Create Main Storyline Flow`
-- `NS-STORYLINES-V1-03 — Create Side Quest Storyline Flow`
-- `NS-STORYLINES-V1-04 — Storyline Type / Status / Validation`
-- `NS-STORYLINES-V1-05 — Side Quest Graph Integration`
-- `NS-STORYLINES-V1-06 — V1 Visual Graph Enrichment`
+- `NS-STORYLINES-V1-02 — Storyline Authoring Data Shape Contract`
+- `NS-STORYLINES-V1-03 — Create Main Storyline Flow`
+- `NS-STORYLINES-V1-04 — Create Side Quest Storyline Flow`
+- `NS-STORYLINES-V1-05 — Storyline Type / Status / Validation`
+- `NS-STORYLINES-V1-06 — Side Quest Graph Integration`
+- `NS-STORYLINES-V1-07 — V1 Visual Graph Enrichment`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-01
+
+- Décision d'architecture Storylines V1 livrée.
+- Modèle recommandé : `StorylineAsset` authoring model + `ScenarioAsset` executable scene flow.
+- `StorylineAsset` devient la source produit pour Storylines, Chapters, Story Steps, scene links, outcomes, relationships, side quest availability et validation issues.
+- `ScenarioAsset` reste le modèle exécutable pour les scènes/flows runtime et n'est pas enrichi comme conteneur produit Storyline.
+- `localEventFlow` reste exclu comme `sideQuest` par défaut.
+- Décision Graph : `Structure` est source d'authoring ; `Graph` est généré/read-only en V1 initial, édition limitée plus tard.
+- Prochain lot recommandé : `NS-STORYLINES-V1-02 — Storyline Authoring Data Shape Contract`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-00
 
