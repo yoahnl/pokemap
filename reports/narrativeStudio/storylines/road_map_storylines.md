@@ -310,7 +310,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | DONE | NS-STORYLINES-V1-07 |
 | NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-07-bis |
 | NS-STORYLINES-V1-07-bis | Storylines Workspace Cleanup / Dead Legacy Removal | editor UI cleanup | DONE | NS-STORYLINES-V1-08 |
-| NS-STORYLINES-V1-08 | Structure Tab Authoring V0 | editor authoring | TODO | NS-STORYLINES-V1-09 |
+| NS-STORYLINES-V1-08 | Structure Tab Authoring V0 | editor authoring | DONE | NS-STORYLINES-V1-09 |
 | NS-STORYLINES-V1-09 | Create Side Quest Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-10 |
 | NS-STORYLINES-V1-10 | Graph From StorylineAsset V0 | editor graph | TODO | NS-STORYLINES-V1-11 |
 | NS-STORYLINES-V1-11 | Side Quest Graph Integration V0 | editor graph | TODO | NS-STORYLINES-V1-12 |
@@ -764,6 +764,22 @@ Interprétation V0 :
 - Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-V1-08 — Structure Tab Authoring V0.
 
+### NS-STORYLINES-V1-08 — Structure Tab Authoring V0
+
+- Type : editor UI / authoring flow / structure tab / tests / visual gate.
+- Objectif : rendre l'onglet Structure utilisable pour créer des chapitres et des étapes narratives dans une `StorylineAsset` existante.
+- Résultat : `Nouveau chapitre` ouvre un formulaire minimal, crée un `StorylineChapter` draft avec id slugifié unique, ordre calculé et sélection locale du chapitre créé.
+- Résultat : `Nouvelle étape narrative` ouvre un formulaire minimal depuis un chapitre sélectionné, crée une `StorylineStep` avec id slugifié unique à l'échelle de la storyline, ordre calculé dans le chapitre, puis l'affiche dans Structure.
+- Structure : affiche résumé storyline, liste des chapitres, détail du chapitre sélectionné, liste des étapes narratives et section `Scènes liées` désactivée.
+- Graph : reste minimal et read-only ; après création de chapitres/steps il affiche un résumé réel et le message que le graph détaillé viendra au lot `Graph From StorylineAsset`.
+- Fichiers modifiés/créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`, `reports/narrativeStudio/storylines/ns_storylines_v1_08_structure_tab_authoring_v0.md`, captures Visual Gate V1-08.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Design System Gate : confirmé ; aucun `Color(0x...)` / `Colors.*` dans les fichiers touchés.
+- Non-objectifs confirmés : aucune sideQuest, aucun scene placeholder, aucun sceneLink, aucun import legacy automatique, aucun `localEventFlow` promu, aucun `map_core`, runtime, gameplay ou battle modifié.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-09 — Create Side Quest Flow V0.
+
 ## 10. Update protocol for every future lot
 
 Chaque futur lot Storylines doit :
@@ -880,10 +896,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 CREATE MAIN STORYLINE FLOW DONE / V1-07-bis CLEANUP DONE
-Current lot: NS-STORYLINES-V1-07-bis
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 STRUCTURE AUTHORING DONE
+Current lot: NS-STORYLINES-V1-08
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-08 — Structure Tab Authoring V0
+Next recommended lot: NS-STORYLINES-V1-09 — Create Side Quest Flow V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -911,7 +927,8 @@ Next recommended lot: NS-STORYLINES-V1-08 — Structure Tab Authoring V0
 | NS-STORYLINES-V1-06 | DONE | 2026-05-28 | Legacy GlobalStory Import Preview V0 livré : candidats non destructifs depuis `globalStory`, issues stables, `localEventFlow` ignoré. |
 | NS-STORYLINES-V1-07 | DONE | 2026-05-28 | Create Main Storyline Flow V0 livré : création main `StorylineAsset`, Graph/Structure seulement, aucun import legacy automatique. |
 | NS-STORYLINES-V1-07-bis | DONE | 2026-05-28 | Cleanup technique Storylines livré sans changement produit : legacy mort absent, tap silencieux supprimé, Visual Gate V1-07 régénéré. |
-| NS-STORYLINES-V1-08 | TODO | 2026-05-28 | Structure Tab Authoring V0 recommandé comme prochain lot. |
+| NS-STORYLINES-V1-08 | DONE | 2026-05-29 | Structure Tab Authoring V0 livré : création de chapitres et steps, Graph minimal honnête, aucun sceneLink/sideQuest/import legacy. |
+| NS-STORYLINES-V1-09 | TODO | 2026-05-29 | Create Side Quest Flow V0 recommandé comme prochain lot. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -947,6 +964,15 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-V1-08
+
+- Structure Tab Authoring V0 livré côté editor : création de chapitres et d'étapes narratives dans `ProjectManifest.storylines`.
+- Mutations immuables via le notifier editor existant ; aucun modèle `map_core` modifié.
+- IDs `chapter_...` et `step_...` slugifiés, stables et collision-safe ; ordre chapitre/step calculé depuis les données existantes.
+- Graph minimal mis à jour pour afficher les vrais compteurs chapitres/steps sans branches ou edges fake.
+- Visual Gate V1-08 produit en dark theme.
+- Prochain lot recommandé : `NS-STORYLINES-V1-09 — Create Side Quest Flow V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-07-bis
 

@@ -12,7 +12,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-V1-07 create main storyline flow', () {
+  group('NS-STORYLINES-V1-08 structure tab authoring flow', () {
     testWidgets('shows only Graph and Structure tabs', (tester) async {
       await _pumpStorylinesShell(tester);
 
@@ -133,7 +133,283 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Nouveau chapitre — bientôt'), findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-new-chapter-action')),
+          findsOneWidget);
+      expect(find.text('Nouveau chapitre'), findsOneWidget);
+    });
+
+    testWidgets('Structure without storyline has no chapter or step action',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(tester);
+      final before = harness.project.toJson();
+
+      await _openStructureTab(tester);
+
+      expect(find.text('Créez une storyline pour commencer.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-new-chapter-action')),
+          findsNothing);
+      expect(find.byKey(const ValueKey('storylines-new-step-action')),
+          findsNothing);
+      expect(harness.project.toJson(), before);
+    });
+
+    testWidgets('opens and cancels create chapter without mutation',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+      final before = harness.project.toJson();
+
+      await _openCreateChapterDialog(tester);
+      expect(find.byKey(const ValueKey('storylines-create-chapter-dialog')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('storylines-create-chapter-title-field')),
+          findsOneWidget);
+      expect(
+          find.byKey(
+            const ValueKey('storylines-create-chapter-description-field'),
+          ),
+          findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-create-chapter-cancel')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('storylines-create-chapter-dialog')),
+          findsNothing);
+      expect(harness.project.toJson(), before);
+    });
+
+    testWidgets('requires chapter title before create', (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _openCreateChapterDialog(tester);
+
+      final submit = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('storylines-create-chapter-submit')),
+      );
+      expect(submit.onPressed, isNull);
+      expect(find.text('Titre obligatoire.'), findsOneWidget);
+      expect(harness.project.storylines.single.chapters, isEmpty);
+    });
+
+    testWidgets('creates chapters with stable ids, order and selection',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createChapter(
+        tester,
+        title: 'Intro',
+        description: 'Premier arc auteur.',
+      );
+      await _createChapter(tester, title: 'Intro');
+
+      final chapters = harness.project.storylines.single.chapters;
+      expect(chapters, hasLength(2));
+      expect(chapters.map((chapter) => chapter.id), [
+        'chapter_intro',
+        'chapter_intro_2',
+      ]);
+      expect(chapters.map((chapter) => chapter.order), [0, 1]);
+      expect(chapters.first.title, 'Intro');
+      expect(chapters.first.description, 'Premier arc auteur.');
+      expect(chapters.first.steps, isEmpty);
+      expect(find.byKey(const ValueKey('storylines-chapter-row-chapter_intro')),
+          findsOneWidget);
+      expect(
+          find.byKey(
+            const ValueKey('storylines-chapter-row-chapter_intro_2'),
+          ),
+          findsOneWidget);
+      expect(find.text('Détail du chapitre'), findsOneWidget);
+    });
+
+    testWidgets('step action requires a selected chapter', (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+      final before = harness.project.toJson();
+
+      await _openStructureTab(tester);
+
+      expect(find.byKey(const ValueKey('storylines-new-step-action')),
+          findsNothing);
+      expect(harness.project.toJson(), before);
+    });
+
+    testWidgets('opens and cancels create step without mutation',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+            chapters: [
+              StorylineChapter(
+                id: 'chapter_intro',
+                title: 'Intro',
+                order: 0,
+              ),
+            ],
+          ),
+        ]),
+      );
+      final before = harness.project.toJson();
+
+      await _openCreateStepDialog(tester);
+      expect(find.byKey(const ValueKey('storylines-create-step-dialog')),
+          findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-create-step-cancel')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('storylines-create-step-dialog')),
+          findsNothing);
+      expect(harness.project.toJson(), before);
+    });
+
+    testWidgets('requires step title before create', (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+            chapters: [
+              StorylineChapter(
+                id: 'chapter_intro',
+                title: 'Intro',
+                order: 0,
+              ),
+            ],
+          ),
+        ]),
+      );
+
+      await _openCreateStepDialog(tester);
+
+      final submit = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('storylines-create-step-submit')),
+      );
+      expect(submit.onPressed, isNull);
+      expect(find.text('Titre obligatoire.'), findsOneWidget);
+      expect(harness.project.storylines.single.chapters.single.steps, isEmpty);
+    });
+
+    testWidgets('creates steps with global unique ids and order',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createChapter(tester, title: 'Intro');
+      await _createStep(
+        tester,
+        title: 'Premier jalon',
+        description: 'Définir la progression.',
+      );
+      await _createStep(tester, title: 'Premier jalon');
+      await _createChapter(tester, title: 'Second arc');
+      await _createStep(tester, title: 'Premier jalon');
+
+      final chapters = harness.project.storylines.single.chapters;
+      final allSteps = [
+        for (final chapter in chapters) ...chapter.steps,
+      ];
+      expect(allSteps.map((step) => step.id), [
+        'step_premier_jalon',
+        'step_premier_jalon_2',
+        'step_premier_jalon_3',
+      ]);
+      expect(chapters.first.steps.map((step) => step.order), [0, 1]);
+      expect(chapters.last.steps.single.order, 0);
+      expect(chapters.first.steps.first.title, 'Premier jalon');
+      expect(chapters.first.steps.first.description, 'Définir la progression.');
+      expect(chapters.first.steps.first.sceneLinkIds, isEmpty);
+      expect(chapters.first.steps.first.expectedOutcomeIds, isEmpty);
+      expect(
+          find.byKey(
+            const ValueKey('storylines-step-row-step_premier_jalon_3'),
+          ),
+          findsOneWidget);
+    });
+
+    testWidgets('Graph summarizes created structure without fake edges',
+        (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createChapter(tester, title: 'Intro');
+      await _createStep(tester, title: 'Premier jalon');
+      await _openGraphTab(tester);
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('storylines-v1-graph-empty-canvas')),
+          matching: find.text('1 chapitre · 1 étape'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Graph détaillé à venir au lot Graph From StorylineAsset.'),
+        findsOneWidget,
+      );
+      expect(find.text('Ajoutez des chapitres dans Structure.'), findsNothing);
+      expect(find.text('Quête annexe fake'), findsNothing);
     });
 
     testWidgets('generates stable unique ids on collision', (tester) async {
@@ -207,7 +483,7 @@ void main() {
       expect(find.text('Local Event Flow'), findsNothing);
     });
 
-    testWidgets('Graph, Structure and disabled chapter CTA do not mutate',
+    testWidgets('Graph, Structure and disabled future actions do not mutate',
         (tester) async {
       final harness = await _pumpStorylinesShell(
         tester,
@@ -223,16 +499,51 @@ void main() {
       final beforeMode = harness.editorState.workspaceMode;
 
       await _openStructureTab(tester);
-      final newChapterButton = find.byKey(
-        const ValueKey('storylines-new-chapter-disabled'),
+      final linkSceneButton = find.byKey(
+        const ValueKey('storylines-link-scene-disabled'),
       );
-      expect(newChapterButton, findsOneWidget);
-      expect(tester.widget<PokeMapButton>(newChapterButton).onPressed, isNull);
+      expect(linkSceneButton, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(linkSceneButton).onPressed, isNull);
 
       await _openGraphTab(tester);
 
       expect(harness.project.toJson(), before);
       expect(harness.editorState.workspaceMode, beforeMode);
+    });
+
+    testWidgets('Structure authoring does not import legacy or localEventFlow',
+        (tester) async {
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        name: 'Legacy With Authoring',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        scenarios: _legacyAndLocalEventProject().scenarios,
+        storylines: [
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ],
+      );
+      final harness = await _pumpStorylinesShell(tester, project: project);
+      final beforeScenarios = harness.project.scenarios;
+
+      await _createChapter(tester, title: 'Intro');
+      await _createStep(tester, title: 'Premier jalon');
+
+      expect(harness.project.scenarios, beforeScenarios);
+      expect(harness.project.storylines, hasLength(1));
+      expect(harness.project.storylines.single.legacySource, isNull);
+      expect(
+        harness.project.storylines
+            .where((s) => s.type == StorylineType.sideQuest),
+        isEmpty,
+      );
+      expect(harness.project.storylines.single.sceneLinks, isEmpty);
+      expect(find.text('Local Event Flow'), findsNothing);
+      expect(find.text('Legacy Global Story'), findsNothing);
     });
 
     testWidgets('keeps target fake data and Maps out of the V1 UI',
@@ -278,44 +589,60 @@ void main() {
       expect(Theme.of(shellContext).brightness, Brightness.dark);
     });
 
-    testWidgets('writes V1-07 Visual Gate screenshots', (tester) async {
-      await _pumpStorylinesShell(tester, surfaceSize: const Size(1600, 1000));
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_07_empty_storylines_desktop.png',
+    testWidgets('writes V1-08 Structure Visual Gate screenshots',
+        (tester) async {
+      final project = _projectWithStorylines([
+        StorylineAsset(
+          id: 'storyline_visual_main',
+          type: StorylineType.main,
+          title: 'Visual Main',
         ),
-      );
+      ]);
 
-      await _pumpStorylinesShell(tester, surfaceSize: const Size(1600, 1000));
-      await _openCreateDialog(tester);
-      await expectLater(
-        find.byKey(const ValueKey('storylines-create-main-dialog')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_07_create_main_dialog.png',
-        ),
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 1000),
+        project: project,
       );
-      await tester.tap(find.byKey(const ValueKey('storylines-create-cancel')));
-      await tester.pumpAndSettle();
-
-      await _pumpStorylinesShell(tester, surfaceSize: const Size(1600, 1000));
-      await _createMainStoryline(tester, title: 'Visual Gate Main');
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_07_created_main_graph.png',
-        ),
-      );
-
       await _openStructureTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_07_created_main_structure.png',
+          'ns_storylines_v1_08_structure_empty.png',
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('storylines-new-chapter-action')));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byKey(const ValueKey('storylines-create-chapter-dialog')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_08_create_chapter_dialog.png',
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-create-chapter-cancel')),
+      );
+      await tester.pumpAndSettle();
+
+      await _createChapter(tester, title: 'Visual Chapter');
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_08_created_chapter.png',
+        ),
+      );
+
+      await _createStep(tester, title: 'Visual Step');
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_08_created_step.png',
         ),
       );
     });
@@ -371,6 +698,61 @@ Future<void> _createMainStoryline(
   }
   await tester.pump();
   await tester.tap(find.byKey(const ValueKey('storylines-create-submit')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openCreateChapterDialog(WidgetTester tester) async {
+  await _openStructureTab(tester);
+  await tester.tap(find.byKey(const ValueKey('storylines-new-chapter-action')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _createChapter(
+  WidgetTester tester, {
+  required String title,
+  String? description,
+}) async {
+  await _openCreateChapterDialog(tester);
+  await tester.enterText(
+    find.byKey(const ValueKey('storylines-create-chapter-title-field')),
+    title,
+  );
+  if (description != null) {
+    await tester.enterText(
+      find.byKey(const ValueKey('storylines-create-chapter-description-field')),
+      description,
+    );
+  }
+  await tester.pump();
+  await tester
+      .tap(find.byKey(const ValueKey('storylines-create-chapter-submit')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openCreateStepDialog(WidgetTester tester) async {
+  await _openStructureTab(tester);
+  await tester.tap(find.byKey(const ValueKey('storylines-new-step-action')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _createStep(
+  WidgetTester tester, {
+  required String title,
+  String? description,
+}) async {
+  await _openCreateStepDialog(tester);
+  await tester.enterText(
+    find.byKey(const ValueKey('storylines-create-step-title-field')),
+    title,
+  );
+  if (description != null) {
+    await tester.enterText(
+      find.byKey(const ValueKey('storylines-create-step-description-field')),
+      description,
+    );
+  }
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('storylines-create-step-submit')));
   await tester.pumpAndSettle();
 }
 

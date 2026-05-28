@@ -25,6 +25,7 @@ class StorylinesWorkspace extends ConsumerStatefulWidget {
 class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
   _StorylineContentTab _selectedTab = _StorylineContentTab.graph;
   String? _selectedStorylineId;
+  String? _selectedChapterId;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +33,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     final project = editorState.project;
     final storylines = project?.storylines ?? const <StorylineAsset>[];
     final selectedStoryline = _selectedStoryline(storylines);
+    final selectedChapter = _selectedChapter(selectedStoryline);
     final legacyGlobalStory = widget.projection.globalStories.isEmpty
         ? null
         : widget.projection.globalStories.first;
@@ -58,6 +60,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
           Expanded(
             child: _StorylinesV1MainPanel(
               selectedStoryline: selectedStoryline,
+              selectedChapter: selectedChapter,
               storylines: storylines,
               selectedTab: _selectedTab,
               legacyGlobalStory: legacyGlobalStory,
@@ -65,10 +68,23 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
               legacyStepCount: legacyStepCount,
               canCreateMainStoryline: _canCreateMainStoryline(storylines),
               onTabSelected: _selectTab,
+              onChapterSelected: _selectChapter,
               onCreateMainStoryline:
                   project == null || !_canCreateMainStoryline(storylines)
                       ? null
                       : () => _openCreateMainStorylineDialog(project),
+              onCreateChapter: project == null || selectedStoryline == null
+                  ? null
+                  : () => _openCreateChapterDialog(project, selectedStoryline),
+              onCreateStep: project == null ||
+                      selectedStoryline == null ||
+                      selectedChapter == null
+                  ? null
+                  : () => _openCreateStepDialog(
+                        project,
+                        selectedStoryline,
+                        selectedChapter,
+                      ),
             ),
           ),
           const SizedBox(width: 12),
@@ -99,12 +115,38 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     return !storylines.any((storyline) => storyline.type == StorylineType.main);
   }
 
+  StorylineChapter? _selectedChapter(StorylineAsset? storyline) {
+    if (storyline == null || storyline.chapters.isEmpty) {
+      return null;
+    }
+    final targetId = _selectedChapterId;
+    if (targetId != null) {
+      for (final chapter in storyline.chapters) {
+        if (chapter.id == targetId) {
+          return chapter;
+        }
+      }
+    }
+    return storyline.chapters.first;
+  }
+
   void _selectStoryline(StorylineAsset storyline) {
     if (_selectedStorylineId == storyline.id) {
       return;
     }
     setState(() {
       _selectedStorylineId = storyline.id;
+      _selectedChapterId =
+          storyline.chapters.isEmpty ? null : storyline.chapters.first.id;
+    });
+  }
+
+  void _selectChapter(StorylineChapter chapter) {
+    if (_selectedChapterId == chapter.id) {
+      return;
+    }
+    setState(() {
+      _selectedChapterId = chapter.id;
     });
   }
 
@@ -144,7 +186,109 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
         );
     setState(() {
       _selectedStorylineId = storyline.id;
+      _selectedChapterId = null;
       _selectedTab = _StorylineContentTab.graph;
+    });
+  }
+
+  Future<void> _openCreateChapterDialog(
+    ProjectManifest project,
+    StorylineAsset storyline,
+  ) async {
+    final draft = await showCupertinoDialog<_StructureItemDraft>(
+      context: context,
+      builder: (context) => const _CreateStructureItemDialog(
+        dialogKey: ValueKey('storylines-create-chapter-dialog'),
+        title: 'Nouveau chapitre',
+        titleFieldKey: ValueKey('storylines-create-chapter-title-field'),
+        descriptionFieldKey: ValueKey(
+          'storylines-create-chapter-description-field',
+        ),
+        cancelKey: ValueKey('storylines-create-chapter-cancel'),
+        submitKey: ValueKey('storylines-create-chapter-submit'),
+      ),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    final chapter = StorylineChapter(
+      id: _generateScopedId(
+        prefix: 'chapter',
+        title: draft.title,
+        existingIds: storyline.chapters.map((chapter) => chapter.id).toSet(),
+      ),
+      title: draft.title,
+      description: draft.description,
+      order: _nextChapterOrder(storyline),
+    );
+    final updatedStoryline = _copyStorylineWith(
+      storyline,
+      chapters: [...storyline.chapters, chapter],
+    );
+    _applyStorylineUpdate(
+      project,
+      updatedStoryline,
+      statusMessage: 'Chapitre créé',
+    );
+    setState(() {
+      _selectedStorylineId = storyline.id;
+      _selectedChapterId = chapter.id;
+      _selectedTab = _StorylineContentTab.structure;
+    });
+  }
+
+  Future<void> _openCreateStepDialog(
+    ProjectManifest project,
+    StorylineAsset storyline,
+    StorylineChapter chapter,
+  ) async {
+    final draft = await showCupertinoDialog<_StructureItemDraft>(
+      context: context,
+      builder: (context) => const _CreateStructureItemDialog(
+        dialogKey: ValueKey('storylines-create-step-dialog'),
+        title: 'Nouvelle étape narrative',
+        titleFieldKey: ValueKey('storylines-create-step-title-field'),
+        descriptionFieldKey: ValueKey(
+          'storylines-create-step-description-field',
+        ),
+        cancelKey: ValueKey('storylines-create-step-cancel'),
+        submitKey: ValueKey('storylines-create-step-submit'),
+      ),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    final step = StorylineStep(
+      id: _generateScopedId(
+        prefix: 'step',
+        title: draft.title,
+        existingIds: _storylineStepIds(storyline),
+      ),
+      title: draft.title,
+      description: draft.description,
+      order: _nextStepOrder(chapter),
+    );
+    final updatedChapter = _copyChapterWith(
+      chapter,
+      steps: [...chapter.steps, step],
+    );
+    final updatedStoryline = _copyStorylineWith(
+      storyline,
+      chapters: storyline.chapters
+          .map(
+            (current) => current.id == chapter.id ? updatedChapter : current,
+          )
+          .toList(growable: false),
+    );
+    _applyStorylineUpdate(
+      project,
+      updatedStoryline,
+      statusMessage: 'Étape narrative créée',
+    );
+    setState(() {
+      _selectedStorylineId = storyline.id;
+      _selectedChapterId = chapter.id;
+      _selectedTab = _StorylineContentTab.structure;
     });
   }
 
@@ -153,8 +297,22 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     List<StorylineAsset> storylines,
   ) {
     final existingIds = storylines.map((storyline) => storyline.id).toSet();
+    return _generateScopedId(
+      prefix: 'storyline',
+      title: title,
+      existingIds: existingIds,
+      fallback: 'main',
+    );
+  }
+
+  String _generateScopedId({
+    required String prefix,
+    required String title,
+    required Set<String> existingIds,
+    String fallback = 'item',
+  }) {
     final slug = _slugifyStorylineTitle(title);
-    final base = 'storyline_${slug.isEmpty ? 'main' : slug}';
+    final base = '${prefix}_${slug.isEmpty ? fallback : slug}';
     if (!existingIds.contains(base)) {
       return base;
     }
@@ -163,6 +321,53 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
       suffix += 1;
     }
     return '${base}_$suffix';
+  }
+
+  Set<String> _storylineStepIds(StorylineAsset storyline) {
+    return {
+      for (final chapter in storyline.chapters)
+        for (final step in chapter.steps) step.id,
+    };
+  }
+
+  int _nextChapterOrder(StorylineAsset storyline) {
+    var nextOrder = 0;
+    for (final chapter in storyline.chapters) {
+      if (chapter.order >= nextOrder) {
+        nextOrder = chapter.order + 1;
+      }
+    }
+    return nextOrder;
+  }
+
+  int _nextStepOrder(StorylineChapter chapter) {
+    var nextOrder = 0;
+    for (final step in chapter.steps) {
+      if (step.order >= nextOrder) {
+        nextOrder = step.order + 1;
+      }
+    }
+    return nextOrder;
+  }
+
+  void _applyStorylineUpdate(
+    ProjectManifest project,
+    StorylineAsset updatedStoryline, {
+    required String statusMessage,
+  }) {
+    final updated = project.copyWith(
+      storylines: project.storylines
+          .map(
+            (storyline) => storyline.id == updatedStoryline.id
+                ? updatedStoryline
+                : storyline,
+          )
+          .toList(growable: false),
+    );
+    ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+          updated,
+          statusMessage: statusMessage,
+        );
   }
 
   String _slugifyStorylineTitle(String title) {
@@ -193,6 +398,56 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     }
     return buffer.toString().replaceAll(RegExp(r'_+$'), '');
   }
+}
+
+StorylineAsset _copyStorylineWith(
+  StorylineAsset storyline, {
+  List<StorylineChapter>? chapters,
+}) {
+  return StorylineAsset(
+    id: storyline.id,
+    schemaVersion: storyline.schemaVersion,
+    type: storyline.type,
+    status: storyline.status,
+    title: storyline.title,
+    description: storyline.description,
+    sortOrder: storyline.sortOrder,
+    locale: storyline.locale,
+    chapters: chapters ?? storyline.chapters,
+    sceneLinks: storyline.sceneLinks,
+    relationships: storyline.relationships,
+    legacySource: storyline.legacySource,
+    authorNotes: storyline.authorNotes,
+    metadata: storyline.metadata,
+  );
+}
+
+StorylineChapter _copyChapterWith(
+  StorylineChapter chapter, {
+  List<StorylineStep>? steps,
+}) {
+  return StorylineChapter(
+    id: chapter.id,
+    title: chapter.title,
+    description: chapter.description,
+    order: chapter.order,
+    steps: steps ?? chapter.steps,
+    directSceneLinkIds: chapter.directSceneLinkIds,
+    status: chapter.status,
+    authorNotes: chapter.authorNotes,
+    metadata: chapter.metadata,
+  );
+}
+
+int _storylineStepCount(StorylineAsset storyline) {
+  return storyline.chapters.fold<int>(
+    0,
+    (total, chapter) => total + chapter.steps.length,
+  );
+}
+
+String _formatCount(int count, String singular, String plural) {
+  return '$count ${count == 1 ? singular : plural}';
 }
 
 class _StorylinesV1SecondaryPanel extends StatelessWidget {
@@ -350,6 +605,16 @@ class _StorylinesV1Row extends StatelessWidget {
                       fontSize: 11,
                     ),
                   ),
+                  if (storyline.chapters.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      "${_formatCount(storyline.chapters.length, 'chapitre', 'chapitres')} · ${_formatCount(_storylineStepCount(storyline), 'étape', 'étapes')}",
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -363,6 +628,7 @@ class _StorylinesV1Row extends StatelessWidget {
 class _StorylinesV1MainPanel extends StatelessWidget {
   const _StorylinesV1MainPanel({
     required this.selectedStoryline,
+    required this.selectedChapter,
     required this.storylines,
     required this.selectedTab,
     required this.legacyGlobalStory,
@@ -370,10 +636,14 @@ class _StorylinesV1MainPanel extends StatelessWidget {
     required this.legacyStepCount,
     required this.canCreateMainStoryline,
     required this.onTabSelected,
+    required this.onChapterSelected,
     required this.onCreateMainStoryline,
+    required this.onCreateChapter,
+    required this.onCreateStep,
   });
 
   final StorylineAsset? selectedStoryline;
+  final StorylineChapter? selectedChapter;
   final List<StorylineAsset> storylines;
   final _StorylineContentTab selectedTab;
   final NarrativeScenarioSummary? legacyGlobalStory;
@@ -381,7 +651,10 @@ class _StorylinesV1MainPanel extends StatelessWidget {
   final int legacyStepCount;
   final bool canCreateMainStoryline;
   final ValueChanged<_StorylineContentTab> onTabSelected;
+  final ValueChanged<StorylineChapter> onChapterSelected;
   final VoidCallback? onCreateMainStoryline;
+  final VoidCallback? onCreateChapter;
+  final VoidCallback? onCreateStep;
 
   @override
   Widget build(BuildContext context) {
@@ -407,7 +680,13 @@ class _StorylinesV1MainPanel extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: selectedTab == _StorylineContentTab.structure
-                ? _StorylinesV1StructureSection(storyline: selectedStoryline)
+                ? _StorylinesV1StructureSection(
+                    storyline: selectedStoryline,
+                    selectedChapter: selectedChapter,
+                    onChapterSelected: onChapterSelected,
+                    onCreateChapter: onCreateChapter,
+                    onCreateStep: onCreateStep,
+                  )
                 : _StorylinesV1GraphSection(
                     storyline: selectedStoryline,
                     legacyGlobalStory: legacyGlobalStory,
@@ -578,10 +857,14 @@ class _StorylinesV1GraphSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final selectedStoryline = storyline;
+    final chapterCount = selectedStoryline?.chapters.length ?? 0;
+    final stepCount =
+        selectedStoryline == null ? 0 : _storylineStepCount(selectedStoryline);
     return PokeMapCard(
       key: const ValueKey('storylines-graph-target-read-only'),
       padding: const EdgeInsets.all(18),
-      child: storyline == null
+      child: selectedStoryline == null
           ? _StorylinesV1NoStorylineState(
               legacyGlobalStory: legacyGlobalStory,
               legacyStep: legacyStep,
@@ -634,7 +917,7 @@ class _StorylinesV1GraphSection extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            storyline!.title,
+                            selectedStoryline.title,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: colors.textPrimary,
@@ -644,13 +927,26 @@ class _StorylinesV1GraphSection extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Ajoutez des chapitres dans Structure.',
+                            chapterCount == 0
+                                ? 'Ajoutez des chapitres dans Structure.'
+                                : "${_formatCount(chapterCount, 'chapitre', 'chapitres')} · ${_formatCount(stepCount, 'étape', 'étapes')}",
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: colors.textSecondary,
                               fontSize: 12,
                             ),
                           ),
+                          if (chapterCount > 0) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Graph détaillé à venir au lot Graph From StorylineAsset.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -791,13 +1087,24 @@ class _StorylinesV1NoStorylineState extends StatelessWidget {
 }
 
 class _StorylinesV1StructureSection extends StatelessWidget {
-  const _StorylinesV1StructureSection({required this.storyline});
+  const _StorylinesV1StructureSection({
+    required this.storyline,
+    required this.selectedChapter,
+    required this.onChapterSelected,
+    required this.onCreateChapter,
+    required this.onCreateStep,
+  });
 
   final StorylineAsset? storyline;
+  final StorylineChapter? selectedChapter;
+  final ValueChanged<StorylineChapter> onChapterSelected;
+  final VoidCallback? onCreateChapter;
+  final VoidCallback? onCreateStep;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final chapter = selectedChapter;
     return PokeMapCard(
       key: const ValueKey('storylines-structure-read-only'),
       padding: const EdgeInsets.all(18),
@@ -817,23 +1124,31 @@ class _StorylinesV1StructureSection extends StatelessWidget {
                 children: [
                   _StorylinesV1StructureSummary(storyline: storyline!),
                   const SizedBox(height: 12),
-                  const _StorylinesV1StructureBucket(
-                    key: ValueKey('storylines-v1-structure-chapters'),
-                    title: 'Chapitres',
-                    body: 'Aucun chapitre pour le moment.',
-                    action: 'Nouveau chapitre — bientôt',
+                  _StorylinesV1ChaptersSection(
+                    key: const ValueKey('storylines-v1-structure-chapters'),
+                    storyline: storyline!,
+                    selectedChapter: chapter,
+                    onChapterSelected: onChapterSelected,
+                    onCreateChapter: onCreateChapter,
                   ),
                   const SizedBox(height: 10),
-                  const _StorylinesV1StructureBucket(
-                    key: ValueKey('storylines-v1-structure-steps'),
-                    title: 'Étapes narratives',
-                    body: 'Les étapes seront organisées dans les chapitres.',
+                  _StorylinesV1ChapterDetail(
+                    chapter: chapter,
+                    onCreateStep: onCreateStep,
+                  ),
+                  const SizedBox(height: 10),
+                  _StorylinesV1StepsSection(
+                    key: const ValueKey('storylines-v1-structure-steps'),
+                    chapter: chapter,
                   ),
                   const SizedBox(height: 10),
                   const _StorylinesV1StructureBucket(
                     key: ValueKey('storylines-v1-structure-scenes'),
                     title: 'Scènes liées',
-                    body: 'Liens de scènes non branchés dans ce lot.',
+                    body:
+                        'Scènes liées à venir. Les scènes seront reliées dans un prochain lot.',
+                    action: 'Lier une scène — bientôt',
+                    actionKey: ValueKey('storylines-link-scene-disabled'),
                   ),
                 ],
               ),
@@ -888,17 +1203,344 @@ class _StorylinesV1StructureSummary extends StatelessWidget {
   }
 }
 
+class _StorylinesV1ChaptersSection extends StatelessWidget {
+  const _StorylinesV1ChaptersSection({
+    super.key,
+    required this.storyline,
+    required this.selectedChapter,
+    required this.onChapterSelected,
+    required this.onCreateChapter,
+  });
+
+  final StorylineAsset storyline;
+  final StorylineChapter? selectedChapter;
+  final ValueChanged<StorylineChapter> onChapterSelected;
+  final VoidCallback? onCreateChapter;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Chapitres',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              PokeMapButton(
+                key: const ValueKey('storylines-new-chapter-action'),
+                onPressed: onCreateChapter,
+                variant: PokeMapButtonVariant.primary,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.add),
+                child: const Text('Nouveau chapitre'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (storyline.chapters.isEmpty)
+            Text(
+              'Aucun chapitre\nCréez un premier chapitre pour organiser votre histoire.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            )
+          else
+            ...storyline.chapters.map(
+              (chapter) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _StorylinesV1ChapterRow(
+                  chapter: chapter,
+                  selected: chapter.id == selectedChapter?.id,
+                  onTap: () => onChapterSelected(chapter),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StorylinesV1ChapterRow extends StatelessWidget {
+  const _StorylinesV1ChapterRow({
+    required this.chapter,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final StorylineChapter chapter;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: ValueKey('storylines-chapter-row-${chapter.id}'),
+      padding: const EdgeInsets.all(12),
+      selected: selected,
+      onTap: onTap,
+      child: Row(
+        children: [
+          PokeMapIconTile(
+            icon: CupertinoIcons.bookmark,
+            tone: selected ? PokeMapTone.narrative : PokeMapTone.neutral,
+            size: 30,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  chapter.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${_formatCount(chapter.steps.length, 'étape narrative', 'étapes narratives')} · ordre ${chapter.order}',
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StorylinesV1ChapterDetail extends StatelessWidget {
+  const _StorylinesV1ChapterDetail({
+    required this.chapter,
+    required this.onCreateStep,
+  });
+
+  final StorylineChapter? chapter;
+  final VoidCallback? onCreateStep;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: const ValueKey('storylines-v1-chapter-detail'),
+      padding: const EdgeInsets.all(14),
+      selected: chapter != null,
+      child: chapter == null
+          ? Text(
+              'Détail du chapitre\nCréez ou sélectionnez un chapitre pour ajouter des étapes narratives.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Détail du chapitre',
+                            style: TextStyle(
+                              color: colors.textMuted,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            chapter!.title,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            chapter!.description ?? 'Aucune description.',
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: 12,
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ordre ${chapter!.order} · ${_formatCount(chapter!.steps.length, 'étape', 'étapes')}',
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    PokeMapButton(
+                      key: const ValueKey('storylines-new-step-action'),
+                      onPressed: onCreateStep,
+                      variant: PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.small,
+                      leading: const Icon(CupertinoIcons.add),
+                      child: const Text('Nouvelle étape narrative'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _StorylinesV1StepsSection extends StatelessWidget {
+  const _StorylinesV1StepsSection({
+    super.key,
+    required this.chapter,
+  });
+
+  final StorylineChapter? chapter;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Étapes narratives',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (chapter == null)
+            Text(
+              'Sélectionnez un chapitre pour voir ses étapes.',
+              style: TextStyle(color: colors.textSecondary, fontSize: 12),
+            )
+          else if (chapter!.steps.isEmpty)
+            Text(
+              'Aucune étape narrative\nAjoutez une première étape pour définir la progression du chapitre.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            )
+          else
+            ...chapter!.steps.map(
+              (step) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _StorylinesV1StepRow(step: step),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StorylinesV1StepRow extends StatelessWidget {
+  const _StorylinesV1StepRow({required this.step});
+
+  final StorylineStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: ValueKey('storylines-step-row-${step.id}'),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          const PokeMapIconTile(
+            icon: CupertinoIcons.flag,
+            tone: PokeMapTone.info,
+            size: 28,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  step.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  step.description ?? 'Aucune description.',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          const _StorylinesV1Badge(label: 'Aucune scène liée'),
+        ],
+      ),
+    );
+  }
+}
+
 class _StorylinesV1StructureBucket extends StatelessWidget {
   const _StorylinesV1StructureBucket({
     super.key,
     required this.title,
     required this.body,
     this.action,
+    this.actionKey,
   });
 
   final String title;
   final String body;
   final String? action;
+  final Key? actionKey;
 
   @override
   Widget build(BuildContext context) {
@@ -933,7 +1575,7 @@ class _StorylinesV1StructureBucket extends StatelessWidget {
           if (action != null) ...[
             const SizedBox(width: 10),
             PokeMapButton(
-              key: const ValueKey('storylines-new-chapter-disabled'),
+              key: actionKey,
               onPressed: null,
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
@@ -1041,6 +1683,10 @@ class _StorylinesV1InspectorPanel extends StatelessWidget {
                   value: selectedStoryline!.chapters.length.toString(),
                 ),
                 _StorylineInspectorTextLine(
+                  label: 'Étapes',
+                  value: _storylineStepCount(selectedStoryline!).toString(),
+                ),
+                _StorylineInspectorTextLine(
                   label: 'Scene links',
                   value: selectedStoryline!.sceneLinks.length.toString(),
                 ),
@@ -1058,6 +1704,135 @@ class _CreateMainStorylineDraft {
 
   final String title;
   final String? description;
+}
+
+class _StructureItemDraft {
+  const _StructureItemDraft({
+    required this.title,
+    required this.description,
+  });
+
+  final String title;
+  final String? description;
+}
+
+class _CreateStructureItemDialog extends StatefulWidget {
+  const _CreateStructureItemDialog({
+    required this.dialogKey,
+    required this.title,
+    required this.titleFieldKey,
+    required this.descriptionFieldKey,
+    required this.cancelKey,
+    required this.submitKey,
+  });
+
+  final Key dialogKey;
+  final String title;
+  final Key titleFieldKey;
+  final Key descriptionFieldKey;
+  final Key cancelKey;
+  final Key submitKey;
+
+  @override
+  State<_CreateStructureItemDialog> createState() =>
+      _CreateStructureItemDialogState();
+}
+
+class _CreateStructureItemDialogState
+    extends State<_CreateStructureItemDialog> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final title = _titleController.text.trim();
+    return Center(
+      child: SizedBox(
+        width: 460,
+        child: PokeMapPanel(
+          key: widget.dialogKey,
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.title,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _StorylinesV1TextField(
+                key: widget.titleFieldKey,
+                controller: _titleController,
+                placeholder: 'Titre',
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 10),
+              _StorylinesV1TextField(
+                key: widget.descriptionFieldKey,
+                controller: _descriptionController,
+                placeholder: 'Description optionnelle',
+                maxLines: 3,
+              ),
+              if (title.isEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Titre obligatoire.',
+                  style: TextStyle(
+                    color: colors.warning,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  PokeMapButton(
+                    key: widget.cancelKey,
+                    onPressed: () => Navigator.of(context).pop(),
+                    variant: PokeMapButtonVariant.secondary,
+                    child: const Text('Annuler'),
+                  ),
+                  const SizedBox(width: 10),
+                  PokeMapButton(
+                    key: widget.submitKey,
+                    onPressed: title.isEmpty
+                        ? null
+                        : () {
+                            final description =
+                                _descriptionController.text.trim();
+                            Navigator.of(context).pop(
+                              _StructureItemDraft(
+                                title: title,
+                                description:
+                                    description.isEmpty ? null : description,
+                              ),
+                            );
+                          },
+                    variant: PokeMapButtonVariant.primary,
+                    child: const Text('Créer'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _CreateMainStorylineDialog extends StatefulWidget {
