@@ -300,7 +300,7 @@ Interprétation V0 :
 | NS-STORYLINES-09 | Chapters Inspector / Step Ordering Read-only V0 | editor UI | DONE | NS-STORYLINES-10 |
 | NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | DONE | NS-STORYLINES-11 |
 | NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | DONE | NS-STORYLINES-CHECKPOINT |
-| NS-STORYLINES-CHECKPOINT | Storylines V0 Acceptance Checkpoint | checkpoint | TODO | TBD |
+| NS-STORYLINES-CHECKPOINT | Storylines V0 Acceptance Checkpoint | checkpoint | DONE | NS-STORYLINES-V1-00 |
 
 ## 9. Detailed lots
 
@@ -589,17 +589,18 @@ Interprétation V0 :
 
 - Type : checkpoint.
 - Objectif : décider si Storylines V0 est acceptable et documenter les limites V1.
-- Fichiers probables : rapport checkpoint.
+- Résultat : Storylines V0 accepté avec limites V1 documentées.
+- Fichiers créés/modifiés : `reports/narrativeStudio/storylines/ns_storylines_checkpoint_v0_acceptance.md`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
 - Non-objectifs : pas de code, pas de tests modifiés, pas de polish.
 - Dépendances : NS-STORYLINES-11.
 - Critères d'acceptation : verdict clair, checklist V0, limites V1, recommandation de suite.
-- Tests attendus : aucun si audit-only.
-- Analyse attendue : commandes Git read-only, `git diff --check`.
-- Visual Gate : inspecter screenshots finaux existants.
-- Risques : transformer le checkpoint en nouveau chantier.
-- Design system impact : confirmer respect du gate.
-- Statut : TODO.
-- Prochain lot attendu : TBD.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : analyse ciblée Storylines avec `flutter analyze --no-fatal-infos`.
+- Visual Gate : inventaire des screenshots finaux NS10/NS11 inspecté ; captures utiles pour structure/theme/overflow, limitées par Ahem.
+- Design system impact : gate confirmé, aucun `Color(0x...)` / `Colors.*`.
+- Verdict : ACCEPTED V0 WITH V1 LIMITATIONS.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-00 — Storyline Creation Product Contract.
 
 ## 10. Update protocol for every future lot
 
@@ -717,10 +718,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-11
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS
+Current lot: NS-STORYLINES-CHECKPOINT
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-CHECKPOINT — Storylines V0 Acceptance Checkpoint
+Next recommended lot: NS-STORYLINES-V1-00 — Storyline Creation Product Contract
 ```
 
 | Lot | Status | Last update | Notes |
@@ -738,7 +739,7 @@ Next recommended lot: NS-STORYLINES-CHECKPOINT — Storylines V0 Acceptance Chec
 | NS-STORYLINES-09 | DONE | 2026-05-28 | Chapters inspector / step ordering read-only livré sans scène fake. |
 | NS-STORYLINES-10 | DONE | 2026-05-28 | Visual harmonization Graph/Chapitres et Visual Gate complet livrés sans nouvelle feature. |
 | NS-STORYLINES-11 | DONE | 2026-05-28 | Interaction wiring V0 livré : sélection locale de globalStory existante, synchronisation zones read-only, actions futures non mutantes, notes V1 Creation Readiness. |
-| NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
+| NS-STORYLINES-CHECKPOINT | DONE | 2026-05-28 | Storylines V0 acceptance checkpoint livré : ACCEPTED V0 WITH V1 LIMITATIONS ; prochaine phase recommandée V1 creation contract. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -766,6 +767,15 @@ Suite V1 documentaire possible, sans démarrage dans V0 :
 - `NS-STORYLINES-V1-05 — Side Quest Graph Integration`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-CHECKPOINT
+
+- Storylines V0 accepté avec limites V1 documentées.
+- Vérifications ciblées passées : Storylines shell, caractérisation anti-fake, projection narrative et analyse ciblée.
+- Design System Gate confirmé : aucun `Color(0x...)` / `Colors.*`.
+- Visual Gate final inventorié : captures NS10 et NS11 recommandées pour structure/theme/overflow, avec limite Ahem.
+- Limites V0 actées : pas de création storyline, pas de quête annexe, pas de modèle `StorylineAsset`, pas de graph editing, pas de scène métier finale.
+- Prochain lot recommandé : `NS-STORYLINES-V1-00 — Storyline Creation Product Contract`.
 
 ### 2026-05-28 — NS-STORYLINES-11-bis
 
