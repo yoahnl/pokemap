@@ -1,12 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 
 void main() {
   group('buildNarrativeWorkspaceProjection', () {
     test('splits global story and local flows, and projects steps', () {
-      const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      const project = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -119,7 +121,8 @@ void main() {
         ],
       );
 
-      final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -157,6 +160,114 @@ void main() {
       expect(
         projection.steps.last.activationSummary,
         contains('step_intro'),
+      );
+    });
+
+    test('projects chapters from Global Story Studio metadata', () {
+      const stepStudioDocument = StepStudioDocument(
+        globalStoryScenarioId: 'global_story',
+        steps: <StepStudioStep>[
+          StepStudioStep(
+            id: 'step_intro',
+            name: 'Audit Step From Metadata',
+            description: 'Intro detail',
+            order: 0,
+            activation: StepStudioActivationRule(
+              mode: StepStudioActivationMode.atGameStart,
+            ),
+            completion: StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.manual,
+            ),
+          ),
+          StepStudioStep(
+            id: 'step_follow',
+            name: 'Audit Second Step From Metadata',
+            description: 'Follow detail',
+            order: 1,
+            activation: StepStudioActivationRule(
+              mode: StepStudioActivationMode.afterStep,
+              stepId: 'step_intro',
+            ),
+            completion: StepStudioCompletionRule(
+              mode: StepStudioCompletionMode.manual,
+            ),
+          ),
+        ],
+      );
+      const globalDocument = GlobalStoryStudioDocument(
+        globalStoryScenarioId: 'global_story',
+        entryStepId: 'step_intro',
+        nodes: <GlobalStoryStepNode>[
+          GlobalStoryStepNode(stepId: 'step_intro'),
+          GlobalStoryStepNode(stepId: 'step_follow'),
+        ],
+        chapters: <GlobalStoryChapter>[
+          GlobalStoryChapter(
+            id: 'chapter_second',
+            name: 'Audit Second Chapter From Metadata',
+            description: 'Second chapter detail',
+            stepIds: <String>['step_follow', 'missing_step'],
+            order: 1,
+          ),
+          GlobalStoryChapter(
+            id: 'chapter_first',
+            name: 'Audit Chapter From Metadata',
+            description: 'First chapter detail',
+            stepIds: <String>['step_intro'],
+            order: 0,
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        name: 'test',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        scenarios: <ScenarioAsset>[
+          ScenarioAsset(
+            id: 'global_story',
+            name: 'Audit Story From Scenario',
+            scope: ScenarioScope.globalStory,
+            entryNodeId: 'start',
+            metadata: <String, String>{
+              kStepStudioSchemaMetadataKey: kStepStudioSchemaVersion,
+              kStepStudioDocumentMetadataKey:
+                  stepStudioDocument.toMetadataJson(),
+              kGlobalStoryStudioSchemaMetadataKey:
+                  kGlobalStoryStudioSchemaVersion,
+              kGlobalStoryStudioDocumentMetadataKey:
+                  globalDocument.toMetadataJson(),
+            },
+          ),
+          const ScenarioAsset(
+            id: 'audit_local_event_flow',
+            name: 'Audit Local Event Flow',
+            scope: ScenarioScope.localEventFlow,
+            entryNodeId: 'local_start',
+          ),
+        ],
+      );
+
+      final projection = buildNarrativeWorkspaceProjection(project);
+
+      expect(projection.chapters, hasLength(2));
+      expect(projection.chapters.first.id, 'chapter_first');
+      expect(projection.chapters.first.order, 0);
+      expect(projection.chapters.first.globalScenarioId, 'global_story');
+      expect(projection.chapters.first.stepIds, <String>['step_intro']);
+      expect(projection.chapters.first.steps.single.name,
+          'Audit Step From Metadata');
+      expect(projection.chapters.first.missingStepIds, isEmpty);
+
+      expect(projection.chapters.last.id, 'chapter_second');
+      expect(projection.chapters.last.stepIds, <String>['step_follow']);
+      expect(projection.chapters.last.steps.single.name,
+          'Audit Second Step From Metadata');
+      expect(projection.chapters.last.missingStepIds, <String>['missing_step']);
+      expect(
+        projection.chapters.any(
+            (chapter) => chapter.globalScenarioId == 'audit_local_event_flow'),
+        isFalse,
       );
     });
   });

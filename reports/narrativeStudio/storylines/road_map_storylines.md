@@ -296,7 +296,7 @@ Interprétation V0 :
 | NS-STORYLINES-05 | Storyline Header / Tabs / KPI Read-only V0 | editor UI | DONE | NS-STORYLINES-06 |
 | NS-STORYLINES-06 | Storyline Graph Read-only Placeholder V0 | editor UI / visual gate | DONE | NS-STORYLINES-07 |
 | NS-STORYLINES-07 | Storyline Inspector Read-only V0 | editor UI | DONE | NS-STORYLINES-08 |
-| NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | TODO | NS-STORYLINES-09 |
+| NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | DONE | NS-STORYLINES-09 |
 | NS-STORYLINES-09 | Chapters Inspector / Scene Ordering Read-only V0 | editor UI | TODO | NS-STORYLINES-10 |
 | NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | TODO | NS-STORYLINES-11 |
 | NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | TODO | NS-STORYLINES-CHECKPOINT |
@@ -493,7 +493,17 @@ Interprétation V0 :
 - Visual Gate : chapters desktop/focus.
 - Risques : confondre steps et scènes finales.
 - Design system impact : cards/list rows partagés.
-- Statut : TODO.
+- Statut : DONE.
+- Résultat NS-STORYLINES-08 : onglet `Chapitres` read-only livré avec état local de tab, chapitres réels issus de `GlobalStoryStudioDocument.chapters`, étapes liées résolues depuis `NarrativeStepSummary`, et empty state honnête.
+- Fichiers modifiés : `packages/map_editor/lib/src/features/narrative/application/narrative_workspace_projection.dart`, `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `packages/map_editor/test/narrative_workspace_projection_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Fichiers créés : `reports/narrativeStudio/storylines/ns_storylines_08_chapters_tab_read_only_v0.md`, captures Visual Gate `ns_storylines_08_chapters_tab_desktop.png`, `ns_storylines_08_chapters_tab_focus.png`, `ns_storylines_08_chapters_tab_center.png`.
+- Données : `NarrativeChapterSummary` editor-side avec id, scenario id, nom, description, ordre, step ids normalisés, steps résolues et step ids manquants détectés depuis la metadata brute.
+- Interactions : `Graph` et `Chapitres` changent uniquement l'état UI local ; `Étapes`, `Scènes`, `Statistiques`, `Tests` restent non branchés / non mutants ; `Nouveau chapitre` est disabled.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart lib/src/ui/canvas/narrative_workspace_canvas.dart lib/src/features/narrative/application/narrative_workspace_projection.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Visual Gate : dark theme actif ; captures desktop, focus et center produites sur l'onglet `Chapitres`.
+- Design System Gate : confirmé ; `PokeMapPageSurface`, `PokeMapCard`, `PokeMapIconTile`, `PokeMapStatusTile`, `PokeMapMetricCard`, `PokeMapSegmentedTabs`, `PokeMapButton`, `PokeMapTone` et `context.pokeMapColors` utilisés ; aucun `Color(0x...)` / `Colors.*` ajouté.
+- Fake data : aucun statut éditorial, scène, quête annexe, donnée Selbrume, world rule, fact, activité récente ou chiffre cible ajouté ; `localEventFlow` reste absent de la tab Chapitres.
 - Prochain lot attendu : NS-STORYLINES-09.
 
 ### NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
@@ -677,9 +687,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-07
+Current lot: NS-STORYLINES-08
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-08 — Chapters Tab Read-only V0
+Next recommended lot: NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -693,13 +703,26 @@ Next recommended lot: NS-STORYLINES-08 — Chapters Tab Read-only V0
 | NS-STORYLINES-05 | DONE | 2026-05-28 | Header/tabs/KPI read-only livrés avec KPI sourcés ou disabled. |
 | NS-STORYLINES-06 | DONE | 2026-05-28 | Graph read-only placeholder livré avec steps réelles et empty state. |
 | NS-STORYLINES-07 | DONE | 2026-05-28 | Inspector read-only livré avec données réelles, sections futures disabled et empty state. |
-| NS-STORYLINES-08 | TODO | 2026-05-27 | Chapters tab. |
+| NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré avec chapters réels, steps liées et empty state. |
 | NS-STORYLINES-09 | TODO | 2026-05-27 | Chapters inspector/order. |
 | NS-STORYLINES-10 | TODO | 2026-05-27 | Visual harmonization. |
 | NS-STORYLINES-11 | TODO | 2026-05-27 | Interaction wiring. |
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-08
+
+- Ajout d'un read model editor-side `NarrativeChapterSummary` dans la projection narrative.
+- Extraction des chapitres depuis `GlobalStoryStudioDocument.chapters`, avec ordre conservé, steps résolues, step ids manquants détectés depuis la metadata brute, et exclusion des `localEventFlow`.
+- Ajout d'un état UI local pour basculer uniquement entre `Graph` et `Chapitres` sans mutation projet ou état narratif persistant.
+- Ajout du contenu `Chapitres` read-only : source `Global Story Studio`, liste ordonnée, description réelle, compteur d'étapes narratives, aperçu des étapes liées, bouton `Nouveau chapitre` disabled et empty state honnête.
+- Conservation du panneau secondaire NS-STORYLINES-04, du header/tabs/KPI NS-STORYLINES-05, du graph NS-STORYLINES-06 et de l'inspecteur NS-STORYLINES-07.
+- Adaptation des tests Storylines et projection ; vérification des tabs futures non mutantes, de l'absence de `localEventFlow`, de l'absence de `Scènes du chapitre` et de l'absence de statuts éditoriaux fake.
+- Production des captures Visual Gate dark `ns_storylines_08_chapters_tab_desktop.png`, `ns_storylines_08_chapters_tab_focus.png`, `ns_storylines_08_chapters_tab_center.png`.
+- Confirmation : aucune donnée cible hardcodée, aucune création/édition/suppression/réorganisation active, aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers touchés.
+- Tests ciblés Storylines / caractérisation / projection passés ; analyse ciblée clean.
+- Prochain lot recommandé : `NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0`.
 
 ### 2026-05-28 — NS-STORYLINES-07
 

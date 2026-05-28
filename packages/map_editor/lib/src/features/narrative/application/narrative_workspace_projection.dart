@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
+import 'global_story_studio_authoring.dart';
 import 'step_studio_authoring.dart';
 
 /// Type d'outcome exposé dans le workspace narratif.
@@ -77,6 +80,32 @@ class NarrativeStepSummary {
   final int worldChangeCount;
 }
 
+/// Chapitre / arc narratif dérivé du Global Story Studio.
+///
+/// Cette structure reste editor-side et read-only. Elle permet au workspace
+/// Storylines d'afficher les regroupements sans exposer la metadata brute.
+class NarrativeChapterSummary {
+  const NarrativeChapterSummary({
+    required this.id,
+    required this.globalScenarioId,
+    required this.name,
+    required this.description,
+    required this.order,
+    required this.stepIds,
+    required this.steps,
+    required this.missingStepIds,
+  });
+
+  final String id;
+  final String globalScenarioId;
+  final String name;
+  final String description;
+  final int order;
+  final List<String> stepIds;
+  final List<NarrativeStepSummary> steps;
+  final List<String> missingStepIds;
+}
+
 /// Graphe relationnel outcome -> émetteurs / consommateurs.
 class NarrativeOutcomeSummary {
   const NarrativeOutcomeSummary({
@@ -105,6 +134,7 @@ class NarrativeWorkspaceProjection {
     required this.globalStories,
     required this.localEventFlows,
     required this.steps,
+    required this.chapters,
     required this.outcomes,
     required this.scenarioById,
   });
@@ -112,6 +142,7 @@ class NarrativeWorkspaceProjection {
   final List<NarrativeScenarioSummary> globalStories;
   final List<NarrativeScenarioSummary> localEventFlows;
   final List<NarrativeStepSummary> steps;
+  final List<NarrativeChapterSummary> chapters;
   final List<NarrativeOutcomeSummary> outcomes;
   final Map<String, NarrativeScenarioSummary> scenarioById;
 }
@@ -122,6 +153,7 @@ NarrativeWorkspaceProjection buildNarrativeWorkspaceProjection(
   final globalStories = <NarrativeScenarioSummary>[];
   final localEventFlows = <NarrativeScenarioSummary>[];
   final scenarioById = <String, NarrativeScenarioSummary>{};
+  final rawGlobalStoryScenarios = <ScenarioAsset>[];
 
   final stepById = <String, _MutableStep>{};
   final outcomeById = <String, _MutableOutcome>{};
@@ -163,6 +195,7 @@ NarrativeWorkspaceProjection buildNarrativeWorkspaceProjection(
     scenarioById[summary.id] = summary;
     if (summary.scope == ScenarioScope.globalStory) {
       globalStories.add(summary);
+      rawGlobalStoryScenarios.add(scenario);
     } else {
       localEventFlows.add(summary);
     }
@@ -209,14 +242,100 @@ NarrativeWorkspaceProjection buildNarrativeWorkspaceProjection(
       .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   localEventFlows
       .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  final chapters = _buildChapterSummaries(
+    rawGlobalStoryScenarios: rawGlobalStoryScenarios,
+    steps: steps,
+  );
 
   return NarrativeWorkspaceProjection(
     globalStories: globalStories,
     localEventFlows: localEventFlows,
     steps: steps,
+    chapters: chapters,
     outcomes: outcomes,
     scenarioById: scenarioById,
   );
+}
+
+List<NarrativeChapterSummary> _buildChapterSummaries({
+  required List<ScenarioAsset> rawGlobalStoryScenarios,
+  required List<NarrativeStepSummary> steps,
+}) {
+  final stepsByScenarioId = <String, Map<String, NarrativeStepSummary>>{};
+  for (final step in steps) {
+    final byId = stepsByScenarioId.putIfAbsent(
+      step.globalScenarioId,
+      () => <String, NarrativeStepSummary>{},
+    );
+    byId[step.id] = step;
+  }
+
+  final chapters = <NarrativeChapterSummary>[];
+  for (final scenario in rawGlobalStoryScenarios) {
+    final stepDocument = parseStepStudioDocumentFromGlobalScenario(scenario);
+    final globalDocument = parseGlobalStoryStudioDocumentFromGlobalScenario(
+      scenario,
+      stepDocument: stepDocument.document,
+    );
+    final rawChapterStepIdsById = _rawChapterStepIdsByChapterId(scenario);
+    final stepById = stepsByScenarioId[scenario.id] ??
+        const <String, NarrativeStepSummary>{};
+    final orderedChapters = globalDocument.document.chapters.toList(
+      growable: false,
+    )..sort((a, b) => a.order.compareTo(b.order));
+
+    for (final chapter in orderedChapters) {
+      final stepIds = chapter.stepIds.toList(growable: false);
+      final resolvedSteps = <NarrativeStepSummary>[
+        for (final id in stepIds)
+          if (stepById[id] != null) stepById[id]!,
+      ];
+      final rawStepIds = rawChapterStepIdsById[chapter.id] ?? stepIds;
+      final missingStepIds = rawStepIds
+          .map((id) => id.trim())
+          .where((id) => id.isNotEmpty && !stepById.containsKey(id))
+          .toList(growable: false);
+
+      chapters.add(
+        NarrativeChapterSummary(
+          id: chapter.id,
+          globalScenarioId: scenario.id,
+          name: chapter.name.trim().isEmpty
+              ? 'Chapitre sans titre'
+              : chapter.name,
+          description: chapter.description,
+          order: chapter.order,
+          stepIds: stepIds,
+          steps: resolvedSteps,
+          missingStepIds: missingStepIds,
+        ),
+      );
+    }
+  }
+
+  return chapters;
+}
+
+Map<String, List<String>> _rawChapterStepIdsByChapterId(
+  ScenarioAsset scenario,
+) {
+  final rawDocument = scenario.metadata[kGlobalStoryStudioDocumentMetadataKey];
+  if (rawDocument == null || rawDocument.trim().isEmpty) {
+    return const <String, List<String>>{};
+  }
+  try {
+    final decoded = jsonDecode(rawDocument);
+    if (decoded is! Map<String, dynamic>) {
+      return const <String, List<String>>{};
+    }
+    final document = GlobalStoryStudioDocument.fromJson(decoded);
+    return <String, List<String>>{
+      for (final chapter in document.chapters)
+        chapter.id: chapter.stepIds.toList(growable: false),
+    };
+  } catch (_) {
+    return const <String, List<String>>{};
+  }
 }
 
 void _registerScenarioOutcomes(

@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-07 Storyline inspector read-only V0', () {
+  group('NS-STORYLINES-08 Chapters tab read-only V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -48,6 +48,10 @@ void main() {
         expect(
           find.byKey(const ValueKey('storylines-graph-read-only')),
           findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-chapters-read-only')),
+          findsNothing,
         );
         expect(find.text('Graph read-only'), findsOneWidget);
         expect(find.text('Étapes narratives réelles'), findsOneWidget);
@@ -251,6 +255,132 @@ void main() {
       },
     );
 
+    testWidgets(
+      'shows the Chapters tab from Global Story Studio metadata read-only',
+      (tester) async {
+        final harness = await _pumpStorylinesShell(tester);
+        final beforeEditorState =
+            harness.container.read(editorNotifierProvider);
+        final beforeNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+        final beforeProject = beforeEditorState.project!;
+        final beforeScenarioIds = beforeProject.scenarios
+            .map((scenario) => scenario.id)
+            .toList(growable: false);
+
+        await _openChaptersTab(tester);
+
+        final chapters =
+            find.byKey(const ValueKey('storylines-chapters-read-only'));
+        final createAction =
+            find.byKey(const ValueKey('storylines-chapters-create-action'));
+
+        expect(chapters, findsOneWidget);
+        expect(find.byKey(const ValueKey('storylines-graph-read-only')),
+            findsNothing);
+        expect(
+          find.descendant(of: chapters, matching: find.text('Chapitres')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapters,
+            matching: find.textContaining('Global Story Studio'),
+          ),
+          findsWidgets,
+        );
+        expect(
+          find.descendant(
+            of: chapters,
+            matching: find.text('Audit Chapter From Metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapters,
+            matching: find.text('Audit chapter description from metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+              of: chapters, matching: find.text('1 étape narrative')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapters,
+            matching: find.text('Audit Step From Metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapters,
+            matching: find.text('Audit Step Detail From Metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: chapters, matching: find.text('Lecture seule')),
+          findsWidgets,
+        );
+        expect(createAction, findsOneWidget);
+        expect(tester.widget<PokeMapButton>(createAction).onPressed, isNull);
+
+        await tester.tap(createAction);
+        await tester.pump();
+
+        final afterEditorState = harness.container.read(editorNotifierProvider);
+        final afterNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+
+        expect(afterEditorState.workspaceMode, beforeEditorState.workspaceMode);
+        expect(afterEditorState.workspaceMode, EditorWorkspaceMode.globalStory);
+        expect(afterEditorState.project, same(beforeProject));
+        expect(
+          afterEditorState.project!.scenarios
+              .map((scenario) => scenario.id)
+              .toList(growable: false),
+          beforeScenarioIds,
+        );
+        expect(
+          afterNarrativeState.selectedGlobalStoryId,
+          beforeNarrativeState.selectedGlobalStoryId,
+        );
+        expect(
+          afterNarrativeState.selectedStepId,
+          beforeNarrativeState.selectedStepId,
+        );
+        expect(find.text('Audit Local Event Flow'), findsNothing);
+        expect(find.text('Scènes du chapitre'), findsNothing);
+        expect(find.text('Brouillon'), findsNothing);
+        expect(find.text('En cours'), findsNothing);
+      },
+    );
+
+    testWidgets('shows an honest Chapters empty state', (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        project: _emptyGraphProject(),
+        selectedGlobalStoryId: 'audit_empty_global_story',
+      );
+
+      await _openChaptersTab(tester);
+
+      expect(
+        find.byKey(const ValueKey('storylines-chapters-read-only')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Aucun chapitre disponible pour cette storyline.'),
+        findsOneWidget,
+      );
+      expect(find.text('Audit Step From Metadata'), findsNothing);
+      expect(find.text('Audit Local Event Flow'), findsNothing);
+    });
+
     testWidgets('renders an honest inspector empty state without global story',
         (tester) async {
       await _pumpStorylinesShell(
@@ -281,7 +411,7 @@ void main() {
     });
 
     testWidgets(
-      'keeps Storyline tabs read-only and non-mutating',
+      'keeps future Storyline tabs read-only and non-mutating',
       (tester) async {
         final harness = await _pumpStorylinesShell(tester);
         final tabs = find.byKey(const ValueKey('storylines-tabs'));
@@ -302,7 +432,6 @@ void main() {
             .toList(growable: false);
 
         for (final label in <String>[
-          'Chapitres',
           'Étapes',
           'Scènes',
           'Statistiques',
@@ -472,11 +601,12 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 1000),
       );
+      await _openChaptersTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_07_inspector_desktop.png',
+          'ns_storylines_08_chapters_tab_desktop.png',
         ),
       );
 
@@ -484,11 +614,12 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 700),
       );
+      await _openChaptersTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_07_inspector_focus.png',
+          'ns_storylines_08_chapters_tab_focus.png',
         ),
       );
 
@@ -496,11 +627,12 @@ void main() {
         tester,
         surfaceSize: const Size(1180, 1000),
       );
+      await _openChaptersTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_07_inspector_panel.png',
+          'ns_storylines_08_chapters_tab_center.png',
         ),
       );
     });
@@ -524,7 +656,20 @@ const _targetOnlyStrings = <String>[
   'Haute',
   'Validé',
   'À jour',
+  'Défini',
+  'Brouillon',
+  'En cours',
 ];
+
+Future<void> _openChaptersTab(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byKey(const ValueKey('storylines-tabs')),
+      matching: find.text('Chapitres'),
+    ),
+  );
+  await tester.pump();
+}
 
 Future<_StorylinesHarness> _pumpStorylinesShell(
   WidgetTester tester, {

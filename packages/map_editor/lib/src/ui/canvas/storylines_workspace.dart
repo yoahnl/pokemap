@@ -4,7 +4,7 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 
-class StorylinesWorkspace extends StatelessWidget {
+class StorylinesWorkspace extends StatefulWidget {
   const StorylinesWorkspace({
     super.key,
     required this.projection,
@@ -15,16 +15,28 @@ class StorylinesWorkspace extends StatelessWidget {
   final String? selectedGlobalStoryId;
 
   @override
+  State<StorylinesWorkspace> createState() => _StorylinesWorkspaceState();
+}
+
+class _StorylinesWorkspaceState extends State<StorylinesWorkspace> {
+  _StorylineContentTab _selectedTab = _StorylineContentTab.graph;
+
+  @override
   Widget build(BuildContext context) {
     final selectedStory = _selectedStory;
     final relatedSteps = selectedStory == null
         ? <NarrativeStepSummary>[]
-        : projection.steps
+        : widget.projection.steps
             .where((step) => step.globalScenarioId == selectedStory.id)
             .toList(growable: false);
+    final relatedChapters = selectedStory == null
+        ? <NarrativeChapterSummary>[]
+        : widget.projection.chapters
+            .where((chapter) => chapter.globalScenarioId == selectedStory.id)
+            .toList(growable: false);
     final stepCountsByStoryId = <String, int>{
-      for (final story in projection.globalStories)
-        story.id: projection.steps
+      for (final story in widget.projection.globalStories)
+        story.id: widget.projection.steps
             .where((step) => step.globalScenarioId == story.id)
             .length,
     };
@@ -43,7 +55,7 @@ class StorylinesWorkspace extends StatelessWidget {
           SizedBox(
             width: 240,
             child: _StorylinesSecondaryPanel(
-              stories: projection.globalStories,
+              stories: widget.projection.globalStories,
               selectedStoryId: selectedStory?.id,
               stepCountsByStoryId: stepCountsByStoryId,
             ),
@@ -53,8 +65,12 @@ class StorylinesWorkspace extends StatelessWidget {
             child: _StorylineMainPanel(
               selectedStory: selectedStory,
               steps: relatedSteps,
+              chapters: relatedChapters,
+              selectedTab: _selectedTab,
+              onTabSelected: _selectTab,
               stepCount: relatedSteps.length,
-              globalStoryCount: projection.globalStories.length,
+              chapterCount: relatedChapters.length,
+              globalStoryCount: widget.projection.globalStories.length,
               linkedCutsceneCount: linkedCutsceneCount,
             ),
           ),
@@ -73,14 +89,23 @@ class StorylinesWorkspace extends StatelessWidget {
   }
 
   NarrativeScenarioSummary? get _selectedStory {
-    for (final story in projection.globalStories) {
-      if (story.id == selectedGlobalStoryId) {
+    for (final story in widget.projection.globalStories) {
+      if (story.id == widget.selectedGlobalStoryId) {
         return story;
       }
     }
-    return projection.globalStories.isEmpty
+    return widget.projection.globalStories.isEmpty
         ? null
-        : projection.globalStories.first;
+        : widget.projection.globalStories.first;
+  }
+
+  void _selectTab(_StorylineContentTab tab) {
+    if (_selectedTab == tab) {
+      return;
+    }
+    setState(() {
+      _selectedTab = tab;
+    });
   }
 }
 
@@ -317,14 +342,22 @@ class _StorylineMainPanel extends StatelessWidget {
   const _StorylineMainPanel({
     required this.selectedStory,
     required this.steps,
+    required this.chapters,
+    required this.selectedTab,
+    required this.onTabSelected,
     required this.stepCount,
+    required this.chapterCount,
     required this.globalStoryCount,
     required this.linkedCutsceneCount,
   });
 
   final NarrativeScenarioSummary? selectedStory;
   final List<NarrativeStepSummary> steps;
+  final List<NarrativeChapterSummary> chapters;
+  final _StorylineContentTab selectedTab;
+  final ValueChanged<_StorylineContentTab> onTabSelected;
   final int stepCount;
+  final int chapterCount;
   final int globalStoryCount;
   final int linkedCutsceneCount;
 
@@ -341,21 +374,32 @@ class _StorylineMainPanel extends StatelessWidget {
             selectedStory: selectedStory,
           ),
           const SizedBox(height: 12),
-          const _StorylineTabsRow(),
+          _StorylineTabsRow(
+            selectedTab: selectedTab,
+            onTabSelected: onTabSelected,
+          ),
           const SizedBox(height: 12),
           _StorylineKpiStrip(
             globalStoryCount: globalStoryCount,
             stepCount: stepCount,
+            chapterCount: chapterCount,
             linkedCutsceneCount: linkedCutsceneCount,
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: _StorylineGraphSection(steps: steps),
+            child: selectedTab == _StorylineContentTab.chapters
+                ? _StorylineChaptersSection(chapters: chapters)
+                : _StorylineGraphSection(steps: steps),
           ),
         ],
       ),
     );
   }
+}
+
+enum _StorylineContentTab {
+  graph,
+  chapters,
 }
 
 class _StorylineGraphSection extends StatelessWidget {
@@ -594,6 +638,356 @@ class _StorylineGraphEmptyState extends StatelessWidget {
   }
 }
 
+class _StorylineChaptersSection extends StatelessWidget {
+  const _StorylineChaptersSection({
+    required this.chapters,
+  });
+
+  final List<NarrativeChapterSummary> chapters;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapPageSurface(
+      key: const ValueKey('storylines-chapters-read-only'),
+      padding: const EdgeInsets.all(18),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PokeMapIconTile(
+                  icon: CupertinoIcons.square_list,
+                  tone: PokeMapTone.narrative,
+                  size: 38,
+                  iconSize: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chapitres',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Lecture read-only des chapitres issus de Global Story Studio.',
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 12.5,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const PokeMapButton(
+                  key: ValueKey('storylines-chapters-create-action'),
+                  onPressed: null,
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  leading: Icon(CupertinoIcons.plus, size: 14),
+                  child: Text('Nouveau chapitre'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                PokeMapStatusTile(
+                  label: 'Chapitres réels',
+                  value: '${chapters.length}',
+                  icon: CupertinoIcons.square_list,
+                  tone: PokeMapTone.info,
+                ),
+                const PokeMapStatusTile(
+                  label: 'Source',
+                  value: 'Global Story Studio',
+                  icon: CupertinoIcons.doc_text,
+                  tone: PokeMapTone.neutral,
+                ),
+                const PokeMapStatusTile(
+                  label: 'Mode',
+                  value: 'Lecture seule',
+                  icon: CupertinoIcons.lock,
+                  tone: PokeMapTone.neutral,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (chapters.isEmpty)
+              const _StorylineChaptersEmptyState()
+            else
+              _StorylineChapterList(chapters: chapters),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StorylineChapterList extends StatelessWidget {
+  const _StorylineChapterList({
+    required this.chapters,
+  });
+
+  final List<NarrativeChapterSummary> chapters;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final chapter in chapters) ...[
+          _StorylineChapterCard(chapter: chapter),
+          if (chapter != chapters.last) const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _StorylineChapterCard extends StatelessWidget {
+  const _StorylineChapterCard({
+    required this.chapter,
+  });
+
+  final NarrativeChapterSummary chapter;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final description = chapter.description.trim();
+    return PokeMapCard(
+      key: ValueKey('storylines-chapter-card-${chapter.id}'),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.book,
+                tone: PokeMapTone.narrative,
+                size: 34,
+                iconSize: 16,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Chapitre ${chapter.order + 1}',
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      chapter.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description.isEmpty
+                          ? 'Description de chapitre non renseignée.'
+                          : description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              PokeMapStatusTile(
+                label: 'Étapes narratives liées',
+                value: _formatFrenchCount(
+                  chapter.steps.length,
+                  singular: 'étape narrative',
+                  plural: 'étapes narratives',
+                ),
+                icon: CupertinoIcons.list_bullet,
+                tone: PokeMapTone.info,
+              ),
+              const PokeMapStatusTile(
+                label: 'État',
+                value: 'Lecture seule',
+                icon: CupertinoIcons.lock,
+                tone: PokeMapTone.neutral,
+              ),
+              if (chapter.missingStepIds.isNotEmpty)
+                PokeMapStatusTile(
+                  label: 'Références manquantes',
+                  value: _formatFrenchCount(
+                    chapter.missingStepIds.length,
+                    singular: 'step absente',
+                    plural: 'steps absentes',
+                  ),
+                  icon: CupertinoIcons.exclamationmark_triangle,
+                  tone: PokeMapTone.warning,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Étapes du chapitre',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (chapter.steps.isEmpty)
+            Text(
+              'Aucune étape narrative liée à ce chapitre.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final step in chapter.steps) ...[
+                  _StorylineChapterStepPreview(step: step),
+                  if (step != chapter.steps.last) const SizedBox(height: 8),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StorylineChapterStepPreview extends StatelessWidget {
+  const _StorylineChapterStepPreview({
+    required this.step,
+  });
+
+  final NarrativeStepSummary step;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PokeMapIconTile(
+          icon: CupertinoIcons.smallcircle_fill_circle,
+          tone: PokeMapTone.info,
+          size: 28,
+          iconSize: 12,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                step.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                step.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 11.5,
+                  height: 1.3,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StorylineChaptersEmptyState extends StatelessWidget {
+  const _StorylineChaptersEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: const ValueKey('storylines-chapters-empty-state'),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PokeMapIconTile(
+            icon: CupertinoIcons.tray,
+            tone: PokeMapTone.neutral,
+            size: 34,
+            iconSize: 15,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Aucun chapitre disponible pour cette storyline.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StorylineHeaderSection extends StatelessWidget {
   const _StorylineHeaderSection({
     required this.selectedStory,
@@ -687,42 +1081,50 @@ class _StorylineHeaderSection extends StatelessWidget {
 }
 
 class _StorylineTabsRow extends StatelessWidget {
-  const _StorylineTabsRow();
+  const _StorylineTabsRow({
+    required this.selectedTab,
+    required this.onTabSelected,
+  });
+
+  final _StorylineContentTab selectedTab;
+  final ValueChanged<_StorylineContentTab> onTabSelected;
 
   @override
   Widget build(BuildContext context) {
-    return const KeyedSubtree(
-      key: ValueKey('storylines-tabs'),
+    return KeyedSubtree(
+      key: const ValueKey('storylines-tabs'),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: PokeMapSegmentedTabs(
           tabs: [
             PokeMapSegmentedTab(
               label: 'Graph',
-              selected: true,
+              selected: selectedTab == _StorylineContentTab.graph,
               icon: CupertinoIcons.arrow_branch,
+              onTap: () => onTabSelected(_StorylineContentTab.graph),
             ),
             PokeMapSegmentedTab(
               label: 'Chapitres',
-              selected: false,
+              selected: selectedTab == _StorylineContentTab.chapters,
               icon: CupertinoIcons.square_list,
+              onTap: () => onTabSelected(_StorylineContentTab.chapters),
             ),
-            PokeMapSegmentedTab(
+            const PokeMapSegmentedTab(
               label: 'Étapes',
               selected: false,
               icon: CupertinoIcons.list_bullet,
             ),
-            PokeMapSegmentedTab(
+            const PokeMapSegmentedTab(
               label: 'Scènes',
               selected: false,
               icon: CupertinoIcons.film,
             ),
-            PokeMapSegmentedTab(
+            const PokeMapSegmentedTab(
               label: 'Statistiques',
               selected: false,
               icon: CupertinoIcons.chart_bar,
             ),
-            PokeMapSegmentedTab(
+            const PokeMapSegmentedTab(
               label: 'Tests',
               selected: false,
               icon: CupertinoIcons.checkmark_shield,
@@ -738,11 +1140,13 @@ class _StorylineKpiStrip extends StatelessWidget {
   const _StorylineKpiStrip({
     required this.globalStoryCount,
     required this.stepCount,
+    required this.chapterCount,
     required this.linkedCutsceneCount,
   });
 
   final int globalStoryCount;
   final int stepCount;
+  final int chapterCount;
   final int linkedCutsceneCount;
 
   @override
@@ -789,14 +1193,14 @@ class _StorylineKpiStrip extends StatelessWidget {
               tone: PokeMapTone.neutral,
             ),
           ),
-          const SizedBox(
-            key: ValueKey('storylines-kpi-chapters'),
+          SizedBox(
+            key: const ValueKey('storylines-kpi-chapters'),
             width: 150,
             height: 128,
             child: PokeMapMetricCard(
               title: 'Chapitres',
-              value: 'À venir',
-              subtitle: 'Read model futur',
+              value: '$chapterCount',
+              subtitle: 'Source Global Story',
               icon: CupertinoIcons.square_list,
               tone: PokeMapTone.neutral,
             ),
