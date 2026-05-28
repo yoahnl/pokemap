@@ -299,7 +299,7 @@ Interprétation V0 :
 | NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | DONE | NS-STORYLINES-09 |
 | NS-STORYLINES-09 | Chapters Inspector / Step Ordering Read-only V0 | editor UI | DONE | NS-STORYLINES-10 |
 | NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | DONE | NS-STORYLINES-11 |
-| NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | TODO | NS-STORYLINES-CHECKPOINT |
+| NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | DONE | NS-STORYLINES-CHECKPOINT |
 | NS-STORYLINES-CHECKPOINT | Storylines V0 Acceptance Checkpoint | checkpoint | TODO | TBD |
 
 ## 9. Detailed lots
@@ -572,16 +572,17 @@ Interprétation V0 :
 
 - Type : editor UI / test.
 - Objectif : brancher uniquement les interactions honnêtes.
-- Fichiers probables : widgets Storylines, `NarrativeWorkspaceCanvas`, tests interaction.
-- Non-objectifs : pas de création Storyline, pas de validation globale, pas de graph editing.
+- Résultat : sélection locale de `globalStory` existante, synchronisation des zones read-only, actions futures non mutantes, V1 Creation Readiness documenté.
+- Fichiers modifiés/créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`, `reports/narrativeStudio/storylines/ns_storylines_11_interaction_wiring_v0.md`, captures Visual Gate NS11.
+- Non-objectifs respectés : pas de création Storyline, pas de validation globale, pas de graph editing, pas de modèle `StorylineAsset`, pas de quête annexe fake.
 - Dépendances : NS-STORYLINES-10.
 - Critères d'acceptation : interactions réelles fonctionnent, futures disabled, aucune mutation non prévue.
-- Tests attendus : tabs, list selection, inspector, disabled actions.
-- Analyse attendue : `flutter analyze`, `git diff --check`.
-- Visual Gate : interaction focus.
-- Risques : activer trop tôt Nouvelle storyline, Valider, search ou graph.
-- Design system impact : préserver composants existants.
-- Statut : TODO.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : analyse ciblée Storylines avec `flutter analyze --no-fatal-infos`.
+- Visual Gate : `ns_storylines_11_interaction_default_graph.png`, `ns_storylines_11_interaction_selected_story_graph.png`, `ns_storylines_11_interaction_selected_story_chapters.png`.
+- Design System Gate : confirmé, aucun `Color(0x...)` / `Colors.*` ajouté.
+- Fake data : aucune donnée cible, aucune quête annexe fake, aucun `localEventFlow` promu.
+- Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-CHECKPOINT.
 
 ### NS-STORYLINES-CHECKPOINT — Storylines V0 Acceptance Checkpoint
@@ -752,6 +753,7 @@ Pré-requis recommandés pour activer la création Storylines V1 :
 - Validation anti-duplicate : empêcher les ids/titres conflictuels, les types incompatibles et les liens de steps orphelins.
 - Compatibilité : décider comment migrer ou projeter le `ScenarioAsset globalStory` actuel sans casser les projets existants.
 - Quêtes annexes : les afficher uniquement quand le modèle existe ; `localEventFlow` ne suffit pas et ne doit jamais devenir une quête annexe par défaut.
+- Création : storyline principale et quête annexe prévues pour V1 uniquement, pas en V0.
 - Boutons activables plus tard : `Nouvelle storyline`, `+`, `Nouveau chapitre`, validation narrative et création de quête annexe après contrat modèle + tests anti-fake.
 
 Suite V1 documentaire possible, sans démarrage dans V0 :
@@ -764,6 +766,13 @@ Suite V1 documentaire possible, sans démarrage dans V0 :
 - `NS-STORYLINES-V1-05 — Side Quest Graph Integration`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-11-bis
+
+- Correction de cohérence documentaire de la roadmap.
+- `NS-STORYLINES-11` est maintenant `DONE` dans toutes les sections structurantes.
+- Le prochain lot reste `NS-STORYLINES-CHECKPOINT`.
+- Aucun code, test, screenshot ou modèle modifié.
 
 ### 2026-05-28 — NS-STORYLINES-11
 
