@@ -297,7 +297,7 @@ Interprétation V0 :
 | NS-STORYLINES-06 | Storyline Graph Read-only Placeholder V0 | editor UI / visual gate | DONE | NS-STORYLINES-07 |
 | NS-STORYLINES-07 | Storyline Inspector Read-only V0 | editor UI | DONE | NS-STORYLINES-08 |
 | NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | DONE | NS-STORYLINES-09 |
-| NS-STORYLINES-09 | Chapters Inspector / Scene Ordering Read-only V0 | editor UI | TODO | NS-STORYLINES-10 |
+| NS-STORYLINES-09 | Chapters Inspector / Step Ordering Read-only V0 | editor UI | DONE | NS-STORYLINES-10 |
 | NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | TODO | NS-STORYLINES-11 |
 | NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | TODO | NS-STORYLINES-CHECKPOINT |
 | NS-STORYLINES-CHECKPOINT | Storylines V0 Acceptance Checkpoint | checkpoint | TODO | TBD |
@@ -536,20 +536,20 @@ Interprétation V0 :
 - Fake data : aucune quête annexe fake, aucun nom/chiffre Selbrume cible, aucune mini-map ou zoom actif ajouté ; `localEventFlow` reste absent du graph.
 - Prochain lot recommandé inchangé : NS-STORYLINES-09.
 
-### NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
+### NS-STORYLINES-09 — Chapters Inspector / Step Ordering Read-only V0
 
 - Type : editor UI.
-- Objectif : créer inspecteur chapitre et ordre steps/scènes read-only.
-- Fichiers probables : inspector chapitre, read model chapters, tests.
+- Objectif : créer inspecteur chapitre et ordre des étapes narratives read-only.
+- Fichiers modifiés/créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`, `reports/narrativeStudio/storylines/ns_storylines_09_chapters_inspector_step_ordering_read_only_v0.md`, captures Visual Gate NS09.
 - Non-objectifs : pas de réordonnancement, pas d'ajout scène, pas de statut éditorial fake.
 - Dépendances : NS-STORYLINES-08.
-- Critères d'acceptation : détails chapitre lisibles, données absentes marquées à venir.
-- Tests attendus : selected chapter, no selection, disabled controls.
-- Analyse attendue : `flutter analyze`, `git diff --check`.
-- Visual Gate : chapters inspector focus.
-- Risques : vendre un ordre de scènes si seules des steps existent.
-- Design system impact : inspector design-system obligatoire.
-- Statut : TODO.
+- Résumé : la tab `Chapitres` affiche maintenant une liste de chapitres avec sélection locale, un inspecteur chapitre read-only, l'ordre des étapes narratives réelles, et les données futures marquées à venir.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Visual Gate : dark theme actif ; captures `ns_storylines_09_chapter_inspector_desktop.png`, `ns_storylines_09_chapter_inspector_focus.png`, `ns_storylines_09_chapter_inspector_center.png`.
+- Design System Gate : confirmé ; composants feature-specific composés avec primitives PokeMap ; aucun `Color(0x...)` / `Colors.*` ajouté.
+- Fake data : aucun wording `Scènes du chapitre`, aucun statut éditorial fake, aucun `localEventFlow` affiché comme chapitre/step.
+- Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-10.
 
 ### NS-STORYLINES-10 — Storyline Visual Harmonization / Visual Gate V0
@@ -717,9 +717,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-08 / NS-STORYLINES-08-bis / NS-STORYLINES-08-ter
+Current lot: NS-STORYLINES-09
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
+Next recommended lot: NS-STORYLINES-10 — Storyline Visual Harmonization / Visual Gate V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -734,12 +734,23 @@ Next recommended lot: NS-STORYLINES-09 — Chapters Inspector / Scene Ordering R
 | NS-STORYLINES-06 | DONE | 2026-05-28 | Graph read-only placeholder livré avec steps réelles et empty state. |
 | NS-STORYLINES-07 | DONE | 2026-05-28 | Inspector read-only livré avec données réelles, sections futures disabled et empty state. |
 | NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré ; bis Graph target alignment et ter canvas spatial livrés sans changer le statut NS08. |
-| NS-STORYLINES-09 | TODO | 2026-05-27 | Chapters inspector/order. |
+| NS-STORYLINES-09 | DONE | 2026-05-28 | Chapters inspector / step ordering read-only livré sans scène fake. |
 | NS-STORYLINES-10 | TODO | 2026-05-27 | Visual harmonization. |
 | NS-STORYLINES-11 | TODO | 2026-05-27 | Interaction wiring. |
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-09
+
+- Livraison de l'onglet `Chapitres` avec sélection locale de chapitre : premier chapitre réel sélectionné par défaut, clic sur un autre chapitre limité à l'état UI local.
+- Ajout d'un inspecteur chapitre read-only avec titre, description, ordre, source `Global Story Studio`, mode `Lecture seule` et compteur d'étapes narratives.
+- Ajout de l'ordre des étapes narratives depuis les vraies `NarrativeStepSummary`, sans drag/drop, édition, navigation ou mutation projet.
+- Conservation des protections NS08-ter : graph spatial par défaut, tab `Chapitres` accessible, tabs futures non mutantes, actions futures disabled / non mutantes.
+- Visual Gate dark produit : `ns_storylines_09_chapter_inspector_desktop.png`, `ns_storylines_09_chapter_inspector_focus.png`, `ns_storylines_09_chapter_inspector_center.png`.
+- Design System Gate confirmé : aucun `Color(0x...)` / `Colors.*` ajouté ; composants Storylines feature-specific composés avec primitives PokeMap.
+- Fake data : aucun `Scènes du chapitre`, aucun statut éditorial fake, aucun `localEventFlow` affiché comme chapitre ou étape.
+- Prochain lot recommandé : `NS-STORYLINES-10 — Storyline Visual Harmonization / Visual Gate V0`.
 
 ### 2026-05-28 — NS-STORYLINES-08-ter
 

@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-08-ter True graph geometry V0', () {
+  group('NS-STORYLINES-09 Chapters inspector / step ordering V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -314,10 +314,28 @@ void main() {
             find.byKey(const ValueKey('storylines-chapters-read-only'));
         final createAction =
             find.byKey(const ValueKey('storylines-chapters-create-action'));
+        final chapterList =
+            find.byKey(const ValueKey('storylines-chapter-list'));
+        final chapterInspector =
+            find.byKey(const ValueKey('storylines-chapter-inspector'));
 
         expect(chapters, findsOneWidget);
         expect(find.byKey(const ValueKey('storylines-graph-target-read-only')),
             findsNothing);
+        expect(chapterList, findsOneWidget);
+        expect(chapterInspector, findsOneWidget);
+        expect(
+          find.byKey(
+            const ValueKey('storylines-selected-chapter-audit_chapter'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('storylines-selected-chapter-audit_second_chapter'),
+          ),
+          findsNothing,
+        );
         expect(
           find.descendant(of: chapters, matching: find.text('Chapitres')),
           findsOneWidget,
@@ -331,14 +349,21 @@ void main() {
         );
         expect(
           find.descendant(
-            of: chapters,
+            of: chapterList,
             matching: find.text('Audit Chapter From Metadata'),
           ),
           findsOneWidget,
         );
         expect(
           find.descendant(
-            of: chapters,
+            of: chapterInspector,
+            matching: find.text('Audit Chapter From Metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapterInspector,
             matching: find.text('Audit chapter description from metadata'),
           ),
           findsOneWidget,
@@ -363,12 +388,106 @@ void main() {
           findsOneWidget,
         );
         expect(
+          find.descendant(
+            of: chapterInspector,
+            matching: find.text('Détails du chapitre'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapterInspector,
+            matching: find.text('Source Global Story Studio'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapterInspector,
+            matching: find.text('Ordre des étapes narratives'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapterInspector,
+            matching: find.text('Étapes narratives du chapitre'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('storylines-chapter-step-order-audit_step'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: chapterInspector, matching: find.text('01')),
+          findsOneWidget,
+        );
+        expect(
           find.descendant(of: chapters, matching: find.text('Lecture seule')),
           findsWidgets,
         );
         expect(createAction, findsOneWidget);
         expect(tester.widget<PokeMapButton>(createAction).onPressed, isNull);
 
+        final secondChapterCard = find.byKey(
+          const ValueKey('storylines-chapter-card-audit_second_chapter'),
+        );
+        await tester.ensureVisible(secondChapterCard);
+        await tester.pump();
+        await tester.tap(secondChapterCard);
+        await tester.pump();
+
+        expect(
+          find.byKey(
+            const ValueKey('storylines-selected-chapter-audit_second_chapter'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapterInspector,
+            matching: find.text('Audit Second Chapter From Metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('storylines-chapter-step-order-audit_followup_step'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapterInspector,
+            matching: find.text('Audit Second Step From Metadata'),
+          ),
+          findsOneWidget,
+        );
+
+        final afterSelectionEditorState =
+            harness.container.read(editorNotifierProvider);
+        final afterSelectionNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+
+        expect(
+          afterSelectionEditorState.workspaceMode,
+          beforeEditorState.workspaceMode,
+        );
+        expect(afterSelectionEditorState.project, same(beforeProject));
+        expect(
+          afterSelectionNarrativeState.selectedGlobalStoryId,
+          beforeNarrativeState.selectedGlobalStoryId,
+        );
+        expect(
+          afterSelectionNarrativeState.selectedStepId,
+          beforeNarrativeState.selectedStepId,
+        );
+
+        await tester.ensureVisible(createAction);
+        await tester.pump();
         await tester.tap(createAction);
         await tester.pump();
 
@@ -641,11 +760,12 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 1000),
       );
+      await _openChaptersTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_ter_true_graph_desktop.png',
+          'ns_storylines_09_chapter_inspector_desktop.png',
         ),
       );
 
@@ -653,11 +773,12 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 700),
       );
+      await _openChaptersTab(tester);
       await expectLater(
-        find.byKey(const ValueKey('storylines-graph-target-read-only')),
+        find.byKey(const ValueKey('storylines-chapters-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_ter_true_graph_focus.png',
+          'ns_storylines_09_chapter_inspector_focus.png',
         ),
       );
 
@@ -665,11 +786,12 @@ void main() {
         tester,
         surfaceSize: const Size(1180, 1000),
       );
+      await _openChaptersTab(tester);
       await expectLater(
-        find.byKey(const ValueKey('storylines-graph-target-read-only')),
+        find.byKey(const ValueKey('storylines-chapters-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_ter_true_graph_center.png',
+          'ns_storylines_09_chapter_inspector_center.png',
         ),
       );
     });
@@ -705,6 +827,9 @@ const _targetOnlyStrings = <String>[
   'Brouillon',
   'En cours',
   'Scènes du chapitre',
+  '4 scènes',
+  '12 dialogues',
+  'Prête',
   'Quête annexe',
 ];
 

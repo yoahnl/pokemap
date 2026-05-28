@@ -1401,7 +1401,7 @@ class _StorylineGraphEmptyState extends StatelessWidget {
   }
 }
 
-class _StorylineChaptersSection extends StatelessWidget {
+class _StorylineChaptersSection extends StatefulWidget {
   const _StorylineChaptersSection({
     required this.chapters,
   });
@@ -1409,8 +1409,38 @@ class _StorylineChaptersSection extends StatelessWidget {
   final List<NarrativeChapterSummary> chapters;
 
   @override
+  State<_StorylineChaptersSection> createState() =>
+      _StorylineChaptersSectionState();
+}
+
+class _StorylineChaptersSectionState extends State<_StorylineChaptersSection> {
+  String? _selectedChapterId;
+
+  NarrativeChapterSummary? get _selectedChapter {
+    if (widget.chapters.isEmpty) {
+      return null;
+    }
+    final selectedId = _selectedChapterId;
+    if (selectedId != null) {
+      for (final chapter in widget.chapters) {
+        if (chapter.id == selectedId) {
+          return chapter;
+        }
+      }
+    }
+    return widget.chapters.first;
+  }
+
+  void _selectChapter(NarrativeChapterSummary chapter) {
+    setState(() {
+      _selectedChapterId = chapter.id;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final selectedChapter = _selectedChapter;
     return PokeMapPageSurface(
       key: const ValueKey('storylines-chapters-read-only'),
       padding: const EdgeInsets.all(18),
@@ -1470,7 +1500,7 @@ class _StorylineChaptersSection extends StatelessWidget {
               children: [
                 PokeMapStatusTile(
                   label: 'Chapitres réels',
-                  value: '${chapters.length}',
+                  value: '${widget.chapters.length}',
                   icon: CupertinoIcons.square_list,
                   tone: PokeMapTone.info,
                 ),
@@ -1489,10 +1519,42 @@ class _StorylineChaptersSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            if (chapters.isEmpty)
+            if (widget.chapters.isEmpty)
               const _StorylineChaptersEmptyState()
             else
-              _StorylineChapterList(chapters: chapters),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final list = _StorylineChapterList(
+                    chapters: widget.chapters,
+                    selectedChapterId: selectedChapter?.id,
+                    onChapterSelected: _selectChapter,
+                  );
+                  final inspector = _StorylineChapterInspector(
+                    chapter: selectedChapter,
+                  );
+                  if (constraints.maxWidth < 740) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        list,
+                        const SizedBox(height: 12),
+                        inspector,
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: math.min(360, constraints.maxWidth * 0.42),
+                        child: list,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: inspector),
+                    ],
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -1503,17 +1565,26 @@ class _StorylineChaptersSection extends StatelessWidget {
 class _StorylineChapterList extends StatelessWidget {
   const _StorylineChapterList({
     required this.chapters,
+    required this.selectedChapterId,
+    required this.onChapterSelected,
   });
 
   final List<NarrativeChapterSummary> chapters;
+  final String? selectedChapterId;
+  final ValueChanged<NarrativeChapterSummary> onChapterSelected;
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      key: const ValueKey('storylines-chapter-list'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final chapter in chapters) ...[
-          _StorylineChapterCard(chapter: chapter),
+          _StorylineChapterCard(
+            chapter: chapter,
+            selected: chapter.id == selectedChapterId,
+            onTap: () => onChapterSelected(chapter),
+          ),
           if (chapter != chapters.last) const SizedBox(height: 10),
         ],
       ],
@@ -1524,17 +1595,23 @@ class _StorylineChapterList extends StatelessWidget {
 class _StorylineChapterCard extends StatelessWidget {
   const _StorylineChapterCard({
     required this.chapter,
+    required this.selected,
+    required this.onTap,
   });
 
   final NarrativeChapterSummary chapter;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final description = chapter.description.trim();
-    return PokeMapCard(
+    final card = PokeMapCard(
       key: ValueKey('storylines-chapter-card-${chapter.id}'),
       padding: const EdgeInsets.all(14),
+      selected: selected,
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1558,7 +1635,6 @@ class _StorylineChapterCard extends StatelessWidget {
                         color: colors.textMuted,
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.4,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1625,60 +1701,224 @@ class _StorylineChapterCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+    );
+    if (!selected) {
+      return card;
+    }
+    return KeyedSubtree(
+      key: ValueKey('storylines-selected-chapter-${chapter.id}'),
+      child: card,
+    );
+  }
+}
+
+class _StorylineChapterInspector extends StatelessWidget {
+  const _StorylineChapterInspector({
+    required this.chapter,
+  });
+
+  final NarrativeChapterSummary? chapter;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final selectedChapter = chapter;
+    if (selectedChapter == null) {
+      return const _StorylineChapterInspectorEmptyState();
+    }
+    final description = selectedChapter.description.trim();
+    return PokeMapCard(
+      key: const ValueKey('storylines-chapter-inspector'),
+      padding: const EdgeInsets.all(16),
+      selected: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.book_fill,
+                tone: PokeMapTone.narrative,
+                size: 38,
+                iconSize: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Détails du chapitre',
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      selectedChapter.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description.isEmpty
+                          ? 'Description de chapitre non renseignée.'
+                          : description,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 12.5,
+                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              PokeMapStatusTile(
+                label: 'Ordre',
+                value: '${selectedChapter.order + 1}',
+                icon: CupertinoIcons.number,
+                tone: PokeMapTone.info,
+              ),
+              const PokeMapStatusTile(
+                label: 'Source Global Story Studio',
+                value: 'Lecture seule',
+                icon: CupertinoIcons.doc_text,
+                tone: PokeMapTone.neutral,
+              ),
+              const PokeMapStatusTile(
+                label: 'Mode',
+                value: 'Lecture seule',
+                icon: CupertinoIcons.lock,
+                tone: PokeMapTone.neutral,
+              ),
+              PokeMapStatusTile(
+                label: 'Étapes liées',
+                value: _formatFrenchCount(
+                  selectedChapter.steps.length,
+                  singular: 'étape narrative',
+                  plural: 'étapes narratives',
+                ),
+                icon: CupertinoIcons.list_bullet,
+                tone: PokeMapTone.info,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           Text(
-            'Étapes du chapitre',
+            'Étapes narratives du chapitre',
             style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 10.5,
+              color: colors.textPrimary,
+              fontSize: 13,
               fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
             ),
           ),
-          const SizedBox(height: 8),
-          if (chapter.steps.isEmpty)
-            Text(
-              'Aucune étape narrative liée à ce chapitre.',
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final step in chapter.steps) ...[
-                  _StorylineChapterStepPreview(step: step),
-                  if (step != chapter.steps.last) const SizedBox(height: 8),
-                ],
-              ],
+          const SizedBox(height: 4),
+          Text(
+            'Ordre des étapes narratives',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
             ),
+          ),
+          const SizedBox(height: 10),
+          _StorylineChapterStepOrderList(steps: selectedChapter.steps),
+          if (selectedChapter.missingStepIds.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _StorylineMissingStepIds(ids: selectedChapter.missingStepIds),
+          ],
+          const SizedBox(height: 16),
+          const PokeMapStatusTile(
+            label: 'Données à venir',
+            value: 'Modèle détaillé non branché',
+            icon: CupertinoIcons.clock,
+            tone: PokeMapTone.neutral,
+          ),
         ],
       ),
     );
   }
 }
 
-class _StorylineChapterStepPreview extends StatelessWidget {
-  const _StorylineChapterStepPreview({
+class _StorylineChapterStepOrderList extends StatelessWidget {
+  const _StorylineChapterStepOrderList({
+    required this.steps,
+  });
+
+  final List<NarrativeStepSummary> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    if (steps.isEmpty) {
+      return Text(
+        'Aucune étape narrative liée à ce chapitre.',
+        style: TextStyle(
+          color: colors.textSecondary,
+          fontSize: 12.5,
+          height: 1.35,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < steps.length; index++) ...[
+          _StorylineChapterStepOrderRow(
+            index: index,
+            step: steps[index],
+          ),
+          if (index != steps.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _StorylineChapterStepOrderRow extends StatelessWidget {
+  const _StorylineChapterStepOrderRow({
+    required this.index,
     required this.step,
   });
 
+  final int index;
   final NarrativeStepSummary step;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final order = (index + 1).toString().padLeft(2, '0');
     return Row(
+      key: ValueKey('storylines-chapter-step-order-${step.id}'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const PokeMapIconTile(
-          icon: CupertinoIcons.smallcircle_fill_circle,
+        PokeMapStatusTile(
+          label: order,
+          value: 'Étape narrative',
+          icon: CupertinoIcons.line_horizontal_3_decrease,
           tone: PokeMapTone.info,
-          size: 28,
-          iconSize: 12,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -1697,7 +1937,9 @@ class _StorylineChapterStepPreview extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                step.description,
+                step.description.trim().isEmpty
+                    ? 'Description d’étape narrative non renseignée.'
+                    : step.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1711,6 +1953,64 @@ class _StorylineChapterStepPreview extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StorylineMissingStepIds extends StatelessWidget {
+  const _StorylineMissingStepIds({
+    required this.ids,
+  });
+
+  final List<String> ids;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Étapes manquantes',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final id in ids) ...[
+          PokeMapStatusTile(
+            label: id,
+            value: 'Référence read-only',
+            icon: CupertinoIcons.exclamationmark_triangle,
+            tone: PokeMapTone.warning,
+          ),
+          if (id != ids.last) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _StorylineChapterInspectorEmptyState extends StatelessWidget {
+  const _StorylineChapterInspectorEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: const ValueKey('storylines-chapter-inspector'),
+      padding: const EdgeInsets.all(14),
+      child: Text(
+        'Aucun chapitre sélectionné.',
+        style: TextStyle(
+          color: colors.textSecondary,
+          fontSize: 12.5,
+          height: 1.35,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
