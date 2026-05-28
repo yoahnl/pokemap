@@ -22,6 +22,12 @@ class StorylinesWorkspace extends StatelessWidget {
         : projection.steps
             .where((step) => step.globalScenarioId == selectedStory.id)
             .toList(growable: false);
+    final stepCountsByStoryId = <String, int>{
+      for (final story in projection.globalStories)
+        story.id: projection.steps
+            .where((step) => step.globalScenarioId == story.id)
+            .length,
+    };
 
     return PokeMapPageSurface(
       key: const ValueKey('storylines-workspace-shell'),
@@ -32,8 +38,9 @@ class StorylinesWorkspace extends StatelessWidget {
           SizedBox(
             width: 240,
             child: _StorylinesSecondaryPanel(
-              selectedStory: selectedStory,
-              globalStoryCount: projection.globalStories.length,
+              stories: projection.globalStories,
+              selectedStoryId: selectedStory?.id,
+              stepCountsByStoryId: stepCountsByStoryId,
             ),
           ),
           const SizedBox(width: 12),
@@ -70,63 +77,230 @@ class StorylinesWorkspace extends StatelessWidget {
 
 class _StorylinesSecondaryPanel extends StatelessWidget {
   const _StorylinesSecondaryPanel({
-    required this.selectedStory,
-    required this.globalStoryCount,
+    required this.stories,
+    required this.selectedStoryId,
+    required this.stepCountsByStoryId,
   });
 
-  final NarrativeScenarioSummary? selectedStory;
-  final int globalStoryCount;
+  final List<NarrativeScenarioSummary> stories;
+  final String? selectedStoryId;
+  final Map<String, int> stepCountsByStoryId;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return PokeMapInspectorPanel(
+    return PokeMapPanel(
       key: const ValueKey('storylines-secondary-panel'),
+      expandChild: true,
       header: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-        child: Text(
-          'Storylines',
-          style: TextStyle(
-            color: colors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.6,
-          ),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 9),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Storylines',
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+            Semantics(
+              key: const ValueKey('storylines-secondary-create-action'),
+              button: true,
+              enabled: false,
+              label: 'Créer une storyline - à venir',
+              child: const PokeMapButton(
+                onPressed: null,
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.secondary,
+                leading: Icon(CupertinoIcons.add),
+                child: Text('+'),
+              ),
+            ),
+          ],
         ),
       ),
       padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PokeMapStatusTile(
-            label: 'Storylines globales',
-            value: '$globalStoryCount',
-            icon: CupertinoIcons.link,
-            tone: PokeMapTone.narrative,
-          ),
-          const SizedBox(height: 12),
-          if (selectedStory == null)
-            Text(
-              'Aucun scénario global disponible.',
-              style: TextStyle(color: colors.textSecondary, fontSize: 12),
-            )
-          else
-            PokeMapStatusTile(
-              label: selectedStory!.name,
-              value: 'Source réelle',
-              icon: CupertinoIcons.book,
-              tone: PokeMapTone.narrative,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const PokeMapStatusTile(
+              key: ValueKey('storylines-secondary-search-disabled'),
+              label: 'Recherche à venir',
+              value: 'Filtrage bientôt disponible',
+              icon: CupertinoIcons.search,
+              tone: PokeMapTone.neutral,
             ),
-          const SizedBox(height: 12),
-          const PokeMapStatusTile(
-            label: 'Créer une quête annexe',
-            value: 'À venir',
-            icon: CupertinoIcons.lock,
-            tone: PokeMapTone.neutral,
+            const SizedBox(height: 12),
+            _StorylinesSectionLabel(
+              label: 'Histoire principale',
+              color: colors.textSecondary,
+            ),
+            const SizedBox(height: 8),
+            if (stories.isEmpty)
+              Text(
+                'Aucune storyline principale disponible.',
+                style: TextStyle(color: colors.textSecondary, fontSize: 12),
+              )
+            else
+              ...stories.map(
+                (story) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _StorylineSummaryRow(
+                    story: story,
+                    selected: story.id == selectedStoryId,
+                    stepCount: stepCountsByStoryId[story.id] ?? 0,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            _StorylinesSectionLabel(
+              label: 'Quêtes annexes',
+              color: colors.textSecondary,
+            ),
+            const SizedBox(height: 8),
+            const PokeMapStatusTile(
+              key: ValueKey('storylines-secondary-side-quests-disabled'),
+              label: 'Quêtes annexes',
+              value: 'À venir',
+              icon: CupertinoIcons.lock,
+              tone: PokeMapTone.neutral,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'À venir — aucun modèle de quête annexe n’est encore branché.',
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 11.5,
+                height: 1.25,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StorylinesSectionLabel extends StatelessWidget {
+  const _StorylinesSectionLabel({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontSize: 10.5,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.4,
+      ),
+    );
+  }
+}
+
+class _StorylineSummaryRow extends StatelessWidget {
+  const _StorylineSummaryRow({
+    required this.story,
+    required this.selected,
+    required this.stepCount,
+  });
+
+  final NarrativeScenarioSummary story;
+  final bool selected;
+  final int stepCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final description = story.description.trim();
+    return PokeMapCard(
+      key: ValueKey('storylines-secondary-row-${story.id}'),
+      selected: selected,
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PokeMapIconTile(
+            icon: CupertinoIcons.book,
+            tone: PokeMapTone.narrative,
+            size: 30,
+            iconSize: 15,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  story.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description.isEmpty
+                      ? 'Description non renseignée.'
+                      : description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  'Storyline principale',
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _formatStepCount(stepCount),
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Read-only / Source réelle',
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 10.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
+  }
+
+  static String _formatStepCount(int count) {
+    return count == 1 ? '1 étape narrative' : '$count étapes narratives';
   }
 }
 

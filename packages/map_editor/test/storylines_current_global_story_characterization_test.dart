@@ -32,7 +32,7 @@ void main() {
 
         expect(find.text('Storylines'), findsWidgets);
         expect(find.text('Audit Story From Scenario'), findsWidgets);
-        expect(find.text('Audit description from scenario'), findsOneWidget);
+        expect(find.text('Audit description from scenario'), findsWidgets);
         expect(find.text('Étapes réelles'), findsOneWidget);
         expect(find.text('1'), findsWidgets);
 

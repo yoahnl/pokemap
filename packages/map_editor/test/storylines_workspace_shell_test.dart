@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-03 Storylines shell V0', () {
+  group('NS-STORYLINES-04 Storylines secondary panel V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -33,13 +33,43 @@ void main() {
             findsOneWidget);
 
         expect(find.text('Audit Story From Scenario'), findsWidgets);
-        expect(find.text('Audit description from scenario'), findsOneWidget);
+        expect(find.text('Audit description from scenario'), findsWidgets);
         expect(find.text('Mode lecture seule'), findsOneWidget);
         expect(find.text('Storylines V0'), findsWidgets);
         expect(find.text('Graph — à venir'), findsOneWidget);
         expect(find.text('Chapitres — à venir'), findsOneWidget);
         expect(find.text('Inspecteur Storyline — à venir'), findsOneWidget);
         expect(find.text('Audit Local Event Flow'), findsNothing);
+        expect(find.text('Histoire principale'), findsOneWidget);
+        expect(find.text('Audit Second Story From Scenario'), findsOneWidget);
+        expect(find.text('Audit second description from scenario'),
+            findsOneWidget);
+        expect(find.text('Storyline principale'), findsWidgets);
+        expect(find.textContaining('1 étape narrative'), findsWidgets);
+        expect(find.text('Recherche à venir'), findsOneWidget);
+        expect(find.text('Quêtes annexes'), findsWidgets);
+        expect(find.textContaining('aucun modèle de quête annexe'),
+            findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('storylines-secondary-create-action')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-secondary-search-disabled')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+              const ValueKey('storylines-secondary-row-audit_global_story')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey(
+                'storylines-secondary-row-audit_second_global_story'),
+          ),
+          findsOneWidget,
+        );
 
         for (final forbidden in _targetOnlyStrings) {
           expect(
@@ -71,6 +101,9 @@ void main() {
         final validateAction = find.byKey(
           const ValueKey('narrative-studio-header-action-validate'),
         );
+        final secondaryCreateAction = find.byKey(
+          const ValueKey('storylines-secondary-create-action'),
+        );
         final newStorylineButton = find.descendant(
           of: newStorylineAction,
           matching: find.byType(PokeMapButton),
@@ -79,16 +112,26 @@ void main() {
           of: validateAction,
           matching: find.byType(PokeMapButton),
         );
+        final secondaryCreateButton = find.descendant(
+          of: secondaryCreateAction,
+          matching: find.byType(PokeMapButton),
+        );
 
         expect(newStorylineAction, findsOneWidget);
         expect(validateAction, findsOneWidget);
+        expect(secondaryCreateAction, findsOneWidget);
         expect(newStorylineButton, findsOneWidget);
         expect(validateButton, findsOneWidget);
+        expect(secondaryCreateButton, findsOneWidget);
         expect(
           tester.widget<PokeMapButton>(newStorylineButton).onPressed,
           isNull,
         );
         expect(tester.widget<PokeMapButton>(validateButton).onPressed, isNull);
+        expect(
+          tester.widget<PokeMapButton>(secondaryCreateButton).onPressed,
+          isNull,
+        );
 
         final beforeEditorState =
             harness.container.read(editorNotifierProvider);
@@ -104,6 +147,9 @@ void main() {
         await tester.pump();
 
         await tester.tap(validateAction);
+        await tester.pump();
+
+        await tester.tap(secondaryCreateAction);
         await tester.pump();
 
         final afterEditorState = harness.container.read(editorNotifierProvider);
@@ -129,7 +175,7 @@ void main() {
           beforeNarrativeState.selectedStepId,
         );
         expect(find.text('Audit Story From Scenario'), findsWidgets);
-        expect(find.text('Audit description from scenario'), findsOneWidget);
+        expect(find.text('Audit description from scenario'), findsWidgets);
 
         for (final forbidden in _targetOnlyStrings) {
           expect(
@@ -167,8 +213,8 @@ void main() {
         (tester) async {
       await _pumpStorylinesShell(tester);
 
-      final shellContext =
-          tester.element(find.byKey(const ValueKey('storylines-workspace-shell')));
+      final shellContext = tester
+          .element(find.byKey(const ValueKey('storylines-workspace-shell')));
 
       expect(Theme.of(shellContext).brightness, Brightness.dark);
     });
@@ -182,7 +228,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_03_shell_desktop.png',
+          'ns_storylines_04_secondary_panel_desktop.png',
         ),
       );
 
@@ -194,7 +240,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_03_shell_focus.png',
+          'ns_storylines_04_secondary_panel_focus.png',
         ),
       );
 
@@ -206,7 +252,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_03_shell_panels.png',
+          'ns_storylines_04_secondary_panel_only.png',
         ),
       );
     });
@@ -323,6 +369,53 @@ ProjectManifest _auditProject() {
     globalDocument,
     stepDocument: stepDocument,
   );
+  const secondStepDocument = StepStudioDocument(
+    globalStoryScenarioId: 'audit_second_global_story',
+    steps: <StepStudioStep>[
+      StepStudioStep(
+        id: 'audit_second_step',
+        name: 'Audit Second Step From Metadata',
+        description: 'Audit second step detail from metadata',
+        order: 0,
+        activation: StepStudioActivationRule(
+          mode: StepStudioActivationMode.atGameStart,
+        ),
+        completion: StepStudioCompletionRule(
+          mode: StepStudioCompletionMode.manual,
+        ),
+      ),
+    ],
+  );
+  const secondGlobalDocument = GlobalStoryStudioDocument(
+    globalStoryScenarioId: 'audit_second_global_story',
+    entryStepId: 'audit_second_step',
+    nodes: <GlobalStoryStepNode>[
+      GlobalStoryStepNode(stepId: 'audit_second_step'),
+    ],
+    chapters: <GlobalStoryChapter>[
+      GlobalStoryChapter(
+        id: 'audit_second_chapter',
+        name: 'Audit Second Chapter From Metadata',
+        description: 'Audit second chapter description from metadata',
+        stepIds: <String>['audit_second_step'],
+        order: 0,
+      ),
+    ],
+  );
+  final secondGlobalScenario = applyGlobalStoryStudioDocumentToGlobalScenario(
+    applyStepStudioDocumentToGlobalScenario(
+      const ScenarioAsset(
+        id: 'audit_second_global_story',
+        name: 'Audit Second Story From Scenario',
+        description: 'Audit second description from scenario',
+        scope: ScenarioScope.globalStory,
+        entryNodeId: 'second_start',
+      ),
+      secondStepDocument,
+    ),
+    secondGlobalDocument,
+    stepDocument: secondStepDocument,
+  );
 
   return ProjectManifest(
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
@@ -331,6 +424,7 @@ ProjectManifest _auditProject() {
     tilesets: const <ProjectTilesetEntry>[],
     scenarios: <ScenarioAsset>[
       globalScenario,
+      secondGlobalScenario,
       const ScenarioAsset(
         id: 'audit_local_event_flow',
         name: 'Audit Local Event Flow',
