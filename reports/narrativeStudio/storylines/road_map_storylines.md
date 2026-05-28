@@ -298,7 +298,7 @@ Interprétation V0 :
 | NS-STORYLINES-07 | Storyline Inspector Read-only V0 | editor UI | DONE | NS-STORYLINES-08 |
 | NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | DONE | NS-STORYLINES-09 |
 | NS-STORYLINES-09 | Chapters Inspector / Step Ordering Read-only V0 | editor UI | DONE | NS-STORYLINES-10 |
-| NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | TODO | NS-STORYLINES-11 |
+| NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | DONE | NS-STORYLINES-11 |
 | NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | TODO | NS-STORYLINES-CHECKPOINT |
 | NS-STORYLINES-CHECKPOINT | Storylines V0 Acceptance Checkpoint | checkpoint | TODO | TBD |
 
@@ -556,16 +556,16 @@ Interprétation V0 :
 
 - Type : visual gate.
 - Objectif : harmoniser contre les deux cibles sans ajouter de feature.
-- Fichiers probables : widgets Storylines existants, rapport, screenshots.
+- Fichiers modifiés/créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`, `reports/narrativeStudio/storylines/ns_storylines_10_visual_harmonization_visual_gate_v0.md`, captures Visual Gate NS10.
 - Non-objectifs : pas de donnée fake, pas de pixel-perfect.
 - Dépendances : NS-STORYLINES-09.
-- Critères d'acceptation : Visual Gate complet, comparaison honnête, disabled states lisibles.
-- Tests attendus : régression UI/storylines, tests design-system si tokens/surfaces touchés.
-- Analyse attendue : `flutter analyze`, `git diff --check`.
-- Visual Gate : Graph desktop, Graph focus, Chapters desktop, medium.
-- Risques : polir au lieu de corriger une source manquante.
-- Design system impact : très fort ; mini audit obligatoire.
-- Statut : TODO.
+- Résumé : harmonisation visuelle V0 du graph et de la tab Chapitres, avec canvas plus dominant, nodes plus compacts, edges plus lisibles, légende/contrôles plus discrets et rows d'étapes plus denses.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Visual Gate : captures Graph et Chapitres desktop/focus/center produites en dark theme.
+- Design System Gate : confirmé ; aucun `Color(0x...)` / `Colors.*` ajouté ; couleurs via tokens / primitives PokeMap.
+- Fake data : aucune donnée cible Selbrume, aucune quête annexe, aucun tag/world rule/fact/activité, aucune action future activée.
+- Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-11.
 
 ### NS-STORYLINES-11 — Storylines Interaction Wiring V0
@@ -717,9 +717,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-09
+Current lot: NS-STORYLINES-10
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-10 — Storyline Visual Harmonization / Visual Gate V0
+Next recommended lot: NS-STORYLINES-11 — Storylines Interaction Wiring V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -735,11 +735,21 @@ Next recommended lot: NS-STORYLINES-10 — Storyline Visual Harmonization / Visu
 | NS-STORYLINES-07 | DONE | 2026-05-28 | Inspector read-only livré avec données réelles, sections futures disabled et empty state. |
 | NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré ; bis Graph target alignment et ter canvas spatial livrés sans changer le statut NS08. |
 | NS-STORYLINES-09 | DONE | 2026-05-28 | Chapters inspector / step ordering read-only livré sans scène fake. |
-| NS-STORYLINES-10 | TODO | 2026-05-27 | Visual harmonization. |
+| NS-STORYLINES-10 | DONE | 2026-05-28 | Visual harmonization Graph/Chapitres et Visual Gate complet livrés sans nouvelle feature. |
 | NS-STORYLINES-11 | TODO | 2026-05-27 | Interaction wiring. |
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-10
+
+- Harmonisation visuelle V0 du workspace Storylines sans ajout de feature métier.
+- Vue `Graph` : canvas plus dominant, header plus compact, nodes plus compacts, edge layer plus lisible, légende et contrôles read-only plus discrets.
+- Vue `Chapitres` : proportion liste/inspecteur stabilisée, cards de chapitres et rows d'étapes narratives compactées, inspecteur chapitre mieux équilibré.
+- Visual Gate dark complet produit : `ns_storylines_10_graph_desktop.png`, `ns_storylines_10_graph_focus.png`, `ns_storylines_10_graph_center.png`, `ns_storylines_10_chapters_desktop.png`, `ns_storylines_10_chapters_focus.png`, `ns_storylines_10_chapters_center.png`.
+- Design System Gate confirmé : aucun `Color(0x...)` / `Colors.*` ajouté ; harmonisation via primitives PokeMap et `context.pokeMapColors`.
+- Fake data : aucune donnée cible Selbrume, aucun tag/world rule/fact/activité, aucune quête annexe fake, aucune action future activée.
+- Prochain lot recommandé : `NS-STORYLINES-11 — Storylines Interaction Wiring V0`.
 
 ### 2026-05-28 — NS-STORYLINES-09
 

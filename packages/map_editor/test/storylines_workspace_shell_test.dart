@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-09 Chapters inspector / step ordering V0', () {
+  group('NS-STORYLINES-10 Visual harmonization / visual gate V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -760,12 +760,48 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 1000),
       );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_10_graph_desktop.png',
+        ),
+      );
+
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 700),
+      );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-graph-target-read-only')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_10_graph_focus.png',
+        ),
+      );
+
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1180, 1000),
+      );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-graph-target-read-only')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_10_graph_center.png',
+        ),
+      );
+
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 1000),
+      );
       await _openChaptersTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_09_chapter_inspector_desktop.png',
+          'ns_storylines_10_chapters_desktop.png',
         ),
       );
 
@@ -778,7 +814,7 @@ void main() {
         find.byKey(const ValueKey('storylines-chapters-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_09_chapter_inspector_focus.png',
+          'ns_storylines_10_chapters_focus.png',
         ),
       );
 
@@ -791,7 +827,7 @@ void main() {
         find.byKey(const ValueKey('storylines-chapters-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_09_chapter_inspector_center.png',
+          'ns_storylines_10_chapters_center.png',
         ),
       );
     });
@@ -799,7 +835,11 @@ void main() {
 }
 
 const _targetOnlyStrings = <String>[
+  'Histoire globale',
   'La brume du phare',
+  'Le port',
+  'Les marais',
+  'Le phare',
   'Les cristaux de sel',
   'Le Goélise du port',
   'La cabane du phare',
@@ -831,6 +871,8 @@ const _targetOnlyStrings = <String>[
   '12 dialogues',
   'Prête',
   'Quête annexe',
+  'Fin de l’histoire',
+  'Conclusion',
 ];
 
 Future<void> _openChaptersTab(WidgetTester tester) async {
