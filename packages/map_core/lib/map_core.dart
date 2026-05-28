@@ -25,6 +25,7 @@ export 'src/models/script_conditions.dart';
 export 'src/models/map_event_definition.dart';
 export 'src/models/project_trainer.dart';
 export 'src/models/scenario_asset.dart';
+export 'src/models/storyline_asset.dart';
 export 'src/models/visual_frame_json.dart';
 export 'src/models/shadow.dart';
 export 'src/models/shadow_catalog.dart';

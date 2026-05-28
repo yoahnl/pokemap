@@ -304,7 +304,11 @@ Interprétation V0 :
 | NS-STORYLINES-V1-00 | Storyline Semantics Reset / Usable Authoring Contract | product contract | DONE | NS-STORYLINES-V1-01 |
 | NS-STORYLINES-V1-01 | Storyline Authoring Model Decision | model decision | DONE | NS-STORYLINES-V1-02 |
 | NS-STORYLINES-V1-02 | Storyline Authoring Data Shape Contract | data contract | DONE | NS-STORYLINES-V1-03 |
-| NS-STORYLINES-V1-03 | StorylineAsset Model V0 | core model | TODO | NS-STORYLINES-V1-04 |
+| NS-STORYLINES-V1-03 | StorylineAsset Pure Model V0 | core model / pure dart | DONE | NS-STORYLINES-V1-04 |
+| NS-STORYLINES-V1-04 | StorylineAsset JSON Codec V0 | core codec | TODO | NS-STORYLINES-V1-05 |
+| NS-STORYLINES-V1-05 | ProjectManifest.storylines Integration V0 | core manifest | TODO | NS-STORYLINES-V1-06 |
+| NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | TODO | NS-STORYLINES-V1-07 |
+| NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-08 |
 
 ## 9. Detailed lots
 
@@ -652,15 +656,23 @@ Interprétation V0 :
 - Non-objectifs : pas d'UI de création avant contrat data shape.
 - Dépendances : NS-STORYLINES-V1-01.
 - Statut : DONE.
-- Prochain lot attendu : NS-STORYLINES-V1-03 — StorylineAsset Model V0.
+- Prochain lot attendu : NS-STORYLINES-V1-03 — StorylineAsset Pure Model V0.
 
-### NS-STORYLINES-V1-03 — StorylineAsset Model V0
+### NS-STORYLINES-V1-03 — StorylineAsset Pure Model V0
 
-- Type : core model / tests.
-- Objectif : implémenter le modèle `StorylineAsset` V0, codecs JSON, compatibilité `ProjectManifest.storylines`, invariants de base et tests de migration/import legacy.
+- Type : core model / pure Dart / tests.
+- Objectif : implémenter le modèle pur `StorylineAsset` V0 et ses sous-objets essentiels, sans codec JSON, sans `ProjectManifest.storylines`, sans migration legacy et sans UI.
+- Résultat : modèle pur livré dans `map_core`, export public ajouté et tests unitaires ciblés ajoutés.
+- Modèle livré : enums Storylines V1, `StorylineAsset`, chapters, steps, scene links, scene refs, outcome links, effects, relationships, side quest availability, anchors, validation issues et legacy source.
+- Validations : ids/titres non vides, unicité locale, références internes chapter/step, règles d'état placeholder/linkedScenario/brokenLink/needsImplementation, source relationship inline.
+- Immutabilité : champs `final`, collections copiées défensivement et exposées en non modifiable, equality/hashCode/toString manuels.
+- Fichiers créés/modifiés : `packages/map_core/lib/src/models/storyline_asset.dart`, `packages/map_core/lib/map_core.dart`, `packages/map_core/test/storyline_asset_test.dart`, `reports/narrativeStudio/storylines/ns_storylines_v1_03_storyline_asset_pure_model_v0.md`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Tests exécutés : `dart test test/storyline_asset_test.dart`, `dart test test/scenario_assets_test.dart`, `dart test`.
+- Analyse exécutée : `dart analyze lib/src/models/storyline_asset.dart test/storyline_asset_test.dart`.
+- Non-objectifs confirmés : aucun JSON `toJson/fromJson`, aucun `ProjectManifest`, aucun `ScenarioAsset`, aucun generated file, aucun build_runner, aucune UI.
 - Dépendances : NS-STORYLINES-V1-02.
-- Statut : TODO.
-- Prochain lot attendu : NS-STORYLINES-V1-04.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0.
 
 ## 10. Update protocol for every future lot
 
@@ -778,10 +790,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 DATA SHAPE CONTRACT DONE
-Current lot: NS-STORYLINES-V1-02
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 PURE MODEL DONE
+Current lot: NS-STORYLINES-V1-03
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-03 — StorylineAsset Model V0
+Next recommended lot: NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -803,7 +815,11 @@ Next recommended lot: NS-STORYLINES-V1-03 — StorylineAsset Model V0
 | NS-STORYLINES-V1-00 | DONE | 2026-05-28 | Reset sémantique produit livré : Storylines V0 techniquement valide, V1 doit clarifier et rendre utilisables Storyline / Chapter / Story Step / Scene / Graph / Structure. |
 | NS-STORYLINES-V1-01 | DONE | 2026-05-28 | Modèle hybride retenu : `StorylineAsset` authoring + `ScenarioAsset` executable scene flow ; Structure source d'authoring, Graph généré. |
 | NS-STORYLINES-V1-02 | DONE | 2026-05-28 | Contrat data shape `StorylineAsset` livré : champs, enums, invariants, validations, JSON, migration legacy, UI actions et tests futurs. |
-| NS-STORYLINES-V1-03 | TODO | 2026-05-28 | StorylineAsset Model V0. |
+| NS-STORYLINES-V1-03 | DONE | 2026-05-28 | StorylineAsset Pure Model V0 livré dans `map_core`, sans JSON/manifest/UI. |
+| NS-STORYLINES-V1-04 | TODO | 2026-05-28 | StorylineAsset JSON Codec V0. |
+| NS-STORYLINES-V1-05 | TODO | 2026-05-28 | ProjectManifest.storylines Integration V0. |
+| NS-STORYLINES-V1-06 | TODO | 2026-05-28 | Legacy GlobalStory Import Preview V0. |
+| NS-STORYLINES-V1-07 | TODO | 2026-05-28 | Create Main Storyline Flow V0. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -826,14 +842,26 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-00 — Storyline Semantics Reset / Usable Authoring Contract`
 - `NS-STORYLINES-V1-01 — Storyline Authoring Model Decision`
 - `NS-STORYLINES-V1-02 — Storyline Authoring Data Shape Contract`
-- `NS-STORYLINES-V1-03 — StorylineAsset Model V0`
-- `NS-STORYLINES-V1-04 — Create Main Storyline Flow`
-- `NS-STORYLINES-V1-05 — Create Side Quest Storyline Flow`
-- `NS-STORYLINES-V1-06 — Storyline Type / Status / Validation`
-- `NS-STORYLINES-V1-07 — Side Quest Graph Integration`
-- `NS-STORYLINES-V1-08 — V1 Visual Graph Enrichment`
+- `NS-STORYLINES-V1-03 — StorylineAsset Pure Model V0`
+- `NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0`
+- `NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0`
+- `NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0`
+- `NS-STORYLINES-V1-07 — Create Main Storyline Flow V0`
+- `NS-STORYLINES-V1-08 — Create Side Quest Storyline Flow V0`
+- `NS-STORYLINES-V1-09 — Storyline Type / Status / Validation`
+- `NS-STORYLINES-V1-10 — Side Quest Graph Integration`
+- `NS-STORYLINES-V1-11 — V1 Visual Graph Enrichment`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-03
+
+- Premier modèle pur Storylines V1 livré dans `map_core`.
+- `StorylineAsset` et sous-objets essentiels ajoutés : chapters, steps, scene links, scene refs, outcome links, effects, relationships, side quest availability, anchors, validation issues et legacy source.
+- Enums Storylines V1 ajoutés pour type, status, scene link state/role, relationship kind, validation severity, effect type, anchor kind et scene ref kind.
+- Tests ciblés ajoutés pour constructions valides, validations locales, références internes, règles d'état, immutabilité, equality/hashCode et absence de JSON codec.
+- Non-objectifs respectés : aucun `toJson/fromJson`, aucun `ProjectManifest.storylines`, aucune migration legacy, aucune UI, aucun generated file.
+- Prochain lot recommandé : `NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-02
 
@@ -843,7 +871,7 @@ Suite V1 documentaire recommandée :
 - Décision : `StorylineSceneLink` V1 initial démarre avec `placeholder` et `linkedScenario`; dialogue/cinematic/battle restent dans le `ScenarioAsset` exécutable.
 - Décision : outcome links V1 initial activent/complètent des `StorylineStep`; facts/world rules réservés à plus tard.
 - Migration : legacy import preview non destructif depuis `ScenarioAsset.globalStory`; `localEventFlow` jamais promu automatiquement.
-- Prochain lot recommandé : `NS-STORYLINES-V1-03 — StorylineAsset Model V0`.
+- Prochain lot recommandé : `NS-STORYLINES-V1-03 — StorylineAsset Pure Model V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-01
 
