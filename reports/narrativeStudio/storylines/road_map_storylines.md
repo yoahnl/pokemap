@@ -308,7 +308,13 @@ Interprétation V0 :
 | NS-STORYLINES-V1-04 | StorylineAsset JSON Codec V0 | core codec | DONE | NS-STORYLINES-V1-05 |
 | NS-STORYLINES-V1-05 | ProjectManifest.storylines Integration V0 | core manifest | DONE | NS-STORYLINES-V1-06 |
 | NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | DONE | NS-STORYLINES-V1-07 |
-| NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-08 |
+| NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-08 |
+| NS-STORYLINES-V1-08 | Structure Tab Authoring V0 | editor authoring | TODO | NS-STORYLINES-V1-09 |
+| NS-STORYLINES-V1-09 | Create Side Quest Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-10 |
+| NS-STORYLINES-V1-10 | Graph From StorylineAsset V0 | editor graph | TODO | NS-STORYLINES-V1-11 |
+| NS-STORYLINES-V1-11 | Side Quest Graph Integration V0 | editor graph | TODO | NS-STORYLINES-V1-12 |
+| NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | TODO | NS-STORYLINES-V1-CHECKPOINT |
+| NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | TODO | TBD |
 
 ## 9. Detailed lots
 
@@ -725,6 +731,24 @@ Interprétation V0 :
 - Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-V1-07 — Create Main Storyline Flow V0.
 
+### NS-STORYLINES-V1-07 — Create Main Storyline Flow V0 / Storylines UI Usability Reset
+
+- Type : editor UI / authoring flow / tests / visual gate.
+- Objectif : rendre Storylines utile en créant une vraie Storyline principale dans `ProjectManifest.storylines`.
+- Résultat : flow `Nouvelle storyline` livré avec formulaire minimal, type `main` verrouillé, titre obligatoire, description optionnelle, id slugifié unique, mutation contrôlée du manifest et sélection de la storyline créée.
+- Source de vérité : `ProjectManifest.storylines` devient la source V1 authoring ; le legacy `ScenarioAsset.globalStory` reste visible uniquement comme information non importée et non sélectionnable.
+- UI reset : tabs principales limitées à `Graph` / `Structure`, panneau secondaire simplifié, recherche fake retirée, side quests fake absentes, CTA secondaire `+` supprimé/non actif, `Nouveau chapitre` reste disabled / bientôt.
+- Graph : read-only honnête depuis `StorylineAsset`; si la storyline n'a pas de chapitre, affiche un node/storyline vide avec instruction d'ajouter des chapitres dans Structure.
+- Structure : affiche titre, description, type, status draft, sections vides `Chapitres`, `Étapes narratives`, `Scènes liées`, avec création de chapitre reportée.
+- Fichiers modifiés/créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`, `reports/narrativeStudio/storylines/ns_storylines_v1_07_create_main_storyline_flow_v0.md`, captures Visual Gate V1-07.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Visual Gate : `ns_storylines_v1_07_empty_storylines_desktop.png`, `ns_storylines_v1_07_create_main_dialog.png`, `ns_storylines_v1_07_created_main_graph.png`, `ns_storylines_v1_07_created_main_structure.png`.
+- Design System Gate : confirmé ; aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers touchés.
+- Non-objectifs confirmés : aucun `map_core` modifié, aucune sideQuest, aucun chapter, aucune step, aucune scene placeholder, aucun import legacy automatique, aucun `localEventFlow` promu, aucun runtime/gameplay/battle modifié.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-08 — Structure Tab Authoring V0.
+
 ## 10. Update protocol for every future lot
 
 Chaque futur lot Storylines doit :
@@ -841,10 +865,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 LEGACY IMPORT PREVIEW DONE
-Current lot: NS-STORYLINES-V1-06
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 CREATE MAIN STORYLINE FLOW DONE
+Current lot: NS-STORYLINES-V1-07
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-07 — Create Main Storyline Flow V0
+Next recommended lot: NS-STORYLINES-V1-08 — Structure Tab Authoring V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -870,7 +894,8 @@ Next recommended lot: NS-STORYLINES-V1-07 — Create Main Storyline Flow V0
 | NS-STORYLINES-V1-04 | DONE | 2026-05-28 | StorylineAsset JSON Codec V0 livré, sans manifest/migration/UI. |
 | NS-STORYLINES-V1-05 | DONE | 2026-05-28 | ProjectManifest.storylines Integration V0 livré avec compatibilité vieux JSON et sans migration legacy. |
 | NS-STORYLINES-V1-06 | DONE | 2026-05-28 | Legacy GlobalStory Import Preview V0 livré : candidats non destructifs depuis `globalStory`, issues stables, `localEventFlow` ignoré. |
-| NS-STORYLINES-V1-07 | TODO | 2026-05-28 | Create Main Storyline Flow V0. |
+| NS-STORYLINES-V1-07 | DONE | 2026-05-28 | Create Main Storyline Flow V0 livré : création main `StorylineAsset`, Graph/Structure seulement, aucun import legacy automatique. |
+| NS-STORYLINES-V1-08 | TODO | 2026-05-28 | Structure Tab Authoring V0 recommandé comme prochain lot. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -898,12 +923,23 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0`
 - `NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0`
 - `NS-STORYLINES-V1-07 — Create Main Storyline Flow V0`
-- `NS-STORYLINES-V1-08 — Create Side Quest Storyline Flow V0`
-- `NS-STORYLINES-V1-09 — Storyline Type / Status / Validation`
-- `NS-STORYLINES-V1-10 — Side Quest Graph Integration`
-- `NS-STORYLINES-V1-11 — V1 Visual Graph Enrichment`
+- `NS-STORYLINES-V1-08 — Structure Tab Authoring V0`
+- `NS-STORYLINES-V1-09 — Create Side Quest Flow V0`
+- `NS-STORYLINES-V1-10 — Graph From StorylineAsset V0`
+- `NS-STORYLINES-V1-11 — Side Quest Graph Integration V0`
+- `NS-STORYLINES-V1-12 — V1 Visual Graph Enrichment`
+- `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-07
+
+- Create Main Storyline Flow V0 livré côté editor : `Nouvelle storyline` ouvre un formulaire minimal, crée une `StorylineAsset(type: main, status: draft)` dans `ProjectManifest.storylines`, puis sélectionne la storyline créée.
+- UI Storylines reset vers deux tabs principales seulement : `Graph` et `Structure`.
+- Graph et Structure se synchronisent sur `ProjectManifest.storylines`; le legacy `globalStory` reste non importé automatiquement.
+- Aucun `map_core`, runtime, gameplay, battle, sideQuest, chapter, step ou scene placeholder modifié/créé.
+- Visual Gate V1-07 produit en dark theme.
+- Prochain lot recommandé : `NS-STORYLINES-V1-08 — Structure Tab Authoring V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-06
 
