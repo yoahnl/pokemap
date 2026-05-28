@@ -126,6 +126,66 @@ final class StorylineAsset {
     }
   }
 
+  factory StorylineAsset.fromJson(Map<String, dynamic> json) {
+    return StorylineAsset(
+      id: _readRequiredString(json, 'id'),
+      schemaVersion: _readInt(json, 'schemaVersion', defaultValue: 1),
+      type: _readEnum(StorylineType.values, json['type'], 'type'),
+      status: _readEnum(
+        StorylineStatus.values,
+        json['status'],
+        'status',
+        defaultValue: StorylineStatus.draft,
+      ),
+      title: _readRequiredString(json, 'title'),
+      description: _readOptionalString(json, 'description'),
+      sortOrder: _readOptionalInt(json, 'sortOrder'),
+      locale: _readOptionalString(json, 'locale'),
+      chapters: _readObjectList(
+        json,
+        'chapters',
+        StorylineChapter.fromJson,
+      ),
+      sceneLinks: _readObjectList(
+        json,
+        'sceneLinks',
+        StorylineSceneLink.fromJson,
+      ),
+      relationships: _readObjectList(
+        json,
+        'relationships',
+        StorylineRelationship.fromJson,
+      ),
+      legacySource: _readOptionalObject(
+        json,
+        'legacySource',
+        StorylineLegacySource.fromJson,
+      ),
+      authorNotes: _readOptionalString(json, 'authorNotes'),
+      metadata: _readStringMap(json, 'metadata'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'id': id,
+      'schemaVersion': schemaVersion,
+      'type': _enumToJson(type),
+      'status': _enumToJson(status),
+      'title': title,
+      'description': description,
+      'sortOrder': sortOrder,
+      'locale': locale,
+      'chapters': chapters.map((chapter) => chapter.toJson()).toList(),
+      'sceneLinks': sceneLinks.map((sceneLink) => sceneLink.toJson()).toList(),
+      'relationships':
+          relationships.map((relationship) => relationship.toJson()).toList(),
+      'legacySource': legacySource?.toJson(),
+      'authorNotes': authorNotes,
+      'metadata': metadata,
+    });
+  }
+
   final String id;
   final int schemaVersion;
   final StorylineType type;
@@ -208,6 +268,35 @@ final class StorylineChapter {
     );
   }
 
+  factory StorylineChapter.fromJson(Map<String, dynamic> json) {
+    return StorylineChapter(
+      id: _readRequiredString(json, 'id'),
+      title: _readRequiredString(json, 'title'),
+      description: _readOptionalString(json, 'description'),
+      order: _readRequiredInt(json, 'order'),
+      steps: _readObjectList(json, 'steps', StorylineStep.fromJson),
+      directSceneLinkIds: _readStringList(json, 'directSceneLinkIds'),
+      status:
+          _readOptionalEnum(StorylineStatus.values, json['status'], 'status'),
+      authorNotes: _readOptionalString(json, 'authorNotes'),
+      metadata: _readStringMap(json, 'metadata'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'id': id,
+      'title': title,
+      'description': description,
+      'order': order,
+      'steps': steps.map((step) => step.toJson()).toList(),
+      'directSceneLinkIds': directSceneLinkIds,
+      'status': status == null ? null : _enumToJson(status!),
+      'authorNotes': authorNotes,
+      'metadata': metadata,
+    });
+  }
+
   final String id;
   final String title;
   final String? description;
@@ -275,6 +364,40 @@ final class StorylineStep {
     _requireNotBlank(id, 'StorylineStep.id');
     _requireNotBlank(title, 'StorylineStep.title');
     _requireNonNegative(order, 'StorylineStep.order');
+  }
+
+  factory StorylineStep.fromJson(Map<String, dynamic> json) {
+    return StorylineStep(
+      id: _readRequiredString(json, 'id'),
+      title: _readRequiredString(json, 'title'),
+      description: _readOptionalString(json, 'description'),
+      order: _readRequiredInt(json, 'order'),
+      entryCondition: _readOptionalScriptCondition(json, 'entryCondition'),
+      completionCondition:
+          _readOptionalScriptCondition(json, 'completionCondition'),
+      sceneLinkIds: _readStringList(json, 'sceneLinkIds'),
+      expectedOutcomeIds: _readStringList(json, 'expectedOutcomeIds'),
+      status:
+          _readOptionalEnum(StorylineStatus.values, json['status'], 'status'),
+      authorNotes: _readOptionalString(json, 'authorNotes'),
+      metadata: _readStringMap(json, 'metadata'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'id': id,
+      'title': title,
+      'description': description,
+      'order': order,
+      'entryCondition': entryCondition?.toJson(),
+      'completionCondition': completionCondition?.toJson(),
+      'sceneLinkIds': sceneLinkIds,
+      'expectedOutcomeIds': expectedOutcomeIds,
+      'status': status == null ? null : _enumToJson(status!),
+      'authorNotes': authorNotes,
+      'metadata': metadata,
+    });
   }
 
   final String id;
@@ -358,6 +481,49 @@ final class StorylineSceneLink {
     _validateSceneLinkState(state, sceneRef);
   }
 
+  factory StorylineSceneLink.fromJson(Map<String, dynamic> json) {
+    return StorylineSceneLink(
+      id: _readRequiredString(json, 'id'),
+      chapterId: _readRequiredString(json, 'chapterId'),
+      stepId: _readOptionalString(json, 'stepId'),
+      label: _readRequiredString(json, 'label'),
+      state: _readEnum(StorylineSceneLinkState.values, json['state'], 'state'),
+      role: _readEnum(StorylineSceneLinkRole.values, json['role'], 'role'),
+      sceneRef: _readOptionalObject(
+        json,
+        'sceneRef',
+        StorylineSceneRef.fromJson,
+      ),
+      order: _readRequiredInt(json, 'order'),
+      expectedOutcomeIds: _readStringList(json, 'expectedOutcomeIds'),
+      outcomeLinks: _readObjectList(
+        json,
+        'outcomeLinks',
+        StorylineSceneOutcomeLink.fromJson,
+      ),
+      authorNotes: _readOptionalString(json, 'authorNotes'),
+      metadata: _readStringMap(json, 'metadata'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'id': id,
+      'chapterId': chapterId,
+      'stepId': stepId,
+      'label': label,
+      'state': _enumToJson(state),
+      'role': _enumToJson(role),
+      'sceneRef': sceneRef?.toJson(),
+      'order': order,
+      'expectedOutcomeIds': expectedOutcomeIds,
+      'outcomeLinks':
+          outcomeLinks.map((outcomeLink) => outcomeLink.toJson()).toList(),
+      'authorNotes': authorNotes,
+      'metadata': metadata,
+    });
+  }
+
   final String id;
   final String chapterId;
   final String? stepId;
@@ -414,6 +580,20 @@ final class StorylineSceneRef {
     _requireNotBlank(targetId, 'StorylineSceneRef.targetId');
   }
 
+  factory StorylineSceneRef.fromJson(Map<String, dynamic> json) {
+    return StorylineSceneRef(
+      kind: _readEnum(StorylineSceneRefKind.values, json['kind'], 'kind'),
+      targetId: _readRequiredString(json, 'targetId'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'kind': _enumToJson(kind),
+      'targetId': targetId,
+    };
+  }
+
   final StorylineSceneRefKind kind;
   final String targetId;
 
@@ -446,6 +626,28 @@ final class StorylineSceneOutcomeLink {
         'StorylineSceneOutcomeLink.effects must not be empty',
       );
     }
+  }
+
+  factory StorylineSceneOutcomeLink.fromJson(Map<String, dynamic> json) {
+    return StorylineSceneOutcomeLink(
+      id: _readRequiredString(json, 'id'),
+      outcomeId: _readRequiredString(json, 'outcomeId'),
+      label: _readOptionalString(json, 'label'),
+      effects: _readObjectList(json, 'effects', StorylineEffect.fromJson),
+      notes: _readOptionalString(json, 'notes'),
+      metadata: _readStringMap(json, 'metadata'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'id': id,
+      'outcomeId': outcomeId,
+      'label': label,
+      'effects': effects.map((effect) => effect.toJson()).toList(),
+      'notes': notes,
+      'metadata': metadata,
+    });
   }
 
   final String id;
@@ -485,6 +687,22 @@ final class StorylineEffect {
     this.value,
   }) {
     _requireNotBlank(targetId, 'StorylineEffect.targetId');
+  }
+
+  factory StorylineEffect.fromJson(Map<String, dynamic> json) {
+    return StorylineEffect(
+      type: _readEnum(StorylineEffectType.values, json['type'], 'type'),
+      targetId: _readRequiredString(json, 'targetId'),
+      value: _readOptionalString(json, 'value'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'type': _enumToJson(type),
+      'targetId': targetId,
+      'value': value,
+    });
   }
 
   final StorylineEffectType type;
@@ -530,6 +748,42 @@ final class StorylineRelationship {
         'StorylineRelationship source and target must differ',
       );
     }
+  }
+
+  factory StorylineRelationship.fromJson(Map<String, dynamic> json) {
+    return StorylineRelationship(
+      id: _readRequiredString(json, 'id'),
+      kind: _readEnum(
+        StorylineRelationshipKind.values,
+        json['kind'],
+        'kind',
+      ),
+      sourceStorylineId: _readRequiredString(json, 'sourceStorylineId'),
+      targetStorylineId: _readRequiredString(json, 'targetStorylineId'),
+      anchor: _readOptionalObject(json, 'anchor', StorylineAnchor.fromJson),
+      availability: _readOptionalObject(
+        json,
+        'availability',
+        SideQuestAvailability.fromJson,
+      ),
+      condition: _readOptionalScriptCondition(json, 'condition'),
+      notes: _readOptionalString(json, 'notes'),
+      metadata: _readStringMap(json, 'metadata'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'id': id,
+      'kind': _enumToJson(kind),
+      'sourceStorylineId': sourceStorylineId,
+      'targetStorylineId': targetStorylineId,
+      'anchor': anchor?.toJson(),
+      'availability': availability?.toJson(),
+      'condition': condition?.toJson(),
+      'notes': notes,
+      'metadata': metadata,
+    });
   }
 
   final String id;
@@ -583,6 +837,32 @@ final class SideQuestAvailability {
           'SideQuestAvailability.requiredOutcomeIds',
         );
 
+  factory SideQuestAvailability.fromJson(Map<String, dynamic> json) {
+    return SideQuestAvailability(
+      startAnchor: _readRequiredObject(
+        json,
+        'startAnchor',
+        StorylineAnchor.fromJson,
+      ),
+      endAnchor:
+          _readOptionalObject(json, 'endAnchor', StorylineAnchor.fromJson),
+      availabilityCondition:
+          _readOptionalScriptCondition(json, 'availabilityCondition'),
+      expiresCondition: _readOptionalScriptCondition(json, 'expiresCondition'),
+      requiredOutcomeIds: _readStringList(json, 'requiredOutcomeIds'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'startAnchor': startAnchor.toJson(),
+      'endAnchor': endAnchor?.toJson(),
+      'availabilityCondition': availabilityCondition?.toJson(),
+      'expiresCondition': expiresCondition?.toJson(),
+      'requiredOutcomeIds': requiredOutcomeIds,
+    });
+  }
+
   final StorylineAnchor startAnchor;
   final StorylineAnchor? endAnchor;
   final ScriptCondition? availabilityCondition;
@@ -618,6 +898,20 @@ final class StorylineAnchor {
     _requireNotBlank(targetId, 'StorylineAnchor.targetId');
   }
 
+  factory StorylineAnchor.fromJson(Map<String, dynamic> json) {
+    return StorylineAnchor(
+      kind: _readEnum(StorylineAnchorKind.values, json['kind'], 'kind'),
+      targetId: _readRequiredString(json, 'targetId'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'kind': _enumToJson(kind),
+      'targetId': targetId,
+    };
+  }
+
   final StorylineAnchorKind kind;
   final String targetId;
 
@@ -649,6 +943,30 @@ final class StorylineValidationIssue {
     _requireNotBlank(message, 'StorylineValidationIssue.message');
   }
 
+  factory StorylineValidationIssue.fromJson(Map<String, dynamic> json) {
+    return StorylineValidationIssue(
+      id: _readOptionalString(json, 'id'),
+      severity: _readEnum(
+        StorylineValidationSeverity.values,
+        json['severity'],
+        'severity',
+      ),
+      targetRef: _readRequiredString(json, 'targetRef'),
+      ruleId: _readRequiredString(json, 'ruleId'),
+      message: _readRequiredString(json, 'message'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return _withoutNulls({
+      'id': id,
+      'severity': _enumToJson(severity),
+      'targetRef': targetRef,
+      'ruleId': ruleId,
+      'message': message,
+    });
+  }
+
   final String? id;
   final StorylineValidationSeverity severity;
   final String targetRef;
@@ -678,6 +996,22 @@ final class StorylineLegacySource {
   }) : metadata = Map<String, String>.unmodifiable(metadata) {
     _requireNotBlank(kind, 'StorylineLegacySource.kind');
     _requireNotBlank(sourceId, 'StorylineLegacySource.sourceId');
+  }
+
+  factory StorylineLegacySource.fromJson(Map<String, dynamic> json) {
+    return StorylineLegacySource(
+      kind: _readRequiredString(json, 'kind'),
+      sourceId: _readRequiredString(json, 'sourceId'),
+      metadata: _readStringMap(json, 'metadata'),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'kind': kind,
+      'sourceId': sourceId,
+      'metadata': metadata,
+    };
   }
 
   final String kind;
@@ -839,4 +1173,195 @@ int _mapHash<K, V>(Map<K, V> map) {
   return Object.hashAllUnordered(
     map.entries.map((entry) => Object.hash(entry.key, entry.value)),
   );
+}
+
+Map<String, dynamic> _withoutNulls(Map<String, dynamic> json) {
+  return {
+    for (final entry in json.entries)
+      if (entry.value != null) entry.key: entry.value,
+  };
+}
+
+String _enumToJson(Enum value) => value.name;
+
+T _readEnum<T extends Enum>(
+  List<T> values,
+  Object? value,
+  String fieldName, {
+  T? defaultValue,
+}) {
+  if (value == null && defaultValue != null) {
+    return defaultValue;
+  }
+  if (value is! String) {
+    throw FormatException('$fieldName must be a string enum value');
+  }
+  for (final enumValue in values) {
+    if (enumValue.name == value) {
+      return enumValue;
+    }
+  }
+  throw FormatException('$fieldName has unknown enum value $value');
+}
+
+T? _readOptionalEnum<T extends Enum>(
+  List<T> values,
+  Object? value,
+  String fieldName,
+) {
+  if (value == null) {
+    return null;
+  }
+  return _readEnum(values, value, fieldName);
+}
+
+String _readRequiredString(Map<String, dynamic> json, String fieldName) {
+  final value = json[fieldName];
+  if (value is! String) {
+    throw FormatException('$fieldName must be a string');
+  }
+  return value;
+}
+
+String? _readOptionalString(Map<String, dynamic> json, String fieldName) {
+  final value = json[fieldName];
+  if (value == null) {
+    return null;
+  }
+  if (value is! String) {
+    throw FormatException('$fieldName must be a string');
+  }
+  return value;
+}
+
+int _readRequiredInt(Map<String, dynamic> json, String fieldName) {
+  final value = json[fieldName];
+  if (value is! int) {
+    throw FormatException('$fieldName must be an int');
+  }
+  return value;
+}
+
+int _readInt(
+  Map<String, dynamic> json,
+  String fieldName, {
+  required int defaultValue,
+}) {
+  final value = json[fieldName];
+  if (value == null) {
+    return defaultValue;
+  }
+  if (value is! int) {
+    throw FormatException('$fieldName must be an int');
+  }
+  return value;
+}
+
+int? _readOptionalInt(Map<String, dynamic> json, String fieldName) {
+  final value = json[fieldName];
+  if (value == null) {
+    return null;
+  }
+  if (value is! int) {
+    throw FormatException('$fieldName must be an int');
+  }
+  return value;
+}
+
+Map<String, String> _readStringMap(
+  Map<String, dynamic> json,
+  String fieldName,
+) {
+  final value = json[fieldName];
+  if (value == null) {
+    return const <String, String>{};
+  }
+  if (value is! Map) {
+    throw FormatException('$fieldName must be a map');
+  }
+  final result = <String, String>{};
+  for (final entry in value.entries) {
+    if (entry.key is! String || entry.value is! String) {
+      throw FormatException('$fieldName must contain only string values');
+    }
+    result[entry.key as String] = entry.value as String;
+  }
+  return result;
+}
+
+List<String> _readStringList(Map<String, dynamic> json, String fieldName) {
+  final value = json[fieldName];
+  if (value == null) {
+    return const <String>[];
+  }
+  if (value is! List) {
+    throw FormatException('$fieldName must be a list');
+  }
+  return [
+    for (final item in value)
+      if (item is String)
+        item
+      else
+        throw FormatException('$fieldName must contain only strings'),
+  ];
+}
+
+List<T> _readObjectList<T>(
+  Map<String, dynamic> json,
+  String fieldName,
+  T Function(Map<String, dynamic>) decode,
+) {
+  final value = json[fieldName];
+  if (value == null) {
+    return <T>[];
+  }
+  if (value is! List) {
+    throw FormatException('$fieldName must be a list');
+  }
+  return [
+    for (final item in value) decode(_asJsonObject(item, fieldName)),
+  ];
+}
+
+T _readRequiredObject<T>(
+  Map<String, dynamic> json,
+  String fieldName,
+  T Function(Map<String, dynamic>) decode,
+) {
+  return decode(_asJsonObject(json[fieldName], fieldName));
+}
+
+T? _readOptionalObject<T>(
+  Map<String, dynamic> json,
+  String fieldName,
+  T Function(Map<String, dynamic>) decode,
+) {
+  final value = json[fieldName];
+  if (value == null) {
+    return null;
+  }
+  return decode(_asJsonObject(value, fieldName));
+}
+
+ScriptCondition? _readOptionalScriptCondition(
+  Map<String, dynamic> json,
+  String fieldName,
+) {
+  final value = json[fieldName];
+  if (value == null) {
+    return null;
+  }
+  return ScriptCondition.fromJson(_asJsonObject(value, fieldName));
+}
+
+Map<String, dynamic> _asJsonObject(Object? value, String fieldName) {
+  if (value is! Map) {
+    throw FormatException('$fieldName must be a JSON object');
+  }
+  return value.map((key, item) {
+    if (key is! String) {
+      throw FormatException('$fieldName must use string keys');
+    }
+    return MapEntry(key, item);
+  });
 }

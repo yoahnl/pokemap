@@ -305,7 +305,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-01 | Storyline Authoring Model Decision | model decision | DONE | NS-STORYLINES-V1-02 |
 | NS-STORYLINES-V1-02 | Storyline Authoring Data Shape Contract | data contract | DONE | NS-STORYLINES-V1-03 |
 | NS-STORYLINES-V1-03 | StorylineAsset Pure Model V0 | core model / pure dart | DONE | NS-STORYLINES-V1-04 |
-| NS-STORYLINES-V1-04 | StorylineAsset JSON Codec V0 | core codec | TODO | NS-STORYLINES-V1-05 |
+| NS-STORYLINES-V1-04 | StorylineAsset JSON Codec V0 | core codec | DONE | NS-STORYLINES-V1-05 |
 | NS-STORYLINES-V1-05 | ProjectManifest.storylines Integration V0 | core manifest | TODO | NS-STORYLINES-V1-06 |
 | NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | TODO | NS-STORYLINES-V1-07 |
 | NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-08 |
@@ -674,6 +674,22 @@ Interprétation V0 :
 - Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0.
 
+### NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0
+
+- Type : core codec / manual JSON / pure Dart / tests.
+- Objectif : ajouter un codec JSON manuel pour `StorylineAsset` et ses sous-objets, sans intégration `ProjectManifest.storylines`.
+- Résultat : `StorylineAsset` peut faire `model -> toJson() -> fromJson(...) -> model équivalent`.
+- JSON : enums encodés en strings lowerCamel stables via `.name`, listes/maps présentes en `[]` / `{}`, champs optionnels null omis.
+- Decode : defaults `schemaVersion = 1`, `status = draft`, `chapters = []`, `sceneLinks = []`, `relationships = []`, `metadata = {}` ; erreurs de forme en `FormatException`, invariants via constructeurs / `ValidationException`.
+- ScriptCondition : codec officiel existant réutilisé (`ScriptCondition.fromJson` / `toJson` générés), sans nouveau langage conditionnel.
+- Fichiers créés/modifiés : `packages/map_core/lib/src/models/storyline_asset.dart`, `packages/map_core/test/storyline_asset_test.dart`, `packages/map_core/test/storyline_asset_json_test.dart`, `reports/narrativeStudio/storylines/ns_storylines_v1_04_storyline_asset_json_codec_v0.md`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Tests exécutés : `dart test test/storyline_asset_json_test.dart`, `dart test test/storyline_asset_test.dart`, `dart test test/scenario_assets_test.dart`, `dart test`.
+- Analyse exécutée : `dart analyze lib/src/models/storyline_asset.dart test/storyline_asset_test.dart test/storyline_asset_json_test.dart`.
+- Non-objectifs confirmés : aucun `ProjectManifest`, aucun `ScenarioAsset`, aucun generated file, aucun build_runner, aucune UI.
+- Dépendances : NS-STORYLINES-V1-03.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0.
+
 ## 10. Update protocol for every future lot
 
 Chaque futur lot Storylines doit :
@@ -790,10 +806,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 PURE MODEL DONE
-Current lot: NS-STORYLINES-V1-03
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 JSON CODEC DONE
+Current lot: NS-STORYLINES-V1-04
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0
+Next recommended lot: NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -816,7 +832,7 @@ Next recommended lot: NS-STORYLINES-V1-04 — StorylineAsset JSON Codec V0
 | NS-STORYLINES-V1-01 | DONE | 2026-05-28 | Modèle hybride retenu : `StorylineAsset` authoring + `ScenarioAsset` executable scene flow ; Structure source d'authoring, Graph généré. |
 | NS-STORYLINES-V1-02 | DONE | 2026-05-28 | Contrat data shape `StorylineAsset` livré : champs, enums, invariants, validations, JSON, migration legacy, UI actions et tests futurs. |
 | NS-STORYLINES-V1-03 | DONE | 2026-05-28 | StorylineAsset Pure Model V0 livré dans `map_core`, sans JSON/manifest/UI. |
-| NS-STORYLINES-V1-04 | TODO | 2026-05-28 | StorylineAsset JSON Codec V0. |
+| NS-STORYLINES-V1-04 | DONE | 2026-05-28 | StorylineAsset JSON Codec V0 livré, sans manifest/migration/UI. |
 | NS-STORYLINES-V1-05 | TODO | 2026-05-28 | ProjectManifest.storylines Integration V0. |
 | NS-STORYLINES-V1-06 | TODO | 2026-05-28 | Legacy GlobalStory Import Preview V0. |
 | NS-STORYLINES-V1-07 | TODO | 2026-05-28 | Create Main Storyline Flow V0. |
@@ -853,6 +869,16 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-11 — V1 Visual Graph Enrichment`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-04
+
+- Codec JSON manuel livré pour `StorylineAsset` et ses sous-objets essentiels.
+- Enums Storylines sérialisés en strings lowerCamel stables, jamais en index.
+- Decode strict : erreurs de forme en `FormatException`, invariants métiers préservés par les constructeurs.
+- `ScriptCondition` sérialisé via le codec officiel existant ; aucun langage conditionnel local ajouté.
+- Tests JSON ajoutés : roundtrip minimal/complet, defaults, enums, invalid JSON et validations au decode.
+- Non-objectifs respectés : aucun `ProjectManifest.storylines`, aucune migration legacy, aucun `ScenarioAsset`, aucun generated file, aucun build_runner, aucune UI.
+- Prochain lot recommandé : `NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-03
 

@@ -641,15 +641,15 @@ void main() {
     });
   });
 
-  group('StorylineAsset V1-03 scope guards', () {
-    test('does not expose JSON codecs in pure model lot', () {
-      final dynamic storyline = StorylineAsset(
+  group('StorylineAsset V1-04 scope guards', () {
+    test('exposes JSON codec without manifest integration', () {
+      final storyline = StorylineAsset(
         id: 'story',
         type: StorylineType.main,
         title: 'Story',
       );
 
-      expect(() => storyline.toJson(), throwsA(isA<NoSuchMethodError>()));
+      expect(storyline.toJson(), containsPair('type', 'main'));
     });
   });
 }
