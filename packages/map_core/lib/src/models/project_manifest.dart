@@ -11,6 +11,7 @@ import 'scenario_asset.dart';
 import 'script_asset.dart';
 import 'shadow.dart';
 import 'shadow_catalog.dart';
+import 'storyline_asset.dart';
 import 'surface_catalog.dart';
 import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
@@ -45,6 +46,41 @@ Map<String, Object?> _projectSurfaceCatalogToJson(
   ProjectSurfaceCatalog catalog,
 ) {
   return encodeProjectSurfaceCatalog(catalog);
+}
+
+/// JSON -> authoring Storylines.
+///
+/// Missing or `null` keeps old projects readable as an empty list. This is
+/// intentionally not a legacy import from `ScenarioAsset.globalStory`.
+List<StorylineAsset> _storylinesFromJson(Object? json) {
+  if (json == null) {
+    return const <StorylineAsset>[];
+  }
+  if (json is! List) {
+    throw const ValidationException('storylines must be a JSON list');
+  }
+  return [
+    for (final item in json)
+      StorylineAsset.fromJson(_storylineJsonObject(item)),
+  ];
+}
+
+List<Map<String, dynamic>> _storylinesToJson(
+  List<StorylineAsset> storylines,
+) {
+  return [for (final storyline in storylines) storyline.toJson()];
+}
+
+Map<String, dynamic> _storylineJsonObject(Object? json) {
+  if (json is! Map) {
+    throw const ValidationException('storyline must be a JSON object');
+  }
+  return json.map((key, value) {
+    if (key is! String) {
+      throw const ValidationException('storyline JSON keys must be strings');
+    }
+    return MapEntry(key, value);
+  });
 }
 
 /// JSON -> ShadowV2 projected building shadow catalog.
@@ -165,6 +201,13 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectDialogueEntry> dialogues,
     @Default([]) List<ProjectScriptEntry> scripts,
     @Default([]) List<ScenarioAsset> scenarios,
+    @Default([])
+    @JsonKey(
+      name: 'storylines',
+      fromJson: _storylinesFromJson,
+      toJson: _storylinesToJson,
+    )
+    List<StorylineAsset> storylines,
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectSettings()) ProjectSettings settings,

@@ -57,6 +57,11 @@ mixin _$ProjectManifest {
       throw _privateConstructorUsedError;
   List<ProjectScriptEntry> get scripts => throw _privateConstructorUsedError;
   List<ScenarioAsset> get scenarios => throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'storylines',
+      fromJson: _storylinesFromJson,
+      toJson: _storylinesToJson)
+  List<StorylineAsset> get storylines => throw _privateConstructorUsedError;
   List<ProjectTrainerEntry> get trainers => throw _privateConstructorUsedError;
   List<ProjectCharacterEntry> get characters =>
       throw _privateConstructorUsedError;
@@ -124,6 +129,11 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
+      @JsonKey(
+          name: 'storylines',
+          fromJson: _storylinesFromJson,
+          toJson: _storylinesToJson)
+      List<StorylineAsset> storylines,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -180,6 +190,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? dialogues = null,
     Object? scripts = null,
     Object? scenarios = null,
+    Object? storylines = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -266,6 +277,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.scenarios
           : scenarios // ignore: cast_nullable_to_non_nullable
               as List<ScenarioAsset>,
+      storylines: null == storylines
+          ? _value.storylines
+          : storylines // ignore: cast_nullable_to_non_nullable
+              as List<StorylineAsset>,
       trainers: null == trainers
           ? _value.trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -358,6 +373,11 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
+      @JsonKey(
+          name: 'storylines',
+          fromJson: _storylinesFromJson,
+          toJson: _storylinesToJson)
+      List<StorylineAsset> storylines,
       List<ProjectTrainerEntry> trainers,
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
@@ -414,6 +434,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? dialogues = null,
     Object? scripts = null,
     Object? scenarios = null,
+    Object? storylines = null,
     Object? trainers = null,
     Object? characters = null,
     Object? settings = null,
@@ -500,6 +521,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._scenarios
           : scenarios // ignore: cast_nullable_to_non_nullable
               as List<ScenarioAsset>,
+      storylines: null == storylines
+          ? _value._storylines
+          : storylines // ignore: cast_nullable_to_non_nullable
+              as List<StorylineAsset>,
       trainers: null == trainers
           ? _value._trainers
           : trainers // ignore: cast_nullable_to_non_nullable
@@ -568,6 +593,11 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectDialogueEntry> dialogues = const [],
       final List<ProjectScriptEntry> scripts = const [],
       final List<ScenarioAsset> scenarios = const [],
+      @JsonKey(
+          name: 'storylines',
+          fromJson: _storylinesFromJson,
+          toJson: _storylinesToJson)
+      final List<StorylineAsset> storylines = const [],
       final List<ProjectTrainerEntry> trainers = const [],
       final List<ProjectCharacterEntry> characters = const [],
       this.settings = const ProjectSettings(),
@@ -604,6 +634,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _dialogues = dialogues,
         _scripts = scripts,
         _scenarios = scenarios,
+        _storylines = storylines,
         _trainers = trainers,
         _characters = characters,
         _globalProperties = globalProperties;
@@ -777,6 +808,18 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_scenarios);
   }
 
+  final List<StorylineAsset> _storylines;
+  @override
+  @JsonKey(
+      name: 'storylines',
+      fromJson: _storylinesFromJson,
+      toJson: _storylinesToJson)
+  List<StorylineAsset> get storylines {
+    if (_storylines is EqualUnmodifiableListView) return _storylines;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_storylines);
+  }
+
   final List<ProjectTrainerEntry> _trainers;
   @override
   @JsonKey()
@@ -830,7 +873,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -869,6 +912,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality().equals(other._scripts, _scripts) &&
             const DeepCollectionEquality()
                 .equals(other._scenarios, _scenarios) &&
+            const DeepCollectionEquality()
+                .equals(other._storylines, _storylines) &&
             const DeepCollectionEquality().equals(other._trainers, _trainers) &&
             const DeepCollectionEquality()
                 .equals(other._characters, _characters) &&
@@ -910,6 +955,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_dialogues),
         const DeepCollectionEquality().hash(_scripts),
         const DeepCollectionEquality().hash(_scenarios),
+        const DeepCollectionEquality().hash(_storylines),
         const DeepCollectionEquality().hash(_trainers),
         const DeepCollectionEquality().hash(_characters),
         settings,
@@ -966,6 +1012,11 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectDialogueEntry> dialogues,
       final List<ProjectScriptEntry> scripts,
       final List<ScenarioAsset> scenarios,
+      @JsonKey(
+          name: 'storylines',
+          fromJson: _storylinesFromJson,
+          toJson: _storylinesToJson)
+      final List<StorylineAsset> storylines,
       final List<ProjectTrainerEntry> trainers,
       final List<ProjectCharacterEntry> characters,
       final ProjectSettings settings,
@@ -1035,6 +1086,12 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectScriptEntry> get scripts;
   @override
   List<ScenarioAsset> get scenarios;
+  @override
+  @JsonKey(
+      name: 'storylines',
+      fromJson: _storylinesFromJson,
+      toJson: _storylinesToJson)
+  List<StorylineAsset> get storylines;
   @override
   List<ProjectTrainerEntry> get trainers;
   @override

@@ -306,7 +306,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-02 | Storyline Authoring Data Shape Contract | data contract | DONE | NS-STORYLINES-V1-03 |
 | NS-STORYLINES-V1-03 | StorylineAsset Pure Model V0 | core model / pure dart | DONE | NS-STORYLINES-V1-04 |
 | NS-STORYLINES-V1-04 | StorylineAsset JSON Codec V0 | core codec | DONE | NS-STORYLINES-V1-05 |
-| NS-STORYLINES-V1-05 | ProjectManifest.storylines Integration V0 | core manifest | TODO | NS-STORYLINES-V1-06 |
+| NS-STORYLINES-V1-05 | ProjectManifest.storylines Integration V0 | core manifest | DONE | NS-STORYLINES-V1-06 |
 | NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | TODO | NS-STORYLINES-V1-07 |
 | NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-08 |
 
@@ -690,6 +690,23 @@ Interprétation V0 :
 - Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0.
 
+### NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0
+
+- Type : core manifest / JSON compatibility / pure Dart / tests.
+- Objectif : intégrer `StorylineAsset` dans `ProjectManifest.storylines`, sans migration legacy, sans UI et sans runtime.
+- Résultat : `ProjectManifest` porte désormais `storylines: List<StorylineAsset>` avec default `[]`, roundtrip JSON et compatibilité vieux projets sans champ `storylines`.
+- JSON : `storylines` est sérialisé via `StorylineAsset.toJson()` et désérialisé via `StorylineAsset.fromJson(...)`; champ absent ou `null` donne `[]`.
+- Compatibilité : les anciens `ScenarioAsset(scope == globalStory)` restent dans `ProjectManifest.scenarios`; aucune `StorylineAsset` n'est créée automatiquement.
+- Non-promotion : `ScenarioAsset(scope == localEventFlow)` reste un scénario local et n'est jamais promu en `sideQuest`.
+- Generated files : `ProjectManifest` utilise Freezed/json_serializable ; build_runner limité à `packages/map_core` a régénéré uniquement les fichiers générés du manifest.
+- Fichiers créés/modifiés : `packages/map_core/lib/src/models/project_manifest.dart`, `packages/map_core/lib/src/models/project_manifest.freezed.dart`, `packages/map_core/lib/src/models/project_manifest.g.dart`, `packages/map_core/test/project_manifest_storylines_test.dart`, `reports/narrativeStudio/storylines/ns_storylines_v1_05_project_manifest_storylines_integration_v0.md`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Tests exécutés : `dart test test/project_manifest_storylines_test.dart`, `dart test test/storyline_asset_json_test.dart`, `dart test test/storyline_asset_test.dart`, `dart test test/scenario_assets_test.dart`, `dart test`.
+- Analyse exécutée : `dart analyze lib/src/models/project_manifest.dart test/project_manifest_storylines_test.dart`.
+- Non-objectifs confirmés : `StorylineAsset` non modifié, `ScenarioAsset` non modifié, aucune migration legacy, aucun import globalStory, aucune UI, aucun runtime.
+- Dépendances : NS-STORYLINES-V1-04.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0.
+
 ## 10. Update protocol for every future lot
 
 Chaque futur lot Storylines doit :
@@ -806,10 +823,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 JSON CODEC DONE
-Current lot: NS-STORYLINES-V1-04
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 MANIFEST STORYLINES DONE
+Current lot: NS-STORYLINES-V1-05
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-05 — ProjectManifest.storylines Integration V0
+Next recommended lot: NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -833,7 +850,7 @@ Next recommended lot: NS-STORYLINES-V1-05 — ProjectManifest.storylines Integra
 | NS-STORYLINES-V1-02 | DONE | 2026-05-28 | Contrat data shape `StorylineAsset` livré : champs, enums, invariants, validations, JSON, migration legacy, UI actions et tests futurs. |
 | NS-STORYLINES-V1-03 | DONE | 2026-05-28 | StorylineAsset Pure Model V0 livré dans `map_core`, sans JSON/manifest/UI. |
 | NS-STORYLINES-V1-04 | DONE | 2026-05-28 | StorylineAsset JSON Codec V0 livré, sans manifest/migration/UI. |
-| NS-STORYLINES-V1-05 | TODO | 2026-05-28 | ProjectManifest.storylines Integration V0. |
+| NS-STORYLINES-V1-05 | DONE | 2026-05-28 | ProjectManifest.storylines Integration V0 livré avec compatibilité vieux JSON et sans migration legacy. |
 | NS-STORYLINES-V1-06 | TODO | 2026-05-28 | Legacy GlobalStory Import Preview V0. |
 | NS-STORYLINES-V1-07 | TODO | 2026-05-28 | Create Main Storyline Flow V0. |
 
@@ -869,6 +886,16 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-11 — V1 Visual Graph Enrichment`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-05
+
+- `ProjectManifest.storylines: List<StorylineAsset>` intégré dans `map_core`.
+- Compatibilité vieux projets confirmée : absence du champ `storylines` décodée en `[]`.
+- Roundtrip JSON `ProjectManifest` avec storylines couvert par tests.
+- Aucune migration legacy : `ScenarioAsset.globalStory` reste dans `scenarios` et ne crée pas automatiquement de `StorylineAsset`.
+- `localEventFlow` reste exclu comme `sideQuest` par défaut.
+- Non-objectifs respectés : `StorylineAsset` non modifié, `ScenarioAsset` non modifié, aucune UI, aucun runtime.
+- Prochain lot recommandé : `NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-04
 

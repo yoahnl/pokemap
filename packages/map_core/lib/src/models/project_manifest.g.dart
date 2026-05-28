@@ -87,6 +87,9 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
               ?.map((e) => ScenarioAsset.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      storylines: json['storylines'] == null
+          ? const []
+          : _storylinesFromJson(json['storylines']),
       trainers: (json['trainers'] as List<dynamic>?)
               ?.map((e) =>
                   ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
@@ -148,6 +151,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
       'scripts': instance.scripts.map((e) => e.toJson()).toList(),
       'scenarios': instance.scenarios.map((e) => e.toJson()).toList(),
+      'storylines': _storylinesToJson(instance.storylines),
       'trainers': instance.trainers.map((e) => e.toJson()).toList(),
       'characters': instance.characters.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
