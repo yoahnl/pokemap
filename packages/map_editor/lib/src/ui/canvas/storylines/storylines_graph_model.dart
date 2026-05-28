@@ -5,11 +5,13 @@ enum StorylineGraphNodeKind {
   chapter,
   step,
   emptyStepPlaceholder,
+  sideQuest,
 }
 
 enum StorylineGraphEdgeKind {
   authorOrder,
   contains,
+  sideQuestAttachment,
 }
 
 final class StorylineGraphViewModel {
@@ -20,6 +22,7 @@ final class StorylineGraphViewModel {
     required this.chapterCount,
     required this.stepCount,
     required this.sideQuestCountOutsideSelected,
+    required this.sideQuestAttachments,
     required this.chapters,
     required this.nodes,
     required this.edges,
@@ -27,6 +30,7 @@ final class StorylineGraphViewModel {
 
   factory StorylineGraphViewModel.fromStoryline(
     StorylineAsset storyline, {
+    List<StorylineAsset> storylines = const <StorylineAsset>[],
     int sideQuestCountOutsideSelected = 0,
   }) {
     final chapters = [...storyline.chapters]
@@ -41,6 +45,11 @@ final class StorylineGraphViewModel {
           steps: ([...chapter.steps]..sort(_compareStepsByAuthorOrder)),
         ),
     ];
+    final sideQuestAttachments = _attachedSideQuests(
+      storyline,
+      storylines,
+      graphChapters,
+    );
     final stepCount = graphChapters.fold<int>(
       0,
       (total, chapter) => total + chapter.steps.length,
@@ -96,16 +105,17 @@ final class StorylineGraphViewModel {
             id: emptyStepNodeId(chapter.id),
             kind: StorylineGraphNodeKind.emptyStepPlaceholder,
             title: 'Aucune étape narrative',
-            subtitle: 'Ajoutez une étape dans Structure.',
-            order: chapter.order,
+            subtitle: 'Structure uniquement',
+            order: 0,
             chapterId: chapter.id,
           ),
         );
       } else {
         for (final step in chapter.steps) {
+          final stepNodeId = StorylineGraphViewModel.stepNodeId(step.id);
           nodes.add(
             StorylineGraphNode(
-              id: stepNodeId(step.id),
+              id: stepNodeId,
               kind: StorylineGraphNodeKind.step,
               title: step.title,
               subtitle: _sceneLinkLabel(step.sceneLinkIds.length),
@@ -118,11 +128,34 @@ final class StorylineGraphViewModel {
             StorylineGraphEdge(
               id: 'contains:${chapter.id}:${step.id}',
               fromNodeId: chapterNodeId,
-              toNodeId: stepNodeId(step.id),
+              toNodeId: stepNodeId,
               kind: StorylineGraphEdgeKind.contains,
             ),
           );
         }
+      }
+      for (final attachment in sideQuestAttachmentsForChapter(
+        sideQuestAttachments,
+        chapter.id,
+      )) {
+        nodes.add(
+          StorylineGraphNode(
+            id: sideQuestNodeId(attachment.sideQuestId),
+            kind: StorylineGraphNodeKind.sideQuest,
+            title: attachment.title,
+            subtitle: attachment.anchorLabel,
+            order: attachment.order,
+            chapterId: chapter.id,
+          ),
+        );
+        edges.add(
+          StorylineGraphEdge(
+            id: 'attachment:${attachment.relationshipId}',
+            fromNodeId: attachment.anchorNodeId,
+            toNodeId: sideQuestNodeId(attachment.sideQuestId),
+            kind: StorylineGraphEdgeKind.sideQuestAttachment,
+          ),
+        );
       }
     }
 
@@ -133,6 +166,7 @@ final class StorylineGraphViewModel {
       chapterCount: graphChapters.length,
       stepCount: stepCount,
       sideQuestCountOutsideSelected: sideQuestCountOutsideSelected,
+      sideQuestAttachments: sideQuestAttachments,
       chapters: graphChapters,
       nodes: nodes,
       edges: edges,
@@ -145,6 +179,7 @@ final class StorylineGraphViewModel {
   final int chapterCount;
   final int stepCount;
   final int sideQuestCountOutsideSelected;
+  final List<StorylineGraphSideQuestAttachment> sideQuestAttachments;
   final List<StorylineGraphChapter> chapters;
   final List<StorylineGraphNode> nodes;
   final List<StorylineGraphEdge> edges;
@@ -156,6 +191,9 @@ final class StorylineGraphViewModel {
   bool get hasSideQuestNote =>
       type == StorylineType.main && sideQuestCountOutsideSelected > 0;
 
+  int get unattachedSideQuestCount =>
+      sideQuestCountOutsideSelected - sideQuestAttachments.length;
+
   static String storylineNodeId(String storylineId) => 'storyline:$storylineId';
 
   static String chapterNodeId(String chapterId) => 'chapter:$chapterId';
@@ -163,6 +201,8 @@ final class StorylineGraphViewModel {
   static String stepNodeId(String stepId) => 'step:$stepId';
 
   static String emptyStepNodeId(String chapterId) => 'empty-step:$chapterId';
+
+  static String sideQuestNodeId(String sideQuestId) => 'sideQuest:$sideQuestId';
 }
 
 final class StorylineGraphChapter {
@@ -179,6 +219,30 @@ final class StorylineGraphChapter {
   final String? description;
   final int order;
   final List<StorylineStep> steps;
+}
+
+final class StorylineGraphSideQuestAttachment {
+  const StorylineGraphSideQuestAttachment({
+    required this.sideQuestId,
+    required this.relationshipId,
+    required this.title,
+    required this.chapterId,
+    required this.anchorKind,
+    required this.anchorId,
+    required this.anchorLabel,
+    required this.anchorNodeId,
+    required this.order,
+  });
+
+  final String sideQuestId;
+  final String relationshipId;
+  final String title;
+  final String chapterId;
+  final StorylineAnchorKind anchorKind;
+  final String anchorId;
+  final String anchorLabel;
+  final String anchorNodeId;
+  final int order;
 }
 
 final class StorylineGraphNode {
@@ -213,6 +277,135 @@ final class StorylineGraphEdge {
   final String fromNodeId;
   final String toNodeId;
   final StorylineGraphEdgeKind kind;
+}
+
+List<StorylineGraphSideQuestAttachment> sideQuestAttachmentsForChapter(
+  List<StorylineGraphSideQuestAttachment> attachments,
+  String chapterId,
+) {
+  return [
+    for (final attachment in attachments)
+      if (attachment.chapterId == chapterId) attachment,
+  ];
+}
+
+List<StorylineGraphSideQuestAttachment> _attachedSideQuests(
+  StorylineAsset storyline,
+  List<StorylineAsset> storylines,
+  List<StorylineGraphChapter> chapters,
+) {
+  if (storyline.type != StorylineType.main) {
+    return const <StorylineGraphSideQuestAttachment>[];
+  }
+  final chapterById = {for (final chapter in chapters) chapter.id: chapter};
+  final chapterOrder = {
+    for (var index = 0; index < chapters.length; index += 1)
+      chapters[index].id: index,
+  };
+  final stepById = <String, StorylineStep>{};
+  final stepChapterById = <String, StorylineGraphChapter>{};
+  for (final chapter in chapters) {
+    for (final step in chapter.steps) {
+      stepById[step.id] = step;
+      stepChapterById[step.id] = chapter;
+    }
+  }
+
+  final attachments = <StorylineGraphSideQuestAttachment>[];
+  for (final sideQuest in storylines) {
+    if (sideQuest.type != StorylineType.sideQuest) continue;
+    for (final relationship in sideQuest.relationships) {
+      if (!_isSideQuestAttachment(relationship, storyline.id)) continue;
+      final anchor =
+          relationship.availability?.startAnchor ?? relationship.anchor;
+      if (anchor == null) continue;
+      StorylineGraphSideQuestAttachment? attachment;
+      if (anchor.kind == StorylineAnchorKind.chapter) {
+        attachment = _chapterAttachment(
+          sideQuest,
+          relationship,
+          anchor,
+          chapterById[anchor.targetId],
+          chapterOrder[anchor.targetId] ?? 0,
+        );
+      } else if (anchor.kind == StorylineAnchorKind.step) {
+        final chapter = stepChapterById[anchor.targetId];
+        attachment = _stepAttachment(
+          sideQuest,
+          relationship,
+          anchor,
+          stepById[anchor.targetId],
+          chapter,
+          chapterOrder[chapter?.id] ?? 0,
+        );
+      }
+      if (attachment != null) {
+        attachments.add(attachment);
+        break;
+      }
+    }
+  }
+  attachments.sort((left, right) {
+    final order = left.order.compareTo(right.order);
+    if (order != 0) return order;
+    final title = left.title.compareTo(right.title);
+    if (title != 0) return title;
+    return left.sideQuestId.compareTo(right.sideQuestId);
+  });
+  return attachments;
+}
+
+StorylineGraphSideQuestAttachment? _chapterAttachment(
+  StorylineAsset sideQuest,
+  StorylineRelationship relationship,
+  StorylineAnchor anchor,
+  StorylineGraphChapter? chapter,
+  int order,
+) {
+  if (chapter == null) return null;
+  return StorylineGraphSideQuestAttachment(
+    sideQuestId: sideQuest.id,
+    relationshipId: relationship.id,
+    title: sideQuest.title,
+    chapterId: chapter.id,
+    anchorKind: anchor.kind,
+    anchorId: anchor.targetId,
+    anchorLabel: 'Chapitre · ${chapter.title}',
+    anchorNodeId: StorylineGraphViewModel.chapterNodeId(chapter.id),
+    order: order,
+  );
+}
+
+StorylineGraphSideQuestAttachment? _stepAttachment(
+  StorylineAsset sideQuest,
+  StorylineRelationship relationship,
+  StorylineAnchor anchor,
+  StorylineStep? step,
+  StorylineGraphChapter? chapter,
+  int order,
+) {
+  if (step == null || chapter == null) return null;
+  return StorylineGraphSideQuestAttachment(
+    sideQuestId: sideQuest.id,
+    relationshipId: relationship.id,
+    title: sideQuest.title,
+    chapterId: chapter.id,
+    anchorKind: anchor.kind,
+    anchorId: anchor.targetId,
+    anchorLabel: 'Étape · ${step.title}',
+    anchorNodeId: StorylineGraphViewModel.stepNodeId(step.id),
+    order: order,
+  );
+}
+
+bool _isSideQuestAttachment(
+  StorylineRelationship relationship,
+  String mainStorylineId,
+) {
+  return relationship.targetStorylineId == mainStorylineId &&
+      (relationship.kind ==
+              StorylineRelationshipKind.sideQuestAvailableDuring ||
+          relationship.kind == StorylineRelationshipKind.sideQuestUnlockedBy);
 }
 
 int _compareChaptersByAuthorOrder(

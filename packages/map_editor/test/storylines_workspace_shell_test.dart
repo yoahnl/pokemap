@@ -12,7 +12,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-V1-10 graph from StorylineAsset flow', () {
+  group('NS-STORYLINES-V1-11 sideQuest attachment graph flow', () {
     testWidgets('shows only Graph and Structure tabs', (tester) async {
       await _pumpStorylinesShell(tester);
 
@@ -780,8 +780,147 @@ void main() {
         findsNothing,
       );
       expect(
-        find.text('Quêtes annexes créées : 1 — intégration à venir'),
+        find.text(
+          'Quêtes annexes créées : 1 — attachement explicite requis',
+        ),
         findsOneWidget,
+      );
+    });
+
+    testWidgets('attaches sideQuest to an explicit main step anchor',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(tester);
+
+      await _createMainStoryline(tester, title: 'Main Path');
+      await _createChapter(tester, title: 'Opening');
+      await _createStep(tester, title: 'Signal');
+      await _createSideQuest(tester, title: 'Lost Charm');
+
+      final beforeScenarios = harness.project.scenarios;
+      await _openStructureTab(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-attach-sidequest-action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('storylines-attach-sidequest-dialog')),
+          findsOneWidget);
+      expect(find.text('Attacher la quête annexe'), findsOneWidget);
+      expect(find.text('Main Path'), findsWidgets);
+      expect(find.text('Chapitre · Opening'), findsOneWidget);
+      expect(find.text('Étape · Signal'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-attach-anchor-step-step_signal')),
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('storylines-attach-submit')));
+      await tester.pumpAndSettle();
+
+      final main = harness.project.storylines.singleWhere(
+        (storyline) => storyline.type == StorylineType.main,
+      );
+      final sideQuest = harness.project.storylines.singleWhere(
+        (storyline) => storyline.type == StorylineType.sideQuest,
+      );
+      expect(main.relationships, isEmpty);
+      expect(sideQuest.relationships, hasLength(1));
+      final relationship = sideQuest.relationships.single;
+      expect(relationship.kind,
+          StorylineRelationshipKind.sideQuestAvailableDuring);
+      expect(relationship.sourceStorylineId, sideQuest.id);
+      expect(relationship.targetStorylineId, main.id);
+      expect(relationship.anchor?.kind, StorylineAnchorKind.step);
+      expect(relationship.anchor?.targetId, 'step_signal');
+      expect(relationship.availability?.startAnchor.kind,
+          StorylineAnchorKind.step);
+      expect(relationship.availability?.startAnchor.targetId, 'step_signal');
+      expect(sideQuest.sceneLinks, isEmpty);
+      expect(harness.project.scenarios, beforeScenarios);
+      expect(find.text('Reliée au graph principal'), findsWidgets);
+    });
+
+    testWidgets('attached sideQuest appears in main graph from relation only',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(tester);
+
+      await _createMainStoryline(tester, title: 'Main Path');
+      await _createChapter(tester, title: 'Opening');
+      await _createStep(tester, title: 'Signal');
+      await _createSideQuest(tester, title: 'Lost Charm');
+      await _attachSideQuestToAnchor(
+        tester,
+        anchorKey: 'storylines-attach-anchor-step-step_signal',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-v1-row-storyline_main_path')),
+      );
+      await tester.pump();
+      await _openGraphTab(tester);
+
+      final graphCanvas = find.byKey(const ValueKey('storylines-graph-canvas'));
+      expect(
+        find.descendant(of: graphCanvas, matching: find.text('Main Path')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: graphCanvas, matching: find.text('Lost Charm')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: graphCanvas,
+          matching: find.byKey(
+            const ValueKey(
+                'storylines-graph-node-sidequest-sidequest_lost_charm'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Quêtes annexes attachées : 1'), findsOneWidget);
+      expect(find.textContaining('Relation explicite · Étape · Signal'),
+          findsOneWidget);
+      expect(
+        find.byKey(
+          ValueKey(
+            'storylines-graph-edge-sidequest-'
+            '${harness.project.storylines.singleWhere((s) => s.type == StorylineType.sideQuest).relationships.single.id}',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        harness.project.storylines
+            .singleWhere((s) => s.type == StorylineType.sideQuest)
+            .relationships,
+        hasLength(1),
+      );
+    });
+
+    testWidgets('canceling sideQuest attachment does not mutate project',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(tester);
+
+      await _createMainStoryline(tester, title: 'Main Path');
+      await _createChapter(tester, title: 'Opening');
+      await _createSideQuest(tester, title: 'Lost Charm');
+      final before = harness.project.toJson();
+
+      await _openStructureTab(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-attach-sidequest-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('storylines-attach-cancel')));
+      await tester.pumpAndSettle();
+
+      expect(harness.project.toJson(), before);
+      expect(
+        harness.project.storylines
+            .singleWhere((s) => s.type == StorylineType.sideQuest)
+            .relationships,
+        isEmpty,
       );
     });
 
@@ -1044,24 +1183,63 @@ void main() {
       expect(Theme.of(shellContext).brightness, Brightness.dark);
     });
 
-    testWidgets('writes V1-10 Graph From StorylineAsset screenshots',
+    testWidgets('writes V1-11 sideQuest attachment graph screenshots',
         (tester) async {
       await _pumpStorylinesShell(
         tester,
         surfaceSize: const Size(1600, 1000),
-        project: _projectWithStorylines([
-          StorylineAsset(
-            id: 'storyline_visual_empty',
-            type: StorylineType.main,
-            title: 'Visual Empty Main',
-          ),
-        ]),
+        project: _visualGraphProject(),
       );
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-v1-row-sidequest_visual')),
+      );
+      await tester.pump();
+      await _openStructureTab(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-attach-sidequest-action')),
+      );
+      await tester.pumpAndSettle();
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_10_graph_empty_storyline.png',
+          'ns_storylines_v1_11_attach_side_quest_dialog.png',
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'storylines-attach-anchor-step-step_visual_choice',
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('storylines-attach-submit')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-v1-row-storyline_visual_main')),
+      );
+      await tester.pump();
+      await _openGraphTab(tester);
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_11_attached_main_graph.png',
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-v1-row-sidequest_visual')),
+      );
+      await tester.pump();
+      await _openStructureTab(tester);
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_11_attached_sidequest_structure.png',
         ),
       );
 
@@ -1074,31 +1252,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_10_graph_main_chapters_steps.png',
-        ),
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey('storylines-v1-row-sidequest_visual')),
-      );
-      await tester.pump();
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_10_graph_sidequest_standalone.png',
-        ),
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey('storylines-v1-row-storyline_visual_main')),
-      );
-      await tester.pump();
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_10_graph_main_ignores_sidequest.png',
+          'ns_storylines_v1_11_unattached_sidequest_hidden_from_main_graph.png',
         ),
       );
     });
@@ -1178,6 +1332,21 @@ Future<void> _createSideQuest(
   }
   await tester.pump();
   await tester.tap(find.byKey(const ValueKey('storylines-create-submit')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _attachSideQuestToAnchor(
+  WidgetTester tester, {
+  required String anchorKey,
+}) async {
+  await _openStructureTab(tester);
+  await tester.tap(
+    find.byKey(const ValueKey('storylines-attach-sidequest-action')),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey(anchorKey)));
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('storylines-attach-submit')));
   await tester.pumpAndSettle();
 }
 

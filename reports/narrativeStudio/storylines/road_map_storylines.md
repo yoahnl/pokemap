@@ -313,7 +313,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-08 | Structure Tab Authoring V0 | editor authoring | DONE | NS-STORYLINES-V1-09 |
 | NS-STORYLINES-V1-09 | Create Side Quest Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-10 |
 | NS-STORYLINES-V1-10 | Graph From StorylineAsset V0 | editor graph | DONE | NS-STORYLINES-V1-11 |
-| NS-STORYLINES-V1-11 | Side Quest Graph Integration V0 | editor graph | TODO | NS-STORYLINES-V1-12 |
+| NS-STORYLINES-V1-11 | Side Quest Attachment + Graph Integration V0 | editor graph | DONE | NS-STORYLINES-V1-12 |
 | NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | TODO | NS-STORYLINES-V1-CHECKPOINT |
 | NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | TODO | TBD |
 
@@ -896,10 +896,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 GRAPH FROM STORYLINEASSET DONE
-Current lot: NS-STORYLINES-V1-10
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 SIDE QUEST ATTACHMENT DONE
+Current lot: NS-STORYLINES-V1-11
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-11 — Side Quest Graph Integration V0
+Next recommended lot: NS-STORYLINES-V1-12 — V1 Visual Graph Enrichment
 ```
 
 | Lot | Status | Last update | Notes |
@@ -960,11 +960,22 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-08 — Structure Tab Authoring V0`
 - `NS-STORYLINES-V1-09 — Create Side Quest Flow V0`
 - `NS-STORYLINES-V1-10 — Graph From StorylineAsset V0`
-- `NS-STORYLINES-V1-11 — Side Quest Graph Integration V0`
+- `NS-STORYLINES-V1-11 — Side Quest Attachment + Graph Integration V0`
 - `NS-STORYLINES-V1-12 — V1 Visual Graph Enrichment`
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-V1-11
+
+- Side Quest Attachment + Graph Integration V0 livré côté editor : une sideQuest peut être attachée explicitement à une main storyline depuis Structure.
+- L'attachement crée une vraie `StorylineRelationship(kind: sideQuestAvailableDuring)` inline sur la sideQuest, avec `SideQuestAvailability.startAnchor` sur un chapitre ou une étape de la main storyline.
+- Le graph principal affiche une sideQuest seulement quand cette relation existe ; les sideQuests non attachées restent absentes du graph principal.
+- Le graph sideQuest indique l'état attaché/non attaché sans devenir éditeur interactif.
+- Aucun `map_core` modifié ; aucun `StorylineSceneLink`, scene placeholder, outcome, fact, world rule, import legacy automatique ou `localEventFlow` promu.
+- Fichiers créés/modifiés : `storylines_workspace.dart`, `storylines_graph_model.dart`, `storylines_graph_view.dart`, `storylines_workspace_shell_test.dart`, captures V1-11, rapport V1-11.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`, analyse ciblée, `rg` anti-couleurs.
+- Prochain lot recommandé : `NS-STORYLINES-V1-12 — V1 Visual Graph Enrichment`.
 
 ### 2026-05-29 — NS-STORYLINES-V1-10
 

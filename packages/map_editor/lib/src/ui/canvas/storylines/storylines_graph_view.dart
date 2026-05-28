@@ -12,16 +12,21 @@ class StorylinesGraphView extends StatelessWidget {
   const StorylinesGraphView({
     super.key,
     required this.storyline,
+    required this.storylines,
     required this.sideQuestCountOutsideSelected,
   });
 
   final StorylineAsset storyline;
+  final List<StorylineAsset> storylines;
   final int sideQuestCountOutsideSelected;
 
   @override
   Widget build(BuildContext context) {
+    final sideQuestAttached = storyline.type == StorylineType.sideQuest &&
+        storyline.relationships.any(_isSideQuestAttachment);
     final model = StorylineGraphViewModel.fromStoryline(
       storyline,
+      storylines: storylines,
       sideQuestCountOutsideSelected: sideQuestCountOutsideSelected,
     );
     final colors = context.pokeMapColors;
@@ -51,7 +56,7 @@ class StorylinesGraphView extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Vue read-only générée depuis la StorylineAsset sélectionnée.',
+                    'Vue read-only générée depuis les StorylineAsset et leurs relations explicites.',
                     style: TextStyle(
                       color: colors.textSecondary,
                       fontSize: 12,
@@ -73,35 +78,52 @@ class StorylinesGraphView extends StatelessWidget {
               label: 'Lignes = ordre auteur',
             ),
             if (model.isSideQuest)
-              const _StorylinesGraphBadge(
-                label: 'Quête annexe indépendante',
+              _StorylinesGraphBadge(
+                label: sideQuestAttached
+                    ? 'Quête annexe attachée'
+                    : 'Quête annexe indépendante',
               ),
-            if (model.hasSideQuestNote)
+            if (model.isSideQuest)
+              _StorylinesGraphBadge(
+                label: sideQuestAttached
+                    ? 'Relation principale explicite'
+                    : 'Non reliée au graph principal pour l’instant',
+              ),
+            if (model.hasSideQuestNote && model.sideQuestAttachments.isEmpty)
               _StorylinesGraphBadge(
                 label:
-                    'Quêtes annexes créées : ${model.sideQuestCountOutsideSelected} — intégration à venir',
+                    'Quêtes annexes créées : ${model.sideQuestCountOutsideSelected} — attachement explicite requis',
+              ),
+            if (model.sideQuestAttachments.isNotEmpty)
+              _StorylinesGraphBadge(
+                label:
+                    'Quêtes annexes attachées : ${model.sideQuestAttachments.length}',
+              ),
+            if (model.unattachedSideQuestCount > 0 &&
+                model.sideQuestAttachments.isNotEmpty)
+              _StorylinesGraphBadge(
+                label:
+                    '${model.unattachedSideQuestCount} quête(s) annexe(s) non attachée(s)',
               ),
           ],
         ),
         const SizedBox(height: 12),
-        Expanded(
-          child: _StorylinesGraphCanvas(model: model),
-        ),
+        Expanded(child: _StorylineGraphCanvas(model: model)),
       ],
     );
   }
 }
 
-class _StorylinesGraphCanvas extends StatelessWidget {
-  const _StorylinesGraphCanvas({required this.model});
+class _StorylineGraphCanvas extends StatelessWidget {
+  const _StorylineGraphCanvas({required this.model});
 
-  static const double _rootWidth = 230;
-  static const double _rootHeight = 164;
-  static const double _chapterWidth = 260;
-  static const double _chapterGap = 54;
-  static const double _leftPadding = 32;
-  static const double _topPadding = 42;
-  static const double _rootToChapterGap = 70;
+  static const double _rootWidth = 240;
+  static const double _rootHeight = 172;
+  static const double _chapterWidth = 276;
+  static const double _chapterGap = 46;
+  static const double _rootToChapterGap = 76;
+  static const double _leftPadding = 28;
+  static const double _topPadding = 24;
   static const double _stepHeight = 54;
 
   final StorylineGraphViewModel model;
@@ -111,11 +133,14 @@ class _StorylinesGraphCanvas extends StatelessWidget {
     final colors = context.pokeMapColors;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxStepCount = model.chapters.fold<int>(
+        final maxItemCount = model.chapters.fold<int>(
           0,
-          (current, chapter) => math.max(current, chapter.steps.length),
+          (current, chapter) => math.max(
+            current,
+            _graphItemCountForChapter(chapter),
+          ),
         );
-        final chapterHeight = _chapterHeight(maxStepCount);
+        final chapterHeight = _chapterHeight(maxItemCount);
         final contentWidth = _leftPadding +
             _rootWidth +
             _rootToChapterGap +
@@ -133,7 +158,7 @@ class _StorylinesGraphCanvas extends StatelessWidget {
             .toDouble();
         final canvasHeight = math
             .max(
-              constraints.maxHeight.isFinite ? constraints.maxHeight : 460,
+              constraints.maxHeight.isFinite ? constraints.maxHeight : 520,
               contentHeight,
             )
             .toDouble();
@@ -153,7 +178,7 @@ class _StorylinesGraphCanvas extends StatelessWidget {
                 index * (_chapterWidth + _chapterGap),
             _topPadding,
             _chapterWidth,
-            _chapterHeight(chapter.steps.length),
+            _chapterHeight(_graphItemCountForChapter(chapter)),
           );
         }
         final paintEdges = _paintEdges(rootRect, chapterRects);
@@ -191,7 +216,13 @@ class _StorylinesGraphCanvas extends StatelessWidget {
                       for (final chapter in model.chapters)
                         _GraphNodePosition(
                           rect: chapterRects[chapter.id]!,
-                          child: _GraphChapterNode(chapter: chapter),
+                          child: _GraphChapterNode(
+                            chapter: chapter,
+                            attachments: sideQuestAttachmentsForChapter(
+                              model.sideQuestAttachments,
+                              chapter.id,
+                            ),
+                          ),
                         ),
                       for (final marker in _edgeMarkers(rootRect, chapterRects))
                         Positioned(
@@ -225,9 +256,17 @@ class _StorylinesGraphCanvas extends StatelessWidget {
     );
   }
 
-  double _chapterHeight(int stepCount) {
-    final effectiveSteps = math.max(1, stepCount);
-    return 138 + effectiveSteps * (_stepHeight + 8);
+  int _graphItemCountForChapter(StorylineGraphChapter chapter) {
+    final attachmentCount = sideQuestAttachmentsForChapter(
+      model.sideQuestAttachments,
+      chapter.id,
+    ).length;
+    return math.max(1, chapter.steps.length) + attachmentCount;
+  }
+
+  double _chapterHeight(int itemCount) {
+    final effectiveItems = math.max(1, itemCount);
+    return 142 + effectiveItems * (_stepHeight + 8);
   }
 
   List<StorylineGraphPaintEdge> _paintEdges(
@@ -289,6 +328,16 @@ class _StorylinesGraphCanvas extends StatelessWidget {
             (currentRect.right + nextRect.left) / 2,
             (currentRect.center.dy + nextRect.center.dy) / 2,
           ),
+        ),
+      );
+    }
+    for (final attachment in model.sideQuestAttachments) {
+      final chapterRect = chapterRects[attachment.chapterId];
+      if (chapterRect == null) continue;
+      markers.add(
+        _EdgeMarker(
+          key: 'storylines-graph-edge-sidequest-${attachment.relationshipId}',
+          position: Offset(chapterRect.right - 18, chapterRect.bottom - 18),
         ),
       );
     }
@@ -369,13 +418,34 @@ class _GraphRootNode extends StatelessWidget {
 }
 
 class _GraphChapterNode extends StatelessWidget {
-  const _GraphChapterNode({required this.chapter});
+  const _GraphChapterNode({
+    required this.chapter,
+    required this.attachments,
+  });
 
   final StorylineGraphChapter chapter;
+  final List<StorylineGraphSideQuestAttachment> attachments;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final items = <Widget>[
+      if (chapter.steps.isEmpty)
+        _GraphEmptyHint(
+          key: ValueKey('storylines-graph-empty-steps-${chapter.id}'),
+          title: 'Aucune étape narrative.',
+          body: 'Les étapes restent créées depuis Structure.',
+        )
+      else
+        for (final step in chapter.steps) _GraphStepChip(step: step),
+      if (attachments.isNotEmpty)
+        _GraphSectionCaption(
+          key: ValueKey('storylines-graph-sidequest-caption-${chapter.id}'),
+          label: 'Quêtes annexes disponibles ici',
+        ),
+      for (final attachment in attachments)
+        _GraphSideQuestChip(attachment: attachment),
+    ];
     return KeyedSubtree(
       key: ValueKey('storylines-graph-node-chapter-${chapter.id}'),
       child: PokeMapCard(
@@ -389,11 +459,11 @@ class _GraphChapterNode extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
             Text(
               'Ordre ${chapter.order} · ${_formatCount(chapter.steps.length, 'étape', 'étapes')}',
               style: TextStyle(
@@ -403,7 +473,7 @@ class _GraphChapterNode extends StatelessWidget {
               ),
             ),
             if (chapter.description != null) ...[
-              const SizedBox(height: 5),
+              const SizedBox(height: 6),
               Text(
                 chapter.description!,
                 maxLines: 2,
@@ -416,24 +486,14 @@ class _GraphChapterNode extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 10),
-            if (chapter.steps.isEmpty)
-              _GraphEmptyHint(
-                key: ValueKey('storylines-graph-empty-steps-${chapter.id}'),
-                title: 'Aucune étape narrative.',
-                body: 'Les étapes restent créées depuis Structure.',
-              )
-            else
-              Expanded(
-                child: ListView.separated(
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: chapter.steps.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final step = chapter.steps[index];
-                    return _GraphStepChip(step: step);
-                  },
-                ),
+            Expanded(
+              child: ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) => items[index],
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemCount: items.length,
               ),
+            ),
           ],
         ),
       ),
@@ -457,7 +517,7 @@ class _GraphStepChip extends StatelessWidget {
         border: Border.all(color: colors.borderSubtle),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(9),
+        padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -471,29 +531,101 @@ class _GraphStepChip extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            if (step.description != null) ...[
-              const SizedBox(height: 3),
-              Text(
-                step.description!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textMuted,
-                  fontSize: 10,
-                ),
-              ),
-            ],
             const SizedBox(height: 4),
             Text(
               _sceneLinkLabel(step.sceneLinkIds.length),
               style: TextStyle(
                 color: colors.textSecondary,
-                fontSize: 10,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _GraphSideQuestChip extends StatelessWidget {
+  const _GraphSideQuestChip({required this.attachment});
+
+  final StorylineGraphSideQuestAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return DecoratedBox(
+      key:
+          ValueKey('storylines-graph-node-sidequest-${attachment.sideQuestId}'),
+      decoration: BoxDecoration(
+        color: colors.controlSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.brandPrimaryBorder),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PokeMapIconTile(
+              icon: CupertinoIcons.link,
+              tone: PokeMapTone.narrative,
+              size: 26,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    attachment.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Relation explicite · ${attachment.anchorLabel}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 10.5,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GraphSectionCaption extends StatelessWidget {
+  const _GraphSectionCaption({
+    super.key,
+    required this.label,
+  });
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Text(
+      label,
+      style: TextStyle(
+        color: colors.textSecondary,
+        fontSize: 10.5,
+        fontWeight: FontWeight.w800,
       ),
     );
   }
@@ -519,7 +651,7 @@ class _GraphEmptyHint extends StatelessWidget {
         border: Border.all(color: colors.borderSubtle),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -547,6 +679,16 @@ class _GraphEmptyHint extends StatelessWidget {
   }
 }
 
+class _EdgeMarker {
+  const _EdgeMarker({
+    required this.key,
+    required this.position,
+  });
+
+  final String key;
+  final Offset position;
+}
+
 class _StorylinesGraphBadge extends StatelessWidget {
   const _StorylinesGraphBadge({required this.label});
 
@@ -558,11 +700,11 @@ class _StorylinesGraphBadge extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.controlSurface,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(999),
         border: Border.all(color: colors.borderSubtle),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
         child: Text(
           label,
           style: TextStyle(
@@ -574,16 +716,6 @@ class _StorylinesGraphBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-final class _EdgeMarker {
-  const _EdgeMarker({
-    required this.key,
-    required this.position,
-  });
-
-  final String key;
-  final Offset position;
 }
 
 String _storylineTypeLabel(StorylineType type) {
@@ -605,4 +737,10 @@ String _formatCount(int count, String singular, String plural) {
 String _sceneLinkLabel(int count) {
   if (count == 0) return 'Aucune scène liée';
   return _formatCount(count, 'scène liée', 'scènes liées');
+}
+
+bool _isSideQuestAttachment(StorylineRelationship relationship) {
+  return relationship.kind ==
+          StorylineRelationshipKind.sideQuestAvailableDuring ||
+      relationship.kind == StorylineRelationshipKind.sideQuestUnlockedBy;
 }
