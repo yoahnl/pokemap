@@ -294,7 +294,7 @@ Interprétation V0 :
 | NS-STORYLINES-03 | Storylines Workspace Shell Layout V0 | editor UI | DONE | NS-STORYLINES-04 |
 | NS-STORYLINES-04 | Storylines Secondary List Panel Read-only V0 | editor UI | DONE | NS-STORYLINES-05 |
 | NS-STORYLINES-05 | Storyline Header / Tabs / KPI Read-only V0 | editor UI | DONE | NS-STORYLINES-06 |
-| NS-STORYLINES-06 | Storyline Graph Read-only Placeholder V0 | editor UI / visual gate | TODO | NS-STORYLINES-07 |
+| NS-STORYLINES-06 | Storyline Graph Read-only Placeholder V0 | editor UI / visual gate | DONE | NS-STORYLINES-07 |
 | NS-STORYLINES-07 | Storyline Inspector Read-only V0 | editor UI | TODO | NS-STORYLINES-08 |
 | NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | TODO | NS-STORYLINES-09 |
 | NS-STORYLINES-09 | Chapters Inspector / Scene Ordering Read-only V0 | editor UI | TODO | NS-STORYLINES-10 |
@@ -440,7 +440,17 @@ Interprétation V0 :
 - Visual Gate : desktop + graph focus.
 - Risques : dessiner un faux graph premium.
 - Design system impact : graph générique dans design system ou composant spécifique non réutilisable.
-- Statut : TODO.
+- Statut : DONE.
+- Résultat NS-STORYLINES-06 : zone graph read-only livrée avec titre, source, relation détaillée à venir, noeuds d'étapes narratives réelles et empty state honnête.
+- Fichiers modifiés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `packages/map_editor/test/storylines_current_global_story_characterization_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Fichiers créés : `reports/narrativeStudio/storylines/ns_storylines_06_graph_read_only_placeholder_v0.md`, captures Visual Gate `ns_storylines_06_graph_placeholder_desktop.png`, `ns_storylines_06_graph_placeholder_focus.png`, `ns_storylines_06_graph_placeholder_center.png`.
+- Données : steps filtrées par `globalScenarioId`, `NarrativeStepSummary.name`, `NarrativeStepSummary.description`, compteur réel de steps ; aucune relation complexe inventée.
+- Empty state : document Step Studio explicitement vide couvert par test ; wording `Aucune étape narrative disponible pour cette storyline.`.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart lib/src/ui/canvas/narrative_workspace_canvas.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart`.
+- Visual Gate : dark theme actif ; captures desktop, focus et medium produites.
+- Design System Gate : confirmé ; `PokeMapPageSurface`, `PokeMapCard`, `PokeMapIconTile`, `PokeMapStatusTile`, `PokeMapTone` et `context.pokeMapColors` utilisés ; aucun `Color(0x...)` / `Colors.*` ajouté.
+- Fake data : aucune quête annexe, branche riche, mini-map, zoom control, chiffre cible ou donnée Selbrume ajouté ; `localEventFlow` reste absent du graph.
 - Prochain lot attendu : NS-STORYLINES-07.
 
 ### NS-STORYLINES-07 — Storyline Inspector Read-only V0
@@ -656,9 +666,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-05
+Current lot: NS-STORYLINES-06
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-06 — Storyline Graph Read-only Placeholder V0
+Next recommended lot: NS-STORYLINES-07 — Storyline Inspector Read-only V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -670,7 +680,7 @@ Next recommended lot: NS-STORYLINES-06 — Storyline Graph Read-only Placeholder
 | NS-STORYLINES-03 | DONE | 2026-05-28 | Shell Storylines V0 read-only livré avec layout 3 zones, anti-fake, captures Visual Gate et tests ciblés. |
 | NS-STORYLINES-04 | DONE | 2026-05-28 | Panneau secondaire read-only structuré sur les globalStory réelles ; recherche / création / quêtes annexes disabled. |
 | NS-STORYLINES-05 | DONE | 2026-05-28 | Header/tabs/KPI read-only livrés avec KPI sourcés ou disabled. |
-| NS-STORYLINES-06 | TODO | 2026-05-27 | Graph read-only placeholder. |
+| NS-STORYLINES-06 | DONE | 2026-05-28 | Graph read-only placeholder livré avec steps réelles et empty state. |
 | NS-STORYLINES-07 | TODO | 2026-05-27 | Inspector storyline. |
 | NS-STORYLINES-08 | TODO | 2026-05-27 | Chapters tab. |
 | NS-STORYLINES-09 | TODO | 2026-05-27 | Chapters inspector/order. |
@@ -679,6 +689,19 @@ Next recommended lot: NS-STORYLINES-06 — Storyline Graph Read-only Placeholder
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-06
+
+- Remplacement du placeholder `Graph — à venir / Placeholder read-only` par une zone `Graph read-only`.
+- Affichage des étapes narratives réelles de la storyline sélectionnée via `NarrativeStepSummary`.
+- Ajout d'un état vide honnête pour une storyline avec document Step Studio explicitement vide.
+- Les relations détaillées restent `à venir` ; aucun réseau de branches, quête annexe, mini-map, zoom control ou interaction graph n'a été ajouté.
+- Conservation du header/tabs/KPI NS-STORYLINES-05, du panneau secondaire NS-STORYLINES-04 et de l'inspecteur placeholder.
+- Adaptation des tests Storylines et caractérisation ; vérification de l'absence de `localEventFlow` dans le graph.
+- Production des captures Visual Gate dark `ns_storylines_06_graph_placeholder_desktop.png`, `ns_storylines_06_graph_placeholder_focus.png`, `ns_storylines_06_graph_placeholder_center.png`.
+- Confirmation : aucune donnée cible hardcodée, aucune branche imaginaire, aucune action future activée, aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers touchés.
+- Tests ciblés Storylines / caractérisation / projection passés ; analyse ciblée clean.
+- Prochain lot recommandé : `NS-STORYLINES-07 — Storyline Inspector Read-only V0`.
 
 ### 2026-05-28 — NS-STORYLINES-05
 

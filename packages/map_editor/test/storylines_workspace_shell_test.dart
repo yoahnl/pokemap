@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-05 Storyline header tabs KPI V0', () {
+  group('NS-STORYLINES-06 Storyline graph placeholder V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -43,8 +43,24 @@ void main() {
         expect(find.text('Audit description from scenario'), findsWidgets);
         expect(find.text('Mode lecture seule'), findsOneWidget);
         expect(find.text('Storylines V0'), findsWidgets);
-        expect(find.text('Graph — à venir'), findsOneWidget);
-        expect(find.text('Chapitres — à venir'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('storylines-graph-read-only')),
+          findsOneWidget,
+        );
+        expect(find.text('Graph read-only'), findsOneWidget);
+        expect(find.text('Étapes narratives réelles'), findsOneWidget);
+        expect(find.text('Audit Step From Metadata'), findsOneWidget);
+        expect(find.text('Audit Step Detail From Metadata'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('storylines-graph-read-only')),
+            matching: find.text('Source Step Studio'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Relations détaillées à venir'), findsOneWidget);
+        expect(find.text('Graph — à venir'), findsNothing);
+        expect(find.text('Chapitres — à venir'), findsNothing);
         expect(find.text('Inspecteur Storyline — à venir'), findsOneWidget);
         expect(find.text('Audit Local Event Flow'), findsNothing);
         expect(find.text('Histoire principale'), findsOneWidget);
@@ -148,6 +164,29 @@ void main() {
     );
 
     testWidgets(
+      'renders an honest empty state when the selected global story has no steps',
+      (tester) async {
+        await _pumpStorylinesShell(
+          tester,
+          project: _emptyGraphProject(),
+          selectedGlobalStoryId: 'audit_empty_global_story',
+        );
+
+        expect(
+          find.byKey(const ValueKey('storylines-graph-read-only')),
+          findsOneWidget,
+        );
+        expect(find.text('Graph read-only'), findsOneWidget);
+        expect(
+          find.textContaining('Aucune étape narrative disponible'),
+          findsOneWidget,
+        );
+        expect(find.text('Audit Step From Metadata'), findsNothing);
+        expect(find.text('Audit Local Event Flow'), findsNothing);
+      },
+    );
+
+    testWidgets(
       'keeps Storyline tabs read-only and non-mutating',
       (tester) async {
         final harness = await _pumpStorylinesShell(tester);
@@ -201,7 +240,7 @@ void main() {
           afterNarrativeState.selectedStepId,
           beforeNarrativeState.selectedStepId,
         );
-        expect(find.text('Zone centrale Storyline'), findsOneWidget);
+        expect(find.text('Graph read-only'), findsOneWidget);
         expect(find.text('Audit Local Event Flow'), findsNothing);
       },
     );
@@ -343,7 +382,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_05_header_tabs_kpi_desktop.png',
+          'ns_storylines_06_graph_placeholder_desktop.png',
         ),
       );
 
@@ -355,7 +394,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_05_header_tabs_kpi_focus.png',
+          'ns_storylines_06_graph_placeholder_focus.png',
         ),
       );
 
@@ -367,7 +406,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_05_header_tabs_kpi_center.png',
+          'ns_storylines_06_graph_placeholder_center.png',
         ),
       );
     });
@@ -392,6 +431,8 @@ const _targetOnlyStrings = <String>[
 Future<_StorylinesHarness> _pumpStorylinesShell(
   WidgetTester tester, {
   Size surfaceSize = const Size(1600, 1000),
+  ProjectManifest? project,
+  String selectedGlobalStoryId = 'audit_global_story',
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -405,12 +446,12 @@ Future<_StorylinesHarness> _pumpStorylinesShell(
   addTearDown(editorSubscription.close);
 
   container.read(editorNotifierProvider.notifier).state = EditorState(
-    project: _auditProject(),
+    project: project ?? _auditProject(),
     workspaceMode: EditorWorkspaceMode.globalStory,
   );
   container
       .read(narrativeWorkspaceControllerProvider.notifier)
-      .openGlobalStory(scenarioId: 'audit_global_story');
+      .openGlobalStory(scenarioId: selectedGlobalStoryId);
 
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -540,6 +581,39 @@ ProjectManifest _auditProject() {
     scenarios: <ScenarioAsset>[
       globalScenario,
       secondGlobalScenario,
+      const ScenarioAsset(
+        id: 'audit_local_event_flow',
+        name: 'Audit Local Event Flow',
+        description: 'Audit local flow must not become a side quest',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'local_start',
+      ),
+    ],
+  );
+}
+
+ProjectManifest _emptyGraphProject() {
+  final emptyGlobalScenario = applyStepStudioDocumentToGlobalScenario(
+    const ScenarioAsset(
+      id: 'audit_empty_global_story',
+      name: 'Audit Empty Story From Scenario',
+      description: 'Audit empty description from scenario',
+      scope: ScenarioScope.globalStory,
+      entryNodeId: 'empty_start',
+    ),
+    const StepStudioDocument(
+      globalStoryScenarioId: 'audit_empty_global_story',
+      steps: <StepStudioStep>[],
+    ),
+  );
+
+  return ProjectManifest(
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+    name: 'Audit Empty Project',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[],
+    scenarios: <ScenarioAsset>[
+      emptyGlobalScenario,
       const ScenarioAsset(
         id: 'audit_local_event_flow',
         name: 'Audit Local Event Flow',

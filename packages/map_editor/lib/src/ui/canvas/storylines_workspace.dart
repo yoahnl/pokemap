@@ -52,6 +52,7 @@ class StorylinesWorkspace extends StatelessWidget {
           Expanded(
             child: _StorylineMainPanel(
               selectedStory: selectedStory,
+              steps: relatedSteps,
               stepCount: relatedSteps.length,
               globalStoryCount: projection.globalStories.length,
               linkedCutsceneCount: linkedCutsceneCount,
@@ -314,19 +315,20 @@ class _StorylineSummaryRow extends StatelessWidget {
 class _StorylineMainPanel extends StatelessWidget {
   const _StorylineMainPanel({
     required this.selectedStory,
+    required this.steps,
     required this.stepCount,
     required this.globalStoryCount,
     required this.linkedCutsceneCount,
   });
 
   final NarrativeScenarioSummary? selectedStory;
+  final List<NarrativeStepSummary> steps;
   final int stepCount;
   final int globalStoryCount;
   final int linkedCutsceneCount;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
     return PokeMapPanel(
       key: const ValueKey('storylines-main-panel'),
       expandChild: true,
@@ -347,45 +349,241 @@ class _StorylineMainPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: PokeMapPageSurface(
-              padding: const EdgeInsets.all(18),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Zone centrale Storyline',
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+            child: _StorylineGraphSection(steps: steps),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StorylineGraphSection extends StatelessWidget {
+  const _StorylineGraphSection({
+    required this.steps,
+  });
+
+  final List<NarrativeStepSummary> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapPageSurface(
+      key: const ValueKey('storylines-graph-read-only'),
+      padding: const EdgeInsets.all(18),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PokeMapIconTile(
+                  icon: CupertinoIcons.arrow_branch,
+                  tone: PokeMapTone.narrative,
+                  size: 38,
+                  iconSize: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Graph read-only',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Lecture linéaire prudente des étapes disponibles. Les relations détaillées restent non branchées.',
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 12.5,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                PokeMapStatusTile(
+                  label: 'Étapes narratives réelles',
+                  value: '${steps.length}',
+                  icon: CupertinoIcons.list_bullet,
+                  tone: PokeMapTone.info,
+                ),
+                const PokeMapStatusTile(
+                  label: 'Source',
+                  value: 'Source Step Studio',
+                  icon: CupertinoIcons.doc_text,
+                  tone: PokeMapTone.neutral,
+                ),
+                const PokeMapStatusTile(
+                  label: 'Relations détaillées à venir',
+                  value: 'Non branchées',
+                  icon: CupertinoIcons.link,
+                  tone: PokeMapTone.neutral,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (steps.isEmpty)
+              const _StorylineGraphEmptyState()
+            else
+              _StorylineGraphNodeList(steps: steps),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StorylineGraphNodeList extends StatelessWidget {
+  const _StorylineGraphNodeList({
+    required this.steps,
+  });
+
+  final List<NarrativeStepSummary> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < steps.length; index++) ...[
+          _StorylineGraphNode(
+            step: steps[index],
+            position: index + 1,
+          ),
+          if (index < steps.length - 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+              child: Text(
+                '↓',
+                style: TextStyle(
+                  color: colors.textMuted,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _StorylineGraphNode extends StatelessWidget {
+  const _StorylineGraphNode({
+    required this.step,
+    required this.position,
+  });
+
+  final NarrativeStepSummary step;
+  final int position;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final description = step.description.trim();
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: PokeMapCard(
+        key: ValueKey('storylines-graph-node-${step.id}'),
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PokeMapIconTile(
+              icon: CupertinoIcons.link_circle_fill,
+              tone: PokeMapTone.narrative,
+              size: 34,
+              iconSize: 15,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Étape narrative $position',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 8),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    step.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (description.isNotEmpty) ...[
+                    const SizedBox(height: 6),
                     Text(
-                      'Le graph macro reste read-only tant que ses relations ne sont pas stabilisées.',
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colors.textSecondary,
-                        fontSize: 12.5,
-                        height: 1.35,
+                        fontSize: 12,
+                        height: 1.3,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const PokeMapStatusTile(
-                      label: 'Graph — à venir',
-                      value: 'Placeholder read-only',
-                      icon: CupertinoIcons.arrow_branch,
-                      tone: PokeMapTone.neutral,
-                    ),
-                    const SizedBox(height: 10),
-                    const PokeMapStatusTile(
-                      label: 'Chapitres — à venir',
-                      value: 'Read model futur',
-                      icon: CupertinoIcons.square_list,
-                      tone: PokeMapTone.neutral,
-                    ),
                   ],
-                ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StorylineGraphEmptyState extends StatelessWidget {
+  const _StorylineGraphEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: const ValueKey('storylines-graph-empty-state'),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PokeMapIconTile(
+            icon: CupertinoIcons.tray,
+            tone: PokeMapTone.neutral,
+            size: 34,
+            iconSize: 15,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Aucune étape narrative disponible pour cette storyline.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

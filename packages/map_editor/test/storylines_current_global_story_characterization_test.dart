@@ -37,8 +37,9 @@ void main() {
         expect(find.text('1'), findsWidgets);
 
         expect(find.text('Mode lecture seule'), findsOneWidget);
-        expect(find.text('Graph — à venir'), findsOneWidget);
-        expect(find.text('Chapitres — à venir'), findsOneWidget);
+        expect(find.text('Graph read-only'), findsOneWidget);
+        expect(find.text('Audit Step From Metadata'), findsWidgets);
+        expect(find.text('Chapitres — à venir'), findsNothing);
         expect(find.text('Valider'), findsWidgets);
 
         // Future Storylines action exists in the internal header shell, but is
