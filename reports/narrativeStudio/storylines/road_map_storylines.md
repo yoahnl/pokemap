@@ -301,6 +301,8 @@ Interprétation V0 :
 | NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | DONE | NS-STORYLINES-11 |
 | NS-STORYLINES-11 | Storylines Interaction Wiring V0 | editor UI / test | DONE | NS-STORYLINES-CHECKPOINT |
 | NS-STORYLINES-CHECKPOINT | Storylines V0 Acceptance Checkpoint | checkpoint | DONE | NS-STORYLINES-V1-00 |
+| NS-STORYLINES-V1-00 | Storyline Semantics Reset / Usable Authoring Contract | product contract | DONE | NS-STORYLINES-V1-01 |
+| NS-STORYLINES-V1-01 | Storyline Authoring Model Decision | model decision | TODO | NS-STORYLINES-V1-02 |
 
 ## 9. Detailed lots
 
@@ -600,7 +602,31 @@ Interprétation V0 :
 - Design system impact : gate confirmé, aucun `Color(0x...)` / `Colors.*`.
 - Verdict : ACCEPTED V0 WITH V1 LIMITATIONS.
 - Statut : DONE.
-- Prochain lot attendu : NS-STORYLINES-V1-00 — Storyline Creation Product Contract.
+- Prochain lot attendu : NS-STORYLINES-V1-00 — Storyline Semantics Reset / Usable Authoring Contract.
+
+### NS-STORYLINES-V1-00 — Storyline Semantics Reset / Usable Authoring Contract
+
+- Type : product-contract / design-only / documentation-only.
+- Objectif : clarifier le modèle produit Storylines V1 avant toute nouvelle implémentation.
+- Résultat : contrat sémantique créé ; boundaries Storyline / Chapter / Story Step / Scene clarifiées ; Graph et Structure définis ; triage UI V1 documenté.
+- Fichiers créés/modifiés : `reports/narrativeStudio/storylines/ns_storylines_v1_00_storyline_semantics_and_usable_authoring_contract.md`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Non-objectifs respectés : aucun code, widget, modèle, test, screenshot ou bouton activé.
+- Dépendances : NS-STORYLINES-CHECKPOINT.
+- Critères d'acceptation : contrat produit clair, matrices obligatoires, actions V1 utiles définies, `localEventFlow` exclu comme `sideQuest` par défaut.
+- Tests exécutés : aucun, lot documentation-only.
+- Analyse exécutée : aucune, lot documentation-only.
+- Note produit : le problème principal était sémantique / produit, pas technique ; Storylines V0 reste une fondation valide mais V1 doit rendre la création et l'organisation réellement utilisables.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-01 — Storyline Authoring Model Decision.
+
+### NS-STORYLINES-V1-01 — Storyline Authoring Model Decision
+
+- Type : model decision / product architecture.
+- Objectif : décider le modèle durable pour créer et relier Storylines, Chapters, Story Steps et Scenes.
+- Non-objectifs : pas d'UI avant décision modèle.
+- Dépendances : NS-STORYLINES-V1-00.
+- Statut : TODO.
+- Prochain lot attendu : NS-STORYLINES-V1-02.
 
 ## 10. Update protocol for every future lot
 
@@ -718,10 +744,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS
-Current lot: NS-STORYLINES-CHECKPOINT
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 PRODUCT CONTRACT ACTIVE
+Current lot: NS-STORYLINES-V1-00
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-00 — Storyline Creation Product Contract
+Next recommended lot: NS-STORYLINES-V1-01 — Storyline Authoring Model Decision
 ```
 
 | Lot | Status | Last update | Notes |
@@ -739,7 +765,9 @@ Next recommended lot: NS-STORYLINES-V1-00 — Storyline Creation Product Contrac
 | NS-STORYLINES-09 | DONE | 2026-05-28 | Chapters inspector / step ordering read-only livré sans scène fake. |
 | NS-STORYLINES-10 | DONE | 2026-05-28 | Visual harmonization Graph/Chapitres et Visual Gate complet livrés sans nouvelle feature. |
 | NS-STORYLINES-11 | DONE | 2026-05-28 | Interaction wiring V0 livré : sélection locale de globalStory existante, synchronisation zones read-only, actions futures non mutantes, notes V1 Creation Readiness. |
-| NS-STORYLINES-CHECKPOINT | DONE | 2026-05-28 | Storylines V0 acceptance checkpoint livré : ACCEPTED V0 WITH V1 LIMITATIONS ; prochaine phase recommandée V1 creation contract. |
+| NS-STORYLINES-CHECKPOINT | DONE | 2026-05-28 | Storylines V0 acceptance checkpoint livré : ACCEPTED V0 WITH V1 LIMITATIONS ; prochaine phase recommandée V1 semantic/product contract. |
+| NS-STORYLINES-V1-00 | DONE | 2026-05-28 | Reset sémantique produit livré : Storylines V0 techniquement valide, V1 doit clarifier et rendre utilisables Storyline / Chapter / Story Step / Scene / Graph / Structure. |
+| NS-STORYLINES-V1-01 | TODO | 2026-05-28 | Storyline Authoring Model Decision. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -757,16 +785,26 @@ Pré-requis recommandés pour activer la création Storylines V1 :
 - Création : storyline principale et quête annexe prévues pour V1 uniquement, pas en V0.
 - Boutons activables plus tard : `Nouvelle storyline`, `+`, `Nouveau chapitre`, validation narrative et création de quête annexe après contrat modèle + tests anti-fake.
 
-Suite V1 documentaire possible, sans démarrage dans V0 :
+Suite V1 documentaire recommandée :
 
-- `NS-STORYLINES-V1-00 — Storyline Creation Product Contract`
+- `NS-STORYLINES-V1-00 — Storyline Semantics Reset / Usable Authoring Contract`
 - `NS-STORYLINES-V1-01 — Storyline Authoring Model Decision`
 - `NS-STORYLINES-V1-02 — Create Main Storyline Flow`
 - `NS-STORYLINES-V1-03 — Create Side Quest Storyline Flow`
 - `NS-STORYLINES-V1-04 — Storyline Type / Status / Validation`
 - `NS-STORYLINES-V1-05 — Side Quest Graph Integration`
+- `NS-STORYLINES-V1-06 — V1 Visual Graph Enrichment`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-00
+
+- Reset sémantique produit Storylines V1 livré.
+- Clarification : le problème principal n'était pas technique mais sémantique / produit.
+- Storylines V0 reste valide comme fondation, mais V1 doit rendre la création et l'organisation réellement utilisables.
+- Contrat canonique documenté : Storyline, Chapter, Story Step, Scene, Scene inputs/outputs/outcomes, Side Quest, Event/Scene/Map chain.
+- Décision produit recommandée : deux onglets principaux `Graph` et `Structure`; pas d'onglets globaux `Étapes` ou `Scènes`.
+- Prochain lot recommandé : `NS-STORYLINES-V1-01 — Storyline Authoring Model Decision`.
 
 ### 2026-05-28 — NS-STORYLINES-CHECKPOINT
 
@@ -775,7 +813,7 @@ Suite V1 documentaire possible, sans démarrage dans V0 :
 - Design System Gate confirmé : aucun `Color(0x...)` / `Colors.*`.
 - Visual Gate final inventorié : captures NS10 et NS11 recommandées pour structure/theme/overflow, avec limite Ahem.
 - Limites V0 actées : pas de création storyline, pas de quête annexe, pas de modèle `StorylineAsset`, pas de graph editing, pas de scène métier finale.
-- Prochain lot recommandé : `NS-STORYLINES-V1-00 — Storyline Creation Product Contract`.
+- Prochain lot recommandé : `NS-STORYLINES-V1-00 — Storyline Semantics Reset / Usable Authoring Contract`.
 
 ### 2026-05-28 — NS-STORYLINES-11-bis
 
