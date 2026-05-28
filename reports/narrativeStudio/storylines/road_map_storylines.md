@@ -506,6 +506,21 @@ Interprétation V0 :
 - Fake data : aucun statut éditorial, scène, quête annexe, donnée Selbrume, world rule, fact, activité récente ou chiffre cible ajouté ; `localEventFlow` reste absent de la tab Chapitres.
 - Prochain lot attendu : NS-STORYLINES-09.
 
+#### NS-STORYLINES-08-bis — Graph Tab Target Alignment / Default View V0
+
+- Statut : DONE, sans changer le statut de `NS-STORYLINES-08`.
+- Résultat : l'onglet `Graph` reste la vue par défaut et devient une vue canvas plus dominante, avec grille subtile, flux principal, nodes de chapitres réels et previews de steps réelles.
+- Source : nodes macro depuis les `NarrativeChapterSummary` disponibles ; fallback read-only par steps si aucun chapitre ; empty state honnête si aucune step.
+- Image cible : utilisée comme référence visuelle/layout uniquement, jamais comme source de données.
+- Fichiers modifiés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Fichiers créés : `reports/narrativeStudio/storylines/ns_storylines_08_bis_graph_tab_target_alignment_v0.md`, captures Visual Gate `ns_storylines_08_bis_graph_target_desktop.png`, `ns_storylines_08_bis_graph_target_focus.png`, `ns_storylines_08_bis_graph_target_center.png`.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Visual Gate : dark theme actif ; captures desktop, focus et center produites pour le Graph aligné cible.
+- Design System Gate : confirmé ; aucun `Color(0x...)` / `Colors.*` ajouté ; surfaces et accents via primitives PokeMap et `context.pokeMapColors`.
+- Fake data : aucune quête annexe fake, aucun nom/chiffre Selbrume cible, aucune mini-map ou zoom actif ajouté ; `localEventFlow` reste absent du graph.
+- Prochain lot recommandé inchangé : NS-STORYLINES-09.
+
 ### NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
 
 - Type : editor UI.
@@ -687,7 +702,7 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-08
+Current lot: NS-STORYLINES-08 / NS-STORYLINES-08-bis
 Current lot status: DONE
 Next recommended lot: NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
 ```
@@ -703,13 +718,25 @@ Next recommended lot: NS-STORYLINES-09 — Chapters Inspector / Scene Ordering R
 | NS-STORYLINES-05 | DONE | 2026-05-28 | Header/tabs/KPI read-only livrés avec KPI sourcés ou disabled. |
 | NS-STORYLINES-06 | DONE | 2026-05-28 | Graph read-only placeholder livré avec steps réelles et empty state. |
 | NS-STORYLINES-07 | DONE | 2026-05-28 | Inspector read-only livré avec données réelles, sections futures disabled et empty state. |
-| NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré avec chapters réels, steps liées et empty state. |
+| NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré ; bis Graph target alignment livré sans changer le statut NS08. |
 | NS-STORYLINES-09 | TODO | 2026-05-27 | Chapters inspector/order. |
 | NS-STORYLINES-10 | TODO | 2026-05-27 | Visual harmonization. |
 | NS-STORYLINES-11 | TODO | 2026-05-27 | Interaction wiring. |
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-08-bis
+
+- Réalignement visuel de l'onglet `Graph` avec l'image cible principale, utilisée uniquement comme référence de composition.
+- Conservation de `Graph` comme vue par défaut.
+- Remplacement de la lecture graph trop verticale par un canvas sombre avec grille tokenisée, flux principal, nodes macro de chapitres réels et previews de steps réelles.
+- Conservation de la tab `Chapitres` NS-STORYLINES-08 et des tabs futures non mutantes.
+- Conservation des actions futures disabled / non mutantes : `Nouvelle storyline`, `Valider`, `+`, `Nouveau chapitre`.
+- Aucun changement métier, aucun modèle core, aucun provider, aucun runtime/gameplay/battle.
+- Production des captures Visual Gate dark `ns_storylines_08_bis_graph_target_desktop.png`, `ns_storylines_08_bis_graph_target_focus.png`, `ns_storylines_08_bis_graph_target_center.png`.
+- Confirmation : aucune donnée cible hardcodée, aucune quête annexe fake, aucune mini-map / zoom actif, aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers touchés.
+- Prochain lot recommandé inchangé : `NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0`.
 
 ### 2026-05-28 — NS-STORYLINES-08
 

@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-08 Chapters tab read-only V0', () {
+  group('NS-STORYLINES-08-bis Graph target alignment V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -45,8 +45,29 @@ void main() {
         expect(find.text('Audit description from scenario'), findsWidgets);
         expect(find.text('Mode lecture seule'), findsOneWidget);
         expect(find.text('Storylines V0'), findsWidgets);
+        final graph =
+            find.byKey(const ValueKey('storylines-graph-target-read-only'));
+        expect(graph, findsOneWidget);
         expect(
-          find.byKey(const ValueKey('storylines-graph-read-only')),
+          find.byKey(const ValueKey('storylines-graph-canvas')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-graph-main-flow')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-graph-node-audit_chapter')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('storylines-graph-node-audit_second_chapter'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-graph-legend')),
           findsOneWidget,
         );
         expect(
@@ -54,13 +75,15 @@ void main() {
           findsNothing,
         );
         expect(find.text('Graph read-only'), findsOneWidget);
-        expect(find.text('Étapes narratives réelles'), findsOneWidget);
+        expect(find.text('Audit Chapter From Metadata'), findsOneWidget);
+        expect(find.text('Audit Second Chapter From Metadata'), findsOneWidget);
         expect(find.text('Audit Step From Metadata'), findsOneWidget);
+        expect(find.text('Audit Second Step From Metadata'), findsOneWidget);
         expect(find.text('Audit Step Detail From Metadata'), findsOneWidget);
         expect(
           find.descendant(
-            of: find.byKey(const ValueKey('storylines-graph-read-only')),
-            matching: find.text('Source Step Studio'),
+            of: graph,
+            matching: find.textContaining('Global Story Studio'),
           ),
           findsOneWidget,
         );
@@ -98,7 +121,7 @@ void main() {
         );
         expect(
           find.descendant(
-              of: inspector, matching: find.text('1 étape narrative')),
+              of: inspector, matching: find.text('2 étapes narratives')),
           findsOneWidget,
         );
         expect(
@@ -138,6 +161,7 @@ void main() {
             findsOneWidget);
         expect(find.text('Storyline principale'), findsWidgets);
         expect(find.textContaining('1 étape narrative'), findsWidgets);
+        expect(find.textContaining('2 étapes narratives'), findsWidgets);
         expect(find.text('Recherche à venir'), findsOneWidget);
         expect(find.text('Quêtes annexes'), findsWidgets);
         expect(find.textContaining('aucun modèle de quête annexe'),
@@ -168,7 +192,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byKey(const ValueKey('storylines-kpi-steps')),
-            matching: find.text('1'),
+            matching: find.text('2'),
           ),
           findsOneWidget,
         );
@@ -242,7 +266,7 @@ void main() {
         );
 
         expect(
-          find.byKey(const ValueKey('storylines-graph-read-only')),
+          find.byKey(const ValueKey('storylines-graph-target-read-only')),
           findsOneWidget,
         );
         expect(find.text('Graph read-only'), findsOneWidget);
@@ -276,7 +300,7 @@ void main() {
             find.byKey(const ValueKey('storylines-chapters-create-action'));
 
         expect(chapters, findsOneWidget);
-        expect(find.byKey(const ValueKey('storylines-graph-read-only')),
+        expect(find.byKey(const ValueKey('storylines-graph-target-read-only')),
             findsNothing);
         expect(
           find.descendant(of: chapters, matching: find.text('Chapitres')),
@@ -306,7 +330,7 @@ void main() {
         expect(
           find.descendant(
               of: chapters, matching: find.text('1 étape narrative')),
-          findsOneWidget,
+          findsWidgets,
         );
         expect(
           find.descendant(
@@ -601,12 +625,11 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 1000),
       );
-      await _openChaptersTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_chapters_tab_desktop.png',
+          'ns_storylines_08_bis_graph_target_desktop.png',
         ),
       );
 
@@ -614,12 +637,11 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 700),
       );
-      await _openChaptersTab(tester);
       await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
+        find.byKey(const ValueKey('storylines-graph-target-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_chapters_tab_focus.png',
+          'ns_storylines_08_bis_graph_target_focus.png',
         ),
       );
 
@@ -627,12 +649,11 @@ void main() {
         tester,
         surfaceSize: const Size(1180, 1000),
       );
-      await _openChaptersTab(tester);
       await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
+        find.byKey(const ValueKey('storylines-graph-target-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_chapters_tab_center.png',
+          'ns_storylines_08_bis_graph_target_center.png',
         ),
       );
     });
@@ -644,10 +665,18 @@ const _targetOnlyStrings = <String>[
   'Les cristaux de sel',
   'Le Goélise du port',
   'La cabane du phare',
+  'Souvenirs oubliés',
+  'Tutoriel : Premiers pas',
+  'Épilogue : Le phare rallumé',
   'Mystère',
   'Exploration',
   'Phare',
   'Côtiers',
+  '5 chapitres',
+  '27 scènes',
+  '412 dialogues',
+  '18 facts',
+  '3 problèmes',
   '412',
   '18',
   'RÈGLES DU MONDE AFFECTÉES',
@@ -659,6 +688,8 @@ const _targetOnlyStrings = <String>[
   'Défini',
   'Brouillon',
   'En cours',
+  'Scènes du chapitre',
+  'Quête annexe',
 ];
 
 Future<void> _openChaptersTab(WidgetTester tester) async {
@@ -735,6 +766,19 @@ ProjectManifest _auditProject() {
           mode: StepStudioCompletionMode.manual,
         ),
       ),
+      StepStudioStep(
+        id: 'audit_followup_step',
+        name: 'Audit Second Step From Metadata',
+        description: 'Audit second step detail from metadata',
+        order: 1,
+        activation: StepStudioActivationRule(
+          mode: StepStudioActivationMode.afterStep,
+          stepId: 'audit_step',
+        ),
+        completion: StepStudioCompletionRule(
+          mode: StepStudioCompletionMode.manual,
+        ),
+      ),
     ],
   );
   const globalDocument = GlobalStoryStudioDocument(
@@ -742,6 +786,7 @@ ProjectManifest _auditProject() {
     entryStepId: 'audit_step',
     nodes: <GlobalStoryStepNode>[
       GlobalStoryStepNode(stepId: 'audit_step'),
+      GlobalStoryStepNode(stepId: 'audit_followup_step'),
     ],
     chapters: <GlobalStoryChapter>[
       GlobalStoryChapter(
@@ -750,6 +795,13 @@ ProjectManifest _auditProject() {
         description: 'Audit chapter description from metadata',
         stepIds: <String>['audit_step'],
         order: 0,
+      ),
+      GlobalStoryChapter(
+        id: 'audit_second_chapter',
+        name: 'Audit Second Chapter From Metadata',
+        description: 'Audit second chapter description from metadata',
+        stepIds: <String>['audit_followup_step'],
+        order: 1,
       ),
     ],
   );
