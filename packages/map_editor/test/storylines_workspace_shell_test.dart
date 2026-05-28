@@ -223,11 +223,12 @@ void main() {
       final beforeMode = harness.editorState.workspaceMode;
 
       await _openStructureTab(tester);
-      await tester.tap(
-        find.byKey(const ValueKey('storylines-new-chapter-disabled')),
-        warnIfMissed: false,
+      final newChapterButton = find.byKey(
+        const ValueKey('storylines-new-chapter-disabled'),
       );
-      await tester.pump();
+      expect(newChapterButton, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(newChapterButton).onPressed, isNull);
+
       await _openGraphTab(tester);
 
       expect(harness.project.toJson(), before);

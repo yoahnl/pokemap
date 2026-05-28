@@ -308,7 +308,8 @@ Interprétation V0 :
 | NS-STORYLINES-V1-04 | StorylineAsset JSON Codec V0 | core codec | DONE | NS-STORYLINES-V1-05 |
 | NS-STORYLINES-V1-05 | ProjectManifest.storylines Integration V0 | core manifest | DONE | NS-STORYLINES-V1-06 |
 | NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | DONE | NS-STORYLINES-V1-07 |
-| NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-08 |
+| NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-07-bis |
+| NS-STORYLINES-V1-07-bis | Storylines Workspace Cleanup / Dead Legacy Removal | editor UI cleanup | DONE | NS-STORYLINES-V1-08 |
 | NS-STORYLINES-V1-08 | Structure Tab Authoring V0 | editor authoring | TODO | NS-STORYLINES-V1-09 |
 | NS-STORYLINES-V1-09 | Create Side Quest Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-10 |
 | NS-STORYLINES-V1-10 | Graph From StorylineAsset V0 | editor graph | TODO | NS-STORYLINES-V1-11 |
@@ -749,6 +750,20 @@ Interprétation V0 :
 - Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-V1-08 — Structure Tab Authoring V0.
 
+### NS-STORYLINES-V1-07-bis — Storylines Workspace Cleanup / Dead Legacy Removal
+
+- Type : editor UI cleanup / technical debt / tests / visual regression.
+- Objectif : nettoyer la dette laissée par V1-07 sans changer le comportement produit.
+- Résultat : suppression de l'état `_selectedGlobalStoryId` mort, confirmation que `_LegacyStorylinesWorkspaceState` et `_StorylineContentTab.chapters` sont absents, et remplacement du tap silencieux `warnIfMissed: false` par une assertion explicite sur le CTA `Nouveau chapitre — bientôt` désactivé.
+- Comportement préservé : `Nouvelle storyline` crée toujours une main `StorylineAsset(type: main, status: draft)`, les tabs principales restent `Graph` / `Structure`, aucun import legacy automatique, aucun `localEventFlow` promu, aucune sideQuest/chapter/step/scene créée.
+- Fichiers modifiés/créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`, `reports/narrativeStudio/storylines/ns_storylines_v1_07_bis_storylines_workspace_cleanup.md`, captures Visual Gate V1-07 régénérées.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Design System Gate : confirmé ; aucun `Color(0x...)` / `Colors.*` dans les fichiers touchés.
+- Non-objectifs confirmés : aucun `map_core`, runtime, gameplay, battle, modèle core, generated file ou build_runner modifié/lancé.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-08 — Structure Tab Authoring V0.
+
 ## 10. Update protocol for every future lot
 
 Chaque futur lot Storylines doit :
@@ -865,8 +880,8 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 CREATE MAIN STORYLINE FLOW DONE
-Current lot: NS-STORYLINES-V1-07
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 CREATE MAIN STORYLINE FLOW DONE / V1-07-bis CLEANUP DONE
+Current lot: NS-STORYLINES-V1-07-bis
 Current lot status: DONE
 Next recommended lot: NS-STORYLINES-V1-08 — Structure Tab Authoring V0
 ```
@@ -895,6 +910,7 @@ Next recommended lot: NS-STORYLINES-V1-08 — Structure Tab Authoring V0
 | NS-STORYLINES-V1-05 | DONE | 2026-05-28 | ProjectManifest.storylines Integration V0 livré avec compatibilité vieux JSON et sans migration legacy. |
 | NS-STORYLINES-V1-06 | DONE | 2026-05-28 | Legacy GlobalStory Import Preview V0 livré : candidats non destructifs depuis `globalStory`, issues stables, `localEventFlow` ignoré. |
 | NS-STORYLINES-V1-07 | DONE | 2026-05-28 | Create Main Storyline Flow V0 livré : création main `StorylineAsset`, Graph/Structure seulement, aucun import legacy automatique. |
+| NS-STORYLINES-V1-07-bis | DONE | 2026-05-28 | Cleanup technique Storylines livré sans changement produit : legacy mort absent, tap silencieux supprimé, Visual Gate V1-07 régénéré. |
 | NS-STORYLINES-V1-08 | TODO | 2026-05-28 | Structure Tab Authoring V0 recommandé comme prochain lot. |
 
 ## 14. V1 Creation Readiness Notes
@@ -931,6 +947,14 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-07-bis
+
+- Cleanup technique sans changement produit sur `storylines_workspace.dart`.
+- Suppression de l'état local mort `_selectedGlobalStoryId`; confirmation que `_LegacyStorylinesWorkspaceState` et `_StorylineContentTab.chapters` ne sont plus présents.
+- Suppression du `warnIfMissed: false` restant dans le test shell ; le CTA `Nouveau chapitre — bientôt` est maintenant asserté présent et désactivé.
+- Tests ciblés, analyse ciblée, Design System Gate et Visual Gate V1-07 validés.
+- Prochain lot recommandé : `NS-STORYLINES-V1-08 — Structure Tab Authoring V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-07
 
