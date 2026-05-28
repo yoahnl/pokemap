@@ -22,6 +22,21 @@ class StorylinesWorkspace extends StatefulWidget {
 
 class _StorylinesWorkspaceState extends State<StorylinesWorkspace> {
   _StorylineContentTab _selectedTab = _StorylineContentTab.graph;
+  String? _selectedGlobalStoryId;
+
+  @override
+  void didUpdateWidget(covariant StorylinesWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final localSelection = _selectedGlobalStoryId;
+    if (localSelection == null) {
+      return;
+    }
+    final stillExists = widget.projection.globalStories
+        .any((story) => story.id == localSelection);
+    if (!stillExists) {
+      _selectedGlobalStoryId = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +75,7 @@ class _StorylinesWorkspaceState extends State<StorylinesWorkspace> {
               stories: widget.projection.globalStories,
               selectedStoryId: selectedStory?.id,
               stepCountsByStoryId: stepCountsByStoryId,
+              onStorySelected: _selectStory,
             ),
           ),
           const SizedBox(width: 12),
@@ -91,8 +107,10 @@ class _StorylinesWorkspaceState extends State<StorylinesWorkspace> {
   }
 
   NarrativeScenarioSummary? get _selectedStory {
+    final targetStoryId =
+        _selectedGlobalStoryId ?? widget.selectedGlobalStoryId;
     for (final story in widget.projection.globalStories) {
-      if (story.id == widget.selectedGlobalStoryId) {
+      if (story.id == targetStoryId) {
         return story;
       }
     }
@@ -109,6 +127,15 @@ class _StorylinesWorkspaceState extends State<StorylinesWorkspace> {
       _selectedTab = tab;
     });
   }
+
+  void _selectStory(NarrativeScenarioSummary story) {
+    if (_selectedStory?.id == story.id) {
+      return;
+    }
+    setState(() {
+      _selectedGlobalStoryId = story.id;
+    });
+  }
 }
 
 class _StorylinesSecondaryPanel extends StatelessWidget {
@@ -116,11 +143,13 @@ class _StorylinesSecondaryPanel extends StatelessWidget {
     required this.stories,
     required this.selectedStoryId,
     required this.stepCountsByStoryId,
+    required this.onStorySelected,
   });
 
   final List<NarrativeScenarioSummary> stories;
   final String? selectedStoryId;
   final Map<String, int> stepCountsByStoryId;
+  final ValueChanged<NarrativeScenarioSummary> onStorySelected;
 
   @override
   Widget build(BuildContext context) {
@@ -190,6 +219,7 @@ class _StorylinesSecondaryPanel extends StatelessWidget {
                     story: story,
                     selected: story.id == selectedStoryId,
                     stepCount: stepCountsByStoryId[story.id] ?? 0,
+                    onTap: () => onStorySelected(story),
                   ),
                 ),
               ),
@@ -250,19 +280,22 @@ class _StorylineSummaryRow extends StatelessWidget {
     required this.story,
     required this.selected,
     required this.stepCount,
+    required this.onTap,
   });
 
   final NarrativeScenarioSummary story;
   final bool selected;
   final int stepCount;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final description = story.description.trim();
-    return PokeMapCard(
+    final card = PokeMapCard(
       key: ValueKey('storylines-secondary-row-${story.id}'),
       selected: selected,
+      onTap: onTap,
       padding: const EdgeInsets.all(10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,6 +366,13 @@ class _StorylineSummaryRow extends StatelessWidget {
         ],
       ),
     );
+    if (!selected) {
+      return card;
+    }
+    return KeyedSubtree(
+      key: ValueKey('storylines-secondary-selected-${story.id}'),
+      child: card,
+    );
   }
 
   static String _formatStepCount(int count) {
@@ -390,7 +430,10 @@ class _StorylineMainPanel extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: selectedTab == _StorylineContentTab.chapters
-                ? _StorylineChaptersSection(chapters: chapters)
+                ? _StorylineChaptersSection(
+                    storyId: selectedStory?.id,
+                    chapters: chapters,
+                  )
                 : _StorylineGraphSection(
                     chapters: chapters,
                     steps: steps,
@@ -1392,9 +1435,11 @@ class _StorylineGraphEmptyState extends StatelessWidget {
 
 class _StorylineChaptersSection extends StatefulWidget {
   const _StorylineChaptersSection({
+    required this.storyId,
     required this.chapters,
   });
 
+  final String? storyId;
   final List<NarrativeChapterSummary> chapters;
 
   @override
@@ -1404,6 +1449,14 @@ class _StorylineChaptersSection extends StatefulWidget {
 
 class _StorylineChaptersSectionState extends State<_StorylineChaptersSection> {
   String? _selectedChapterId;
+
+  @override
+  void didUpdateWidget(covariant _StorylineChaptersSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.storyId != widget.storyId) {
+      _selectedChapterId = null;
+    }
+  }
 
   NarrativeChapterSummary? get _selectedChapter {
     if (widget.chapters.isEmpty) {

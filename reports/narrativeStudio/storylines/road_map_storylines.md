@@ -717,9 +717,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-10
+Current lot: NS-STORYLINES-11
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-11 — Storylines Interaction Wiring V0
+Next recommended lot: NS-STORYLINES-CHECKPOINT — Storylines V0 Acceptance Checkpoint
 ```
 
 | Lot | Status | Last update | Notes |
@@ -736,10 +736,47 @@ Next recommended lot: NS-STORYLINES-11 — Storylines Interaction Wiring V0
 | NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré ; bis Graph target alignment et ter canvas spatial livrés sans changer le statut NS08. |
 | NS-STORYLINES-09 | DONE | 2026-05-28 | Chapters inspector / step ordering read-only livré sans scène fake. |
 | NS-STORYLINES-10 | DONE | 2026-05-28 | Visual harmonization Graph/Chapitres et Visual Gate complet livrés sans nouvelle feature. |
-| NS-STORYLINES-11 | TODO | 2026-05-27 | Interaction wiring. |
+| NS-STORYLINES-11 | DONE | 2026-05-28 | Interaction wiring V0 livré : sélection locale de globalStory existante, synchronisation zones read-only, actions futures non mutantes, notes V1 Creation Readiness. |
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
-## 14. Changelog
+## 14. V1 Creation Readiness Notes
+
+NS-STORYLINES-11 reste un lot V0 : aucune création de storyline, aucun `StorylineAsset`, aucune quête annexe fake et aucune mutation projet.
+
+Pré-requis recommandés pour activer la création Storylines V1 :
+
+- Décision modèle : choisir entre un `StorylineAsset` dédié ou un `ScenarioAsset` enrichi, avec contrat editor/runtime explicite.
+- Types de storyline : prévoir au minimum `main`, `sideQuest`, `tutorial`, `epilogue`, `episode`, sans les inférer depuis `localEventFlow`.
+- Storyline principale : définir une règle d'unicité éventuelle, le comportement si une principale existe déjà, et le flow de remplacement ou migration.
+- Flow auteur : création no-code guidée avec titre, type, source, chapitre initial éventuel, validation immédiate et preview read-only avant sauvegarde.
+- Validation anti-duplicate : empêcher les ids/titres conflictuels, les types incompatibles et les liens de steps orphelins.
+- Compatibilité : décider comment migrer ou projeter le `ScenarioAsset globalStory` actuel sans casser les projets existants.
+- Quêtes annexes : les afficher uniquement quand le modèle existe ; `localEventFlow` ne suffit pas et ne doit jamais devenir une quête annexe par défaut.
+- Boutons activables plus tard : `Nouvelle storyline`, `+`, `Nouveau chapitre`, validation narrative et création de quête annexe après contrat modèle + tests anti-fake.
+
+Suite V1 documentaire possible, sans démarrage dans V0 :
+
+- `NS-STORYLINES-V1-00 — Storyline Creation Product Contract`
+- `NS-STORYLINES-V1-01 — Storyline Authoring Model Decision`
+- `NS-STORYLINES-V1-02 — Create Main Storyline Flow`
+- `NS-STORYLINES-V1-03 — Create Side Quest Storyline Flow`
+- `NS-STORYLINES-V1-04 — Storyline Type / Status / Validation`
+- `NS-STORYLINES-V1-05 — Side Quest Graph Integration`
+
+## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-11
+
+- Câblage d'une sélection locale de `globalStory` existante depuis le panneau secondaire Storylines.
+- Synchronisation read-only du header, des KPI dérivés, du graph, de l'inspecteur Storyline et de la tab `Chapitres` avec la storyline sélectionnée.
+- Conservation des tabs réellement branchées à `Graph` / `Chapitres`; `Étapes`, `Scènes`, `Statistiques`, `Tests` restent non mutantes.
+- Réinitialisation prudente de la sélection de chapitre lorsque la storyline effective change.
+- Actions futures conservées disabled / non mutantes : `Nouvelle storyline`, `Valider`, `+`, `Nouveau chapitre`, recherche.
+- Visual Gate dark interaction produit : `ns_storylines_11_interaction_default_graph.png`, `ns_storylines_11_interaction_selected_story_graph.png`, `ns_storylines_11_interaction_selected_story_chapters.png`.
+- Design System Gate confirmé : aucun `Color(0x...)` / `Colors.*` ajouté ; wiring via primitives PokeMap existantes.
+- Fake data : aucune donnée cible Selbrume, aucune quête annexe fake, aucun `localEventFlow` promu en storyline/quête/chapter/node.
+- V1 Creation Readiness documenté : modèle, types, unicité, flow auteur, validation et migration à décider avant création.
+- Prochain lot recommandé : `NS-STORYLINES-CHECKPOINT — Storylines V0 Acceptance Checkpoint`.
 
 ### 2026-05-28 — NS-STORYLINES-10
 

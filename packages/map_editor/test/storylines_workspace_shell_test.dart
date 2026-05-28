@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-10 Visual harmonization / visual gate V0', () {
+  group('NS-STORYLINES-11 Interaction wiring V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -269,6 +269,206 @@ void main() {
           harness.container.read(editorNotifierProvider).workspaceMode,
           EditorWorkspaceMode.globalStory,
         );
+      },
+    );
+
+    testWidgets(
+      'selects a real global story from the secondary panel and syncs read-only zones',
+      (tester) async {
+        final harness = await _pumpStorylinesShell(tester);
+        final beforeEditorState =
+            harness.container.read(editorNotifierProvider);
+        final beforeNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+        final beforeProject = beforeEditorState.project!;
+        final beforeScenarioIds = beforeProject.scenarios
+            .map((scenario) => scenario.id)
+            .toList(growable: false);
+
+        expect(
+          find.byKey(
+            const ValueKey('storylines-secondary-selected-audit_global_story'),
+          ),
+          findsOneWidget,
+        );
+
+        await _selectSecondaryStory(tester, 'audit_second_global_story');
+
+        final header = find.byKey(const ValueKey('storylines-header-section'));
+        final graph =
+            find.byKey(const ValueKey('storylines-graph-target-read-only'));
+        final inspector =
+            find.byKey(const ValueKey('storylines-inspector-read-only'));
+
+        expect(
+          find.byKey(
+            const ValueKey(
+              'storylines-secondary-selected-audit_second_global_story',
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.text('Audit Second Story From Scenario'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.text('Audit second description from scenario'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: inspector,
+            matching: find.text('Audit Second Story From Scenario'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: inspector,
+            matching: find.text('1 étape narrative'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: graph,
+            matching: find.text('Audit Second Chapter From Metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: graph,
+            matching: find.text('Audit Second Step From Metadata'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: graph,
+            matching: find.text('Audit Chapter From Metadata'),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: graph,
+            matching: find.text('Audit Step From Metadata'),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('storylines-kpi-steps')),
+            matching: find.text('1'),
+          ),
+          findsOneWidget,
+        );
+
+        await _openChaptersTab(tester);
+
+        final chapters =
+            find.byKey(const ValueKey('storylines-chapters-read-only'));
+        final chapterInspector =
+            find.byKey(const ValueKey('storylines-chapter-inspector'));
+        expect(chapters, findsOneWidget);
+        expect(
+          find.descendant(
+            of: chapters,
+            matching: find.text('Audit Second Chapter From Metadata'),
+          ),
+          findsWidgets,
+        );
+        expect(
+          find.descendant(
+            of: chapters,
+            matching: find.text('Audit Chapter From Metadata'),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('storylines-selected-chapter-audit_second_chapter'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: chapterInspector,
+            matching: find.text('Audit Second Step From Metadata'),
+          ),
+          findsOneWidget,
+        );
+
+        await _openGraphTab(tester);
+
+        expect(
+          find.byKey(const ValueKey('storylines-graph-target-read-only')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.text('Audit Second Story From Scenario'),
+          ),
+          findsOneWidget,
+        );
+
+        for (final label in <String>[
+          'Étapes',
+          'Scènes',
+          'Statistiques',
+          'Tests',
+        ]) {
+          await tester.tap(
+            find.descendant(
+              of: find.byKey(const ValueKey('storylines-tabs')),
+              matching: find.text(label),
+            ),
+          );
+          await tester.pump();
+        }
+
+        expect(
+          find.byKey(const ValueKey('storylines-graph-target-read-only')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.text('Audit Second Story From Scenario'),
+          ),
+          findsOneWidget,
+        );
+
+        final afterEditorState = harness.container.read(editorNotifierProvider);
+        final afterNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+
+        expect(afterEditorState.workspaceMode, beforeEditorState.workspaceMode);
+        expect(afterEditorState.project, same(beforeProject));
+        expect(
+          afterEditorState.project!.scenarios
+              .map((scenario) => scenario.id)
+              .toList(growable: false),
+          beforeScenarioIds,
+        );
+        expect(
+          afterNarrativeState.selectedGlobalStoryId,
+          beforeNarrativeState.selectedGlobalStoryId,
+        );
+        expect(
+          afterNarrativeState.selectedStepId,
+          beforeNarrativeState.selectedStepId,
+        );
+        expect(find.text('Audit Local Event Flow'), findsNothing);
       },
     );
 
@@ -764,31 +964,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_10_graph_desktop.png',
-        ),
-      );
-
-      await _pumpStorylinesShell(
-        tester,
-        surfaceSize: const Size(1600, 700),
-      );
-      await expectLater(
-        find.byKey(const ValueKey('storylines-graph-target-read-only')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_10_graph_focus.png',
-        ),
-      );
-
-      await _pumpStorylinesShell(
-        tester,
-        surfaceSize: const Size(1180, 1000),
-      );
-      await expectLater(
-        find.byKey(const ValueKey('storylines-graph-target-read-only')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_10_graph_center.png',
+          'ns_storylines_11_interaction_default_graph.png',
         ),
       );
 
@@ -796,38 +972,26 @@ void main() {
         tester,
         surfaceSize: const Size(1600, 1000),
       );
+      await _selectSecondaryStory(tester, 'audit_second_global_story');
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_11_interaction_selected_story_graph.png',
+        ),
+      );
+
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 1000),
+      );
+      await _selectSecondaryStory(tester, 'audit_second_global_story');
       await _openChaptersTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_10_chapters_desktop.png',
-        ),
-      );
-
-      await _pumpStorylinesShell(
-        tester,
-        surfaceSize: const Size(1600, 700),
-      );
-      await _openChaptersTab(tester);
-      await expectLater(
-        find.byKey(const ValueKey('storylines-chapters-read-only')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_10_chapters_focus.png',
-        ),
-      );
-
-      await _pumpStorylinesShell(
-        tester,
-        surfaceSize: const Size(1180, 1000),
-      );
-      await _openChaptersTab(tester);
-      await expectLater(
-        find.byKey(const ValueKey('storylines-chapters-read-only')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_10_chapters_center.png',
+          'ns_storylines_11_interaction_selected_story_chapters.png',
         ),
       );
     });
@@ -882,6 +1046,27 @@ Future<void> _openChaptersTab(WidgetTester tester) async {
       matching: find.text('Chapitres'),
     ),
   );
+  await tester.pump();
+}
+
+Future<void> _openGraphTab(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byKey(const ValueKey('storylines-tabs')),
+      matching: find.text('Graph'),
+    ),
+  );
+  await tester.pump();
+}
+
+Future<void> _selectSecondaryStory(
+  WidgetTester tester,
+  String storyId,
+) async {
+  final row = find.byKey(ValueKey('storylines-secondary-row-$storyId'));
+  await tester.ensureVisible(row);
+  await tester.pump();
+  await tester.tap(row);
   await tester.pump();
 }
 
