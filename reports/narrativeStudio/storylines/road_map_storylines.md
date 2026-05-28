@@ -293,7 +293,7 @@ Interprétation V0 :
 | NS-STORYLINES-02 | Current Global Story Characterization / Anti-Fake Tests V0 | test/audit | DONE | NS-STORYLINES-03 |
 | NS-STORYLINES-03 | Storylines Workspace Shell Layout V0 | editor UI | DONE | NS-STORYLINES-04 |
 | NS-STORYLINES-04 | Storylines Secondary List Panel Read-only V0 | editor UI | DONE | NS-STORYLINES-05 |
-| NS-STORYLINES-05 | Storyline Header / Tabs / KPI Read-only V0 | editor UI | TODO | NS-STORYLINES-06 |
+| NS-STORYLINES-05 | Storyline Header / Tabs / KPI Read-only V0 | editor UI | DONE | NS-STORYLINES-06 |
 | NS-STORYLINES-06 | Storyline Graph Read-only Placeholder V0 | editor UI / visual gate | TODO | NS-STORYLINES-07 |
 | NS-STORYLINES-07 | Storyline Inspector Read-only V0 | editor UI | TODO | NS-STORYLINES-08 |
 | NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | TODO | NS-STORYLINES-09 |
@@ -414,7 +414,17 @@ Interprétation V0 :
 - Visual Gate : focus header.
 - Risques : copier les chiffres cible.
 - Design system impact : utiliser `PokeMapMetricCard`, `PokeMapSegmentedTabs` si disponibles.
-- Statut : TODO.
+- Statut : DONE.
+- Résultat NS-STORYLINES-05 : header central Storyline V0, tabs Storyline read-only et KPI honnêtes livrés dans la zone centrale haute.
+- Fichiers modifiés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `packages/map_editor/test/storylines_current_global_story_characterization_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Fichiers créés : `reports/narrativeStudio/storylines/ns_storylines_05_header_tabs_kpi_read_only_v0.md`, captures Visual Gate `ns_storylines_05_header_tabs_kpi_desktop.png`, `ns_storylines_05_header_tabs_kpi_focus.png`, `ns_storylines_05_header_tabs_kpi_center.png`.
+- Données : `ScenarioAsset.name`, `ScenarioAsset.description`, `projection.globalStories.length`, steps filtrées par `globalScenarioId` et cutscenes liées dérivées des steps ; chapitres et diagnostics restent `À venir` faute de source branchée dans le widget.
+- Tabs : `Graph` visible comme tab principal ; `Chapitres`, `Étapes`, `Scènes`, `Statistiques`, `Tests` visibles mais non mutantes / non branchées.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart lib/src/ui/canvas/narrative_workspace_canvas.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart`.
+- Visual Gate : dark theme actif via harness NS-STORYLINES-03-bis ; captures desktop, focus et medium produites.
+- Design System Gate : confirmé ; `PokeMapPanel`, `PokeMapPageSurface`, `PokeMapIconTile`, `PokeMapStatusTile`, `PokeMapMetricCard`, `PokeMapSegmentedTabs`, `PokeMapTone` et `context.pokeMapColors` utilisés ; aucun `Color(0x...)` / `Colors.*` ajouté.
+- Fake data : aucune donnée cible hardcodée ; aucun `localEventFlow` affiché comme quête / storyline / KPI ; actions futures restent disabled ou non mutantes.
 - Prochain lot attendu : NS-STORYLINES-06.
 
 ### NS-STORYLINES-06 — Storyline Graph Read-only Placeholder V0
@@ -646,9 +656,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-04
+Current lot: NS-STORYLINES-05
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-05 — Storyline Header / Tabs / KPI Read-only V0
+Next recommended lot: NS-STORYLINES-06 — Storyline Graph Read-only Placeholder V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -659,7 +669,7 @@ Next recommended lot: NS-STORYLINES-05 — Storyline Header / Tabs / KPI Read-on
 | NS-STORYLINES-02 | DONE | 2026-05-27 | Tests de caractérisation anti-fake ajoutés ; ancien Global Story Studio verrouillé sans code production. |
 | NS-STORYLINES-03 | DONE | 2026-05-28 | Shell Storylines V0 read-only livré avec layout 3 zones, anti-fake, captures Visual Gate et tests ciblés. |
 | NS-STORYLINES-04 | DONE | 2026-05-28 | Panneau secondaire read-only structuré sur les globalStory réelles ; recherche / création / quêtes annexes disabled. |
-| NS-STORYLINES-05 | TODO | 2026-05-27 | Header/tabs/KPI read-only. |
+| NS-STORYLINES-05 | DONE | 2026-05-28 | Header/tabs/KPI read-only livrés avec KPI sourcés ou disabled. |
 | NS-STORYLINES-06 | TODO | 2026-05-27 | Graph read-only placeholder. |
 | NS-STORYLINES-07 | TODO | 2026-05-27 | Inspector storyline. |
 | NS-STORYLINES-08 | TODO | 2026-05-27 | Chapters tab. |
@@ -669,6 +679,18 @@ Next recommended lot: NS-STORYLINES-05 — Storyline Header / Tabs / KPI Read-on
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-05
+
+- Ajout du header central Storyline V0 avec titre réel, description réelle, type prudent `Storyline principale`, état `Lecture seule`, source réelle et mode `Storylines V0`.
+- Ajout de tabs Storyline visibles via `PokeMapSegmentedTabs` : `Graph` principal, `Chapitres`, `Étapes`, `Scènes`, `Statistiques`, `Tests` non branchés / non mutants.
+- Ajout de KPI read-only avec `PokeMapMetricCard` : `Storylines globales`, `Étapes narratives`, `Cutscenes liées` sourcés ; `Chapitres` et `Avertissements structurels` restent `À venir`.
+- Conservation du panneau secondaire NS-STORYLINES-04 et du layout trois zones ; aucun graph riche, inspector final ou onglet Chapitres actif n'a été ajouté.
+- Adaptation des tests Storylines et caractérisation ; vérification de la non-mutation des tabs futures et de l'absence de données cible fake.
+- Production des captures Visual Gate dark `ns_storylines_05_header_tabs_kpi_desktop.png`, `ns_storylines_05_header_tabs_kpi_focus.png`, `ns_storylines_05_header_tabs_kpi_center.png`.
+- Confirmation : aucune donnée cible hardcodée, aucun `localEventFlow` promu en quête/storyline/KPI, aucune action future activée, aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers touchés.
+- Tests ciblés Storylines / caractérisation / projection passés ; analyse ciblée clean.
+- Prochain lot recommandé : `NS-STORYLINES-06 — Storyline Graph Read-only Placeholder V0`.
 
 ### 2026-05-28 — NS-STORYLINES-04
 

@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-04 Storylines secondary panel V0', () {
+  group('NS-STORYLINES-05 Storyline header tabs KPI V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -31,6 +31,13 @@ void main() {
             findsOneWidget);
         expect(find.byKey(const ValueKey('storylines-inspector-placeholder')),
             findsOneWidget);
+        expect(find.byKey(const ValueKey('storylines-header-section')),
+            findsOneWidget);
+        expect(find.byKey(const ValueKey('storylines-tabs')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('storylines-kpi-strip')),
+          findsOneWidget,
+        );
 
         expect(find.text('Audit Story From Scenario'), findsWidgets);
         expect(find.text('Audit description from scenario'), findsWidgets);
@@ -50,6 +57,55 @@ void main() {
         expect(find.text('Quêtes annexes'), findsWidgets);
         expect(find.textContaining('aucun modèle de quête annexe'),
             findsOneWidget);
+        expect(find.text('Lecture seule'), findsWidgets);
+        expect(find.text('Source réelle'), findsWidgets);
+        expect(find.text('Graph'), findsOneWidget);
+        expect(find.text('Chapitres'), findsWidgets);
+        expect(find.text('Étapes'), findsWidgets);
+        expect(find.text('Scènes'), findsWidgets);
+        expect(find.text('Statistiques'), findsOneWidget);
+        expect(find.text('Tests'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('storylines-kpi-global-stories')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('storylines-kpi-global-stories')),
+            matching: find.text('2'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-kpi-steps')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('storylines-kpi-steps')),
+            matching: find.text('1'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-kpi-cutscenes')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('storylines-kpi-cutscenes')),
+            matching: find.text('0'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-kpi-chapters')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-kpi-diagnostics')),
+          findsOneWidget,
+        );
         expect(
           find.byKey(const ValueKey('storylines-secondary-create-action')),
           findsOneWidget,
@@ -88,6 +144,65 @@ void main() {
           harness.container.read(editorNotifierProvider).workspaceMode,
           EditorWorkspaceMode.globalStory,
         );
+      },
+    );
+
+    testWidgets(
+      'keeps Storyline tabs read-only and non-mutating',
+      (tester) async {
+        final harness = await _pumpStorylinesShell(tester);
+        final tabs = find.byKey(const ValueKey('storylines-tabs'));
+
+        expect(tabs, findsOneWidget);
+        expect(
+          find.descendant(of: tabs, matching: find.text('Graph')),
+          findsOneWidget,
+        );
+
+        final beforeEditorState =
+            harness.container.read(editorNotifierProvider);
+        final beforeNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+        final beforeProject = beforeEditorState.project!;
+        final beforeScenarioIds = beforeProject.scenarios
+            .map((scenario) => scenario.id)
+            .toList(growable: false);
+
+        for (final label in <String>[
+          'Chapitres',
+          'Étapes',
+          'Scènes',
+          'Statistiques',
+          'Tests',
+        ]) {
+          await tester
+              .tap(find.descendant(of: tabs, matching: find.text(label)));
+          await tester.pump();
+        }
+
+        final afterEditorState = harness.container.read(editorNotifierProvider);
+        final afterNarrativeState =
+            harness.container.read(narrativeWorkspaceControllerProvider);
+
+        expect(afterEditorState.workspaceMode, beforeEditorState.workspaceMode);
+        expect(afterEditorState.workspaceMode, EditorWorkspaceMode.globalStory);
+        expect(afterEditorState.project, same(beforeProject));
+        expect(
+          afterEditorState.project!.scenarios
+              .map((scenario) => scenario.id)
+              .toList(growable: false),
+          beforeScenarioIds,
+        );
+        expect(
+          afterNarrativeState.selectedGlobalStoryId,
+          beforeNarrativeState.selectedGlobalStoryId,
+        );
+        expect(
+          afterNarrativeState.selectedStepId,
+          beforeNarrativeState.selectedStepId,
+        );
+        expect(find.text('Zone centrale Storyline'), findsOneWidget);
+        expect(find.text('Audit Local Event Flow'), findsNothing);
       },
     );
 
@@ -228,7 +343,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_04_secondary_panel_desktop.png',
+          'ns_storylines_05_header_tabs_kpi_desktop.png',
         ),
       );
 
@@ -240,7 +355,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_04_secondary_panel_focus.png',
+          'ns_storylines_05_header_tabs_kpi_focus.png',
         ),
       );
 
@@ -252,7 +367,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_04_secondary_panel_only.png',
+          'ns_storylines_05_header_tabs_kpi_center.png',
         ),
       );
     });
