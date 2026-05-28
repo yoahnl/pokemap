@@ -295,7 +295,7 @@ Interprétation V0 :
 | NS-STORYLINES-04 | Storylines Secondary List Panel Read-only V0 | editor UI | DONE | NS-STORYLINES-05 |
 | NS-STORYLINES-05 | Storyline Header / Tabs / KPI Read-only V0 | editor UI | DONE | NS-STORYLINES-06 |
 | NS-STORYLINES-06 | Storyline Graph Read-only Placeholder V0 | editor UI / visual gate | DONE | NS-STORYLINES-07 |
-| NS-STORYLINES-07 | Storyline Inspector Read-only V0 | editor UI | TODO | NS-STORYLINES-08 |
+| NS-STORYLINES-07 | Storyline Inspector Read-only V0 | editor UI | DONE | NS-STORYLINES-08 |
 | NS-STORYLINES-08 | Chapters Tab Read-only V0 | editor UI | TODO | NS-STORYLINES-09 |
 | NS-STORYLINES-09 | Chapters Inspector / Scene Ordering Read-only V0 | editor UI | TODO | NS-STORYLINES-10 |
 | NS-STORYLINES-10 | Storyline Visual Harmonization / Visual Gate V0 | visual gate | TODO | NS-STORYLINES-11 |
@@ -466,7 +466,18 @@ Interprétation V0 :
 - Visual Gate : inspector focus.
 - Risques : afficher priorité/statut sans source.
 - Design system impact : utiliser `PokeMapInspectorPanel` ou primitive partagée.
-- Statut : TODO.
+- Statut : DONE.
+- Résultat NS-STORYLINES-07 : inspecteur droit remplacé par un panneau `Détails de la storyline` read-only, sourcé par la storyline sélectionnée.
+- Fichiers modifiés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `packages/map_editor/test/storylines_current_global_story_characterization_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Fichiers créés : `reports/narrativeStudio/storylines/ns_storylines_07_inspector_read_only_v0.md`, captures Visual Gate `ns_storylines_07_inspector_desktop.png`, `ns_storylines_07_inspector_focus.png`, `ns_storylines_07_inspector_panel.png`.
+- Données : nom et description réels via `NarrativeScenarioSummary`, type prudent `Storyline principale`, source `ScenarioAsset globalStory`, compteurs d'étapes et cutscenes liées dérivés des steps filtrées.
+- Sections futures : `Tags`, `Règles du monde`, `Facts`, `Activité récente`, `Quêtes liées` affichées uniquement comme `À venir`, `Non branché` ou `Modèle absent en V0`.
+- Empty state : absence de globalStory couverte par test avec `Aucune storyline sélectionnée.`.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart lib/src/ui/canvas/narrative_workspace_canvas.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart`.
+- Visual Gate : dark theme actif ; captures desktop, focus et panel produites.
+- Design System Gate : confirmé ; `PokeMapInspectorPanel`, `PokeMapCard`, `PokeMapIconTile`, `PokeMapStatusTile`, `PokeMapTone` et `context.pokeMapColors` utilisés ; aucun `Color(0x...)` / `Colors.*` ajouté.
+- Fake data : aucun tag réel, world rule, fact, activité récente, priorité, statut `Active`, niveau `Haute`, donnée Selbrume ou chiffre cible ajouté ; `localEventFlow` reste absent de l'inspecteur.
 - Prochain lot attendu : NS-STORYLINES-08.
 
 ### NS-STORYLINES-08 — Chapters Tab Read-only V0
@@ -666,9 +677,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-06
+Current lot: NS-STORYLINES-07
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-07 — Storyline Inspector Read-only V0
+Next recommended lot: NS-STORYLINES-08 — Chapters Tab Read-only V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -681,7 +692,7 @@ Next recommended lot: NS-STORYLINES-07 — Storyline Inspector Read-only V0
 | NS-STORYLINES-04 | DONE | 2026-05-28 | Panneau secondaire read-only structuré sur les globalStory réelles ; recherche / création / quêtes annexes disabled. |
 | NS-STORYLINES-05 | DONE | 2026-05-28 | Header/tabs/KPI read-only livrés avec KPI sourcés ou disabled. |
 | NS-STORYLINES-06 | DONE | 2026-05-28 | Graph read-only placeholder livré avec steps réelles et empty state. |
-| NS-STORYLINES-07 | TODO | 2026-05-27 | Inspector storyline. |
+| NS-STORYLINES-07 | DONE | 2026-05-28 | Inspector read-only livré avec données réelles, sections futures disabled et empty state. |
 | NS-STORYLINES-08 | TODO | 2026-05-27 | Chapters tab. |
 | NS-STORYLINES-09 | TODO | 2026-05-27 | Chapters inspector/order. |
 | NS-STORYLINES-10 | TODO | 2026-05-27 | Visual harmonization. |
@@ -689,6 +700,19 @@ Next recommended lot: NS-STORYLINES-07 — Storyline Inspector Read-only V0
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-07
+
+- Remplacement de l'inspecteur placeholder droit par un panneau `Détails de la storyline` read-only.
+- Affichage des données réelles de la storyline sélectionnée : titre, description, type prudent `Storyline principale`, source `ScenarioAsset globalStory`, compteur d'étapes narratives et compteur de cutscenes liées.
+- Ajout de sections futures explicitement non branchées : `Tags`, `Règles du monde`, `Facts`, `Activité récente`, `Quêtes liées`.
+- Ajout d'un empty state honnête `Aucune storyline sélectionnée.` lorsqu'aucune globalStory n'est disponible.
+- Conservation du panneau secondaire NS-STORYLINES-04, du header/tabs/KPI NS-STORYLINES-05 et du graph placeholder NS-STORYLINES-06.
+- Adaptation des tests Storylines et caractérisation ; vérification que `localEventFlow` ne devient pas une donnée d'inspecteur.
+- Production des captures Visual Gate dark `ns_storylines_07_inspector_desktop.png`, `ns_storylines_07_inspector_focus.png`, `ns_storylines_07_inspector_panel.png`.
+- Confirmation : aucune donnée cible hardcodée, aucune section future active, aucune action mutante, aucun `Color(0x...)` / `Colors.*` ajouté dans les fichiers touchés.
+- Tests ciblés Storylines / caractérisation / projection passés ; analyse ciblée clean.
+- Prochain lot recommandé : `NS-STORYLINES-08 — Chapters Tab Read-only V0`.
 
 ### 2026-05-28 — NS-STORYLINES-06
 

@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-06 Storyline graph placeholder V0', () {
+  group('NS-STORYLINES-07 Storyline inspector read-only V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -29,8 +29,10 @@ void main() {
             findsOneWidget);
         expect(find.byKey(const ValueKey('storylines-main-panel')),
             findsOneWidget);
-        expect(find.byKey(const ValueKey('storylines-inspector-placeholder')),
+        expect(find.byKey(const ValueKey('storylines-inspector-read-only')),
             findsOneWidget);
+        final inspector =
+            find.byKey(const ValueKey('storylines-inspector-read-only'));
         expect(find.byKey(const ValueKey('storylines-header-section')),
             findsOneWidget);
         expect(find.byKey(const ValueKey('storylines-tabs')), findsOneWidget);
@@ -61,7 +63,70 @@ void main() {
         expect(find.text('Relations détaillées à venir'), findsOneWidget);
         expect(find.text('Graph — à venir'), findsNothing);
         expect(find.text('Chapitres — à venir'), findsNothing);
-        expect(find.text('Inspecteur Storyline — à venir'), findsOneWidget);
+        expect(find.text('Inspecteur Storyline — à venir'), findsNothing);
+        expect(
+          find.descendant(
+            of: inspector,
+            matching: find.text('Détails de la storyline'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: inspector,
+            matching: find.text('Audit Story From Scenario'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: inspector,
+            matching: find.text('Audit description from scenario'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: inspector,
+            matching: find.text('ScenarioAsset globalStory'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+              of: inspector, matching: find.text('1 étape narrative')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+              of: inspector, matching: find.text('0 cutscene liée')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: inspector, matching: find.text('Tags')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: inspector, matching: find.text('Facts')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+              of: inspector, matching: find.text('Activité récente')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: inspector, matching: find.text('Quêtes liées')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: inspector, matching: find.text('Non branché')),
+          findsWidgets,
+        );
+        expect(
+          find.descendant(of: inspector, matching: find.text('À venir')),
+          findsWidgets,
+        );
         expect(find.text('Audit Local Event Flow'), findsNothing);
         expect(find.text('Histoire principale'), findsOneWidget);
         expect(find.text('Audit Second Story From Scenario'), findsOneWidget);
@@ -152,7 +217,7 @@ void main() {
         }
 
         expect(find.text('Maps'), findsNothing);
-        expect(find.text('Facts'), findsOneWidget);
+        expect(find.text('Facts'), findsWidgets);
         expect(find.text('Règles du monde'), findsWidgets);
         expect(find.text('Validateur'), findsOneWidget);
 
@@ -185,6 +250,35 @@ void main() {
         expect(find.text('Audit Local Event Flow'), findsNothing);
       },
     );
+
+    testWidgets('renders an honest inspector empty state without global story',
+        (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        project: _noGlobalStoryProject(),
+        selectedGlobalStoryId: 'missing_global_story',
+      );
+
+      final inspector =
+          find.byKey(const ValueKey('storylines-inspector-read-only'));
+
+      expect(inspector, findsOneWidget);
+      expect(
+        find.descendant(
+          of: inspector,
+          matching: find.text('Aucune storyline sélectionnée.'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: inspector,
+          matching: find.text('ScenarioAsset globalStory'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Audit Local Event Flow'), findsNothing);
+    });
 
     testWidgets(
       'keeps Storyline tabs read-only and non-mutating',
@@ -382,7 +476,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_06_graph_placeholder_desktop.png',
+          'ns_storylines_07_inspector_desktop.png',
         ),
       );
 
@@ -394,7 +488,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_06_graph_placeholder_focus.png',
+          'ns_storylines_07_inspector_focus.png',
         ),
       );
 
@@ -406,7 +500,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_06_graph_placeholder_center.png',
+          'ns_storylines_07_inspector_panel.png',
         ),
       );
     });
@@ -426,6 +520,10 @@ const _targetOnlyStrings = <String>[
   '18',
   'RÈGLES DU MONDE AFFECTÉES',
   'DERNIÈRE ACTIVITÉ',
+  'Active',
+  'Haute',
+  'Validé',
+  'À jour',
 ];
 
 Future<_StorylinesHarness> _pumpStorylinesShell(
@@ -615,6 +713,24 @@ ProjectManifest _emptyGraphProject() {
     scenarios: <ScenarioAsset>[
       emptyGlobalScenario,
       const ScenarioAsset(
+        id: 'audit_local_event_flow',
+        name: 'Audit Local Event Flow',
+        description: 'Audit local flow must not become a side quest',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'local_start',
+      ),
+    ],
+  );
+}
+
+ProjectManifest _noGlobalStoryProject() {
+  return const ProjectManifest(
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
+    name: 'Audit No Story Project',
+    maps: <ProjectMapEntry>[],
+    tilesets: <ProjectTilesetEntry>[],
+    scenarios: <ScenarioAsset>[
+      ScenarioAsset(
         id: 'audit_local_event_flow',
         name: 'Audit Local Event Flow',
         description: 'Audit local flow must not become a side quest',

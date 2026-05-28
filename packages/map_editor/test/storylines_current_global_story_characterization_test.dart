@@ -48,7 +48,7 @@ void main() {
 
         // NS-HOME guardrail: Maps is not an internal Narrative Studio entry.
         expect(find.text('Maps'), findsNothing);
-        expect(find.text('Facts'), findsOneWidget);
+        expect(find.text('Facts'), findsWidgets);
         expect(find.text('Règles du monde'), findsWidgets);
         expect(find.text('Validateur'), findsOneWidget);
 

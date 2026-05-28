@@ -61,9 +61,10 @@ class StorylinesWorkspace extends StatelessWidget {
           const SizedBox(width: 12),
           SizedBox(
             width: 280,
-            child: _StorylineInspectorPlaceholder(
+            child: _StorylineInspectorPanel(
               selectedStory: selectedStory,
               stepCount: relatedSteps.length,
+              linkedCutsceneCount: linkedCutsceneCount,
             ),
           ),
         ],
@@ -818,74 +819,323 @@ class _StorylineKpiStrip extends StatelessWidget {
   }
 }
 
-class _StorylineInspectorPlaceholder extends StatelessWidget {
-  const _StorylineInspectorPlaceholder({
+class _StorylineInspectorPanel extends StatelessWidget {
+  const _StorylineInspectorPanel({
     required this.selectedStory,
     required this.stepCount,
+    required this.linkedCutsceneCount,
   });
 
   final NarrativeScenarioSummary? selectedStory;
   final int stepCount;
+  final int linkedCutsceneCount;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return PokeMapInspectorPanel(
-      key: const ValueKey('storylines-inspector-placeholder'),
-      header: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-        child: Text(
-          'Inspecteur Storyline — à venir',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bodyHeight =
+            constraints.maxHeight.isFinite && constraints.maxHeight > 96
+                ? constraints.maxHeight - 88
+                : 360.0;
+        return PokeMapInspectorPanel(
+          key: const ValueKey('storylines-inspector-read-only'),
+          header: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            child: Text(
+              'Détails de la storyline',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: SizedBox(
+            height: bodyHeight,
+            child: SingleChildScrollView(
+              child: selectedStory == null
+                  ? const _StorylineInspectorEmptyState()
+                  : _StorylineInspectorContent(
+                      selectedStory: selectedStory!,
+                      stepCount: stepCount,
+                      linkedCutsceneCount: linkedCutsceneCount,
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _StorylineInspectorContent extends StatelessWidget {
+  const _StorylineInspectorContent({
+    required this.selectedStory,
+    required this.stepCount,
+    required this.linkedCutsceneCount,
+  });
+
+  final NarrativeScenarioSummary selectedStory;
+  final int stepCount;
+  final int linkedCutsceneCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final description = selectedStory.description.trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PokeMapIconTile(
+              icon: CupertinoIcons.link,
+              tone: PokeMapTone.narrative,
+              size: 38,
+              iconSize: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selectedStory.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    description.isEmpty
+                        ? 'Description non renseignée dans le scénario.'
+                        : description,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 12,
+                      height: 1.35,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const PokeMapStatusTile(
+          label: 'Type',
+          value: 'Storyline principale',
+          icon: CupertinoIcons.book,
+          tone: PokeMapTone.narrative,
+        ),
+        const SizedBox(height: 8),
+        const PokeMapStatusTile(
+          label: 'Source',
+          value: 'ScenarioAsset globalStory',
+          icon: CupertinoIcons.doc_text,
+          tone: PokeMapTone.neutral,
+        ),
+        const SizedBox(height: 8),
+        const PokeMapStatusTile(
+          label: 'Mode',
+          value: 'Lecture seule',
+          icon: CupertinoIcons.lock,
+          tone: PokeMapTone.info,
+        ),
+        const SizedBox(height: 12),
+        _StorylineInspectorSection(
+          title: 'Structure',
+          child: PokeMapCard(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StorylineInspectorTextLine(
+                  label: 'Étapes narratives',
+                  value: _formatFrenchCount(
+                    stepCount,
+                    singular: 'étape narrative',
+                    plural: 'étapes narratives',
+                  ),
+                ),
+                const SizedBox(height: 6),
+                _StorylineInspectorTextLine(
+                  label: 'Cutscenes liées',
+                  value: _formatFrenchCount(
+                    linkedCutsceneCount,
+                    singular: 'cutscene liée',
+                    plural: 'cutscenes liées',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const _StorylineInspectorFutureSection(),
+      ],
+    );
+  }
+}
+
+class _StorylineInspectorSection extends StatelessWidget {
+  const _StorylineInspectorSection({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
           style: TextStyle(
-            color: colors.textSecondary,
-            fontSize: 11,
+            color: colors.textMuted,
+            fontSize: 10.5,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.4,
           ),
         ),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PokeMapStatusTile(
-            label: 'Source',
-            value: selectedStory == null
-                ? 'Aucun scénario'
-                : 'ScenarioAsset globalStory',
-            icon: CupertinoIcons.doc_text,
-            tone: PokeMapTone.narrative,
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _StorylineInspectorTextLine extends StatelessWidget {
+  const _StorylineInspectorTextLine({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 10),
-          PokeMapStatusTile(
-            label: 'Étapes',
-            value: '$stepCount',
-            icon: CupertinoIcons.list_bullet,
-            tone: PokeMapTone.info,
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          const SizedBox(height: 10),
-          const PokeMapStatusTile(
-            label: 'Tags',
-            value: 'À venir',
-            icon: CupertinoIcons.tag,
-            tone: PokeMapTone.neutral,
-          ),
-          const SizedBox(height: 10),
-          const PokeMapStatusTile(
-            label: 'Règles du monde',
-            value: 'Non branché',
-            icon: CupertinoIcons.lock,
-            tone: PokeMapTone.neutral,
-          ),
-          const SizedBox(height: 18),
-          const PokeMapStatusTile(
-            label: 'Valider',
-            value: 'Désactivé',
-            icon: CupertinoIcons.shield,
-            tone: PokeMapTone.neutral,
-          ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StorylineInspectorFutureSection extends StatelessWidget {
+  const _StorylineInspectorFutureSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _StorylineInspectorSection(
+      title: 'Fonctionnalités à venir',
+      child: PokeMapCard(
+        padding: EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _StorylineInspectorTextLine(label: 'Tags', value: 'À venir'),
+            SizedBox(height: 6),
+            _StorylineInspectorTextLine(
+              label: 'Règles du monde',
+              value: 'Non branché',
+            ),
+            SizedBox(height: 6),
+            _StorylineInspectorTextLine(label: 'Facts', value: 'Non branché'),
+            SizedBox(height: 6),
+            _StorylineInspectorTextLine(
+              label: 'Activité récente',
+              value: 'À venir',
+            ),
+            SizedBox(height: 6),
+            _StorylineInspectorTextLine(
+              label: 'Quêtes liées',
+              value: 'Modèle absent en V0',
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _StorylineInspectorEmptyState extends StatelessWidget {
+  const _StorylineInspectorEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PokeMapIconTile(
+          icon: CupertinoIcons.tray,
+          tone: PokeMapTone.neutral,
+          size: 34,
+          iconSize: 15,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Aucune storyline sélectionnée.',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12.5,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _formatFrenchCount(
+  int count, {
+  required String singular,
+  required String plural,
+}) {
+  return '$count ${count <= 1 ? singular : plural}';
 }
