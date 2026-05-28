@@ -66,13 +66,12 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
               legacyGlobalStory: legacyGlobalStory,
               legacyStep: legacyStep,
               legacyStepCount: legacyStepCount,
-              canCreateMainStoryline: _canCreateMainStoryline(storylines),
+              canCreateStoryline: project != null,
               onTabSelected: _selectTab,
               onChapterSelected: _selectChapter,
-              onCreateMainStoryline:
-                  project == null || !_canCreateMainStoryline(storylines)
-                      ? null
-                      : () => _openCreateMainStorylineDialog(project),
+              onCreateStoryline: project == null
+                  ? null
+                  : () => _openCreateStorylineDialog(project),
               onCreateChapter: project == null || selectedStoryline == null
                   ? null
                   : () => _openCreateChapterDialog(project, selectedStoryline),
@@ -109,10 +108,6 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
       }
     }
     return storylines.isEmpty ? null : storylines.first;
-  }
-
-  bool _canCreateMainStoryline(List<StorylineAsset> storylines) {
-    return !storylines.any((storyline) => storyline.type == StorylineType.main);
   }
 
   StorylineChapter? _selectedChapter(StorylineAsset? storyline) {
@@ -159,20 +154,19 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     });
   }
 
-  Future<void> _openCreateMainStorylineDialog(ProjectManifest project) async {
-    final draft = await showCupertinoDialog<_CreateMainStorylineDraft>(
+  Future<void> _openCreateStorylineDialog(ProjectManifest project) async {
+    final draft = await showCupertinoDialog<_CreateStorylineDraft>(
       context: context,
-      builder: (context) => _CreateMainStorylineDialog(
-        existingIds:
-            project.storylines.map((storyline) => storyline.id).toSet(),
+      builder: (context) => _CreateStorylineDialog(
+        storylines: project.storylines,
       ),
     );
     if (draft == null || !mounted) {
       return;
     }
     final storyline = StorylineAsset(
-      id: _generateStorylineId(draft.title, project.storylines),
-      type: StorylineType.main,
+      id: _generateStorylineId(draft.title, draft.type, project.storylines),
+      type: draft.type,
       status: StorylineStatus.draft,
       title: draft.title,
       description: draft.description,
@@ -182,12 +176,16 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     );
     ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
           updated,
-          statusMessage: 'Storyline principale créée',
+          statusMessage: draft.type == StorylineType.sideQuest
+              ? 'Quête annexe créée'
+              : 'Storyline principale créée',
         );
     setState(() {
       _selectedStorylineId = storyline.id;
       _selectedChapterId = null;
-      _selectedTab = _StorylineContentTab.graph;
+      _selectedTab = draft.type == StorylineType.sideQuest
+          ? _StorylineContentTab.structure
+          : _StorylineContentTab.graph;
     });
   }
 
@@ -294,14 +292,15 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
 
   String _generateStorylineId(
     String title,
+    StorylineType type,
     List<StorylineAsset> storylines,
   ) {
     final existingIds = storylines.map((storyline) => storyline.id).toSet();
     return _generateScopedId(
-      prefix: 'storyline',
+      prefix: type == StorylineType.sideQuest ? 'sidequest' : 'storyline',
       title: title,
       existingIds: existingIds,
-      fallback: 'main',
+      fallback: type == StorylineType.sideQuest ? 'sidequest' : 'main',
     );
   }
 
@@ -466,6 +465,12 @@ class _StorylinesV1SecondaryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final mainStorylines = storylines
+        .where((storyline) => storyline.type == StorylineType.main)
+        .toList(growable: false);
+    final sideQuests = storylines
+        .where((storyline) => storyline.type == StorylineType.sideQuest)
+        .toList(growable: false);
     return PokeMapPanel(
       key: const ValueKey('storylines-secondary-panel'),
       expandChild: true,
@@ -480,17 +485,52 @@ class _StorylinesV1SecondaryPanel extends StatelessWidget {
           const SizedBox(height: 12),
           if (storylines.isEmpty)
             const _StorylinesV1EmptyList()
-          else
-            ...storylines.map(
-              (storyline) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _StorylinesV1Row(
-                  storyline: storyline,
-                  selected: storyline.id == selectedStorylineId,
-                  onTap: () => onStorylineSelected(storyline),
+          else ...[
+            _StorylinesSectionLabel(
+              label: 'HISTOIRE PRINCIPALE',
+              color: colors.textMuted,
+            ),
+            const SizedBox(height: 8),
+            if (mainStorylines.isEmpty)
+              const _StorylinesV1CompactEmpty(
+                title: 'Aucune histoire principale',
+                body:
+                    'Créez une histoire principale depuis Nouvelle storyline.',
+              )
+            else
+              ...mainStorylines.map(
+                (storyline) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _StorylinesV1Row(
+                    storyline: storyline,
+                    selected: storyline.id == selectedStorylineId,
+                    onTap: () => onStorylineSelected(storyline),
+                  ),
                 ),
               ),
+            const SizedBox(height: 8),
+            _StorylinesSectionLabel(
+              label: 'QUÊTES ANNEXES',
+              color: colors.textMuted,
             ),
+            const SizedBox(height: 8),
+            if (sideQuests.isEmpty)
+              const _StorylinesV1CompactEmpty(
+                title: 'Aucune quête annexe',
+                body: 'Créez une quête annexe depuis Nouvelle storyline.',
+              )
+            else
+              ...sideQuests.map(
+                (storyline) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _StorylinesV1Row(
+                    storyline: storyline,
+                    selected: storyline.id == selectedStorylineId,
+                    onTap: () => onStorylineSelected(storyline),
+                  ),
+                ),
+              ),
+          ],
           const Spacer(),
           if (storylines.isEmpty && legacyGlobalStory != null)
             PokeMapCard(
@@ -555,6 +595,46 @@ class _StorylinesV1EmptyList extends StatelessWidget {
   }
 }
 
+class _StorylinesV1CompactEmpty extends StatelessWidget {
+  const _StorylinesV1CompactEmpty({
+    required this.title,
+    required this.body,
+  });
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            body,
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 11,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StorylinesV1Row extends StatelessWidget {
   const _StorylinesV1Row({
     required this.storyline,
@@ -605,6 +685,16 @@ class _StorylinesV1Row extends StatelessWidget {
                       fontSize: 11,
                     ),
                   ),
+                  if (storyline.type == StorylineType.sideQuest) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      'Non reliée au graph principal',
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                   if (storyline.chapters.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
@@ -634,10 +724,10 @@ class _StorylinesV1MainPanel extends StatelessWidget {
     required this.legacyGlobalStory,
     required this.legacyStep,
     required this.legacyStepCount,
-    required this.canCreateMainStoryline,
+    required this.canCreateStoryline,
     required this.onTabSelected,
     required this.onChapterSelected,
-    required this.onCreateMainStoryline,
+    required this.onCreateStoryline,
     required this.onCreateChapter,
     required this.onCreateStep,
   });
@@ -649,10 +739,10 @@ class _StorylinesV1MainPanel extends StatelessWidget {
   final NarrativeScenarioSummary? legacyGlobalStory;
   final NarrativeStepSummary? legacyStep;
   final int legacyStepCount;
-  final bool canCreateMainStoryline;
+  final bool canCreateStoryline;
   final ValueChanged<_StorylineContentTab> onTabSelected;
   final ValueChanged<StorylineChapter> onChapterSelected;
-  final VoidCallback? onCreateMainStoryline;
+  final VoidCallback? onCreateStoryline;
   final VoidCallback? onCreateChapter;
   final VoidCallback? onCreateStep;
 
@@ -667,8 +757,8 @@ class _StorylinesV1MainPanel extends StatelessWidget {
         children: [
           _StorylinesV1Header(
             selectedStoryline: selectedStoryline,
-            canCreateMainStoryline: canCreateMainStoryline,
-            onCreateMainStoryline: onCreateMainStoryline,
+            canCreateStoryline: canCreateStoryline,
+            onCreateStoryline: onCreateStoryline,
           ),
           const SizedBox(height: 12),
           _StorylineTabsRow(
@@ -703,13 +793,13 @@ class _StorylinesV1MainPanel extends StatelessWidget {
 class _StorylinesV1Header extends StatelessWidget {
   const _StorylinesV1Header({
     required this.selectedStoryline,
-    required this.canCreateMainStoryline,
-    required this.onCreateMainStoryline,
+    required this.canCreateStoryline,
+    required this.onCreateStoryline,
   });
 
   final StorylineAsset? selectedStoryline;
-  final bool canCreateMainStoryline;
-  final VoidCallback? onCreateMainStoryline;
+  final bool canCreateStoryline;
+  final VoidCallback? onCreateStoryline;
 
   @override
   Widget build(BuildContext context) {
@@ -733,11 +823,30 @@ class _StorylinesV1Header extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
+                if (selectedStoryline != null) ...[
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _StorylinesV1Badge(
+                        label: _storylineTypeLabel(selectedStoryline!.type),
+                      ),
+                      const _StorylinesV1Badge(label: 'Brouillon'),
+                      if (selectedStoryline!.type == StorylineType.sideQuest)
+                        const _StorylinesV1Badge(
+                          label: 'Non reliée au graph principal',
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                ],
                 Text(
                   selectedStoryline == null
                       ? 'Créez une histoire principale pour commencer à structurer votre jeu.'
                       : selectedStoryline!.description ??
-                          'Storyline principale prête à structurer.',
+                          (selectedStoryline!.type == StorylineType.sideQuest
+                              ? 'Quête annexe prête à structurer.'
+                              : 'Storyline principale prête à structurer.'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -752,7 +861,7 @@ class _StorylinesV1Header extends StatelessWidget {
           const SizedBox(width: 12),
           PokeMapButton(
             key: const ValueKey('storylines-create-main-cta'),
-            onPressed: canCreateMainStoryline ? onCreateMainStoryline : null,
+            onPressed: canCreateStoryline ? onCreateStoryline : null,
             variant: PokeMapButtonVariant.primary,
             leading: const Icon(CupertinoIcons.plus, size: 16),
             child: const Row(
@@ -858,6 +967,7 @@ class _StorylinesV1GraphSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final selectedStoryline = storyline;
+    final isSideQuest = selectedStoryline?.type == StorylineType.sideQuest;
     final chapterCount = selectedStoryline?.chapters.length ?? 0;
     final stepCount =
         selectedStoryline == null ? 0 : _storylineStepCount(selectedStoryline);
@@ -936,14 +1046,27 @@ class _StorylinesV1GraphSection extends StatelessWidget {
                               fontSize: 12,
                             ),
                           ),
-                          if (chapterCount > 0) ...[
+                          if (isSideQuest || chapterCount > 0) ...[
                             const SizedBox(height: 8),
                             Text(
-                              'Graph détaillé à venir au lot Graph From StorylineAsset.',
+                              isSideQuest
+                                  ? 'Quête annexe non reliée au graph principal pour l’instant.'
+                                  : 'Graph détaillé à venir au lot Graph From StorylineAsset.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: colors.textSecondary,
                                 fontSize: 12,
+                              ),
+                            ),
+                          ],
+                          if (isSideQuest) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'L’intégration au graph principal viendra dans Side Quest Graph Integration.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: colors.textMuted,
+                                fontSize: 11,
                               ),
                             ),
                           ],
@@ -1690,18 +1813,25 @@ class _StorylinesV1InspectorPanel extends StatelessWidget {
                   label: 'Scene links',
                   value: selectedStoryline!.sceneLinks.length.toString(),
                 ),
+                if (selectedStoryline!.type == StorylineType.sideQuest)
+                  const _StorylineInspectorTextLine(
+                    label: 'Relation principale',
+                    value: 'Non reliée',
+                  ),
               ],
             ),
     );
   }
 }
 
-class _CreateMainStorylineDraft {
-  const _CreateMainStorylineDraft({
+class _CreateStorylineDraft {
+  const _CreateStorylineDraft({
+    required this.type,
     required this.title,
     required this.description,
   });
 
+  final StorylineType type;
   final String title;
   final String? description;
 }
@@ -1835,20 +1965,41 @@ class _CreateStructureItemDialogState
   }
 }
 
-class _CreateMainStorylineDialog extends StatefulWidget {
-  const _CreateMainStorylineDialog({required this.existingIds});
+class _CreateStorylineDialog extends StatefulWidget {
+  const _CreateStorylineDialog({required this.storylines});
 
-  final Set<String> existingIds;
+  final List<StorylineAsset> storylines;
 
   @override
-  State<_CreateMainStorylineDialog> createState() =>
-      _CreateMainStorylineDialogState();
+  State<_CreateStorylineDialog> createState() => _CreateStorylineDialogState();
 }
 
-class _CreateMainStorylineDialogState
-    extends State<_CreateMainStorylineDialog> {
+class _CreateStorylineDialogState extends State<_CreateStorylineDialog> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  late StorylineType _selectedType;
+
+  bool get _hasMainStoryline => widget.storylines
+      .any((storyline) => storyline.type == StorylineType.main);
+
+  bool get _canCreateMain => !_hasMainStoryline;
+
+  bool get _canCreateSideQuest => _hasMainStoryline;
+
+  bool get _canCreateSelectedType {
+    return switch (_selectedType) {
+      StorylineType.main => _canCreateMain,
+      StorylineType.sideQuest => _canCreateSideQuest,
+      _ => false,
+    };
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedType =
+        _hasMainStoryline ? StorylineType.sideQuest : StorylineType.main;
+  }
 
   @override
   void dispose() {
@@ -1861,9 +2012,10 @@ class _CreateMainStorylineDialogState
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final title = _titleController.text.trim();
+    final canSubmit = title.isNotEmpty && _canCreateSelectedType;
     return Center(
       child: SizedBox(
-        width: 460,
+        width: 520,
         child: PokeMapPanel(
           key: const ValueKey('storylines-create-main-dialog'),
           padding: const EdgeInsets.all(18),
@@ -1879,8 +2031,34 @@ class _CreateMainStorylineDialogState
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              const SizedBox(height: 14),
+              _StorylineTypeChoice(
+                key: const ValueKey('storylines-create-type-main'),
+                label: 'Histoire principale',
+                description: 'Structure principale du jeu.',
+                selected: _selectedType == StorylineType.main,
+                enabled: _canCreateMain,
+                disabledReason: _hasMainStoryline
+                    ? 'Une histoire principale existe déjà.'
+                    : null,
+                onTap: () => setState(() {
+                  _selectedType = StorylineType.main;
+                }),
+              ),
               const SizedBox(height: 8),
-              const _StorylinesV1Badge(label: 'Histoire principale'),
+              _StorylineTypeChoice(
+                key: const ValueKey('storylines-create-type-sidequest'),
+                label: 'Quête annexe',
+                description: 'Histoire secondaire optionnelle.',
+                selected: _selectedType == StorylineType.sideQuest,
+                enabled: _canCreateSideQuest,
+                disabledReason: _canCreateSideQuest
+                    ? null
+                    : 'Créez d’abord une histoire principale pour organiser les quêtes annexes.',
+                onTap: () => setState(() {
+                  _selectedType = StorylineType.sideQuest;
+                }),
+              ),
               const SizedBox(height: 14),
               _StorylinesV1TextField(
                 key: const ValueKey('storylines-create-title-field'),
@@ -1905,6 +2083,18 @@ class _CreateMainStorylineDialogState
                   ),
                 ),
               ],
+              if (!_canCreateSelectedType) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _selectedType == StorylineType.sideQuest
+                      ? 'Créez d’abord une histoire principale.'
+                      : 'Une histoire principale existe déjà.',
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -1918,13 +2108,14 @@ class _CreateMainStorylineDialogState
                   const SizedBox(width: 10),
                   PokeMapButton(
                     key: const ValueKey('storylines-create-submit'),
-                    onPressed: title.isEmpty
+                    onPressed: !canSubmit
                         ? null
                         : () {
                             final description =
                                 _descriptionController.text.trim();
                             Navigator.of(context).pop(
-                              _CreateMainStorylineDraft(
+                              _CreateStorylineDraft(
+                                type: _selectedType,
                                 title: title,
                                 description:
                                     description.isEmpty ? null : description,
@@ -1939,6 +2130,79 @@ class _CreateMainStorylineDialogState
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StorylineTypeChoice extends StatelessWidget {
+  const _StorylineTypeChoice({
+    super.key,
+    required this.label,
+    required this.description,
+    required this.selected,
+    required this.enabled,
+    required this.disabledReason,
+    required this.onTap,
+  });
+
+  final String label;
+  final String description;
+  final bool selected;
+  final bool enabled;
+  final String? disabledReason;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      selected: selected,
+      padding: const EdgeInsets.all(12),
+      onTap: enabled ? onTap : null,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: enabled ? colors.textPrimary : colors.textMuted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: enabled ? colors.textSecondary : colors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+                if (!enabled && disabledReason != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    disabledReason!,
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 11,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          if (selected)
+            const _StorylinesV1Badge(label: 'Sélectionné')
+          else if (!enabled)
+            const _StorylinesV1Badge(label: 'Indisponible'),
+        ],
       ),
     );
   }
@@ -1981,7 +2245,7 @@ class _StorylinesV1TextField extends StatelessWidget {
 String _storylineTypeLabel(StorylineType type) {
   return switch (type) {
     StorylineType.main => 'Histoire principale',
-    StorylineType.sideQuest => 'Storyline secondaire',
+    StorylineType.sideQuest => 'Quête annexe',
     StorylineType.tutorial => 'Tutoriel',
     StorylineType.epilogue => 'Épilogue',
     StorylineType.episode => 'Épisode',

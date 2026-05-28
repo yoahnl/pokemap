@@ -12,7 +12,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-V1-08 structure tab authoring flow', () {
+  group('NS-STORYLINES-V1-09 side quest authoring flow', () {
     testWidgets('shows only Graph and Structure tabs', (tester) async {
       await _pumpStorylinesShell(tester);
 
@@ -62,6 +62,14 @@ void main() {
       expect(find.byKey(const ValueKey('storylines-create-main-dialog')),
           findsOneWidget);
       expect(find.text('Histoire principale'), findsOneWidget);
+      expect(find.text('Quête annexe'), findsOneWidget);
+      expect(
+        find.text(
+          'Créez d’abord une histoire principale pour organiser les quêtes annexes.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Sélectionné'), findsOneWidget);
       expect(find.byKey(const ValueKey('storylines-create-title-field')),
           findsOneWidget);
       expect(find.byKey(const ValueKey('storylines-create-description-field')),
@@ -87,6 +95,65 @@ void main() {
       expect(submit.onPressed, isNull);
       expect(find.text('Titre obligatoire.'), findsOneWidget);
       expect(harness.project.storylines, isEmpty);
+    });
+
+    testWidgets('does not create sideQuest before a main storyline exists',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(tester);
+
+      await _openCreateDialog(tester);
+      await tester
+          .tap(find.byKey(const ValueKey('storylines-create-type-sidequest')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('storylines-create-title-field')),
+        'Early side quest',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('storylines-create-submit')));
+      await tester.pumpAndSettle();
+
+      expect(harness.project.storylines, hasLength(1));
+      expect(harness.project.storylines.single.type, StorylineType.main);
+      expect(
+        harness.project.storylines
+            .where((storyline) => storyline.type == StorylineType.sideQuest),
+        isEmpty,
+      );
+    });
+
+    testWidgets('dialog selects sideQuest when a main storyline exists',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+      final before = harness.project.toJson();
+
+      await _openCreateDialog(tester);
+
+      expect(find.text('Une histoire principale existe déjà.'), findsWidgets);
+      expect(find.text('Quête annexe'), findsOneWidget);
+      expect(find.text('Sélectionné'), findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-create-title-field')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-create-description-field')),
+          findsOneWidget);
+
+      final submit = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('storylines-create-submit')),
+      );
+      expect(submit.onPressed, isNull);
+
+      await tester.tap(find.byKey(const ValueKey('storylines-create-cancel')));
+      await tester.pumpAndSettle();
+      expect(harness.project.toJson(), before);
     });
 
     testWidgets('creates a main StorylineAsset and syncs Graph and Structure',
@@ -136,6 +203,47 @@ void main() {
       expect(find.byKey(const ValueKey('storylines-new-chapter-action')),
           findsOneWidget);
       expect(find.text('Nouveau chapitre'), findsOneWidget);
+    });
+
+    testWidgets('creates a sideQuest StorylineAsset and selects it',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createSideQuest(
+        tester,
+        title: 'Missing Bell',
+        description: 'Optional story arc.',
+      );
+
+      final storylines = harness.project.storylines;
+      expect(storylines, hasLength(2));
+      final sideQuest = storylines.singleWhere(
+        (storyline) => storyline.type == StorylineType.sideQuest,
+      );
+      expect(sideQuest.id, 'sidequest_missing_bell');
+      expect(sideQuest.status, StorylineStatus.draft);
+      expect(sideQuest.title, 'Missing Bell');
+      expect(sideQuest.description, 'Optional story arc.');
+      expect(sideQuest.chapters, isEmpty);
+      expect(sideQuest.sceneLinks, isEmpty);
+      expect(sideQuest.relationships, isEmpty);
+
+      expect(find.text('Missing Bell'), findsWidgets);
+      expect(find.text('Quête annexe'), findsWidgets);
+      expect(find.text('HISTOIRE PRINCIPALE'), findsOneWidget);
+      expect(find.text('QUÊTES ANNEXES'), findsOneWidget);
+      expect(find.text('Non reliée au graph principal'), findsWidgets);
+      expect(find.byKey(const ValueKey('storylines-structure-read-only')),
+          findsOneWidget);
     });
 
     testWidgets('Structure without storyline has no chapter or step action',
@@ -380,6 +488,42 @@ void main() {
           findsOneWidget);
     });
 
+    testWidgets('Structure authoring works on sideQuest without mutating main',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createSideQuest(tester, title: 'Missing Bell');
+      await _createChapter(tester, title: 'Side intro');
+      await _createStep(tester, title: 'Find clue');
+
+      final main = harness.project.storylines.singleWhere(
+        (storyline) => storyline.type == StorylineType.main,
+      );
+      final sideQuest = harness.project.storylines.singleWhere(
+        (storyline) => storyline.type == StorylineType.sideQuest,
+      );
+      expect(main.chapters, isEmpty);
+      expect(sideQuest.chapters, hasLength(1));
+      expect(sideQuest.chapters.single.id, 'chapter_side_intro');
+      expect(sideQuest.chapters.single.steps, hasLength(1));
+      expect(sideQuest.chapters.single.steps.single.id, 'step_find_clue');
+      expect(sideQuest.chapters.single.steps.single.sceneLinkIds, isEmpty);
+      expect(sideQuest.sceneLinks, isEmpty);
+      expect(sideQuest.relationships, isEmpty);
+      expect(find.text('Missing Bell'), findsWidgets);
+      expect(find.byKey(const ValueKey('storylines-step-row-step_find_clue')),
+          findsOneWidget);
+    });
+
     testWidgets('Graph summarizes created structure without fake edges',
         (tester) async {
       await _pumpStorylinesShell(
@@ -412,7 +556,80 @@ void main() {
       expect(find.text('Quête annexe fake'), findsNothing);
     });
 
-    testWidgets('generates stable unique ids on collision', (tester) async {
+    testWidgets('Graph explains sideQuest is not linked to main graph yet',
+        (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createSideQuest(tester, title: 'Missing Bell');
+      await _createChapter(tester, title: 'Side intro');
+      await _createStep(tester, title: 'Find clue');
+      await _openGraphTab(tester);
+
+      final graphCanvas =
+          find.byKey(const ValueKey('storylines-v1-graph-empty-canvas'));
+      expect(
+        find.descendant(of: graphCanvas, matching: find.text('Missing Bell')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+            of: graphCanvas, matching: find.text('1 chapitre · 1 étape')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Quête annexe non reliée au graph principal pour l’instant.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('availability'), findsNothing);
+    });
+
+    testWidgets('main graph does not show sideQuest as a branch yet',
+        (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createSideQuest(tester, title: 'Missing Bell');
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-v1-row-storyline_existing_main')),
+      );
+      await tester.pump();
+      await _openGraphTab(tester);
+
+      final graphCanvas =
+          find.byKey(const ValueKey('storylines-v1-graph-empty-canvas'));
+      expect(
+        find.descendant(of: graphCanvas, matching: find.text('Existing main')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: graphCanvas, matching: find.text('Missing Bell')),
+        findsNothing,
+      );
+      expect(
+        find.text('Quête annexe non reliée au graph principal pour l’instant.'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('generates stable unique main ids on collision',
+        (tester) async {
       final harness = await _pumpStorylinesShell(
         tester,
         project: _projectWithStorylines([
@@ -437,6 +654,34 @@ void main() {
       );
     });
 
+    testWidgets('generates stable unique sideQuest ids on collision',
+        (tester) async {
+      final harness = await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ]),
+      );
+
+      await _createSideQuest(tester, title: 'Lost Key');
+      await _createSideQuest(tester, title: 'Lost Key');
+
+      final ids = harness.project.storylines.map((s) => s.id).toList();
+      expect(ids, contains('sidequest_lost_key'));
+      expect(ids, contains('sidequest_lost_key_2'));
+      expect(ids.toSet(), hasLength(ids.length));
+      expect(
+        harness.project.storylines.where(
+          (storyline) => storyline.type == StorylineType.sideQuest,
+        ),
+        hasLength(2),
+      );
+    });
+
     testWidgets('does not allow creating a second main storyline',
         (tester) async {
       final harness = await _pumpStorylinesShell(
@@ -450,11 +695,29 @@ void main() {
         ]),
       );
 
-      final cta = tester.widget<PokeMapButton>(
-        find.byKey(const ValueKey('storylines-create-main-cta')),
+      await _openCreateDialog(tester);
+      expect(find.text('Une histoire principale existe déjà.'), findsWidgets);
+      await tester
+          .tap(find.byKey(const ValueKey('storylines-create-type-main')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('storylines-create-title-field')),
+        'Second main',
       );
-      expect(cta.onPressed, isNull);
-      expect(harness.project.storylines, hasLength(1));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('storylines-create-submit')));
+      await tester.pumpAndSettle();
+
+      expect(
+        harness.project.storylines
+            .where((storyline) => storyline.type == StorylineType.main),
+        hasLength(1),
+      );
+      expect(
+        harness.project.storylines
+            .where((storyline) => storyline.type == StorylineType.sideQuest),
+        hasLength(1),
+      );
     });
 
     testWidgets('creation does not import legacy or promote localEventFlow',
@@ -478,6 +741,41 @@ void main() {
       expect(
         harness.project.scenarios.map((scenario) => scenario.scope),
         containsAll([ScenarioScope.globalStory, ScenarioScope.localEventFlow]),
+      );
+      expect(find.text('Legacy Global Story'), findsNothing);
+      expect(find.text('Local Event Flow'), findsNothing);
+    });
+
+    testWidgets('sideQuest creation never imports legacy or localEventFlow',
+        (tester) async {
+      final base = _legacyAndLocalEventProject();
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        name: 'Legacy With Main',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        scenarios: base.scenarios,
+        storylines: [
+          StorylineAsset(
+            id: 'storyline_existing_main',
+            type: StorylineType.main,
+            title: 'Existing main',
+          ),
+        ],
+      );
+      final harness = await _pumpStorylinesShell(tester, project: project);
+      final beforeScenarios = harness.project.scenarios;
+
+      await _createSideQuest(tester, title: 'Missing Bell');
+
+      expect(harness.project.scenarios, beforeScenarios);
+      expect(harness.project.storylines, hasLength(2));
+      expect(
+        harness.project.storylines
+            .singleWhere(
+                (storyline) => storyline.type == StorylineType.sideQuest)
+            .legacySource,
+        isNull,
       );
       expect(find.text('Legacy Global Story'), findsNothing);
       expect(find.text('Local Event Flow'), findsNothing);
@@ -589,7 +887,7 @@ void main() {
       expect(Theme.of(shellContext).brightness, Brightness.dark);
     });
 
-    testWidgets('writes V1-08 Structure Visual Gate screenshots',
+    testWidgets('writes V1-09 Side Quest Visual Gate screenshots',
         (tester) async {
       final project = _projectWithStorylines([
         StorylineAsset(
@@ -604,45 +902,48 @@ void main() {
         surfaceSize: const Size(1600, 1000),
         project: project,
       );
+
+      await _openCreateDialog(tester);
+      await expectLater(
+        find.byKey(const ValueKey('storylines-create-main-dialog')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_09_create_side_quest_dialog.png',
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('storylines-create-cancel')));
+      await tester.pumpAndSettle();
+
+      await _createSideQuest(
+        tester,
+        title: 'Visual Side Quest',
+        description: 'Optional visual storyline.',
+      );
+      await _openGraphTab(tester);
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_09_created_side_quest_graph.png',
+        ),
+      );
+
       await _openStructureTab(tester);
+      await _createChapter(tester, title: 'Visual Side Chapter');
+      await _createStep(tester, title: 'Visual Side Step');
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_08_structure_empty.png',
+          'ns_storylines_v1_09_created_side_quest_structure.png',
         ),
       );
 
-      await tester
-          .tap(find.byKey(const ValueKey('storylines-new-chapter-action')));
-      await tester.pumpAndSettle();
       await expectLater(
-        find.byKey(const ValueKey('storylines-create-chapter-dialog')),
+        find.byKey(const ValueKey('storylines-secondary-panel')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_08_create_chapter_dialog.png',
-        ),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('storylines-create-chapter-cancel')),
-      );
-      await tester.pumpAndSettle();
-
-      await _createChapter(tester, title: 'Visual Chapter');
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_08_created_chapter.png',
-        ),
-      );
-
-      await _createStep(tester, title: 'Visual Step');
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_08_created_step.png',
+          'ns_storylines_v1_09_storyline_list_with_side_quest.png',
         ),
       );
     });
@@ -686,6 +987,30 @@ Future<void> _createMainStoryline(
   String? description,
 }) async {
   await _openCreateDialog(tester);
+  await tester.enterText(
+    find.byKey(const ValueKey('storylines-create-title-field')),
+    title,
+  );
+  if (description != null) {
+    await tester.enterText(
+      find.byKey(const ValueKey('storylines-create-description-field')),
+      description,
+    );
+  }
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey('storylines-create-submit')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _createSideQuest(
+  WidgetTester tester, {
+  required String title,
+  String? description,
+}) async {
+  await _openCreateDialog(tester);
+  await tester
+      .tap(find.byKey(const ValueKey('storylines-create-type-sidequest')));
+  await tester.pump();
   await tester.enterText(
     find.byKey(const ValueKey('storylines-create-title-field')),
     title,

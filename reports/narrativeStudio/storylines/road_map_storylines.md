@@ -311,7 +311,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-07-bis |
 | NS-STORYLINES-V1-07-bis | Storylines Workspace Cleanup / Dead Legacy Removal | editor UI cleanup | DONE | NS-STORYLINES-V1-08 |
 | NS-STORYLINES-V1-08 | Structure Tab Authoring V0 | editor authoring | DONE | NS-STORYLINES-V1-09 |
-| NS-STORYLINES-V1-09 | Create Side Quest Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-10 |
+| NS-STORYLINES-V1-09 | Create Side Quest Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-10 |
 | NS-STORYLINES-V1-10 | Graph From StorylineAsset V0 | editor graph | TODO | NS-STORYLINES-V1-11 |
 | NS-STORYLINES-V1-11 | Side Quest Graph Integration V0 | editor graph | TODO | NS-STORYLINES-V1-12 |
 | NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | TODO | NS-STORYLINES-V1-CHECKPOINT |
@@ -896,10 +896,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 STRUCTURE AUTHORING DONE
-Current lot: NS-STORYLINES-V1-08
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 SIDE QUEST AUTHORING DONE
+Current lot: NS-STORYLINES-V1-09
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-09 — Create Side Quest Flow V0
+Next recommended lot: NS-STORYLINES-V1-10 — Graph From StorylineAsset V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -928,7 +928,7 @@ Next recommended lot: NS-STORYLINES-V1-09 — Create Side Quest Flow V0
 | NS-STORYLINES-V1-07 | DONE | 2026-05-28 | Create Main Storyline Flow V0 livré : création main `StorylineAsset`, Graph/Structure seulement, aucun import legacy automatique. |
 | NS-STORYLINES-V1-07-bis | DONE | 2026-05-28 | Cleanup technique Storylines livré sans changement produit : legacy mort absent, tap silencieux supprimé, Visual Gate V1-07 régénéré. |
 | NS-STORYLINES-V1-08 | DONE | 2026-05-29 | Structure Tab Authoring V0 livré : création de chapitres et steps, Graph minimal honnête, aucun sceneLink/sideQuest/import legacy. |
-| NS-STORYLINES-V1-09 | TODO | 2026-05-29 | Create Side Quest Flow V0 recommandé comme prochain lot. |
+| NS-STORYLINES-V1-09 | DONE | 2026-05-29 | Create Side Quest Flow V0 livré : création réelle de `StorylineAsset(type: sideQuest, status: draft)`, liste main/sideQuest séparée, Structure réutilisée, aucune relationship/availability/sceneLink/import legacy. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -964,6 +964,19 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-V1-09
+
+- Create Side Quest Flow V0 livré côté editor : `Nouvelle storyline` peut créer une vraie `StorylineAsset(type: sideQuest, status: draft)` après existence d'une main storyline.
+- Le dialog de création choisit entre `Histoire principale` et `Quête annexe` ; la main reste unique et la sideQuest est sélectionnée après création.
+- Le panneau secondaire sépare `Histoire principale` et `Quêtes annexes`, avec compteurs réels depuis `ProjectManifest.storylines`.
+- Structure réutilise le même authoring chapters/steps pour une sideQuest sans modifier la main storyline.
+- Graph reste minimal et honnête : une sideQuest sélectionnée indique qu'elle n'est pas reliée au graph principal ; aucune `StorylineRelationship`, `SideQuestAvailability`, scene placeholder ou `StorylineSceneLink` n'est créée.
+- Aucun import legacy automatique ; `localEventFlow` reste exclu.
+- Visual Gate V1-09 produit en dark theme.
+- Fichiers modifiés/créés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, captures V1-09, rapport V1-09.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`, analyse ciblée, `rg` anti-couleurs.
+- Prochain lot recommandé : `NS-STORYLINES-V1-10 — Graph From StorylineAsset V0`.
 
 ### 2026-05-29 — NS-STORYLINES-V1-08
 
