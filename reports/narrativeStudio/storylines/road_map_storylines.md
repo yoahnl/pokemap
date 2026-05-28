@@ -521,6 +521,21 @@ Interprétation V0 :
 - Fake data : aucune quête annexe fake, aucun nom/chiffre Selbrume cible, aucune mini-map ou zoom actif ajouté ; `localEventFlow` reste absent du graph.
 - Prochain lot recommandé inchangé : NS-STORYLINES-09.
 
+#### NS-STORYLINES-08-ter — True Graph Geometry / Spatial Canvas V0
+
+- Statut : DONE, sans changer le statut de `NS-STORYLINES-08`.
+- Résultat : l'onglet `Graph` reste la vue par défaut et passe d'un flow `Wrap` à un vrai canvas spatial read-only avec nodes positionnés, layer d'edges, grille et légende compacte.
+- Géométrie : positions calculées depuis la taille du canvas et le nombre de nodes ; flow `Début de lecture` -> chapitres réels -> `Relations à venir`, avec fallback steps si aucun chapitre.
+- Edges : `CustomPainter` feature-specific, couleurs injectées via `context.pokeMapColors`, aucune relation métier inventée.
+- Fichiers modifiés : `packages/map_editor/lib/src/ui/canvas/storylines_workspace.dart`, `packages/map_editor/test/storylines_workspace_shell_test.dart`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Fichiers créés : `reports/narrativeStudio/storylines/ns_storylines_08_ter_true_graph_geometry_v0.md`, captures Visual Gate `ns_storylines_08_ter_true_graph_desktop.png`, `ns_storylines_08_ter_true_graph_focus.png`, `ns_storylines_08_ter_true_graph_center.png`.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`.
+- Analyse exécutée : `flutter analyze --no-fatal-infos lib/src/ui/canvas/storylines_workspace.dart test/storylines_workspace_shell_test.dart test/storylines_current_global_story_characterization_test.dart test/narrative_workspace_projection_test.dart`.
+- Visual Gate : dark theme actif ; captures desktop, focus et center produites pour le canvas spatial.
+- Design System Gate : confirmé ; aucun `Color(0x...)` / `Colors.*` ajouté ; graph composé avec primitives PokeMap et tokens `context.pokeMapColors`.
+- Fake data : aucune quête annexe fake, aucun nom/chiffre Selbrume cible, aucune mini-map ou zoom actif ajouté ; `localEventFlow` reste absent du graph.
+- Prochain lot recommandé inchangé : NS-STORYLINES-09.
+
 ### NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
 
 - Type : editor UI.
@@ -702,7 +717,7 @@ Décision temporaire :
 
 ```text
 Roadmap status: ACTIVE
-Current lot: NS-STORYLINES-08 / NS-STORYLINES-08-bis
+Current lot: NS-STORYLINES-08 / NS-STORYLINES-08-bis / NS-STORYLINES-08-ter
 Current lot status: DONE
 Next recommended lot: NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0
 ```
@@ -718,13 +733,23 @@ Next recommended lot: NS-STORYLINES-09 — Chapters Inspector / Scene Ordering R
 | NS-STORYLINES-05 | DONE | 2026-05-28 | Header/tabs/KPI read-only livrés avec KPI sourcés ou disabled. |
 | NS-STORYLINES-06 | DONE | 2026-05-28 | Graph read-only placeholder livré avec steps réelles et empty state. |
 | NS-STORYLINES-07 | DONE | 2026-05-28 | Inspector read-only livré avec données réelles, sections futures disabled et empty state. |
-| NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré ; bis Graph target alignment livré sans changer le statut NS08. |
+| NS-STORYLINES-08 | DONE | 2026-05-28 | Onglet Chapitres read-only livré ; bis Graph target alignment et ter canvas spatial livrés sans changer le statut NS08. |
 | NS-STORYLINES-09 | TODO | 2026-05-27 | Chapters inspector/order. |
 | NS-STORYLINES-10 | TODO | 2026-05-27 | Visual harmonization. |
 | NS-STORYLINES-11 | TODO | 2026-05-27 | Interaction wiring. |
 | NS-STORYLINES-CHECKPOINT | TODO | 2026-05-27 | Acceptance checkpoint. |
 
 ## 14. Changelog
+
+### 2026-05-28 — NS-STORYLINES-08-ter
+
+- Transformation du graph en vrai canvas spatial read-only : nodes positionnés dans un `Stack`, layer d'edges `CustomPainter`, grille conservée et légende compacte.
+- Conservation stricte des données réelles : `NarrativeChapterSummary` comme nodes macro, previews compactes de `NarrativeStepSummary`, fallback steps et empty state existants.
+- Aucun changement métier : pas de création, édition, drag/drop, mini-map active, zoom actif, quêtes annexes, tags, world rules, facts ou activité récente.
+- Tests Storylines renforcés avec clés `storylines-graph-spatial-layer`, `storylines-graph-edge-layer`, `storylines-graph-node-start`, nodes de chapters et note read-only.
+- Visual Gate dark produit : `ns_storylines_08_ter_true_graph_desktop.png`, `ns_storylines_08_ter_true_graph_focus.png`, `ns_storylines_08_ter_true_graph_center.png`.
+- Design System Gate confirmé : aucun `Color(0x...)` / `Colors.*` ajouté ; couleurs des edges et surfaces via `context.pokeMapColors`.
+- Prochain lot recommandé inchangé : `NS-STORYLINES-09 — Chapters Inspector / Scene Ordering Read-only V0`.
 
 ### 2026-05-28 — NS-STORYLINES-08-bis
 

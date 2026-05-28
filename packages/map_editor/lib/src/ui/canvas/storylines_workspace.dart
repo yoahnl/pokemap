@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 
 import '../../features/narrative/application/narrative_workspace_projection.dart';
@@ -424,7 +426,7 @@ class _StorylineGraphSection extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final availableCanvasHeight = constraints.maxHeight.isFinite
-              ? constraints.maxHeight - 132
+              ? constraints.maxHeight - 72
               : 380.0;
           final canvasHeight =
               availableCanvasHeight < 320 ? 320.0 : availableCanvasHeight;
@@ -457,8 +459,8 @@ class _StorylineGraphSection extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             hasChapters
-                                ? 'Canvas de lecture macro des chapitres réels. Les steps restent visibles en aperçu, sans relations inventées.'
-                                : 'Lecture linéaire prudente des étapes disponibles. Les relations détaillées restent non branchées.',
+                                ? 'Canvas spatial issu de Global Story Studio. Les steps restent visibles en aperçu, sans relations inventées.'
+                                : 'Lecture linéaire prudente depuis Step Studio. Les relations détaillées restent non branchées.',
                             style: TextStyle(
                               color: colors.textSecondary,
                               fontSize: 12.5,
@@ -470,38 +472,7 @@ class _StorylineGraphSection extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    PokeMapStatusTile(
-                      label: hasChapters
-                          ? 'Chapitres réels'
-                          : 'Étapes narratives réelles',
-                      value: hasChapters
-                          ? '${chapters.length}'
-                          : '${steps.length}',
-                      icon: hasChapters
-                          ? CupertinoIcons.square_list
-                          : CupertinoIcons.list_bullet,
-                      tone: PokeMapTone.info,
-                    ),
-                    const PokeMapStatusTile(
-                      label: 'Source',
-                      value: 'Global Story Studio / Step Studio',
-                      icon: CupertinoIcons.doc_text,
-                      tone: PokeMapTone.neutral,
-                    ),
-                    const PokeMapStatusTile(
-                      label: 'Relations détaillées à venir',
-                      value: 'Non branchées',
-                      icon: CupertinoIcons.link,
-                      tone: PokeMapTone.neutral,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 if (chapters.isEmpty && steps.isEmpty)
                   const _StorylineGraphEmptyState()
                 else
@@ -535,19 +506,25 @@ class _StorylineGraphCanvas extends StatelessWidget {
     final colors = context.pokeMapColors;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final minCanvasWidth =
+        final canvasWidth =
             constraints.maxWidth.isFinite && constraints.maxWidth > 48
                 ? constraints.maxWidth - 32
                 : 720.0;
-        final minCanvasHeight =
+        final canvasHeight =
             constraints.maxHeight.isFinite && constraints.maxHeight > 0
                 ? constraints.maxHeight
                 : 360.0;
+        final nodes =
+            chapters.isNotEmpty ? _chapterSpatialNodes() : _stepSpatialNodes();
+        final geometry = _StorylineGraphGeometry.compute(
+          size: Size(canvasWidth, canvasHeight),
+          nodeCount: nodes.length,
+        );
         return Container(
           key: const ValueKey('storylines-graph-canvas'),
           constraints: BoxConstraints(
-            minWidth: minCanvasWidth,
-            minHeight: minCanvasHeight,
+            minWidth: canvasWidth,
+            minHeight: canvasHeight,
           ),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
@@ -567,32 +544,48 @@ class _StorylineGraphCanvas extends StatelessWidget {
                 ),
               ),
               Positioned.fill(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(18),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: minCanvasWidth),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: KeyedSubtree(
+                  key: const ValueKey('storylines-graph-main-flow'),
+                  child: KeyedSubtree(
+                    key: const ValueKey('storylines-graph-spatial-layer'),
+                    child: Stack(
                       children: [
-                        KeyedSubtree(
-                          key: const ValueKey('storylines-graph-main-flow'),
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 12,
-                            runSpacing: 18,
-                            children: chapters.isNotEmpty
-                                ? _chapterFlowNodes()
-                                : _stepFlowNodes(),
+                        Positioned.fill(
+                          child: CustomPaint(
+                            key: const ValueKey('storylines-graph-edge-layer'),
+                            painter: _StorylineGraphEdgePainter(
+                              edges: geometry.edges,
+                              lineColor:
+                                  colors.textMuted.withValues(alpha: 0.58),
+                              arrowColor: colors.brandPrimaryBorder
+                                  .withValues(alpha: 0.78),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 22),
-                        _StorylineGraphLegend(
-                          chapterCount: chapters.length,
-                          stepCount: steps.length,
+                        for (var index = 0; index < nodes.length; index++)
+                          Positioned(
+                            left: geometry.positions[index].left,
+                            top: geometry.positions[index].top,
+                            width: geometry.positions[index].width,
+                            child: nodes[index],
+                          ),
+                        Positioned(
+                          left: 18,
+                          right: 18,
+                          bottom: 16,
+                          child: Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            runSpacing: 10,
+                            children: [
+                              _StorylineGraphLegend(
+                                chapterCount: chapters.length,
+                                stepCount: steps.length,
+                              ),
+                              const _StorylineGraphReadOnlyControls(),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 10),
-                        const _StorylineGraphReadOnlyControls(),
                       ],
                     ),
                   ),
@@ -605,8 +598,8 @@ class _StorylineGraphCanvas extends StatelessWidget {
     );
   }
 
-  List<Widget> _chapterFlowNodes() {
-    final nodes = <Widget>[
+  List<Widget> _chapterSpatialNodes() {
+    return <Widget>[
       const _StorylineGraphBoundaryNode(
         key: ValueKey('storylines-graph-node-start'),
         title: 'Début de lecture',
@@ -614,28 +607,20 @@ class _StorylineGraphCanvas extends StatelessWidget {
         icon: CupertinoIcons.play_circle,
         tone: PokeMapTone.success,
       ),
+      for (final chapter in chapters)
+        _StorylineGraphChapterNode(chapter: chapter),
+      const _StorylineGraphBoundaryNode(
+        key: ValueKey('storylines-graph-node-read-only-note'),
+        title: 'Relations à venir',
+        subtitle: 'Aucune branche inventée',
+        icon: CupertinoIcons.lock,
+        tone: PokeMapTone.neutral,
+      ),
     ];
-    for (final chapter in chapters) {
-      nodes
-        ..add(const _StorylineGraphConnector())
-        ..add(_StorylineGraphChapterNode(chapter: chapter));
-    }
-    nodes
-      ..add(const _StorylineGraphConnector())
-      ..add(
-        const _StorylineGraphBoundaryNode(
-          key: ValueKey('storylines-graph-node-read-only-note'),
-          title: 'Relations à venir',
-          subtitle: 'Aucune branche inventée',
-          icon: CupertinoIcons.lock,
-          tone: PokeMapTone.neutral,
-        ),
-      );
-    return nodes;
   }
 
-  List<Widget> _stepFlowNodes() {
-    final nodes = <Widget>[
+  List<Widget> _stepSpatialNodes() {
+    return <Widget>[
       const _StorylineGraphBoundaryNode(
         key: ValueKey('storylines-graph-node-start'),
         title: 'Début de lecture',
@@ -643,30 +628,151 @@ class _StorylineGraphCanvas extends StatelessWidget {
         icon: CupertinoIcons.play_circle,
         tone: PokeMapTone.success,
       ),
+      for (var index = 0; index < steps.length; index++)
+        _StorylineGraphStepNode(
+          step: steps[index],
+          position: index + 1,
+        ),
+      const _StorylineGraphBoundaryNode(
+        key: ValueKey('storylines-graph-node-read-only-note'),
+        title: 'Relations à venir',
+        subtitle: 'Aucune branche inventée',
+        icon: CupertinoIcons.lock,
+        tone: PokeMapTone.neutral,
+      ),
     ];
-    for (var index = 0; index < steps.length; index++) {
-      nodes
-        ..add(const _StorylineGraphConnector())
-        ..add(
-          _StorylineGraphStepNode(
-            step: steps[index],
-            position: index + 1,
+  }
+}
+
+class _StorylineGraphGeometry {
+  const _StorylineGraphGeometry({
+    required this.positions,
+    required this.edges,
+  });
+
+  final List<_StorylineGraphNodePosition> positions;
+  final List<_StorylineGraphEdge> edges;
+
+  static _StorylineGraphGeometry compute({
+    required Size size,
+    required int nodeCount,
+  }) {
+    final compact = size.width < 760;
+    final nodeWidth = compact ? 168.0 : 186.0;
+    final nodeHeight = compact ? 132.0 : 148.0;
+    final positions = <_StorylineGraphNodePosition>[];
+
+    if (compact) {
+      const horizontalPadding = 24.0;
+      const topPadding = 26.0;
+      final columnGap =
+          _bounded(size.width - horizontalPadding * 2 - nodeWidth * 2, 28, 96);
+      const leftColumn = horizontalPadding;
+      final rightColumn = horizontalPadding + nodeWidth + columnGap;
+      final rowCount = (nodeCount / 2).ceil().clamp(1, 4);
+      final rowSpacing = _bounded(
+        (size.height - 126 - topPadding - nodeHeight) / rowCount,
+        118,
+        166,
+      );
+      for (var index = 0; index < nodeCount; index++) {
+        final row = index ~/ 2;
+        final left = index.isEven ? leftColumn : rightColumn;
+        positions.add(
+          _StorylineGraphNodePosition(
+            left: left,
+            top: topPadding + row * rowSpacing,
+            width: nodeWidth,
+            height: nodeHeight,
           ),
         );
+      }
+    } else {
+      const horizontalPadding = 26.0;
+      final availableWidth = size.width - horizontalPadding * 2 - nodeWidth;
+      final step = nodeCount <= 1 ? 0.0 : availableWidth / (nodeCount - 1);
+      final baseTop = _bounded(
+        (size.height - 104 - nodeHeight) / 2,
+        34,
+        118,
+      );
+      for (var index = 0; index < nodeCount; index++) {
+        final isChapterNode = index > 0 && index < nodeCount - 1;
+        final amplitude = nodeCount > 4 && size.height > 430 ? 34.0 : 0.0;
+        final lift = isChapterNode && index.isOdd ? -amplitude : 0.0;
+        final drop = isChapterNode && index.isEven ? amplitude : 0.0;
+        positions.add(
+          _StorylineGraphNodePosition(
+            left: horizontalPadding + step * index,
+            top: baseTop + lift + drop,
+            width: nodeWidth,
+            height: nodeHeight,
+          ),
+        );
+      }
     }
-    nodes
-      ..add(const _StorylineGraphConnector())
-      ..add(
-        const _StorylineGraphBoundaryNode(
-          key: ValueKey('storylines-graph-node-read-only-note'),
-          title: 'Relations à venir',
-          subtitle: 'Aucune branche inventée',
-          icon: CupertinoIcons.lock,
-          tone: PokeMapTone.neutral,
+
+    return _StorylineGraphGeometry(
+      positions: positions,
+      edges: _buildEdges(positions),
+    );
+  }
+
+  static List<_StorylineGraphEdge> _buildEdges(
+    List<_StorylineGraphNodePosition> positions,
+  ) {
+    final edges = <_StorylineGraphEdge>[];
+    for (var index = 0; index < positions.length - 1; index++) {
+      final from = positions[index];
+      final to = positions[index + 1];
+      edges.add(
+        _StorylineGraphEdge(
+          from: to.left > from.left ? from.centerRight : from.bottomCenter,
+          to: to.left > from.left ? to.centerLeft : to.topCenter,
         ),
       );
-    return nodes;
+    }
+    return edges;
   }
+
+  static double _bounded(double value, double min, double max) {
+    if (value < min) {
+      return min;
+    }
+    if (value > max) {
+      return max;
+    }
+    return value;
+  }
+}
+
+class _StorylineGraphNodePosition {
+  const _StorylineGraphNodePosition({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+
+  Offset get centerLeft => Offset(left, top + height / 2);
+  Offset get centerRight => Offset(left + width, top + height / 2);
+  Offset get topCenter => Offset(left + width / 2, top);
+  Offset get bottomCenter => Offset(left + width / 2, top + height);
+}
+
+class _StorylineGraphEdge {
+  const _StorylineGraphEdge({
+    required this.from,
+    required this.to,
+  });
+
+  final Offset from;
+  final Offset to;
 }
 
 class _StorylineGraphChapterNode extends StatelessWidget {
@@ -679,14 +785,13 @@ class _StorylineGraphChapterNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final description = chapter.description.trim();
-    final visibleSteps = chapter.steps.take(3).toList(growable: false);
+    final visibleSteps = chapter.steps.take(2).toList(growable: false);
     final remainingStepCount = chapter.steps.length - visibleSteps.length;
     return SizedBox(
       key: ValueKey('storylines-graph-node-${chapter.id}'),
-      width: 220,
+      width: 186,
       child: PokeMapCard(
-        padding: const EdgeInsets.all(13),
+        padding: const EdgeInsets.all(11),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -729,32 +834,21 @@ class _StorylineGraphChapterNode extends StatelessWidget {
                 ),
               ],
             ),
-            if (description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 11.5,
-                  height: 1.3,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-            const SizedBox(height: 10),
-            PokeMapStatusTile(
-              label: 'Étapes narratives liées',
-              value: _formatFrenchCount(
+            const SizedBox(height: 8),
+            Text(
+              _formatFrenchCount(
                 chapter.steps.length,
-                singular: 'étape narrative',
-                plural: 'étapes narratives',
+                singular: 'étape narrative liée',
+                plural: 'étapes narratives liées',
               ),
-              icon: CupertinoIcons.list_bullet,
-              tone: PokeMapTone.info,
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.25,
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             if (visibleSteps.isEmpty)
               Text(
                 'Aucune étape narrative liée à ce chapitre.',
@@ -811,7 +905,7 @@ class _StorylineGraphStepNode extends StatelessWidget {
     final description = step.description.trim();
     return SizedBox(
       key: ValueKey('storylines-graph-step-node-${step.id}'),
-      width: 220,
+      width: 186,
       child: PokeMapCard(
         padding: const EdgeInsets.all(13),
         child: Column(
@@ -914,7 +1008,7 @@ class _StorylineGraphStepPreview extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   description,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: colors.textSecondary,
@@ -990,20 +1084,81 @@ class _StorylineGraphBoundaryNode extends StatelessWidget {
   }
 }
 
-class _StorylineGraphConnector extends StatelessWidget {
-  const _StorylineGraphConnector();
+class _StorylineGraphEdgePainter extends CustomPainter {
+  const _StorylineGraphEdgePainter({
+    required this.edges,
+    required this.lineColor,
+    required this.arrowColor,
+  });
+
+  final List<_StorylineGraphEdge> edges;
+  final Color lineColor;
+  final Color arrowColor;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return SizedBox(
-      width: 28,
-      child: Icon(
-        CupertinoIcons.arrow_right,
-        color: colors.textMuted,
-        size: 18,
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    if (edges.isEmpty) {
+      return;
+    }
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final arrowPaint = Paint()
+      ..color = arrowColor
+      ..style = PaintingStyle.fill;
+
+    for (final edge in edges) {
+      final path = Path()..moveTo(edge.from.dx, edge.from.dy);
+      final horizontalDistance = edge.to.dx - edge.from.dx;
+      if (horizontalDistance.abs() > 36) {
+        path.cubicTo(
+          edge.from.dx + horizontalDistance * 0.44,
+          edge.from.dy,
+          edge.to.dx - horizontalDistance * 0.44,
+          edge.to.dy,
+          edge.to.dx,
+          edge.to.dy,
+        );
+      } else {
+        final midY = (edge.from.dy + edge.to.dy) / 2;
+        path.cubicTo(
+          edge.from.dx,
+          midY,
+          edge.to.dx,
+          midY,
+          edge.to.dx,
+          edge.to.dy,
+        );
+      }
+      canvas.drawPath(path, linePaint);
+      _drawArrow(canvas, edge, arrowPaint);
+    }
+  }
+
+  void _drawArrow(Canvas canvas, _StorylineGraphEdge edge, Paint paint) {
+    final direction = (edge.to - edge.from).direction;
+    const arrowSize = 7.0;
+    final arrow = Path()
+      ..moveTo(edge.to.dx, edge.to.dy)
+      ..lineTo(
+        edge.to.dx - arrowSize * math.cos(direction - 0.46),
+        edge.to.dy - arrowSize * math.sin(direction - 0.46),
+      )
+      ..lineTo(
+        edge.to.dx - arrowSize * math.cos(direction + 0.46),
+        edge.to.dy - arrowSize * math.sin(direction + 0.46),
+      )
+      ..close();
+    canvas.drawPath(arrow, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _StorylineGraphEdgePainter oldDelegate) {
+    return oldDelegate.edges != edges ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.arrowColor != arrowColor;
   }
 }
 
@@ -1018,39 +1173,93 @@ class _StorylineGraphLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return KeyedSubtree(
       key: const ValueKey('storylines-graph-legend'),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          const PokeMapStatusTile(
-            label: 'Début / lecture',
-            value: 'Projection',
-            icon: CupertinoIcons.play_circle,
-            tone: PokeMapTone.success,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.surfaceSubtle.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.borderSubtle),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const _StorylineGraphLegendItem(
+                icon: CupertinoIcons.play_circle,
+                tone: PokeMapTone.success,
+                label: 'Début / lecture',
+                value: 'Projection',
+              ),
+              _StorylineGraphLegendItem(
+                icon: CupertinoIcons.book,
+                tone: PokeMapTone.narrative,
+                label: 'Chapitre réel',
+                value: '$chapterCount',
+              ),
+              _StorylineGraphLegendItem(
+                icon: CupertinoIcons.list_bullet,
+                tone: PokeMapTone.info,
+                label: 'Étape narrative',
+                value: '$stepCount',
+              ),
+              const _StorylineGraphLegendItem(
+                icon: CupertinoIcons.lock,
+                tone: PokeMapTone.neutral,
+                label: 'Relations à venir',
+                value: 'Read-only',
+              ),
+            ],
           ),
-          PokeMapStatusTile(
-            label: 'Chapitre réel',
-            value: '$chapterCount',
-            icon: CupertinoIcons.book,
-            tone: PokeMapTone.narrative,
-          ),
-          PokeMapStatusTile(
-            label: 'Étape narrative',
-            value: '$stepCount',
-            icon: CupertinoIcons.list_bullet,
-            tone: PokeMapTone.info,
-          ),
-          const PokeMapStatusTile(
-            label: 'À venir / non branché',
-            value: 'Relations',
-            icon: CupertinoIcons.lock,
-            tone: PokeMapTone.neutral,
-          ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _StorylineGraphLegendItem extends StatelessWidget {
+  const _StorylineGraphLegendItem({
+    required this.icon,
+    required this.tone,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final PokeMapTone tone;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PokeMapIconTile(
+          icon: icon,
+          tone: tone,
+          size: 22,
+          iconSize: 10,
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            '$label · $value',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1060,14 +1269,57 @@ class _StorylineGraphReadOnlyControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const KeyedSubtree(
-      key: ValueKey('storylines-graph-read-only-controls'),
-      child: Center(
-        child: PokeMapStatusTile(
-          label: 'Mini-map et zoom à venir',
-          value: 'Contrôles non actifs',
-          icon: CupertinoIcons.lock,
-          tone: PokeMapTone.neutral,
+    final colors = context.pokeMapColors;
+    return KeyedSubtree(
+      key: const ValueKey('storylines-graph-read-only-controls'),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.surfaceSubtle.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.borderSubtle),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.lock,
+                tone: PokeMapTone.neutral,
+                size: 22,
+                iconSize: 10,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Relations détaillées à venir',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Contrôles non actifs',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

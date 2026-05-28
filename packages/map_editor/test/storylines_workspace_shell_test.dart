@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-08-bis Graph target alignment V0', () {
+  group('NS-STORYLINES-08-ter True graph geometry V0', () {
     testWidgets(
       'renders a read-only three-pane shell from real global story data',
       (tester) async {
@@ -57,6 +57,18 @@ void main() {
           findsOneWidget,
         );
         expect(
+          find.byKey(const ValueKey('storylines-graph-spatial-layer')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-graph-edge-layer')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-graph-node-start')),
+          findsOneWidget,
+        );
+        expect(
           find.byKey(const ValueKey('storylines-graph-node-audit_chapter')),
           findsOneWidget,
         );
@@ -68,6 +80,10 @@ void main() {
         );
         expect(
           find.byKey(const ValueKey('storylines-graph-legend')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('storylines-graph-node-read-only-note')),
           findsOneWidget,
         );
         expect(
@@ -629,7 +645,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_bis_graph_target_desktop.png',
+          'ns_storylines_08_ter_true_graph_desktop.png',
         ),
       );
 
@@ -641,7 +657,7 @@ void main() {
         find.byKey(const ValueKey('storylines-graph-target-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_bis_graph_target_focus.png',
+          'ns_storylines_08_ter_true_graph_focus.png',
         ),
       );
 
@@ -653,7 +669,7 @@ void main() {
         find.byKey(const ValueKey('storylines-graph-target-read-only')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_08_bis_graph_target_center.png',
+          'ns_storylines_08_ter_true_graph_center.png',
         ),
       );
     });
