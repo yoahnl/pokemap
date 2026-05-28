@@ -12,7 +12,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-V1-09 side quest authoring flow', () {
+  group('NS-STORYLINES-V1-10 graph from StorylineAsset flow', () {
     testWidgets('shows only Graph and Structure tabs', (tester) async {
       await _pumpStorylinesShell(tester);
 
@@ -43,6 +43,11 @@ void main() {
           findsOneWidget);
       expect(find.byKey(const ValueKey('storylines-graph-target-read-only')),
           findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('storylines-graph-canvas')), findsNothing);
+      expect(
+          find.byKey(const ValueKey('storylines-graph-node-chapter-anything')),
+          findsNothing);
       expect(find.textContaining('ne sera pas importée automatiquement'),
           findsOneWidget);
       expect(find.byKey(const ValueKey('storylines-v1-legacy-preview-card')),
@@ -180,7 +185,17 @@ void main() {
 
       expect(find.text('Ma grande histoire'), findsWidgets);
       expect(
-          find.text('Ajoutez des chapitres dans Structure.'), findsOneWidget);
+        find.text('Ajoutez un chapitre dans Structure'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'storylines-graph-node-storyline-storyline_ma_grande_histoire',
+          ),
+        ),
+        findsOneWidget,
+      );
 
       await _openStructureTab(tester);
       expect(find.byKey(const ValueKey('storylines-structure-read-only')),
@@ -541,19 +556,141 @@ void main() {
       await _createStep(tester, title: 'Premier jalon');
       await _openGraphTab(tester);
 
+      final graphCanvas = find.byKey(const ValueKey('storylines-graph-canvas'));
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('storylines-v1-graph-empty-canvas')),
-          matching: find.text('1 chapitre · 1 étape'),
+          of: graphCanvas,
+          matching: find.byKey(
+            const ValueKey(
+              'storylines-graph-node-storyline-storyline_existing_main',
+            ),
+          ),
         ),
         findsOneWidget,
       );
       expect(
-        find.text('Graph détaillé à venir au lot Graph From StorylineAsset.'),
+        find.descendant(
+          of: graphCanvas,
+          matching: find.byKey(
+            const ValueKey('storylines-graph-node-chapter-chapter_intro'),
+          ),
+        ),
         findsOneWidget,
       );
-      expect(find.text('Ajoutez des chapitres dans Structure.'), findsNothing);
+      expect(
+        find.descendant(
+          of: graphCanvas,
+          matching: find.byKey(
+            const ValueKey('storylines-graph-node-step-step_premier_jalon'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('storylines-graph-edge-root-chapter_intro')),
+        findsOneWidget,
+      );
+      expect(find.text('Lignes = ordre auteur'), findsOneWidget);
+      expect(find.text('Aucune scène liée'), findsOneWidget);
+      expect(find.text('Ajoutez un chapitre dans Structure'), findsNothing);
       expect(find.text('Quête annexe fake'), findsNothing);
+    });
+
+    testWidgets('Graph orders chapters and steps by author order',
+        (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_ordered_main',
+            type: StorylineType.main,
+            title: 'Ordered main',
+            chapters: [
+              StorylineChapter(
+                id: 'chapter_second',
+                title: 'Second',
+                order: 2,
+              ),
+              StorylineChapter(
+                id: 'chapter_tie_b',
+                title: 'Tie B',
+                order: 1,
+              ),
+              StorylineChapter(
+                id: 'chapter_first',
+                title: 'First',
+                order: 0,
+                steps: [
+                  StorylineStep(
+                    id: 'step_second',
+                    title: 'Second step',
+                    order: 2,
+                  ),
+                  StorylineStep(
+                    id: 'step_first',
+                    title: 'First step',
+                    order: 0,
+                    sceneLinkIds: const ['scenario_scene_ref'],
+                  ),
+                ],
+              ),
+              StorylineChapter(
+                id: 'chapter_tie_a',
+                title: 'Tie A',
+                order: 1,
+              ),
+            ],
+          ),
+        ]),
+      );
+
+      await _openGraphTab(tester);
+
+      final firstX = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey('storylines-graph-node-chapter-chapter_first'),
+            ),
+          )
+          .dx;
+      final tieAX = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey('storylines-graph-node-chapter-chapter_tie_a'),
+            ),
+          )
+          .dx;
+      final tieBX = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey('storylines-graph-node-chapter-chapter_tie_b'),
+            ),
+          )
+          .dx;
+      final secondX = tester
+          .getTopLeft(
+            find.byKey(
+              const ValueKey('storylines-graph-node-chapter-chapter_second'),
+            ),
+          )
+          .dx;
+      expect(firstX, lessThan(tieAX));
+      expect(tieAX, lessThan(tieBX));
+      expect(tieBX, lessThan(secondX));
+
+      final firstStepY = tester
+          .getTopLeft(
+            find.byKey(const ValueKey('storylines-graph-node-step-step_first')),
+          )
+          .dy;
+      final secondStepY = tester
+          .getTopLeft(
+            find.byKey(
+                const ValueKey('storylines-graph-node-step-step_second')),
+          )
+          .dy;
+      expect(firstStepY, lessThan(secondStepY));
+      expect(find.text('1 scène liée'), findsOneWidget);
     });
 
     testWidgets('Graph explains sideQuest is not linked to main graph yet',
@@ -574,8 +711,7 @@ void main() {
       await _createStep(tester, title: 'Find clue');
       await _openGraphTab(tester);
 
-      final graphCanvas =
-          find.byKey(const ValueKey('storylines-v1-graph-empty-canvas'));
+      final graphCanvas = find.byKey(const ValueKey('storylines-graph-canvas'));
       expect(
         find.descendant(of: graphCanvas, matching: find.text('Missing Bell')),
         findsOneWidget,
@@ -586,8 +722,30 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Quête annexe non reliée au graph principal pour l’instant.'),
+        find.descendant(
+          of: graphCanvas,
+          matching: find.byKey(
+            const ValueKey('storylines-graph-node-chapter-chapter_side_intro'),
+          ),
+        ),
         findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: graphCanvas,
+          matching: find.byKey(
+            const ValueKey('storylines-graph-node-step-step_find_clue'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Quête annexe indépendante'),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: graphCanvas, matching: find.text('Existing main')),
+        findsNothing,
       );
       expect(find.textContaining('availability'), findsNothing);
     });
@@ -612,8 +770,7 @@ void main() {
       await tester.pump();
       await _openGraphTab(tester);
 
-      final graphCanvas =
-          find.byKey(const ValueKey('storylines-v1-graph-empty-canvas'));
+      final graphCanvas = find.byKey(const ValueKey('storylines-graph-canvas'));
       expect(
         find.descendant(of: graphCanvas, matching: find.text('Existing main')),
         findsOneWidget,
@@ -623,8 +780,8 @@ void main() {
         findsNothing,
       );
       expect(
-        find.text('Quête annexe non reliée au graph principal pour l’instant.'),
-        findsNothing,
+        find.text('Quêtes annexes créées : 1 — intégration à venir'),
+        findsOneWidget,
       );
     });
 
@@ -887,63 +1044,61 @@ void main() {
       expect(Theme.of(shellContext).brightness, Brightness.dark);
     });
 
-    testWidgets('writes V1-09 Side Quest Visual Gate screenshots',
+    testWidgets('writes V1-10 Graph From StorylineAsset screenshots',
         (tester) async {
-      final project = _projectWithStorylines([
-        StorylineAsset(
-          id: 'storyline_visual_main',
-          type: StorylineType.main,
-          title: 'Visual Main',
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 1000),
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_visual_empty',
+            type: StorylineType.main,
+            title: 'Visual Empty Main',
+          ),
+        ]),
+      );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_10_graph_empty_storyline.png',
         ),
-      ]);
+      );
 
       await _pumpStorylinesShell(
         tester,
         surfaceSize: const Size(1600, 1000),
-        project: project,
+        project: _visualGraphProject(),
       );
-
-      await _openCreateDialog(tester);
-      await expectLater(
-        find.byKey(const ValueKey('storylines-create-main-dialog')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_09_create_side_quest_dialog.png',
-        ),
-      );
-      await tester.tap(find.byKey(const ValueKey('storylines-create-cancel')));
-      await tester.pumpAndSettle();
-
-      await _createSideQuest(
-        tester,
-        title: 'Visual Side Quest',
-        description: 'Optional visual storyline.',
-      );
-      await _openGraphTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_09_created_side_quest_graph.png',
+          'ns_storylines_v1_10_graph_main_chapters_steps.png',
         ),
       );
 
-      await _openStructureTab(tester);
-      await _createChapter(tester, title: 'Visual Side Chapter');
-      await _createStep(tester, title: 'Visual Side Step');
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-v1-row-sidequest_visual')),
+      );
+      await tester.pump();
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_09_created_side_quest_structure.png',
+          'ns_storylines_v1_10_graph_sidequest_standalone.png',
         ),
       );
 
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-v1-row-storyline_visual_main')),
+      );
+      await tester.pump();
       await expectLater(
-        find.byKey(const ValueKey('storylines-secondary-panel')),
+        find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_09_storyline_list_with_side_quest.png',
+          'ns_storylines_v1_10_graph_main_ignores_sidequest.png',
         ),
       );
     });
@@ -1208,6 +1363,70 @@ ProjectManifest _projectWithStorylines(List<StorylineAsset> storylines) {
     tilesets: const <ProjectTilesetEntry>[],
     storylines: storylines,
   );
+}
+
+ProjectManifest _visualGraphProject() {
+  return _projectWithStorylines([
+    StorylineAsset(
+      id: 'storyline_visual_main',
+      type: StorylineType.main,
+      title: 'Visual Main',
+      description: 'Graph generated from authoring structure.',
+      chapters: [
+        StorylineChapter(
+          id: 'chapter_visual_start',
+          title: 'Opening',
+          description: 'First authoring beat.',
+          order: 0,
+          steps: [
+            StorylineStep(
+              id: 'step_visual_arrival',
+              title: 'Arrival',
+              description: 'Introduce the player goal.',
+              order: 0,
+            ),
+            StorylineStep(
+              id: 'step_visual_choice',
+              title: 'First choice',
+              order: 1,
+            ),
+          ],
+        ),
+        StorylineChapter(
+          id: 'chapter_visual_followup',
+          title: 'Follow-up',
+          order: 1,
+          steps: [
+            StorylineStep(
+              id: 'step_visual_resolution',
+              title: 'Resolution',
+              order: 0,
+            ),
+          ],
+        ),
+      ],
+    ),
+    StorylineAsset(
+      id: 'sidequest_visual',
+      type: StorylineType.sideQuest,
+      title: 'Visual Side Quest',
+      description: 'Standalone optional storyline.',
+      chapters: [
+        StorylineChapter(
+          id: 'chapter_visual_side',
+          title: 'Side opening',
+          order: 0,
+          steps: [
+            StorylineStep(
+              id: 'step_visual_side_clue',
+              title: 'Find clue',
+              order: 0,
+            ),
+          ],
+        ),
+      ],
+    ),
+  ]);
 }
 
 class _StorylinesHarness {

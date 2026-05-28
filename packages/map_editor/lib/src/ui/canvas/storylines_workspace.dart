@@ -6,6 +6,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
+import 'storylines/storylines_graph_view.dart';
 
 class StorylinesWorkspace extends ConsumerStatefulWidget {
   const StorylinesWorkspace({
@@ -779,6 +780,7 @@ class _StorylinesV1MainPanel extends StatelessWidget {
                   )
                 : _StorylinesV1GraphSection(
                     storyline: selectedStoryline,
+                    storylines: storylines,
                     legacyGlobalStory: legacyGlobalStory,
                     legacyStep: legacyStep,
                     legacyStepCount: legacyStepCount,
@@ -953,130 +955,41 @@ class _StorylinesV1KpiStrip extends StatelessWidget {
 class _StorylinesV1GraphSection extends StatelessWidget {
   const _StorylinesV1GraphSection({
     required this.storyline,
+    required this.storylines,
     required this.legacyGlobalStory,
     required this.legacyStep,
     required this.legacyStepCount,
   });
 
   final StorylineAsset? storyline;
+  final List<StorylineAsset> storylines;
   final NarrativeScenarioSummary? legacyGlobalStory;
   final NarrativeStepSummary? legacyStep;
   final int legacyStepCount;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
     final selectedStoryline = storyline;
-    final isSideQuest = selectedStoryline?.type == StorylineType.sideQuest;
-    final chapterCount = selectedStoryline?.chapters.length ?? 0;
-    final stepCount =
-        selectedStoryline == null ? 0 : _storylineStepCount(selectedStoryline);
-    return PokeMapCard(
-      key: const ValueKey('storylines-graph-target-read-only'),
-      padding: const EdgeInsets.all(18),
-      child: selectedStoryline == null
-          ? _StorylinesV1NoStorylineState(
-              legacyGlobalStory: legacyGlobalStory,
-              legacyStep: legacyStep,
-              legacyStepCount: legacyStepCount,
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    const PokeMapIconTile(
-                      icon: CupertinoIcons.arrow_branch,
-                      tone: PokeMapTone.narrative,
-                      size: 42,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Graph de compréhension',
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Vue générée depuis StorylineAsset. Lecture seule en V1 initial.',
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: Center(
-                    child: PokeMapCard(
-                      key: const ValueKey('storylines-v1-graph-empty-canvas'),
-                      padding: const EdgeInsets.all(18),
-                      selected: true,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            selectedStoryline.title,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            chapterCount == 0
-                                ? 'Ajoutez des chapitres dans Structure.'
-                                : "${_formatCount(chapterCount, 'chapitre', 'chapitres')} · ${_formatCount(stepCount, 'étape', 'étapes')}",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                          if (isSideQuest || chapterCount > 0) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              isSideQuest
-                                  ? 'Quête annexe non reliée au graph principal pour l’instant.'
-                                  : 'Graph détaillé à venir au lot Graph From StorylineAsset.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: colors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                          if (isSideQuest) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              'L’intégration au graph principal viendra dans Side Quest Graph Integration.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: colors.textMuted,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+    if (selectedStoryline == null) {
+      return PokeMapCard(
+        key: const ValueKey('storylines-graph-target-read-only'),
+        padding: const EdgeInsets.all(18),
+        child: _StorylinesV1NoStorylineState(
+          legacyGlobalStory: legacyGlobalStory,
+          legacyStep: legacyStep,
+          legacyStepCount: legacyStepCount,
+        ),
+      );
+    }
+    final sideQuestCountOutsideSelected =
+        selectedStoryline.type == StorylineType.main
+            ? storylines
+                .where((storyline) => storyline.type == StorylineType.sideQuest)
+                .length
+            : 0;
+    return StorylinesGraphView(
+      storyline: selectedStoryline,
+      sideQuestCountOutsideSelected: sideQuestCountOutsideSelected,
     );
   }
 }
