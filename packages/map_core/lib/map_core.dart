@@ -77,6 +77,7 @@ export 'src/authoring/narrative_outcome_authoring_operations.dart';
 export 'src/authoring/narrative_predicate_authoring_draft.dart';
 export 'src/authoring/narrative_scenario_authoring_draft.dart';
 export 'src/authoring/narrative_validator_authoring_adapter.dart';
+export 'src/authoring/storyline_legacy_import_preview.dart';
 export 'src/read_models/narrative_reference_picker_read_models.dart';
 export 'src/operations/static_shadow_geometry.dart';
 export 'src/operations/static_shadow_family_projection.dart';

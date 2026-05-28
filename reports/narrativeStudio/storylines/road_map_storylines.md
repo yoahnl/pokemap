@@ -307,7 +307,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-03 | StorylineAsset Pure Model V0 | core model / pure dart | DONE | NS-STORYLINES-V1-04 |
 | NS-STORYLINES-V1-04 | StorylineAsset JSON Codec V0 | core codec | DONE | NS-STORYLINES-V1-05 |
 | NS-STORYLINES-V1-05 | ProjectManifest.storylines Integration V0 | core manifest | DONE | NS-STORYLINES-V1-06 |
-| NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | TODO | NS-STORYLINES-V1-07 |
+| NS-STORYLINES-V1-06 | Legacy GlobalStory Import Preview V0 | migration preview | DONE | NS-STORYLINES-V1-07 |
 | NS-STORYLINES-V1-07 | Create Main Storyline Flow V0 | editor authoring | TODO | NS-STORYLINES-V1-08 |
 
 ## 9. Detailed lots
@@ -707,6 +707,24 @@ Interprétation V0 :
 - Statut : DONE.
 - Prochain lot attendu : NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0.
 
+### NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0
+
+- Type : core authoring / pure Dart / legacy preview / tests.
+- Objectif : proposer une preview non destructive de conversion des anciens `ScenarioAsset(scope == globalStory)` vers des `StorylineAsset(type: main)` drafts.
+- Résultat : API pure `buildLegacyGlobalStoryImportPreview(ProjectManifest)` livrée dans `map_core`.
+- Mapping : chaque `globalStory` legacy produit un candidat draft `StorylineAsset` avec id déterministe `legacy_<scenario.id>`, type `main`, status `draft`, titre/description issus du scénario et `legacySource.kind = scenario.globalStory`.
+- Metadata legacy : chapitres et steps sont importés quand les metadata `authoring.globalStoryStudioDocument` et `authoring.stepStudioDocument` sont lisibles ; sinon le candidat reste minimal avec issues stables.
+- Diagnostics : issues stables via `StorylineValidationIssue` pour aucun globalStory, multiples globalStory, storylines existantes, collision d'id, metadata absente/invalide, step manquante, step non assignée, outcomes non mappés et `localEventFlow` ignoré.
+- Non-mutation : la preview ne modifie jamais `ProjectManifest`, `ProjectManifest.storylines`, `ProjectManifest.scenarios` ou les assets existants.
+- Non-promotion : `ScenarioAsset(scope == localEventFlow)` est explicitement ignoré et ne devient jamais une `sideQuest`.
+- Fichiers créés/modifiés : `packages/map_core/lib/src/authoring/storyline_legacy_import_preview.dart`, `packages/map_core/test/storyline_legacy_import_preview_test.dart`, `packages/map_core/lib/map_core.dart`, `reports/narrativeStudio/storylines/ns_storylines_v1_06_legacy_global_story_import_preview_v0.md`, `reports/narrativeStudio/storylines/road_map_storylines.md`.
+- Tests exécutés : `dart test test/storyline_legacy_import_preview_test.dart`, `dart test test/project_manifest_storylines_test.dart`, `dart test test/storyline_asset_json_test.dart`, `dart test test/storyline_asset_test.dart`, `dart test test/scenario_assets_test.dart`, `dart test`.
+- Analyse exécutée : `dart analyze lib/src/authoring/storyline_legacy_import_preview.dart test/storyline_legacy_import_preview_test.dart`.
+- Non-objectifs confirmés : aucun `ProjectManifest` modifié, aucun `StorylineAsset` modifié, aucun `ScenarioAsset` modifié, aucun build_runner, aucune UI, aucun runtime, aucun import/apply mutateur.
+- Dépendances : NS-STORYLINES-V1-05.
+- Statut : DONE.
+- Prochain lot attendu : NS-STORYLINES-V1-07 — Create Main Storyline Flow V0.
+
 ## 10. Update protocol for every future lot
 
 Chaque futur lot Storylines doit :
@@ -823,10 +841,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 MANIFEST STORYLINES DONE
-Current lot: NS-STORYLINES-V1-05
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 LEGACY IMPORT PREVIEW DONE
+Current lot: NS-STORYLINES-V1-06
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview V0
+Next recommended lot: NS-STORYLINES-V1-07 — Create Main Storyline Flow V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -851,7 +869,7 @@ Next recommended lot: NS-STORYLINES-V1-06 — Legacy GlobalStory Import Preview 
 | NS-STORYLINES-V1-03 | DONE | 2026-05-28 | StorylineAsset Pure Model V0 livré dans `map_core`, sans JSON/manifest/UI. |
 | NS-STORYLINES-V1-04 | DONE | 2026-05-28 | StorylineAsset JSON Codec V0 livré, sans manifest/migration/UI. |
 | NS-STORYLINES-V1-05 | DONE | 2026-05-28 | ProjectManifest.storylines Integration V0 livré avec compatibilité vieux JSON et sans migration legacy. |
-| NS-STORYLINES-V1-06 | TODO | 2026-05-28 | Legacy GlobalStory Import Preview V0. |
+| NS-STORYLINES-V1-06 | DONE | 2026-05-28 | Legacy GlobalStory Import Preview V0 livré : candidats non destructifs depuis `globalStory`, issues stables, `localEventFlow` ignoré. |
 | NS-STORYLINES-V1-07 | TODO | 2026-05-28 | Create Main Storyline Flow V0. |
 
 ## 14. V1 Creation Readiness Notes
@@ -886,6 +904,16 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-11 — V1 Visual Graph Enrichment`
 
 ## 15. Changelog
+
+### 2026-05-28 — NS-STORYLINES-V1-06
+
+- Preview d'import legacy livrée dans `map_core` via `buildLegacyGlobalStoryImportPreview(ProjectManifest)`.
+- Les `ScenarioAsset(scope == globalStory)` produisent des candidats `StorylineAsset(type: main, status: draft)` sans mutation du manifest.
+- Les metadata legacy Global Story / Step Studio sont importées quand elles sont lisibles ; sinon des issues stables signalent les limites.
+- `localEventFlow` est explicitement ignoré et n'est jamais promu en `sideQuest`.
+- Tests ajoutés pour aucun / un / plusieurs globalStory, existing storylines, collision d'id, import chapters/steps, missing step, outcomes non mappés, invalid metadata et no-mutation JSON.
+- Non-objectifs respectés : aucun `ProjectManifest`, `StorylineAsset`, `ScenarioAsset`, generated file, build_runner, UI ou runtime modifié.
+- Prochain lot recommandé : `NS-STORYLINES-V1-07 — Create Main Storyline Flow V0`.
 
 ### 2026-05-28 — NS-STORYLINES-V1-05
 
