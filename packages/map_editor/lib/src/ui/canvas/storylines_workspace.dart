@@ -909,8 +909,11 @@ class _StorylinesV1MainPanel extends StatelessWidget {
             onTabSelected: onTabSelected,
           ),
           const SizedBox(height: 12),
-          _StorylinesV1KpiStrip(storylines: storylines),
-          const SizedBox(height: 16),
+          _StorylinesV1KpiStrip(
+            storylines: storylines,
+            compact: selectedTab == _StorylineContentTab.graph,
+          ),
+          SizedBox(height: selectedTab == _StorylineContentTab.graph ? 10 : 16),
           Expanded(
             child: selectedTab == _StorylineContentTab.structure
                 ? _StorylinesV1StructureSection(
@@ -1026,12 +1029,17 @@ class _StorylinesV1Header extends StatelessWidget {
 }
 
 class _StorylinesV1KpiStrip extends StatelessWidget {
-  const _StorylinesV1KpiStrip({required this.storylines});
+  const _StorylinesV1KpiStrip({
+    required this.storylines,
+    required this.compact,
+  });
 
   final List<StorylineAsset> storylines;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final chapterCount = storylines.fold<int>(
       0,
       (total, storyline) => total + storyline.chapters.length,
@@ -1049,6 +1057,52 @@ class _StorylinesV1KpiStrip extends StatelessWidget {
       0,
       (total, storyline) => total + storyline.sceneLinks.length,
     );
+    if (compact) {
+      return KeyedSubtree(
+        key: const ValueKey('storylines-kpi-strip'),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.controlSurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: colors.borderSubtle),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StorylinesV1CompactKpi(
+                    label: 'Storylines',
+                    value: storylines.length.toString(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _StorylinesV1CompactKpi(
+                    label: 'Chapters',
+                    value: chapterCount.toString(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _StorylinesV1CompactKpi(
+                    label: 'Story Steps',
+                    value: stepCount.toString(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _StorylinesV1CompactKpi(
+                    label: 'Scene Links',
+                    value: sceneLinkCount.toString(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return KeyedSubtree(
       key: const ValueKey('storylines-kpi-strip'),
       child: SizedBox(
@@ -1093,6 +1147,47 @@ class _StorylinesV1KpiStrip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StorylinesV1CompactKpi extends StatelessWidget {
+  const _StorylinesV1CompactKpi({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

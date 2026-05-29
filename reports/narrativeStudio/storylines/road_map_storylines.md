@@ -317,6 +317,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | DONE | NS-STORYLINES-V1-CHECKPOINT |
 | NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | DONE | NS-SCENES-V1 |
 | NS-STORYLINES-SEED-00 | Selbrume Storylines Demo Seed V0 | demo data | DONE | NS-SCENES-V1 |
+| NS-STORYLINES-SEED-FIX-01 | Selbrume Graph Layout / SideQuest Rendering Fix V0 | editor graph fix | DONE | NS-STORYLINES-V1.1-01 |
 
 ## 9. Detailed lots
 
@@ -898,9 +899,9 @@ Décision temporaire :
 
 ```text
 Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 ACCEPTED WITH LIMITATIONS
-Current lot: NS-STORYLINES-SEED-00
+Current lot: NS-STORYLINES-SEED-FIX-01
 Current lot status: DONE
-Next recommended lot: NS-SCENES-V1 — Scene Placeholder + Scene Linking Foundation
+Next recommended lot: NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0
 ```
 
 | Lot | Status | Last update | Notes |
@@ -931,6 +932,11 @@ Next recommended lot: NS-SCENES-V1 — Scene Placeholder + Scene Linking Foundat
 | NS-STORYLINES-V1-08 | DONE | 2026-05-29 | Structure Tab Authoring V0 livré : création de chapitres et steps, Graph minimal honnête, aucun sceneLink/sideQuest/import legacy. |
 | NS-STORYLINES-V1-09 | DONE | 2026-05-29 | Create Side Quest Flow V0 livré : création réelle de `StorylineAsset(type: sideQuest, status: draft)`, liste main/sideQuest séparée, Structure réutilisée, aucune relationship/availability/sceneLink/import legacy. |
 | NS-STORYLINES-V1-10 | DONE | 2026-05-29 | Graph From StorylineAsset V0 livré : graph read-only généré depuis la StorylineAsset sélectionnée, nodes storyline/chapter/step, edges d'ordre auteur, sideQuest autonome non intégrée au graph principal. |
+| NS-STORYLINES-V1-11 | DONE | 2026-05-29 | Side Quest Attachment + Graph Integration V0 livré : attachement explicite sideQuest -> main chapter/step, relation persistée, graph principal sourcé uniquement par relation. |
+| NS-STORYLINES-V1-12 | DONE | 2026-05-29 | V1 Visual Graph Enrichment livré : polish visuel read-only, distinction ordre auteur / disponibilité sideQuest, aucune donnée métier créée. |
+| NS-STORYLINES-V1-CHECKPOINT | DONE | 2026-05-29 | Verdict `ACCEPTED WITH LIMITATIONS` : Storylines V1 fermé comme atelier auteur initial. |
+| NS-STORYLINES-SEED-00 | DONE | 2026-05-29 | Selbrume Storylines Demo Seed V0 livré comme data-only : 1 main, 3 sideQuests, chapters, steps et attachements explicites. |
+| NS-STORYLINES-SEED-FIX-01 | DONE | 2026-05-29 | Correction post-seed : graph plus grand, sideQuests attachées rendues comme nodes indépendants, aucun seed/model/runtime modifié. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -966,6 +972,15 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-SEED-FIX-01
+
+- Correction post-seed du rendu graph Selbrume : canvas plus grand et KPI compactés en mode Graph.
+- Les sideQuests attachées sont désormais rendues comme nodes indépendants autour du flux principal, reliées par edges de disponibilité, et non comme grandes cartes incluses dans les chapters.
+- Les chapters affichent un compteur discret de quêtes disponibles et des steps compactées avec overflow `+N étapes`.
+- Aucun seed, modèle core, runtime, gameplay, battle ou fichier `selbrume/project.json` modifié.
+- Tests dédiés Selbrume ajoutés, captures Visual Gate dark produites, analyse ciblée clean ; `storylines_workspace_shell_test.dart` reste bloqué uniquement par le golden V1-12 absent du repo courant.
+- Prochain lot recommandé : `NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0`.
 
 ### 2026-05-29 — NS-STORYLINES-SEED-00
 
