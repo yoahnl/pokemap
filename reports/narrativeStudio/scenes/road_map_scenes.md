@@ -42,7 +42,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-03 — Scene Core Model V0 | DONE | Modele core `SceneAsset` ajoute dans `map_core` avec `SceneGraph`, `SceneGraphLayout`, nodes/edges/outcomes, `ProjectManifest.scenes`, export public et tests core/JSON/manifest. |
 | NS-SCENES-V1-04 — Workspace Shell Scenes | DONE | Shell editor `Scenes` branche dans Narrative Studio, lecture read-only de `ProjectManifest.scenes`, empty state honnete, actions non supportees desactivees. |
 | NS-SCENES-V1-05 — Scene Tree Panel Read-only | DONE | Arborescence read-only des scenes reelles, selection locale, resume central, header Scenes compacte, aucun graph ni mutation. |
-| NS-SCENES-V1-06 — Graph Read-only Skeleton | TODO | Afficher un graph Scene V1 read-only avec start/end et nodes reels du read model. |
+| NS-SCENES-V1-06 — Graph Read-only Skeleton | DONE | Graph Scene V1 read-only depuis le `SceneAsset` selectionne : nodes, edges, labels, layout persiste ou layout derive non persiste. |
 | NS-SCENES-V1-07 — Node Inspector Read-only | TODO | Inspecteur contextuel pour node selectionne, conditions, sorties et notes. |
 | NS-SCENES-V1-08 — Authoring Minimal Scene Draft | TODO | Creer/editer une scene draft minimale, sans brancher Storylines ni runtime complet. |
 | NS-SCENES-V1-09 — Scene Validation Diagnostics | TODO | Diagnostics de graphe : start/end, edges invalides, nodes incomplets, refs manquantes, outcomes orphelins. |
@@ -51,9 +51,27 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-06 — Graph Read-only Skeleton`
+`NS-SCENES-V1-07 — Node Inspector Read-only`
 
-Raison : le workspace Scenes possede maintenant un panneau d'arborescence read-only, une selection locale de scene et un resume central derive de `ProjectManifest.scenes`. Le prochain lot peut ajouter un squelette de graph read-only sans authoring, sans runtime et sans mutation.
+Raison : le workspace Scenes affiche maintenant un graph read-only reel pour la scene selectionnee. Le prochain lot peut ajouter un inspecteur read-only du node selectionne, sans authoring ni runtime.
+
+## Decisions V1-06
+
+- Le placeholder `Graph — bientôt` est remplace par `SceneGraphReadOnlyView`.
+- Le graph lit `scene.graph.nodes`, `scene.graph.edges` et `scene.layout.nodeLayouts`.
+- Un layout persiste complet est utilise tel quel.
+- Si le layout est absent ou incomplet, un layout derive deterministe est calcule en memoire et non persiste.
+- Les edges sont dessines par un `CustomPainter` read-only avec couleurs injectees depuis le theme.
+- Les labels d'edges viennent de `SceneEdge.label` ou du couple `kind/fromPortId`.
+- Aucun node inspector, drag and drop, edition de node/edge ou runtime n'est ajoute.
+
+## Limites V1-06
+
+- Layout derive simple, suffisant pour V1-06 mais pas un moteur de graph final.
+- Pas de zoom/pan/minimap.
+- Pas de selection de node.
+- Pas de payload detaille.
+- Pas d'inspecteur read-only avant V1-07.
 
 ## Decisions V1-05
 

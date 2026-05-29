@@ -9,7 +9,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-SCENES-V1-05 scene tree panel read-only', () {
+  group('NS-SCENES-V1-06 graph read-only skeleton', () {
     testWidgets('Narrative Studio exposes a real Scenes navigation entry',
         (tester) async {
       final container = await _pumpNarrativeShell(
@@ -111,8 +111,51 @@ void main() {
       expect(find.text('chapter_test'), findsWidgets);
       expect(find.text('Intro done'), findsOneWidget);
       expect(find.text('Branch done'), findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-canvas')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('scene-graph-read-only-view')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('scene-graph-layout-source-real')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_start')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_merge')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-edge-edge_start_merge')),
+          findsOneWidget);
+      expect(find.text('completed'), findsWidgets);
       expect(find.byKey(const ValueKey('scene-node-inspector')), findsNothing);
+    });
+
+    testWidgets('uses a derived layout for scenes with incomplete layout',
+        (tester) async {
+      final project = _projectWithTwoScenes();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-tree-item-scene_test_branch')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-read-only-view')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-layout-source-derived')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('scene-graph-node-node_start')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_end')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-edge-edge_start_end')),
+          findsOneWidget);
+      expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
     testWidgets(
@@ -142,6 +185,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Second Test Scene'), findsWidgets);
+      expect(find.byKey(const ValueKey('scene-graph-layout-source-derived')),
+          findsOneWidget);
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
@@ -167,7 +212,7 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-05 visual gate screenshot', (tester) async {
+    testWidgets('writes V1-06 visual gate screenshot', (tester) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithTwoScenes(),
@@ -178,7 +223,7 @@ void main() {
         find.byKey(const ValueKey('scenes-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_05_scene_tree_panel_read_only.png',
+          'ns_scenes_v1_06_graph_read_only_skeleton.png',
         ),
       );
     });
@@ -269,8 +314,13 @@ SceneAsset _testIntroScene() {
       startNodeId: 'node_start',
       nodes: [
         SceneNode(id: 'node_start', kind: SceneNodeKind.start),
-        SceneNode(id: 'node_merge', kind: SceneNodeKind.merge),
-        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        SceneNode(
+          id: 'node_merge',
+          kind: SceneNodeKind.merge,
+          title: 'Merge test',
+          description: 'Node réel de test.',
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end, title: 'End test'),
       ],
       edges: [
         SceneEdge(
@@ -279,6 +329,7 @@ SceneAsset _testIntroScene() {
           fromPortId: 'completed',
           toNodeId: 'node_merge',
           kind: SceneEdgeKind.defaultFlow,
+          label: 'completed',
         ),
         SceneEdge(
           id: 'edge_merge_end',
@@ -286,7 +337,15 @@ SceneAsset _testIntroScene() {
           fromPortId: 'completed',
           toNodeId: 'node_end',
           kind: SceneEdgeKind.defaultFlow,
+          label: 'done',
         ),
+      ],
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_merge', x: 260, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 500, y: 80),
       ],
     ),
     declaredOutcomes: [

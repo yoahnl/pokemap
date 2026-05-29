@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
+import 'scenes/scene_graph_read_only_view.dart';
 
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
@@ -495,33 +496,7 @@ class _SelectedSceneSummary extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          PokeMapCard(
-            key: const ValueKey('scenes-graph-placeholder-read-only'),
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                const PokeMapIconTile(
-                  icon: CupertinoIcons.circle_grid_hex,
-                  tone: PokeMapTone.neutral,
-                  size: 34,
-                  iconSize: 17,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Le graph read-only arrive dans NS-SCENES-V1-06. '
-                    'Aucun canvas, node ou edge n’est rendu dans ce lot.',
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 12,
-                      height: 1.35,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          SceneGraphReadOnlyView(scene: scene),
           const SizedBox(height: 16),
           _SceneDetailsSection(scene: scene),
           const SizedBox(height: 16),

@@ -135,6 +135,8 @@ class NarrativeSceneSummary {
     required this.declaredOutcomeCount,
     required this.declaredOutcomes,
     required this.tags,
+    required this.graph,
+    required this.layout,
   });
 
   final String id;
@@ -147,6 +149,8 @@ class NarrativeSceneSummary {
   final int declaredOutcomeCount;
   final List<String> declaredOutcomes;
   final List<String> tags;
+  final SceneGraph graph;
+  final SceneGraphLayout layout;
 }
 
 /// Projection consolidée de la donnée narrative pour l'UI.
@@ -304,6 +308,8 @@ List<NarrativeSceneSummary> _buildSceneSummaries(List<SceneAsset> scenes) {
             outcome.label.trim().isEmpty ? outcome.id : outcome.label,
         ],
         tags: scene.tags.toList(growable: false),
+        graph: scene.graph,
+        layout: scene.layout,
       ),
   ];
 }
