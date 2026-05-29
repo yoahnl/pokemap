@@ -315,7 +315,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-10 | Graph From StorylineAsset V0 | editor graph | DONE | NS-STORYLINES-V1-11 |
 | NS-STORYLINES-V1-11 | Side Quest Attachment + Graph Integration V0 | editor graph | DONE | NS-STORYLINES-V1-12 |
 | NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | DONE | NS-STORYLINES-V1-CHECKPOINT |
-| NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | TODO | TBD |
+| NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | DONE | NS-SCENES-V1 |
 
 ## 9. Detailed lots
 
@@ -896,10 +896,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 VISUAL GRAPH ENRICHMENT DONE
-Current lot: NS-STORYLINES-V1-12
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 ACCEPTED WITH LIMITATIONS
+Current lot: NS-STORYLINES-V1-CHECKPOINT
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint
+Next recommended lot: NS-SCENES-V1 — Scene Placeholder + Scene Linking Foundation
 ```
 
 | Lot | Status | Last update | Notes |
@@ -965,6 +965,15 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-V1-CHECKPOINT
+
+- Storylines V1 Acceptance Checkpoint livré en audit-only / documentation-only.
+- Verdict : `ACCEPTED WITH LIMITATIONS`.
+- Storylines V1 est fermé comme atelier auteur initial : modèle, JSON, `ProjectManifest.storylines`, preview legacy, création main/sideQuest, chapters/steps, attachement sideQuest explicite, graph read-only et polish V1 sont couverts par tests ciblés.
+- Limites acceptées : pas encore de scene placeholder, sceneLink, Scene Outcome branch, facts/world rules, validation narrative globale, edit/delete/reorder avancé, import legacy appliqué ou runtime execution.
+- Limite d'évidence : les rapports V1-00 à V1-11 et les captures V1-07 à V1-11 attendus sont absents du repo courant ; les tests et le rapport V1-12 restent présents.
+- Prochaine phase recommandée : `NS-SCENES-V1 — Scene Placeholder + Scene Linking Foundation`.
 
 ### 2026-05-29 — NS-STORYLINES-V1-12
 
