@@ -159,6 +159,48 @@ void main() {
     });
 
     testWidgets(
+        'uses bounded derived layout for cyclic and disconnected graph',
+        (tester) async {
+      final project = _projectWithComplexFallbackScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-read-only-view')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-layout-source-derived')),
+        findsOneWidget,
+      );
+      expect(
+          find.byKey(const ValueKey('scene-graph-node-node_a')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('scene-graph-node-node_b')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('scene-graph-node-node_c')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('scene-graph-node-node_d')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-graph-edge-edge_a_b')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-edge-edge_b_a')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-edge-edge_c_d')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('scene-node-inspector')), findsNothing);
+      expect(container.read(editorNotifierProvider).project, equals(project));
+    });
+
+    testWidgets(
         'local scene selection updates summary without mutating project',
         (tester) async {
       final project = _projectWithTwoScenes();
@@ -302,6 +344,15 @@ ProjectManifest _projectWithTwoScenes() {
   );
 }
 
+ProjectManifest _projectWithComplexFallbackScene() {
+  return ProjectManifest(
+    name: 'Scenes shell test',
+    maps: const [],
+    tilesets: const [],
+    scenes: [_testComplexFallbackScene()],
+  );
+}
+
 SceneAsset _testIntroScene() {
   return SceneAsset(
     id: 'scene_test_intro',
@@ -352,6 +403,49 @@ SceneAsset _testIntroScene() {
       SceneOutcome(id: 'intro_done', label: 'Intro done'),
       SceneOutcome(id: 'branch_done', label: 'Branch done'),
     ],
+  );
+}
+
+SceneAsset _testComplexFallbackScene() {
+  return SceneAsset(
+    id: 'scene_test_complex_fallback',
+    name: 'Complex Fallback Test Scene',
+    description: 'Fixture locale de test cyclique et déconnectée.',
+    graph: SceneGraph(
+      startNodeId: 'node_a',
+      nodes: [
+        SceneNode(id: 'node_a', kind: SceneNodeKind.start, title: 'Node A'),
+        SceneNode(id: 'node_b', kind: SceneNodeKind.condition, title: 'Node B'),
+        SceneNode(id: 'node_c', kind: SceneNodeKind.merge, title: 'Node C'),
+        SceneNode(id: 'node_d', kind: SceneNodeKind.end, title: 'Node D'),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_a_b',
+          fromNodeId: 'node_a',
+          fromPortId: 'completed',
+          toNodeId: 'node_b',
+          kind: SceneEdgeKind.defaultFlow,
+          label: 'a to b',
+        ),
+        SceneEdge(
+          id: 'edge_b_a',
+          fromNodeId: 'node_b',
+          fromPortId: 'true',
+          toNodeId: 'node_a',
+          kind: SceneEdgeKind.conditionTrue,
+          label: 'b to a',
+        ),
+        SceneEdge(
+          id: 'edge_c_d',
+          fromNodeId: 'node_c',
+          fromPortId: 'completed',
+          toNodeId: 'node_d',
+          kind: SceneEdgeKind.actionCompleted,
+          label: 'c to d',
+        ),
+      ],
+    ),
   );
 }
 

@@ -348,28 +348,63 @@ class _SceneGraphLayoutPlan {
     List<SceneNode> nodes,
     List<SceneEdge> edges,
   ) {
-    final levels = <String, int>{};
     if (nodes.isEmpty) {
       return {};
     }
-    levels[nodes.first.id] = 0;
-    var changed = true;
-    while (changed) {
-      changed = false;
-      for (final edge in edges) {
-        final fromLevel = levels[edge.fromNodeId];
-        if (fromLevel == null) {
-          continue;
-        }
-        final next = fromLevel + 1;
-        if ((levels[edge.toNodeId] ?? -1) < next) {
-          levels[edge.toNodeId] = next;
-          changed = true;
+
+    final nodeIds = nodes.map((node) => node.id).toSet();
+    final adjacency = <String, List<String>>{
+      for (final node in nodes) node.id: <String>[],
+    };
+    final incomingCount = <String, int>{
+      for (final node in nodes) node.id: 0,
+    };
+
+    for (final edge in edges) {
+      if (!nodeIds.contains(edge.fromNodeId) ||
+          !nodeIds.contains(edge.toNodeId)) {
+        continue;
+      }
+      adjacency[edge.fromNodeId]!.add(edge.toNodeId);
+      incomingCount[edge.toNodeId] = (incomingCount[edge.toNodeId] ?? 0) + 1;
+    }
+
+    final levels = <String, int>{};
+    final visited = <String>{};
+
+    void traverseFrom(String startNodeId) {
+      if (!visited.add(startNodeId)) {
+        return;
+      }
+      levels[startNodeId] = 0;
+      final queue = <String>[startNodeId];
+      for (var cursor = 0; cursor < queue.length; cursor++) {
+        final current = queue[cursor];
+        final currentLevel = levels[current] ?? 0;
+        for (final next in adjacency[current] ?? const <String>[]) {
+          if (!visited.add(next)) {
+            continue;
+          }
+          levels[next] = currentLevel + 1;
+          queue.add(next);
         }
       }
     }
+
+    final roots = [
+      for (final node in nodes)
+        if ((incomingCount[node.id] ?? 0) == 0) node.id,
+    ];
+    for (final root in roots.isEmpty ? <String>[nodes.first.id] : roots) {
+      traverseFrom(root);
+    }
+
     for (var index = 0; index < nodes.length; index++) {
-      levels.putIfAbsent(nodes[index].id, () => index);
+      final nodeId = nodes[index].id;
+      if (!visited.contains(nodeId)) {
+        traverseFrom(nodeId);
+      }
+      levels.putIfAbsent(nodeId, () => index);
     }
 
     final rowByLevel = <int, int>{};

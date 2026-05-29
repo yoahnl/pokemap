@@ -65,9 +65,17 @@ Raison : le workspace Scenes affiche maintenant un graph read-only reel pour la 
 - Les labels d'edges viennent de `SceneEdge.label` ou du couple `kind/fromPortId`.
 - Aucun node inspector, drag and drop, edition de node/edge ou runtime n'est ajoute.
 
+## Decisions V1-06-bis
+
+- NS-SCENES-V1-06-bis — fallback layout hardening : DONE.
+- Le layout derive utilise maintenant un parcours borne avec `visited`.
+- Les cycles et composants deconnectes ne peuvent plus bloquer le rendu read-only.
+- Le layout persiste complet reste prioritaire et aucun `SceneAsset.layout` n'est mute.
+- Le prochain lot reste `NS-SCENES-V1-07 — Node Inspector Read-only`.
+
 ## Limites V1-06
 
-- Layout derive simple, suffisant pour V1-06 mais pas un moteur de graph final.
+- Layout derive simple et borne, suffisant pour V1-06-bis mais pas un moteur de graph final.
 - Pas de zoom/pan/minimap.
 - Pas de selection de node.
 - Pas de payload detaille.
