@@ -14,7 +14,7 @@ import 'package:map_editor/src/ui/canvas/storylines/storylines_graph_model.dart'
 import 'package:map_editor/src/ui/canvas/storylines/storylines_graph_view.dart';
 
 void main() {
-  group('NS-STORYLINES-SEED-FIX-01 Selbrume graph usability', () {
+  group('NS-STORYLINES-SEED-FIX Selbrume graph usability', () {
     test('reads seeded sideQuest relationships and resolves step anchors', () {
       final project = _loadSelbrumeProject();
       final main = _selbrumeMain(project);
@@ -105,7 +105,7 @@ void main() {
 
         final canvas = find.byKey(const ValueKey('storylines-graph-canvas'));
         expect(canvas, findsOneWidget);
-        expect(tester.getSize(canvas).height, greaterThanOrEqualTo(640));
+        expect(tester.getSize(canvas).height, greaterThanOrEqualTo(760));
 
         final portChapter = find.byKey(
             const ValueKey('storylines-graph-node-chapter-chapter_1_port'));
@@ -193,15 +193,68 @@ void main() {
       expect(_selbrumeAttachmentRelationships(project), hasLength(3));
     });
 
-    testWidgets('writes seed fix visual gate screenshots', (tester) async {
+    testWidgets('full Storylines shell prioritizes Graph canvas',
+        (tester) async {
+      final project = _loadSelbrumeProject();
+      await _pumpStorylinesShell(tester, project: project);
+
+      final canvas = find.byKey(const ValueKey('storylines-graph-canvas'));
+      final panel = find.byKey(const ValueKey('storylines-main-panel'));
+      expect(canvas, findsOneWidget);
+      expect(panel, findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-header-section-compact')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-kpi-strip-compact')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-graph-toolbar')),
+          findsOneWidget);
+      expect(
+        tester.getSize(canvas).height / tester.getSize(panel).height,
+        greaterThanOrEqualTo(0.62),
+      );
+    });
+
+    testWidgets('Graph and Structure switching stays non-mutating',
+        (tester) async {
+      final seedFile = _selbrumeProjectFile();
+      final seedBefore = seedFile.readAsStringSync();
+      final project = _loadSelbrumeProject();
+      final before = project.toJson();
+
+      await _pumpStorylinesShell(tester, project: project);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('storylines-tabs')),
+          matching: find.text('Structure'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Chapitres'), findsWidgets);
+      expect(find.text('Étapes narratives'), findsWidgets);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('storylines-tabs')),
+          matching: find.text('Graph'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(project.toJson(), before);
+      expect(seedFile.readAsStringSync(), seedBefore);
+      expect(_selbrumeAttachmentRelationships(project), hasLength(3));
+      expect(_selbrumeMain(project).sceneLinks, isEmpty);
+    });
+
+    testWidgets('writes seed fix bis visual gate screenshots', (tester) async {
       final project = _loadSelbrumeProject();
 
-      await _pumpGraph(tester, project);
+      await _pumpStorylinesShell(tester, project: project);
       await expectLater(
-        find.byKey(const ValueKey('storylines-graph-from-asset')),
+        find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_seed_fix_01_selbrume_graph_main.png',
+          'ns_storylines_seed_fix_01_bis_graph_full_layout.png',
         ),
       );
 
@@ -210,7 +263,7 @@ void main() {
         find.byKey(const ValueKey('storylines-graph-canvas')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_seed_fix_01_selbrume_graph_sidequest_nodes.png',
+          'ns_storylines_seed_fix_01_bis_graph_focus_canvas.png',
         ),
       );
 
@@ -226,7 +279,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_seed_fix_01_selbrume_structure_regression.png',
+          'ns_storylines_seed_fix_01_bis_structure_regression.png',
         ),
       );
     });

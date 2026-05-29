@@ -31,56 +31,80 @@ class StorylinesGraphView extends StatelessWidget {
       storylines: storylines,
       sideQuestCountOutsideSelected: sideQuestCountOutsideSelected,
     );
-    final colors = context.pokeMapColors;
     return Column(
       key: const ValueKey('storylines-graph-from-asset'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            const PokeMapIconTile(
-              icon: CupertinoIcons.arrow_branch,
-              tone: PokeMapTone.narrative,
-              size: 42,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Graph de compréhension',
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Vue read-only générée depuis les StorylineAsset et leurs relations explicites.',
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            const _StorylinesGraphBadge(label: 'Read-only'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const _StorylinesGraphLegend(),
-        const SizedBox(height: 10),
-        _GraphStatusBadges(
+        _StorylinesGraphToolbar(
           model: model,
           sideQuestAttached: sideQuestAttached,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         Expanded(child: _StorylineGraphCanvas(model: model)),
       ],
+    );
+  }
+}
+
+class _StorylinesGraphToolbar extends StatelessWidget {
+  const _StorylinesGraphToolbar({
+    required this.model,
+    required this.sideQuestAttached,
+  });
+
+  final StorylineGraphViewModel model;
+  final bool sideQuestAttached;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return DecoratedBox(
+      key: const ValueKey('storylines-graph-toolbar'),
+      decoration: BoxDecoration(
+        color: colors.controlSurface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.borderSubtle),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const PokeMapIconTile(
+                  icon: CupertinoIcons.arrow_branch,
+                  tone: PokeMapTone.narrative,
+                  size: 32,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Graph read-only',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const _StorylinesGraphBadge(label: 'Read-only'),
+                const Spacer(),
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _GraphStatusBadges(
+                      model: model,
+                      sideQuestAttached: sideQuestAttached,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const _StorylinesGraphLegend(compact: true),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -791,11 +815,55 @@ class _EdgeMarker {
 }
 
 class _StorylinesGraphLegend extends StatelessWidget {
-  const _StorylinesGraphLegend();
+  const _StorylinesGraphLegend({this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final legend = Wrap(
+      spacing: compact ? 10 : 14,
+      runSpacing: compact ? 6 : 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _GraphLegendSwatch(
+          label: 'Storyline',
+          color: colors.brandPrimaryBorder,
+        ),
+        _GraphLegendSwatch(
+          label: 'Chapitre',
+          color: colors.controlBorder,
+        ),
+        _GraphLegendSwatch(
+          label: 'Étape narrative',
+          color: colors.borderSubtle,
+        ),
+        _GraphLegendSwatch(
+          label: 'Quête annexe',
+          color: colors.warningBorder,
+        ),
+        _GraphLegendLine(
+          key: const ValueKey('storylines-graph-legend-author-order'),
+          label: 'Ordre auteur',
+          color: colors.brandPrimaryBorder,
+        ),
+        _GraphLegendLine(
+          key: const ValueKey(
+            'storylines-graph-legend-sidequest-availability',
+          ),
+          label: 'Disponibilité quête annexe',
+          color: colors.warning,
+          dashed: true,
+        ),
+      ],
+    );
+    if (compact) {
+      return KeyedSubtree(
+        key: const ValueKey('storylines-graph-legend'),
+        child: legend,
+      );
+    }
     return DecoratedBox(
       key: const ValueKey('storylines-graph-legend'),
       decoration: BoxDecoration(
@@ -805,42 +873,7 @@ class _StorylinesGraphLegend extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Wrap(
-          spacing: 14,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            _GraphLegendSwatch(
-              label: 'Storyline',
-              color: colors.brandPrimaryBorder,
-            ),
-            _GraphLegendSwatch(
-              label: 'Chapitre',
-              color: colors.controlBorder,
-            ),
-            _GraphLegendSwatch(
-              label: 'Étape narrative',
-              color: colors.borderSubtle,
-            ),
-            _GraphLegendSwatch(
-              label: 'Quête annexe',
-              color: colors.warningBorder,
-            ),
-            _GraphLegendLine(
-              key: const ValueKey('storylines-graph-legend-author-order'),
-              label: 'Ordre auteur',
-              color: colors.brandPrimaryBorder,
-            ),
-            _GraphLegendLine(
-              key: const ValueKey(
-                'storylines-graph-legend-sidequest-availability',
-              ),
-              label: 'Disponibilité quête annexe',
-              color: colors.warning,
-              dashed: true,
-            ),
-          ],
-        ),
+        child: legend,
       ),
     );
   }

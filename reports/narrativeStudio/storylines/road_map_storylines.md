@@ -318,6 +318,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | DONE | NS-SCENES-V1 |
 | NS-STORYLINES-SEED-00 | Selbrume Storylines Demo Seed V0 | demo data | DONE | NS-SCENES-V1 |
 | NS-STORYLINES-SEED-FIX-01 | Selbrume Graph Layout / SideQuest Rendering Fix V0 | editor graph fix | DONE | NS-STORYLINES-V1.1-01 |
+| NS-STORYLINES-SEED-FIX-01-bis | Graph Focus Layout / Canvas Priority | editor graph layout | DONE | NS-STORYLINES-V1.1-01 |
 
 ## 9. Detailed lots
 
@@ -899,7 +900,7 @@ Décision temporaire :
 
 ```text
 Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 ACCEPTED WITH LIMITATIONS
-Current lot: NS-STORYLINES-SEED-FIX-01
+Current lot: NS-STORYLINES-SEED-FIX-01-bis
 Current lot status: DONE
 Next recommended lot: NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0
 ```
@@ -937,6 +938,7 @@ Next recommended lot: NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0
 | NS-STORYLINES-V1-CHECKPOINT | DONE | 2026-05-29 | Verdict `ACCEPTED WITH LIMITATIONS` : Storylines V1 fermé comme atelier auteur initial. |
 | NS-STORYLINES-SEED-00 | DONE | 2026-05-29 | Selbrume Storylines Demo Seed V0 livré comme data-only : 1 main, 3 sideQuests, chapters, steps et attachements explicites. |
 | NS-STORYLINES-SEED-FIX-01 | DONE | 2026-05-29 | Correction post-seed : graph plus grand, sideQuests attachées rendues comme nodes indépendants, aucun seed/model/runtime modifié. |
+| NS-STORYLINES-SEED-FIX-01-bis | DONE | 2026-05-29 | Graph Focus Layout livré : graph par défaut agrandi, KPI/header compactés en mode Graph, sideQuest nodes indépendants préservés, aucun seed ni donnée métier modifié. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -972,6 +974,14 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-SEED-FIX-01-bis
+
+- Correction layout post-seed : le graph par défaut démarre plus haut et occupe nettement plus de place dans la zone centrale Storylines.
+- Les KPI et le header interne sont compactés en mode Graph afin de laisser la priorité au canvas.
+- Les sideQuest nodes indépendants et les edges de disponibilité du lot précédent sont préservés ; aucune sideQuest n'est réintégrée dans les chapter cards.
+- Aucune donnée métier, aucun seed, aucun modèle core, runtime, gameplay, battle ou fichier `selbrume/project.json` modifié.
+- Captures Visual Gate dark bis produites ; le prochain lot recommandé reste `NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0`.
 
 ### 2026-05-29 — NS-STORYLINES-SEED-FIX-01
 

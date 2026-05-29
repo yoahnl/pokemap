@@ -891,10 +891,11 @@ class _StorylinesV1MainPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final graphMode = selectedTab == _StorylineContentTab.graph;
     return PokeMapPanel(
       key: const ValueKey('storylines-main-panel'),
       expandChild: true,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(graphMode ? 10 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -902,18 +903,19 @@ class _StorylinesV1MainPanel extends StatelessWidget {
             selectedStoryline: selectedStoryline,
             canCreateStoryline: canCreateStoryline,
             onCreateStoryline: onCreateStoryline,
+            compact: graphMode,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: graphMode ? 8 : 12),
           _StorylineTabsRow(
             selectedTab: selectedTab,
             onTabSelected: onTabSelected,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: graphMode ? 6 : 12),
           _StorylinesV1KpiStrip(
             storylines: storylines,
-            compact: selectedTab == _StorylineContentTab.graph,
+            compact: graphMode,
           ),
-          SizedBox(height: selectedTab == _StorylineContentTab.graph ? 10 : 16),
+          SizedBox(height: graphMode ? 6 : 16),
           Expanded(
             child: selectedTab == _StorylineContentTab.structure
                 ? _StorylinesV1StructureSection(
@@ -943,15 +945,71 @@ class _StorylinesV1Header extends StatelessWidget {
     required this.selectedStoryline,
     required this.canCreateStoryline,
     required this.onCreateStoryline,
+    required this.compact,
   });
 
   final StorylineAsset? selectedStoryline;
   final bool canCreateStoryline;
   final VoidCallback? onCreateStoryline;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final title = selectedStoryline?.title ?? 'Storylines';
+    if (compact) {
+      return KeyedSubtree(
+        key: const ValueKey('storylines-header-section'),
+        child: Row(
+          key: const ValueKey('storylines-header-section-compact'),
+          children: [
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (selectedStoryline != null) ...[
+                    _StorylinesV1Badge(
+                      label: _storylineTypeLabel(selectedStoryline!.type),
+                    ),
+                    const _StorylinesV1Badge(label: 'Brouillon'),
+                    if (selectedStoryline!.type == StorylineType.sideQuest)
+                      _StorylinesV1Badge(
+                        label: _sideQuestAttachmentStatus(selectedStoryline!),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            PokeMapButton(
+              key: const ValueKey('storylines-create-main-cta'),
+              onPressed: canCreateStoryline ? onCreateStoryline : null,
+              variant: PokeMapButtonVariant.primary,
+              leading: const Icon(CupertinoIcons.plus, size: 16),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Nouvelle'),
+                  Text(' storyline'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return KeyedSubtree(
       key: const ValueKey('storylines-header-section'),
       child: Row(
@@ -961,7 +1019,7 @@ class _StorylinesV1Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  selectedStoryline?.title ?? 'Storylines',
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1060,44 +1118,48 @@ class _StorylinesV1KpiStrip extends StatelessWidget {
     if (compact) {
       return KeyedSubtree(
         key: const ValueKey('storylines-kpi-strip'),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: colors.controlSurface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: colors.borderSubtle),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _StorylinesV1CompactKpi(
-                    label: 'Storylines',
-                    value: storylines.length.toString(),
+        child: SizedBox(
+          key: const ValueKey('storylines-kpi-strip-compact'),
+          height: 34,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.controlSurface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.borderSubtle),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _StorylinesV1CompactKpi(
+                      label: 'Storylines',
+                      value: storylines.length.toString(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _StorylinesV1CompactKpi(
-                    label: 'Chapters',
-                    value: chapterCount.toString(),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _StorylinesV1CompactKpi(
+                      label: 'Chapters',
+                      value: chapterCount.toString(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _StorylinesV1CompactKpi(
-                    label: 'Story Steps',
-                    value: stepCount.toString(),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _StorylinesV1CompactKpi(
+                      label: 'Story Steps',
+                      value: stepCount.toString(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _StorylinesV1CompactKpi(
-                    label: 'Scene Links',
-                    value: sceneLinkCount.toString(),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _StorylinesV1CompactKpi(
+                      label: 'Scene Links',
+                      value: sceneLinkCount.toString(),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1170,11 +1232,11 @@ class _StorylinesV1CompactKpi extends StatelessWidget {
           value,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 5),
         Flexible(
           child: Text(
             label,
@@ -1182,7 +1244,7 @@ class _StorylinesV1CompactKpi extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: colors.textSecondary,
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: FontWeight.w700,
             ),
           ),
