@@ -316,6 +316,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-11 | Side Quest Attachment + Graph Integration V0 | editor graph | DONE | NS-STORYLINES-V1-12 |
 | NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | DONE | NS-STORYLINES-V1-CHECKPOINT |
 | NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | DONE | NS-SCENES-V1 |
+| NS-STORYLINES-SEED-00 | Selbrume Storylines Demo Seed V0 | demo data | DONE | NS-SCENES-V1 |
 
 ## 9. Detailed lots
 
@@ -897,7 +898,7 @@ Décision temporaire :
 
 ```text
 Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 ACCEPTED WITH LIMITATIONS
-Current lot: NS-STORYLINES-V1-CHECKPOINT
+Current lot: NS-STORYLINES-SEED-00
 Current lot status: DONE
 Next recommended lot: NS-SCENES-V1 — Scene Placeholder + Scene Linking Foundation
 ```
@@ -965,6 +966,15 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-SEED-00
+
+- Selbrume Storylines Demo Seed V0 livré comme data-only dans `selbrume/project.json`.
+- Seed ajouté uniquement dans `ProjectManifest.storylines` : 1 main storyline, 3 sideQuests, chapters, steps et attachements explicites sideQuest -> main step.
+- Aucun code produit, test, runtime, gameplay, battle, event, scene, fact, world rule, dialogue, cinématique ou combat importé.
+- Source documentaire utilisée : `MVP Selbrume/selbrume.md`.
+- Validation JSON et tests core ciblés passent ; le test editor global `storylines_workspace_shell_test.dart` échoue sur le golden Visual Gate V1-12 absent du repo courant, sans modification de test dans ce lot.
+- Storylines V1 reste fermé par checkpoint ; prochaine phase recommandée : `NS-SCENES-V1 — Scene Placeholder + Scene Linking Foundation`.
 
 ### 2026-05-29 — NS-STORYLINES-V1-CHECKPOINT
 

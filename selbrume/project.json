@@ -1,6 +1,438 @@
 {
   "name": "Selbrume",
   "version": "v1",
+  "storylines": [
+    {
+      "id": "story_main_brume_phare",
+      "schemaVersion": 1,
+      "type": "main",
+      "status": "draft",
+      "title": "La brume du phare",
+      "description": "Le joueur enquête sur une brume étrange qui perturbe Selbrume, découvre que le vieux phare amplifie involontairement l’énergie d’un Pokémon effrayé, puis l’apaise pour rétablir l’équilibre de l’île.",
+      "chapters": [
+        {
+          "id": "chapter_1_port",
+          "title": "Le port",
+          "description": "Introduction, mission, rival et premier branchement narratif.",
+          "order": 0,
+          "steps": [
+            {
+              "id": "step_intro_selbrume",
+              "title": "Introduction à Selbrume",
+              "description": "Le joueur découvre que quelque chose ne va pas sur l’île.",
+              "order": 0,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_receive_mission",
+              "title": "Recevoir la mission de Maël",
+              "description": "Maël donne la mission et gère le cas starter ou Pokémon déjà présent.",
+              "order": 1,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_go_to_port",
+              "title": "Aller au Port des Brisants",
+              "description": "Le joueur rejoint le port et découvre l’inquiétude des pêcheurs.",
+              "order": 2,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_rival_battle",
+              "title": "Affronter Lysa",
+              "description": "Premier combat important avec branches victoire/défaite qui rejoignent l’histoire principale.",
+              "order": 3,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            }
+          ],
+          "directSceneLinkIds": [],
+          "metadata": {}
+        },
+        {
+          "id": "chapter_2_marais",
+          "title": "Les marais",
+          "description": "Enquête, exploration, indices et préparation de l’accès au phare.",
+          "order": 1,
+          "steps": [
+            {
+              "id": "step_enter_marais",
+              "title": "Entrer dans les Marais Salants",
+              "description": "Le joueur entre dans les marais et rencontre Mado.",
+              "order": 0,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_find_three_clues",
+              "title": "Trouver les indices de la brume",
+              "description": "Le joueur trouve trois indices : verre poli, traces électriques et repère de lentille.",
+              "order": 1,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_report_to_soline",
+              "title": "Convaincre Soline d’ouvrir le passage",
+              "description": "Le joueur rapporte les indices et débloque le Passage des Dames.",
+              "order": 2,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            }
+          ],
+          "directSceneLinkIds": [],
+          "metadata": {}
+        },
+        {
+          "id": "chapter_3_phare",
+          "title": "Le phare",
+          "description": "Accès final, mini-donjon et résolution de la brume.",
+          "order": 2,
+          "steps": [
+            {
+              "id": "step_reach_lighthouse",
+              "title": "Rejoindre le Vieux Phare d’Écume",
+              "description": "Le joueur traverse le Passage des Dames et atteint le phare.",
+              "order": 0,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_climb_lighthouse",
+              "title": "Explorer le phare",
+              "description": "Le joueur explore le phare, lit d’anciennes notes et débloque le sommet.",
+              "order": 1,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_final_confrontation",
+              "title": "Apaiser le Pokémon du phare",
+              "description": "Le joueur affronte ou apaise le Pokémon responsable de l’amplification de la brume.",
+              "order": 2,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            }
+          ],
+          "directSceneLinkIds": [],
+          "metadata": {}
+        },
+        {
+          "id": "chapter_4_epilogue",
+          "title": "Épilogue",
+          "description": "Retour au calme, conclusion et dialogues post-crise.",
+          "order": 3,
+          "steps": [
+            {
+              "id": "step_return_to_port",
+              "title": "Retourner au port",
+              "description": "Le joueur revient au port après la résolution de la brume.",
+              "order": 0,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_main_story_completed",
+              "title": "La lumière revient sur Selbrume",
+              "description": "L’histoire principale est terminée et l’île retrouve son équilibre.",
+              "order": 1,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            }
+          ],
+          "directSceneLinkIds": [],
+          "metadata": {}
+        }
+      ],
+      "sceneLinks": [],
+      "relationships": [],
+      "authorNotes": "Seed Storylines V1 uniquement. Les events, scenes, facts, world rules, dialogues, cinématiques et combats décrits dans selbrume.md ne sont pas encore importés dans ce seed.",
+      "metadata": {
+        "seed": "selbrume_storylines_v0",
+        "source": "selbrume.md",
+        "seedScope": "storylines_v1_only"
+      }
+    },
+    {
+      "id": "story_side_salt_crystals",
+      "schemaVersion": 1,
+      "type": "sideQuest",
+      "status": "draft",
+      "title": "Les cristaux de sel",
+      "description": "Mado a perdu trois cristaux de sel qui réagissent à la brume et demande au joueur de les retrouver.",
+      "chapters": [
+        {
+          "id": "chapter_salt_crystals",
+          "title": "Les cristaux de sel",
+          "description": "Collecte des cristaux et retour auprès de Mado.",
+          "order": 0,
+          "steps": [
+            {
+              "id": "step_crystals_talk_to_mado",
+              "title": "Parler à Mado",
+              "description": "Mado explique la disparition des cristaux.",
+              "order": 0,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_crystals_collect_three",
+              "title": "Retrouver les trois cristaux",
+              "description": "Le joueur collecte les trois cristaux dans les marais.",
+              "order": 1,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_crystals_return_to_mado",
+              "title": "Rapporter les cristaux à Mado",
+              "description": "Le joueur retourne voir Mado avec les cristaux retrouvés.",
+              "order": 2,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_crystals_completed",
+              "title": "Cristaux de sel terminée",
+              "description": "La quête est terminée et la récompense est donnée.",
+              "order": 3,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            }
+          ],
+          "directSceneLinkIds": [],
+          "metadata": {}
+        }
+      ],
+      "sceneLinks": [],
+      "relationships": [
+        {
+          "id": "relationship_salt_crystals_available_enter_marais",
+          "kind": "sideQuestAvailableDuring",
+          "sourceStorylineId": "story_side_salt_crystals",
+          "targetStorylineId": "story_main_brume_phare",
+          "availability": {
+            "startAnchor": {
+              "kind": "step",
+              "targetId": "step_enter_marais"
+            },
+            "requiredOutcomeIds": []
+          },
+          "notes": "La quête devient disponible après rencontre de Mado / entrée dans les marais.",
+          "metadata": {
+            "seed": "selbrume_storylines_v0",
+            "source": "selbrume.md"
+          }
+        }
+      ],
+      "metadata": {
+        "seed": "selbrume_storylines_v0",
+        "source": "selbrume.md",
+        "seedScope": "storylines_v1_only"
+      }
+    },
+    {
+      "id": "story_side_goelise_port",
+      "schemaVersion": 1,
+      "type": "sideQuest",
+      "status": "draft",
+      "title": "Le Goélise du port",
+      "description": "Un Goélise vole les repas des pêcheurs parce que son nid a été perturbé par la brume.",
+      "chapters": [
+        {
+          "id": "chapter_goelise_port",
+          "title": "Le Goélise du port",
+          "description": "Enquête au port, choix moral léger et retour aux pêcheurs.",
+          "order": 0,
+          "steps": [
+            {
+              "id": "step_goelise_talk_to_fisher",
+              "title": "Parler au pêcheur",
+              "description": "Un pêcheur demande de l’aide au sujet du Goélise.",
+              "order": 0,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_goelise_find_nest",
+              "title": "Trouver le nid",
+              "description": "Le joueur trouve le nid dérangé du Goélise.",
+              "order": 1,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_goelise_choice",
+              "title": "Décider quoi faire de l’objet brillant",
+              "description": "Le joueur choisit de rendre ou garder l’objet trouvé.",
+              "order": 2,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_goelise_return",
+              "title": "Retourner voir le pêcheur",
+              "description": "Le joueur retourne au port avec les conséquences de son choix.",
+              "order": 3,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_goelise_completed",
+              "title": "Goélise du port terminée",
+              "description": "La quête est terminée et les dialogues futurs pourront changer.",
+              "order": 4,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            }
+          ],
+          "directSceneLinkIds": [],
+          "metadata": {}
+        }
+      ],
+      "sceneLinks": [],
+      "relationships": [
+        {
+          "id": "relationship_goelise_port_available_rival_battle",
+          "kind": "sideQuestAvailableDuring",
+          "sourceStorylineId": "story_side_goelise_port",
+          "targetStorylineId": "story_main_brume_phare",
+          "availability": {
+            "startAnchor": {
+              "kind": "step",
+              "targetId": "step_rival_battle"
+            },
+            "requiredOutcomeIds": []
+          },
+          "notes": "La quête devient disponible après le combat rival au port.",
+          "metadata": {
+            "seed": "selbrume_storylines_v0",
+            "source": "selbrume.md"
+          }
+        }
+      ],
+      "metadata": {
+        "seed": "selbrume_storylines_v0",
+        "source": "selbrume.md",
+        "seedScope": "storylines_v1_only"
+      }
+    },
+    {
+      "id": "story_side_lighthouse_cabin",
+      "schemaVersion": 1,
+      "type": "sideQuest",
+      "status": "draft",
+      "title": "La cabane du phare",
+      "description": "Yvon cherche la clé de son ancienne cabane, qui contient un carnet expliquant l’histoire de la lentille du phare.",
+      "chapters": [
+        {
+          "id": "chapter_lighthouse_cabin",
+          "title": "La cabane du phare",
+          "description": "Clé, porte verrouillée, carnet du gardien et lore optionnel.",
+          "order": 0,
+          "steps": [
+            {
+              "id": "step_cabin_talk_to_yvon",
+              "title": "Parler à Yvon",
+              "description": "Yvon demande de l’aide pour retrouver la clé de la cabane.",
+              "order": 0,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_cabin_find_key",
+              "title": "Trouver la clé",
+              "description": "Le joueur retrouve la clé de la cabane.",
+              "order": 1,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_cabin_open_door",
+              "title": "Ouvrir la cabane",
+              "description": "Le joueur ouvre la cabane grâce à la clé.",
+              "order": 2,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_cabin_read_journal",
+              "title": "Lire le carnet du gardien",
+              "description": "Le joueur découvre le lore de la lentille du phare.",
+              "order": 3,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            },
+            {
+              "id": "step_cabin_completed",
+              "title": "Cabane du phare terminée",
+              "description": "La quête est terminée et le joueur comprend mieux le final.",
+              "order": 4,
+              "sceneLinkIds": [],
+              "expectedOutcomeIds": [],
+              "metadata": {}
+            }
+          ],
+          "directSceneLinkIds": [],
+          "metadata": {}
+        }
+      ],
+      "sceneLinks": [],
+      "relationships": [
+        {
+          "id": "relationship_lighthouse_cabin_available_report_soline",
+          "kind": "sideQuestAvailableDuring",
+          "sourceStorylineId": "story_side_lighthouse_cabin",
+          "targetStorylineId": "story_main_brume_phare",
+          "availability": {
+            "startAnchor": {
+              "kind": "step",
+              "targetId": "step_report_to_soline"
+            },
+            "requiredOutcomeIds": []
+          },
+          "notes": "La quête devient pertinente quand le passage vers le phare est débloqué.",
+          "metadata": {
+            "seed": "selbrume_storylines_v0",
+            "source": "selbrume.md"
+          }
+        }
+      ],
+      "metadata": {
+        "seed": "selbrume_storylines_v0",
+        "source": "selbrume.md",
+        "seedScope": "storylines_v1_only"
+      }
+    }
+  ],
   "maps": [
     {
       "id": "route 1",
