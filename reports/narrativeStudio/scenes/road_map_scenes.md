@@ -46,14 +46,34 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-07 — Node Inspector Read-only | DONE | Selection locale de node dans le graph read-only, inspecteur read-only du payload et des edges entrants/sortants, sans authoring ni mutation. |
 | NS-SCENES-V1-08 — Authoring Minimal Scene Draft | DONE | Creation d'une SceneAsset draft minimale depuis le workspace Scenes, ajout en memoire dans `ProjectManifest.scenes`, selection auto et graph/inspector read-only. |
 | NS-SCENES-V1-09 — Scene Validation Diagnostics | DONE | Diagnostics Scene V1 purs dans `map_core` et affichage editor : erreurs/warnings de graph, layout et outcomes, sans mutation ni correction automatique. |
-| NS-SCENES-V1-10 — Runtime Execution Prep | TODO | Adapter ou wrapper les briques runtime existantes pour preparer l'execution Scene V1. |
-| NS-SCENES-V1-11 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres stabilisation du modele Scene V1. |
+| NS-SCENES-V1-10 — Runtime Execution Prep | DONE | Decision runtime Scene V1 : preparer un `SceneRuntimePlan` pur avant tout branchement runtime, utiliser `ScenarioRuntimeExecutor` seulement comme inspiration/bridge temporaire explicite. |
+| NS-SCENES-V1-11 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-12 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres plan runtime Scene V1 stable et strategie de triggers clarifiee. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-10 — Runtime Execution Prep`
+`NS-SCENES-V1-11 — Scene Runtime Plan V0`
 
-Raison : les scènes draft sont créables et les premiers diagnostics encadrent maintenant start/end, layout et outcomes. Le prochain lot peut préparer l'exécution sans brancher Storylines trop tôt.
+Raison : V1-10 tranche la strategie runtime sans coder l'execution. Le prochain blocage n'est pas `StorylineStep.sceneLinkIds`, mais un plan runtime pur et testable qui transforme une `SceneAsset` valide en intents executables, sans layout, sans Flutter et sans conversion automatique en `ScenarioAsset`.
+
+## Decisions V1-10
+
+- Decision principale : ne pas brancher encore le runtime Scene V1.
+- Prochain objet technique recommande : `SceneRuntimePlan` pur cote `map_core`, derive de `SceneAsset` + `diagnoseScene`.
+- `SceneRuntimePlan` doit ignorer completement `SceneGraphLayout`.
+- Les scenes avec diagnostics `error` ne doivent pas etre executables ; elles doivent produire une erreur runtime/authoring lisible.
+- `ScenarioRuntimeExecutor` reste supporte comme runtime legacy et source d'inspiration, mais ne devient pas le contrat Scene V1.
+- Pas de conversion automatique `SceneAsset -> ScenarioAsset` au save, ni migration destructive.
+- Le mapping cible est `SceneNodeKind -> SceneRuntimeIntent`, puis un futur adapter `map_runtime` executera ces intents.
+- Les outcomes locaux restent non persistants par defaut ; seule une action explicite pourra persister un Fact, flag ou StoryStep.
+- Le lien `StorylineStep -> Scene` est repousse apres `SceneRuntimePlan V0`.
+
+## Limites V1-10
+
+- Documentation-only : aucun modele runtime code n'est cree.
+- Pas de tests/analyze requis hors `git diff --check`.
+- Pas de modification `map_runtime`, `map_editor`, `map_gameplay` ou `map_battle`.
+- Pas de hook runtime map/event, pas d'ouverture Yarn, pas de battle handoff Scene V1, pas de cinematic playback Scene V1.
 
 ## Decisions V1-09
 
