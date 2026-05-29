@@ -12,7 +12,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-STORYLINES-V1-11 sideQuest attachment graph flow', () {
+  group('NS-STORYLINES-V1-12 visual graph enrichment', () {
     testWidgets('shows only Graph and Structure tabs', (tester) async {
       await _pumpStorylinesShell(tester);
 
@@ -143,8 +143,13 @@ void main() {
 
       await _openCreateDialog(tester);
 
+      final dialog =
+          find.byKey(const ValueKey('storylines-create-main-dialog'));
       expect(find.text('Une histoire principale existe déjà.'), findsWidgets);
-      expect(find.text('Quête annexe'), findsOneWidget);
+      expect(
+        find.descendant(of: dialog, matching: find.text('Quête annexe')),
+        findsOneWidget,
+      );
       expect(find.text('Sélectionné'), findsOneWidget);
       expect(find.byKey(const ValueKey('storylines-create-title-field')),
           findsOneWidget);
@@ -590,7 +595,11 @@ void main() {
         find.byKey(const ValueKey('storylines-graph-edge-root-chapter_intro')),
         findsOneWidget,
       );
-      expect(find.text('Lignes = ordre auteur'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('storylines-graph-legend-author-order')),
+        findsOneWidget,
+      );
+      expect(find.text('Ordre auteur'), findsOneWidget);
       expect(find.text('Aucune scène liée'), findsOneWidget);
       expect(find.text('Ajoutez un chapitre dans Structure'), findsNothing);
       expect(find.text('Quête annexe fake'), findsNothing);
@@ -879,7 +888,18 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Quêtes annexes attachées : 1'), findsOneWidget);
-      expect(find.textContaining('Relation explicite · Étape · Signal'),
+      expect(
+        find.byKey(
+          const ValueKey(
+            'storylines-graph-legend-sidequest-availability',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Disponibilité quête annexe'), findsOneWidget);
+      expect(find.textContaining('Disponible depuis Étape · Signal'),
+          findsOneWidget);
+      expect(find.textContaining('Quête annexe · 0 chapitres · 0 étapes'),
           findsOneWidget);
       expect(
         find.byKey(
@@ -1152,14 +1172,23 @@ void main() {
     });
 
     test('storylines UI source keeps raw colors out of the feature', () {
-      final source = File('lib/src/ui/canvas/storylines_workspace.dart');
-      expect(source.existsSync(), isTrue);
-
-      final contents = source.readAsStringSync();
+      final sources = [
+        File('lib/src/ui/canvas/storylines_workspace.dart'),
+        File('lib/src/ui/canvas/storylines/storylines_graph_model.dart'),
+        File('lib/src/ui/canvas/storylines/storylines_graph_painter.dart'),
+        File('lib/src/ui/canvas/storylines/storylines_graph_view.dart'),
+      ];
       const rawColorPattern = 'Color' '(0x';
       const materialColorsPattern = 'Colors' '.';
-      expect(contents, isNot(contains(rawColorPattern)));
-      expect(contents, isNot(contains(materialColorsPattern)));
+
+      for (final source in sources) {
+        expect(source.existsSync(), isTrue, reason: source.path);
+
+        final contents = source.readAsStringSync();
+        expect(contents, isNot(contains(rawColorPattern)), reason: source.path);
+        expect(contents, isNot(contains(materialColorsPattern)),
+            reason: source.path);
+      }
     });
 
     test('storylines shell test keeps raw colors out', () {
@@ -1183,13 +1212,39 @@ void main() {
       expect(Theme.of(shellContext).brightness, Brightness.dark);
     });
 
-    testWidgets('writes V1-11 sideQuest attachment graph screenshots',
-        (tester) async {
+    testWidgets('writes V1-12 polished graph screenshots', (tester) async {
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1600, 1000),
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_empty_visual',
+            type: StorylineType.main,
+            title: 'Empty Visual Main',
+          ),
+        ]),
+      );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_12_graph_empty_polished.png',
+        ),
+      );
+
       await _pumpStorylinesShell(
         tester,
         surfaceSize: const Size(1600, 1000),
         project: _visualGraphProject(),
       );
+      await expectLater(
+        find.byKey(const ValueKey('storylines-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/storylines/screenshots/'
+          'ns_storylines_v1_12_graph_main_polished.png',
+        ),
+      );
+
       await tester.tap(
         find.byKey(const ValueKey('storylines-v1-row-sidequest_visual')),
       );
@@ -1199,14 +1254,6 @@ void main() {
         find.byKey(const ValueKey('storylines-attach-sidequest-action')),
       );
       await tester.pumpAndSettle();
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_11_attach_side_quest_dialog.png',
-        ),
-      );
-
       await tester.tap(
         find.byKey(
           const ValueKey(
@@ -1226,7 +1273,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_11_attached_main_graph.png',
+          'ns_storylines_v1_12_graph_sidequest_attached_polished.png',
         ),
       );
 
@@ -1234,25 +1281,12 @@ void main() {
         find.byKey(const ValueKey('storylines-v1-row-sidequest_visual')),
       );
       await tester.pump();
-      await _openStructureTab(tester);
+      await _openGraphTab(tester);
       await expectLater(
         find.byKey(const ValueKey('storylines-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_11_attached_sidequest_structure.png',
-        ),
-      );
-
-      await _pumpStorylinesShell(
-        tester,
-        surfaceSize: const Size(1600, 1000),
-        project: _visualGraphProject(),
-      );
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_v1_11_unattached_sidequest_hidden_from_main_graph.png',
+          'ns_storylines_v1_12_graph_sidequest_standalone_polished.png',
         ),
       );
     });

@@ -226,6 +226,8 @@ final class StorylineGraphSideQuestAttachment {
     required this.sideQuestId,
     required this.relationshipId,
     required this.title,
+    required this.chapterCount,
+    required this.stepCount,
     required this.chapterId,
     required this.anchorKind,
     required this.anchorId,
@@ -237,6 +239,8 @@ final class StorylineGraphSideQuestAttachment {
   final String sideQuestId;
   final String relationshipId;
   final String title;
+  final int chapterCount;
+  final int stepCount;
   final String chapterId;
   final StorylineAnchorKind anchorKind;
   final String anchorId;
@@ -367,6 +371,8 @@ StorylineGraphSideQuestAttachment? _chapterAttachment(
     sideQuestId: sideQuest.id,
     relationshipId: relationship.id,
     title: sideQuest.title,
+    chapterCount: sideQuest.chapters.length,
+    stepCount: _storylineStepCount(sideQuest),
     chapterId: chapter.id,
     anchorKind: anchor.kind,
     anchorId: anchor.targetId,
@@ -389,6 +395,8 @@ StorylineGraphSideQuestAttachment? _stepAttachment(
     sideQuestId: sideQuest.id,
     relationshipId: relationship.id,
     title: sideQuest.title,
+    chapterCount: sideQuest.chapters.length,
+    stepCount: _storylineStepCount(sideQuest),
     chapterId: chapter.id,
     anchorKind: anchor.kind,
     anchorId: anchor.targetId,
@@ -406,6 +414,13 @@ bool _isSideQuestAttachment(
       (relationship.kind ==
               StorylineRelationshipKind.sideQuestAvailableDuring ||
           relationship.kind == StorylineRelationshipKind.sideQuestUnlockedBy);
+}
+
+int _storylineStepCount(StorylineAsset storyline) {
+  return storyline.chapters.fold<int>(
+    0,
+    (total, chapter) => total + chapter.steps.length,
+  );
 }
 
 int _compareChaptersByAuthorOrder(

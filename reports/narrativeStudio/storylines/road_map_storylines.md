@@ -314,7 +314,7 @@ Interprétation V0 :
 | NS-STORYLINES-V1-09 | Create Side Quest Flow V0 | editor authoring | DONE | NS-STORYLINES-V1-10 |
 | NS-STORYLINES-V1-10 | Graph From StorylineAsset V0 | editor graph | DONE | NS-STORYLINES-V1-11 |
 | NS-STORYLINES-V1-11 | Side Quest Attachment + Graph Integration V0 | editor graph | DONE | NS-STORYLINES-V1-12 |
-| NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | TODO | NS-STORYLINES-V1-CHECKPOINT |
+| NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | DONE | NS-STORYLINES-V1-CHECKPOINT |
 | NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | TODO | TBD |
 
 ## 9. Detailed lots
@@ -896,10 +896,10 @@ Décision temporaire :
 ## 13. Current status
 
 ```text
-Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 SIDE QUEST ATTACHMENT DONE
-Current lot: NS-STORYLINES-V1-11
+Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 VISUAL GRAPH ENRICHMENT DONE
+Current lot: NS-STORYLINES-V1-12
 Current lot status: DONE
-Next recommended lot: NS-STORYLINES-V1-12 — V1 Visual Graph Enrichment
+Next recommended lot: NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint
 ```
 
 | Lot | Status | Last update | Notes |
@@ -965,6 +965,17 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-V1-12
+
+- V1 Visual Graph Enrichment livré côté editor : le graph read-only est plus lisible sans ajouter de comportement produit.
+- Améliorations visuelles : légende compacte, hiérarchie des nodes storyline/chapter/step/sideQuest, canvas plus dense, sideQuest attachée plus distincte.
+- Edges clarifiés : ordre auteur en ligne principale, disponibilité de quête annexe en ligne secondaire pointillée via tokens du design system.
+- Visual-only confirmé : aucune donnée métier créée, aucune mutation de `ProjectManifest`, aucune création de relationship/availability/sceneLink/scene placeholder dans ce lot.
+- `Structure` reste la source d'authoring ; le graph reste read-only ; aucun import legacy automatique ; `localEventFlow` reste exclu.
+- Fichiers créés/modifiés : `storylines_graph_model.dart`, `storylines_graph_painter.dart`, `storylines_graph_view.dart`, `storylines_workspace_shell_test.dart`, captures V1-12, rapport V1-12.
+- Tests exécutés : `flutter test test/storylines_workspace_shell_test.dart`, `flutter test test/storylines_current_global_story_characterization_test.dart`, `flutter test test/narrative_workspace_projection_test.dart`, analyse ciblée, `rg` anti-couleurs, `rg` contrôle features interdites.
+- Prochain lot recommandé : `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`.
 
 ### 2026-05-29 — NS-STORYLINES-V1-11
 

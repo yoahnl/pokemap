@@ -22,12 +22,14 @@ class StorylinesGraphPainter extends CustomPainter {
     required this.gridColor,
     required this.authorOrderColor,
     required this.containsColor,
+    required this.sideQuestAvailabilityColor,
   });
 
   final List<StorylineGraphPaintEdge> edges;
   final Color gridColor;
   final Color authorOrderColor;
   final Color containsColor;
+  final Color sideQuestAvailabilityColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -51,15 +53,20 @@ class StorylinesGraphPainter extends CustomPainter {
   }
 
   void _paintEdge(Canvas canvas, StorylineGraphPaintEdge edge) {
-    final color = edge.kind == StorylineGraphEdgeKind.authorOrder
-        ? authorOrderColor
-        : containsColor;
+    final color = switch (edge.kind) {
+      StorylineGraphEdgeKind.authorOrder => authorOrderColor,
+      StorylineGraphEdgeKind.sideQuestAttachment => sideQuestAvailabilityColor,
+      StorylineGraphEdgeKind.contains => containsColor,
+    };
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth =
-          edge.kind == StorylineGraphEdgeKind.authorOrder ? 2.4 : 1.4;
+      ..strokeWidth = switch (edge.kind) {
+        StorylineGraphEdgeKind.authorOrder => 2.4,
+        StorylineGraphEdgeKind.sideQuestAttachment => 1.8,
+        StorylineGraphEdgeKind.contains => 1.4,
+      };
     final controlOffset =
         math.max((edge.to.dx - edge.from.dx).abs() * 0.42, 48);
     final path = Path()
@@ -72,20 +79,39 @@ class StorylinesGraphPainter extends CustomPainter {
         edge.to.dx,
         edge.to.dy,
       );
-    canvas.drawPath(path, paint);
-    if (edge.kind == StorylineGraphEdgeKind.authorOrder) {
-      _paintArrowHead(canvas, edge, color);
+    switch (edge.kind) {
+      case StorylineGraphEdgeKind.sideQuestAttachment:
+        _paintDashedPath(canvas, path, paint);
+        _paintArrowHead(canvas, edge, color, size: 6);
+      case StorylineGraphEdgeKind.authorOrder:
+        canvas.drawPath(path, paint);
+        _paintArrowHead(canvas, edge, color);
+      case StorylineGraphEdgeKind.contains:
+        canvas.drawPath(path, paint);
+    }
+  }
+
+  void _paintDashedPath(Canvas canvas, Path path, Paint paint) {
+    const dash = 8.0;
+    const gap = 7.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = math.min(distance + dash, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance = end + gap;
+      }
     }
   }
 
   void _paintArrowHead(
     Canvas canvas,
     StorylineGraphPaintEdge edge,
-    Color color,
-  ) {
+    Color color, {
+    double size = 8,
+  }) {
     final angle =
         math.atan2(edge.to.dy - edge.from.dy, edge.to.dx - edge.from.dx);
-    const size = 8.0;
     final left = Offset(
       edge.to.dx - math.cos(angle - math.pi / 7) * size,
       edge.to.dy - math.sin(angle - math.pi / 7) * size,
@@ -112,6 +138,7 @@ class StorylinesGraphPainter extends CustomPainter {
     return edges != oldDelegate.edges ||
         gridColor != oldDelegate.gridColor ||
         authorOrderColor != oldDelegate.authorOrderColor ||
-        containsColor != oldDelegate.containsColor;
+        containsColor != oldDelegate.containsColor ||
+        sideQuestAvailabilityColor != oldDelegate.sideQuestAvailabilityColor;
   }
 }
