@@ -8,6 +8,7 @@ import 'project_trainer.dart';
 import 'project_path_pattern_preset.dart';
 import 'projected_building_shadow.dart';
 import 'scenario_asset.dart';
+import 'scene_asset.dart';
 import 'script_asset.dart';
 import 'shadow.dart';
 import 'shadow_catalog.dart';
@@ -78,6 +79,38 @@ Map<String, dynamic> _storylineJsonObject(Object? json) {
   return json.map((key, value) {
     if (key is! String) {
       throw const ValidationException('storyline JSON keys must be strings');
+    }
+    return MapEntry(key, value);
+  });
+}
+
+/// JSON -> authoring Scenes.
+///
+/// Missing or `null` keeps old projects readable as an empty list. This does
+/// not import or migrate legacy `ScenarioAsset` data automatically.
+List<SceneAsset> _scenesFromJson(Object? json) {
+  if (json == null) {
+    return const <SceneAsset>[];
+  }
+  if (json is! List) {
+    throw const ValidationException('scenes must be a JSON list');
+  }
+  return [
+    for (final item in json) SceneAsset.fromJson(_sceneJsonObject(item)),
+  ];
+}
+
+List<Map<String, dynamic>> _scenesToJson(List<SceneAsset> scenes) {
+  return [for (final scene in scenes) scene.toJson()];
+}
+
+Map<String, dynamic> _sceneJsonObject(Object? json) {
+  if (json is! Map) {
+    throw const ValidationException('scene must be a JSON object');
+  }
+  return json.map((key, value) {
+    if (key is! String) {
+      throw const ValidationException('scene JSON keys must be strings');
     }
     return MapEntry(key, value);
   });
@@ -201,6 +234,13 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectDialogueEntry> dialogues,
     @Default([]) List<ProjectScriptEntry> scripts,
     @Default([]) List<ScenarioAsset> scenarios,
+    @Default([])
+    @JsonKey(
+      name: 'scenes',
+      fromJson: _scenesFromJson,
+      toJson: _scenesToJson,
+    )
+    List<SceneAsset> scenes,
     @Default([])
     @JsonKey(
       name: 'storylines',

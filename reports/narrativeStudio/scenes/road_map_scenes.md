@@ -39,7 +39,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-00 — Scene System Scope / Current State Audit | DONE | Audit documentaire de l'existant, definition Scene V1, frontieres produit et roadmap. |
 | NS-SCENES-V1-01 — Scene Product Model / Graph Contract | DONE | Contrat produit Scene V1 formalise : definitions Scene/Graph/Node/Edge/Port/Outcome, taxonomie nodes/edges, payloads minimaux/interdits, diagnostics et runtime intents. |
 | NS-SCENES-V1-02 — Scene Storage / ID / Read Model Decision | DONE | Decision retenue : `SceneAsset` authoring dedie + `ProjectManifest.scenes` futur, avec `ScenarioAsset` conserve comme legacy/runtime bridge temporaire et sans migration automatique. |
-| NS-SCENES-V1-03 — Scene Core Model V0 | TODO | Ajouter le modele core `SceneAsset`, graph/layout value objects, `ProjectManifest.scenes`, exports et tests JSON/core. |
+| NS-SCENES-V1-03 — Scene Core Model V0 | DONE | Modele core `SceneAsset` ajoute dans `map_core` avec `SceneGraph`, `SceneGraphLayout`, nodes/edges/outcomes, `ProjectManifest.scenes`, export public et tests core/JSON/manifest. |
 | NS-SCENES-V1-04 — Workspace Shell Scenes | TODO | Creer le shell editor `Scenes` sans authoring profond ni runtime. |
 | NS-SCENES-V1-05 — Scene Tree Panel Read-only | TODO | Afficher une arborescence de scenes reelles depuis `ProjectManifest.scenes`, sans fake fallback. |
 | NS-SCENES-V1-06 — Graph Read-only Skeleton | TODO | Afficher un graph Scene V1 read-only avec start/end et nodes reels du read model. |
@@ -51,9 +51,30 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-03 — Scene Core Model V0`
+`NS-SCENES-V1-04 — Workspace Shell Scenes`
 
-Raison : la decision storage/IDs/read models est tranchee ; une UI Scenes sans modele core creerait du faux. Le prochain lot doit poser `SceneAsset`, `ProjectManifest.scenes`, graph/layout et tests core avant le shell editor.
+Raison : le modele core Scene V1 existe maintenant dans `map_core` et `ProjectManifest.scenes` est serialisable avec compatibilite absent/null vers `[]`. Le prochain lot peut creer le shell editor Scenes sans authoring profond, sans runtime et sans brancher Storylines.
+
+## Decisions V1-03
+
+- `SceneAsset` est le modele authoring Scene V1 dedie.
+- `SceneGraph` contient `startNodeId`, nodes et edges ; il ne contient pas le layout.
+- `SceneGraphLayout` est separe et editor-only : node layouts et edge layouts peuvent etre ignores par le runtime.
+- `SceneNodeKind` couvre `start`, `end`, `yarnDialogue`, `condition`, `action`, `battle`, `cinematic`, `branchByOutcome`, `merge`.
+- `SceneEdge` porte un `fromPortId` explicite ; le kind JSON `default` est expose via l'enum Dart `defaultFlow` pour eviter le mot-cle Dart.
+- Les payloads de nodes sont types ; aucun `Map<String, dynamic>` global ne porte la logique.
+- `ProjectManifest.scenes` est ajoute sans supprimer ni migrer `ProjectManifest.scenarios`.
+- `map_core.dart` exporte `scene_asset.dart`.
+
+## Limites V1-03
+
+- Aucun workspace UI Scenes.
+- Aucun runtime Scene.
+- Aucun adapter `SceneAsset -> ScenarioAsset` ou `ScenarioAsset -> SceneAsset`.
+- Aucun diagnostic avance de graph.
+- Aucun authoring operation.
+- Aucun seed Selbrume ni scene de demonstration.
+- Aucun branchement `StorylineStep.sceneLinkIds`.
 
 ## Decisions V1-02
 
@@ -100,7 +121,7 @@ Raison : la decision storage/IDs/read models est tranchee ; une UI Scenes sans m
 - `ProjectManifest.storylines` existant et stable.
 - `ScenarioAsset`, `ScriptAsset`, `ScriptCondition`, `MapEventDefinition` audites comme legacy/adaptables.
 - Runtime scenario/script/cutscene audite a haut niveau.
-- Decision storage Scene V1 a venir dans V1-02.
+- Decision storage Scene V1 tranchee dans V1-02 et modele core pose dans V1-03.
 
 ## Non-objectifs globaux
 
