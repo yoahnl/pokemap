@@ -91,6 +91,85 @@ void main() {
       expect(result.updatedProject.storylines, project.storylines);
       expect(result.updatedProject.scenes, hasLength(1));
     });
+
+    test('adds a condition node draft without mutating the original scene', () {
+      final scene = _scene(
+        'scene_authoring',
+        metadata: const {'owner': 'test'},
+        declaredOutcomes: [SceneOutcome(id: 'done', label: 'Done')],
+      );
+
+      final result = addSceneNodeDraft(
+        scene,
+        kind: SceneNodeKind.condition,
+        afterNodeId: 'node_start',
+      );
+
+      expect(scene.graph.nodes.map((node) => node.id), [
+        'node_start',
+        'node_end',
+      ]);
+      expect(result.createdNode.id, 'node_condition');
+      expect(result.createdNode.title, 'Condition');
+      expect(result.createdNode.kind, SceneNodeKind.condition);
+      expect(result.createdNode.payload, isA<SceneConditionPayload>());
+      expect(result.updatedScene.id, scene.id);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.graph.nodes.map((node) => node.id), [
+        'node_start',
+        'node_end',
+        'node_condition',
+      ]);
+      final layout = result.updatedScene.layout.nodeLayouts
+          .firstWhere((layout) => layout.nodeId == 'node_condition');
+      expect(layout.x, 324);
+      expect(layout.y, 80);
+    });
+
+    test('adds merge and end node drafts with stable suffixed ids', () {
+      var scene = _scene('scene_authoring');
+
+      final merge = addSceneNodeDraft(scene, kind: SceneNodeKind.merge);
+      scene = merge.updatedScene;
+      final secondMerge = addSceneNodeDraft(scene, kind: SceneNodeKind.merge);
+      scene = secondMerge.updatedScene;
+      final end = addSceneNodeDraft(scene, kind: SceneNodeKind.end);
+
+      expect(merge.createdNode.id, 'node_merge');
+      expect(merge.createdNode.payload, isA<SceneMergePayload>());
+      expect(secondMerge.createdNode.id, 'node_merge_2');
+      expect(end.createdNode.id, 'node_end_2');
+      expect(end.createdNode.title, 'Fin');
+      expect(end.createdNode.payload, isA<SceneEndPayload>());
+      expect(end.updatedScene.graph.edges, scene.graph.edges);
+      expect(
+        end.updatedScene.layout.nodeLayouts
+            .map((layout) => layout.nodeId)
+            .contains('node_end_2'),
+        isTrue,
+      );
+    });
+
+    test('rejects unsupported node kinds in V0 without fake refs', () {
+      final scene = _scene('scene_authoring');
+
+      for (final kind in [
+        SceneNodeKind.start,
+        SceneNodeKind.yarnDialogue,
+        SceneNodeKind.action,
+        SceneNodeKind.battle,
+        SceneNodeKind.cinematic,
+        SceneNodeKind.branchByOutcome,
+      ]) {
+        expect(
+          () => addSceneNodeDraft(scene, kind: kind),
+          throwsA(isA<ArgumentError>()),
+          reason: '${kind.name} must not be authorable in V0',
+        );
+      }
+    });
   });
 }
 
@@ -109,10 +188,15 @@ ProjectManifest _project({
   );
 }
 
-SceneAsset _scene(String id) {
+SceneAsset _scene(
+  String id, {
+  Map<String, String> metadata = const {},
+  List<SceneOutcome> declaredOutcomes = const [],
+}) {
   return SceneAsset(
     id: id,
     name: id,
+    tags: const ['test'],
     graph: SceneGraph(
       startNodeId: 'node_start',
       nodes: [
@@ -129,5 +213,13 @@ SceneAsset _scene(String id) {
         ),
       ],
     ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 320, y: 80),
+      ],
+    ),
+    declaredOutcomes: declaredOutcomes,
+    metadata: metadata,
   );
 }

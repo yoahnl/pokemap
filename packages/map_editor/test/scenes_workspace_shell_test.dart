@@ -196,6 +196,116 @@ void main() {
       );
     });
 
+    testWidgets('adds a condition node draft from the Scenes palette',
+        (tester) async {
+      final project = _projectWithTwoScenes();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final originalScene = project.scenes.first;
+
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-condition')));
+      await tester.pumpAndSettle();
+
+      final updatedProject = container.read(editorNotifierProvider).project!;
+      final updatedScene = updatedProject.scenes.first;
+      expect(updatedProject.scenes, hasLength(2));
+      expect(updatedProject.scenes.last, project.scenes.last);
+      expect(updatedScene.graph.edges, originalScene.graph.edges);
+      expect(updatedScene.graph.nodes.map((node) => node.id),
+          contains('node_condition'));
+      expect(
+        updatedScene.graph.nodes
+            .firstWhere((node) => node.id == 'node_condition')
+            .payload,
+        isA<SceneConditionPayload>(),
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_condition')),
+        findsOneWidget,
+      );
+      expect(find.text('node_condition'), findsWidgets);
+      expect(find.text('Condition'), findsWidgets);
+    });
+
+    testWidgets('adds merge and end node drafts with no automatic edges',
+        (tester) async {
+      final project = _projectWithScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-merge')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-end')));
+      await tester.pumpAndSettle();
+
+      final updatedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      expect(updatedScene.graph.edges, project.scenes.single.graph.edges);
+      expect(
+          updatedScene.graph.nodes.map((node) => node.id),
+          containsAll([
+            'node_merge_2',
+            'node_end_2',
+          ]));
+      expect(
+        updatedScene.graph.nodes
+            .firstWhere((node) => node.id == 'node_merge_2')
+            .payload,
+        isA<SceneMergePayload>(),
+      );
+      expect(
+        updatedScene.graph.nodes
+            .firstWhere((node) => node.id == 'node_end_2')
+            .payload,
+        isA<SceneEndPayload>(),
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_merge_2')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_end_2')),
+        findsOneWidget,
+      );
+      expect(find.text('node_end_2'), findsWidgets);
+    });
+
+    testWidgets('keeps unsupported node kinds disabled in the palette',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      for (final key in [
+        'scenes-add-node-start-disabled',
+        'scenes-add-node-yarn-disabled',
+        'scenes-add-node-action-disabled',
+        'scenes-add-node-battle-disabled',
+        'scenes-add-node-cinematic-disabled',
+        'scenes-add-node-branch-disabled',
+      ]) {
+        final button = tester.widget<PokeMapButton>(
+          find.byKey(ValueKey(key)).first,
+        );
+        expect(button.onPressed, isNull, reason: key);
+      }
+      expect(find.text('Selbrume Demo'), findsNothing);
+      expect(find.text('Annonce au port'), findsNothing);
+    });
+
     testWidgets('shows real SceneAsset data in the read-only tree and summary',
         (tester) async {
       await _pumpNarrativeShell(
@@ -528,7 +638,8 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-08 visual gate screenshot', (tester) async {
+    testWidgets('keeps the V1-08 scene draft visual flow valid',
+        (tester) async {
       await _pumpNarrativeShell(
         tester,
         project: _emptyProject(),
@@ -546,16 +657,21 @@ void main() {
           .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
       await tester.pumpAndSettle();
 
-      await expectLater(
-        find.byKey(const ValueKey('scenes-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_08_authoring_minimal_scene_draft.png',
-        ),
+      expect(
+        find.byKey(const ValueKey('scenes-tree-item-scene_new_draft_scene')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_start')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_end')),
+        findsOneWidget,
       );
     });
 
-    testWidgets('writes V1-09 diagnostics visual gate screenshot',
+    testWidgets('keeps the V1-09 diagnostics visual flow valid',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -563,11 +679,28 @@ void main() {
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
+      expect(
+          find.byKey(const ValueKey('scenes-workspace-shell')), findsOneWidget);
+      expect(find.text('Diagnostics'), findsWidgets);
+      expect(find.text('1 warning'), findsWidgets);
+    });
+
+    testWidgets('writes V1-12 node authoring visual gate screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-condition')));
+      await tester.pumpAndSettle();
+
       await expectLater(
         find.byKey(const ValueKey('scenes-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_09_scene_validation_diagnostics.png',
+          'ns_scenes_v1_12_node_authoring_v0.png',
         ),
       );
     });

@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-12 — Node Authoring V0
+NS-SCENES-V1-13 — Edge Authoring V0
 ```
 
 ## Principes
@@ -26,7 +26,7 @@ NS-SCENES-V1-12 — Node Authoring V0
 | ID | Titre | Type | Objectif | Non-objectifs | Fichiers probables | Tests attendus | Risques | Criteres d'acceptation | Dependances |
 |---|---|---|---|---|---|---|---|---|---|
 | NS-SCENES-V1-11 | Scene Graph Draft Node Strategy | doc-only / planning | Definir nodes ajoutables, defaults, ports, payload drafts, restrictions anti-fake refs. | Pas de UI, pas de runtime, pas de model change. | `reports/narrativeStudio/scenes/ns_scenes_v1_11_scene_graph_draft_node_strategy.md`, roadmap. | Non requis hors `git diff --check`. | Trop de doc, ou inversement palette codee trop tot. | DONE : Condition, Merge et Fin ajoutables V0 ; Yarn/Action/Battle/Cinematic/Branch desactives jusqu'aux refs/payloads honnetes. | V1-10-bis. |
-| NS-SCENES-V1-12 | Node Authoring V0 | core / editor | Ajouter palette minimale et creation de nodes draft `condition`, `merge`, `end` dans `ProjectManifest.scenes` en memoire. | Pas de edge authoring avance, pas de pickers refs, pas de runtime, pas de nodes Yarn/Action/Battle/Cinematic/Branch actifs. | `scene_authoring_operations.dart`, `scenes_workspace.dart`, tests Scenes. | Tests core operations + widget palette/add node + no fake refs. | Nodes inutilisables si diagnostics trop faibles ; UI trop proche d'un builder complet. | Nodes V0 autorises ajoutables, selection auto, inspector read-only/draft, diagnostics visibles, nodes desactives honnetes. | V1-11. |
+| NS-SCENES-V1-12 | Node Authoring V0 | core / editor | Ajouter palette minimale et creation de nodes draft `condition`, `merge`, `end` dans `ProjectManifest.scenes` en memoire. | Pas de edge authoring avance, pas de pickers refs, pas de runtime, pas de nodes Yarn/Action/Battle/Cinematic/Branch actifs. | `scene_authoring_operations.dart`, `scenes_workspace.dart`, tests Scenes. | Tests core operations + widget palette/add node + no fake refs. | Nodes inutilisables si diagnostics trop faibles ; UI trop proche d'un builder complet. | DONE : nodes V0 ajoutables, selection auto, inspector read-only/draft, nodes desactives honnetes, aucun edge automatique. | V1-11. |
 | NS-SCENES-V1-13 | Edge Authoring V0 | core / editor | Connecter explicitement ports/nodes, creer/supprimer edges simples, valider compatibilite. | Pas de drag complexe, pas de runtime, pas de auto-layout final. | operations core edges, `scene_graph_read_only_view.dart` evolue en graph draft view, tests. | Tests fromPortId, edge kind, incompatibilites, ProjectManifest non touche hors scenes. | Branches implicites, edges invalides, UX de connexion trop lourde. | Edge cree depuis port explicite, diagnostics edge visibles, aucun edge implicite par proximite. | V1-12. |
 | NS-SCENES-V1-14 | Layout Authoring V0 | editor | Deplacer nodes et persister `SceneGraphLayout` sans modifier le graph logique. | Pas de runtime, pas de minimap avancee, pas de auto-route edges final. | graph view, layout operations, widget tests. | Tests drag/persist layout, fallback non persiste, runtime data inchangee. | Coupler layout et runtime ; churn de diffs. | Positions stables sauvegardees, layout incomplet reste warning, aucun effet runtime. | V1-13. |
 | NS-SCENES-V1-15 | Scene Runtime Plan V0 | core | Ajouter `SceneRuntimePlan`, intents, builder pur depuis `SceneAsset` valide. | Pas d'execution runtime, pas de Flutter, pas de `ScenarioAsset` auto. | `packages/map_core/lib/src/runtime/scene_runtime_plan.dart`, tests core. | Draft minimal, yarn/battle/cinematic/action intents, diagnostics error bloque, layout ignore. | Figer trop tot un executor ; dupliquer ScenarioRuntime. | Plan pur testable, ignore layout, refuse scenes invalides. | V1-13 ou V1-14. |
@@ -53,6 +53,14 @@ Statut : `NS-SCENES-V1-11 — Scene Graph Draft Node Strategy` est DONE.
 Decision : le premier authoring de nodes doit rester tres strict. En V0, seuls `condition`, `merge` et `end` deviennent ajoutables, car ils peuvent etre crees avec le modele actuel sans reference inventee. `start` reste unique. `yarnDialogue`, `action`, `battle`, `cinematic` et `branchByOutcome` restent visibles mais desactives dans la future palette tant que leurs refs, source outcomes ou action kinds ne sont pas honnetes.
 
 Prochain lot exact : `NS-SCENES-V1-12 — Node Authoring V0`.
+
+## Mise a jour V1-12
+
+Statut : `NS-SCENES-V1-12 — Node Authoring V0` est DONE.
+
+Decision : V1-12 a code seulement les nodes autorises par V1-11. La palette V0 active `Condition`, `Merge` et `Fin`. Les nodes `Début`, `Dialogue`, `Action`, `Combat`, `Cinématique` et `Branche` restent desactives avec raison courte. Aucun edge n'est cree automatiquement.
+
+Prochain lot exact : `NS-SCENES-V1-13 — Edge Authoring V0`.
 
 ## Selbrume golden slice
 

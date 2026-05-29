@@ -11,6 +11,16 @@ final class SceneDraftCreationResult {
   final SceneAsset createdScene;
 }
 
+final class SceneNodeDraftCreationResult {
+  const SceneNodeDraftCreationResult({
+    required this.updatedScene,
+    required this.createdNode,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode createdNode;
+}
+
 SceneDraftCreationResult createSceneDraftInProject(
   ProjectManifest project, {
   required String name,
@@ -31,6 +41,62 @@ SceneDraftCreationResult createSceneDraftInProject(
       scenes: [...project.scenes, scene],
     ),
     createdScene: scene,
+  );
+}
+
+SceneNodeDraftCreationResult addSceneNodeDraft(
+  SceneAsset scene, {
+  required SceneNodeKind kind,
+  String? title,
+  String? afterNodeId,
+}) {
+  if (!_isSupportedDraftNodeKind(kind)) {
+    throw ArgumentError.value(
+      kind,
+      'kind',
+      'Scene node kind ${kind.name} is not supported by Node Authoring V0.',
+    );
+  }
+
+  final nodeId = _uniqueNodeId(
+    _nodeIdBaseForKind(kind),
+    scene.graph.nodes.map((node) => node.id),
+  );
+  final createdNode = SceneNode(
+    id: nodeId,
+    kind: kind,
+    title: _trimOptional(title) ?? _defaultTitleForKind(kind),
+    payload: SceneNodePayload.emptyForKind(kind),
+  );
+  final createdLayout = _layoutForNewNode(
+    scene,
+    nodeId: nodeId,
+    afterNodeId: afterNodeId,
+  );
+
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [...scene.graph.nodes, createdNode],
+      edges: scene.graph.edges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [...scene.layout.nodeLayouts, createdLayout],
+      edgeLayouts: scene.layout.edgeLayouts,
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneNodeDraftCreationResult(
+    updatedScene: updatedScene,
+    createdNode: createdNode,
   );
 }
 
@@ -87,6 +153,106 @@ String _uniqueSceneId(String name, Iterable<String> existingIds) {
     suffix++;
   }
   return '${base}_$suffix';
+}
+
+String _uniqueNodeId(String base, Iterable<String> existingIds) {
+  final existing = existingIds.toSet();
+  if (!existing.contains(base)) {
+    return base;
+  }
+  var suffix = 2;
+  while (existing.contains('${base}_$suffix')) {
+    suffix++;
+  }
+  return '${base}_$suffix';
+}
+
+bool _isSupportedDraftNodeKind(SceneNodeKind kind) {
+  return switch (kind) {
+    SceneNodeKind.condition || SceneNodeKind.merge || SceneNodeKind.end => true,
+    SceneNodeKind.start ||
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.action ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
+      false,
+  };
+}
+
+String _nodeIdBaseForKind(SceneNodeKind kind) {
+  return switch (kind) {
+    SceneNodeKind.condition => 'node_condition',
+    SceneNodeKind.merge => 'node_merge',
+    SceneNodeKind.end => 'node_end',
+    SceneNodeKind.start ||
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.action ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
+      throw ArgumentError.value(kind, 'kind', 'Unsupported draft node kind.'),
+  };
+}
+
+String _defaultTitleForKind(SceneNodeKind kind) {
+  return switch (kind) {
+    SceneNodeKind.condition => 'Condition',
+    SceneNodeKind.merge => 'Merge',
+    SceneNodeKind.end => 'Fin',
+    SceneNodeKind.start ||
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.action ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
+      throw ArgumentError.value(kind, 'kind', 'Unsupported draft node kind.'),
+  };
+}
+
+SceneNodeLayout _layoutForNewNode(
+  SceneAsset scene, {
+  required String nodeId,
+  String? afterNodeId,
+}) {
+  final layouts = scene.layout.nodeLayouts;
+  SceneNodeLayout? source;
+  if (afterNodeId != null) {
+    for (final layout in layouts) {
+      if (layout.nodeId == afterNodeId) {
+        source = layout;
+        break;
+      }
+    }
+  }
+
+  source ??= _rightMostLayout(layouts);
+  if (source != null) {
+    return SceneNodeLayout(
+      nodeId: nodeId,
+      x: source.x + 300,
+      y: source.y,
+    );
+  }
+
+  return SceneNodeLayout(
+    nodeId: nodeId,
+    x: 24 + scene.graph.nodes.length * 300,
+    y: 80,
+  );
+}
+
+SceneNodeLayout? _rightMostLayout(List<SceneNodeLayout> layouts) {
+  if (layouts.isEmpty) {
+    return null;
+  }
+  var rightMost = layouts.first;
+  for (final layout in layouts.skip(1)) {
+    if (layout.x > rightMost.x) {
+      rightMost = layout;
+    }
+  }
+  return rightMost;
 }
 
 String _slugify(String value) {

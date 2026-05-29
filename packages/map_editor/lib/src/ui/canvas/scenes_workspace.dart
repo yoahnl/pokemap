@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../theme/theme.dart';
@@ -11,15 +12,22 @@ typedef SceneDraftCreator = Future<String?> Function({
   String? description,
 });
 
+typedef SceneNodeDraftCreator = Future<String?> Function({
+  required String sceneId,
+  required SceneNodeKind kind,
+});
+
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
     required this.scenes,
     required this.onCreateSceneDraft,
+    required this.onAddNodeDraft,
   });
 
   final List<NarrativeSceneSummary> scenes;
   final SceneDraftCreator onCreateSceneDraft;
+  final SceneNodeDraftCreator onAddNodeDraft;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -106,6 +114,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onSelectNode: (nodeId) {
                       setState(() => _selectedNodeId = nodeId);
                     },
+                    onAddNodeDraft: _addNodeDraft,
                   ),
                 ),
               ),
@@ -157,6 +166,24 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     setState(() {
       _selectedSceneId = createdSceneId;
       _selectedNodeId = 'node_start';
+    });
+  }
+
+  Future<void> _addNodeDraft(SceneNodeKind kind) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return;
+    }
+    final createdNodeId = await widget.onAddNodeDraft(
+      sceneId: selected.id,
+      kind: kind,
+    );
+    if (!mounted || createdNodeId == null) {
+      return;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = createdNodeId;
     });
   }
 
@@ -525,11 +552,13 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.scene,
     required this.selectedNodeId,
     required this.onSelectNode,
+    required this.onAddNodeDraft,
   });
 
   final NarrativeSceneSummary? scene;
   final String? selectedNodeId;
   final ValueChanged<String> onSelectNode;
+  final ValueChanged<SceneNodeKind> onAddNodeDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -543,6 +572,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               scene: current,
               selectedNodeId: selectedNodeId,
               onSelectNode: onSelectNode,
+              onAddNodeDraft: onAddNodeDraft,
             ),
     );
   }
@@ -568,11 +598,13 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.scene,
     required this.selectedNodeId,
     required this.onSelectNode,
+    required this.onAddNodeDraft,
   });
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
   final ValueChanged<String> onSelectNode;
+  final ValueChanged<SceneNodeKind> onAddNodeDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -606,6 +638,8 @@ class _SelectedSceneSummary extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          _SceneNodeDraftPalette(onAddNodeDraft: onAddNodeDraft),
+          const SizedBox(height: 10),
           Expanded(
             child: SceneGraphReadOnlyView(
               scene: scene,
@@ -615,6 +649,131 @@ class _SelectedSceneSummary extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SceneNodeDraftPalette extends StatelessWidget {
+  const _SceneNodeDraftPalette({required this.onAddNodeDraft});
+
+  final ValueChanged<SceneNodeKind> onAddNodeDraft;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return SizedBox(
+      key: const ValueKey('scenes-add-node-palette'),
+      height: 34,
+      child: Row(
+        children: [
+          Text(
+            'Ajouter un nœud',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _NodeDraftButton(
+                    buttonKey: const ValueKey('scenes-add-node-condition'),
+                    label: 'Condition',
+                    icon: CupertinoIcons.check_mark_circled,
+                    onPressed: () => onAddNodeDraft(SceneNodeKind.condition),
+                  ),
+                  _NodeDraftButton(
+                    buttonKey: const ValueKey('scenes-add-node-merge'),
+                    label: 'Merge',
+                    icon: CupertinoIcons.arrow_merge,
+                    onPressed: () => onAddNodeDraft(SceneNodeKind.merge),
+                  ),
+                  _NodeDraftButton(
+                    buttonKey: const ValueKey('scenes-add-node-end'),
+                    label: 'Fin',
+                    icon: CupertinoIcons.flag,
+                    onPressed: () => onAddNodeDraft(SceneNodeKind.end),
+                  ),
+                  const _NodeDraftButton(
+                    buttonKey: ValueKey('scenes-add-node-start-disabled'),
+                    label: 'Début',
+                    icon: CupertinoIcons.play_circle,
+                    disabledReason: 'déjà unique',
+                  ),
+                  const _NodeDraftButton(
+                    buttonKey: ValueKey('scenes-add-node-yarn-disabled'),
+                    label: 'Dialogue',
+                    icon: CupertinoIcons.text_bubble,
+                    disabledReason: 'picker requis',
+                  ),
+                  const _NodeDraftButton(
+                    buttonKey: ValueKey('scenes-add-node-action-disabled'),
+                    label: 'Action',
+                    icon: CupertinoIcons.bolt,
+                    disabledReason: 'registre requis',
+                  ),
+                  const _NodeDraftButton(
+                    buttonKey: ValueKey('scenes-add-node-battle-disabled'),
+                    label: 'Combat',
+                    icon: CupertinoIcons.asterisk_circle,
+                    disabledReason: 'picker requis',
+                  ),
+                  const _NodeDraftButton(
+                    buttonKey: ValueKey('scenes-add-node-cinematic-disabled'),
+                    label: 'Cinématique',
+                    icon: CupertinoIcons.film,
+                    disabledReason: 'picker requis',
+                  ),
+                  const _NodeDraftButton(
+                    buttonKey: ValueKey('scenes-add-node-branch-disabled'),
+                    label: 'Branche',
+                    icon: CupertinoIcons.arrow_branch,
+                    disabledReason: 'source requise',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NodeDraftButton extends StatelessWidget {
+  const _NodeDraftButton({
+    required this.buttonKey,
+    required this.label,
+    required this.icon,
+    this.onPressed,
+    this.disabledReason,
+  });
+
+  final Key buttonKey;
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final String? disabledReason;
+
+  @override
+  Widget build(BuildContext context) {
+    final reason = disabledReason;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: PokeMapButton(
+        key: buttonKey,
+        onPressed: onPressed,
+        variant: onPressed == null
+            ? PokeMapButtonVariant.ghost
+            : PokeMapButtonVariant.secondary,
+        size: PokeMapButtonSize.small,
+        leading: Icon(icon),
+        child: Text(reason == null ? label : '$label · $reason'),
       ),
     );
   }

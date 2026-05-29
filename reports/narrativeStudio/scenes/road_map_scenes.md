@@ -49,7 +49,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-10 — Runtime Execution Prep | DONE | Decision runtime Scene V1 : preparer un `SceneRuntimePlan` pur avant tout branchement runtime, utiliser `ScenarioRuntimeExecutor` seulement comme inspiration/bridge temporaire explicite. |
 | NS-SCENES-V1-10-bis — Scene Builder / Runtime Roadmap Alignment | DONE | Roadmap reconcilee : priorite au Scene Builder Blueprint-like, runtime plan conserve mais decale apres authoring graph minimal. |
 | NS-SCENES-V1-11 — Scene Graph Draft Node Strategy | DONE | Strategie retenue : activer seulement Condition, Merge et Fin en V0 ; garder Start unique et desactiver Yarn/Action/Battle/Cinematic/Branch tant que les refs/payloads ne sont pas honnetes. |
-| NS-SCENES-V1-12 — Node Authoring V0 | TODO | Ajouter une palette de nodes et l'ajout read/write de nodes draft dans le graph Scene, sans payload picker avance. |
+| NS-SCENES-V1-12 — Node Authoring V0 | DONE | Operation pure `addSceneNodeDraft` et palette editor V0 : ajout Condition / Merge / Fin en memoire, selection auto, aucun edge automatique ni fake ref. |
 | NS-SCENES-V1-13 — Edge Authoring V0 | TODO | Permettre la connexion explicite des ports/nodes avec validation de compatibilite, sans runtime. |
 | NS-SCENES-V1-14 — Layout Authoring V0 | TODO | Permettre le deplacement des nodes et la persistence de `SceneGraphLayout`, sans impact runtime. |
 | NS-SCENES-V1-15 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
@@ -62,9 +62,31 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-12 — Node Authoring V0`
+`NS-SCENES-V1-13 — Edge Authoring V0`
 
-Raison : V1-11 a tranche les node drafts autorises sans fake refs. Le prochain lot peut maintenant coder une palette minimale et une operation pure d'ajout de node draft pour Condition, Merge et Fin, sans ajouter de picker avance, sans edge authoring et sans runtime.
+Raison : V1-12 permet maintenant de poser des nodes draft honnetes dans une SceneAsset. Le prochain blocage Blueprint-like est la connexion explicite des ports : creer des edges avec `fromPortId`, valider les kinds compatibles, et garder les nodes Yarn/Action/Battle/Cinematic/Branch desactives tant que leurs payloads/pickers ne sont pas prets.
+
+## Decisions V1-12
+
+- Operation pure ajoutee : `addSceneNodeDraft(SceneAsset, kind, title?, afterNodeId?)`.
+- Nodes supportes : `condition`, `merge`, `end`.
+- Nodes refuses : `start`, `yarnDialogue`, `action`, `battle`, `cinematic`, `branchByOutcome`.
+- Generation d'IDs stable : `node_condition`, `node_merge`, `node_end_2`, avec suffixe numerique en collision.
+- Layout initial stable : a droite du node cible si layout disponible, sinon a droite du node le plus a droite, sinon fallback par index.
+- Les edges existants, declared outcomes, tags, metadata, storylineId/chapterId et description sont preserves.
+- L'operation ne mute jamais la scene originale.
+- Cote editor, `ProjectManifest.scenes` est remplace en memoire uniquement pour la scene cible.
+- La palette affiche Condition / Merge / Fin actifs, et les autres node kinds desactives avec raison courte.
+- Le node ajoute est selectionne automatiquement et l'inspector affiche ce node.
+- Aucun edge automatique, aucun payload picker, aucun runtime.
+
+## Limites V1-12
+
+- Pas de diagnostics draft payload supplementaires ; `conditionIncomplete` reste pour V1-17.
+- Pas d'edge authoring ni ports connectables.
+- Pas de layout authoring interactif.
+- Pas de Yarn/Action/Battle/Cinematic/Branch actif.
+- Pas d'Event -> Scene ni `StorylineStep.sceneLinkIds`.
 
 ## Decisions V1-11
 

@@ -141,6 +141,31 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             );
             return result.createdScene.id;
           },
+          onAddNodeDraft: ({
+            required String sceneId,
+            required SceneNodeKind kind,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return null;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return null;
+            }
+            final result = addSceneNodeDraft(
+              project.scenes[sceneIndex],
+              kind: kind,
+            );
+            final scenes = project.scenes.toList(growable: true);
+            scenes[sceneIndex] = result.updatedScene;
+            editorNotifier.applyInMemoryProjectManifest(
+              project.copyWith(scenes: scenes),
+              statusMessage: 'Scene node draft added',
+            );
+            return result.createdNode.id;
+          },
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
