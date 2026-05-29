@@ -47,14 +47,42 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-08 — Authoring Minimal Scene Draft | DONE | Creation d'une SceneAsset draft minimale depuis le workspace Scenes, ajout en memoire dans `ProjectManifest.scenes`, selection auto et graph/inspector read-only. |
 | NS-SCENES-V1-09 — Scene Validation Diagnostics | DONE | Diagnostics Scene V1 purs dans `map_core` et affichage editor : erreurs/warnings de graph, layout et outcomes, sans mutation ni correction automatique. |
 | NS-SCENES-V1-10 — Runtime Execution Prep | DONE | Decision runtime Scene V1 : preparer un `SceneRuntimePlan` pur avant tout branchement runtime, utiliser `ScenarioRuntimeExecutor` seulement comme inspiration/bridge temporaire explicite. |
-| NS-SCENES-V1-11 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
-| NS-SCENES-V1-12 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres plan runtime Scene V1 stable et strategie de triggers clarifiee. |
+| NS-SCENES-V1-10-bis — Scene Builder / Runtime Roadmap Alignment | DONE | Roadmap reconcilee : priorite au Scene Builder Blueprint-like, runtime plan conserve mais decale apres authoring graph minimal. |
+| NS-SCENES-V1-11 — Scene Graph Draft Node Strategy | TODO | Definir les nodes ajoutables, payload drafts, ports et limites pour eviter les fausses refs avant l'authoring actif. |
+| NS-SCENES-V1-12 — Node Authoring V0 | TODO | Ajouter une palette de nodes et l'ajout read/write de nodes draft dans le graph Scene, sans payload picker avance. |
+| NS-SCENES-V1-13 — Edge Authoring V0 | TODO | Permettre la connexion explicite des ports/nodes avec validation de compatibilite, sans runtime. |
+| NS-SCENES-V1-14 — Layout Authoring V0 | TODO | Permettre le deplacement des nodes et la persistence de `SceneGraphLayout`, sans impact runtime. |
+| NS-SCENES-V1-15 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-16 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
+| NS-SCENES-V1-17 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
+| NS-SCENES-V1-18 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
+| NS-SCENES-V1-19 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
+| NS-SCENES-V1-20 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
+| NS-SCENES-V1-21 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-11 — Scene Runtime Plan V0`
+`NS-SCENES-V1-11 — Scene Graph Draft Node Strategy`
 
-Raison : V1-10 tranche la strategie runtime sans coder l'execution. Le prochain blocage n'est pas `StorylineStep.sceneLinkIds`, mais un plan runtime pur et testable qui transforme une `SceneAsset` valide en intents executables, sans layout, sans Flutter et sans conversion automatique en `ScenarioAsset`.
+Raison : V1-10 tranche la strategie runtime, mais le Scene Builder ne permet pas encore de construire une scene. Avant de coder une palette ou des connexions, il faut definir les node drafts autorises, leurs ports, leurs payloads minimaux et les garde-fous anti-fake refs. Le `SceneRuntimePlan` reste necessaire, mais il vient apres un authoring graph minimal.
+
+## Decisions V1-10-bis
+
+- Option recommandee : roadmap hybride orientee Blueprint-like.
+- Ne pas continuer directement vers `StorylineStep to Scene Link`.
+- Ne pas faire `SceneRuntimePlan V0` immediatement si le builder ne sait toujours pas creer de graph utile.
+- Inserer d'abord `Scene Graph Draft Node Strategy`, puis `Node Authoring V0`, `Edge Authoring V0`, `Layout Authoring V0`.
+- Conserver `SceneRuntimePlan V0` tot dans la suite, mais apres les premiers lots d'authoring graph.
+- Placer `Event -> Scene Trigger Prep` avant `StorylineStep -> Scene Link`, car Selbrume demarre surtout les scenes depuis des events de map.
+- Garder `StorylineStep.sceneLinkIds` desactive jusqu'a builder + triggers + runtime MVP stabilises.
+- La roadmap detaillee Blueprint-like vit aussi dans `reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md`.
+
+## Limites V1-10-bis
+
+- Documentation-only : aucun code, widget, modele ou runtime.
+- Aucun node authoring n'est ajoute.
+- Aucun event trigger n'est branche.
+- Aucun seed Selbrume ni scene de reference n'est cree.
 
 ## Decisions V1-10
 
