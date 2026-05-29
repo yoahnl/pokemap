@@ -319,7 +319,8 @@ Interprétation V0 :
 | NS-STORYLINES-SEED-00 | Selbrume Storylines Demo Seed V0 | demo data | DONE | NS-SCENES-V1 |
 | NS-STORYLINES-SEED-FIX-01 | Selbrume Graph Layout / SideQuest Rendering Fix V0 | editor graph fix | DONE | NS-STORYLINES-SEED-FIX-01-bis |
 | NS-STORYLINES-SEED-FIX-01-bis | Graph Focus Layout / Canvas Priority | editor graph layout | DONE | NS-STORYLINES-V1.1-00 |
-| NS-STORYLINES-V1.1-00 | Structure Layout / Chapter Step Readability V0 | editor structure layout | DONE | NS-STORYLINES-V1.1-01 |
+| NS-STORYLINES-V1.1-00 | Structure Layout / Chapter Step Readability V0 | editor structure layout | DONE | NS-STORYLINES-V1.1-00-bis |
+| NS-STORYLINES-V1.1-00-bis | Structure Tab Full-width Accordion Authoring | editor structure authoring | DONE | NS-STORYLINES-V1.1-01 |
 
 ## 9. Detailed lots
 
@@ -901,7 +902,7 @@ Décision temporaire :
 
 ```text
 Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 ACCEPTED WITH LIMITATIONS
-Current lot: NS-STORYLINES-V1.1-00
+Current lot: NS-STORYLINES-V1.1-00-bis
 Current lot status: DONE
 Next recommended lot: NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0
 ```
@@ -941,6 +942,7 @@ Next recommended lot: NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0
 | NS-STORYLINES-SEED-FIX-01 | DONE | 2026-05-29 | Correction post-seed : graph plus grand, sideQuests attachées rendues comme nodes indépendants, aucun seed/model/runtime modifié. |
 | NS-STORYLINES-SEED-FIX-01-bis | DONE | 2026-05-29 | Graph Focus Layout livré : graph par défaut agrandi, KPI/header compactés en mode Graph, sideQuest nodes indépendants préservés, aucun seed ni donnée métier modifié. |
 | NS-STORYLINES-V1.1-00 | DONE | 2026-05-29 | Structure Layout livré : chapitre sélectionné expanded, autres chapitres collapsed, étapes narratives plus lisibles, création chapter/step préservée, aucun edit/delete ajouté. |
+| NS-STORYLINES-V1.1-00-bis | DONE | 2026-05-29 | Structure full-width accordion livré : liste verticale de chapitres en accordéon, toolbar locale, edit/delete chapters et steps, reorder DnD des steps, aucun seed/core/runtime modifié. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -976,6 +978,16 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-V1.1-00-bis
+
+- Refonte de `Structure` en vue centrale pleine largeur fondée sur une liste verticale d'accordéons de chapitres ; suppression du split artificiel chapitre sélectionné / colonne des autres chapitres.
+- Toolbar locale Structure ajoutée : recherche, filtre, tri et liaison scène affichés en disabled honnête ; création `Nouveau chapitre` reste active.
+- Authoring minimal livré : création existante préservée, édition/suppression des chapitres, édition/suppression des étapes narratives et réordonnancement DnD des étapes dans le chapitre.
+- Les lignes d'étapes restent compactes, affichent `Aucune scène liée` ou le compteur réel, et ne créent aucun sceneLink ni placeholder de scène.
+- Selbrume reste data-only ; aucun seed, map_core, runtime, gameplay ou battle modifié ; Graph et sideQuest nodes indépendants préservés.
+- Captures Visual Gate dark bis produites : full layout, chapitre fermé, chapitre ouvert avec steps, actions d'authoring et régression Graph.
+- Prochain lot recommandé : `NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0`.
 
 ### 2026-05-29 — NS-STORYLINES-V1.1-00
 

@@ -207,16 +207,12 @@ void main() {
           findsOneWidget);
       expect(find.text('Chapitres'), findsWidgets);
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('storylines-v1-structure-steps')),
-          matching: find.text('Étapes narratives'),
-        ),
+        find.byKey(const ValueKey('storylines-structure-accordion-list')),
         findsOneWidget,
       );
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('storylines-v1-structure-scenes')),
-          matching: find.text('Scènes liées'),
+        find.text(
+          'Créez un premier chapitre pour organiser la progression de la storyline.',
         ),
         findsOneWidget,
       );
@@ -369,14 +365,17 @@ void main() {
       expect(chapters.first.title, 'Intro');
       expect(chapters.first.description, 'Premier arc auteur.');
       expect(chapters.first.steps, isEmpty);
-      expect(find.byKey(const ValueKey('storylines-chapter-row-chapter_intro')),
+      expect(
+          find.byKey(
+            const ValueKey('storylines-chapter-accordion-chapter_intro'),
+          ),
           findsOneWidget);
       expect(
           find.byKey(
-            const ValueKey('storylines-chapter-row-chapter_intro_2'),
+            const ValueKey('storylines-chapter-accordion-chapter_intro_2'),
           ),
           findsOneWidget);
-      expect(find.text('Détail du chapitre'), findsOneWidget);
+      expect(find.text('Étapes narratives'), findsWidgets);
     });
 
     testWidgets('step action requires a selected chapter', (tester) async {
@@ -1414,7 +1413,10 @@ Future<void> _createChapter(
 
 Future<void> _openCreateStepDialog(WidgetTester tester) async {
   await _openStructureTab(tester);
-  await tester.tap(find.byKey(const ValueKey('storylines-new-step-action')));
+  final newStepAction =
+      find.byKey(const ValueKey('storylines-new-step-action'));
+  await tester.ensureVisible(newStepAction);
+  await tester.tap(newStepAction);
   await tester.pumpAndSettle();
 }
 

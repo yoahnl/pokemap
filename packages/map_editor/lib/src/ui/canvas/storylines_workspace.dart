@@ -25,6 +25,8 @@ class StorylinesWorkspace extends ConsumerStatefulWidget {
 }
 
 class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
+  static const _closedChapterSelectionId = '__storylines_closed_chapter__';
+
   _StorylineContentTab _selectedTab = _StorylineContentTab.graph;
   String? _selectedStorylineId;
   String? _selectedChapterId;
@@ -77,6 +79,13 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
               onCreateChapter: project == null || selectedStoryline == null
                   ? null
                   : () => _openCreateChapterDialog(project, selectedStoryline),
+              onEditChapter: project == null || selectedStoryline == null
+                  ? null
+                  : (chapter) => _openEditChapterDialog(
+                        project,
+                        selectedStoryline,
+                        chapter,
+                      ),
               onCreateStep: project == null ||
                       selectedStoryline == null ||
                       selectedChapter == null
@@ -85,6 +94,23 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
                         project,
                         selectedStoryline,
                         selectedChapter,
+                      ),
+              onEditStep: project == null || selectedStoryline == null
+                  ? null
+                  : (chapter, step) => _openEditStepDialog(
+                        project,
+                        selectedStoryline,
+                        chapter,
+                        step,
+                      ),
+              onReorderSteps: project == null || selectedStoryline == null
+                  ? null
+                  : (chapter, oldIndex, newIndex) => _reorderSteps(
+                        project,
+                        selectedStoryline,
+                        chapter,
+                        oldIndex,
+                        newIndex,
                       ),
               onAttachSideQuest: project == null ||
                       selectedStoryline == null ||
@@ -128,6 +154,9 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
       return null;
     }
     final targetId = _selectedChapterId;
+    if (targetId == _closedChapterSelectionId) {
+      return null;
+    }
     if (targetId != null) {
       for (final chapter in storyline.chapters) {
         if (chapter.id == targetId) {
@@ -149,12 +178,13 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     });
   }
 
-  void _selectChapter(StorylineChapter chapter) {
-    if (_selectedChapterId == chapter.id) {
+  void _selectChapter(StorylineChapter? chapter) {
+    final nextChapterId = chapter?.id ?? _closedChapterSelectionId;
+    if (_selectedChapterId == nextChapterId) {
       return;
     }
     setState(() {
-      _selectedChapterId = chapter.id;
+      _selectedChapterId = nextChapterId;
     });
   }
 
@@ -295,6 +325,255 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
       project,
       updatedStoryline,
       statusMessage: 'Étape narrative créée',
+    );
+    setState(() {
+      _selectedStorylineId = storyline.id;
+      _selectedChapterId = chapter.id;
+      _selectedTab = _StorylineContentTab.structure;
+    });
+  }
+
+  Future<void> _openEditChapterDialog(
+    ProjectManifest project,
+    StorylineAsset storyline,
+    StorylineChapter chapter,
+  ) async {
+    final draft = await showCupertinoDialog<_StructureItemDraft>(
+      context: context,
+      builder: (context) => _CreateStructureItemDialog(
+        dialogKey: const ValueKey('storylines-edit-chapter-dialog'),
+        title: 'Modifier le chapitre',
+        titleFieldKey: const ValueKey('storylines-edit-chapter-title-field'),
+        descriptionFieldKey: const ValueKey(
+          'storylines-edit-chapter-description-field',
+        ),
+        cancelKey: const ValueKey('storylines-edit-chapter-cancel'),
+        submitKey: const ValueKey('storylines-edit-chapter-submit'),
+        deleteKey: const ValueKey('storylines-edit-chapter-delete-action'),
+        initialTitle: chapter.title,
+        initialDescription: chapter.description,
+        submitLabel: 'Enregistrer',
+      ),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    if (draft.deleteRequested) {
+      await _deleteChapter(project, storyline, chapter);
+      return;
+    }
+    final updatedChapter = _copyChapterWith(
+      chapter,
+      title: draft.title,
+      description: draft.description,
+      replaceDescription: true,
+    );
+    final updatedStoryline = _copyStorylineWith(
+      storyline,
+      chapters: storyline.chapters
+          .map(
+            (current) => current.id == chapter.id ? updatedChapter : current,
+          )
+          .toList(growable: false),
+    );
+    _applyStorylineUpdate(
+      project,
+      updatedStoryline,
+      statusMessage: 'Chapitre modifié',
+    );
+    setState(() {
+      _selectedStorylineId = storyline.id;
+      _selectedChapterId = chapter.id;
+      _selectedTab = _StorylineContentTab.structure;
+    });
+  }
+
+  Future<void> _deleteChapter(
+    ProjectManifest project,
+    StorylineAsset storyline,
+    StorylineChapter chapter,
+  ) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => _ConfirmStructureDeleteDialog(
+        title: 'Supprimer le chapitre',
+        message:
+            'Le chapitre "${chapter.title}" et ses étapes narratives seront retirés de cette storyline.',
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    final removedIndex =
+        storyline.chapters.indexWhere((current) => current.id == chapter.id);
+    final remaining = storyline.chapters
+        .where((current) => current.id != chapter.id)
+        .toList(growable: false);
+    final normalized = _normalizeChapterOrders(remaining);
+    final updatedStoryline = _copyStorylineWith(
+      storyline,
+      chapters: normalized,
+    );
+    _applyStorylineUpdate(
+      project,
+      updatedStoryline,
+      statusMessage: 'Chapitre supprimé',
+    );
+    setState(() {
+      _selectedStorylineId = storyline.id;
+      if (normalized.isEmpty) {
+        _selectedChapterId = null;
+      } else {
+        final nextIndex = removedIndex >= normalized.length
+            ? normalized.length - 1
+            : removedIndex;
+        _selectedChapterId = normalized[nextIndex].id;
+      }
+      _selectedTab = _StorylineContentTab.structure;
+    });
+  }
+
+  Future<void> _openEditStepDialog(
+    ProjectManifest project,
+    StorylineAsset storyline,
+    StorylineChapter chapter,
+    StorylineStep step,
+  ) async {
+    final draft = await showCupertinoDialog<_StructureItemDraft>(
+      context: context,
+      builder: (context) => _CreateStructureItemDialog(
+        dialogKey: const ValueKey('storylines-edit-step-dialog'),
+        title: 'Modifier l’étape narrative',
+        titleFieldKey: const ValueKey('storylines-edit-step-title-field'),
+        descriptionFieldKey: const ValueKey(
+          'storylines-edit-step-description-field',
+        ),
+        cancelKey: const ValueKey('storylines-edit-step-cancel'),
+        submitKey: const ValueKey('storylines-edit-step-submit'),
+        deleteKey: const ValueKey('storylines-edit-step-delete-action'),
+        initialTitle: step.title,
+        initialDescription: step.description,
+        submitLabel: 'Enregistrer',
+      ),
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    if (draft.deleteRequested) {
+      await _deleteStep(project, storyline, chapter, step);
+      return;
+    }
+    final updatedStep = _copyStepWith(
+      step,
+      title: draft.title,
+      description: draft.description,
+      replaceDescription: true,
+    );
+    final updatedChapter = _copyChapterWith(
+      chapter,
+      steps: chapter.steps
+          .map((current) => current.id == step.id ? updatedStep : current)
+          .toList(growable: false),
+    );
+    final updatedStoryline = _copyStorylineWith(
+      storyline,
+      chapters: storyline.chapters
+          .map(
+            (current) => current.id == chapter.id ? updatedChapter : current,
+          )
+          .toList(growable: false),
+    );
+    _applyStorylineUpdate(
+      project,
+      updatedStoryline,
+      statusMessage: 'Étape narrative modifiée',
+    );
+    setState(() {
+      _selectedStorylineId = storyline.id;
+      _selectedChapterId = chapter.id;
+      _selectedTab = _StorylineContentTab.structure;
+    });
+  }
+
+  Future<void> _deleteStep(
+    ProjectManifest project,
+    StorylineAsset storyline,
+    StorylineChapter chapter,
+    StorylineStep step,
+  ) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => _ConfirmStructureDeleteDialog(
+        title: 'Supprimer l’étape narrative',
+        message:
+            'L’étape "${step.title}" sera retirée de ce chapitre sans créer ni supprimer de scène.',
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    final updatedSteps = _normalizeStepOrders(
+      chapter.steps
+          .where((current) => current.id != step.id)
+          .toList(growable: false),
+    );
+    final updatedChapter = _copyChapterWith(chapter, steps: updatedSteps);
+    final updatedStoryline = _copyStorylineWith(
+      storyline,
+      chapters: storyline.chapters
+          .map(
+            (current) => current.id == chapter.id ? updatedChapter : current,
+          )
+          .toList(growable: false),
+    );
+    _applyStorylineUpdate(
+      project,
+      updatedStoryline,
+      statusMessage: 'Étape narrative supprimée',
+    );
+    setState(() {
+      _selectedStorylineId = storyline.id;
+      _selectedChapterId = chapter.id;
+      _selectedTab = _StorylineContentTab.structure;
+    });
+  }
+
+  void _reorderSteps(
+    ProjectManifest project,
+    StorylineAsset storyline,
+    StorylineChapter chapter,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final steps = _orderedStepsForMutation(chapter);
+    if (oldIndex < 0 || oldIndex >= steps.length) {
+      return;
+    }
+    var targetIndex = newIndex;
+    if (targetIndex < 0) {
+      targetIndex = 0;
+    }
+    if (targetIndex >= steps.length) {
+      targetIndex = steps.length - 1;
+    }
+    final moved = steps.removeAt(oldIndex);
+    steps.insert(targetIndex, moved);
+    final updatedChapter = _copyChapterWith(
+      chapter,
+      steps: _normalizeStepOrders(steps),
+    );
+    final updatedStoryline = _copyStorylineWith(
+      storyline,
+      chapters: storyline.chapters
+          .map(
+            (current) => current.id == chapter.id ? updatedChapter : current,
+          )
+          .toList(growable: false),
+    );
+    _applyStorylineUpdate(
+      project,
+      updatedStoryline,
+      statusMessage: 'Étapes narratives réordonnées',
     );
     setState(() {
       _selectedStorylineId = storyline.id;
@@ -503,19 +782,67 @@ StorylineAsset _copyStorylineWith(
 
 StorylineChapter _copyChapterWith(
   StorylineChapter chapter, {
+  String? title,
+  String? description,
+  bool replaceDescription = false,
+  int? order,
   List<StorylineStep>? steps,
 }) {
   return StorylineChapter(
     id: chapter.id,
-    title: chapter.title,
-    description: chapter.description,
-    order: chapter.order,
+    title: title ?? chapter.title,
+    description:
+        replaceDescription ? description : description ?? chapter.description,
+    order: order ?? chapter.order,
     steps: steps ?? chapter.steps,
     directSceneLinkIds: chapter.directSceneLinkIds,
     status: chapter.status,
     authorNotes: chapter.authorNotes,
     metadata: chapter.metadata,
   );
+}
+
+StorylineStep _copyStepWith(
+  StorylineStep step, {
+  String? title,
+  String? description,
+  bool replaceDescription = false,
+  int? order,
+}) {
+  return StorylineStep(
+    id: step.id,
+    title: title ?? step.title,
+    description:
+        replaceDescription ? description : description ?? step.description,
+    order: order ?? step.order,
+    entryCondition: step.entryCondition,
+    completionCondition: step.completionCondition,
+    sceneLinkIds: step.sceneLinkIds,
+    expectedOutcomeIds: step.expectedOutcomeIds,
+    status: step.status,
+    authorNotes: step.authorNotes,
+    metadata: step.metadata,
+  );
+}
+
+List<StorylineChapter> _normalizeChapterOrders(
+  List<StorylineChapter> chapters,
+) {
+  return [
+    for (var index = 0; index < chapters.length; index += 1)
+      _copyChapterWith(chapters[index], order: index),
+  ];
+}
+
+List<StorylineStep> _normalizeStepOrders(List<StorylineStep> steps) {
+  return [
+    for (var index = 0; index < steps.length; index += 1)
+      _copyStepWith(steps[index], order: index),
+  ];
+}
+
+List<StorylineStep> _orderedStepsForMutation(StorylineChapter chapter) {
+  return [...chapter.steps]..sort(_compareStepsByAuthorOrder);
 }
 
 int _storylineStepCount(StorylineAsset storyline) {
@@ -882,7 +1209,10 @@ class _StorylinesV1MainPanel extends StatelessWidget {
     required this.onChapterSelected,
     required this.onCreateStoryline,
     required this.onCreateChapter,
+    required this.onEditChapter,
     required this.onCreateStep,
+    required this.onEditStep,
+    required this.onReorderSteps,
     required this.onAttachSideQuest,
   });
 
@@ -895,19 +1225,24 @@ class _StorylinesV1MainPanel extends StatelessWidget {
   final int legacyStepCount;
   final bool canCreateStoryline;
   final ValueChanged<_StorylineContentTab> onTabSelected;
-  final ValueChanged<StorylineChapter> onChapterSelected;
+  final ValueChanged<StorylineChapter?> onChapterSelected;
   final VoidCallback? onCreateStoryline;
   final VoidCallback? onCreateChapter;
+  final ValueChanged<StorylineChapter>? onEditChapter;
   final VoidCallback? onCreateStep;
+  final StorylineStepAction? onEditStep;
+  final StorylineStepReorder? onReorderSteps;
   final VoidCallback? onAttachSideQuest;
 
   @override
   Widget build(BuildContext context) {
-    final graphMode = selectedTab == _StorylineContentTab.graph;
+    final compactMode = switch (selectedTab) {
+      _StorylineContentTab.graph || _StorylineContentTab.structure => true,
+    };
     return PokeMapPanel(
       key: const ValueKey('storylines-main-panel'),
       expandChild: true,
-      padding: EdgeInsets.all(graphMode ? 10 : 16),
+      padding: EdgeInsets.all(compactMode ? 10 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -915,36 +1250,40 @@ class _StorylinesV1MainPanel extends StatelessWidget {
             selectedStoryline: selectedStoryline,
             canCreateStoryline: canCreateStoryline,
             onCreateStoryline: onCreateStoryline,
-            compact: graphMode,
+            compact: compactMode,
           ),
-          SizedBox(height: graphMode ? 8 : 12),
+          SizedBox(height: compactMode ? 8 : 12),
           _StorylineTabsRow(
             selectedTab: selectedTab,
             onTabSelected: onTabSelected,
           ),
-          SizedBox(height: graphMode ? 6 : 12),
+          SizedBox(height: compactMode ? 6 : 12),
           _StorylinesV1KpiStrip(
             storylines: storylines,
-            compact: graphMode,
+            compact: compactMode,
           ),
-          SizedBox(height: graphMode ? 6 : 16),
+          SizedBox(height: compactMode ? 6 : 16),
           Expanded(
-            child: selectedTab == _StorylineContentTab.structure
-                ? StorylinesStructureView(
-                    storyline: selectedStoryline,
-                    selectedChapter: selectedChapter,
-                    onChapterSelected: onChapterSelected,
-                    onCreateChapter: onCreateChapter,
-                    onCreateStep: onCreateStep,
-                    onAttachSideQuest: onAttachSideQuest,
-                  )
-                : _StorylinesV1GraphSection(
-                    storyline: selectedStoryline,
-                    storylines: storylines,
-                    legacyGlobalStory: legacyGlobalStory,
-                    legacyStep: legacyStep,
-                    legacyStepCount: legacyStepCount,
-                  ),
+            child: switch (selectedTab) {
+              _StorylineContentTab.structure => StorylinesStructureView(
+                  storyline: selectedStoryline,
+                  selectedChapter: selectedChapter,
+                  onChapterSelected: onChapterSelected,
+                  onCreateChapter: onCreateChapter,
+                  onEditChapter: onEditChapter,
+                  onCreateStep: onCreateStep,
+                  onEditStep: onEditStep,
+                  onReorderSteps: onReorderSteps,
+                  onAttachSideQuest: onAttachSideQuest,
+                ),
+              _StorylineContentTab.graph => _StorylinesV1GraphSection(
+                  storyline: selectedStoryline,
+                  storylines: storylines,
+                  legacyGlobalStory: legacyGlobalStory,
+                  legacyStep: legacyStep,
+                  legacyStepCount: legacyStepCount,
+                ),
+            },
           ),
         ],
       ),
@@ -1627,10 +1966,16 @@ class _StructureItemDraft {
   const _StructureItemDraft({
     required this.title,
     required this.description,
-  });
+  }) : deleteRequested = false;
+
+  const _StructureItemDraft.delete()
+      : title = '',
+        description = null,
+        deleteRequested = true;
 
   final String title;
   final String? description;
+  final bool deleteRequested;
 }
 
 class _SideQuestAttachmentDraft {
@@ -1878,6 +2223,10 @@ class _CreateStructureItemDialog extends StatefulWidget {
     required this.descriptionFieldKey,
     required this.cancelKey,
     required this.submitKey,
+    this.deleteKey,
+    this.initialTitle,
+    this.initialDescription,
+    this.submitLabel = 'Créer',
   });
 
   final Key dialogKey;
@@ -1886,6 +2235,10 @@ class _CreateStructureItemDialog extends StatefulWidget {
   final Key descriptionFieldKey;
   final Key cancelKey;
   final Key submitKey;
+  final Key? deleteKey;
+  final String? initialTitle;
+  final String? initialDescription;
+  final String submitLabel;
 
   @override
   State<_CreateStructureItemDialog> createState() =>
@@ -1896,6 +2249,13 @@ class _CreateStructureItemDialogState
     extends State<_CreateStructureItemDialog> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController.text = widget.initialTitle ?? '';
+    _descriptionController.text = widget.initialDescription ?? '';
+  }
 
   @override
   void dispose() {
@@ -1951,16 +2311,29 @@ class _CreateStructureItemDialogState
                 ),
               ],
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 10,
+                runSpacing: 10,
                 children: [
+                  if (widget.deleteKey != null)
+                    PokeMapButton(
+                      key: widget.deleteKey,
+                      onPressed: () => Navigator.of(context).pop(
+                        const _StructureItemDraft.delete(),
+                      ),
+                      variant: PokeMapButtonVariant.danger,
+                      size: PokeMapButtonSize.small,
+                      leading: const Icon(CupertinoIcons.trash),
+                      child: const Text('Supprimer'),
+                    ),
                   PokeMapButton(
                     key: widget.cancelKey,
                     onPressed: () => Navigator.of(context).pop(),
                     variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
                     child: const Text('Annuler'),
                   ),
-                  const SizedBox(width: 10),
                   PokeMapButton(
                     key: widget.submitKey,
                     onPressed: title.isEmpty
@@ -1977,7 +2350,74 @@ class _CreateStructureItemDialogState
                             );
                           },
                     variant: PokeMapButtonVariant.primary,
-                    child: const Text('Créer'),
+                    size: PokeMapButtonSize.small,
+                    child: Text(widget.submitLabel),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ConfirmStructureDeleteDialog extends StatelessWidget {
+  const _ConfirmStructureDeleteDialog({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Center(
+      child: SizedBox(
+        width: 460,
+        child: PokeMapPanel(
+          key: const ValueKey('storylines-confirm-delete-dialog'),
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 12.5,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  PokeMapButton(
+                    key: const ValueKey('storylines-confirm-delete-cancel'),
+                    onPressed: () => Navigator.of(context).pop(false),
+                    variant: PokeMapButtonVariant.secondary,
+                    child: const Text('Annuler'),
+                  ),
+                  const SizedBox(width: 10),
+                  PokeMapButton(
+                    key: const ValueKey('storylines-confirm-delete-submit'),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    variant: PokeMapButtonVariant.danger,
+                    child: const Text('Supprimer'),
                   ),
                 ],
               ),

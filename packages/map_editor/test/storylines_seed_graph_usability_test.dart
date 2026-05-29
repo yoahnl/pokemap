@@ -277,9 +277,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('storylines-structure-view')),
           findsOneWidget);
-      expect(find.byKey(const ValueKey('storylines-selected-chapter-expanded')),
+      expect(
+          find.byKey(
+            const ValueKey('storylines-chapter-expanded-chapter_1_port'),
+          ),
           findsOneWidget);
-      expect(find.byKey(const ValueKey('storylines-collapsed-chapters')),
+      expect(
+          find.byKey(
+            const ValueKey('storylines-chapter-collapsed-chapter_2_marais'),
+          ),
           findsOneWidget);
     });
   });
