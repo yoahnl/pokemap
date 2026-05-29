@@ -13,16 +13,57 @@ class SceneGraphReadOnlyView extends StatelessWidget {
     required this.scene,
     this.selectedNodeId,
     this.onSelectNode,
+    this.expandToFill = false,
   });
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
   final ValueChanged<String>? onSelectNode;
+  final bool expandToFill;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final layout = _SceneGraphLayoutPlan.fromScene(scene);
+    final canvas = ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.backgroundShell,
+          border: Border.all(color: colors.borderSubtle),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _SceneGraphEdgePainter(
+                  edges: scene.graph.edges,
+                  positions: layout.positions,
+                  lineColor: colors.borderStrong,
+                  labelColor: colors.textSecondary,
+                  labelBackground: colors.cardSurface,
+                ),
+              ),
+            ),
+            for (final node in scene.graph.nodes)
+              _SceneGraphNodeCard(
+                node: node,
+                position: layout.positions[node.id]!,
+                isSelected: node.id == selectedNodeId,
+                onSelect: onSelectNode == null
+                    ? null
+                    : () => onSelectNode!(node.id),
+              ),
+            for (final edge in scene.graph.edges)
+              _SceneGraphEdgeLabel(
+                edge: edge,
+                position: layout.edgeLabelPosition(edge),
+              ),
+          ],
+        ),
+      ),
+    );
 
     return PokeMapCard(
       key: const ValueKey('scene-graph-read-only-view'),
@@ -62,48 +103,10 @@ class SceneGraphReadOnlyView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: layout.canvasHeight,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.backgroundShell,
-                  border: Border.all(color: colors.borderSubtle),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _SceneGraphEdgePainter(
-                          edges: scene.graph.edges,
-                          positions: layout.positions,
-                          lineColor: colors.borderStrong,
-                          labelColor: colors.textSecondary,
-                          labelBackground: colors.cardSurface,
-                        ),
-                      ),
-                    ),
-                    for (final node in scene.graph.nodes)
-                      _SceneGraphNodeCard(
-                        node: node,
-                        position: layout.positions[node.id]!,
-                        isSelected: node.id == selectedNodeId,
-                        onSelect: onSelectNode == null
-                            ? null
-                            : () => onSelectNode!(node.id),
-                      ),
-                    for (final edge in scene.graph.edges)
-                      _SceneGraphEdgeLabel(
-                        edge: edge,
-                        position: layout.edgeLabelPosition(edge),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          if (expandToFill)
+            Expanded(child: canvas)
+          else
+            SizedBox(height: layout.canvasHeight, child: canvas),
         ],
       ),
     );

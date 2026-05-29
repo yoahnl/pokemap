@@ -9,7 +9,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-SCENES-V1-07 node inspector read-only', () {
+  group('NS-SCENES-V1-08 authoring minimal scene draft', () {
     testWidgets('Narrative Studio exposes a real Scenes navigation entry',
         (tester) async {
       final container = await _pumpNarrativeShell(
@@ -59,13 +59,12 @@ void main() {
           findsOneWidget);
       expect(find.byKey(const ValueKey('scenes-summary-empty-state')),
           findsOneWidget);
-      expect(find.text('0 scènes'), findsOneWidget);
       expect(find.text('Aucune scène créée'), findsOneWidget);
+      expect(find.text('Liste vide'), findsOneWidget);
       expect(find.byKey(const ValueKey('scenes-list-compact')), findsNothing);
     });
 
-    testWidgets('disabled actions do not mutate ProjectManifest',
-        (tester) async {
+    testWidgets('does not render unsupported graph actions', (tester) async {
       final project = _projectWithScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -73,22 +72,128 @@ void main() {
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
-      final createButton = tester.widget<PokeMapButton>(
-        find.byKey(const ValueKey('scenes-create-scene-disabled')).first,
+      expect(
+        find.byKey(
+          const ValueKey('scenes-open-graph-disabled-scene_test_intro'),
+        ),
+        findsNothing,
       );
-      final builderButton = tester.widget<PokeMapButton>(
-        find
-            .byKey(
-              const ValueKey(
-                'scenes-open-graph-disabled-scene_test_intro',
-              ),
-            )
-            .first,
+      expect(find.byKey(const ValueKey('scenes-open-graph-disabled')),
+          findsNothing);
+      expect(container.read(editorNotifierProvider).project, equals(project));
+    });
+
+    testWidgets('creates a minimal scene draft from the Scenes workspace',
+        (tester) async {
+      final project = _emptyProject();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
       );
 
-      expect(createButton.onPressed, isNull);
-      expect(builderButton.onPressed, isNull);
+      final createButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('scenes-create-scene-action')).first,
+      );
+      expect(createButton.onPressed, isNotNull);
+
+      await tester
+          .tap(find.byKey(const ValueKey('scenes-create-scene-action')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scenes-create-scene-dialog')),
+        findsOneWidget,
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scenes-create-scene-name-error')),
+        findsOneWidget,
+      );
       expect(container.read(editorNotifierProvider).project, equals(project));
+
+      await tester.enterText(
+        find.byKey(const ValueKey('scenes-create-scene-name-field')),
+        'New Draft Scene',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('scenes-create-scene-description-field')),
+        'Created from the test flow.',
+      );
+      await tester
+          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
+      await tester.pumpAndSettle();
+
+      final updated = container.read(editorNotifierProvider).project!;
+      expect(updated.scenes, hasLength(1));
+      expect(updated.scenes.single.id, 'scene_new_draft_scene');
+      expect(updated.scenes.single.name, 'New Draft Scene');
+      expect(updated.scenes.single.description, 'Created from the test flow.');
+      expect(updated.scenarios, equals(project.scenarios));
+      expect(updated.storylines, equals(project.storylines));
+      expect(
+        find.byKey(const ValueKey('scenes-tree-item-scene_new_draft_scene')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scenes-selected-summary-scene_new_draft_scene'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_start')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_end')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+        findsOneWidget,
+      );
+      expect(find.text('Détails du nœud'), findsOneWidget);
+      expect(find.text('node_start'), findsWidgets);
+    });
+
+    testWidgets('create scene draft handles id collisions', (tester) async {
+      final project = ProjectManifest(
+        name: 'Scenes shell test',
+        maps: const [],
+        tilesets: const [],
+        scenes: [
+          _sceneWithId('scene_new_draft_scene'),
+        ],
+      );
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('scenes-create-scene-action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('scenes-create-scene-name-field')),
+        'New Draft Scene',
+      );
+      await tester
+          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
+      await tester.pumpAndSettle();
+
+      final updated = container.read(editorNotifierProvider).project!;
+      expect(updated.scenes.map((scene) => scene.id), [
+        'scene_new_draft_scene',
+        'scene_new_draft_scene_2',
+      ]);
+      expect(
+        find.byKey(const ValueKey('scenes-tree-item-scene_new_draft_scene_2')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('shows real SceneAsset data in the read-only tree and summary',
@@ -105,12 +210,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Test Scene Intro'), findsWidgets);
-      expect(find.text('5 nodes'), findsWidgets);
-      expect(find.text('2 outcomes'), findsWidgets);
       expect(find.text('storyline_test'), findsWidgets);
       expect(find.text('chapter_test'), findsWidgets);
-      expect(find.text('Intro done'), findsOneWidget);
-      expect(find.text('Branch done'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('scene-graph-read-only-view')),
         findsOneWidget,
@@ -132,6 +233,35 @@ void main() {
         find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('uses scene-builder proportions with fixed inspector',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final treeSize =
+          tester.getSize(find.byKey(const ValueKey('scenes-tree-column')));
+      final graphSize =
+          tester.getSize(find.byKey(const ValueKey('scenes-graph-column')));
+      final inspectorSize = tester
+          .getSize(find.byKey(const ValueKey('scenes-inspector-column')));
+
+      expect(find.byKey(const ValueKey('scenes-legacy-header')), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('scenes-tree-panel')),
+          matching: find.byKey(const ValueKey('scenes-create-scene-action')),
+        ),
+        findsOneWidget,
+      );
+      expect(treeSize.width, lessThan(270));
+      expect(inspectorSize.width, closeTo(320, 0.1));
+      expect(graphSize.width, greaterThan(treeSize.width * 2));
+      expect(graphSize.width, greaterThan(inspectorSize.width * 1.7));
     });
 
     testWidgets('selects real graph nodes and shows read-only inspector',
@@ -368,22 +498,29 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-07 visual gate screenshot', (tester) async {
+    testWidgets('writes V1-08 visual gate screenshot', (tester) async {
       await _pumpNarrativeShell(
         tester,
-        project: _projectWithTwoScenes(),
+        project: _emptyProject(),
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
       await tester
-          .tap(find.byKey(const ValueKey('scene-graph-node-node_yarn')));
+          .tap(find.byKey(const ValueKey('scenes-create-scene-action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('scenes-create-scene-name-field')),
+        'New Draft Scene',
+      );
+      await tester
+          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
       await tester.pumpAndSettle();
 
       await expectLater(
         find.byKey(const ValueKey('scenes-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_07_node_inspector_read_only.png',
+          'ns_scenes_v1_08_authoring_minimal_scene_draft.png',
         ),
       );
     });
@@ -564,6 +701,29 @@ SceneAsset _testIntroScene() {
       SceneOutcome(id: 'intro_done', label: 'Intro done'),
       SceneOutcome(id: 'branch_done', label: 'Branch done'),
     ],
+  );
+}
+
+SceneAsset _sceneWithId(String id) {
+  return SceneAsset(
+    id: id,
+    name: 'Existing scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_end',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
   );
 }
 

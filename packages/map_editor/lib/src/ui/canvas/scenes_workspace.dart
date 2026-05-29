@@ -6,13 +6,20 @@ import '../design_system/design_system.dart';
 import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 
+typedef SceneDraftCreator = Future<String?> Function({
+  required String name,
+  String? description,
+});
+
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
     required this.scenes,
+    required this.onCreateSceneDraft,
   });
 
   final List<NarrativeSceneSummary> scenes;
+  final SceneDraftCreator onCreateSceneDraft;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -61,45 +68,38 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    final totalNodes =
-        widget.scenes.fold<int>(0, (sum, scene) => sum + scene.nodeCount);
-    final totalOutcomes = widget.scenes.fold<int>(
-      0,
-      (sum, scene) => sum + scene.declaredOutcomeCount,
-    );
     final selectedScene = _selectedScene;
 
     return PokeMapPageSurface(
       key: const ValueKey('scenes-workspace-shell'),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _ScenesHeader(
-            sceneCount: widget.scenes.length,
-            totalNodes: totalNodes,
-            totalOutcomes: totalOutcomes,
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: 300,
-                  child: _SceneTreePanel(
-                    scenes: widget.scenes,
-                    selectedSceneId: selectedScene?.id,
-                    onSelectScene: (sceneId) {
-                      setState(() {
-                        _selectedSceneId = sceneId;
-                        _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
-                      });
-                    },
-                  ),
+      padding: const EdgeInsets.all(8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 1120;
+          final treeWidth = compact ? 220.0 : 244.0;
+          final inspectorWidth = compact ? 300.0 : 320.0;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                key: const ValueKey('scenes-tree-column'),
+                width: treeWidth,
+                child: _SceneTreePanel(
+                  scenes: widget.scenes,
+                  selectedSceneId: selectedScene?.id,
+                  onCreateSceneDraft: _createSceneDraft,
+                  onSelectScene: (sceneId) {
+                    setState(() {
+                      _selectedSceneId = sceneId;
+                      _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
+                    });
+                  },
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox.expand(
+                  key: const ValueKey('scenes-graph-column'),
                   child: _SceneReadOnlySummary(
                     scene: selectedScene,
                     selectedNodeId: _selectedNodeId,
@@ -108,12 +108,56 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     },
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                key: const ValueKey('scenes-inspector-column'),
+                width: inspectorWidth,
+                child: LayoutBuilder(
+                  builder: (context, inspectorConstraints) {
+                    return SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: inspectorConstraints.maxHeight,
+                        ),
+                        child: selectedScene == null
+                            ? const _SceneInspectorEmptyPanel()
+                            : SceneNodeReadOnlyInspector(
+                                scene: selectedScene,
+                                selectedNodeId: _selectedNodeId,
+                              ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Future<void> _createSceneDraft() async {
+    final draft = await showCupertinoDialog<_SceneDraftDialogResult>(
+      context: context,
+      builder: (context) => const _CreateSceneDraftDialog(),
+    );
+    if (draft == null) {
+      return;
+    }
+
+    final createdSceneId = await widget.onCreateSceneDraft(
+      name: draft.name,
+      description: draft.description,
+    );
+    if (!mounted || createdSceneId == null) {
+      return;
+    }
+    setState(() {
+      _selectedSceneId = createdSceneId;
+      _selectedNodeId = 'node_start';
+    });
   }
 
   NarrativeSceneSummary? get _selectedScene {
@@ -146,95 +190,106 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   }
 }
 
-class _ScenesHeader extends StatelessWidget {
-  const _ScenesHeader({
-    required this.sceneCount,
-    required this.totalNodes,
-    required this.totalOutcomes,
+class _SceneDraftDialogResult {
+  const _SceneDraftDialogResult({
+    required this.name,
+    this.description,
   });
 
-  final int sceneCount;
-  final int totalNodes;
-  final int totalOutcomes;
+  final String name;
+  final String? description;
+}
+
+class _CreateSceneDraftDialog extends StatefulWidget {
+  const _CreateSceneDraftDialog();
+
+  @override
+  State<_CreateSceneDraftDialog> createState() =>
+      _CreateSceneDraftDialogState();
+}
+
+class _CreateSceneDraftDialogState extends State<_CreateSceneDraftDialog> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  bool _showNameError = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return PokeMapPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          const PokeMapIconTile(
-            icon: CupertinoIcons.square_stack_3d_up,
-            tone: PokeMapTone.narrative,
-            size: 36,
-            iconSize: 18,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Scènes',
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const _SceneFactChip(label: 'Read-only V0'),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Arborescence read-only depuis ProjectManifest.scenes. '
-                  'Le graph arrive au lot suivant.',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+    return CupertinoAlertDialog(
+      key: const ValueKey('scenes-create-scene-dialog'),
+      title: const Text('Créer une scène'),
+      content: Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Column(
+          children: [
+            CupertinoTextField(
+              key: const ValueKey('scenes-create-scene-name-field'),
+              controller: _nameController,
+              placeholder: 'Nom de la scène',
+              onChanged: (_) {
+                if (_showNameError) {
+                  setState(() => _showNameError = false);
+                }
+              },
             ),
-          ),
-          const SizedBox(width: 12),
-          Wrap(
-            spacing: 8,
-            children: [
-              _SceneFactChip(
-                key: const ValueKey('scenes-metric-scenes'),
-                label: '$sceneCount ${_plural(sceneCount, 'scène', 'scènes')}',
-              ),
-              _SceneFactChip(
-                key: const ValueKey('scenes-metric-nodes'),
-                label: '$totalNodes ${_plural(totalNodes, 'node', 'nodes')}',
-              ),
-              _SceneFactChip(
-                key: const ValueKey('scenes-metric-outcomes'),
-                label:
-                    '$totalOutcomes ${_plural(totalOutcomes, 'outcome', 'outcomes')}',
+            const SizedBox(height: 8),
+            CupertinoTextField(
+              key: const ValueKey('scenes-create-scene-description-field'),
+              controller: _descriptionController,
+              placeholder: 'Description optionnelle',
+              minLines: 2,
+              maxLines: 3,
+            ),
+            if (_showNameError) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Nom requis.',
+                key: const ValueKey('scenes-create-scene-name-error'),
+                style: TextStyle(
+                  color: colors.error,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
-          ),
-          const SizedBox(width: 12),
-          const PokeMapButton(
-            key: ValueKey('scenes-create-scene-disabled'),
-            onPressed: null,
-            variant: PokeMapButtonVariant.primary,
-            size: PokeMapButtonSize.small,
-            leading: Icon(CupertinoIcons.plus),
-            child: Text('Créer — bientôt'),
-          ),
-        ],
+          ],
+        ),
       ),
+      actions: [
+        CupertinoDialogAction(
+          key: const ValueKey('scenes-create-scene-cancel'),
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        CupertinoDialogAction(
+          key: const ValueKey('scenes-create-scene-submit'),
+          isDefaultAction: true,
+          child: const Text('Créer la scène'),
+          onPressed: () {
+            final name = _nameController.text.trim();
+            if (name.isEmpty) {
+              setState(() => _showNameError = true);
+              return;
+            }
+            Navigator.of(context).pop(
+              _SceneDraftDialogResult(
+                name: name,
+                description: _descriptionController.text.trim().isEmpty
+                    ? null
+                    : _descriptionController.text.trim(),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -243,11 +298,13 @@ class _SceneTreePanel extends StatelessWidget {
   const _SceneTreePanel({
     required this.scenes,
     required this.selectedSceneId,
+    required this.onCreateSceneDraft,
     required this.onSelectScene,
   });
 
   final List<NarrativeSceneSummary> scenes;
   final String? selectedSceneId;
+  final VoidCallback onCreateSceneDraft;
   final ValueChanged<String> onSelectScene;
 
   @override
@@ -256,7 +313,7 @@ class _SceneTreePanel extends StatelessWidget {
       key: const ValueKey('scenes-tree-panel'),
       expandChild: true,
       padding: EdgeInsets.zero,
-      header: const _SceneTreeHeader(),
+      header: _SceneTreeHeader(onCreateSceneDraft: onCreateSceneDraft),
       child: scenes.isEmpty
           ? const _SceneTreeEmptyState()
           : _SceneTreeList(
@@ -269,17 +326,19 @@ class _SceneTreePanel extends StatelessWidget {
 }
 
 class _SceneTreeHeader extends StatelessWidget {
-  const _SceneTreeHeader();
+  const _SceneTreeHeader({required this.onCreateSceneDraft});
+
+  final VoidCallback onCreateSceneDraft;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 11, 12, 9),
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 7),
       child: Row(
         children: [
           const Icon(CupertinoIcons.list_bullet_indent, size: 16),
-          const SizedBox(width: 8),
+          const SizedBox(width: 7),
           Expanded(
             child: Text(
               'Arborescence des scènes',
@@ -292,7 +351,15 @@ class _SceneTreeHeader extends StatelessWidget {
               ),
             ),
           ),
-          const _SceneFactChip(label: 'Read-only'),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: const ValueKey('scenes-create-scene-action'),
+            onPressed: onCreateSceneDraft,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.plus),
+            child: const Text('Créer'),
+          ),
         ],
       ),
     );
@@ -457,13 +524,6 @@ class _SceneSummaryEmptyState extends StatelessWidget {
       title: 'Aucune scène créée',
       description: 'Créez bientôt vos scènes sous forme de graph '
           'd’orchestration : dialogue, condition, combat, cinématique, action.',
-      action: PokeMapButton(
-        key: ValueKey('scenes-open-graph-disabled'),
-        onPressed: null,
-        variant: PokeMapButtonVariant.secondary,
-        leading: Icon(CupertinoIcons.flowchart),
-        child: Text('Ouvrir le graph — bientôt'),
-      ),
     );
   }
 }
@@ -482,263 +542,41 @@ class _SelectedSceneSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return SingleChildScrollView(
-      key: ValueKey('scenes-selected-summary-${scene.id}'),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const PokeMapIconTile(
-                icon: CupertinoIcons.flowchart,
-                tone: PokeMapTone.narrative,
-                size: 42,
-                iconSize: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      scene.name,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      scene.description ?? 'Aucune description.',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              PokeMapButton(
-                key: ValueKey('scenes-open-graph-disabled-${scene.id}'),
-                onPressed: null,
-                variant: PokeMapButtonVariant.secondary,
-                size: PokeMapButtonSize.small,
-                leading: const Icon(CupertinoIcons.flowchart),
-                child: const Text('Lecture seule'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              PokeMapStatusTile(
-                label: 'Nodes',
-                value: '${scene.nodeCount}',
-                icon: CupertinoIcons.circle_grid_3x3,
-              ),
-              PokeMapStatusTile(
-                label: 'Edges',
-                value: '${scene.edgeCount}',
-                icon: CupertinoIcons.arrow_right,
-              ),
-              PokeMapStatusTile(
-                label: 'Outcomes',
-                value: '${scene.declaredOutcomeCount}',
-                icon: CupertinoIcons.arrow_branch,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SceneGraphReadOnlyView(
-                      scene: scene,
-                      selectedNodeId: selectedNodeId,
-                      onSelectNode: onSelectNode,
-                    ),
-                    const SizedBox(height: 16),
-                    _SceneDetailsSection(scene: scene),
-                    const SizedBox(height: 16),
-                    _SceneOutcomeSection(scene: scene),
-                    const SizedBox(height: 16),
-                    _SceneTagSection(scene: scene),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 320,
-                child: SceneNodeReadOnlyInspector(
-                  scene: scene,
-                  selectedNodeId: selectedNodeId,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SceneDetailsSection extends StatelessWidget {
-  const _SceneDetailsSection({required this.scene});
-
-  final NarrativeSceneSummary scene;
-
-  @override
-  Widget build(BuildContext context) {
-    return PokeMapCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _SectionTitle('Références'),
-          const SizedBox(height: 10),
-          _DetailRow(label: 'Scene ID', value: scene.id),
-          _DetailRow(
-            label: 'Storyline',
-            value: scene.storylineId ?? 'Sans storyline',
-          ),
-          _DetailRow(
-            label: 'Chapter',
-            value: scene.chapterId ?? 'Sans chapitre',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SceneOutcomeSection extends StatelessWidget {
-  const _SceneOutcomeSection({required this.scene});
-
-  final NarrativeSceneSummary scene;
-
-  @override
-  Widget build(BuildContext context) {
-    return PokeMapCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _SectionTitle('Outcomes déclarés'),
-          const SizedBox(height: 10),
-          if (scene.declaredOutcomes.isEmpty)
-            const _SceneFactChip(label: 'Aucun outcome déclaré')
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final outcome in scene.declaredOutcomes)
-                  _SceneFactChip(label: outcome),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SceneTagSection extends StatelessWidget {
-  const _SceneTagSection({required this.scene});
-
-  final NarrativeSceneSummary scene;
-
-  @override
-  Widget build(BuildContext context) {
-    return PokeMapCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _SectionTitle('Tags'),
-          const SizedBox(height: 10),
-          if (scene.tags.isEmpty)
-            const _SceneFactChip(label: 'Aucun tag')
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final tag in scene.tags) _SceneFactChip(label: tag),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Text(
-      label,
-      style: TextStyle(
-        color: colors.textPrimary,
-        fontSize: 13,
-        fontWeight: FontWeight.w900,
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
+      key: ValueKey('scenes-selected-summary-${scene.id}'),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 90,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: colors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
+          Text(
+            scene.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            scene.description ?? 'Aucune description.',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
           Expanded(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+            child: SceneGraphReadOnlyView(
+              scene: scene,
+              selectedNodeId: selectedNodeId,
+              onSelectNode: onSelectNode,
+              expandToFill: true,
             ),
           ),
         ],
@@ -747,33 +585,38 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _SceneFactChip extends StatelessWidget {
-  const _SceneFactChip({
-    super.key,
-    required this.label,
-  });
-
-  final String label;
+class _SceneInspectorEmptyPanel extends StatelessWidget {
+  const _SceneInspectorEmptyPanel();
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.controlSurface,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: colors.borderSubtle),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: colors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
+    return const PokeMapInspectorPanel(
+      padding: EdgeInsets.all(12),
+      header: Padding(
+        padding: EdgeInsets.fromLTRB(12, 11, 12, 9),
+        child: Row(
+          children: [
+            PokeMapIconTile(
+              icon: CupertinoIcons.sidebar_right,
+              tone: PokeMapTone.narrative,
+              size: 30,
+              iconSize: 15,
+            ),
+            SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                'Détails du nœud',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
+      ),
+      child: PokeMapEmptyState(
+        icon: Icon(CupertinoIcons.sidebar_right),
+        title: 'Aucun nœud',
+        description: 'Sélectionnez une scène pour inspecter son graph.',
       ),
     );
   }
@@ -790,8 +633,4 @@ Map<String, Map<String, List<NarrativeSceneSummary>>> _groupScenes(
     chapters.putIfAbsent(chapterKey, () => []).add(scene);
   }
   return grouped;
-}
-
-String _plural(int count, String singular, String plural) {
-  return count == 1 ? singular : plural;
 }

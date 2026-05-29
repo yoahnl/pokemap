@@ -44,16 +44,36 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-05 — Scene Tree Panel Read-only | DONE | Arborescence read-only des scenes reelles, selection locale, resume central, header Scenes compacte, aucun graph ni mutation. |
 | NS-SCENES-V1-06 — Graph Read-only Skeleton | DONE | Graph Scene V1 read-only depuis le `SceneAsset` selectionne : nodes, edges, labels, layout persiste ou layout derive non persiste. |
 | NS-SCENES-V1-07 — Node Inspector Read-only | DONE | Selection locale de node dans le graph read-only, inspecteur read-only du payload et des edges entrants/sortants, sans authoring ni mutation. |
-| NS-SCENES-V1-08 — Authoring Minimal Scene Draft | TODO | Creer/editer une scene draft minimale, sans brancher Storylines ni runtime complet. |
+| NS-SCENES-V1-08 — Authoring Minimal Scene Draft | DONE | Creation d'une SceneAsset draft minimale depuis le workspace Scenes, ajout en memoire dans `ProjectManifest.scenes`, selection auto et graph/inspector read-only. |
 | NS-SCENES-V1-09 — Scene Validation Diagnostics | TODO | Diagnostics de graphe : start/end, edges invalides, nodes incomplets, refs manquantes, outcomes orphelins. |
 | NS-SCENES-V1-10 — Runtime Execution Prep | TODO | Adapter ou wrapper les briques runtime existantes pour preparer l'execution Scene V1. |
 | NS-SCENES-V1-11 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres stabilisation du modele Scene V1. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-08 — Authoring Minimal Scene Draft`
+`NS-SCENES-V1-09 — Scene Validation Diagnostics`
 
-Raison : le workspace Scenes affiche maintenant un graph read-only reel et un inspecteur read-only du node selectionne. Le prochain lot peut introduire un authoring minimal de Scene draft, sans runtime ni branchement Storylines.
+Raison : le workspace Scenes peut maintenant creer une scene draft minimale. Avant d'elargir l'authoring de nodes/edges, il faut poser les diagnostics Scene V1 pour encadrer start/end, refs, edges, ports et outcomes.
+
+## Decisions V1-08
+
+- Le bouton `Créer une scène` ouvre un dialog minimal nom + description optionnelle.
+- Le bouton est place dans la barre de l'arborescence pour garder le graph dominant.
+- Le nom vide est refuse dans le dialog.
+- La creation passe par `createSceneDraftInProject`, operation pure `map_core`.
+- Les ids de scene sont slugifies avec prefixe `scene_` et suffixe numerique en cas de collision.
+- La scene draft contient uniquement `node_start`, `node_end`, `edge_start_end`, layout start/end et aucune metadata metier.
+- La mutation touche uniquement `ProjectManifest.scenes` en memoire via `EditorNotifier.applyInMemoryProjectManifest`.
+- La scene creee est selectionnee, puis `node_start` est selectionne dans l'inspecteur read-only.
+- Aucun authoring de node, edge, payload, layout, runtime ou Storylines n'est ajoute.
+
+## Limites V1-08
+
+- Pas d'edition de scene existante.
+- Pas d'ajout ou edition de node/edge.
+- Pas de drag and drop layout.
+- Pas de persistence disque explicite.
+- Pas de diagnostics Scene V1 avant V1-09.
 
 ## Decisions V1-07
 

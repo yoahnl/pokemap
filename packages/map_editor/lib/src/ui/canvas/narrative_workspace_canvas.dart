@@ -122,6 +122,25 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.scenes => ScenesWorkspace(
           scenes: projection.scenes,
+          onCreateSceneDraft: ({
+            required String name,
+            String? description,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return null;
+            }
+            final result = createSceneDraftInProject(
+              project,
+              name: name,
+              description: description,
+            );
+            editorNotifier.applyInMemoryProjectManifest(
+              result.updatedProject,
+              statusMessage: 'Scene draft created',
+            );
+            return result.createdScene.id;
+          },
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
