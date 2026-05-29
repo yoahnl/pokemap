@@ -123,6 +123,32 @@ class NarrativeOutcomeSummary {
   final List<String> consumedByScenarioIds;
 }
 
+class NarrativeSceneSummary {
+  const NarrativeSceneSummary({
+    required this.id,
+    required this.name,
+    this.description,
+    this.storylineId,
+    this.chapterId,
+    required this.nodeCount,
+    required this.edgeCount,
+    required this.declaredOutcomeCount,
+    required this.declaredOutcomes,
+    required this.tags,
+  });
+
+  final String id;
+  final String name;
+  final String? description;
+  final String? storylineId;
+  final String? chapterId;
+  final int nodeCount;
+  final int edgeCount;
+  final int declaredOutcomeCount;
+  final List<String> declaredOutcomes;
+  final List<String> tags;
+}
+
 /// Projection consolidée de la donnée narrative pour l'UI.
 ///
 /// Frontière de responsabilité:
@@ -133,6 +159,7 @@ class NarrativeWorkspaceProjection {
   const NarrativeWorkspaceProjection({
     required this.globalStories,
     required this.localEventFlows,
+    required this.scenes,
     required this.steps,
     required this.chapters,
     required this.outcomes,
@@ -141,6 +168,7 @@ class NarrativeWorkspaceProjection {
 
   final List<NarrativeScenarioSummary> globalStories;
   final List<NarrativeScenarioSummary> localEventFlows;
+  final List<NarrativeSceneSummary> scenes;
   final List<NarrativeStepSummary> steps;
   final List<NarrativeChapterSummary> chapters;
   final List<NarrativeOutcomeSummary> outcomes;
@@ -152,6 +180,7 @@ NarrativeWorkspaceProjection buildNarrativeWorkspaceProjection(
 ) {
   final globalStories = <NarrativeScenarioSummary>[];
   final localEventFlows = <NarrativeScenarioSummary>[];
+  final scenes = _buildSceneSummaries(project.scenes);
   final scenarioById = <String, NarrativeScenarioSummary>{};
   final rawGlobalStoryScenarios = <ScenarioAsset>[];
 
@@ -250,11 +279,33 @@ NarrativeWorkspaceProjection buildNarrativeWorkspaceProjection(
   return NarrativeWorkspaceProjection(
     globalStories: globalStories,
     localEventFlows: localEventFlows,
+    scenes: scenes,
     steps: steps,
     chapters: chapters,
     outcomes: outcomes,
     scenarioById: scenarioById,
   );
+}
+
+List<NarrativeSceneSummary> _buildSceneSummaries(List<SceneAsset> scenes) {
+  return [
+    for (final scene in scenes)
+      NarrativeSceneSummary(
+        id: scene.id,
+        name: scene.name.trim().isEmpty ? scene.id : scene.name,
+        description: scene.description,
+        storylineId: scene.storylineId,
+        chapterId: scene.chapterId,
+        nodeCount: scene.graph.nodes.length,
+        edgeCount: scene.graph.edges.length,
+        declaredOutcomeCount: scene.declaredOutcomes.length,
+        declaredOutcomes: [
+          for (final outcome in scene.declaredOutcomes)
+            outcome.label.trim().isEmpty ? outcome.id : outcome.label,
+        ],
+        tags: scene.tags.toList(growable: false),
+      ),
+  ];
 }
 
 List<NarrativeChapterSummary> _buildChapterSummaries({

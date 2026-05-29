@@ -49,7 +49,8 @@ void main() {
     final expectations = <EditorWorkspaceMode, String>{
       EditorWorkspaceMode.narrativeOverview: 'Section : Aperçu',
       EditorWorkspaceMode.globalStory: 'Section : Storylines',
-      EditorWorkspaceMode.step: 'Section : Scènes',
+      EditorWorkspaceMode.scenes: 'Section : Scènes',
+      EditorWorkspaceMode.step: 'Section : Étapes',
       EditorWorkspaceMode.cutscene: 'Section : Cinématiques',
       EditorWorkspaceMode.dialogue: 'Section : Dialogues',
     };

@@ -246,6 +246,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _isNarrativeWorkspace(EditorWorkspaceMode workspaceMode) {
     return workspaceMode == EditorWorkspaceMode.narrativeOverview ||
         workspaceMode == EditorWorkspaceMode.globalStory ||
+        workspaceMode == EditorWorkspaceMode.scenes ||
         workspaceMode == EditorWorkspaceMode.step ||
         workspaceMode == EditorWorkspaceMode.cutscene ||
         workspaceMode == EditorWorkspaceMode.dialogue;

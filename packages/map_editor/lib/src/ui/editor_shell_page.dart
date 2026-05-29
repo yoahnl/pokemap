@@ -86,6 +86,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final supportsRightInspector = switch (workspaceMode) {
       EditorWorkspaceMode.narrativeOverview => false,
+      EditorWorkspaceMode.scenes => false,
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.pathStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
@@ -109,6 +110,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final isNarrativeWorkspace = switch (workspaceMode) {
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue =>
@@ -560,6 +562,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                 EditorWorkspaceMode
                                                       .globalStory =>
                                                   EditorChrome.islandCoolTint,
+                                                EditorWorkspaceMode.scenes =>
+                                                  EditorChrome.islandCoolTint,
                                                 EditorWorkspaceMode.step =>
                                                   EditorChrome.islandWarmTint,
                                                 EditorWorkspaceMode.cutscene =>
@@ -585,6 +589,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                   const _EmptyWorkspaceInspector(),
                                                 EditorWorkspaceMode
                                                       .narrativeOverview =>
+                                                  const _EmptyWorkspaceInspector(),
+                                                EditorWorkspaceMode.scenes =>
                                                   const _EmptyWorkspaceInspector(),
                                                 EditorWorkspaceMode
                                                       .pathStudio =>
@@ -736,6 +742,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.pokedex => colors.reward,
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue =>
@@ -751,6 +758,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.pokedex => PokeMapBadgeVariant.info,
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue =>
@@ -765,6 +773,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.pokedex => 'Catalogues',
       EditorWorkspaceMode.narrativeOverview => 'Aperçu',
       EditorWorkspaceMode.globalStory => 'Macro-Récit',
+      EditorWorkspaceMode.scenes => 'Scènes',
       EditorWorkspaceMode.step => 'Étapes',
       EditorWorkspaceMode.cutscene => 'Cinématiques',
       EditorWorkspaceMode.dialogue => 'Dialogue',
@@ -916,6 +925,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.pokedex => CupertinoIcons.book,
               EditorWorkspaceMode.narrativeOverview => CupertinoIcons.house,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
+              EditorWorkspaceMode.scenes => CupertinoIcons.square_stack_3d_up,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
               EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,

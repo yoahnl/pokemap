@@ -63,7 +63,8 @@ class NarrativeStudioHeader extends StatelessWidget {
     return switch (mode) {
       EditorWorkspaceMode.narrativeOverview => 'Aperçu',
       EditorWorkspaceMode.globalStory => 'Storylines',
-      EditorWorkspaceMode.step => 'Scènes',
+      EditorWorkspaceMode.scenes => 'Scènes',
+      EditorWorkspaceMode.step => 'Étapes',
       EditorWorkspaceMode.cutscene => 'Cinématiques',
       EditorWorkspaceMode.dialogue => 'Dialogues',
       _ => 'Aperçu',

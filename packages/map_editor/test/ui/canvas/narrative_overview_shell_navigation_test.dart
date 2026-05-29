@@ -63,6 +63,13 @@ void main() {
   testWidgets(
     'NarrativeWorkspaceCanvas renders the internal Narrative Studio shell',
     (tester) async {
+      tester.view.physicalSize = const Size(1200, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -136,7 +143,12 @@ void main() {
         findsOneWidget,
       );
 
-      for (final label in <String>['Aperçu', 'Storylines', 'Scènes']) {
+      for (final label in <String>[
+        'Aperçu',
+        'Storylines',
+        'Scènes',
+        'Étapes',
+      ]) {
         expect(
           find.descendant(of: sidebar, matching: find.text(label)),
           findsOneWidget,
@@ -167,7 +179,7 @@ void main() {
         find.descendant(of: sidebar, matching: find.text('Scènes')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('workspace:step'), findsOneWidget);
+      expect(find.text('workspace:scenes'), findsOneWidget);
 
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Cinématiques')),
@@ -309,7 +321,7 @@ void main() {
       await returnToOverview();
 
       await tapOverviewCard('narrative-overview-kpi-scenes');
-      expect(find.text('workspace:step'), findsOneWidget);
+      expect(find.text('workspace:scenes'), findsOneWidget);
       await returnToOverview();
 
       await tapOverviewCard('narrative-overview-kpi-cutscenes');

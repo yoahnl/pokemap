@@ -40,8 +40,8 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-01 — Scene Product Model / Graph Contract | DONE | Contrat produit Scene V1 formalise : definitions Scene/Graph/Node/Edge/Port/Outcome, taxonomie nodes/edges, payloads minimaux/interdits, diagnostics et runtime intents. |
 | NS-SCENES-V1-02 — Scene Storage / ID / Read Model Decision | DONE | Decision retenue : `SceneAsset` authoring dedie + `ProjectManifest.scenes` futur, avec `ScenarioAsset` conserve comme legacy/runtime bridge temporaire et sans migration automatique. |
 | NS-SCENES-V1-03 — Scene Core Model V0 | DONE | Modele core `SceneAsset` ajoute dans `map_core` avec `SceneGraph`, `SceneGraphLayout`, nodes/edges/outcomes, `ProjectManifest.scenes`, export public et tests core/JSON/manifest. |
-| NS-SCENES-V1-04 — Workspace Shell Scenes | TODO | Creer le shell editor `Scenes` sans authoring profond ni runtime. |
-| NS-SCENES-V1-05 — Scene Tree Panel Read-only | TODO | Afficher une arborescence de scenes reelles depuis `ProjectManifest.scenes`, sans fake fallback. |
+| NS-SCENES-V1-04 — Workspace Shell Scenes | DONE | Shell editor `Scenes` branche dans Narrative Studio, lecture read-only de `ProjectManifest.scenes`, empty state honnete, actions non supportees desactivees. |
+| NS-SCENES-V1-05 — Scene Tree Panel Read-only | DONE | Arborescence read-only des scenes reelles, selection locale, resume central, header Scenes compacte, aucun graph ni mutation. |
 | NS-SCENES-V1-06 — Graph Read-only Skeleton | TODO | Afficher un graph Scene V1 read-only avec start/end et nodes reels du read model. |
 | NS-SCENES-V1-07 — Node Inspector Read-only | TODO | Inspecteur contextuel pour node selectionne, conditions, sorties et notes. |
 | NS-SCENES-V1-08 — Authoring Minimal Scene Draft | TODO | Creer/editer une scene draft minimale, sans brancher Storylines ni runtime complet. |
@@ -51,9 +51,47 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-04 — Workspace Shell Scenes`
+`NS-SCENES-V1-06 — Graph Read-only Skeleton`
 
-Raison : le modele core Scene V1 existe maintenant dans `map_core` et `ProjectManifest.scenes` est serialisable avec compatibilite absent/null vers `[]`. Le prochain lot peut creer le shell editor Scenes sans authoring profond, sans runtime et sans brancher Storylines.
+Raison : le workspace Scenes possede maintenant un panneau d'arborescence read-only, une selection locale de scene et un resume central derive de `ProjectManifest.scenes`. Le prochain lot peut ajouter un squelette de graph read-only sans authoring, sans runtime et sans mutation.
+
+## Decisions V1-05
+
+- `ScenesWorkspace` devient un workspace read-only structure : header compact, panneau gauche d'arborescence, zone centrale de resume.
+- La selection de scene est locale au widget et ne modifie pas `ProjectManifest`.
+- Les scenes sont groupees par `storylineId` puis `chapterId` quand ces champs existent ; sinon elles restent sous `Sans storyline` / `Sans chapitre`.
+- Le resume central affiche nom, description, IDs, tags, nodes, edges et outcomes declares.
+- Le graph reste explicitement absent : seul un placeholder read-only annonce V1-06.
+- Aucun bouton d'authoring actif n'est ajoute.
+
+## Limites V1-05
+
+- Pas de rendu SceneGraph.
+- Pas de Scene Tree editable.
+- Pas de Node Inspector.
+- Pas de creation, edition, suppression, duplication ou import de scene.
+- Pas de runtime Scene.
+- Pas de branchement Storylines `sceneLinkIds`.
+
+## Decisions V1-04
+
+- Nouvelle entree `Scenes` ajoutee au mode workspace editor et a la navigation interne Narrative Studio.
+- L'ancien mode `step` reste distinct et libelle `Etapes`.
+- `ScenesWorkspace` affiche un shell read-only : titre, explication, metriques scenes/nodes/outcomes et empty state si `ProjectManifest.scenes` est vide.
+- Les scenes affichees viennent uniquement de `ProjectManifest.scenes` via la projection narrative.
+- Les actions `Creer une scene` et `Builder` sont desactivees et honnetes.
+- Aucun seed, aucune scene de demonstration et aucune donnee Selbrume ne sont crees.
+- Le panneau droit est volontairement absent pour le mode `Scenes` en V1-04.
+
+## Limites V1-04
+
+- Pas de Scene Tree Panel complet.
+- Pas de SceneGraph read-only.
+- Pas de Node Inspector.
+- Pas de creation, edition, suppression ou duplication de scene.
+- Pas de runtime Scene.
+- Pas de branchement Storylines `sceneLinkIds`.
+- `flutter analyze --no-fatal-infos` global reste bloque par une dette preexistante hors Scenes dans `pokemon_sdk_move_catalog_converter.dart` et `sync_pokemon_sdk_moves_catalog_use_case.dart`; l'analyse ciblee du lot passe.
 
 ## Decisions V1-03
 

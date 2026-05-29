@@ -50,6 +50,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.globalStory);
   }
 
+  EditorState selectScenesWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.scenes);
+  }
+
   EditorState selectStepWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.step);
   }

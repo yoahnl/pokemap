@@ -32,6 +32,7 @@ enum EditorWorkspaceMode {
   // - la colonne droite sert à inspecter le contexte sélectionné.
   narrativeOverview,
   globalStory,
+  scenes,
   step,
   cutscene,
 

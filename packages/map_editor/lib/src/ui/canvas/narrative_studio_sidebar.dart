@@ -10,6 +10,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
     required this.workspaceMode,
     required this.onSelectOverview,
     required this.onSelectGlobal,
+    required this.onSelectScenes,
     required this.onSelectStep,
     required this.onSelectCutscene,
     required this.onSelectDialogue,
@@ -19,6 +20,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
   final EditorWorkspaceMode workspaceMode;
   final VoidCallback onSelectOverview;
   final VoidCallback onSelectGlobal;
+  final VoidCallback onSelectScenes;
   final VoidCallback onSelectStep;
   final VoidCallback onSelectCutscene;
   final VoidCallback onSelectDialogue;
@@ -34,6 +36,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
         key: const ValueKey('narrative-studio-sidebar'),
         width: compact ? 148 : 164,
         child: PokeMapPanel(
+          expandChild: true,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: SingleChildScrollView(
             child: Column(
@@ -80,8 +83,16 @@ class NarrativeStudioSidebar extends StatelessWidget {
                 ),
                 _NarrativeSidebarItem(
                   key: const ValueKey('narrative-studio-sidebar-scenes'),
-                  icon: CupertinoIcons.square_grid_2x2,
+                  icon: CupertinoIcons.square_stack_3d_up,
                   label: 'Scènes',
+                  subtitle: 'Builder à venir',
+                  selected: workspaceMode == EditorWorkspaceMode.scenes,
+                  onTap: onSelectScenes,
+                ),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-steps'),
+                  icon: CupertinoIcons.square_grid_2x2,
+                  label: 'Étapes',
                   subtitle: 'Étapes narratives',
                   selected: workspaceMode == EditorWorkspaceMode.step,
                   onTap: onSelectStep,

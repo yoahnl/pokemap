@@ -10,6 +10,7 @@ class NarrativeStudioShell extends StatelessWidget {
     required this.workspaceMode,
     required this.onSelectOverview,
     required this.onSelectGlobal,
+    required this.onSelectScenes,
     required this.onSelectStep,
     required this.onSelectCutscene,
     required this.onSelectDialogue,
@@ -19,6 +20,7 @@ class NarrativeStudioShell extends StatelessWidget {
   final EditorWorkspaceMode workspaceMode;
   final VoidCallback onSelectOverview;
   final VoidCallback onSelectGlobal;
+  final VoidCallback onSelectScenes;
   final VoidCallback onSelectStep;
   final VoidCallback onSelectCutscene;
   final VoidCallback onSelectDialogue;
@@ -40,6 +42,7 @@ class NarrativeStudioShell extends StatelessWidget {
                 workspaceMode: workspaceMode,
                 onSelectOverview: onSelectOverview,
                 onSelectGlobal: onSelectGlobal,
+                onSelectScenes: onSelectScenes,
                 onSelectStep: onSelectStep,
                 onSelectCutscene: onSelectCutscene,
                 onSelectDialogue: onSelectDialogue,

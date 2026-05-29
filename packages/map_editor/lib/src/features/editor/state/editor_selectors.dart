@@ -149,6 +149,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
     EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
     EditorWorkspaceMode.globalStory => 'Global Story Workspace',
+    EditorWorkspaceMode.scenes => 'Scenes Workspace',
     EditorWorkspaceMode.step => 'Step Studio',
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
@@ -171,6 +172,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Vue d’ensemble auteur : métriques disponibles, statuts honnêtes et prochaines sections du dashboard.',
     EditorWorkspaceMode.globalStory =>
       'Progression narrative macro : arcs, jalons et branches de haut niveau.',
+    EditorWorkspaceMode.scenes =>
+      'Shell read-only des Scenes V1 depuis ProjectManifest.scenes.',
     EditorWorkspaceMode.step =>
       'Espace logique des étapes : règles de progression, résultats attendus, cinématiques liées.',
     EditorWorkspaceMode.cutscene =>

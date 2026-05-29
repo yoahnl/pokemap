@@ -507,6 +507,14 @@ class TopToolbar extends ConsumerWidget {
               onPressed: notifier.selectStepWorkspace,
             ),
             ToolbarCapsuleButton(
+              icon: CupertinoIcons.square_stack_3d_up,
+              tooltip: 'Ouvrir le workspace Scènes',
+              selected: toolbar.workspaceMode == EditorWorkspaceMode.scenes,
+              onPressed: toolbar.project != null
+                  ? notifier.selectScenesWorkspace
+                  : null,
+            ),
+            ToolbarCapsuleButton(
               icon: CupertinoIcons.play_rectangle,
               tooltip: 'Switch to Cutscene Studio',
               selected: toolbar.workspaceMode == EditorWorkspaceMode.cutscene,
@@ -580,6 +588,7 @@ class TopToolbar extends ConsumerWidget {
           EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
           EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
           EditorWorkspaceMode.globalStory => 'Global Story',
+          EditorWorkspaceMode.scenes => 'Scenes Workspace',
           EditorWorkspaceMode.step => 'Step Studio',
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',
           EditorWorkspaceMode.dialogue => 'Dialogue Studio',

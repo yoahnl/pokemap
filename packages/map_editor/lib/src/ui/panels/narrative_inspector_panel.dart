@@ -42,6 +42,7 @@ class NarrativeInspectorPanel extends ConsumerWidget {
           title: 'Narrative Mode',
           content: switch (editor.workspaceMode) {
             EditorWorkspaceMode.globalStory => 'Global Story',
+            EditorWorkspaceMode.scenes => 'Scenes',
             EditorWorkspaceMode.step => 'Step',
             EditorWorkspaceMode.cutscene => 'Cutscene',
             EditorWorkspaceMode.dialogue => 'Dialogue Studio',
@@ -80,6 +81,11 @@ class NarrativeInspectorPanel extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
         _InspectorSection(
+          title: 'Scenes',
+          content: '${projection.scenes.length}',
+        ),
+        const SizedBox(height: 10),
+        _InspectorSection(
           title: 'Local Event Flows / Cutscenes',
           content: '${projection.localEventFlows.length}',
         ),
@@ -113,6 +119,8 @@ String _selectionLabel({
       return scenario == null
           ? scenarioId
           : '${scenario.name} (${scenario.id})';
+    case EditorWorkspaceMode.scenes:
+      return '${projection.scenes.length} scenes from ProjectManifest.scenes';
     case EditorWorkspaceMode.step:
       final stepId = narrative.selectedStepId;
       if (stepId == null) return 'No step selected';

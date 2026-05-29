@@ -13,6 +13,7 @@ import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'narrative_overview_workspace.dart';
 import 'narrative_studio_shell.dart';
+import 'scenes_workspace.dart';
 import 'step_studio_workspace.dart';
 import 'storylines_workspace.dart';
 
@@ -89,6 +90,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       );
     }
 
+    void openScenes() {
+      editorNotifier.selectScenesWorkspace();
+      narrativeController.openScenes();
+    }
+
     void openCutscene() {
       editorNotifier.selectCutsceneWorkspace();
       narrativeController.openCutscene(
@@ -106,13 +112,16 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             project: editor.project!,
           ),
           onOpenStorylines: openGlobalStory,
-          onOpenScenes: openStep,
+          onOpenScenes: openScenes,
           onOpenCutscenes: openCutscene,
           onOpenDialogues: openDialogue,
         ),
       EditorWorkspaceMode.globalStory => StorylinesWorkspace(
           projection: projection,
           selectedGlobalStoryId: narrative.selectedGlobalStoryId,
+        ),
+      EditorWorkspaceMode.scenes => ScenesWorkspace(
+          scenes: projection.scenes,
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
@@ -165,6 +174,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       workspaceMode: editor.workspaceMode,
       onSelectOverview: openOverview,
       onSelectGlobal: openGlobalStory,
+      onSelectScenes: openScenes,
       onSelectStep: openStep,
       onSelectCutscene: openCutscene,
       onSelectDialogue: openDialogue,

@@ -65,6 +65,10 @@ class NarrativeLibraryPanel extends ConsumerWidget {
               scenarioId: narrative.selectedGlobalStoryId,
             );
           },
+          onScenes: () {
+            notifier.selectScenesWorkspace();
+            narrativeController.openScenes();
+          },
           onStep: () {
             notifier.selectStepWorkspace();
             narrativeController.openStep(
@@ -81,7 +85,8 @@ class NarrativeLibraryPanel extends ConsumerWidget {
           onDialogue: notifier.selectDialogueWorkspace,
         ),
         const SizedBox(height: 10),
-        const EditorSidebarSectionTitle('HISTOIRE GLOBALE (UNIQUE)', leftInset: 2),
+        const EditorSidebarSectionTitle('HISTOIRE GLOBALE (UNIQUE)',
+            leftInset: 2),
         if (primaryGlobalStory == null)
           EditorSidebarListRow(
             selected: false,
@@ -117,6 +122,18 @@ class NarrativeLibraryPanel extends ConsumerWidget {
             accent: context.pokeMapColors.warning,
           ),
         ],
+        const SizedBox(height: 8),
+        const EditorSidebarSectionTitle('SCÈNES', leftInset: 2),
+        EditorSidebarListRow(
+          selected: editor.workspaceMode == EditorWorkspaceMode.scenes,
+          onTap: () {
+            notifier.selectScenesWorkspace();
+            narrativeController.openScenes();
+          },
+          leading: const MacosIcon(CupertinoIcons.square_stack_3d_up),
+          title: const Text('Scènes'),
+          subtitle: Text('${projection.scenes.length} scènes'),
+        ),
         const SizedBox(height: 8),
         const EditorSidebarSectionTitle('ÉTAPES', leftInset: 2),
         ...projection.steps.map(
@@ -187,6 +204,7 @@ class _WorkspaceQuickActions extends StatelessWidget {
     required this.editor,
     required this.onOverview,
     required this.onGlobal,
+    required this.onScenes,
     required this.onStep,
     required this.onCutscene,
     required this.onDialogue,
@@ -195,6 +213,7 @@ class _WorkspaceQuickActions extends StatelessWidget {
   final EditorState editor;
   final VoidCallback onOverview;
   final VoidCallback onGlobal;
+  final VoidCallback onScenes;
   final VoidCallback onStep;
   final VoidCallback onCutscene;
   final VoidCallback onDialogue;
@@ -207,13 +226,19 @@ class _WorkspaceQuickActions extends StatelessWidget {
       children: [
         _ActionChip(
           label: 'Aperçu',
-          selected: editor.workspaceMode == EditorWorkspaceMode.narrativeOverview,
+          selected:
+              editor.workspaceMode == EditorWorkspaceMode.narrativeOverview,
           onTap: onOverview,
         ),
         _ActionChip(
           label: 'Histoire globale',
           selected: editor.workspaceMode == EditorWorkspaceMode.globalStory,
           onTap: onGlobal,
+        ),
+        _ActionChip(
+          label: 'Scènes',
+          selected: editor.workspaceMode == EditorWorkspaceMode.scenes,
+          onTap: onScenes,
         ),
         _ActionChip(
           label: 'Étape',
@@ -249,9 +274,7 @@ class _ActionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final color = selected
-        ? colors.brandPrimary
-        : colors.textSecondary;
+    final color = selected ? colors.brandPrimary : colors.textSecondary;
     return CupertinoButton(
       minimumSize: const Size(28, 28),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -261,9 +284,7 @@ class _ActionChip extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: color.withValues(alpha: 0.75)),
-          color: selected
-              ? colors.surfaceSelected
-              : colors.surfaceSubtle,
+          color: selected ? colors.surfaceSelected : colors.surfaceSubtle,
         ),
         child: Text(
           label,

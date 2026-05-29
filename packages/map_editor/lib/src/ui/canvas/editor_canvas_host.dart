@@ -25,6 +25,7 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.pokedex => const PokemonCatalogsWorkspace(),
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue =>

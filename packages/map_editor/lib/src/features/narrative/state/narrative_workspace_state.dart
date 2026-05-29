@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Vue active du studio narratif dans l'îlot central.
 enum NarrativeWorkspaceView {
   globalStory,
+  scenes,
   step,
   cutscene,
 }
@@ -82,6 +83,10 @@ class NarrativeWorkspaceController
       selectedStepId: stepId ?? state.selectedStepId,
       selectedGlobalStoryId: globalScenarioId ?? state.selectedGlobalStoryId,
     );
+  }
+
+  void openScenes() {
+    state = state.copyWith(view: NarrativeWorkspaceView.scenes);
   }
 
   void openCutscene({String? cutsceneScenarioId}) {
