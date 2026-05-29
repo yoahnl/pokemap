@@ -4,6 +4,7 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'scenes/scene_graph_read_only_view.dart';
+import 'scenes/scene_node_read_only_inspector.dart';
 
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
@@ -19,6 +20,7 @@ class ScenesWorkspace extends StatefulWidget {
 
 class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   String? _selectedSceneId;
+  String? _selectedNodeId;
 
   @override
   void initState() {
@@ -35,12 +37,25 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   void _syncSelection() {
     if (widget.scenes.isEmpty) {
       _selectedSceneId = null;
+      _selectedNodeId = null;
       return;
     }
     final selectedStillExists =
         widget.scenes.any((scene) => scene.id == _selectedSceneId);
     if (!selectedStillExists) {
       _selectedSceneId = widget.scenes.first.id;
+      _selectedNodeId = _preferredNodeId(widget.scenes.first);
+      return;
+    }
+    final selected = _selectedScene;
+    if (selected == null || selected.graph.nodes.isEmpty) {
+      _selectedNodeId = null;
+      return;
+    }
+    final nodeStillExists =
+        selected.graph.nodes.any((node) => node.id == _selectedNodeId);
+    if (!nodeStillExists) {
+      _selectedNodeId = _preferredNodeId(selected);
     }
   }
 
@@ -76,13 +91,22 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     scenes: widget.scenes,
                     selectedSceneId: selectedScene?.id,
                     onSelectScene: (sceneId) {
-                      setState(() => _selectedSceneId = sceneId);
+                      setState(() {
+                        _selectedSceneId = sceneId;
+                        _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
+                      });
                     },
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _SceneReadOnlySummary(scene: selectedScene),
+                  child: _SceneReadOnlySummary(
+                    scene: selectedScene,
+                    selectedNodeId: _selectedNodeId,
+                    onSelectNode: (nodeId) {
+                      setState(() => _selectedNodeId = nodeId);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -99,6 +123,26 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       }
     }
     return widget.scenes.isEmpty ? null : widget.scenes.first;
+  }
+
+  NarrativeSceneSummary? _sceneById(String sceneId) {
+    for (final scene in widget.scenes) {
+      if (scene.id == sceneId) {
+        return scene;
+      }
+    }
+    return null;
+  }
+
+  String? _preferredNodeId(NarrativeSceneSummary? scene) {
+    if (scene == null || scene.graph.nodes.isEmpty) {
+      return null;
+    }
+    final startNodeExists =
+        scene.graph.nodes.any((node) => node.id == scene.graph.startNodeId);
+    return startNodeExists
+        ? scene.graph.startNodeId
+        : scene.graph.nodes.first.id;
   }
 }
 
@@ -375,9 +419,15 @@ class _SceneTreeItem extends StatelessWidget {
 }
 
 class _SceneReadOnlySummary extends StatelessWidget {
-  const _SceneReadOnlySummary({required this.scene});
+  const _SceneReadOnlySummary({
+    required this.scene,
+    required this.selectedNodeId,
+    required this.onSelectNode,
+  });
 
   final NarrativeSceneSummary? scene;
+  final String? selectedNodeId;
+  final ValueChanged<String> onSelectNode;
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +437,11 @@ class _SceneReadOnlySummary extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: current == null
           ? const _SceneSummaryEmptyState()
-          : _SelectedSceneSummary(scene: current),
+          : _SelectedSceneSummary(
+              scene: current,
+              selectedNodeId: selectedNodeId,
+              onSelectNode: onSelectNode,
+            ),
     );
   }
 }
@@ -415,9 +469,15 @@ class _SceneSummaryEmptyState extends StatelessWidget {
 }
 
 class _SelectedSceneSummary extends StatelessWidget {
-  const _SelectedSceneSummary({required this.scene});
+  const _SelectedSceneSummary({
+    required this.scene,
+    required this.selectedNodeId,
+    required this.onSelectNode,
+  });
 
   final NarrativeSceneSummary scene;
+  final String? selectedNodeId;
+  final ValueChanged<String> onSelectNode;
 
   @override
   Widget build(BuildContext context) {
@@ -469,7 +529,7 @@ class _SelectedSceneSummary extends StatelessWidget {
                 variant: PokeMapButtonVariant.secondary,
                 size: PokeMapButtonSize.small,
                 leading: const Icon(CupertinoIcons.flowchart),
-                child: const Text('Graph — bientôt'),
+                child: const Text('Lecture seule'),
               ),
             ],
           ),
@@ -496,13 +556,37 @@ class _SelectedSceneSummary extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          SceneGraphReadOnlyView(scene: scene),
-          const SizedBox(height: 16),
-          _SceneDetailsSection(scene: scene),
-          const SizedBox(height: 16),
-          _SceneOutcomeSection(scene: scene),
-          const SizedBox(height: 16),
-          _SceneTagSection(scene: scene),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SceneGraphReadOnlyView(
+                      scene: scene,
+                      selectedNodeId: selectedNodeId,
+                      onSelectNode: onSelectNode,
+                    ),
+                    const SizedBox(height: 16),
+                    _SceneDetailsSection(scene: scene),
+                    const SizedBox(height: 16),
+                    _SceneOutcomeSection(scene: scene),
+                    const SizedBox(height: 16),
+                    _SceneTagSection(scene: scene),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 320,
+                child: SceneNodeReadOnlyInspector(
+                  scene: scene,
+                  selectedNodeId: selectedNodeId,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

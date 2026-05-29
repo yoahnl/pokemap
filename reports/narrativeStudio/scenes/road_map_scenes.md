@@ -43,7 +43,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-04 — Workspace Shell Scenes | DONE | Shell editor `Scenes` branche dans Narrative Studio, lecture read-only de `ProjectManifest.scenes`, empty state honnete, actions non supportees desactivees. |
 | NS-SCENES-V1-05 — Scene Tree Panel Read-only | DONE | Arborescence read-only des scenes reelles, selection locale, resume central, header Scenes compacte, aucun graph ni mutation. |
 | NS-SCENES-V1-06 — Graph Read-only Skeleton | DONE | Graph Scene V1 read-only depuis le `SceneAsset` selectionne : nodes, edges, labels, layout persiste ou layout derive non persiste. |
-| NS-SCENES-V1-07 — Node Inspector Read-only | TODO | Inspecteur contextuel pour node selectionne, conditions, sorties et notes. |
+| NS-SCENES-V1-07 — Node Inspector Read-only | DONE | Selection locale de node dans le graph read-only, inspecteur read-only du payload et des edges entrants/sortants, sans authoring ni mutation. |
 | NS-SCENES-V1-08 — Authoring Minimal Scene Draft | TODO | Creer/editer une scene draft minimale, sans brancher Storylines ni runtime complet. |
 | NS-SCENES-V1-09 — Scene Validation Diagnostics | TODO | Diagnostics de graphe : start/end, edges invalides, nodes incomplets, refs manquantes, outcomes orphelins. |
 | NS-SCENES-V1-10 — Runtime Execution Prep | TODO | Adapter ou wrapper les briques runtime existantes pour preparer l'execution Scene V1. |
@@ -51,9 +51,25 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-07 — Node Inspector Read-only`
+`NS-SCENES-V1-08 — Authoring Minimal Scene Draft`
 
-Raison : le workspace Scenes affiche maintenant un graph read-only reel pour la scene selectionnee. Le prochain lot peut ajouter un inspecteur read-only du node selectionne, sans authoring ni runtime.
+Raison : le workspace Scenes affiche maintenant un graph read-only reel et un inspecteur read-only du node selectionne. Le prochain lot peut introduire un authoring minimal de Scene draft, sans runtime ni branchement Storylines.
+
+## Decisions V1-07
+
+- Le graph read-only accepte une selection locale de node par clic.
+- Le start node est selectionne automatiquement quand il existe, sinon le premier node reel.
+- La selection de node est recalculee quand la scene locale change.
+- L'inspecteur read-only affiche kind, id, titre, description, payload summary et edges entrants/sortants.
+- Les payloads `start`, `end`, `yarnDialogue`, `condition`, `action`, `battle`, `cinematic`, `branchByOutcome` et `merge` ont un resume dedie.
+- Aucun `TextField`, bouton sauver/supprimer/dupliquer, drag and drop, runtime ou mutation `ProjectManifest` n'est ajoute.
+
+## Limites V1-07
+
+- Pas d'edition de node, payload, edge ou layout.
+- Pas de diagnostics avances.
+- Pas de resolution des references Yarn, combat ou cinematic.
+- Pas de StorylineStep.sceneLink.
 
 ## Decisions V1-06
 

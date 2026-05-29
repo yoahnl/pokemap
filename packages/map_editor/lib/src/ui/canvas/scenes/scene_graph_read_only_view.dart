@@ -11,9 +11,13 @@ class SceneGraphReadOnlyView extends StatelessWidget {
   const SceneGraphReadOnlyView({
     super.key,
     required this.scene,
+    this.selectedNodeId,
+    this.onSelectNode,
   });
 
   final NarrativeSceneSummary scene;
+  final String? selectedNodeId;
+  final ValueChanged<String>? onSelectNode;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +89,10 @@ class SceneGraphReadOnlyView extends StatelessWidget {
                       _SceneGraphNodeCard(
                         node: node,
                         position: layout.positions[node.id]!,
+                        isSelected: node.id == selectedNodeId,
+                        onSelect: onSelectNode == null
+                            ? null
+                            : () => onSelectNode!(node.id),
                       ),
                     for (final edge in scene.graph.edges)
                       _SceneGraphEdgeLabel(
@@ -106,10 +114,14 @@ class _SceneGraphNodeCard extends StatelessWidget {
   const _SceneGraphNodeCard({
     required this.node,
     required this.position,
+    required this.isSelected,
+    required this.onSelect,
   });
 
   final SceneNode node;
   final Offset position;
+  final bool isSelected;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -120,59 +132,82 @@ class _SceneGraphNodeCard extends StatelessWidget {
       top: position.dy,
       width: _SceneGraphLayoutPlan.nodeWidth,
       height: _SceneGraphLayoutPlan.nodeHeight,
-      child: PokeMapCard(
-        key: ValueKey('scene-graph-node-${node.id}'),
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onSelect,
+        child: Stack(
           children: [
-            Row(
-              children: [
-                PokeMapIconTile(
-                  icon: _iconForNode(node.kind),
-                  tone: tone,
-                  size: 24,
-                  iconSize: 13,
-                ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    node.title ?? _nodeKindLabel(node.kind),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                    ),
+            if (isSelected)
+              Positioned.fill(
+                child: DecoratedBox(
+                  key: ValueKey('scene-graph-node-selected-${node.id}'),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: colors.focusRing, width: 2),
+                    borderRadius: BorderRadius.circular(9),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _nodeKindLabel(node.kind),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
               ),
-            ),
-            if (node.description != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                node.description!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textMuted,
-                  fontSize: 10,
-                  height: 1.2,
+            Positioned.fill(
+              child: Padding(
+                padding: isSelected ? const EdgeInsets.all(3) : EdgeInsets.zero,
+                child: PokeMapCard(
+                  key: ValueKey('scene-graph-node-${node.id}'),
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          PokeMapIconTile(
+                            icon: _iconForNode(node.kind),
+                            tone: tone,
+                            size: 24,
+                            iconSize: 13,
+                          ),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              node.title ?? _nodeKindLabel(node.kind),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _nodeKindLabel(node.kind),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (node.description != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          node.description!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textMuted,
+                            fontSize: 10,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),

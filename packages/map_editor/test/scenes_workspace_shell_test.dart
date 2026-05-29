@@ -9,7 +9,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-SCENES-V1-06 graph read-only skeleton', () {
+  group('NS-SCENES-V1-07 node inspector read-only', () {
     testWidgets('Narrative Studio exposes a real Scenes navigation entry',
         (tester) async {
       final container = await _pumpNarrativeShell(
@@ -105,7 +105,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Test Scene Intro'), findsWidgets);
-      expect(find.text('3 nodes'), findsWidgets);
+      expect(find.text('5 nodes'), findsWidgets);
       expect(find.text('2 outcomes'), findsWidgets);
       expect(find.text('storyline_test'), findsWidgets);
       expect(find.text('chapter_test'), findsWidgets);
@@ -119,12 +119,127 @@ void main() {
           findsOneWidget);
       expect(find.byKey(const ValueKey('scene-graph-node-node_start')),
           findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_merge')),
+      expect(find.byKey(const ValueKey('scene-graph-node-node_yarn')),
           findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-edge-edge_start_merge')),
+      expect(find.byKey(const ValueKey('scene-graph-edge-edge_start_yarn')),
           findsOneWidget);
       expect(find.text('completed'), findsWidgets);
-      expect(find.byKey(const ValueKey('scene-node-inspector')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('scene-node-read-only-inspector')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('selects real graph nodes and shows read-only inspector',
+        (tester) async {
+      final project = _projectWithScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(
+        find.byKey(const ValueKey('scene-node-read-only-inspector')),
+        findsOneWidget,
+      );
+      expect(find.text('Détails du nœud'), findsOneWidget);
+      expect(find.text('node_start'), findsWidgets);
+      expect(find.text('Début'), findsWidgets);
+      expect(find.text('Lecture seule'), findsWidgets);
+
+      await tester
+          .tap(find.byKey(const ValueKey('scene-graph-node-node_yarn')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_yarn')),
+        findsOneWidget,
+      );
+      expect(find.text('node_yarn'), findsWidgets);
+      expect(find.text('Dialogue Yarn'), findsWidgets);
+      expect(find.text('dialogue_test_intro'), findsOneWidget);
+      expect(find.text('yarn_node_test_intro'), findsOneWidget);
+      expect(find.textContaining('accept'), findsWidgets);
+      expect(find.textContaining('decline'), findsOneWidget);
+      expect(find.text('speaker_test'), findsOneWidget);
+      expect(find.text('edge_start_yarn'), findsOneWidget);
+      expect(find.text('edge_yarn_battle'), findsOneWidget);
+      expect(find.text('Sortants'), findsOneWidget);
+      expect(find.text('Entrants'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('Enregistrer'), findsNothing);
+      expect(find.text('Supprimer'), findsNothing);
+      expect(find.text('Dupliquer'), findsNothing);
+      expect(container.read(editorNotifierProvider).project, equals(project));
+    });
+
+    testWidgets('shows battle payload summary in read-only inspector',
+        (tester) async {
+      final project = _projectWithScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_battle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_battle')),
+        findsOneWidget,
+      );
+      expect(find.text('node_battle'), findsWidgets);
+      expect(find.text('Combat'), findsWidgets);
+      expect(find.text('trainer'), findsOneWidget);
+      expect(find.text('trainer_test'), findsOneWidget);
+      expect(find.text('battle_template_test'), findsOneWidget);
+      expect(find.text('npc_test'), findsOneWidget);
+      expect(find.textContaining('victory'), findsWidgets);
+      expect(find.textContaining('defeat'), findsWidgets);
+      expect(container.read(editorNotifierProvider).project, equals(project));
+    });
+
+    testWidgets('scene change recalculates local selected node',
+        (tester) async {
+      final project = _projectWithTwoScenes();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_battle')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_battle')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-tree-item-scene_test_branch')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scenes-selected-summary-scene_test_branch')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+        findsOneWidget,
+      );
+      expect(find.text('node_start'), findsWidgets);
+      expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
     testWidgets('uses a derived layout for scenes with incomplete layout',
@@ -158,8 +273,7 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets(
-        'uses bounded derived layout for cyclic and disconnected graph',
+    testWidgets('uses bounded derived layout for cyclic and disconnected graph',
         (tester) async {
       final project = _projectWithComplexFallbackScene();
       final container = await _pumpNarrativeShell(
@@ -176,14 +290,14 @@ void main() {
         find.byKey(const ValueKey('scene-graph-layout-source-derived')),
         findsOneWidget,
       );
-      expect(
-          find.byKey(const ValueKey('scene-graph-node-node_a')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('scene-graph-node-node_b')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('scene-graph-node-node_c')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('scene-graph-node-node_d')), findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_a')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_b')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_c')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_d')),
+          findsOneWidget);
       expect(
         find.byKey(const ValueKey('scene-graph-edge-edge_a_b')),
         findsOneWidget,
@@ -254,18 +368,22 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-06 visual gate screenshot', (tester) async {
+    testWidgets('writes V1-07 visual gate screenshot', (tester) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithTwoScenes(),
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
+      await tester
+          .tap(find.byKey(const ValueKey('scene-graph-node-node_yarn')));
+      await tester.pumpAndSettle();
+
       await expectLater(
         find.byKey(const ValueKey('scenes-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_06_graph_read_only_skeleton.png',
+          'ns_scenes_v1_07_node_inspector_read_only.png',
         ),
       );
     });
@@ -366,6 +484,31 @@ SceneAsset _testIntroScene() {
       nodes: [
         SceneNode(id: 'node_start', kind: SceneNodeKind.start),
         SceneNode(
+          id: 'node_yarn',
+          kind: SceneNodeKind.yarnDialogue,
+          title: 'Dialogue test',
+          description: 'Dialogue Yarn réel de test.',
+          payload: SceneYarnDialoguePayload(
+            dialogueId: 'dialogue_test_intro',
+            yarnNodeName: 'yarn_node_test_intro',
+            expectedOutcomes: const ['accept', 'decline'],
+            speakerHints: const ['speaker_test'],
+          ),
+        ),
+        SceneNode(
+          id: 'node_battle',
+          kind: SceneNodeKind.battle,
+          title: 'Battle test',
+          description: 'Combat réel de test.',
+          payload: SceneBattlePayload(
+            battleKind: 'trainer',
+            trainerId: 'trainer_test',
+            battleTemplateId: 'battle_template_test',
+            npcEntityId: 'npc_test',
+            declaredOutcomes: const ['victory', 'defeat'],
+          ),
+        ),
+        SceneNode(
           id: 'node_merge',
           kind: SceneNodeKind.merge,
           title: 'Merge test',
@@ -375,12 +518,28 @@ SceneAsset _testIntroScene() {
       ],
       edges: [
         SceneEdge(
-          id: 'edge_start_merge',
+          id: 'edge_start_yarn',
           fromNodeId: 'node_start',
           fromPortId: 'completed',
-          toNodeId: 'node_merge',
+          toNodeId: 'node_yarn',
           kind: SceneEdgeKind.defaultFlow,
           label: 'completed',
+        ),
+        SceneEdge(
+          id: 'edge_yarn_battle',
+          fromNodeId: 'node_yarn',
+          fromPortId: 'accept',
+          toNodeId: 'node_battle',
+          kind: SceneEdgeKind.dialogueOutcome,
+          label: 'accept',
+        ),
+        SceneEdge(
+          id: 'edge_battle_merge',
+          fromNodeId: 'node_battle',
+          fromPortId: 'victory',
+          toNodeId: 'node_merge',
+          kind: SceneEdgeKind.battleVictory,
+          label: 'victory',
         ),
         SceneEdge(
           id: 'edge_merge_end',
@@ -395,8 +554,10 @@ SceneAsset _testIntroScene() {
     layout: SceneGraphLayout(
       nodeLayouts: [
         SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
-        SceneNodeLayout(nodeId: 'node_merge', x: 260, y: 80),
-        SceneNodeLayout(nodeId: 'node_end', x: 500, y: 80),
+        SceneNodeLayout(nodeId: 'node_yarn', x: 230, y: 80),
+        SceneNodeLayout(nodeId: 'node_battle', x: 436, y: 80),
+        SceneNodeLayout(nodeId: 'node_merge', x: 642, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 848, y: 80),
       ],
     ),
     declaredOutcomes: [
