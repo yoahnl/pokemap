@@ -17,17 +17,26 @@ typedef SceneNodeDraftCreator = Future<String?> Function({
   required SceneNodeKind kind,
 });
 
+typedef SceneEdgeDraftCreator = Future<String?> Function({
+  required String sceneId,
+  required String fromNodeId,
+  required String fromPortId,
+  required String toNodeId,
+});
+
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
     required this.scenes,
     required this.onCreateSceneDraft,
     required this.onAddNodeDraft,
+    required this.onAddEdgeDraft,
   });
 
   final List<NarrativeSceneSummary> scenes;
   final SceneDraftCreator onCreateSceneDraft;
   final SceneNodeDraftCreator onAddNodeDraft;
+  final SceneEdgeDraftCreator onAddEdgeDraft;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -36,6 +45,7 @@ class ScenesWorkspace extends StatefulWidget {
 class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   String? _selectedSceneId;
   String? _selectedNodeId;
+  _PendingSceneConnection? _pendingConnection;
 
   @override
   void initState() {
@@ -53,6 +63,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (widget.scenes.isEmpty) {
       _selectedSceneId = null;
       _selectedNodeId = null;
+      _pendingConnection = null;
       return;
     }
     final selectedStillExists =
@@ -60,17 +71,24 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (!selectedStillExists) {
       _selectedSceneId = widget.scenes.first.id;
       _selectedNodeId = _preferredNodeId(widget.scenes.first);
+      _pendingConnection = null;
       return;
     }
     final selected = _selectedScene;
     if (selected == null || selected.graph.nodes.isEmpty) {
       _selectedNodeId = null;
+      _pendingConnection = null;
       return;
     }
     final nodeStillExists =
         selected.graph.nodes.any((node) => node.id == _selectedNodeId);
     if (!nodeStillExists) {
       _selectedNodeId = _preferredNodeId(selected);
+    }
+    final pending = _pendingConnection;
+    if (pending != null &&
+        !selected.graph.nodes.any((node) => node.id == pending.fromNodeId)) {
+      _pendingConnection = null;
     }
   }
 
@@ -100,6 +118,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     setState(() {
                       _selectedSceneId = sceneId;
                       _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
+                      _pendingConnection = null;
                     });
                   },
                 ),
@@ -111,10 +130,11 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                   child: _SceneReadOnlySummary(
                     scene: selectedScene,
                     selectedNodeId: _selectedNodeId,
-                    onSelectNode: (nodeId) {
-                      setState(() => _selectedNodeId = nodeId);
-                    },
+                    pendingConnection: _pendingConnection,
+                    onSelectNode: _handleGraphNodeTap,
                     onAddNodeDraft: _addNodeDraft,
+                    onStartConnection: _startConnection,
+                    onCancelConnection: _cancelConnection,
                   ),
                 ),
               ),
@@ -166,6 +186,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     setState(() {
       _selectedSceneId = createdSceneId;
       _selectedNodeId = 'node_start';
+      _pendingConnection = null;
     });
   }
 
@@ -184,6 +205,65 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     setState(() {
       _selectedSceneId = selected.id;
       _selectedNodeId = createdNodeId;
+      _pendingConnection = null;
+    });
+  }
+
+  void _startConnection(SceneAuthorableOutputPort port) {
+    final nodeId = _selectedNodeId;
+    if (nodeId == null) {
+      return;
+    }
+    setState(() {
+      _pendingConnection = _PendingSceneConnection(
+        fromNodeId: nodeId,
+        fromPortId: port.id,
+      );
+    });
+  }
+
+  void _cancelConnection() {
+    setState(() => _pendingConnection = null);
+  }
+
+  Future<void> _handleGraphNodeTap(String nodeId) async {
+    final pending = _pendingConnection;
+    if (pending == null) {
+      setState(() => _selectedNodeId = nodeId);
+      return;
+    }
+    if (nodeId == pending.fromNodeId) {
+      return;
+    }
+    await _addEdgeDraft(
+      fromNodeId: pending.fromNodeId,
+      fromPortId: pending.fromPortId,
+      toNodeId: nodeId,
+    );
+  }
+
+  Future<void> _addEdgeDraft({
+    required String fromNodeId,
+    required String fromPortId,
+    required String toNodeId,
+  }) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return;
+    }
+    final createdEdgeId = await widget.onAddEdgeDraft(
+      sceneId: selected.id,
+      fromNodeId: fromNodeId,
+      fromPortId: fromPortId,
+      toNodeId: toNodeId,
+    );
+    if (!mounted || createdEdgeId == null) {
+      return;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = fromNodeId;
+      _pendingConnection = null;
     });
   }
 
@@ -215,6 +295,16 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
         ? scene.graph.startNodeId
         : scene.graph.nodes.first.id;
   }
+}
+
+class _PendingSceneConnection {
+  const _PendingSceneConnection({
+    required this.fromNodeId,
+    required this.fromPortId,
+  });
+
+  final String fromNodeId;
+  final String fromPortId;
 }
 
 class _SceneDraftDialogResult {
@@ -551,14 +641,20 @@ class _SceneReadOnlySummary extends StatelessWidget {
   const _SceneReadOnlySummary({
     required this.scene,
     required this.selectedNodeId,
+    required this.pendingConnection,
     required this.onSelectNode,
     required this.onAddNodeDraft,
+    required this.onStartConnection,
+    required this.onCancelConnection,
   });
 
   final NarrativeSceneSummary? scene;
   final String? selectedNodeId;
+  final _PendingSceneConnection? pendingConnection;
   final ValueChanged<String> onSelectNode;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
+  final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
+  final VoidCallback onCancelConnection;
 
   @override
   Widget build(BuildContext context) {
@@ -571,8 +667,11 @@ class _SceneReadOnlySummary extends StatelessWidget {
           : _SelectedSceneSummary(
               scene: current,
               selectedNodeId: selectedNodeId,
+              pendingConnection: pendingConnection,
               onSelectNode: onSelectNode,
               onAddNodeDraft: onAddNodeDraft,
+              onStartConnection: onStartConnection,
+              onCancelConnection: onCancelConnection,
             ),
     );
   }
@@ -597,14 +696,20 @@ class _SelectedSceneSummary extends StatelessWidget {
   const _SelectedSceneSummary({
     required this.scene,
     required this.selectedNodeId,
+    required this.pendingConnection,
     required this.onSelectNode,
     required this.onAddNodeDraft,
+    required this.onStartConnection,
+    required this.onCancelConnection,
   });
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
+  final _PendingSceneConnection? pendingConnection;
   final ValueChanged<String> onSelectNode;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
+  final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
+  final VoidCallback onCancelConnection;
 
   @override
   Widget build(BuildContext context) {
@@ -639,7 +744,15 @@ class _SelectedSceneSummary extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _SceneNodeDraftPalette(onAddNodeDraft: onAddNodeDraft),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          _SceneEdgeDraftToolbar(
+            scene: scene,
+            selectedNodeId: selectedNodeId,
+            pendingConnection: pendingConnection,
+            onStartConnection: onStartConnection,
+            onCancelConnection: onCancelConnection,
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: SceneGraphReadOnlyView(
               scene: scene,
@@ -740,6 +853,181 @@ class _SceneNodeDraftPalette extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SceneEdgeDraftToolbar extends StatelessWidget {
+  const _SceneEdgeDraftToolbar({
+    required this.scene,
+    required this.selectedNodeId,
+    required this.pendingConnection,
+    required this.onStartConnection,
+    required this.onCancelConnection,
+  });
+
+  final NarrativeSceneSummary scene;
+  final String? selectedNodeId;
+  final _PendingSceneConnection? pendingConnection;
+  final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
+  final VoidCallback onCancelConnection;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = pendingConnection;
+    if (pending != null) {
+      return _PendingConnectionBar(
+        pending: pending,
+        onCancelConnection: onCancelConnection,
+      );
+    }
+
+    final node = _selectedNode;
+    if (node == null) {
+      return const SizedBox(
+        key: ValueKey('scenes-edge-no-outputs'),
+        height: 34,
+      );
+    }
+    final ports = authorableSceneOutputPortsForNode(node);
+    if (ports.isEmpty) {
+      return const _NoOutputPortsBar();
+    }
+
+    final usedPorts = {
+      for (final edge in scene.graph.edges)
+        if (edge.fromNodeId == node.id) edge.fromPortId,
+    };
+    final colors = context.pokeMapColors;
+    return SizedBox(
+      key: const ValueKey('scenes-edge-authoring-toolbar'),
+      height: 34,
+      child: Row(
+        children: [
+          Text(
+            'Connexions',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final port in ports)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: PokeMapButton(
+                        key: ValueKey('scenes-connect-port-${port.id}'),
+                        onPressed: usedPorts.contains(port.id)
+                            ? null
+                            : () => onStartConnection(port),
+                        variant: usedPorts.contains(port.id)
+                            ? PokeMapButtonVariant.ghost
+                            : PokeMapButtonVariant.secondary,
+                        size: PokeMapButtonSize.small,
+                        leading: const Icon(CupertinoIcons.link),
+                        child: Text(
+                          usedPorts.contains(port.id)
+                              ? '${port.label} · connecté'
+                              : 'Connecter ${port.label}',
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  SceneNode? get _selectedNode {
+    final id = selectedNodeId;
+    if (id == null) {
+      return null;
+    }
+    for (final node in scene.graph.nodes) {
+      if (node.id == id) {
+        return node;
+      }
+    }
+    return null;
+  }
+}
+
+class _PendingConnectionBar extends StatelessWidget {
+  const _PendingConnectionBar({
+    required this.pending,
+    required this.onCancelConnection,
+  });
+
+  final _PendingSceneConnection pending;
+  final VoidCallback onCancelConnection;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return SizedBox(
+      key: const ValueKey('scenes-edge-connection-pending'),
+      height: 34,
+      child: Row(
+        children: [
+          const Icon(CupertinoIcons.link, size: 15),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              'Connexion en cours depuis '
+              '${pending.fromNodeId} / ${pending.fromPortId}. '
+              'Cliquez un nœud cible.',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: const ValueKey('scenes-edge-connection-cancel'),
+            onPressed: onCancelConnection,
+            variant: PokeMapButtonVariant.ghost,
+            size: PokeMapButtonSize.small,
+            child: const Text('Annuler'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoOutputPortsBar extends StatelessWidget {
+  const _NoOutputPortsBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return SizedBox(
+      key: const ValueKey('scenes-edge-no-outputs'),
+      height: 34,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Aucune sortie connectable V0.',
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }

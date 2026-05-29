@@ -50,7 +50,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-10-bis — Scene Builder / Runtime Roadmap Alignment | DONE | Roadmap reconcilee : priorite au Scene Builder Blueprint-like, runtime plan conserve mais decale apres authoring graph minimal. |
 | NS-SCENES-V1-11 — Scene Graph Draft Node Strategy | DONE | Strategie retenue : activer seulement Condition, Merge et Fin en V0 ; garder Start unique et desactiver Yarn/Action/Battle/Cinematic/Branch tant que les refs/payloads ne sont pas honnetes. |
 | NS-SCENES-V1-12 — Node Authoring V0 | DONE | Operation pure `addSceneNodeDraft` et palette editor V0 : ajout Condition / Merge / Fin en memoire, selection auto, aucun edge automatique ni fake ref. |
-| NS-SCENES-V1-13 — Edge Authoring V0 | TODO | Permettre la connexion explicite des ports/nodes avec validation de compatibilite, sans runtime. |
+| NS-SCENES-V1-13 — Edge Authoring V0 | DONE | Operation pure `addSceneEdgeDraft` et UI de connexion V0 : ports explicites start.completed, condition.true/false, merge.completed, edge kind derive, mise a jour memoire sans runtime. |
 | NS-SCENES-V1-14 — Layout Authoring V0 | TODO | Permettre le deplacement des nodes et la persistence de `SceneGraphLayout`, sans impact runtime. |
 | NS-SCENES-V1-15 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
 | NS-SCENES-V1-16 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
@@ -62,9 +62,45 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-13 — Edge Authoring V0`
+`NS-SCENES-V1-14 — Layout Authoring V0`
 
-Raison : V1-12 permet maintenant de poser des nodes draft honnetes dans une SceneAsset. Le prochain blocage Blueprint-like est la connexion explicite des ports : creer des edges avec `fromPortId`, valider les kinds compatibles, et garder les nodes Yarn/Action/Battle/Cinematic/Branch desactives tant que leurs payloads/pickers ne sont pas prets.
+Raison : V1-13 permet maintenant de creer des edges explicites entre nodes V0 avec validation de ports. Le prochain blocage Blueprint-like est la persistence controlee de `SceneGraphLayout` via un deplacement de nodes, sans rendre le layout utile au runtime.
+
+## Decisions V1-13
+
+- Operation pure ajoutee : `addSceneEdgeDraft(SceneAsset, fromNodeId, fromPortId, toNodeId, label?)`.
+- Source de verite pure ajoutee : `authorableSceneOutputPortsForNode` / `authorableSceneOutputPortsForKind`.
+- Ports supportes V0 :
+  - `start.completed` -> `SceneEdgeKind.defaultFlow` ;
+  - `condition.true` -> `SceneEdgeKind.conditionTrue` ;
+  - `condition.false` -> `SceneEdgeKind.conditionFalse` ;
+  - `merge.completed` -> `SceneEdgeKind.defaultFlow`.
+- `fromPortId` est toujours explicite et `edge.kind` est derive du port, jamais choisi librement par l'utilisateur.
+- `end`, `yarnDialogue`, `action`, `battle`, `cinematic` et `branchByOutcome` ne proposent aucune sortie authorable V0.
+- Les edges depuis source inconnue, vers cible inconnue, depuis port inconnu, depuis `end`, depuis node source desactive, les self-loops et le deuxieme edge sortant depuis un meme `fromNodeId/fromPortId` sont refuses.
+- Les IDs d'edge sont stables : `edge_<fromNodeId>_<fromPortId>_<toNodeId>` avec suffixe numerique en collision.
+- Cote editor, le mode connexion est local : selection node source -> bouton port -> clic node cible -> mise a jour en memoire de `ProjectManifest.scenes`.
+- Apres creation, la selection reste sur le node source pour permettre de connecter `condition.true` puis `condition.false`.
+- Aucun edge automatique, aucun drag and drop, aucune suppression/reconnexion avancee, aucun runtime.
+
+## Limites V1-13
+
+- Pas de layout authoring interactif.
+- Pas de suppression d'edge.
+- Pas de preview line pendant le mode connexion.
+- Pas de ports graphiques connectables complexes.
+- Pas de diagnostics `missingRequiredOutput`; ils restent pour Diagnostics Expansion.
+- Pas de Yarn/Action/Battle/Cinematic/Branch authoring actif.
+
+## Tests V1-13
+
+- `cd packages/map_core && dart test test/scene_authoring_operations_test.dart`
+- `cd packages/map_core && dart analyze`
+- `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_shell_navigation_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_studio_header_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/narrative_workspace_projection_test.dart`
+- `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/narrative_workspace_canvas.dart lib/src/ui/canvas/scenes_workspace.dart test/scenes_workspace_shell_test.dart`
 
 ## Decisions V1-12
 

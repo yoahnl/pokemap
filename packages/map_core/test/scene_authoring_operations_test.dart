@@ -170,6 +170,244 @@ void main() {
         );
       }
     });
+
+    test('exposes authorable output ports for V0 node kinds', () {
+      expect(
+        authorableSceneOutputPortsForNode(
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        ).map((port) => (port.id, port.edgeKind)),
+        [('completed', SceneEdgeKind.defaultFlow)],
+      );
+      expect(
+        authorableSceneOutputPortsForNode(
+          SceneNode(id: 'node_condition', kind: SceneNodeKind.condition),
+        ).map((port) => (port.id, port.edgeKind)),
+        [
+          ('true', SceneEdgeKind.conditionTrue),
+          ('false', SceneEdgeKind.conditionFalse),
+        ],
+      );
+      expect(
+        authorableSceneOutputPortsForNode(
+          SceneNode(id: 'node_merge', kind: SceneNodeKind.merge),
+        ).map((port) => (port.id, port.edgeKind)),
+        [('completed', SceneEdgeKind.defaultFlow)],
+      );
+      expect(
+        authorableSceneOutputPortsForNode(
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('adds a start completed edge with derived default kind', () {
+      final scene = _edgeAuthoringScene();
+
+      final result = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_start',
+        fromPortId: 'completed',
+        toNodeId: 'node_condition',
+      );
+
+      expect(scene.graph.edges, isEmpty);
+      expect(result.createdEdge.id, 'edge_node_start_completed_node_condition');
+      expect(result.createdEdge.fromNodeId, 'node_start');
+      expect(result.createdEdge.fromPortId, 'completed');
+      expect(result.createdEdge.toNodeId, 'node_condition');
+      expect(result.createdEdge.kind, SceneEdgeKind.defaultFlow);
+      expect(result.createdEdge.label, 'completed');
+      expect(result.updatedScene.graph.edges, [result.createdEdge]);
+    });
+
+    test('adds condition true and false edges with derived kinds', () {
+      var scene = _edgeAuthoringScene();
+
+      final trueEdge = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_condition',
+        fromPortId: 'true',
+        toNodeId: 'node_end',
+      );
+      scene = trueEdge.updatedScene;
+      final falseEdge = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_condition',
+        fromPortId: 'false',
+        toNodeId: 'node_merge',
+        label: ' alternate ',
+      );
+
+      expect(trueEdge.createdEdge.kind, SceneEdgeKind.conditionTrue);
+      expect(trueEdge.createdEdge.label, 'true');
+      expect(falseEdge.createdEdge.kind, SceneEdgeKind.conditionFalse);
+      expect(falseEdge.createdEdge.label, 'alternate');
+      expect(falseEdge.updatedScene.graph.edges, [
+        trueEdge.createdEdge,
+        falseEdge.createdEdge,
+      ]);
+    });
+
+    test('adds a merge completed edge with derived default kind', () {
+      final scene = _edgeAuthoringScene();
+
+      final result = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_merge',
+        fromPortId: 'completed',
+        toNodeId: 'node_end',
+      );
+
+      expect(result.createdEdge.id, 'edge_node_merge_completed_node_end');
+      expect(result.createdEdge.kind, SceneEdgeKind.defaultFlow);
+      expect(result.createdEdge.label, 'completed');
+    });
+
+    test('generates suffixed edge ids on collision', () {
+      final scene = _edgeAuthoringScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_start_completed_node_condition',
+            fromNodeId: 'node_condition',
+            fromPortId: 'true',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.conditionTrue,
+          ),
+        ],
+      );
+
+      final result = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_start',
+        fromPortId: 'completed',
+        toNodeId: 'node_condition',
+      );
+
+      expect(
+        result.createdEdge.id,
+        'edge_node_start_completed_node_condition_2',
+      );
+    });
+
+    test('preserves scene data and layout while adding an edge', () {
+      final existingEdge = SceneEdge(
+        id: 'edge_node_condition_true_node_end',
+        fromNodeId: 'node_condition',
+        fromPortId: 'true',
+        toNodeId: 'node_end',
+        kind: SceneEdgeKind.conditionTrue,
+      );
+      final scene = _edgeAuthoringScene(
+        metadata: const {'owner': 'test'},
+        declaredOutcomes: [SceneOutcome(id: 'done', label: 'Done')],
+        edges: [existingEdge],
+        edgeLayouts: [
+          SceneEdgeLayout(
+            edgeId: existingEdge.id,
+            controlPoints: [SceneLayoutPoint(x: 20, y: 30)],
+          ),
+        ],
+      );
+
+      final result = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_start',
+        fromPortId: 'completed',
+        toNodeId: 'node_condition',
+      );
+
+      expect(result.updatedScene.id, scene.id);
+      expect(result.updatedScene.name, scene.name);
+      expect(result.updatedScene.description, scene.description);
+      expect(result.updatedScene.storylineId, scene.storylineId);
+      expect(result.updatedScene.chapterId, scene.chapterId);
+      expect(result.updatedScene.tags, scene.tags);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.layout, scene.layout);
+      expect(result.updatedScene.graph.nodes, scene.graph.nodes);
+      expect(result.updatedScene.graph.edges.first, existingEdge);
+      expect(scene.graph.edges, [existingEdge]);
+    });
+
+    test('rejects invalid edge drafts in V0', () {
+      final scene = _edgeAuthoringScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_start_completed_node_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      expect(
+        () => addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_unknown',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_unknown',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_start',
+          fromPortId: 'missing',
+          toNodeId: 'node_end',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_end',
+          fromPortId: 'completed',
+          toNodeId: 'node_merge',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_condition',
+          fromPortId: 'true',
+          toNodeId: 'node_condition',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          _edgeAuthoringSceneWithYarnSource(),
+          fromNodeId: 'node_yarn',
+          fromPortId: 'accept',
+          toNodeId: 'node_end',
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }
 
@@ -221,5 +459,71 @@ SceneAsset _scene(
     ),
     declaredOutcomes: declaredOutcomes,
     metadata: metadata,
+  );
+}
+
+SceneAsset _edgeAuthoringScene({
+  Map<String, String> metadata = const {},
+  List<SceneOutcome> declaredOutcomes = const [],
+  List<SceneEdge> edges = const [],
+  List<SceneEdgeLayout> edgeLayouts = const [],
+}) {
+  return SceneAsset(
+    id: 'scene_edge_authoring',
+    name: 'Edge Authoring Scene',
+    description: 'Scene for edge authoring tests.',
+    storylineId: 'storyline_test',
+    chapterId: 'chapter_test',
+    tags: const ['test'],
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(id: 'node_condition', kind: SceneNodeKind.condition),
+        SceneNode(id: 'node_merge', kind: SceneNodeKind.merge),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: edges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_condition', x: 324, y: 80),
+        SceneNodeLayout(nodeId: 'node_merge', x: 624, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 924, y: 80),
+      ],
+      edgeLayouts: edgeLayouts,
+    ),
+    declaredOutcomes: declaredOutcomes,
+    metadata: metadata,
+  );
+}
+
+SceneAsset _edgeAuthoringSceneWithYarnSource() {
+  return SceneAsset(
+    id: 'scene_edge_authoring_yarn',
+    name: 'Edge Authoring Yarn Source',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_yarn',
+          kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(
+            dialogueId: 'dialogue_test',
+            expectedOutcomes: const ['accept'],
+          ),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_yarn', x: 324, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 624, y: 80),
+      ],
+    ),
   );
 }

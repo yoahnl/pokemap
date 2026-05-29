@@ -306,6 +306,201 @@ void main() {
       expect(find.text('Annonce au port'), findsNothing);
     });
 
+    testWidgets('connects start.completed to a target node explicitly',
+        (tester) async {
+      final project = _projectWithEdgeAuthoringScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scenes-edge-connection-pending')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('node_start / completed'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+
+      final updatedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      expect(updatedScene.graph.edges, hasLength(1));
+      final edge = updatedScene.graph.edges.single;
+      expect(edge.id, 'edge_node_start_completed_node_condition');
+      expect(edge.fromNodeId, 'node_start');
+      expect(edge.fromPortId, 'completed');
+      expect(edge.toNodeId, 'node_condition');
+      expect(edge.kind, SceneEdgeKind.defaultFlow);
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-edge-edge_node_start_completed_node_condition',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('edge_node_start_completed_node_condition'),
+        findsOneWidget,
+      );
+      expect(project.scenes.single.graph.edges, isEmpty);
+    });
+
+    testWidgets('connects condition true and false ports with derived kinds',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scenes-connect-port-true')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scene-graph-node-node_end')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scenes-connect-port-false')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_end_2')),
+      );
+      await tester.pumpAndSettle();
+
+      final edges = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .edges;
+      expect(edges, hasLength(2));
+      expect(edges[0].fromPortId, 'true');
+      expect(edges[0].kind, SceneEdgeKind.conditionTrue);
+      expect(edges[1].fromPortId, 'false');
+      expect(edges[1].kind, SceneEdgeKind.conditionFalse);
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-edge-edge_node_condition_true_node_end'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-edge-edge_node_condition_false_node_end_2',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('edge_node_condition_true_node_end'), findsOneWidget);
+      expect(find.text('edge_node_condition_false_node_end_2'), findsOneWidget);
+    });
+
+    testWidgets('disables used ports and offers no source output for end',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(
+          edges: [
+            SceneEdge(
+              id: 'edge_node_start_completed_node_condition',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_condition',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final usedButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('scenes-connect-port-completed')).first,
+      );
+      expect(usedButton.onPressed, isNull);
+      expect(find.textContaining('connecté'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('scene-graph-node-node_end')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scenes-edge-no-outputs')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('connection mode is cancellable and local only',
+        (tester) async {
+      final project = _projectWithEdgeAuthoringScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scenes-edge-connection-pending')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-edge-connection-cancel')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scenes-edge-connection-pending')),
+        findsNothing,
+      );
+      expect(container.read(editorNotifierProvider).project, equals(project));
+    });
+
+    testWidgets('unsupported node kinds expose no active V0 connection output',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('scene-graph-node-node_yarn')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scenes-edge-no-outputs')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scenes-connect-port-accept')),
+        findsNothing,
+      );
+    });
+
     testWidgets('shows real SceneAsset data in the read-only tree and summary',
         (tester) async {
       await _pumpNarrativeShell(
@@ -685,7 +880,7 @@ void main() {
       expect(find.text('1 warning'), findsWidgets);
     });
 
-    testWidgets('writes V1-12 node authoring visual gate screenshot',
+    testWidgets('keeps the V1-12 node authoring visual flow valid',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -696,11 +891,42 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('scenes-add-node-condition')));
       await tester.pumpAndSettle();
 
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_condition')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('scenes-add-node-palette')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('scenes-edge-authoring-toolbar')),
+          findsOneWidget);
+    });
+
+    testWidgets('writes V1-13 edge authoring visual gate screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+
       await expectLater(
         find.byKey(const ValueKey('scenes-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_12_node_authoring_v0.png',
+          'ns_scenes_v1_13_edge_authoring_v0.png',
         ),
       );
     });
@@ -785,6 +1011,55 @@ ProjectManifest _projectWithComplexFallbackScene() {
     maps: const [],
     tilesets: const [],
     scenes: [_testComplexFallbackScene()],
+  );
+}
+
+ProjectManifest _projectWithEdgeAuthoringScene({
+  List<SceneEdge> edges = const [],
+}) {
+  return ProjectManifest(
+    name: 'Scenes shell test',
+    maps: const [],
+    tilesets: const [],
+    scenes: [
+      SceneAsset(
+        id: 'scene_edge_authoring',
+        name: 'Edge Authoring Test Scene',
+        description: 'Fixture locale pour connecter des nodes.',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_condition',
+              kind: SceneNodeKind.condition,
+              title: 'Condition test',
+            ),
+            SceneNode(
+              id: 'node_merge',
+              kind: SceneNodeKind.merge,
+              title: 'Merge test',
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end, title: 'Fin A'),
+            SceneNode(
+              id: 'node_end_2',
+              kind: SceneNodeKind.end,
+              title: 'Fin B',
+            ),
+          ],
+          edges: edges,
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_condition', x: 220, y: 80),
+            SceneNodeLayout(nodeId: 'node_merge', x: 420, y: 210),
+            SceneNodeLayout(nodeId: 'node_end', x: 420, y: 36),
+            SceneNodeLayout(nodeId: 'node_end_2', x: 420, y: 154),
+          ],
+        ),
+      ),
+    ],
   );
 }
 

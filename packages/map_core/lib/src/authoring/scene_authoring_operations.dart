@@ -21,6 +21,28 @@ final class SceneNodeDraftCreationResult {
   final SceneNode createdNode;
 }
 
+final class SceneEdgeDraftCreationResult {
+  const SceneEdgeDraftCreationResult({
+    required this.updatedScene,
+    required this.createdEdge,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneEdge createdEdge;
+}
+
+final class SceneAuthorableOutputPort {
+  const SceneAuthorableOutputPort({
+    required this.id,
+    required this.label,
+    required this.edgeKind,
+  });
+
+  final String id;
+  final String label;
+  final SceneEdgeKind edgeKind;
+}
+
 SceneDraftCreationResult createSceneDraftInProject(
   ProjectManifest project, {
   required String name,
@@ -42,6 +64,52 @@ SceneDraftCreationResult createSceneDraftInProject(
     ),
     createdScene: scene,
   );
+}
+
+List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNode(
+  SceneNode node,
+) {
+  return authorableSceneOutputPortsForKind(node.kind);
+}
+
+List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
+  SceneNodeKind kind,
+) {
+  return switch (kind) {
+    SceneNodeKind.start => const [
+        SceneAuthorableOutputPort(
+          id: 'completed',
+          label: 'completed',
+          edgeKind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    SceneNodeKind.condition => const [
+        SceneAuthorableOutputPort(
+          id: 'true',
+          label: 'true',
+          edgeKind: SceneEdgeKind.conditionTrue,
+        ),
+        SceneAuthorableOutputPort(
+          id: 'false',
+          label: 'false',
+          edgeKind: SceneEdgeKind.conditionFalse,
+        ),
+      ],
+    SceneNodeKind.merge => const [
+        SceneAuthorableOutputPort(
+          id: 'completed',
+          label: 'completed',
+          edgeKind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    SceneNodeKind.end ||
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.action ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
+      const <SceneAuthorableOutputPort>[],
+  };
 }
 
 SceneNodeDraftCreationResult addSceneNodeDraft(
@@ -100,6 +168,74 @@ SceneNodeDraftCreationResult addSceneNodeDraft(
   );
 }
 
+SceneEdgeDraftCreationResult addSceneEdgeDraft(
+  SceneAsset scene, {
+  required String fromNodeId,
+  required String fromPortId,
+  required String toNodeId,
+  String? label,
+}) {
+  final fromNode = _findNodeOrThrow(scene, fromNodeId, 'fromNodeId');
+  _findNodeOrThrow(scene, toNodeId, 'toNodeId');
+
+  if (fromNodeId == toNodeId) {
+    throw ArgumentError.value(
+      toNodeId,
+      'toNodeId',
+      'Self-loop edges are not supported by Edge Authoring V0.',
+    );
+  }
+
+  final port = _authorableOutputPortOrThrow(fromNode, fromPortId);
+  for (final edge in scene.graph.edges) {
+    if (edge.fromNodeId == fromNodeId && edge.fromPortId == fromPortId) {
+      throw ArgumentError.value(
+        fromPortId,
+        'fromPortId',
+        'Edge Authoring V0 allows only one outgoing edge per source port.',
+      );
+    }
+  }
+
+  final createdEdge = SceneEdge(
+    id: _uniqueEdgeId(
+      _edgeIdBase(
+        fromNodeId: fromNodeId,
+        fromPortId: fromPortId,
+        toNodeId: toNodeId,
+      ),
+      scene.graph.edges.map((edge) => edge.id),
+    ),
+    fromNodeId: fromNodeId,
+    fromPortId: fromPortId,
+    toNodeId: toNodeId,
+    kind: port.edgeKind,
+    label: _trimOptional(label) ?? port.label,
+  );
+
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: scene.graph.nodes,
+      edges: [...scene.graph.edges, createdEdge],
+    ),
+    layout: scene.layout,
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneEdgeDraftCreationResult(
+    updatedScene: updatedScene,
+    createdEdge: createdEdge,
+  );
+}
+
 SceneAsset _createSceneDraft({
   required String id,
   required String name,
@@ -142,6 +278,41 @@ SceneAsset _createSceneDraft({
   );
 }
 
+SceneNode _findNodeOrThrow(
+  SceneAsset scene,
+  String nodeId,
+  String argumentName,
+) {
+  for (final node in scene.graph.nodes) {
+    if (node.id == nodeId) {
+      return node;
+    }
+  }
+  throw ArgumentError.value(
+    nodeId,
+    argumentName,
+    'Scene edge draft references an unknown node.',
+  );
+}
+
+SceneAuthorableOutputPort _authorableOutputPortOrThrow(
+  SceneNode node,
+  String fromPortId,
+) {
+  final ports = authorableSceneOutputPortsForNode(node);
+  for (final port in ports) {
+    if (port.id == fromPortId) {
+      return port;
+    }
+  }
+  throw ArgumentError.value(
+    fromPortId,
+    'fromPortId',
+    'Port $fromPortId is not supported for ${node.kind.name} '
+        'by Edge Authoring V0.',
+  );
+}
+
 String _uniqueSceneId(String name, Iterable<String> existingIds) {
   final existing = existingIds.toSet();
   final base = 'scene_${_slugify(name)}';
@@ -165,6 +336,33 @@ String _uniqueNodeId(String base, Iterable<String> existingIds) {
     suffix++;
   }
   return '${base}_$suffix';
+}
+
+String _uniqueEdgeId(String base, Iterable<String> existingIds) {
+  final existing = existingIds.toSet();
+  if (!existing.contains(base)) {
+    return base;
+  }
+  var suffix = 2;
+  while (existing.contains('${base}_$suffix')) {
+    suffix++;
+  }
+  return '${base}_$suffix';
+}
+
+String _edgeIdBase({
+  required String fromNodeId,
+  required String fromPortId,
+  required String toNodeId,
+}) {
+  return 'edge_${_sanitizeEdgeIdPart(fromNodeId)}_'
+      '${_sanitizeEdgeIdPart(fromPortId)}_'
+      '${_sanitizeEdgeIdPart(toNodeId)}';
+}
+
+String _sanitizeEdgeIdPart(String value) {
+  final slug = _slugify(value);
+  return slug.isEmpty ? 'id' : slug;
 }
 
 bool _isSupportedDraftNodeKind(SceneNodeKind kind) {
