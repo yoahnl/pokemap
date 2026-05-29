@@ -317,8 +317,9 @@ Interprétation V0 :
 | NS-STORYLINES-V1-12 | V1 Visual Graph Enrichment | visual gate | DONE | NS-STORYLINES-V1-CHECKPOINT |
 | NS-STORYLINES-V1-CHECKPOINT | Storylines V1 Acceptance Checkpoint | checkpoint | DONE | NS-SCENES-V1 |
 | NS-STORYLINES-SEED-00 | Selbrume Storylines Demo Seed V0 | demo data | DONE | NS-SCENES-V1 |
-| NS-STORYLINES-SEED-FIX-01 | Selbrume Graph Layout / SideQuest Rendering Fix V0 | editor graph fix | DONE | NS-STORYLINES-V1.1-01 |
-| NS-STORYLINES-SEED-FIX-01-bis | Graph Focus Layout / Canvas Priority | editor graph layout | DONE | NS-STORYLINES-V1.1-01 |
+| NS-STORYLINES-SEED-FIX-01 | Selbrume Graph Layout / SideQuest Rendering Fix V0 | editor graph fix | DONE | NS-STORYLINES-SEED-FIX-01-bis |
+| NS-STORYLINES-SEED-FIX-01-bis | Graph Focus Layout / Canvas Priority | editor graph layout | DONE | NS-STORYLINES-V1.1-00 |
+| NS-STORYLINES-V1.1-00 | Structure Layout / Chapter Step Readability V0 | editor structure layout | DONE | NS-STORYLINES-V1.1-01 |
 
 ## 9. Detailed lots
 
@@ -900,7 +901,7 @@ Décision temporaire :
 
 ```text
 Roadmap status: V0 ACCEPTED WITH V1 LIMITATIONS / V1 ACCEPTED WITH LIMITATIONS
-Current lot: NS-STORYLINES-SEED-FIX-01-bis
+Current lot: NS-STORYLINES-V1.1-00
 Current lot status: DONE
 Next recommended lot: NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0
 ```
@@ -939,6 +940,7 @@ Next recommended lot: NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0
 | NS-STORYLINES-SEED-00 | DONE | 2026-05-29 | Selbrume Storylines Demo Seed V0 livré comme data-only : 1 main, 3 sideQuests, chapters, steps et attachements explicites. |
 | NS-STORYLINES-SEED-FIX-01 | DONE | 2026-05-29 | Correction post-seed : graph plus grand, sideQuests attachées rendues comme nodes indépendants, aucun seed/model/runtime modifié. |
 | NS-STORYLINES-SEED-FIX-01-bis | DONE | 2026-05-29 | Graph Focus Layout livré : graph par défaut agrandi, KPI/header compactés en mode Graph, sideQuest nodes indépendants préservés, aucun seed ni donnée métier modifié. |
+| NS-STORYLINES-V1.1-00 | DONE | 2026-05-29 | Structure Layout livré : chapitre sélectionné expanded, autres chapitres collapsed, étapes narratives plus lisibles, création chapter/step préservée, aucun edit/delete ajouté. |
 
 ## 14. V1 Creation Readiness Notes
 
@@ -974,6 +976,14 @@ Suite V1 documentaire recommandée :
 - `NS-STORYLINES-V1-CHECKPOINT — Storylines V1 Acceptance Checkpoint`
 
 ## 15. Changelog
+
+### 2026-05-29 — NS-STORYLINES-V1.1-00
+
+- Structure est réorganisée en vraie vue d'organisation : barre d'action compacte, chapitre sélectionné expanded et chapitres non sélectionnés collapsed.
+- Les étapes narratives du chapitre sélectionné sont affichées en rows plus lisibles avec état réel `Aucune scène liée` si aucun sceneLink.
+- L'inspector droit devient contextuel en Structure quand un chapitre est sélectionné.
+- Les flows existants `Nouveau chapitre` et `Nouvelle étape narrative` restent branchés ; aucun edit/delete, sceneLink, seed, model, runtime, gameplay ou battle modifié.
+- Captures Visual Gate dark V1.1-00 produites ; le prochain lot recommandé reste `NS-STORYLINES-V1.1-01 — Basic Edit / Delete Flow V0`.
 
 ### 2026-05-29 — NS-STORYLINES-SEED-FIX-01-bis
 

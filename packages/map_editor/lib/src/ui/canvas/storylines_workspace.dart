@@ -7,6 +7,7 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'storylines/storylines_graph_view.dart';
+import 'storylines/storylines_structure_view.dart';
 
 class StorylinesWorkspace extends ConsumerStatefulWidget {
   const StorylinesWorkspace({
@@ -100,6 +101,9 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
             width: 280,
             child: _StorylinesV1InspectorPanel(
               selectedStoryline: selectedStoryline,
+              selectedChapter: _selectedTab == _StorylineContentTab.structure
+                  ? selectedChapter
+                  : null,
             ),
           ),
         ],
@@ -521,6 +525,14 @@ int _storylineStepCount(StorylineAsset storyline) {
   );
 }
 
+int _chapterSceneLinkCount(StorylineChapter chapter) {
+  return chapter.directSceneLinkIds.length +
+      chapter.steps.fold<int>(
+        0,
+        (total, step) => total + step.sceneLinkIds.length,
+      );
+}
+
 String _formatCount(int count, String singular, String plural) {
   return '$count ${count == 1 ? singular : plural}';
 }
@@ -918,7 +930,7 @@ class _StorylinesV1MainPanel extends StatelessWidget {
           SizedBox(height: graphMode ? 6 : 16),
           Expanded(
             child: selectedTab == _StorylineContentTab.structure
-                ? _StorylinesV1StructureSection(
+                ? StorylinesStructureView(
                     storyline: selectedStoryline,
                     selectedChapter: selectedChapter,
                     onChapterSelected: onChapterSelected,
@@ -1425,554 +1437,6 @@ class _StorylinesV1NoStorylineState extends StatelessWidget {
   }
 }
 
-class _StorylinesV1StructureSection extends StatelessWidget {
-  const _StorylinesV1StructureSection({
-    required this.storyline,
-    required this.selectedChapter,
-    required this.onChapterSelected,
-    required this.onCreateChapter,
-    required this.onCreateStep,
-    required this.onAttachSideQuest,
-  });
-
-  final StorylineAsset? storyline;
-  final StorylineChapter? selectedChapter;
-  final ValueChanged<StorylineChapter> onChapterSelected;
-  final VoidCallback? onCreateChapter;
-  final VoidCallback? onCreateStep;
-  final VoidCallback? onAttachSideQuest;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    final chapter = selectedChapter;
-    return PokeMapCard(
-      key: const ValueKey('storylines-structure-read-only'),
-      padding: const EdgeInsets.all(18),
-      child: storyline == null
-          ? Center(
-              child: Text(
-                'Créez une storyline pour commencer.',
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 14,
-                ),
-              ),
-            )
-          : SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _StorylinesV1StructureSummary(
-                    storyline: storyline!,
-                    onAttachSideQuest: onAttachSideQuest,
-                  ),
-                  const SizedBox(height: 12),
-                  _StorylinesV1ChaptersSection(
-                    key: const ValueKey('storylines-v1-structure-chapters'),
-                    storyline: storyline!,
-                    selectedChapter: chapter,
-                    onChapterSelected: onChapterSelected,
-                    onCreateChapter: onCreateChapter,
-                  ),
-                  const SizedBox(height: 10),
-                  _StorylinesV1ChapterDetail(
-                    chapter: chapter,
-                    onCreateStep: onCreateStep,
-                  ),
-                  const SizedBox(height: 10),
-                  _StorylinesV1StepsSection(
-                    key: const ValueKey('storylines-v1-structure-steps'),
-                    chapter: chapter,
-                  ),
-                  const SizedBox(height: 10),
-                  const _StorylinesV1StructureBucket(
-                    key: ValueKey('storylines-v1-structure-scenes'),
-                    title: 'Scènes liées',
-                    body:
-                        'Scènes liées à venir. Les scènes seront reliées dans un prochain lot.',
-                    action: 'Lier une scène — bientôt',
-                    actionKey: ValueKey('storylines-link-scene-disabled'),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-}
-
-class _StorylinesV1StructureSummary extends StatelessWidget {
-  const _StorylinesV1StructureSummary({
-    required this.storyline,
-    required this.onAttachSideQuest,
-  });
-
-  final StorylineAsset storyline;
-  final VoidCallback? onAttachSideQuest;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapCard(
-      padding: const EdgeInsets.all(14),
-      selected: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            storyline.title,
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            storyline.description ?? 'Aucune description renseignée.',
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 12,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _StorylinesV1Badge(label: _storylineTypeLabel(storyline.type)),
-              const _StorylinesV1Badge(label: 'Draft'),
-              if (storyline.type == StorylineType.sideQuest)
-                _StorylinesV1Badge(
-                    label: _sideQuestAttachmentStatus(storyline)),
-            ],
-          ),
-          if (storyline.type == StorylineType.sideQuest) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _sideQuestMainAttachment(storyline) == null
-                        ? 'Cette quête annexe restera hors du graph principal tant qu’elle n’a pas une relation explicite.'
-                        : 'Cette quête annexe possède une relation explicite avec l’histoire principale.',
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 12,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                PokeMapButton(
-                  key: const ValueKey('storylines-attach-sidequest-action'),
-                  onPressed: _sideQuestMainAttachment(storyline) == null
-                      ? onAttachSideQuest
-                      : null,
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  leading: const Icon(CupertinoIcons.link),
-                  child: Text(
-                    _sideQuestMainAttachment(storyline) == null
-                        ? 'Attacher au graph principal'
-                        : 'Déjà attachée',
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _StorylinesV1ChaptersSection extends StatelessWidget {
-  const _StorylinesV1ChaptersSection({
-    super.key,
-    required this.storyline,
-    required this.selectedChapter,
-    required this.onChapterSelected,
-    required this.onCreateChapter,
-  });
-
-  final StorylineAsset storyline;
-  final StorylineChapter? selectedChapter;
-  final ValueChanged<StorylineChapter> onChapterSelected;
-  final VoidCallback? onCreateChapter;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Chapitres',
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              PokeMapButton(
-                key: const ValueKey('storylines-new-chapter-action'),
-                onPressed: onCreateChapter,
-                variant: PokeMapButtonVariant.primary,
-                size: PokeMapButtonSize.small,
-                leading: const Icon(CupertinoIcons.add),
-                child: const Text('Nouveau chapitre'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (storyline.chapters.isEmpty)
-            Text(
-              'Aucun chapitre\nCréez un premier chapitre pour organiser votre histoire.',
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            )
-          else
-            ...storyline.chapters.map(
-              (chapter) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _StorylinesV1ChapterRow(
-                  chapter: chapter,
-                  selected: chapter.id == selectedChapter?.id,
-                  onTap: () => onChapterSelected(chapter),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StorylinesV1ChapterRow extends StatelessWidget {
-  const _StorylinesV1ChapterRow({
-    required this.chapter,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final StorylineChapter chapter;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapCard(
-      key: ValueKey('storylines-chapter-row-${chapter.id}'),
-      padding: const EdgeInsets.all(12),
-      selected: selected,
-      onTap: onTap,
-      child: Row(
-        children: [
-          PokeMapIconTile(
-            icon: CupertinoIcons.bookmark,
-            tone: selected ? PokeMapTone.narrative : PokeMapTone.neutral,
-            size: 30,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  chapter.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${_formatCount(chapter.steps.length, 'étape narrative', 'étapes narratives')} · ordre ${chapter.order}',
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StorylinesV1ChapterDetail extends StatelessWidget {
-  const _StorylinesV1ChapterDetail({
-    required this.chapter,
-    required this.onCreateStep,
-  });
-
-  final StorylineChapter? chapter;
-  final VoidCallback? onCreateStep;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapCard(
-      key: const ValueKey('storylines-v1-chapter-detail'),
-      padding: const EdgeInsets.all(14),
-      selected: chapter != null,
-      child: chapter == null
-          ? Text(
-              'Détail du chapitre\nCréez ou sélectionnez un chapitre pour ajouter des étapes narratives.',
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Détail du chapitre',
-                            style: TextStyle(
-                              color: colors.textMuted,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            chapter!.title,
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            chapter!.description ?? 'Aucune description.',
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                              height: 1.35,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Ordre ${chapter!.order} · ${_formatCount(chapter!.steps.length, 'étape', 'étapes')}',
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    PokeMapButton(
-                      key: const ValueKey('storylines-new-step-action'),
-                      onPressed: onCreateStep,
-                      variant: PokeMapButtonVariant.secondary,
-                      size: PokeMapButtonSize.small,
-                      leading: const Icon(CupertinoIcons.add),
-                      child: const Text('Nouvelle étape narrative'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-    );
-  }
-}
-
-class _StorylinesV1StepsSection extends StatelessWidget {
-  const _StorylinesV1StepsSection({
-    super.key,
-    required this.chapter,
-  });
-
-  final StorylineChapter? chapter;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Étapes narratives',
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (chapter == null)
-            Text(
-              'Sélectionnez un chapitre pour voir ses étapes.',
-              style: TextStyle(color: colors.textSecondary, fontSize: 12),
-            )
-          else if (chapter!.steps.isEmpty)
-            Text(
-              'Aucune étape narrative\nAjoutez une première étape pour définir la progression du chapitre.',
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            )
-          else
-            ...chapter!.steps.map(
-              (step) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _StorylinesV1StepRow(step: step),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StorylinesV1StepRow extends StatelessWidget {
-  const _StorylinesV1StepRow({required this.step});
-
-  final StorylineStep step;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapCard(
-      key: ValueKey('storylines-step-row-${step.id}'),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          const PokeMapIconTile(
-            icon: CupertinoIcons.flag,
-            tone: PokeMapTone.info,
-            size: 28,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  step.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  step.description ?? 'Aucune description.',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          const _StorylinesV1Badge(label: 'Aucune scène liée'),
-        ],
-      ),
-    );
-  }
-}
-
-class _StorylinesV1StructureBucket extends StatelessWidget {
-  const _StorylinesV1StructureBucket({
-    super.key,
-    required this.title,
-    required this.body,
-    this.action,
-    this.actionKey,
-  });
-
-  final String title;
-  final String body;
-  final String? action;
-  final Key? actionKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  body,
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (action != null) ...[
-            const SizedBox(width: 10),
-            PokeMapButton(
-              key: actionKey,
-              onPressed: null,
-              variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              child: Text(action!),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _StorylinesV1Badge extends StatelessWidget {
   const _StorylinesV1Badge({required this.label});
 
@@ -2003,13 +1467,18 @@ class _StorylinesV1Badge extends StatelessWidget {
 }
 
 class _StorylinesV1InspectorPanel extends StatelessWidget {
-  const _StorylinesV1InspectorPanel({required this.selectedStoryline});
+  const _StorylinesV1InspectorPanel({
+    required this.selectedStoryline,
+    required this.selectedChapter,
+  });
 
   final StorylineAsset? selectedStoryline;
+  final StorylineChapter? selectedChapter;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final chapter = selectedChapter;
     return PokeMapPanel(
       key: const ValueKey('storylines-inspector-read-only'),
       expandChild: true,
@@ -2025,65 +1494,119 @@ class _StorylinesV1InspectorPanel extends StatelessWidget {
                 ),
               ),
             )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'DÉTAILS STORYLINE',
-                  style: TextStyle(
-                    color: colors.textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
+          : chapter != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DÉTAILS DU CHAPITRE',
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      chapter.title,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      chapter.description ?? 'Aucune description.',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _StorylineInspectorTextLine(
+                      label: 'Storyline',
+                      value: selectedStoryline!.title,
+                    ),
+                    _StorylineInspectorTextLine(
+                      label: 'Ordre',
+                      value: chapter.order.toString(),
+                    ),
+                    _StorylineInspectorTextLine(
+                      label: 'Étapes',
+                      value: chapter.steps.length.toString(),
+                    ),
+                    _StorylineInspectorTextLine(
+                      label: 'Scene links',
+                      value: _chapterSceneLinkCount(chapter).toString(),
+                    ),
+                    const _StorylineInspectorTextLine(
+                      label: 'Scènes liées',
+                      value: 'À venir',
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'DÉTAILS STORYLINE',
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      selectedStoryline!.title,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      selectedStoryline!.description ?? 'Aucune description.',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _StorylineInspectorTextLine(
+                      label: 'Type',
+                      value: _storylineTypeLabel(selectedStoryline!.type),
+                    ),
+                    const _StorylineInspectorTextLine(
+                      label: 'Statut',
+                      value: 'Draft',
+                    ),
+                    _StorylineInspectorTextLine(
+                      label: 'Chapitres',
+                      value: selectedStoryline!.chapters.length.toString(),
+                    ),
+                    _StorylineInspectorTextLine(
+                      label: 'Étapes',
+                      value: _storylineStepCount(selectedStoryline!).toString(),
+                    ),
+                    _StorylineInspectorTextLine(
+                      label: 'Scene links',
+                      value: selectedStoryline!.sceneLinks.length.toString(),
+                    ),
+                    if (selectedStoryline!.type == StorylineType.sideQuest)
+                      _StorylineInspectorTextLine(
+                        label: 'Relation principale',
+                        value:
+                            _sideQuestMainAttachment(selectedStoryline!) == null
+                                ? 'Non reliée'
+                                : 'Reliée',
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  selectedStoryline!.title,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  selectedStoryline!.description ?? 'Aucune description.',
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _StorylineInspectorTextLine(
-                  label: 'Type',
-                  value: _storylineTypeLabel(selectedStoryline!.type),
-                ),
-                const _StorylineInspectorTextLine(
-                  label: 'Statut',
-                  value: 'Draft',
-                ),
-                _StorylineInspectorTextLine(
-                  label: 'Chapitres',
-                  value: selectedStoryline!.chapters.length.toString(),
-                ),
-                _StorylineInspectorTextLine(
-                  label: 'Étapes',
-                  value: _storylineStepCount(selectedStoryline!).toString(),
-                ),
-                _StorylineInspectorTextLine(
-                  label: 'Scene links',
-                  value: selectedStoryline!.sceneLinks.length.toString(),
-                ),
-                if (selectedStoryline!.type == StorylineType.sideQuest)
-                  _StorylineInspectorTextLine(
-                    label: 'Relation principale',
-                    value: _sideQuestMainAttachment(selectedStoryline!) == null
-                        ? 'Non reliée'
-                        : 'Reliée',
-                  ),
-              ],
-            ),
     );
   }
 }

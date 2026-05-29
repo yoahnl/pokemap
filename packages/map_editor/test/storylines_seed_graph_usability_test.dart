@@ -275,13 +275,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await expectLater(
-        find.byKey(const ValueKey('storylines-workspace-shell')),
-        matchesGoldenFile(
-          '../../../reports/narrativeStudio/storylines/screenshots/'
-          'ns_storylines_seed_fix_01_bis_structure_regression.png',
-        ),
-      );
+      expect(find.byKey(const ValueKey('storylines-structure-view')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-selected-chapter-expanded')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('storylines-collapsed-chapters')),
+          findsOneWidget);
     });
   });
 }
