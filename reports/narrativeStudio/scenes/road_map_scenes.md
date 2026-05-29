@@ -48,7 +48,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-09 — Scene Validation Diagnostics | DONE | Diagnostics Scene V1 purs dans `map_core` et affichage editor : erreurs/warnings de graph, layout et outcomes, sans mutation ni correction automatique. |
 | NS-SCENES-V1-10 — Runtime Execution Prep | DONE | Decision runtime Scene V1 : preparer un `SceneRuntimePlan` pur avant tout branchement runtime, utiliser `ScenarioRuntimeExecutor` seulement comme inspiration/bridge temporaire explicite. |
 | NS-SCENES-V1-10-bis — Scene Builder / Runtime Roadmap Alignment | DONE | Roadmap reconcilee : priorite au Scene Builder Blueprint-like, runtime plan conserve mais decale apres authoring graph minimal. |
-| NS-SCENES-V1-11 — Scene Graph Draft Node Strategy | TODO | Definir les nodes ajoutables, payload drafts, ports et limites pour eviter les fausses refs avant l'authoring actif. |
+| NS-SCENES-V1-11 — Scene Graph Draft Node Strategy | DONE | Strategie retenue : activer seulement Condition, Merge et Fin en V0 ; garder Start unique et desactiver Yarn/Action/Battle/Cinematic/Branch tant que les refs/payloads ne sont pas honnetes. |
 | NS-SCENES-V1-12 — Node Authoring V0 | TODO | Ajouter une palette de nodes et l'ajout read/write de nodes draft dans le graph Scene, sans payload picker avance. |
 | NS-SCENES-V1-13 — Edge Authoring V0 | TODO | Permettre la connexion explicite des ports/nodes avec validation de compatibilite, sans runtime. |
 | NS-SCENES-V1-14 — Layout Authoring V0 | TODO | Permettre le deplacement des nodes et la persistence de `SceneGraphLayout`, sans impact runtime. |
@@ -62,9 +62,32 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-11 — Scene Graph Draft Node Strategy`
+`NS-SCENES-V1-12 — Node Authoring V0`
 
-Raison : V1-10 tranche la strategie runtime, mais le Scene Builder ne permet pas encore de construire une scene. Avant de coder une palette ou des connexions, il faut definir les node drafts autorises, leurs ports, leurs payloads minimaux et les garde-fous anti-fake refs. Le `SceneRuntimePlan` reste necessaire, mais il vient apres un authoring graph minimal.
+Raison : V1-11 a tranche les node drafts autorises sans fake refs. Le prochain lot peut maintenant coder une palette minimale et une operation pure d'ajout de node draft pour Condition, Merge et Fin, sans ajouter de picker avance, sans edge authoring et sans runtime.
+
+## Decisions V1-11
+
+- Strategie retenue : `SceneAsset` reste le modele authoring canonique et peut porter certains drafts incomplets, mais seulement quand le payload est honnete et diagnostiquable.
+- Option B retenue avec garde-fous : pas de modele `SceneDraft` separe en V1, pas de wizard obligatoire pour chaque node, mais pas de reference factice.
+- Nodes ajoutables en V0 : `condition`, `merge`, `end`.
+- Nodes desactives en V0 : `start` (unique), `yarnDialogue`, `action`, `battle`, `cinematic`, `branchByOutcome`.
+- `condition` peut etre ajoute avec payload vide et diagnostic `conditionIncomplete` futur ; il expose `true` / `false`.
+- `merge` peut etre ajoute avec payload vide ; il sert a rejoindre plusieurs branches et expose `completed/default`.
+- `end` peut etre ajoute avec `SceneEndPayload` vide ; plusieurs fins sont autorisees.
+- `yarnDialogue`, `battle`, `cinematic` attendent des pickers ou une strategie explicite de payload draft.
+- `action` attend un registre/action picker ou un `actionKind` draft officiel, pas une chaine bidon.
+- `branchByOutcome` attend une strategie de source outcome et de mappings, meme si le modele accepte un payload vide.
+- Les diagnostics futurs devront bloquer l'execution runtime si un node draft reste incomplet.
+- Le prochain lot code seulement l'ajout de nodes draft V0 et la palette correspondante.
+
+## Limites V1-11
+
+- Documentation-only : aucun code, widget, modele ou test.
+- Aucune palette n'est codee.
+- Aucune operation d'authoring n'est codee.
+- Aucun diagnostic supplementaire n'est code.
+- Aucun runtime, event trigger ou StorylineStep link n'est branche.
 
 ## Decisions V1-10-bis
 
