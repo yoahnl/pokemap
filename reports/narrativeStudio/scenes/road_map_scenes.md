@@ -37,7 +37,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | Lot | Statut | Objectif |
 |---|---|---|
 | NS-SCENES-V1-00 — Scene System Scope / Current State Audit | DONE | Audit documentaire de l'existant, definition Scene V1, frontieres produit et roadmap. |
-| NS-SCENES-V1-01 — Scene Product Model / Graph Contract | TODO | Formaliser le contrat produit SceneGraph/SceneNode/SceneEdge, sans code model si le lot reste documentaire. |
+| NS-SCENES-V1-01 — Scene Product Model / Graph Contract | DONE | Contrat produit Scene V1 formalise : definitions Scene/Graph/Node/Edge/Port/Outcome, taxonomie nodes/edges, payloads minimaux/interdits, diagnostics et runtime intents. |
 | NS-SCENES-V1-02 — Scene Storage / ID / Read Model Decision | TODO | Decider ou stocker les Scenes, quels IDs, quels read models, et la strategie de migration/compat legacy. |
 | NS-SCENES-V1-03 — Workspace Shell Scenes | TODO | Creer le shell editor `Scenes` sans authoring profond ni runtime. |
 | NS-SCENES-V1-04 — Scene Tree Panel Read-only | TODO | Afficher une arborescence de scenes reelles ou fixtures explicites, sans fake fallback. |
@@ -50,9 +50,28 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-01 — Scene Product Model / Graph Contract`
+`NS-SCENES-V1-02 — Scene Storage / ID / Read Model Decision`
 
-Raison : avant de creer un modele, un widget ou une migration, il faut verrouiller le vocabulaire exact du graph Scene V1, les types de nodes, les transitions et ce qui reste hors scope.
+Raison : le contrat produit SceneGraph est pose ; le prochain blocage est maintenant de decider storage, IDs stables, layout, read model editor/runtime et coexistence avec `ProjectManifest.scenarios`.
+
+## Decisions V1-01
+
+- Scene V1 = graph d'orchestration, pas Storyline, Event, Cinematic, Yarn, Fact ou World Rule.
+- `YarnDialogueNode` est le node dialogue V1 unique ; pas de `DialogueNode` generique tant qu'un autre moteur n'existe pas.
+- Les transitions sont explicites : aucune logique ne vient de la proximite visuelle des nodes.
+- Les conditions restent portees par `ConditionNode`, pas par des expressions libres sur edges.
+- Les payloads doivent etre types ; `metadata` ne doit porter aucune logique critique.
+- Les positions de nodes sont necessaires a l'editor, mais le runtime ne doit pas dependre du layout.
+- Aucun modele Dart, storage, widget, runtime, fixture Selbrume ou sceneLink n'a ete cree.
+
+## Limites V1-01
+
+- Storage final non tranche.
+- `SceneAsset` non cree.
+- `ProjectManifest.scenes` non ajoute.
+- Compatibilite `ScenarioAsset` non tranchee.
+- Scene Builder UI non demarre.
+- StorylineStep -> Scene non branche.
 
 ## Dependances
 
