@@ -132,6 +132,8 @@ class _NodeInspectorBody extends StatelessWidget {
             children: _payloadRows(node.payload),
           ),
           const SizedBox(height: 10),
+          _DiagnosticsSection(scene: scene),
+          const SizedBox(height: 10),
           _EdgesSection(
             key: const ValueKey('scene-node-inspector-incoming'),
             title: 'Entrants',
@@ -151,6 +153,70 @@ class _NodeInspectorBody extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const _InspectorNote(),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiagnosticsSection extends StatelessWidget {
+  const _DiagnosticsSection({required this.scene});
+
+  final NarrativeSceneSummary scene;
+
+  @override
+  Widget build(BuildContext context) {
+    final diagnostics = scene.diagnostics.diagnostics;
+    return _InspectorSection(
+      title: 'Diagnostics',
+      children: [
+        _InspectorRow(label: 'Statut', value: scene.diagnosticSummaryLabel),
+        if (diagnostics.isEmpty)
+          const _InspectorRow(label: 'Résultat', value: 'Aucun diagnostic.')
+        else
+          for (final diagnostic in diagnostics)
+            _DiagnosticMessageRow(diagnostic: diagnostic),
+      ],
+    );
+  }
+}
+
+class _DiagnosticMessageRow extends StatelessWidget {
+  const _DiagnosticMessageRow({required this.diagnostic});
+
+  final SceneDiagnostic diagnostic;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final color = switch (diagnostic.severity) {
+      SceneDiagnosticSeverity.error => colors.error,
+      SceneDiagnosticSeverity.warning => colors.warning,
+      SceneDiagnosticSeverity.info => colors.textMuted,
+    };
+    final prefix = switch (diagnostic.severity) {
+      SceneDiagnosticSeverity.error => 'Erreur',
+      SceneDiagnosticSeverity.warning => 'Warning',
+      SceneDiagnosticSeverity.info => 'Info',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(CupertinoIcons.circle_fill, size: 8, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$prefix · ${diagnostic.message}',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                height: 1.3,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ],
       ),
     );

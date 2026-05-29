@@ -137,6 +137,7 @@ class NarrativeSceneSummary {
     required this.tags,
     required this.graph,
     required this.layout,
+    required this.diagnostics,
   });
 
   final String id;
@@ -151,6 +152,23 @@ class NarrativeSceneSummary {
   final List<String> tags;
   final SceneGraph graph;
   final SceneGraphLayout layout;
+  final SceneDiagnosticsReport diagnostics;
+
+  int get diagnosticErrorCount => diagnostics.errorCount;
+  int get diagnosticWarningCount => diagnostics.warningCount;
+  bool get hasDiagnostics => diagnostics.hasDiagnostics;
+
+  String get diagnosticSummaryLabel {
+    if (diagnosticErrorCount > 0) {
+      return '$diagnosticErrorCount '
+          '${diagnosticErrorCount == 1 ? 'erreur' : 'erreurs'}';
+    }
+    if (diagnosticWarningCount > 0) {
+      return '$diagnosticWarningCount '
+          '${diagnosticWarningCount == 1 ? 'warning' : 'warnings'}';
+    }
+    return 'Valide';
+  }
 }
 
 /// Projection consolidée de la donnée narrative pour l'UI.
@@ -310,6 +328,7 @@ List<NarrativeSceneSummary> _buildSceneSummaries(List<SceneAsset> scenes) {
         tags: scene.tags.toList(growable: false),
         graph: scene.graph,
         layout: scene.layout,
+        diagnostics: diagnoseScene(scene),
       ),
   ];
 }

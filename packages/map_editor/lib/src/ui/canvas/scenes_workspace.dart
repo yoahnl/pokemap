@@ -478,9 +478,44 @@ class _SceneTreeItem extends StatelessWidget {
       label: scene.name,
       subtitle:
           '${scene.nodeCount} nodes • ${scene.edgeCount} edges • ${scene.declaredOutcomeCount} outcomes',
-      trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
+      trailing: scene.hasDiagnostics
+          ? _SceneDiagnosticBadge(scene: scene)
+          : const Icon(CupertinoIcons.chevron_right, size: 14),
       selected: selected,
       onTap: onTap,
+    );
+  }
+}
+
+class _SceneDiagnosticBadge extends StatelessWidget {
+  const _SceneDiagnosticBadge({required this.scene});
+
+  final NarrativeSceneSummary scene;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final hasErrors = scene.diagnosticErrorCount > 0;
+    final foreground = hasErrors ? colors.error : colors.warning;
+    final background = hasErrors ? colors.errorSoft : colors.warningSoft;
+    final border = hasErrors ? colors.errorBorder : colors.warningBorder;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        child: Text(
+          scene.diagnosticSummaryLabel,
+          style: TextStyle(
+            color: foreground,
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -45,15 +45,31 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-06 — Graph Read-only Skeleton | DONE | Graph Scene V1 read-only depuis le `SceneAsset` selectionne : nodes, edges, labels, layout persiste ou layout derive non persiste. |
 | NS-SCENES-V1-07 — Node Inspector Read-only | DONE | Selection locale de node dans le graph read-only, inspecteur read-only du payload et des edges entrants/sortants, sans authoring ni mutation. |
 | NS-SCENES-V1-08 — Authoring Minimal Scene Draft | DONE | Creation d'une SceneAsset draft minimale depuis le workspace Scenes, ajout en memoire dans `ProjectManifest.scenes`, selection auto et graph/inspector read-only. |
-| NS-SCENES-V1-09 — Scene Validation Diagnostics | TODO | Diagnostics de graphe : start/end, edges invalides, nodes incomplets, refs manquantes, outcomes orphelins. |
+| NS-SCENES-V1-09 — Scene Validation Diagnostics | DONE | Diagnostics Scene V1 purs dans `map_core` et affichage editor : erreurs/warnings de graph, layout et outcomes, sans mutation ni correction automatique. |
 | NS-SCENES-V1-10 — Runtime Execution Prep | TODO | Adapter ou wrapper les briques runtime existantes pour preparer l'execution Scene V1. |
 | NS-SCENES-V1-11 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres stabilisation du modele Scene V1. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-09 — Scene Validation Diagnostics`
+`NS-SCENES-V1-10 — Runtime Execution Prep`
 
-Raison : le workspace Scenes peut maintenant creer une scene draft minimale. Avant d'elargir l'authoring de nodes/edges, il faut poser les diagnostics Scene V1 pour encadrer start/end, refs, edges, ports et outcomes.
+Raison : les scènes draft sont créables et les premiers diagnostics encadrent maintenant start/end, layout et outcomes. Le prochain lot peut préparer l'exécution sans brancher Storylines trop tôt.
+
+## Decisions V1-09
+
+- Les diagnostics Scene V1 vivent dans `map_core/lib/src/diagnostics/scene_diagnostics.dart`.
+- `diagnoseScene` est pur, deterministe et ne mute jamais `SceneAsset`.
+- Les diagnostics couvrent start, end, edges, layout, outcomes declares/emis et graph quasi vide.
+- Les cas start/edge/layout inconnus restent surtout documentaires car les constructeurs `SceneGraph` / `SceneAsset` les refusent deja.
+- Le workspace Scenes affiche les compteurs dans l'arborescence et les messages dans l'inspecteur read-only.
+- Aucun bouton de correction automatique ni authoring supplementaire n'est ajoute.
+
+## Limites V1-09
+
+- Pas de Validator global.
+- Pas de diagnostics runtime, Yarn, Battle ou Cinematic resolus.
+- Pas de correction automatique.
+- Pas d'edition de node, edge, payload ou layout.
 
 ## Decisions V1-08
 

@@ -72,6 +72,7 @@ export 'src/operations/surface_catalog_diagnostics.dart';
 export 'src/operations/surface_catalog_authoring_diagnostics.dart';
 export 'src/operations/surface_catalog_diagnostics_summary.dart';
 export 'src/operations/surface_catalog_diagnostics_presentation.dart';
+export 'src/diagnostics/scene_diagnostics.dart';
 export 'src/operations/narrative_validator.dart';
 export 'src/authoring/narrative_event_source_authoring_operations.dart';
 export 'src/authoring/narrative_outcome_authoring_operations.dart';

@@ -9,7 +9,7 @@ import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  group('NS-SCENES-V1-08 authoring minimal scene draft', () {
+  group('NS-SCENES-V1-09 scene validation diagnostics', () {
     testWidgets('Narrative Studio exposes a real Scenes navigation entry',
         (tester) async {
       final container = await _pumpNarrativeShell(
@@ -247,8 +247,8 @@ void main() {
           tester.getSize(find.byKey(const ValueKey('scenes-tree-column')));
       final graphSize =
           tester.getSize(find.byKey(const ValueKey('scenes-graph-column')));
-      final inspectorSize = tester
-          .getSize(find.byKey(const ValueKey('scenes-inspector-column')));
+      final inspectorSize =
+          tester.getSize(find.byKey(const ValueKey('scenes-inspector-column')));
 
       expect(find.byKey(const ValueKey('scenes-legacy-header')), findsNothing);
       expect(
@@ -262,6 +262,36 @@ void main() {
       expect(inspectorSize.width, closeTo(320, 0.1));
       expect(graphSize.width, greaterThan(treeSize.width * 2));
       expect(graphSize.width, greaterThan(inspectorSize.width * 1.7));
+    });
+
+    testWidgets('shows scene diagnostics warnings without mutating project',
+        (tester) async {
+      final project = _projectWithDiagnosticScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(find.text('Diagnostics'), findsWidgets);
+      expect(find.text('1 warning'), findsWidgets);
+      expect(find.textContaining('Un nœud n’a pas de position sauvegardée.'),
+          findsOneWidget);
+      expect(find.text('Corriger automatiquement'), findsNothing);
+      expect(container.read(editorNotifierProvider).project, equals(project));
+    });
+
+    testWidgets('shows scene diagnostics errors in tree and inspector',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithDiagnosticScene(missingEnd: true),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(find.text('1 erreur'), findsWidgets);
+      expect(find.textContaining('La scène n’a pas de fin.'), findsOneWidget);
+      expect(find.text('Aucune donnée Selbrume'), findsNothing);
     });
 
     testWidgets('selects real graph nodes and shows read-only inspector',
@@ -524,6 +554,23 @@ void main() {
         ),
       );
     });
+
+    testWidgets('writes V1-09 diagnostics visual gate screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithDiagnosticScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_09_scene_validation_diagnostics.png',
+        ),
+      );
+    });
   });
 }
 
@@ -605,6 +652,42 @@ ProjectManifest _projectWithComplexFallbackScene() {
     maps: const [],
     tilesets: const [],
     scenes: [_testComplexFallbackScene()],
+  );
+}
+
+ProjectManifest _projectWithDiagnosticScene({bool missingEnd = false}) {
+  return ProjectManifest(
+    name: 'Scenes shell test',
+    maps: const [],
+    tilesets: const [],
+    scenes: [
+      SceneAsset(
+        id: 'scene_diagnostic_test',
+        name: 'Diagnostic Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            if (!missingEnd) SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            if (!missingEnd)
+              SceneEdge(
+                id: 'edge_start_end',
+                fromNodeId: 'node_start',
+                fromPortId: 'completed',
+                toNodeId: 'node_end',
+                kind: SceneEdgeKind.defaultFlow,
+              ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+          ],
+        ),
+      ),
+    ],
   );
 }
 
