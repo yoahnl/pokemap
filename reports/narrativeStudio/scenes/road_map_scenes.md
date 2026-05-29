@@ -38,21 +38,42 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 |---|---|---|
 | NS-SCENES-V1-00 — Scene System Scope / Current State Audit | DONE | Audit documentaire de l'existant, definition Scene V1, frontieres produit et roadmap. |
 | NS-SCENES-V1-01 — Scene Product Model / Graph Contract | DONE | Contrat produit Scene V1 formalise : definitions Scene/Graph/Node/Edge/Port/Outcome, taxonomie nodes/edges, payloads minimaux/interdits, diagnostics et runtime intents. |
-| NS-SCENES-V1-02 — Scene Storage / ID / Read Model Decision | TODO | Decider ou stocker les Scenes, quels IDs, quels read models, et la strategie de migration/compat legacy. |
-| NS-SCENES-V1-03 — Workspace Shell Scenes | TODO | Creer le shell editor `Scenes` sans authoring profond ni runtime. |
-| NS-SCENES-V1-04 — Scene Tree Panel Read-only | TODO | Afficher une arborescence de scenes reelles ou fixtures explicites, sans fake fallback. |
-| NS-SCENES-V1-05 — Graph Read-only Skeleton | TODO | Afficher un graph Scene V1 read-only avec start/end et nodes reels du read model. |
-| NS-SCENES-V1-06 — Node Inspector Read-only | TODO | Inspecteur contextuel read-only pour node selectionne, conditions, sorties et notes. |
-| NS-SCENES-V1-07 — Authoring Minimal Scene Draft | TODO | Creer/editer une scene draft minimale, sans brancher Storylines ni runtime complet. |
-| NS-SCENES-V1-08 — Scene Validation Diagnostics | TODO | Diagnostics de graphe : start/end, edges invalides, nodes incomplets, refs manquantes, outcomes orphelins. |
-| NS-SCENES-V1-09 — Runtime Execution Prep | TODO | Adapter ou wrapper les briques runtime existantes pour preparer l'execution Scene V1. |
-| NS-SCENES-V1-10 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres stabilisation du modele Scene V1. |
+| NS-SCENES-V1-02 — Scene Storage / ID / Read Model Decision | DONE | Decision retenue : `SceneAsset` authoring dedie + `ProjectManifest.scenes` futur, avec `ScenarioAsset` conserve comme legacy/runtime bridge temporaire et sans migration automatique. |
+| NS-SCENES-V1-03 — Scene Core Model V0 | TODO | Ajouter le modele core `SceneAsset`, graph/layout value objects, `ProjectManifest.scenes`, exports et tests JSON/core. |
+| NS-SCENES-V1-04 — Workspace Shell Scenes | TODO | Creer le shell editor `Scenes` sans authoring profond ni runtime. |
+| NS-SCENES-V1-05 — Scene Tree Panel Read-only | TODO | Afficher une arborescence de scenes reelles depuis `ProjectManifest.scenes`, sans fake fallback. |
+| NS-SCENES-V1-06 — Graph Read-only Skeleton | TODO | Afficher un graph Scene V1 read-only avec start/end et nodes reels du read model. |
+| NS-SCENES-V1-07 — Node Inspector Read-only | TODO | Inspecteur contextuel pour node selectionne, conditions, sorties et notes. |
+| NS-SCENES-V1-08 — Authoring Minimal Scene Draft | TODO | Creer/editer une scene draft minimale, sans brancher Storylines ni runtime complet. |
+| NS-SCENES-V1-09 — Scene Validation Diagnostics | TODO | Diagnostics de graphe : start/end, edges invalides, nodes incomplets, refs manquantes, outcomes orphelins. |
+| NS-SCENES-V1-10 — Runtime Execution Prep | TODO | Adapter ou wrapper les briques runtime existantes pour preparer l'execution Scene V1. |
+| NS-SCENES-V1-11 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres stabilisation du modele Scene V1. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-02 — Scene Storage / ID / Read Model Decision`
+`NS-SCENES-V1-03 — Scene Core Model V0`
 
-Raison : le contrat produit SceneGraph est pose ; le prochain blocage est maintenant de decider storage, IDs stables, layout, read model editor/runtime et coexistence avec `ProjectManifest.scenarios`.
+Raison : la decision storage/IDs/read models est tranchee ; une UI Scenes sans modele core creerait du faux. Le prochain lot doit poser `SceneAsset`, `ProjectManifest.scenes`, graph/layout et tests core avant le shell editor.
+
+## Decisions V1-02
+
+- Option retenue : `SceneAsset` authoring dedie + `ScenarioAsset` runtime bridge temporaire.
+- Futur storage canonique : `ProjectManifest.scenes`, absent/null compatible vers `[]`.
+- `ProjectManifest.scenarios` reste supporte comme legacy ; aucune suppression.
+- Aucune migration automatique `ScenarioAsset -> SceneAsset`.
+- Layout persiste dans un `SceneGraphLayout` separe du graph logique ; runtime ignore le layout.
+- IDs stables : jamais derives du nom utilisateur, du texte Yarn, de la position visuelle ou de Selbrume.
+- Read models separes : authoring model, editor read model, diagnostics, runtime executable model.
+
+## Limites V1-02
+
+- Aucun `SceneAsset` code.
+- Aucun `ProjectManifest.scenes` code.
+- Aucun codec JSON.
+- Aucun build_runner.
+- Aucun workspace UI.
+- Aucun runtime Scene.
+- Aucun sceneLink Storylines.
 
 ## Decisions V1-01
 
