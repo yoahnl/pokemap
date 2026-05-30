@@ -91,6 +91,7 @@ export 'src/read_models/narrative_reference_picker_read_models.dart';
 export 'src/read_models/linked_asset_public_contracts.dart';
 export 'src/runtime/scene_runtime_plan.dart';
 export 'src/runtime/scene_runtime_plan_builder.dart';
+export 'src/runtime/scene_runtime_executor.dart';
 export 'src/projection/world_rule_projection.dart';
 export 'src/operations/static_shadow_geometry.dart';
 export 'src/operations/static_shadow_family_projection.dart';
