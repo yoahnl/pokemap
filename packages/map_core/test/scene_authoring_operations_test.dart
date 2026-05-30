@@ -581,6 +581,134 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('updates a condition node with a fact-like story flag source', () {
+      final scene = _edgeAuthoringScene(
+        metadata: const {'owner': 'test'},
+        declaredOutcomes: [SceneOutcome(id: 'done', label: 'Done')],
+        edges: [
+          SceneEdge(
+            id: 'edge_node_start_completed_node_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final source = SceneConditionSource(
+        sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+        sourceId: 'story_flag.harbor_fog_seen',
+        operator: SceneConditionOperator.isTrue,
+        label: 'Le joueur a vu la brume',
+        debugTechnicalLabel: 'story_flag.harbor_fog_seen',
+      );
+
+      final result = updateSceneConditionSource(
+        scene,
+        nodeId: 'node_condition',
+        source: source,
+      );
+
+      final payload = result.updatedPayload;
+      expect(payload.conditionSource, source);
+      expect(payload.conditionLabel, 'Le joueur a vu la brume');
+      expect(payload.conditionRef, 'story_flag.harbor_fog_seen');
+      expect(payload.conditionDraft, isNull);
+      expect(result.updatedNode.id, 'node_condition');
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.layout, scene.layout);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(
+          scene.graph.nodes
+              .firstWhere((node) => node.id == 'node_condition')
+              .payload,
+          isA<SceneConditionPayload>());
+    });
+
+    test('updates a condition node with a story step completion source', () {
+      final scene = _edgeAuthoringScene();
+
+      final result = updateSceneConditionSource(
+        scene,
+        nodeId: 'node_condition',
+        source: SceneConditionSource(
+          sourceKind: SceneConditionSourceKind.storyStepCompletion,
+          sourceId: 'step_intro_completed',
+          operator: SceneConditionOperator.equals,
+          value: SceneConditionValues.completed,
+          label: 'Introduction terminée',
+          debugTechnicalLabel: 'step_intro_completed',
+        ),
+      );
+
+      final source = result.updatedPayload.conditionSource!;
+      expect(source.sourceKind, SceneConditionSourceKind.storyStepCompletion);
+      expect(source.sourceId, 'step_intro_completed');
+      expect(source.operator, SceneConditionOperator.equals);
+      expect(source.value, SceneConditionValues.completed);
+      expect(result.updatedScene.graph.nodes, isNot(scene.graph.nodes));
+      expect(
+          scene.graph.nodes
+              .firstWhere((node) => node.id == 'node_condition')
+              .payload,
+          equals(SceneConditionPayload()));
+    });
+
+    test('rejects invalid condition source updates', () {
+      final scene = _edgeAuthoringScene();
+
+      expect(
+        () => updateSceneConditionSource(
+          scene,
+          nodeId: 'node_start',
+          source: SceneConditionSource(
+            sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+            sourceId: 'flag_seen',
+            operator: SceneConditionOperator.isTrue,
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneConditionSource(
+          scene,
+          nodeId: 'node_condition',
+          source: SceneConditionSource(
+            sourceKind: SceneConditionSourceKind.inventoryItem,
+            sourceId: 'item_potion',
+            operator: SceneConditionOperator.isTrue,
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneConditionSource(
+          scene,
+          nodeId: 'node_condition',
+          source: SceneConditionSource(
+            sourceKind: SceneConditionSourceKind.storyStepCompletion,
+            sourceId: 'step_intro_completed',
+            operator: SceneConditionOperator.isTrue,
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneConditionSource(
+          scene,
+          nodeId: 'node_condition',
+          source: SceneConditionSource(
+            sourceKind: SceneConditionSourceKind.consumedEvent,
+            sourceId: 'event_intro',
+            operator: SceneConditionOperator.equals,
+            value: 'consumed',
+          ),
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }
 

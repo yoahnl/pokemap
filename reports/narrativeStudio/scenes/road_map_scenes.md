@@ -56,7 +56,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-15-bis — Edge Selection / Deletion UX V0 | DONE | Selection locale d'edge, highlight visuel, inspecteur de lien et suppression d'edge en memoire via operation pure, sans runtime ni reconnexion avancee. |
 | NS-SCENES-V1-16-prep — Condition Sources / Facts / World Rules Roadmap Review | DONE | Revue architecture/roadmap : refuser une Condition V0 textuelle magique, cadrer sources metier, Facts, World Rules et consequences avant authoring payload. |
 | NS-SCENES-V1-16 — Condition Sources Contract V0 | DONE | Contrat no-code des sources de condition : sources V0 autorisees, sources reportees, mapping technique, operateurs, pickers et diagnostics, sans code ni UI. |
-| NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only) | TODO | Configurer un `ConditionNode` V0 uniquement avec des sources existantes et honnetes, sans texte magique ni refs inventees. |
+| NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only) | DONE | `ConditionNode` configurable avec source structuree V0 depuis refs existantes : fact-like story flag, story step completion et event consumed, sans texte magique ni fake ref. |
 | NS-SCENES-V1-18 — Fact Registry V0 | TODO | Ajouter une registry authoring de Facts lisibles, bool-first, preparant les pickers no-code et le mapping runtime vers l'etat persistant. |
 | NS-SCENES-V1-19 — World Rule Contract V0 | TODO | Formaliser les World Rules comme regles visibles derivees de Facts/Steps/conditions, sans encore brancher tout le runtime. |
 | NS-SCENES-V1-20 — World Rules V0 | TODO | Premier authoring/validation de World Rules controlees : visibilite, dialogue, portes/collisions ou map state selon contrat. |
@@ -70,9 +70,41 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only)`
+`NS-SCENES-V1-18 — Fact Registry V0`
 
-Raison : V1-16 fixe maintenant le contrat no-code des sources conditionnelles. Le prochain lot peut coder l'authoring d'un `ConditionNode` limite aux sources V0 autorisees, sans expression libre, sans Fact Registry, sans World Rules et sans runtime.
+Raison : V1-17 permet maintenant de configurer une condition avec les sources existantes autorisees, mais les sources fact-like restent encore des flags techniques presentes avec prudence. Le prochain bloc produit doit les envelopper dans une registry de Facts lisibles, bool-first, avant d'elargir World Rules, payload pickers ou runtime.
+
+## Decisions V1-17
+
+- `SceneConditionSource` devient le payload structure d'une condition V0 : `sourceKind`, `sourceId`, `operator`, `value`, `label` et `debugTechnicalLabel`.
+- Sources codees en V0 : `factLikeStoryFlag`, `storyStepCompletion`, `consumedEvent`.
+- Operateurs V0 : `isTrue` / `isFalse` pour les sources booleennes fact-like et consumed event ; `equals completed/notCompleted` pour story step completion.
+- L'operation pure `updateSceneConditionSource` met a jour un node `condition` sans muter la scene originale et sans toucher aux nodes, edges, layout, outcomes ou metadata.
+- L'editor expose un panel no-code dans l'inspecteur : choisir type de source, choisir une reference existante via picker derive, choisir l'operateur/valeur, puis appliquer.
+- Les diagnostics bloquent les conditions sans source structuree, les sources futures, les operateurs invalides et les valeurs manquantes ; les labels techniques bruts restent au minimum warning.
+- Aucun texte libre n'est source de verite. Aucun ID invente n'est cree.
+- Prochain lot : remplacer progressivement les flags techniques fact-like par une `Fact Registry V0` lisible.
+
+## Limites V1-17
+
+- Pas de Fact Registry codee.
+- Pas de World Rule.
+- Pas de runtime Scene.
+- Pas de Condition AND/OR ou expression complexe.
+- Pas de sources inventory, party, dialogue outcome, battle outcome, trainer defeated dedie, script variable ou world state.
+- Pas de StorylineStep link, Event -> Scene ou donnee Selbrume.
+
+## Tests V1-17
+
+- `cd packages/map_core && dart test test/scene_authoring_operations_test.dart`
+- `cd packages/map_core && dart test test/scene_diagnostics_test.dart`
+- `cd packages/map_core && dart test test/scene_asset_json_test.dart`
+- `cd packages/map_core && dart analyze`
+- `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_shell_navigation_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_studio_header_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/narrative_workspace_projection_test.dart`
+- `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/narrative_workspace_canvas.dart lib/src/ui/canvas/scenes_workspace.dart lib/src/ui/canvas/scenes/scene_node_read_only_inspector.dart test/scenes_workspace_shell_test.dart`
 
 ## Decisions V1-16
 

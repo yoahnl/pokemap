@@ -91,6 +91,33 @@ void main() {
 
       expect(SceneGraphLayout.fromJson(layout.toJson()), equals(layout));
     });
+
+    test('round-trips structured condition source payload', () {
+      final payload = SceneConditionPayload(
+        conditionSource: SceneConditionSource(
+          sourceKind: SceneConditionSourceKind.storyStepCompletion,
+          sourceId: 'step_intro_completed',
+          field: 'completion',
+          operator: SceneConditionOperator.equals,
+          value: SceneConditionValues.completed,
+          label: 'Introduction terminée',
+          debugTechnicalLabel: 'step_intro_completed',
+        ),
+      );
+
+      final json = payload.toJson();
+      final conditionSource = json['conditionSource'] as Map<String, dynamic>;
+      final decoded = SceneNodePayload.fromJson(json);
+
+      expect(conditionSource['sourceKind'], 'storyStepCompletion');
+      expect(conditionSource['sourceId'], 'step_intro_completed');
+      expect(conditionSource['field'], 'completion');
+      expect(conditionSource['operator'], 'equals');
+      expect(conditionSource['value'], 'completed');
+      expect(conditionSource['label'], 'Introduction terminée');
+      expect(conditionSource['debugTechnicalLabel'], 'step_intro_completed');
+      expect(decoded, equals(payload));
+    });
   });
 
   group('SceneAsset JSON defaults and invalid shapes', () {

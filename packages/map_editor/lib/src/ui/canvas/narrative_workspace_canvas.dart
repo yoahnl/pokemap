@@ -13,6 +13,7 @@ import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'narrative_overview_workspace.dart';
 import 'narrative_studio_shell.dart';
+import 'scenes/scene_node_read_only_inspector.dart';
 import 'scenes_workspace.dart';
 import 'step_studio_workspace.dart';
 import 'storylines_workspace.dart';
@@ -122,6 +123,12 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.scenes => ScenesWorkspace(
           scenes: projection.scenes,
+          conditionSourceOptions: editor.project == null
+              ? const []
+              : _buildSceneConditionSourceOptions(
+                  editor.project!,
+                  activeMap: editor.activeMap,
+                ),
           onCreateSceneDraft: ({
             required String name,
             String? description,
@@ -260,6 +267,37 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return;
             }
           },
+          onUpdateConditionSource: ({
+            required String sceneId,
+            required String nodeId,
+            required SceneConditionSource source,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return false;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return false;
+            }
+            try {
+              final result = updateSceneConditionSource(
+                project.scenes[sceneIndex],
+                nodeId: nodeId,
+                source: source,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene condition source updated',
+              );
+              return true;
+            } on ArgumentError {
+              return false;
+            }
+          },
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
@@ -319,6 +357,94 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       child: mainContent,
     );
   }
+}
+
+List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
+  ProjectManifest project, {
+  MapData? activeMap,
+}) {
+  final optionsByKey = <String, SceneConditionSourcePickerOption>{};
+
+  void add(SceneConditionSourcePickerOption option) {
+    final sourceId = option.sourceId.trim();
+    if (sourceId.isEmpty) {
+      return;
+    }
+    optionsByKey.putIfAbsent(
+      '${option.sourceKind.name}:$sourceId',
+      () => option,
+    );
+  }
+
+  for (final reference in buildNarrativePredicateReferencePickerOptions(
+    project,
+  )) {
+    if (reference.referenceKind != NarrativePredicateReferenceKind.storyFlag) {
+      continue;
+    }
+    add(
+      SceneConditionSourcePickerOption(
+        sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+        sourceId: reference.referenceId,
+        label: reference.humanLabel,
+        debugTechnicalLabel: reference.debugTechnicalLabel,
+      ),
+    );
+  }
+
+  for (final storyline in project.storylines) {
+    for (final chapter in storyline.chapters) {
+      for (final step in chapter.steps) {
+        add(
+          SceneConditionSourcePickerOption(
+            sourceKind: SceneConditionSourceKind.storyStepCompletion,
+            sourceId: step.id,
+            label: step.title,
+            debugTechnicalLabel: '${storyline.id}:${chapter.id}:${step.id}',
+          ),
+        );
+      }
+    }
+  }
+  for (final step in buildNarrativeStoryStepPickerOptions(project)) {
+    add(
+      SceneConditionSourcePickerOption(
+        sourceKind: SceneConditionSourceKind.storyStepCompletion,
+        sourceId: step.stepId,
+        label: step.humanLabel,
+        debugTechnicalLabel: step.debugTechnicalLabel,
+      ),
+    );
+  }
+
+  final maps = activeMap == null ? const <MapData>[] : [activeMap];
+  for (final eventSource in buildNarrativeEventSourcePickerOptions(
+    project,
+    maps: maps,
+  )) {
+    add(
+      SceneConditionSourcePickerOption(
+        sourceKind: SceneConditionSourceKind.consumedEvent,
+        sourceId: eventSource.sourceId,
+        label: eventSource.humanLabel,
+        debugTechnicalLabel: eventSource.debugTechnicalLabel,
+      ),
+    );
+  }
+
+  final options = optionsByKey.values.toList(growable: false);
+  options.sort((a, b) {
+    final byKind = a.sourceKind.index.compareTo(b.sourceKind.index);
+    if (byKind != 0) {
+      return byKind;
+    }
+    final byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
+    if (byLabel != 0) {
+      return byLabel;
+    }
+    return a.sourceId.toLowerCase().compareTo(b.sourceId.toLowerCase());
+  });
+  return List<SceneConditionSourcePickerOption>.unmodifiable(options);
 }
 
 NarrativeScenarioSummary? _resolveScenarioById(

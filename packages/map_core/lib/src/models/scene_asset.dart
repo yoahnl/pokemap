@@ -28,6 +28,114 @@ enum SceneEdgeKind {
   blocked,
 }
 
+enum SceneConditionSourceKind {
+  factLikeStoryFlag,
+  storyStepCompletion,
+  consumedEvent,
+  storyStepActive,
+  inventoryItem,
+  partyState,
+  trainerDefeated,
+  dialogueOutcome,
+  battleOutcome,
+  scriptVariable,
+  worldState,
+}
+
+enum SceneConditionOperator {
+  isTrue,
+  isFalse,
+  equals,
+}
+
+abstract final class SceneConditionValues {
+  static const completed = 'completed';
+  static const notCompleted = 'notCompleted';
+}
+
+@immutable
+final class SceneConditionSource {
+  SceneConditionSource({
+    required this.sourceKind,
+    required this.sourceId,
+    required this.operator,
+    this.field,
+    this.value,
+    this.label,
+    this.debugTechnicalLabel,
+  }) {
+    _requireNotBlank(sourceId, 'SceneConditionSource.sourceId');
+    _requireOptionalNotBlank(field, 'SceneConditionSource.field');
+    _requireOptionalNotBlank(value, 'SceneConditionSource.value');
+    _requireOptionalNotBlank(label, 'SceneConditionSource.label');
+    _requireOptionalNotBlank(
+      debugTechnicalLabel,
+      'SceneConditionSource.debugTechnicalLabel',
+    );
+  }
+
+  factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
+    return SceneConditionSource(
+      sourceKind: _readEnum(
+        SceneConditionSourceKind.values,
+        json['sourceKind'],
+        'conditionSource.sourceKind',
+      ),
+      sourceId: _readRequiredString(json, 'sourceId'),
+      field: _readOptionalString(json, 'field'),
+      operator: _readEnum(
+        SceneConditionOperator.values,
+        json['operator'],
+        'conditionSource.operator',
+      ),
+      value: _readOptionalString(json, 'value'),
+      label: _readOptionalString(json, 'label'),
+      debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'),
+    );
+  }
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'sourceKind': _enumToJson(sourceKind),
+        'sourceId': sourceId,
+        'field': field,
+        'operator': _enumToJson(operator),
+        'value': value,
+        'label': label,
+        'debugTechnicalLabel': debugTechnicalLabel,
+      });
+
+  final SceneConditionSourceKind sourceKind;
+  final String sourceId;
+  final String? field;
+  final SceneConditionOperator operator;
+  final String? value;
+  final String? label;
+  final String? debugTechnicalLabel;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneConditionSource &&
+          other.sourceKind == sourceKind &&
+          other.sourceId == sourceId &&
+          other.field == field &&
+          other.operator == operator &&
+          other.value == value &&
+          other.label == label &&
+          other.debugTechnicalLabel == debugTechnicalLabel;
+
+  @override
+  int get hashCode => Object.hash(
+        sourceKind,
+        sourceId,
+        field,
+        operator,
+        value,
+        label,
+        debugTechnicalLabel,
+      );
+}
+
 @immutable
 final class SceneAsset {
   SceneAsset({
@@ -663,6 +771,7 @@ final class SceneConditionPayload extends SceneNodePayload {
     this.conditionLabel,
     this.conditionRef,
     this.conditionDraft,
+    this.conditionSource,
   }) {
     _requireOptionalNotBlank(
       conditionLabel,
@@ -683,6 +792,11 @@ final class SceneConditionPayload extends SceneNodePayload {
       conditionLabel: _readOptionalString(json, 'conditionLabel'),
       conditionRef: _readOptionalString(json, 'conditionRef'),
       conditionDraft: _readOptionalString(json, 'conditionDraft'),
+      conditionSource: _readOptionalObject(
+        json,
+        'conditionSource',
+        SceneConditionSource.fromJson,
+      ),
     );
   }
 
@@ -692,6 +806,7 @@ final class SceneConditionPayload extends SceneNodePayload {
   final String? conditionLabel;
   final String? conditionRef;
   final String? conditionDraft;
+  final SceneConditionSource? conditionSource;
 
   @override
   Map<String, dynamic> toJson() => _withoutNulls({
@@ -699,6 +814,7 @@ final class SceneConditionPayload extends SceneNodePayload {
         'conditionLabel': conditionLabel,
         'conditionRef': conditionRef,
         'conditionDraft': conditionDraft,
+        'conditionSource': conditionSource?.toJson(),
       });
 
   @override
@@ -707,10 +823,16 @@ final class SceneConditionPayload extends SceneNodePayload {
       other is SceneConditionPayload &&
           other.conditionLabel == conditionLabel &&
           other.conditionRef == conditionRef &&
-          other.conditionDraft == conditionDraft;
+          other.conditionDraft == conditionDraft &&
+          other.conditionSource == conditionSource;
 
   @override
-  int get hashCode => Object.hash(conditionLabel, conditionRef, conditionDraft);
+  int get hashCode => Object.hash(
+        conditionLabel,
+        conditionRef,
+        conditionDraft,
+        conditionSource,
+      );
 }
 
 @immutable

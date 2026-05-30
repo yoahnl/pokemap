@@ -820,6 +820,161 @@ void main() {
       expect(recreatedEdges.single.id, edgeId);
     });
 
+    testWidgets('authors a condition from an existing story step source',
+        (tester) async {
+      final project = _projectWithConditionAuthoringSources();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scene-condition-authoring-panel')),
+        findsOneWidget,
+      );
+      expect(find.text('Configurer la condition'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-kind-storyStepCompletion',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-option-storyStepCompletion-step_intro_completed',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-value-completed')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-save-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final conditionNode = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((node) => node.id == 'node_condition');
+      final payload = conditionNode.payload as SceneConditionPayload;
+      final source = payload.conditionSource!;
+      expect(source.sourceKind, SceneConditionSourceKind.storyStepCompletion);
+      expect(source.sourceId, 'step_intro_completed');
+      expect(source.operator, SceneConditionOperator.equals);
+      expect(source.value, SceneConditionValues.completed);
+      expect(source.label, 'Introduction terminée');
+      expect(
+        diagnoseScene(
+                container.read(editorNotifierProvider).project!.scenes.single)
+            .byCode(SceneDiagnosticCode.conditionSourceMissing),
+        isEmpty,
+      );
+      expect(
+          project.scenes.single.graph.nodes
+              .firstWhere((node) => node.id == 'node_condition')
+              .payload,
+          equals(SceneConditionPayload()));
+    });
+
+    testWidgets('authors fact-like and consumed event conditions from pickers',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConditionAuthoringSources(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-option-factLikeStoryFlag-story_flag.harbor_fog_seen',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-operator-isFalse')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-save-action')),
+      );
+      await tester.pumpAndSettle();
+
+      var payload = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((node) => node.id == 'node_condition')
+          .payload as SceneConditionPayload;
+      expect(payload.conditionSource!.sourceKind,
+          SceneConditionSourceKind.factLikeStoryFlag);
+      expect(payload.conditionSource!.operator, SceneConditionOperator.isFalse);
+      expect(payload.conditionSource!.sourceId, 'story_flag.harbor_fog_seen');
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-condition-source-kind-consumedEvent'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-option-consumedEvent-mapEnter:map_test',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-operator-isTrue')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-save-action')),
+      );
+      await tester.pumpAndSettle();
+
+      payload = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((node) => node.id == 'node_condition')
+          .payload as SceneConditionPayload;
+      expect(payload.conditionSource!.sourceKind,
+          SceneConditionSourceKind.consumedEvent);
+      expect(payload.conditionSource!.sourceId, 'mapEnter:map_test');
+      expect(find.text('Inventory item'), findsNothing);
+      expect(find.text('Aucune donnée Selbrume'), findsNothing);
+    });
+
     testWidgets('unsupported node kinds expose no active V0 connection output',
         (tester) async {
       await _pumpNarrativeShell(
@@ -1597,6 +1752,47 @@ void main() {
         ),
       );
     });
+
+    testWidgets('writes V1-17 condition authoring screenshot', (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConditionAuthoringSources(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-kind-storyStepCompletion',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-option-storyStepCompletion-step_intro_completed',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-value-completed')),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_17_condition_authoring_v0.png',
+        ),
+      );
+    });
   });
 }
 
@@ -1701,6 +1897,15 @@ ProjectManifest _projectWithEdgeAuthoringScene({
               id: 'node_condition',
               kind: SceneNodeKind.condition,
               title: 'Condition test',
+              payload: SceneConditionPayload(
+                conditionSource: SceneConditionSource(
+                  sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+                  sourceId: 'story_flag.edge_authoring_ready',
+                  operator: SceneConditionOperator.isTrue,
+                  label: 'Graph prêt pour les edges',
+                  debugTechnicalLabel: 'story_flag.edge_authoring_ready',
+                ),
+              ),
             ),
             SceneNode(
               id: 'node_merge',
@@ -1727,6 +1932,99 @@ ProjectManifest _projectWithEdgeAuthoringScene({
         ),
       ),
     ],
+  );
+}
+
+ProjectManifest _projectWithConditionAuthoringSources() {
+  return ProjectManifest(
+    name: 'Scenes condition authoring test',
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_test',
+        name: 'Carte de test',
+        relativePath: 'maps/map_test.json',
+      ),
+    ],
+    tilesets: const [],
+    scenarios: const [
+      ScenarioAsset(
+        id: 'scenario_flag_sources',
+        name: 'Sources de flags',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'scenario_node_start',
+        activationCondition: ScriptCondition(
+          type: ScriptConditionType.flagIsSet,
+          params: {
+            ScriptConditionParams.flagName: 'story_flag.harbor_fog_seen',
+          },
+        ),
+        nodes: [
+          ScenarioNode(
+            id: 'scenario_node_start',
+            type: ScenarioNodeType.start,
+            title: 'Start',
+          ),
+        ],
+      ),
+    ],
+    storylines: [
+      StorylineAsset(
+        id: 'storyline_test',
+        title: 'Storyline de test',
+        type: StorylineType.main,
+        chapters: [
+          StorylineChapter(
+            id: 'chapter_test',
+            title: 'Chapitre de test',
+            order: 0,
+            steps: [
+              StorylineStep(
+                id: 'step_intro_completed',
+                title: 'Introduction terminée',
+                order: 0,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+    scenes: [_conditionAuthoringScene()],
+  );
+}
+
+SceneAsset _conditionAuthoringScene() {
+  return SceneAsset(
+    id: 'scene_condition_authoring',
+    name: 'Condition Authoring Test Scene',
+    description: 'Fixture locale pour configurer une condition.',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_condition',
+          kind: SceneNodeKind.condition,
+          title: 'Condition à configurer',
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end, title: 'Fin'),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_node_start_completed_node_condition',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_condition',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_condition', x: 260, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 520, y: 80),
+      ],
+    ),
   );
 }
 

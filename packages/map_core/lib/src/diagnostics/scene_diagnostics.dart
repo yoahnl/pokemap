@@ -17,6 +17,15 @@ enum SceneDiagnosticCode {
   layoutMissingNode,
   declaredOutcomeUnused,
   endOutcomeUndeclared,
+  conditionSourceMissing,
+  conditionSourceUnknown,
+  conditionOperatorMissing,
+  conditionOperatorUnsupported,
+  conditionValueMissing,
+  conditionSourceRequiresPicker,
+  conditionUsesFutureSource,
+  conditionUsesRawTechnicalId,
+  conditionSourceMigratesToFactRegistry,
   emptyGraph,
   legacyScenarioLeak,
 }
@@ -237,6 +246,12 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
     }
   }
 
+  for (final node in scene.graph.nodes) {
+    if (node.kind == SceneNodeKind.condition) {
+      _diagnoseConditionNode(scene, node, diagnostics);
+    }
+  }
+
   final layoutNodeIds = {
     for (final layout in scene.layout.nodeLayouts) layout.nodeId,
   };
@@ -317,4 +332,144 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
   }
 
   return SceneDiagnosticsReport(diagnostics: diagnostics);
+}
+
+void _diagnoseConditionNode(
+  SceneAsset scene,
+  SceneNode node,
+  List<SceneDiagnostic> diagnostics,
+) {
+  final payload = node.payload;
+  if (payload is! SceneConditionPayload) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.conditionSourceMissing,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La condition doit avoir un payload condition.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Reconfigurer le nœud Condition.',
+      ),
+    );
+    return;
+  }
+
+  final source = payload.conditionSource;
+  if (source == null) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.conditionSourceMissing,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La condition doit choisir une source métier V0.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir Fact-like, Story Step ou Event consommé.',
+      ),
+    );
+    return;
+  }
+
+  if (!_isConditionSourceKindSupportedV0(source.sourceKind)) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.conditionUsesFutureSource,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Cette source de condition est prévue pour un lot futur.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Utiliser une source V0 existante.',
+      ),
+    );
+    return;
+  }
+
+  if (!_isConditionOperatorSupportedV0(source)) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.conditionOperatorUnsupported,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Cet opérateur n’est pas compatible avec la source V0.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un opérateur supporté pour cette source.',
+      ),
+    );
+  }
+
+  if (source.sourceKind == SceneConditionSourceKind.storyStepCompletion &&
+      !_isStoryStepCompletionValue(source.value)) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.conditionValueMissing,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La condition Story Step doit choisir completed/notCompleted.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir la valeur de complétion attendue.',
+      ),
+    );
+  }
+
+  final label = source.label?.trim();
+  if (label == null || label.isEmpty || label == source.sourceId) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.conditionUsesRawTechnicalId,
+        severity: SceneDiagnosticSeverity.warning,
+        message: 'La condition affiche encore un identifiant technique.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un label lisible via le picker.',
+      ),
+    );
+  }
+}
+
+bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
+  return switch (kind) {
+    SceneConditionSourceKind.factLikeStoryFlag ||
+    SceneConditionSourceKind.storyStepCompletion ||
+    SceneConditionSourceKind.consumedEvent =>
+      true,
+    SceneConditionSourceKind.storyStepActive ||
+    SceneConditionSourceKind.inventoryItem ||
+    SceneConditionSourceKind.partyState ||
+    SceneConditionSourceKind.trainerDefeated ||
+    SceneConditionSourceKind.dialogueOutcome ||
+    SceneConditionSourceKind.battleOutcome ||
+    SceneConditionSourceKind.scriptVariable ||
+    SceneConditionSourceKind.worldState =>
+      false,
+  };
+}
+
+bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
+  return switch (source.sourceKind) {
+    SceneConditionSourceKind.factLikeStoryFlag ||
+    SceneConditionSourceKind.consumedEvent =>
+      source.operator == SceneConditionOperator.isTrue ||
+          source.operator == SceneConditionOperator.isFalse,
+    SceneConditionSourceKind.storyStepCompletion =>
+      source.operator == SceneConditionOperator.equals,
+    SceneConditionSourceKind.storyStepActive ||
+    SceneConditionSourceKind.inventoryItem ||
+    SceneConditionSourceKind.partyState ||
+    SceneConditionSourceKind.trainerDefeated ||
+    SceneConditionSourceKind.dialogueOutcome ||
+    SceneConditionSourceKind.battleOutcome ||
+    SceneConditionSourceKind.scriptVariable ||
+    SceneConditionSourceKind.worldState =>
+      false,
+  };
+}
+
+bool _isStoryStepCompletionValue(String? value) {
+  return value == SceneConditionValues.completed ||
+      value == SceneConditionValues.notCompleted;
 }

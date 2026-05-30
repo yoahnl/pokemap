@@ -51,6 +51,18 @@ final class SceneNodeLayoutUpdateResult {
   final SceneNodeLayout updatedLayout;
 }
 
+final class SceneConditionSourceUpdateResult {
+  const SceneConditionSourceUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final SceneConditionPayload updatedPayload;
+}
+
 final class SceneAuthorableOutputPort {
   const SceneAuthorableOutputPort({
     required this.id,
@@ -130,6 +142,61 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
     SceneNodeKind.branchByOutcome =>
       const <SceneAuthorableOutputPort>[],
   };
+}
+
+SceneConditionSourceUpdateResult updateSceneConditionSource(
+  SceneAsset scene, {
+  required String nodeId,
+  required SceneConditionSource source,
+}) {
+  final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
+  if (node.kind != SceneNodeKind.condition) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Condition Authoring V0 can only update condition nodes.',
+    );
+  }
+  _validateConditionSourceForV0(source);
+
+  final updatedPayload = SceneConditionPayload(
+    conditionLabel: _trimOptional(source.label),
+    conditionRef: source.sourceId,
+    conditionSource: source,
+  );
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  final updatedNodes = [
+    for (final candidate in scene.graph.nodes)
+      if (candidate.id == nodeId) updatedNode else candidate,
+  ];
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: updatedNodes,
+      edges: scene.graph.edges,
+    ),
+    layout: scene.layout,
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneConditionSourceUpdateResult(
+    updatedScene: updatedScene,
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
 }
 
 SceneNodeLayoutUpdateResult updateSceneNodeLayout(
@@ -350,6 +417,63 @@ SceneEdgeDraftRemovalResult removeSceneEdgeDraft(
     updatedScene: updatedScene,
     removedEdge: edge,
   );
+}
+
+void _validateConditionSourceForV0(SceneConditionSource source) {
+  switch (source.sourceKind) {
+    case SceneConditionSourceKind.factLikeStoryFlag:
+    case SceneConditionSourceKind.consumedEvent:
+      if (source.operator != SceneConditionOperator.isTrue &&
+          source.operator != SceneConditionOperator.isFalse) {
+        throw ArgumentError.value(
+          source.operator,
+          'source.operator',
+          '${source.sourceKind.name} supports only isTrue/isFalse in '
+              'Condition Authoring V0.',
+        );
+      }
+      if (_trimOptional(source.value) != null) {
+        throw ArgumentError.value(
+          source.value,
+          'source.value',
+          '${source.sourceKind.name} must not carry a comparison value in '
+              'Condition Authoring V0.',
+        );
+      }
+      return;
+    case SceneConditionSourceKind.storyStepCompletion:
+      if (source.operator != SceneConditionOperator.equals) {
+        throw ArgumentError.value(
+          source.operator,
+          'source.operator',
+          'storyStepCompletion supports only equals in Condition Authoring V0.',
+        );
+      }
+      final value = source.value;
+      if (value != SceneConditionValues.completed &&
+          value != SceneConditionValues.notCompleted) {
+        throw ArgumentError.value(
+          source.value,
+          'source.value',
+          'storyStepCompletion value must be completed or notCompleted.',
+        );
+      }
+      return;
+    case SceneConditionSourceKind.storyStepActive:
+    case SceneConditionSourceKind.inventoryItem:
+    case SceneConditionSourceKind.partyState:
+    case SceneConditionSourceKind.trainerDefeated:
+    case SceneConditionSourceKind.dialogueOutcome:
+    case SceneConditionSourceKind.battleOutcome:
+    case SceneConditionSourceKind.scriptVariable:
+    case SceneConditionSourceKind.worldState:
+      throw ArgumentError.value(
+        source.sourceKind,
+        'source.sourceKind',
+        'Condition source kind ${source.sourceKind.name} is not supported by '
+            'Condition Authoring V0.',
+      );
+  }
 }
 
 SceneAsset _createSceneDraft({

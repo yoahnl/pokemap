@@ -97,6 +97,128 @@ void main() {
 
       expect(report.byCode(SceneDiagnosticCode.layoutMissingNode), isEmpty);
     });
+
+    test('condition node without source emits blocking diagnostic', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(id: 'node_condition', kind: SceneNodeKind.condition),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_condition_end',
+            fromNodeId: 'node_condition',
+            fromPortId: 'true',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.conditionTrue,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      final diagnostic =
+          report.byCode(SceneDiagnosticCode.conditionSourceMissing).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.nodeId, 'node_condition');
+      expect(
+        diagnostic.message,
+        'La condition doit choisir une source métier V0.',
+      );
+    });
+
+    test('configured V0 condition source has no condition error', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_condition',
+            kind: SceneNodeKind.condition,
+            payload: SceneConditionPayload(
+              conditionSource: SceneConditionSource(
+                sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+                sourceId: 'story_flag.harbor_fog_seen',
+                operator: SceneConditionOperator.isTrue,
+                label: 'Le joueur a vu la brume',
+                debugTechnicalLabel: 'story_flag.harbor_fog_seen',
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      expect(
+          report.byCode(SceneDiagnosticCode.conditionSourceMissing), isEmpty);
+      expect(report.byCode(SceneDiagnosticCode.conditionUsesFutureSource),
+          isEmpty);
+      expect(report.byCode(SceneDiagnosticCode.conditionOperatorUnsupported),
+          isEmpty);
+    });
+
+    test('future and incomplete condition sources are diagnosed', () {
+      final futureScene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_condition',
+            kind: SceneNodeKind.condition,
+            payload: SceneConditionPayload(
+              conditionSource: SceneConditionSource(
+                sourceKind: SceneConditionSourceKind.inventoryItem,
+                sourceId: 'item_potion',
+                operator: SceneConditionOperator.isTrue,
+                label: 'Potion possédée',
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+      final missingValueScene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_condition',
+            kind: SceneNodeKind.condition,
+            payload: SceneConditionPayload(
+              conditionSource: SceneConditionSource(
+                sourceKind: SceneConditionSourceKind.storyStepCompletion,
+                sourceId: 'step_intro_completed',
+                operator: SceneConditionOperator.equals,
+                label: 'Introduction terminée',
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      expect(
+        diagnoseScene(futureScene)
+            .byCode(SceneDiagnosticCode.conditionUsesFutureSource)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+      expect(
+        diagnoseScene(missingValueScene)
+            .byCode(SceneDiagnosticCode.conditionValueMissing)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+    });
   });
 }
 

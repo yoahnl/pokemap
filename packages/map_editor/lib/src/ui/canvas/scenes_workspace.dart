@@ -36,23 +36,33 @@ typedef SceneNodeLayoutUpdater = Future<void> Function({
   required double y,
 });
 
+typedef SceneConditionSourceUpdater = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+  required SceneConditionSource source,
+});
+
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
     required this.scenes,
+    this.conditionSourceOptions = const [],
     required this.onCreateSceneDraft,
     required this.onAddNodeDraft,
     required this.onAddEdgeDraft,
     required this.onRemoveEdgeDraft,
     required this.onUpdateNodeLayout,
+    required this.onUpdateConditionSource,
   });
 
   final List<NarrativeSceneSummary> scenes;
+  final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneDraftCreator onCreateSceneDraft;
   final SceneNodeDraftCreator onAddNodeDraft;
   final SceneEdgeDraftCreator onAddEdgeDraft;
   final SceneEdgeDraftRemover onRemoveEdgeDraft;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
+  final SceneConditionSourceUpdater onUpdateConditionSource;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -186,6 +196,9 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                                 selectedNodeId: _selectedNodeId,
                                 selectedEdgeId: _selectedEdgeId,
                                 onRemoveEdgeDraft: _removeSelectedEdgeDraft,
+                                conditionSourceOptions:
+                                    widget.conditionSourceOptions,
+                                onUpdateConditionSource: _updateConditionSource,
                               ),
                       ),
                     );
@@ -358,6 +371,31 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       _selectedNodeId = nodeId;
       _selectedEdgeId = null;
     });
+  }
+
+  Future<bool> _updateConditionSource({
+    required String nodeId,
+    required SceneConditionSource source,
+  }) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return false;
+    }
+    final updated = await widget.onUpdateConditionSource(
+      sceneId: selected.id,
+      nodeId: nodeId,
+      source: source,
+    );
+    if (!mounted || !updated) {
+      return false;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return true;
   }
 
   NarrativeSceneSummary? get _selectedScene {

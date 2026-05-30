@@ -5,6 +5,25 @@ import '../../../features/narrative/application/narrative_workspace_projection.d
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
+typedef SceneConditionSourceDraftUpdater = Future<bool> Function({
+  required String nodeId,
+  required SceneConditionSource source,
+});
+
+final class SceneConditionSourcePickerOption {
+  const SceneConditionSourcePickerOption({
+    required this.sourceKind,
+    required this.sourceId,
+    required this.label,
+    required this.debugTechnicalLabel,
+  });
+
+  final SceneConditionSourceKind sourceKind;
+  final String sourceId;
+  final String label;
+  final String debugTechnicalLabel;
+}
+
 class SceneNodeReadOnlyInspector extends StatelessWidget {
   const SceneNodeReadOnlyInspector({
     super.key,
@@ -12,12 +31,16 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     required this.selectedNodeId,
     this.selectedEdgeId,
     this.onRemoveEdgeDraft,
+    this.conditionSourceOptions = const [],
+    this.onUpdateConditionSource,
   });
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
   final String? selectedEdgeId;
   final ValueChanged<String>? onRemoveEdgeDraft;
+  final List<SceneConditionSourcePickerOption> conditionSourceOptions;
+  final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +51,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       header: _InspectorHeader(
         title: edge == null ? 'Détails du nœud' : 'Détails du lien',
+        chipLabel: edge == null && node?.kind == SceneNodeKind.condition
+            ? 'Authoring V0'
+            : 'Lecture seule',
       ),
       child: edge != null
           ? _EdgeInspectorBody(
@@ -37,7 +63,12 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
             )
           : node == null
               ? const _NodeInspectorEmptyState()
-              : _NodeInspectorBody(scene: scene, node: node),
+              : _NodeInspectorBody(
+                  scene: scene,
+                  node: node,
+                  conditionSourceOptions: conditionSourceOptions,
+                  onUpdateConditionSource: onUpdateConditionSource,
+                ),
     );
   }
 
@@ -69,9 +100,13 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
 }
 
 class _InspectorHeader extends StatelessWidget {
-  const _InspectorHeader({required this.title});
+  const _InspectorHeader({
+    required this.title,
+    required this.chipLabel,
+  });
 
   final String title;
+  final String chipLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +134,7 @@ class _InspectorHeader extends StatelessWidget {
               ),
             ),
           ),
-          const _InspectorChip(label: 'Lecture seule'),
+          _InspectorChip(label: chipLabel),
         ],
       ),
     );
@@ -124,10 +159,14 @@ class _NodeInspectorBody extends StatelessWidget {
   const _NodeInspectorBody({
     required this.scene,
     required this.node,
+    required this.conditionSourceOptions,
+    required this.onUpdateConditionSource,
   });
 
   final NarrativeSceneSummary scene;
   final SceneNode node;
+  final List<SceneConditionSourcePickerOption> conditionSourceOptions;
+  final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +194,14 @@ class _NodeInspectorBody extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+          if (node.kind == SceneNodeKind.condition) ...[
+            _ConditionAuthoringPanel(
+              node: node,
+              options: conditionSourceOptions,
+              onUpdateConditionSource: onUpdateConditionSource,
+            ),
+            const SizedBox(height: 10),
+          ],
           _InspectorSection(
             title: 'Payload',
             children: _payloadRows(node.payload),
@@ -427,6 +474,377 @@ class _EdgesSection extends StatelessWidget {
   }
 }
 
+class _ConditionAuthoringPanel extends StatefulWidget {
+  const _ConditionAuthoringPanel({
+    required this.node,
+    required this.options,
+    required this.onUpdateConditionSource,
+  });
+
+  final SceneNode node;
+  final List<SceneConditionSourcePickerOption> options;
+  final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
+
+  @override
+  State<_ConditionAuthoringPanel> createState() =>
+      _ConditionAuthoringPanelState();
+}
+
+class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
+  late SceneConditionSourceKind _sourceKind;
+  String? _sourceId;
+  late SceneConditionOperator _operator;
+  String? _value;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFromPayload();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ConditionAuthoringPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.node != widget.node || oldWidget.options != widget.options) {
+      _initializeFromPayload();
+    }
+  }
+
+  void _initializeFromPayload() {
+    final payload = widget.node.payload;
+    final source =
+        payload is SceneConditionPayload ? payload.conditionSource : null;
+    _sourceKind = source?.sourceKind ?? _firstAvailableKind();
+    _operator = _defaultOperatorForKind(_sourceKind);
+    _value = _defaultValueForKind(_sourceKind);
+    _sourceId = null;
+
+    if (source != null && _isSourceKindAuthorable(source.sourceKind)) {
+      _sourceKind = source.sourceKind;
+      _operator = source.operator;
+      _value = source.value ?? _defaultValueForKind(_sourceKind);
+      if (_optionsForKind(_sourceKind)
+          .any((option) => option.sourceId == source.sourceId)) {
+        _sourceId = source.sourceId;
+      }
+    }
+
+    _sourceId ??= _optionsForKind(_sourceKind).firstOrNull?.sourceId;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _InspectorSection(
+      title: 'Configurer la condition',
+      children: [
+        Column(
+          key: const ValueKey('scene-condition-authoring-panel'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ConditionButtonRow(
+              label: 'Source',
+              children: [
+                _conditionButton(
+                  key: const ValueKey(
+                    'scene-condition-source-kind-factLikeStoryFlag',
+                  ),
+                  label: 'Fact-like',
+                  selected:
+                      _sourceKind == SceneConditionSourceKind.factLikeStoryFlag,
+                  onPressed: () => _selectSourceKind(
+                    SceneConditionSourceKind.factLikeStoryFlag,
+                  ),
+                ),
+                _conditionButton(
+                  key: const ValueKey(
+                    'scene-condition-source-kind-storyStepCompletion',
+                  ),
+                  label: 'Story step',
+                  selected: _sourceKind ==
+                      SceneConditionSourceKind.storyStepCompletion,
+                  onPressed: () => _selectSourceKind(
+                    SceneConditionSourceKind.storyStepCompletion,
+                  ),
+                ),
+                _conditionButton(
+                  key: const ValueKey(
+                    'scene-condition-source-kind-consumedEvent',
+                  ),
+                  label: 'Event consommé',
+                  selected:
+                      _sourceKind == SceneConditionSourceKind.consumedEvent,
+                  onPressed: () => _selectSourceKind(
+                    SceneConditionSourceKind.consumedEvent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _ConditionButtonRow(
+              label: 'Référence',
+              children: _referenceButtons(),
+            ),
+            const SizedBox(height: 8),
+            _ConditionButtonRow(
+              label: 'Opérateur',
+              children: _operatorButtons(),
+            ),
+            const SizedBox(height: 10),
+            PokeMapButton(
+              key: const ValueKey('scene-condition-save-action'),
+              onPressed: _canSave ? _save : null,
+              variant: PokeMapButtonVariant.primary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.check_mark_circled),
+              child: Text(_saving ? 'Enregistrement...' : 'Enregistrer'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _referenceButtons() {
+    final options = _optionsForKind(_sourceKind);
+    if (options.isEmpty) {
+      return const [
+        _ConditionMutedLabel(
+          key: ValueKey('scene-condition-no-source-options'),
+          label: 'Aucune référence existante pour cette source.',
+        ),
+      ];
+    }
+    return [
+      for (final option in options)
+        _conditionButton(
+          key: ValueKey(
+            'scene-condition-source-option-'
+            '${option.sourceKind.name}-${option.sourceId}',
+          ),
+          label: option.label,
+          selected: option.sourceId == _sourceId,
+          onPressed: () => setState(() => _sourceId = option.sourceId),
+        ),
+    ];
+  }
+
+  List<Widget> _operatorButtons() {
+    if (_sourceKind == SceneConditionSourceKind.storyStepCompletion) {
+      return [
+        _conditionButton(
+          key: const ValueKey('scene-condition-value-completed'),
+          label: 'Completed',
+          selected: _value == SceneConditionValues.completed,
+          onPressed: () => setState(() {
+            _operator = SceneConditionOperator.equals;
+            _value = SceneConditionValues.completed;
+          }),
+        ),
+        _conditionButton(
+          key: const ValueKey('scene-condition-value-notCompleted'),
+          label: 'Not completed',
+          selected: _value == SceneConditionValues.notCompleted,
+          onPressed: () => setState(() {
+            _operator = SceneConditionOperator.equals;
+            _value = SceneConditionValues.notCompleted;
+          }),
+        ),
+      ];
+    }
+    return [
+      _conditionButton(
+        key: const ValueKey('scene-condition-operator-isTrue'),
+        label: 'Est vrai',
+        selected: _operator == SceneConditionOperator.isTrue,
+        onPressed: () => setState(() {
+          _operator = SceneConditionOperator.isTrue;
+          _value = null;
+        }),
+      ),
+      _conditionButton(
+        key: const ValueKey('scene-condition-operator-isFalse'),
+        label: 'Est faux',
+        selected: _operator == SceneConditionOperator.isFalse,
+        onPressed: () => setState(() {
+          _operator = SceneConditionOperator.isFalse;
+          _value = null;
+        }),
+      ),
+    ];
+  }
+
+  Widget _conditionButton({
+    required Key key,
+    required String label,
+    required bool selected,
+    required VoidCallback onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6, bottom: 6),
+      child: PokeMapButton(
+        key: key,
+        onPressed: onPressed,
+        variant: selected
+            ? PokeMapButtonVariant.secondary
+            : PokeMapButtonVariant.ghost,
+        size: PokeMapButtonSize.small,
+        child: Text(label),
+      ),
+    );
+  }
+
+  void _selectSourceKind(SceneConditionSourceKind kind) {
+    setState(() {
+      _sourceKind = kind;
+      _operator = _defaultOperatorForKind(kind);
+      _value = _defaultValueForKind(kind);
+      _sourceId = _optionsForKind(kind).firstOrNull?.sourceId;
+    });
+  }
+
+  Future<void> _save() async {
+    final updater = widget.onUpdateConditionSource;
+    final option = _selectedOption;
+    if (updater == null || option == null) {
+      return;
+    }
+    setState(() => _saving = true);
+    final saved = await updater(
+      nodeId: widget.node.id,
+      source: SceneConditionSource(
+        sourceKind: _sourceKind,
+        sourceId: option.sourceId,
+        operator: _operator,
+        value: _sourceKind == SceneConditionSourceKind.storyStepCompletion
+            ? _value
+            : null,
+        label: option.label,
+        debugTechnicalLabel: option.debugTechnicalLabel,
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _saving = false);
+    if (!saved) {
+      return;
+    }
+  }
+
+  bool get _canSave =>
+      !_saving &&
+      widget.onUpdateConditionSource != null &&
+      _selectedOption != null &&
+      (_sourceKind != SceneConditionSourceKind.storyStepCompletion ||
+          _value != null);
+
+  SceneConditionSourcePickerOption? get _selectedOption {
+    final selected = _sourceId;
+    if (selected == null) {
+      return null;
+    }
+    for (final option in _optionsForKind(_sourceKind)) {
+      if (option.sourceId == selected) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  List<SceneConditionSourcePickerOption> _optionsForKind(
+    SceneConditionSourceKind kind,
+  ) {
+    return [
+      for (final option in widget.options)
+        if (option.sourceKind == kind) option,
+    ];
+  }
+
+  SceneConditionSourceKind _firstAvailableKind() {
+    for (final kind in const [
+      SceneConditionSourceKind.factLikeStoryFlag,
+      SceneConditionSourceKind.storyStepCompletion,
+      SceneConditionSourceKind.consumedEvent,
+    ]) {
+      if (_optionsForKind(kind).isNotEmpty) {
+        return kind;
+      }
+    }
+    return SceneConditionSourceKind.factLikeStoryFlag;
+  }
+
+  bool _isSourceKindAuthorable(SceneConditionSourceKind kind) {
+    return switch (kind) {
+      SceneConditionSourceKind.factLikeStoryFlag ||
+      SceneConditionSourceKind.storyStepCompletion ||
+      SceneConditionSourceKind.consumedEvent =>
+        true,
+      SceneConditionSourceKind.storyStepActive ||
+      SceneConditionSourceKind.inventoryItem ||
+      SceneConditionSourceKind.partyState ||
+      SceneConditionSourceKind.trainerDefeated ||
+      SceneConditionSourceKind.dialogueOutcome ||
+      SceneConditionSourceKind.battleOutcome ||
+      SceneConditionSourceKind.scriptVariable ||
+      SceneConditionSourceKind.worldState =>
+        false,
+    };
+  }
+}
+
+class _ConditionButtonRow extends StatelessWidget {
+  const _ConditionButtonRow({
+    required this.label,
+    required this.children,
+  });
+
+  final String label;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(children: children),
+      ],
+    );
+  }
+}
+
+class _ConditionMutedLabel extends StatelessWidget {
+  const _ConditionMutedLabel({
+    super.key,
+    required this.label,
+  });
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Text(
+      label,
+      style: TextStyle(
+        color: colors.textMuted,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
 class _InspectorNote extends StatelessWidget {
   const _InspectorNote({
     this.label =
@@ -516,6 +934,7 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
       :final conditionLabel,
       :final conditionRef,
       :final conditionDraft,
+      :final conditionSource,
     ) =>
       [
         _InspectorRow(
@@ -529,6 +948,22 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         _InspectorRow(
           label: 'conditionDraft',
           value: conditionDraft ?? 'Aucun draft.',
+        ),
+        _InspectorRow(
+          label: 'sourceKind',
+          value: conditionSource?.sourceKind.name ?? 'Aucune source.',
+        ),
+        _InspectorRow(
+          label: 'sourceId',
+          value: conditionSource?.sourceId ?? 'Aucune source.',
+        ),
+        _InspectorRow(
+          label: 'operator',
+          value: conditionSource?.operator.name ?? 'Aucun opérateur.',
+        ),
+        _InspectorRow(
+          label: 'value',
+          value: conditionSource?.value ?? 'Aucune valeur.',
         ),
         const _InspectorRow(label: 'Sorties attendues', value: 'true / false'),
       ],
@@ -597,6 +1032,52 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         _InspectorRow(label: 'Payload', value: 'Payload non reconnu.'),
       ],
   };
+}
+
+SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
+  return switch (kind) {
+    SceneConditionSourceKind.storyStepCompletion =>
+      SceneConditionOperator.equals,
+    SceneConditionSourceKind.factLikeStoryFlag ||
+    SceneConditionSourceKind.consumedEvent =>
+      SceneConditionOperator.isTrue,
+    SceneConditionSourceKind.storyStepActive ||
+    SceneConditionSourceKind.inventoryItem ||
+    SceneConditionSourceKind.partyState ||
+    SceneConditionSourceKind.trainerDefeated ||
+    SceneConditionSourceKind.dialogueOutcome ||
+    SceneConditionSourceKind.battleOutcome ||
+    SceneConditionSourceKind.scriptVariable ||
+    SceneConditionSourceKind.worldState =>
+      SceneConditionOperator.isTrue,
+  };
+}
+
+String? _defaultValueForKind(SceneConditionSourceKind kind) {
+  return switch (kind) {
+    SceneConditionSourceKind.storyStepCompletion =>
+      SceneConditionValues.completed,
+    SceneConditionSourceKind.factLikeStoryFlag ||
+    SceneConditionSourceKind.consumedEvent ||
+    SceneConditionSourceKind.storyStepActive ||
+    SceneConditionSourceKind.inventoryItem ||
+    SceneConditionSourceKind.partyState ||
+    SceneConditionSourceKind.trainerDefeated ||
+    SceneConditionSourceKind.dialogueOutcome ||
+    SceneConditionSourceKind.battleOutcome ||
+    SceneConditionSourceKind.scriptVariable ||
+    SceneConditionSourceKind.worldState =>
+      null,
+  };
+}
+
+extension _FirstOrNull<T> on Iterable<T> {
+  T? get firstOrNull {
+    for (final item in this) {
+      return item;
+    }
+    return null;
+  }
 }
 
 String _joinOrEmpty(List<String> values) {
