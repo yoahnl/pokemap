@@ -55,7 +55,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-15 — Visual Port Connection UX V0 | DONE | Ports visuels V0, drag depuis output, preview wire, highlight/snap des inputs compatibles, drop valide cree un edge via les regles V1-13, drop vide annule. |
 | NS-SCENES-V1-15-bis — Edge Selection / Deletion UX V0 | DONE | Selection locale d'edge, highlight visuel, inspecteur de lien et suppression d'edge en memoire via operation pure, sans runtime ni reconnexion avancee. |
 | NS-SCENES-V1-16-prep — Condition Sources / Facts / World Rules Roadmap Review | DONE | Revue architecture/roadmap : refuser une Condition V0 textuelle magique, cadrer sources metier, Facts, World Rules et consequences avant authoring payload. |
-| NS-SCENES-V1-16 — Condition Sources Contract V0 | TODO | Definir le contrat no-code des sources de condition, leur mapping vers l'existant, leurs pickers requis et les diagnostics attendus, sans UI payload complete. |
+| NS-SCENES-V1-16 — Condition Sources Contract V0 | DONE | Contrat no-code des sources de condition : sources V0 autorisees, sources reportees, mapping technique, operateurs, pickers et diagnostics, sans code ni UI. |
 | NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only) | TODO | Configurer un `ConditionNode` V0 uniquement avec des sources existantes et honnetes, sans texte magique ni refs inventees. |
 | NS-SCENES-V1-18 — Fact Registry V0 | TODO | Ajouter une registry authoring de Facts lisibles, bool-first, preparant les pickers no-code et le mapping runtime vers l'etat persistant. |
 | NS-SCENES-V1-19 — World Rule Contract V0 | TODO | Formaliser les World Rules comme regles visibles derivees de Facts/Steps/conditions, sans encore brancher tout le runtime. |
@@ -70,9 +70,39 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-16 — Condition Sources Contract V0`
+`NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only)`
 
-Raison : V1-15-bis rend les connexions corrigibles, mais une Condition V0 ne doit pas devenir un champ texte technique. Avant de coder l'authoring du payload, il faut definir les sources lisibles, leurs mappings vers `GameState` / `ScriptCondition` / progression, les pickers requis, les diagnostics et les limites d'execution.
+Raison : V1-16 fixe maintenant le contrat no-code des sources conditionnelles. Le prochain lot peut coder l'authoring d'un `ConditionNode` limite aux sources V0 autorisees, sans expression libre, sans Fact Registry, sans World Rules et sans runtime.
+
+## Decisions V1-16
+
+- Lot documentation-only : aucun code, widget, modele Dart, runtime, test ou fixture n'est modifie.
+- Sources V0 autorisees : fait existant technique (`storyFlag` fact-like), step complete/non complete, event consomme/non consomme.
+- Sources V0 reportees : step active, inventory/item possession, party/move state, script variables, trainer defeated dedie, dialogue outcome local, battle outcome local, world state / World Rule.
+- Le contrat conceptuel retient une forme `sourceKind`, `sourceId`, `field`, `operator`, `value`, `label`, `debugTechnicalLabel`, sans creer de classe Dart dans ce lot.
+- V0 = une condition simple par `ConditionNode`; pas de AND/OR libre. La composition se fait par le graph avec nodes et edges.
+- Operateurs V0 : `isTrue`, `isFalse`, et `equals` limite aux statuts enumeres supportes.
+- Les sources temporaires fact-like doivent etre presentees comme "faits existants techniques" et migrees/wrappees par `Fact Registry V0`.
+- Les diagnostics contractuels prioritaires sont : source manquante/inconnue, operateur manquant/non supporte, valeur manquante, source future, picker requis, id technique brut.
+- Prochain lot : coder seulement l'authoring des sources autorisees, avec diagnostics et refus runtime futur si erreur.
+
+## Limites V1-16
+
+- Pas de `FactRegistry`.
+- Pas de `WorldRule`.
+- Pas de modification `SceneAsset` ou `ProjectManifest`.
+- Pas de Condition UI codee.
+- Pas de payload picker code.
+- Pas de runtime Scene.
+- Pas de StorylineStep link, Event -> Scene ou donnee Selbrume.
+
+## Tests V1-16
+
+- Dart analyze non requis : lot documentation-only.
+- Flutter analyze non requis : lot documentation-only.
+- Dart test non requis : lot documentation-only.
+- Flutter test non requis : lot documentation-only.
+- Verification requise : `git diff --check`.
 
 ## Decisions V1-16-prep
 
