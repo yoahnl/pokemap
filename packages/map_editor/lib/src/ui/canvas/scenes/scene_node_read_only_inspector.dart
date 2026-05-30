@@ -10,22 +10,48 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     super.key,
     required this.scene,
     required this.selectedNodeId,
+    this.selectedEdgeId,
+    this.onRemoveEdgeDraft,
   });
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
+  final String? selectedEdgeId;
+  final ValueChanged<String>? onRemoveEdgeDraft;
 
   @override
   Widget build(BuildContext context) {
+    final edge = _selectedEdge;
     final node = _selectedNode;
     return PokeMapInspectorPanel(
       key: const ValueKey('scene-node-read-only-inspector'),
       padding: const EdgeInsets.all(12),
-      header: const _InspectorHeader(),
-      child: node == null
-          ? const _NodeInspectorEmptyState()
-          : _NodeInspectorBody(scene: scene, node: node),
+      header: _InspectorHeader(
+        title: edge == null ? 'Détails du nœud' : 'Détails du lien',
+      ),
+      child: edge != null
+          ? _EdgeInspectorBody(
+              scene: scene,
+              edge: edge,
+              onRemoveEdgeDraft: onRemoveEdgeDraft,
+            )
+          : node == null
+              ? const _NodeInspectorEmptyState()
+              : _NodeInspectorBody(scene: scene, node: node),
     );
+  }
+
+  SceneEdge? get _selectedEdge {
+    final id = selectedEdgeId;
+    if (id == null) {
+      return null;
+    }
+    for (final edge in scene.graph.edges) {
+      if (edge.id == id) {
+        return edge;
+      }
+    }
+    return null;
   }
 
   SceneNode? get _selectedNode {
@@ -43,7 +69,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
 }
 
 class _InspectorHeader extends StatelessWidget {
-  const _InspectorHeader();
+  const _InspectorHeader({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +89,7 @@ class _InspectorHeader extends StatelessWidget {
           const SizedBox(width: 9),
           Expanded(
             child: Text(
-              'Détails du nœud',
+              title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -153,6 +181,68 @@ class _NodeInspectorBody extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const _InspectorNote(),
+        ],
+      ),
+    );
+  }
+}
+
+class _EdgeInspectorBody extends StatelessWidget {
+  const _EdgeInspectorBody({
+    required this.scene,
+    required this.edge,
+    required this.onRemoveEdgeDraft,
+  });
+
+  final NarrativeSceneSummary scene;
+  final SceneEdge edge;
+  final ValueChanged<String>? onRemoveEdgeDraft;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      key: const ValueKey('scene-edge-read-only-inspector'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _InspectorSection(
+            title: 'Lien sélectionné',
+            children: [
+              _InspectorRow(label: 'Edge ID', value: edge.id),
+              _InspectorRow(
+                label: 'Source node',
+                value: _nodeLabel(scene, edge.fromNodeId),
+              ),
+              _InspectorRow(label: 'Source port', value: edge.fromPortId),
+              _InspectorRow(
+                label: 'Target node',
+                value: _nodeLabel(scene, edge.toNodeId),
+              ),
+              _InspectorRow(label: 'Kind', value: _edgeKindLabel(edge.kind)),
+              _InspectorRow(label: 'Label', value: edge.label ?? 'Aucun label'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _InspectorSection(
+            title: 'Action',
+            children: [
+              PokeMapButton(
+                key: const ValueKey('scene-edge-delete-action'),
+                onPressed: onRemoveEdgeDraft == null
+                    ? null
+                    : () => onRemoveEdgeDraft!(edge.id),
+                variant: PokeMapButtonVariant.danger,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.delete),
+                child: const Text('Supprimer le lien'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const _InspectorNote(
+            label: 'La suppression retire uniquement ce lien. '
+                'Les nœuds, payloads et layouts de nœuds restent inchangés.',
+          ),
         ],
       ),
     );
@@ -338,13 +428,18 @@ class _EdgesSection extends StatelessWidget {
 }
 
 class _InspectorNote extends StatelessWidget {
-  const _InspectorNote();
+  const _InspectorNote({
+    this.label =
+        'L’édition arrive plus tard. Aucun champ n’est modifiable dans ce lot.',
+  });
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Text(
-      'L’édition arrive plus tard. Aucun champ n’est modifiable dans ce lot.',
+      label,
       style: TextStyle(
         color: colors.textSecondary,
         fontSize: 11,
@@ -520,6 +615,19 @@ String _nodeKindLabel(SceneNodeKind kind) {
     SceneNodeKind.branchByOutcome => 'Branche',
     SceneNodeKind.merge => 'Merge',
   };
+}
+
+String _nodeLabel(NarrativeSceneSummary scene, String nodeId) {
+  for (final node in scene.graph.nodes) {
+    if (node.id == nodeId) {
+      final title = node.title;
+      if (title == null || title.trim().isEmpty) {
+        return nodeId;
+      }
+      return '$title · $nodeId';
+    }
+  }
+  return nodeId;
 }
 
 String _edgeKindLabel(SceneEdgeKind kind) {

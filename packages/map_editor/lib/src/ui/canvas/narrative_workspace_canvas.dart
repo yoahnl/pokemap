@@ -199,6 +199,35 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
           },
+          onRemoveEdgeDraft: ({
+            required String sceneId,
+            required String edgeId,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return false;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return false;
+            }
+            try {
+              final result = removeSceneEdgeDraft(
+                project.scenes[sceneIndex],
+                edgeId,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene edge draft removed',
+              );
+              return true;
+            } on ArgumentError {
+              return false;
+            }
+          },
           onUpdateNodeLayout: ({
             required String sceneId,
             required String nodeId,

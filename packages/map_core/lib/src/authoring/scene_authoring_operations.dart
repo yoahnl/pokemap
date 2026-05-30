@@ -31,6 +31,16 @@ final class SceneEdgeDraftCreationResult {
   final SceneEdge createdEdge;
 }
 
+final class SceneEdgeDraftRemovalResult {
+  const SceneEdgeDraftRemovalResult({
+    required this.updatedScene,
+    required this.removedEdge,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneEdge removedEdge;
+}
+
 final class SceneNodeLayoutUpdateResult {
   const SceneNodeLayoutUpdateResult({
     required this.updatedScene,
@@ -288,6 +298,57 @@ SceneEdgeDraftCreationResult addSceneEdgeDraft(
   return SceneEdgeDraftCreationResult(
     updatedScene: updatedScene,
     createdEdge: createdEdge,
+  );
+}
+
+SceneEdgeDraftRemovalResult removeSceneEdgeDraft(
+  SceneAsset scene,
+  String edgeId,
+) {
+  SceneEdge? removedEdge;
+  final remainingEdges = <SceneEdge>[];
+  for (final edge in scene.graph.edges) {
+    if (edge.id == edgeId) {
+      removedEdge = edge;
+    } else {
+      remainingEdges.add(edge);
+    }
+  }
+  final edge = removedEdge;
+  if (edge == null) {
+    throw ArgumentError.value(
+      edgeId,
+      'edgeId',
+      'Scene edge draft references an unknown edge.',
+    );
+  }
+
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: scene.graph.nodes,
+      edges: remainingEdges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: scene.layout.nodeLayouts,
+      edgeLayouts: [
+        for (final layout in scene.layout.edgeLayouts)
+          if (layout.edgeId != edgeId) layout,
+      ],
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneEdgeDraftRemovalResult(
+    updatedScene: updatedScene,
+    removedEdge: edge,
   );
 }
 

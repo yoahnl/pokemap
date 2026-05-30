@@ -331,6 +331,81 @@ void main() {
       expect(scene.graph.edges, [existingEdge]);
     });
 
+    test('removes an edge draft without mutating scene data', () {
+      final removedEdge = SceneEdge(
+        id: 'edge_node_start_completed_node_condition',
+        fromNodeId: 'node_start',
+        fromPortId: 'completed',
+        toNodeId: 'node_condition',
+        kind: SceneEdgeKind.defaultFlow,
+      );
+      final keptEdge = SceneEdge(
+        id: 'edge_node_condition_true_node_end',
+        fromNodeId: 'node_condition',
+        fromPortId: 'true',
+        toNodeId: 'node_end',
+        kind: SceneEdgeKind.conditionTrue,
+      );
+      final scene = _edgeAuthoringScene(
+        metadata: const {'owner': 'test'},
+        declaredOutcomes: [SceneOutcome(id: 'done', label: 'Done')],
+        edges: [removedEdge, keptEdge],
+        edgeLayouts: [
+          SceneEdgeLayout(
+            edgeId: removedEdge.id,
+            controlPoints: [SceneLayoutPoint(x: 8, y: 12)],
+          ),
+          SceneEdgeLayout(
+            edgeId: keptEdge.id,
+            controlPoints: [SceneLayoutPoint(x: 20, y: 30)],
+          ),
+        ],
+      );
+
+      final result = removeSceneEdgeDraft(scene, removedEdge.id);
+
+      expect(result.removedEdge, removedEdge);
+      expect(result.updatedScene.id, scene.id);
+      expect(result.updatedScene.name, scene.name);
+      expect(result.updatedScene.description, scene.description);
+      expect(result.updatedScene.storylineId, scene.storylineId);
+      expect(result.updatedScene.chapterId, scene.chapterId);
+      expect(result.updatedScene.tags, scene.tags);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.graph.nodes, scene.graph.nodes);
+      expect(result.updatedScene.graph.edges, [keptEdge]);
+      expect(scene.graph.edges, [removedEdge, keptEdge]);
+      expect(
+        result.updatedScene.layout.nodeLayouts,
+        scene.layout.nodeLayouts,
+      );
+      expect(
+        result.updatedScene.layout.edgeLayouts.map((layout) => layout.edgeId),
+        [keptEdge.id],
+      );
+    });
+
+    test('rejects removing an unknown edge draft', () {
+      final scene = _edgeAuthoringScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_start_completed_node_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      expect(
+        () => removeSceneEdgeDraft(scene, 'edge_missing'),
+        throwsArgumentError,
+      );
+      expect(scene.graph.edges, hasLength(1));
+    });
+
     test('rejects invalid edge drafts in V0', () {
       final scene = _edgeAuthoringScene(
         edges: [

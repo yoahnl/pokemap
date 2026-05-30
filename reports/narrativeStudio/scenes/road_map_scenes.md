@@ -53,6 +53,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-13 — Edge Authoring V0 | DONE | Operation pure `addSceneEdgeDraft` et UI de connexion V0 : ports explicites start.completed, condition.true/false, merge.completed, edge kind derive, mise a jour memoire sans runtime. |
 | NS-SCENES-V1-14 — Blueprint Graph Canvas Foundation / Layout Authoring V0 | DONE | Canvas Blueprint-like de base : grille, zoom local par boutons et pinch trackpad, pan local, deplacement de nodes, persistence memoire de `SceneGraphLayout`, edges qui suivent, sans impact runtime. |
 | NS-SCENES-V1-15 — Visual Port Connection UX V0 | DONE | Ports visuels V0, drag depuis output, preview wire, highlight/snap des inputs compatibles, drop valide cree un edge via les regles V1-13, drop vide annule. |
+| NS-SCENES-V1-15-bis — Edge Selection / Deletion UX V0 | DONE | Selection locale d'edge, highlight visuel, inspecteur de lien et suppression d'edge en memoire via operation pure, sans runtime ni reconnexion avancee. |
 | NS-SCENES-V1-16 — Condition Authoring V0 | TODO | Ajouter le premier authoring minimal du payload Condition sans fake refs, avec diagnostics honnetes et sans runtime. |
 | NS-SCENES-V1-17 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
 | NS-SCENES-V1-18 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
@@ -66,7 +67,37 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 `NS-SCENES-V1-16 — Condition Authoring V0`
 
-Raison : V1-15 rend les connexions credibles visuellement. Le prochain blocage authoring est le premier payload metier honnete : configurer une Condition V0 sans fake refs et avec diagnostics clairs, avant de reprendre les pickers lourds ou le runtime plan.
+Raison : V1-15-bis rend les connexions corrigibles. Le prochain blocage authoring est le premier payload metier honnete : configurer une Condition V0 sans fake refs et avec diagnostics clairs, avant de reprendre les pickers lourds ou le runtime plan.
+
+## Decisions V1-15-bis
+
+- Operation pure ajoutee : `removeSceneEdgeDraft(SceneAsset, edgeId)`.
+- L'operation refuse un edge inconnu, supprime uniquement l'edge cible, conserve les nodes, outcomes, tags, metadata, description, storylineId et chapterId.
+- Les `SceneEdgeLayout` du lien supprime sont retires par necessite de validation du modele ; les layouts des autres edges et des nodes restent preserves.
+- Cote editor, un edge peut etre selectionne depuis son badge canvas.
+- L'edge selectionne est mis en evidence visuellement dans le canvas.
+- L'inspecteur affiche `Edge ID`, source node, source port, target node, kind, label et l'action `Supprimer le lien`.
+- La suppression met a jour uniquement `ProjectManifest.scenes` en memoire et reset la selection d'edge.
+- La creation visuelle V1-15 reste fonctionnelle apres suppression.
+- Aucun runtime, aucun StorylineStep link, aucune fake ref.
+
+## Limites V1-15-bis
+
+- Pas de reconnexion avancee.
+- Pas de suppression de node.
+- Pas de payload picker.
+- Pas d'edition de condition.
+- Pas de confirmation modale pour la suppression d'un lien V0.
+
+## Tests V1-15-bis
+
+- `cd packages/map_core && dart test test/scene_authoring_operations_test.dart`
+- `cd packages/map_core && dart analyze`
+- `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_shell_navigation_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_studio_header_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/narrative_workspace_projection_test.dart`
+- `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/narrative_workspace_canvas.dart lib/src/ui/canvas/scenes_workspace.dart lib/src/ui/canvas/scenes/scene_graph_read_only_view.dart lib/src/ui/canvas/scenes/scene_node_read_only_inspector.dart test/scenes_workspace_shell_test.dart`
 
 ## Decisions V1-15
 

@@ -26,7 +26,9 @@ class SceneGraphReadOnlyView extends StatefulWidget {
     super.key,
     required this.scene,
     this.selectedNodeId,
+    this.selectedEdgeId,
     this.onSelectNode,
+    this.onSelectEdge,
     this.onUpdateNodeLayout,
     this.onCreateEdgeDraft,
     this.canDragNodes = true,
@@ -35,7 +37,9 @@ class SceneGraphReadOnlyView extends StatefulWidget {
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
+  final String? selectedEdgeId;
   final ValueChanged<String>? onSelectNode;
+  final ValueChanged<String>? onSelectEdge;
   final SceneNodeLayoutChanged? onUpdateNodeLayout;
   final SceneVisualEdgeDraftCreator? onCreateEdgeDraft;
   final bool canDragNodes;
@@ -127,7 +131,10 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                             edges: scene.graph.edges,
                             positions: screenPositions,
                             zoom: _zoom,
+                            selectedEdgeId: selectedEdgeId,
                             lineColor: colors.borderStrong,
+                            selectedLineColor: colors.focusRing,
+                            selectedShadowColor: colors.focusRing,
                             labelColor: colors.textSecondary,
                             labelBackground: colors.cardSurface,
                           ),
@@ -143,6 +150,8 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                   position: _screenOffset(
                     _edgeLabelPosition(edge, worldPositions),
                   ),
+                  isSelected: edge.id == selectedEdgeId,
+                  onTap: null,
                 ),
               if (_visualConnection != null)
                 Positioned.fill(
@@ -189,6 +198,16 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                   onStart: () => _startVisualConnection(port),
                   onUpdate: _updateVisualConnection,
                   onEnd: _endVisualConnection,
+                ),
+              for (final edge in scene.graph.edges)
+                _SceneGraphEdgeHitTarget(
+                  edgeId: edge.id,
+                  position: _screenOffset(
+                    _edgeLabelPosition(edge, worldPositions),
+                  ),
+                  onTap: widget.onSelectEdge == null
+                      ? null
+                      : () => widget.onSelectEdge!(edge.id),
                 ),
             ],
           ),
@@ -253,6 +272,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
 
   NarrativeSceneSummary get scene => widget.scene;
   String? get selectedNodeId => widget.selectedNodeId;
+  String? get selectedEdgeId => widget.selectedEdgeId;
   ValueChanged<String>? get onSelectNode => widget.onSelectNode;
   bool get expandToFill => widget.expandToFill;
 
@@ -932,22 +952,86 @@ class _SceneGraphEdgeLabel extends StatelessWidget {
   const _SceneGraphEdgeLabel({
     required this.edge,
     required this.position,
+    required this.isSelected,
+    required this.onTap,
   });
 
   final SceneEdge edge;
   final Offset position;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return Positioned(
       key: ValueKey('scene-graph-edge-${edge.id}'),
       left: position.dx,
       top: position.dy,
-      child: IgnorePointer(
-        child: _SceneGraphBadge(
-          label:
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: DecoratedBox(
+          key: isSelected
+              ? ValueKey('scene-graph-edge-selected-${edge.id}')
+              : null,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colors.focusRing.withValues(alpha: 0.18)
+                : colors.controlSurface,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected ? colors.focusRing : colors.borderSubtle,
+              width: isSelected ? 1.5 : 1,
+            ),
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: colors.focusRing.withValues(alpha: 0.24),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Text(
               edge.label ?? '${_edgeKindLabel(edge.kind)} · ${edge.fromPortId}',
+              style: TextStyle(
+                color: isSelected ? colors.textPrimary : colors.textSecondary,
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w800,
+              ),
+            ),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _SceneGraphEdgeHitTarget extends StatelessWidget {
+  const _SceneGraphEdgeHitTarget({
+    required this.edgeId,
+    required this.position,
+    required this.onTap,
+  });
+
+  final String edgeId;
+  final Offset position;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      key: ValueKey('scene-graph-edge-hit-target-$edgeId'),
+      left: position.dx - 10,
+      top: position.dy - 8,
+      width: 120,
+      height: 40,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: onTap,
       ),
     );
   }
@@ -1104,7 +1188,10 @@ class _SceneGraphEdgePainter extends CustomPainter {
     required this.edges,
     required this.positions,
     required this.zoom,
+    required this.selectedEdgeId,
     required this.lineColor,
+    required this.selectedLineColor,
+    required this.selectedShadowColor,
     required this.labelColor,
     required this.labelBackground,
   });
@@ -1112,23 +1199,27 @@ class _SceneGraphEdgePainter extends CustomPainter {
   final List<SceneEdge> edges;
   final Map<String, Offset> positions;
   final double zoom;
+  final String? selectedEdgeId;
   final Color lineColor;
+  final Color selectedLineColor;
+  final Color selectedShadowColor;
   final Color labelColor;
   final Color labelBackground;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 1.4
-      ..style = PaintingStyle.stroke;
-
     for (final edge in edges) {
       final from = positions[edge.fromNodeId];
       final to = positions[edge.toNodeId];
       if (from == null || to == null) {
         continue;
       }
+      final selected = edge.id == selectedEdgeId;
+      final paint = Paint()
+        ..color = selected ? selectedLineColor : lineColor
+        ..strokeWidth = selected ? 2.8 : 1.4
+        ..style = PaintingStyle.stroke
+        ..strokeCap = selected ? StrokeCap.round : StrokeCap.butt;
       final start = Offset(
         from.dx + (_SceneGraphLayoutPlan.nodeWidth * zoom),
         from.dy + ((_SceneGraphLayoutPlan.nodeHeight * zoom) / 2),
@@ -1149,6 +1240,16 @@ class _SceneGraphEdgePainter extends CustomPainter {
           end.dx,
           end.dy,
         );
+      if (selected) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = selectedShadowColor.withValues(alpha: 0.22)
+            ..strokeWidth = 8
+            ..style = PaintingStyle.stroke
+            ..strokeCap = StrokeCap.round,
+        );
+      }
       canvas.drawPath(path, paint);
       _drawArrow(canvas, paint, end);
     }
@@ -1168,7 +1269,10 @@ class _SceneGraphEdgePainter extends CustomPainter {
     return oldDelegate.edges != edges ||
         oldDelegate.positions != positions ||
         oldDelegate.zoom != zoom ||
+        oldDelegate.selectedEdgeId != selectedEdgeId ||
         oldDelegate.lineColor != lineColor ||
+        oldDelegate.selectedLineColor != selectedLineColor ||
+        oldDelegate.selectedShadowColor != selectedShadowColor ||
         oldDelegate.labelColor != labelColor ||
         oldDelegate.labelBackground != labelBackground;
   }

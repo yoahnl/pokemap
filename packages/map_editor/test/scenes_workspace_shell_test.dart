@@ -675,6 +675,93 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
+    testWidgets('selects and deletes an edge without mutating nodes or layout',
+        (tester) async {
+      const edgeId = 'edge_node_start_completed_node_condition';
+      final project = _projectWithEdgeAuthoringScene(
+        edges: [
+          SceneEdge(
+            id: edgeId,
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final originalScene = project.scenes.single;
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-edge-hit-target-$edgeId')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-edge-selected-$edgeId')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-edge-read-only-inspector')),
+        findsOneWidget,
+      );
+      expect(find.text('Lien sélectionné'), findsOneWidget);
+      expect(find.text(edgeId), findsWidgets);
+      expect(find.text('node_start'), findsWidgets);
+      expect(find.text('completed'), findsWidgets);
+      expect(find.textContaining('node_condition'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('scene-edge-delete-action')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('scene-edge-delete-action')));
+      await tester.pumpAndSettle();
+
+      final updatedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      expect(updatedScene.graph.edges, isEmpty);
+      expect(updatedScene.graph.nodes, originalScene.graph.nodes);
+      expect(updatedScene.layout, originalScene.layout);
+      expect(
+        find.byKey(const ValueKey('scene-graph-edge-$edgeId')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-edge-read-only-inspector')),
+        findsNothing,
+      );
+
+      final output = find.byKey(
+        const ValueKey('scene-graph-output-port-node_start-completed'),
+      );
+      final input = find.byKey(
+        const ValueKey('scene-graph-input-port-node_condition-in'),
+      );
+      final gesture = await tester.startGesture(
+        tester.getTopLeft(output) + const Offset(16, 16),
+      );
+      await tester.pump();
+      await gesture.moveTo(tester.getCenter(input));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final recreatedEdges = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .edges;
+      expect(recreatedEdges, hasLength(1));
+      expect(recreatedEdges.single.id, edgeId);
+    });
+
     testWidgets('unsupported node kinds expose no active V0 connection output',
         (tester) async {
       await _pumpNarrativeShell(
@@ -1415,6 +1502,42 @@ void main() {
       );
 
       await gesture.up();
+    });
+
+    testWidgets('writes V1-15-bis edge selection deletion UX screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(
+          edges: [
+            SceneEdge(
+              id: 'edge_node_start_completed_node_condition',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_condition',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-edge-hit-target-edge_node_start_completed_node_condition',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_15_bis_edge_selection_deletion_ux_v0.png',
+        ),
+      );
     });
   });
 }

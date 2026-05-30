@@ -24,6 +24,11 @@ typedef SceneEdgeDraftCreator = Future<String?> Function({
   required String toNodeId,
 });
 
+typedef SceneEdgeDraftRemover = Future<bool> Function({
+  required String sceneId,
+  required String edgeId,
+});
+
 typedef SceneNodeLayoutUpdater = Future<void> Function({
   required String sceneId,
   required String nodeId,
@@ -38,6 +43,7 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onCreateSceneDraft,
     required this.onAddNodeDraft,
     required this.onAddEdgeDraft,
+    required this.onRemoveEdgeDraft,
     required this.onUpdateNodeLayout,
   });
 
@@ -45,6 +51,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneDraftCreator onCreateSceneDraft;
   final SceneNodeDraftCreator onAddNodeDraft;
   final SceneEdgeDraftCreator onAddEdgeDraft;
+  final SceneEdgeDraftRemover onRemoveEdgeDraft;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
 
   @override
@@ -54,6 +61,7 @@ class ScenesWorkspace extends StatefulWidget {
 class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   String? _selectedSceneId;
   String? _selectedNodeId;
+  String? _selectedEdgeId;
   _PendingSceneConnection? _pendingConnection;
 
   @override
@@ -72,6 +80,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (widget.scenes.isEmpty) {
       _selectedSceneId = null;
       _selectedNodeId = null;
+      _selectedEdgeId = null;
       _pendingConnection = null;
       return;
     }
@@ -80,12 +89,14 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (!selectedStillExists) {
       _selectedSceneId = widget.scenes.first.id;
       _selectedNodeId = _preferredNodeId(widget.scenes.first);
+      _selectedEdgeId = null;
       _pendingConnection = null;
       return;
     }
     final selected = _selectedScene;
     if (selected == null || selected.graph.nodes.isEmpty) {
       _selectedNodeId = null;
+      _selectedEdgeId = null;
       _pendingConnection = null;
       return;
     }
@@ -93,6 +104,11 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
         selected.graph.nodes.any((node) => node.id == _selectedNodeId);
     if (!nodeStillExists) {
       _selectedNodeId = _preferredNodeId(selected);
+    }
+    final edgeStillExists =
+        selected.graph.edges.any((edge) => edge.id == _selectedEdgeId);
+    if (!edgeStillExists) {
+      _selectedEdgeId = null;
     }
     final pending = _pendingConnection;
     if (pending != null &&
@@ -127,6 +143,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     setState(() {
                       _selectedSceneId = sceneId;
                       _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
+                      _selectedEdgeId = null;
                       _pendingConnection = null;
                     });
                   },
@@ -139,8 +156,10 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                   child: _SceneReadOnlySummary(
                     scene: selectedScene,
                     selectedNodeId: _selectedNodeId,
+                    selectedEdgeId: _selectedEdgeId,
                     pendingConnection: _pendingConnection,
                     onSelectNode: _handleGraphNodeTap,
+                    onSelectEdge: _handleGraphEdgeTap,
                     onAddNodeDraft: _addNodeDraft,
                     onAddEdgeDraft: _addEdgeDraft,
                     onStartConnection: _startConnection,
@@ -165,6 +184,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                             : SceneNodeReadOnlyInspector(
                                 scene: selectedScene,
                                 selectedNodeId: _selectedNodeId,
+                                selectedEdgeId: _selectedEdgeId,
+                                onRemoveEdgeDraft: _removeSelectedEdgeDraft,
                               ),
                       ),
                     );
@@ -197,6 +218,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     setState(() {
       _selectedSceneId = createdSceneId;
       _selectedNodeId = 'node_start';
+      _selectedEdgeId = null;
       _pendingConnection = null;
     });
   }
@@ -216,6 +238,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     setState(() {
       _selectedSceneId = selected.id;
       _selectedNodeId = createdNodeId;
+      _selectedEdgeId = null;
       _pendingConnection = null;
     });
   }
@@ -230,6 +253,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
         fromNodeId: nodeId,
         fromPortId: port.id,
       );
+      _selectedEdgeId = null;
     });
   }
 
@@ -240,7 +264,10 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   Future<void> _handleGraphNodeTap(String nodeId) async {
     final pending = _pendingConnection;
     if (pending == null) {
-      setState(() => _selectedNodeId = nodeId);
+      setState(() {
+        _selectedNodeId = nodeId;
+        _selectedEdgeId = null;
+      });
       return;
     }
     if (nodeId == pending.fromNodeId) {
@@ -274,6 +301,35 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     setState(() {
       _selectedSceneId = selected.id;
       _selectedNodeId = fromNodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+  }
+
+  void _handleGraphEdgeTap(String edgeId) {
+    setState(() {
+      _selectedEdgeId = edgeId;
+      _selectedNodeId = null;
+      _pendingConnection = null;
+    });
+  }
+
+  Future<void> _removeSelectedEdgeDraft(String edgeId) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return;
+    }
+    final removed = await widget.onRemoveEdgeDraft(
+      sceneId: selected.id,
+      edgeId: edgeId,
+    );
+    if (!mounted || !removed) {
+      return;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedEdgeId = null;
+      _selectedNodeId = _preferredNodeId(selected);
       _pendingConnection = null;
     });
   }
@@ -300,6 +356,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     setState(() {
       _selectedSceneId = scene.id;
       _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
     });
   }
 
@@ -677,8 +734,10 @@ class _SceneReadOnlySummary extends StatelessWidget {
   const _SceneReadOnlySummary({
     required this.scene,
     required this.selectedNodeId,
+    required this.selectedEdgeId,
     required this.pendingConnection,
     required this.onSelectNode,
+    required this.onSelectEdge,
     required this.onAddNodeDraft,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
@@ -688,8 +747,10 @@ class _SceneReadOnlySummary extends StatelessWidget {
 
   final NarrativeSceneSummary? scene;
   final String? selectedNodeId;
+  final String? selectedEdgeId;
   final _PendingSceneConnection? pendingConnection;
   final ValueChanged<String> onSelectNode;
+  final ValueChanged<String> onSelectEdge;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
@@ -707,8 +768,10 @@ class _SceneReadOnlySummary extends StatelessWidget {
           : _SelectedSceneSummary(
               scene: current,
               selectedNodeId: selectedNodeId,
+              selectedEdgeId: selectedEdgeId,
               pendingConnection: pendingConnection,
               onSelectNode: onSelectNode,
+              onSelectEdge: onSelectEdge,
               onAddNodeDraft: onAddNodeDraft,
               onAddEdgeDraft: onAddEdgeDraft,
               onStartConnection: onStartConnection,
@@ -738,8 +801,10 @@ class _SelectedSceneSummary extends StatelessWidget {
   const _SelectedSceneSummary({
     required this.scene,
     required this.selectedNodeId,
+    required this.selectedEdgeId,
     required this.pendingConnection,
     required this.onSelectNode,
+    required this.onSelectEdge,
     required this.onAddNodeDraft,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
@@ -749,8 +814,10 @@ class _SelectedSceneSummary extends StatelessWidget {
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
+  final String? selectedEdgeId;
   final _PendingSceneConnection? pendingConnection;
   final ValueChanged<String> onSelectNode;
+  final ValueChanged<String> onSelectEdge;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
@@ -803,7 +870,9 @@ class _SelectedSceneSummary extends StatelessWidget {
             child: SceneGraphReadOnlyView(
               scene: scene,
               selectedNodeId: selectedNodeId,
+              selectedEdgeId: selectedEdgeId,
               onSelectNode: onSelectNode,
+              onSelectEdge: onSelectEdge,
               canDragNodes: pendingConnection == null,
               onCreateEdgeDraft: ({
                 required fromNodeId,
