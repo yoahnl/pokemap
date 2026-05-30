@@ -54,20 +54,52 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-14 — Blueprint Graph Canvas Foundation / Layout Authoring V0 | DONE | Canvas Blueprint-like de base : grille, zoom local par boutons et pinch trackpad, pan local, deplacement de nodes, persistence memoire de `SceneGraphLayout`, edges qui suivent, sans impact runtime. |
 | NS-SCENES-V1-15 — Visual Port Connection UX V0 | DONE | Ports visuels V0, drag depuis output, preview wire, highlight/snap des inputs compatibles, drop valide cree un edge via les regles V1-13, drop vide annule. |
 | NS-SCENES-V1-15-bis — Edge Selection / Deletion UX V0 | DONE | Selection locale d'edge, highlight visuel, inspecteur de lien et suppression d'edge en memoire via operation pure, sans runtime ni reconnexion avancee. |
-| NS-SCENES-V1-16 — Condition Authoring V0 | TODO | Ajouter le premier authoring minimal du payload Condition sans fake refs, avec diagnostics honnetes et sans runtime. |
-| NS-SCENES-V1-17 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
-| NS-SCENES-V1-18 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
-| NS-SCENES-V1-19 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
-| NS-SCENES-V1-20 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
-| NS-SCENES-V1-21 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
-| NS-SCENES-V1-22 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
-| NS-SCENES-V1-23 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
+| NS-SCENES-V1-16-prep — Condition Sources / Facts / World Rules Roadmap Review | DONE | Revue architecture/roadmap : refuser une Condition V0 textuelle magique, cadrer sources metier, Facts, World Rules et consequences avant authoring payload. |
+| NS-SCENES-V1-16 — Condition Sources Contract V0 | TODO | Definir le contrat no-code des sources de condition, leur mapping vers l'existant, leurs pickers requis et les diagnostics attendus, sans UI payload complete. |
+| NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only) | TODO | Configurer un `ConditionNode` V0 uniquement avec des sources existantes et honnetes, sans texte magique ni refs inventees. |
+| NS-SCENES-V1-18 — Fact Registry V0 | TODO | Ajouter une registry authoring de Facts lisibles, bool-first, preparant les pickers no-code et le mapping runtime vers l'etat persistant. |
+| NS-SCENES-V1-19 — World Rule Contract V0 | TODO | Formaliser les World Rules comme regles visibles derivees de Facts/Steps/conditions, sans encore brancher tout le runtime. |
+| NS-SCENES-V1-20 — World Rules V0 | TODO | Premier authoring/validation de World Rules controlees : visibilite, dialogue, portes/collisions ou map state selon contrat. |
+| NS-SCENES-V1-21 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-22 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
+| NS-SCENES-V1-23 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
+| NS-SCENES-V1-24 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
+| NS-SCENES-V1-25 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
+| NS-SCENES-V1-26 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
+| NS-SCENES-V1-27 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-16 — Condition Authoring V0`
+`NS-SCENES-V1-16 — Condition Sources Contract V0`
 
-Raison : V1-15-bis rend les connexions corrigibles. Le prochain blocage authoring est le premier payload metier honnete : configurer une Condition V0 sans fake refs et avec diagnostics clairs, avant de reprendre les pickers lourds ou le runtime plan.
+Raison : V1-15-bis rend les connexions corrigibles, mais une Condition V0 ne doit pas devenir un champ texte technique. Avant de coder l'authoring du payload, il faut definir les sources lisibles, leurs mappings vers `GameState` / `ScriptCondition` / progression, les pickers requis, les diagnostics et les limites d'execution.
+
+## Decisions V1-16-prep
+
+- Le lot est documentation-only : aucun code, widget, modele, runtime, test ou fixture n'est modifie.
+- `Condition Authoring V0` immediat avec label/draft textuel est rejete : il recreerait un editeur de flags techniques.
+- Option retenue : hybride pragmatique. Inserer `NS-SCENES-V1-16 — Condition Sources Contract V0`, puis `NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only)`.
+- Les Conditions Scene V1 devront lire des sources metier explicites : Facts, StorySteps, resultats locaux de dialogue/combat, inventaire, party, map/event state, variables authoring et World State.
+- Un Fact PokeMap est un fait lisible du monde, pas seulement un flag brut. V0 doit etre bool-first, mappe au runtime via `GameState.storyFlags` ou equivalent, puis evoluer vers types number/text/enum avec registry.
+- Une World Rule est une regle visible/efficace du monde derivee de Facts/Steps/conditions ; elle doit etre cadree avant le golden slice Selbrume, mais ne bloque pas un Condition Authoring V0 limite aux sources existantes.
+- Les actions/consequences doivent rester explicites : un SceneOutcome local ne devient Fact, Step completed ou World Rule que via une action/consequence authorisee.
+- `Event -> Scene` reste prioritaire sur `StorylineStep -> Scene`; `StorylineStep.sceneLinkIds` reste repousse apres builder, triggers, runtime MVP et golden slice.
+
+## Limites V1-16-prep
+
+- Pas de Fact Registry codee.
+- Pas de World Rule codee.
+- Pas de Condition UI codee.
+- Pas de nouveau payload, JSON, Freezed ou build_runner.
+- Pas de runtime, Event -> Scene, StorylineStep link ou donnee Selbrume.
+
+## Tests V1-16-prep
+
+- Dart analyze non requis : lot documentation-only.
+- Flutter analyze non requis : lot documentation-only.
+- Dart test non requis : lot documentation-only.
+- Flutter test non requis : lot documentation-only.
+- Verification requise : `git diff --check`.
 
 ## Decisions V1-15-bis
 
