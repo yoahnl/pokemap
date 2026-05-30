@@ -67,7 +67,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-22 — Payload Pickers V0 | DONE | Ajouter des pickers/drafts honnetes pour Dialogue Yarn et Battle trainer depuis les contrats publics V1-21 ; Cinematic reste bridgeOnly/desactive, Action et Branch restent desactives. |
 | NS-SCENES-V1-23 — Event to Scene Trigger Prep | DONE | Decision Event -> Scene : viser un contrat explicite page/action `startScene`, ne pas ajouter `sceneId` direct sur l'event entier, ne pas reutiliser `ScenarioAsset`, et reporter l'implementation persistante a un bis cible. |
 | NS-SCENES-V1-23-bis — Event to Scene Link V0 | DONE | Lien authoring persistant `MapEventPage.sceneTarget -> Scene V1`, operations set/clear, validation/diagnostics et picker editor bornes, sans runtime Scene ni migration legacy. |
-| NS-SCENES-V1-24 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-24 — Scene Runtime Plan V0 | DONE | Modele pur `SceneRuntimePlan` / intents dans `map_core`, builder `SceneAsset -> SceneRuntimePlanBuildResult`, diagnostics runtime-plan, layout ignore, sans runtime ni ScenarioAsset final. |
 | NS-SCENES-V1-25 — Diagnostics / Validator Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles, payloads incomplets, Facts et World Rules. |
 | NS-SCENES-V1-26 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
 | NS-SCENES-V1-27 — World Rules Map Editor Integration V0 | TODO | Rendre les World Rules visibles/configurables depuis le contexte map/entity/event sans brancher de runtime Scene. |
@@ -76,13 +76,28 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-24 — Scene Runtime Plan V0`
+`NS-SCENES-V1-25 — Diagnostics / Validator Expansion`
 
-Raison : V1-23-bis a livre le contrat authoring persistant Event page -> Scene V1 avec refs reelles et diagnostics, sans execution. La suite peut maintenant compiler une `SceneAsset` valide en plan pur et testable, tout en gardant le runtime debranche.
+Raison : V1-24 livre un plan runtime pur et testable depuis `SceneAsset`, mais il reste volontairement structurel. La suite doit renforcer les diagnostics/validators sur refs, ports, outcomes, unreachable/cycles, payloads incomplets, Facts, World Rules et Event -> Scene avant tout executor runtime.
 
 Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Decisions V1-24
+
+- `SceneRuntimePlan`, `SceneRuntimePlanNode`, `SceneRuntimePlanIntent`, `SceneRuntimePlanEdge`, `SceneRuntimePlanDiagnostic` et `SceneRuntimePlanBuildResult` sont ajoutes dans `map_core`.
+- `buildSceneRuntimePlan(SceneAsset)` compile une scene structurellement valide en intents declaratifs sans lire `ProjectManifest`, disque, Yarn, battle runtime, cinematic runtime ou Scenario runtime.
+- Intents V0 supportes : `start`, `end`, `evaluateCondition`, `merge`, `showDialogue`, `startBattle`, `playCinematic`.
+- `ActionNode` et `BranchByOutcomeNode` restent non executables : diagnostics runtime-plan error et `plan == null`.
+- `CinematicNode` est compile comme intent declaratif avec warning `cinematicBridgeOnly`, car le contrat cinematic final reste bridge/provisoire.
+- Le builder reutilise `diagnoseScene(scene)` : toute erreur Scene diagnostics bloque la compilation avec `planBuildBlockedBySceneDiagnostics`.
+- Les edges logiques sont copies depuis `SceneGraph.edges` avec `fromNodeId`, `fromPortId`, `toNodeId`, `kind` et `label`; aucun edge implicite n'est cree.
+- `SceneGraphLayout` est ignore : il reste editor-only et ne participe pas au plan runtime.
+- Aucun `SceneRuntimeExecutor`, runtime Scene, Event -> Scene runtime trigger, `StorylineStep.sceneLinkIds`, promotion `ScenarioAsset`, fake ref/outcome ou donnee Selbrume n'est ajoute.
+- Tests executes : `cd packages/map_core && dart test test/scene_runtime_plan_test.dart`, `cd packages/map_core && dart analyze`, verification finale `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-25 — Diagnostics / Validator Expansion`.
 
 ## Decisions V1-23-bis
 
