@@ -61,33 +61,35 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-19 — World Rule Contract V0 | DONE | Contrat produit/technique des World Rules V0 : registry projet future avec targets explicites, sources Fact/Step/Event, effets V0 limites et diagnostics requis. |
 | NS-SCENES-V1-20 — World Rules V0 | DONE | Premier modele/authoring/validation de World Rules controlees : registry `ProjectManifest.worldRules`, operations pures, diagnostics, projection pure et apercu editor minimal. |
 | NS-SCENES-V1-20-bis — Roadmap Checkpoint Correction | DONE | Correction documentaire : inserer le checkpoint Narrative Studio obligatoire apres V1-20 et conserver V1-21 comme candidat, pas comme prochain automatique. |
-| NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint | TODO | Relire la vision Narrative Studio et choisir la suite la plus logique avant Runtime Plan, Event -> Scene, Payload Pickers, Diagnostics Expansion ou integration Map Editor des World Rules. |
-| NS-SCENES-V1-21 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
-| NS-SCENES-V1-22 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
-| NS-SCENES-V1-23 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
-| NS-SCENES-V1-24 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
+| NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint | DONE | Checkpoint produit post World Rules : la suite retenue est Payload Pickers V0 avant Event -> Scene, Runtime Plan, diagnostics et runtime MVP. |
+| NS-SCENES-V1-21 — Payload Pickers V0 | TODO | Ajouter des pickers/drafts honnetes pour Yarn, Cinematic, Battle et Action afin de configurer les nodes metier sans fake refs. |
+| NS-SCENES-V1-22 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume, sans execution runtime complete. |
+| NS-SCENES-V1-23 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-24 — Diagnostics / Validator Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles, payloads incomplets, Facts et World Rules. |
 | NS-SCENES-V1-25 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
-| NS-SCENES-V1-26 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
-| NS-SCENES-V1-27 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
+| NS-SCENES-V1-26 — World Rules Map Editor Integration V0 | TODO | Rendre les World Rules visibles/configurables depuis le contexte map/entity/event sans brancher de runtime Scene. |
+| NS-SCENES-V1-27 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
+| NS-SCENES-V1-28 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP et golden slice stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint`
+`NS-SCENES-V1-21 — Payload Pickers V0`
 
-Raison : V1-20 a ajoute les World Rules authoring comme donnees projet validables, sans les brancher au runtime. Le Scene Builder, les Conditions, les Facts et les World Rules sont maintenant assez avances pour imposer un checkpoint de direction avant de relancer un lot de code. Il faut relire la vision Narrative Studio et decider si la suite la plus logique est `Scene Runtime Plan`, `Event -> Scene`, l'integration Map Editor des World Rules, les Payload Pickers, le renforcement du Validator ou un autre chemin vers le golden slice Selbrume.
+Raison : le checkpoint V1-20 confirme que le Scene Builder est maintenant assez solide visuellement et structurellement, mais qu'il ne sait pas encore authorer les nodes metier du golden slice sans references reelles. Le prochain blocage produit est donc de rendre configurables les refs Yarn, Cinematic, Battle et Action sans fake data. `Event -> Scene` et `SceneRuntimePlan` restent indispensables, mais ils deviennent plus utiles une fois qu'une Scene peut porter des payloads metier honnetes.
 
-`NS-SCENES-V1-21 — Scene Runtime Plan V0` reste un candidat logique apres checkpoint, mais il ne doit pas etre lance automatiquement avant reevaluation de la direction.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
 
-Questions obligatoires du checkpoint :
+Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
-- Faut-il faire Scene Runtime Plan maintenant ?
-- Faut-il d'abord cadrer Event -> Scene ?
-- Faut-il d'abord relier les World Rules au Map Editor ?
-- Faut-il avancer les Payload Pickers ?
-- Faut-il renforcer le Validator ?
-- Quelle trajectoire mene le plus vite au golden slice Selbrume ?
+## Decisions V1-20-checkpoint
 
-Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point doit etre traite comme polish/alignement UI dans un lot futur ou pendant le checkpoint, sans correction code dans V1-20-bis.
+- Le checkpoint est DONE en documentation-only : aucun code, widget, modele, runtime, build_runner ou donnee Selbrume n'est ajoute.
+- Option retenue : `NS-SCENES-V1-21 — Payload Pickers V0`.
+- `Scene Runtime Plan V0` est repousse en V1-23 : il reste necessaire, mais trop abstrait tant que Yarn/Cinematic/Battle/Action ne sont pas configurables avec de vraies refs.
+- `Event -> Scene Trigger Prep` est place en V1-22 : Selbrume demarre depuis des Events de map, mais l'Event doit cibler une Scene metier, pas seulement un graph Start/Condition/End.
+- `Diagnostics / Validator Expansion` suit les pickers et le lien Event -> Scene pour valider des refs et outcomes reels.
+- `World Rules Map Editor Integration V0` reste necessaire avant le golden slice complet, mais ne doit pas passer avant la capacite a authorer les scenes metier.
+- `StorylineStep to Scene Link` reste apres golden slice/runtime MVP afin de ne pas confondre progression narrative et declencheur local.
 
 ## Decisions V1-20-bis
 
