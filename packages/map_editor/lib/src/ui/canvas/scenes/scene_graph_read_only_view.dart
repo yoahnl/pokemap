@@ -645,9 +645,9 @@ class _SceneGraphNodeCard extends StatelessWidget {
                 ),
               ),
             Positioned.fill(
-              child: Transform.scale(
+              child: FittedBox(
+                fit: BoxFit.fill,
                 alignment: Alignment.topLeft,
-                scale: zoom,
                 child: SizedBox(
                   width: _SceneGraphLayoutPlan.nodeWidth,
                   height: _SceneGraphLayoutPlan.nodeHeight,

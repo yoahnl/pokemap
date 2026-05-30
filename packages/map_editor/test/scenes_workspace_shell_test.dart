@@ -1093,6 +1093,33 @@ void main() {
       expect(find.text('100%'), findsOneWidget);
     });
 
+    testWidgets('keeps node content layout stable when zoom changes',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final conditionCard =
+          find.byKey(const ValueKey('scene-graph-node-node_condition'));
+      final canonicalCardSize = tester.getSize(conditionCard);
+
+      await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-in')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('125%'), findsOneWidget);
+      expect(tester.getSize(conditionCard), canonicalCardSize);
+
+      await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-out')));
+      await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-out')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('75%'), findsOneWidget);
+      expect(tester.getSize(conditionCard), canonicalCardSize);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('pinches trackpad to zoom the canvas without mutating project',
         (tester) async {
       final project = _projectWithEdgeAuthoringScene();
