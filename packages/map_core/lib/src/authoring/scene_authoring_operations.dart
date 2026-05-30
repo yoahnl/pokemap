@@ -41,6 +41,18 @@ final class SceneEdgeDraftRemovalResult {
   final SceneEdge removedEdge;
 }
 
+final class SceneNodeDraftRemovalResult {
+  const SceneNodeDraftRemovalResult({
+    required this.updatedScene,
+    required this.removedNode,
+    required this.removedEdges,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode removedNode;
+  final List<SceneEdge> removedEdges;
+}
+
 final class SceneNodeLayoutUpdateResult {
   const SceneNodeLayoutUpdateResult({
     required this.updatedScene,
@@ -102,6 +114,23 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNode(
   SceneNode node,
 ) {
   return authorableSceneOutputPortsForKind(node.kind);
+}
+
+bool isSceneNodeDraftRemovable(SceneNode node) {
+  return isSceneNodeDraftKindRemovable(node.kind);
+}
+
+bool isSceneNodeDraftKindRemovable(SceneNodeKind kind) {
+  return switch (kind) {
+    SceneNodeKind.condition || SceneNodeKind.merge || SceneNodeKind.end => true,
+    SceneNodeKind.start ||
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.action ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
+      false,
+  };
 }
 
 List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
@@ -416,6 +445,67 @@ SceneEdgeDraftRemovalResult removeSceneEdgeDraft(
   return SceneEdgeDraftRemovalResult(
     updatedScene: updatedScene,
     removedEdge: edge,
+  );
+}
+
+SceneNodeDraftRemovalResult removeSceneNodeDraft(
+  SceneAsset scene,
+  String nodeId,
+) {
+  final removedNode = _findNodeOrThrow(scene, nodeId, 'nodeId');
+  if (!isSceneNodeDraftRemovable(removedNode) ||
+      scene.graph.startNodeId == nodeId) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Scene node kind ${removedNode.kind.name} cannot be removed by Node Authoring V0.',
+    );
+  }
+
+  final removedEdges = <SceneEdge>[];
+  final remainingEdges = <SceneEdge>[];
+  for (final edge in scene.graph.edges) {
+    if (edge.fromNodeId == nodeId || edge.toNodeId == nodeId) {
+      removedEdges.add(edge);
+    } else {
+      remainingEdges.add(edge);
+    }
+  }
+  final removedEdgeIds = removedEdges.map((edge) => edge.id).toSet();
+
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [
+        for (final node in scene.graph.nodes)
+          if (node.id != nodeId) node,
+      ],
+      edges: remainingEdges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        for (final layout in scene.layout.nodeLayouts)
+          if (layout.nodeId != nodeId) layout,
+      ],
+      edgeLayouts: [
+        for (final layout in scene.layout.edgeLayouts)
+          if (!removedEdgeIds.contains(layout.edgeId)) layout,
+      ],
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneNodeDraftRemovalResult(
+    updatedScene: updatedScene,
+    removedNode: removedNode,
+    removedEdges: List<SceneEdge>.unmodifiable(removedEdges),
   );
 }
 

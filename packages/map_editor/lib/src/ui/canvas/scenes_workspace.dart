@@ -29,6 +29,11 @@ typedef SceneEdgeDraftRemover = Future<bool> Function({
   required String edgeId,
 });
 
+typedef SceneNodeDraftRemover = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+});
+
 typedef SceneNodeLayoutUpdater = Future<void> Function({
   required String sceneId,
   required String nodeId,
@@ -51,6 +56,7 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onAddNodeDraft,
     required this.onAddEdgeDraft,
     required this.onRemoveEdgeDraft,
+    required this.onRemoveNodeDraft,
     required this.onUpdateNodeLayout,
     required this.onUpdateConditionSource,
   });
@@ -61,6 +67,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneNodeDraftCreator onAddNodeDraft;
   final SceneEdgeDraftCreator onAddEdgeDraft;
   final SceneEdgeDraftRemover onRemoveEdgeDraft;
+  final SceneNodeDraftRemover onRemoveNodeDraft;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
   final SceneConditionSourceUpdater onUpdateConditionSource;
 
@@ -196,6 +203,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                                 selectedNodeId: _selectedNodeId,
                                 selectedEdgeId: _selectedEdgeId,
                                 onRemoveEdgeDraft: _removeSelectedEdgeDraft,
+                                onRemoveNodeDraft: _removeSelectedNodeDraft,
                                 conditionSourceOptions:
                                     widget.conditionSourceOptions,
                                 onUpdateConditionSource: _updateConditionSource,
@@ -347,6 +355,26 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     });
   }
 
+  Future<void> _removeSelectedNodeDraft(String nodeId) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return;
+    }
+    final removed = await widget.onRemoveNodeDraft(
+      sceneId: selected.id,
+      nodeId: nodeId,
+    );
+    if (!mounted || !removed) {
+      return;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedEdgeId = null;
+      _selectedNodeId = _preferredNodeIdAfterRemoving(selected, nodeId);
+      _pendingConnection = null;
+    });
+  }
+
   Future<void> _updateNodeLayout({
     required String sceneId,
     required String nodeId,
@@ -425,6 +453,22 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     return startNodeExists
         ? scene.graph.startNodeId
         : scene.graph.nodes.first.id;
+  }
+
+  String? _preferredNodeIdAfterRemoving(
+    NarrativeSceneSummary scene,
+    String removedNodeId,
+  ) {
+    if (scene.graph.startNodeId != removedNodeId &&
+        scene.graph.nodes.any((node) => node.id == scene.graph.startNodeId)) {
+      return scene.graph.startNodeId;
+    }
+    for (final node in scene.graph.nodes) {
+      if (node.id != removedNodeId) {
+        return node.id;
+      }
+    }
+    return null;
   }
 }
 

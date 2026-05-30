@@ -35,6 +35,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     required this.selectedNodeId,
     this.selectedEdgeId,
     this.onRemoveEdgeDraft,
+    this.onRemoveNodeDraft,
     this.conditionSourceOptions = const [],
     this.onUpdateConditionSource,
   });
@@ -43,6 +44,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final String? selectedNodeId;
   final String? selectedEdgeId;
   final ValueChanged<String>? onRemoveEdgeDraft;
+  final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
 
@@ -70,6 +72,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               : _NodeInspectorBody(
                   scene: scene,
                   node: node,
+                  onRemoveNodeDraft: onRemoveNodeDraft,
                   conditionSourceOptions: conditionSourceOptions,
                   onUpdateConditionSource: onUpdateConditionSource,
                 ),
@@ -163,12 +166,14 @@ class _NodeInspectorBody extends StatelessWidget {
   const _NodeInspectorBody({
     required this.scene,
     required this.node,
+    required this.onRemoveNodeDraft,
     required this.conditionSourceOptions,
     required this.onUpdateConditionSource,
   });
 
   final NarrativeSceneSummary scene;
   final SceneNode node;
+  final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
 
@@ -231,6 +236,30 @@ class _NodeInspectorBody extends StatelessWidget {
             incoming: false,
           ),
           const SizedBox(height: 10),
+          if (isSceneNodeDraftRemovable(node)) ...[
+            _InspectorSection(
+              title: 'Action',
+              children: [
+                PokeMapButton(
+                  key: const ValueKey('scene-node-delete-action'),
+                  onPressed: onRemoveNodeDraft == null
+                      ? null
+                      : () => onRemoveNodeDraft!(node.id),
+                  variant: PokeMapButtonVariant.danger,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(CupertinoIcons.delete),
+                  child: const Text('Supprimer le nœud'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const _InspectorNote(
+              label: 'La suppression retire ce nœud draft et ses liens '
+                  'entrants/sortants. Les autres nœuds et le layout restant '
+                  'sont conservés.',
+            ),
+            const SizedBox(height: 10),
+          ],
           const _InspectorNote(),
         ],
       ),

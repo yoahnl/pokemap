@@ -820,6 +820,120 @@ void main() {
       expect(recreatedEdges.single.id, edgeId);
     });
 
+    testWidgets('deletes a selected V0 node and its connected edges',
+        (tester) async {
+      const incomingEdgeId = 'edge_node_start_completed_node_condition';
+      const outgoingEdgeId = 'edge_node_condition_true_node_end';
+      const keptEdgeId = 'edge_node_merge_completed_node_end_2';
+      final project = _projectWithEdgeAuthoringScene(
+        edges: [
+          SceneEdge(
+            id: incomingEdgeId,
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: outgoingEdgeId,
+            fromNodeId: 'node_condition',
+            fromPortId: 'true',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.conditionTrue,
+          ),
+          SceneEdge(
+            id: keptEdgeId,
+            fromNodeId: 'node_merge',
+            fromPortId: 'completed',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final originalScene = project.scenes.single;
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+        findsOneWidget,
+      );
+      expect(find.text('Supprimer le nœud'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scene-node-delete-action')));
+      await tester.pumpAndSettle();
+
+      final updatedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      expect(
+        updatedScene.graph.nodes.map((node) => node.id),
+        isNot(contains('node_condition')),
+      );
+      expect(
+        updatedScene.graph.edges.map((edge) => edge.id),
+        [keptEdgeId],
+      );
+      expect(
+        updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+        isNot(contains('node_condition')),
+      );
+      expect(
+        updatedScene.layout.nodeLayouts
+            .where((layout) => layout.nodeId != 'node_condition')
+            .toList(growable: false),
+        originalScene.layout.nodeLayouts
+            .where((layout) => layout.nodeId != 'node_condition')
+            .toList(growable: false),
+      );
+      expect(
+        originalScene.graph.nodes.map((node) => node.id),
+        contains('node_condition'),
+      );
+      expect(originalScene.graph.edges, hasLength(3));
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-edge-$incomingEdgeId'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-edge-$outgoingEdgeId'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-edge-$keptEdgeId'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+        findsNothing,
+      );
+    });
+
     testWidgets('authors a condition from an existing story step source',
         (tester) async {
       final project = _projectWithConditionAuthoringSources();
