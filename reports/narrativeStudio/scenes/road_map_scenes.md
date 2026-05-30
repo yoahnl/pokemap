@@ -60,6 +60,8 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-18 — Fact Registry V0 | DONE | Registry authoring de Facts lisibles bool-first dans `ProjectManifest.facts`, operations pures, JSON, diagnostics refs inconnues et picker Condition prioritaire. |
 | NS-SCENES-V1-19 — World Rule Contract V0 | DONE | Contrat produit/technique des World Rules V0 : registry projet future avec targets explicites, sources Fact/Step/Event, effets V0 limites et diagnostics requis. |
 | NS-SCENES-V1-20 — World Rules V0 | DONE | Premier modele/authoring/validation de World Rules controlees : registry `ProjectManifest.worldRules`, operations pures, diagnostics, projection pure et apercu editor minimal. |
+| NS-SCENES-V1-20-bis — Roadmap Checkpoint Correction | DONE | Correction documentaire : inserer le checkpoint Narrative Studio obligatoire apres V1-20 et conserver V1-21 comme candidat, pas comme prochain automatique. |
+| NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint | TODO | Relire la vision Narrative Studio et choisir la suite la plus logique avant Runtime Plan, Event -> Scene, Payload Pickers, Diagnostics Expansion ou integration Map Editor des World Rules. |
 | NS-SCENES-V1-21 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
 | NS-SCENES-V1-22 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
 | NS-SCENES-V1-23 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
@@ -70,9 +72,30 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-21 — Scene Runtime Plan V0`
+`NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint`
 
-Raison : V1-20 a ajoute les World Rules authoring comme donnees projet validables, sans les brancher au runtime. Le prochain bloc peut revenir a la preparation d'execution Scene V1 avec un `SceneRuntimePlan` pur, en gardant layout, World Rules et runtime separes.
+Raison : V1-20 a ajoute les World Rules authoring comme donnees projet validables, sans les brancher au runtime. Le Scene Builder, les Conditions, les Facts et les World Rules sont maintenant assez avances pour imposer un checkpoint de direction avant de relancer un lot de code. Il faut relire la vision Narrative Studio et decider si la suite la plus logique est `Scene Runtime Plan`, `Event -> Scene`, l'integration Map Editor des World Rules, les Payload Pickers, le renforcement du Validator ou un autre chemin vers le golden slice Selbrume.
+
+`NS-SCENES-V1-21 — Scene Runtime Plan V0` reste un candidat logique apres checkpoint, mais il ne doit pas etre lance automatiquement avant reevaluation de la direction.
+
+Questions obligatoires du checkpoint :
+
+- Faut-il faire Scene Runtime Plan maintenant ?
+- Faut-il d'abord cadrer Event -> Scene ?
+- Faut-il d'abord relier les World Rules au Map Editor ?
+- Faut-il avancer les Payload Pickers ?
+- Faut-il renforcer le Validator ?
+- Quelle trajectoire mene le plus vite au golden slice Selbrume ?
+
+Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point doit etre traite comme polish/alignement UI dans un lot futur ou pendant le checkpoint, sans correction code dans V1-20-bis.
+
+## Decisions V1-20-bis
+
+- V1-20 reste DONE et fonctionnellement accepte : `ProjectManifest.worldRules`, `WorldRuleDefinition`, operations authoring, diagnostics, projection pure et overview minimal sont conserves.
+- Le prochain lot exact est corrige en `NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint`.
+- V1-21 Scene Runtime Plan V0 reste dans la roadmap comme candidat post-checkpoint, pas comme prochain automatique.
+- Le checkpoint est obligatoire parce que continuer directement vers le runtime risquerait de contourner la question produit : Narrative Studio doit mener vers des situations, decisions, consequences et changements visibles du monde, pas seulement vers un moteur executable.
+- L'incoherence Facts overview est notee comme polish futur, sans modification editor dans ce bis.
 
 ## Decisions V1-20
 
