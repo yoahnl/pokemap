@@ -51,20 +51,52 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-11 — Scene Graph Draft Node Strategy | DONE | Strategie retenue : activer seulement Condition, Merge et Fin en V0 ; garder Start unique et desactiver Yarn/Action/Battle/Cinematic/Branch tant que les refs/payloads ne sont pas honnetes. |
 | NS-SCENES-V1-12 — Node Authoring V0 | DONE | Operation pure `addSceneNodeDraft` et palette editor V0 : ajout Condition / Merge / Fin en memoire, selection auto, aucun edge automatique ni fake ref. |
 | NS-SCENES-V1-13 — Edge Authoring V0 | DONE | Operation pure `addSceneEdgeDraft` et UI de connexion V0 : ports explicites start.completed, condition.true/false, merge.completed, edge kind derive, mise a jour memoire sans runtime. |
-| NS-SCENES-V1-14 — Layout Authoring V0 | TODO | Permettre le deplacement des nodes et la persistence de `SceneGraphLayout`, sans impact runtime. |
-| NS-SCENES-V1-15 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
-| NS-SCENES-V1-16 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
-| NS-SCENES-V1-17 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
-| NS-SCENES-V1-18 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
-| NS-SCENES-V1-19 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
-| NS-SCENES-V1-20 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
-| NS-SCENES-V1-21 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
+| NS-SCENES-V1-14 — Blueprint Graph Canvas Foundation / Layout Authoring V0 | DONE | Canvas Blueprint-like de base : grille, zoom local par boutons et pinch trackpad, pan local, deplacement de nodes, persistence memoire de `SceneGraphLayout`, edges qui suivent, sans impact runtime. |
+| NS-SCENES-V1-15 — Visual Port Connection UX V0 | TODO | Rendre la connexion V1-13 plus Blueprint-like : ports visuels sur nodes, preview line locale, highlight des cibles, sans drag complexe ni runtime. |
+| NS-SCENES-V1-16 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-17 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
+| NS-SCENES-V1-18 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
+| NS-SCENES-V1-19 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
+| NS-SCENES-V1-20 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
+| NS-SCENES-V1-21 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
+| NS-SCENES-V1-22 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-14 — Layout Authoring V0`
+`NS-SCENES-V1-15 — Visual Port Connection UX V0`
 
-Raison : V1-13 permet maintenant de creer des edges explicites entre nodes V0 avec validation de ports. Le prochain blocage Blueprint-like est la persistence controlee de `SceneGraphLayout` via un deplacement de nodes, sans rendre le layout utile au runtime.
+Raison : V1-14 donne enfin un canvas Blueprint-like de base avec grille, zoom, pan et nodes deplacables. Le prochain blocage UX n'est plus le placement, mais la connexion visuelle : il faut rendre les ports V1-13 visibles et connectables de facon plus naturelle avant de revenir au `SceneRuntimePlan`.
+
+## Decisions V1-14
+
+- Operation pure ajoutee : `updateSceneNodeLayout(SceneAsset, nodeId, x, y)`.
+- L'operation met a jour ou cree uniquement le `SceneNodeLayout` du node cible.
+- `SceneGraph.nodes`, `SceneGraph.edges`, `declaredOutcomes`, tags, metadata, description, storylineId et chapterId sont preserves.
+- Cote editor, le canvas Scene affiche une grille tokenisee, un zoom local 50 % / 200 % par boutons et pinch trackpad, un reset 100 %, un pan local et le deplacement des nodes.
+- Le zoom et le pan restent locaux et ne modifient pas `ProjectManifest`.
+- Le deplacement d'un node persiste en memoire uniquement `ProjectManifest.scenes[*].layout.nodeLayouts`.
+- Les edges utilisent les positions courantes des nodes et suivent donc les deplacements.
+- La selection locale de node et l'inspecteur restent coherents apres drag.
+- La connexion V1-13 reste disponible ; pendant le mode connexion, le drag node est desactive pour eviter les gestes ambigus.
+- Aucun runtime, aucun StorylineStep link, aucune donnee Selbrume, aucune fake ref.
+
+## Limites V1-14
+
+- Pas encore de ports visuels connectables sur les cards.
+- Pas de cable Blueprint tire a la souris ni preview line de connexion.
+- Pas de suppression/reconnexion avancee.
+- Pas de minimap ni auto-layout complet.
+- Pas de persistence disque explicite.
+
+## Tests V1-14
+
+- `cd packages/map_core && dart test test/scene_authoring_operations_test.dart`
+- `cd packages/map_core && dart analyze`
+- `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_shell_navigation_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_studio_header_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/narrative_workspace_projection_test.dart`
+- `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/narrative_workspace_canvas.dart lib/src/ui/canvas/scenes_workspace.dart lib/src/ui/canvas/scenes/scene_graph_read_only_view.dart test/scenes_workspace_shell_test.dart`
 
 ## Decisions V1-13
 

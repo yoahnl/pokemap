@@ -24,6 +24,13 @@ typedef SceneEdgeDraftCreator = Future<String?> Function({
   required String toNodeId,
 });
 
+typedef SceneNodeLayoutUpdater = Future<void> Function({
+  required String sceneId,
+  required String nodeId,
+  required double x,
+  required double y,
+});
+
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
@@ -31,12 +38,14 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onCreateSceneDraft,
     required this.onAddNodeDraft,
     required this.onAddEdgeDraft,
+    required this.onUpdateNodeLayout,
   });
 
   final List<NarrativeSceneSummary> scenes;
   final SceneDraftCreator onCreateSceneDraft;
   final SceneNodeDraftCreator onAddNodeDraft;
   final SceneEdgeDraftCreator onAddEdgeDraft;
+  final SceneNodeLayoutUpdater onUpdateNodeLayout;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -135,6 +144,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onAddNodeDraft: _addNodeDraft,
                     onStartConnection: _startConnection,
                     onCancelConnection: _cancelConnection,
+                    onUpdateNodeLayout: _updateNodeLayout,
                   ),
                 ),
               ),
@@ -264,6 +274,31 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       _selectedSceneId = selected.id;
       _selectedNodeId = fromNodeId;
       _pendingConnection = null;
+    });
+  }
+
+  Future<void> _updateNodeLayout({
+    required String sceneId,
+    required String nodeId,
+    required double x,
+    required double y,
+  }) async {
+    final scene = _sceneById(sceneId);
+    if (scene == null) {
+      return;
+    }
+    await widget.onUpdateNodeLayout(
+      sceneId: scene.id,
+      nodeId: nodeId,
+      x: x,
+      y: y,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _selectedSceneId = scene.id;
+      _selectedNodeId = nodeId;
     });
   }
 
@@ -646,6 +681,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.onAddNodeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
+    required this.onUpdateNodeLayout,
   });
 
   final NarrativeSceneSummary? scene;
@@ -655,6 +691,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
+  final SceneNodeLayoutUpdater onUpdateNodeLayout;
 
   @override
   Widget build(BuildContext context) {
@@ -672,6 +709,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               onAddNodeDraft: onAddNodeDraft,
               onStartConnection: onStartConnection,
               onCancelConnection: onCancelConnection,
+              onUpdateNodeLayout: onUpdateNodeLayout,
             ),
     );
   }
@@ -701,6 +739,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.onAddNodeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
+    required this.onUpdateNodeLayout,
   });
 
   final NarrativeSceneSummary scene;
@@ -710,6 +749,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
+  final SceneNodeLayoutUpdater onUpdateNodeLayout;
 
   @override
   Widget build(BuildContext context) {
@@ -758,6 +798,18 @@ class _SelectedSceneSummary extends StatelessWidget {
               scene: scene,
               selectedNodeId: selectedNodeId,
               onSelectNode: onSelectNode,
+              canDragNodes: pendingConnection == null,
+              onUpdateNodeLayout: ({
+                required nodeId,
+                required x,
+                required y,
+              }) =>
+                  onUpdateNodeLayout(
+                sceneId: scene.id,
+                nodeId: nodeId,
+                x: x,
+                y: y,
+              ),
               expandToFill: true,
             ),
           ),

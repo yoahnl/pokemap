@@ -408,6 +408,104 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('updates an existing node layout without mutating graph logic', () {
+      final scene = _edgeAuthoringScene(
+        metadata: const {'owner': 'test'},
+        declaredOutcomes: [SceneOutcome(id: 'done', label: 'Done')],
+        edges: [
+          SceneEdge(
+            id: 'edge_node_start_completed_node_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final result = updateSceneNodeLayout(
+        scene,
+        nodeId: 'node_condition',
+        x: 512.5,
+        y: 196.25,
+      );
+
+      expect(
+          scene.layout.nodeLayouts
+              .firstWhere((layout) => layout.nodeId == 'node_condition')
+              .x,
+          324);
+      expect(
+          result.updatedLayout,
+          SceneNodeLayout(
+            nodeId: 'node_condition',
+            x: 512.5,
+            y: 196.25,
+          ));
+      expect(result.updatedScene.graph.nodes, scene.graph.nodes);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(result.updatedScene.tags, scene.tags);
+      expect(result.updatedScene.description, scene.description);
+      expect(result.updatedScene.storylineId, scene.storylineId);
+      expect(result.updatedScene.chapterId, scene.chapterId);
+    });
+
+    test('creates a missing node layout and rejects unknown nodes', () {
+      final scene = SceneAsset(
+        id: 'scene_missing_layout',
+        name: 'Missing layout scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_end',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+          ],
+        ),
+      );
+
+      final result = updateSceneNodeLayout(
+        scene,
+        nodeId: 'node_end',
+        x: 420.75,
+        y: -16.5,
+      );
+
+      expect(scene.layout.nodeLayouts.map((layout) => layout.nodeId),
+          ['node_start']);
+      expect(
+          result.updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+          ['node_start', 'node_end']);
+      expect(result.updatedLayout.x, 420.75);
+      expect(result.updatedLayout.y, -16.5);
+      expect(result.updatedScene.graph.nodes, scene.graph.nodes);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(
+        () => updateSceneNodeLayout(
+          scene,
+          nodeId: 'node_unknown',
+          x: 1,
+          y: 2,
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }
 

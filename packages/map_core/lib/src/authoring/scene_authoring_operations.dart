@@ -31,6 +31,16 @@ final class SceneEdgeDraftCreationResult {
   final SceneEdge createdEdge;
 }
 
+final class SceneNodeLayoutUpdateResult {
+  const SceneNodeLayoutUpdateResult({
+    required this.updatedScene,
+    required this.updatedLayout,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNodeLayout updatedLayout;
+}
+
 final class SceneAuthorableOutputPort {
   const SceneAuthorableOutputPort({
     required this.id,
@@ -110,6 +120,51 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
     SceneNodeKind.branchByOutcome =>
       const <SceneAuthorableOutputPort>[],
   };
+}
+
+SceneNodeLayoutUpdateResult updateSceneNodeLayout(
+  SceneAsset scene, {
+  required String nodeId,
+  required double x,
+  required double y,
+}) {
+  _findNodeOrThrow(scene, nodeId, 'nodeId');
+
+  final updatedLayout = SceneNodeLayout(nodeId: nodeId, x: x, y: y);
+  var replaced = false;
+  final nodeLayouts = <SceneNodeLayout>[];
+  for (final layout in scene.layout.nodeLayouts) {
+    if (layout.nodeId == nodeId) {
+      nodeLayouts.add(updatedLayout);
+      replaced = true;
+    } else {
+      nodeLayouts.add(layout);
+    }
+  }
+  if (!replaced) {
+    nodeLayouts.add(updatedLayout);
+  }
+
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: scene.graph,
+    layout: SceneGraphLayout(
+      nodeLayouts: nodeLayouts,
+      edgeLayouts: scene.layout.edgeLayouts,
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneNodeLayoutUpdateResult(
+    updatedScene: updatedScene,
+    updatedLayout: updatedLayout,
+  );
 }
 
 SceneNodeDraftCreationResult addSceneNodeDraft(

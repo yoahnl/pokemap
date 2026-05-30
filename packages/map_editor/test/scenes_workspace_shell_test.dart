@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -501,6 +502,211 @@ void main() {
       );
     });
 
+    testWidgets('shows zoom controls and resets the canvas zoom',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(find.byKey(const ValueKey('scene-graph-grid')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('scene-graph-zoom-out')), findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-graph-zoom-in')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-graph-reset-view')),
+        findsOneWidget,
+      );
+      expect(find.text('100%'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-in')));
+      await tester.pumpAndSettle();
+      expect(find.text('125%'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-out')));
+      await tester.pumpAndSettle();
+      expect(find.text('100%'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-in')));
+      await tester.pumpAndSettle();
+      expect(find.text('125%'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('scene-graph-reset-view')));
+      await tester.pumpAndSettle();
+      expect(find.text('100%'), findsOneWidget);
+    });
+
+    testWidgets('pinches trackpad to zoom the canvas without mutating project',
+        (tester) async {
+      final project = _projectWithEdgeAuthoringScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+      final before = container.read(editorNotifierProvider).project!;
+      final surface = find.byKey(const ValueKey('scene-graph-pan-surface'));
+      final center = tester.getCenter(surface);
+
+      tester.binding.handlePointerEvent(
+        PointerPanZoomStartEvent(position: center),
+      );
+      tester.binding.handlePointerEvent(
+        PointerPanZoomUpdateEvent(position: center, scale: 1.25),
+      );
+      tester.binding.handlePointerEvent(
+        PointerPanZoomEndEvent(position: center),
+      );
+      await tester.pump();
+
+      expect(find.text('125%'), findsOneWidget);
+      expect(container.read(editorNotifierProvider).project, before);
+
+      tester.binding.handlePointerEvent(
+        PointerPanZoomStartEvent(position: center),
+      );
+      tester.binding.handlePointerEvent(
+        PointerPanZoomUpdateEvent(position: center, scale: 0.8),
+      );
+      tester.binding.handlePointerEvent(
+        PointerPanZoomEndEvent(position: center),
+      );
+      await tester.pump();
+
+      expect(find.text('100%'), findsOneWidget);
+      expect(container.read(editorNotifierProvider).project, before);
+    });
+
+    testWidgets('pans locally without mutating ProjectManifest',
+        (tester) async {
+      final project = _projectWithEdgeAuthoringScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+      final before = container.read(editorNotifierProvider).project!;
+
+      final surface = find.byKey(const ValueKey('scene-graph-pan-surface'));
+      final origin = tester.getTopLeft(surface) + const Offset(8, 8);
+      await tester.dragFrom(origin, const Offset(64, 28));
+      await tester.pumpAndSettle();
+
+      final after = container.read(editorNotifierProvider).project!;
+      expect(after, before);
+    });
+
+    testWidgets('dragging a node updates only SceneGraphLayout',
+        (tester) async {
+      final project = _projectWithEdgeAuthoringScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_start_completed_node_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+      final originalScene = project.scenes.single;
+
+      final dragTarget = find
+          .byKey(const ValueKey('scene-graph-node-drag-target-node_condition'));
+      await tester.dragFrom(
+        tester.getTopLeft(dragTarget) + const Offset(18, 18),
+        const Offset(80, 40),
+      );
+      await tester.pumpAndSettle();
+
+      final updatedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      final conditionLayout = updatedScene.layout.nodeLayouts
+          .firstWhere((layout) => layout.nodeId == 'node_condition');
+      expect(conditionLayout.x, greaterThan(220));
+      expect(conditionLayout.y, greaterThan(80));
+      expect(updatedScene.graph.nodes, originalScene.graph.nodes);
+      expect(updatedScene.graph.edges, originalScene.graph.edges);
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_condition')),
+        findsOneWidget,
+      );
+      expect(find.text('node_condition'), findsWidgets);
+    });
+
+    testWidgets('edges follow moved nodes and V1-13 connection still works',
+        (tester) async {
+      final project = _projectWithEdgeAuthoringScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_start_completed_node_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+      final edgeLabel = find.byKey(
+        const ValueKey(
+          'scene-graph-edge-edge_node_start_completed_node_condition',
+        ),
+      );
+
+      final dragTarget = find
+          .byKey(const ValueKey('scene-graph-node-drag-target-node_condition'));
+      await tester.dragFrom(
+        tester.getTopLeft(dragTarget) + const Offset(18, 18),
+        const Offset(80, 40),
+      );
+      await tester.pumpAndSettle();
+
+      final movedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      final movedLayout = movedScene.layout.nodeLayouts
+          .firstWhere((layout) => layout.nodeId == 'node_condition');
+      expect(movedLayout.x, greaterThan(220));
+      expect(movedLayout.y, greaterThan(80));
+      expect(edgeLabel, findsOneWidget);
+
+      await tester
+          .tap(find.byKey(const ValueKey('scene-graph-node-node_merge')));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const ValueKey('scenes-connect-port-completed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scene-graph-node-node_end')));
+      await tester.pumpAndSettle();
+
+      final edges = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .edges;
+      expect(
+        edges.map((edge) => edge.id),
+        contains('edge_node_merge_completed_node_end'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-edge-edge_node_merge_completed_node_end'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('shows real SceneAsset data in the read-only tree and summary',
         (tester) async {
       await _pumpNarrativeShell(
@@ -905,7 +1111,7 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('writes V1-13 edge authoring visual gate screenshot',
+    testWidgets('keeps the V1-13 edge authoring visual flow valid',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -922,11 +1128,50 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-edge-edge_node_start_completed_node_condition',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('scene-graph-grid')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('scene-graph-zoom-reset')), findsOneWidget);
+    });
+
+    testWidgets('writes V1-14 blueprint canvas visual gate screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(
+          edges: [
+            SceneEdge(
+              id: 'edge_node_start_completed_node_condition',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_condition',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final dragTarget = find
+          .byKey(const ValueKey('scene-graph-node-drag-target-node_condition'));
+      await tester.dragFrom(
+        tester.getTopLeft(dragTarget) + const Offset(18, 18),
+        const Offset(88, 56),
+      );
+      await tester.pumpAndSettle();
+
       await expectLater(
         find.byKey(const ValueKey('scenes-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_13_edge_authoring_v0.png',
+          'ns_scenes_v1_14_blueprint_graph_canvas_foundation.png',
         ),
       );
     });

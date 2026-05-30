@@ -1,30 +1,73 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
-class SceneGraphReadOnlyView extends StatelessWidget {
+typedef SceneNodeLayoutChanged = Future<void> Function({
+  required String nodeId,
+  required double x,
+  required double y,
+});
+
+class SceneGraphReadOnlyView extends StatefulWidget {
   const SceneGraphReadOnlyView({
     super.key,
     required this.scene,
     this.selectedNodeId,
     this.onSelectNode,
+    this.onUpdateNodeLayout,
+    this.canDragNodes = true,
     this.expandToFill = false,
   });
 
   final NarrativeSceneSummary scene;
   final String? selectedNodeId;
   final ValueChanged<String>? onSelectNode;
+  final SceneNodeLayoutChanged? onUpdateNodeLayout;
+  final bool canDragNodes;
   final bool expandToFill;
+
+  @override
+  State<SceneGraphReadOnlyView> createState() => _SceneGraphReadOnlyViewState();
+}
+
+class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
+  static const double _minZoom = 0.5;
+  static const double _maxZoom = 2;
+  static const double _zoomStep = 0.25;
+
+  double _zoom = 1;
+  Offset _pan = Offset.zero;
+  double _trackpadGestureStartZoom = 1;
+  final Map<String, Offset> _nodePositionOverrides = {};
+
+  @override
+  void didUpdateWidget(covariant SceneGraphReadOnlyView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scene.id != widget.scene.id) {
+      _zoom = 1;
+      _pan = Offset.zero;
+      _nodePositionOverrides.clear();
+      return;
+    }
+
+    final nodeIds = widget.scene.graph.nodes.map((node) => node.id).toSet();
+    _nodePositionOverrides
+        .removeWhere((nodeId, _) => !nodeIds.contains(nodeId));
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final layout = _SceneGraphLayoutPlan.fromScene(scene);
+    final worldPositions = _worldPositionsFor(layout);
+    final screenPositions = _screenPositionsFor(worldPositions);
     final canvas = ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: DecoratedBox(
@@ -33,34 +76,64 @@ class SceneGraphReadOnlyView extends StatelessWidget {
           border: Border.all(color: colors.borderSubtle),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _SceneGraphEdgePainter(
-                  edges: scene.graph.edges,
-                  positions: layout.positions,
-                  lineColor: colors.borderStrong,
-                  labelColor: colors.textSecondary,
-                  labelBackground: colors.cardSurface,
+        child: Listener(
+          onPointerPanZoomStart: _handleTrackpadPanZoomStart,
+          onPointerPanZoomUpdate: _handleTrackpadPanZoomUpdate,
+          onPointerPanZoomEnd: _handleTrackpadPanZoomEnd,
+          child: GestureDetector(
+            key: const ValueKey('scene-graph-pan-surface'),
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: _handleCanvasPanUpdate,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    key: const ValueKey('scene-graph-grid'),
+                    painter: _SceneGraphGridPainter(
+                      pan: _pan,
+                      zoom: _zoom,
+                      lineColor: colors.borderSubtle.withValues(alpha: 0.32),
+                      majorLineColor:
+                          colors.borderStrong.withValues(alpha: 0.22),
+                    ),
+                  ),
                 ),
-              ),
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _SceneGraphEdgePainter(
+                      edges: scene.graph.edges,
+                      positions: screenPositions,
+                      zoom: _zoom,
+                      lineColor: colors.borderStrong,
+                      labelColor: colors.textSecondary,
+                      labelBackground: colors.cardSurface,
+                    ),
+                  ),
+                ),
+                for (final edge in scene.graph.edges)
+                  _SceneGraphEdgeLabel(
+                    edge: edge,
+                    position: _screenOffset(
+                      _edgeLabelPosition(edge, worldPositions),
+                    ),
+                  ),
+                for (final node in scene.graph.nodes)
+                  _SceneGraphNodeCard(
+                    node: node,
+                    position: screenPositions[node.id]!,
+                    zoom: _zoom,
+                    isSelected: node.id == selectedNodeId,
+                    canDrag: widget.canDragNodes,
+                    onSelect: onSelectNode == null
+                        ? null
+                        : () => onSelectNode!(node.id),
+                    onDragDelta: (delta) => _moveNodeLocally(node.id, delta),
+                    onDragEnd: () => _persistNodeLayout(node.id),
+                  ),
+              ],
             ),
-            for (final node in scene.graph.nodes)
-              _SceneGraphNodeCard(
-                node: node,
-                position: layout.positions[node.id]!,
-                isSelected: node.id == selectedNodeId,
-                onSelect: onSelectNode == null
-                    ? null
-                    : () => onSelectNode!(node.id),
-              ),
-            for (final edge in scene.graph.edges)
-              _SceneGraphEdgeLabel(
-                edge: edge,
-                position: layout.edgeLabelPosition(edge),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -82,7 +155,7 @@ class SceneGraphReadOnlyView extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Graph read-only',
+                  'Canvas Blueprint',
                   style: TextStyle(
                     color: colors.textPrimary,
                     fontSize: 14,
@@ -100,6 +173,14 @@ class SceneGraphReadOnlyView extends StatelessWidget {
                     ? 'Layout réel'
                     : 'Layout dérivé',
               ),
+              const SizedBox(width: 8),
+              _SceneGraphCanvasControls(
+                zoom: _zoom,
+                onZoomOut: () => _setZoom(_zoom - _zoomStep),
+                onZoomReset: () => _setZoom(1),
+                onZoomIn: () => _setZoom(_zoom + _zoomStep),
+                onResetView: _resetView,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -111,20 +192,129 @@ class SceneGraphReadOnlyView extends StatelessWidget {
       ),
     );
   }
+
+  NarrativeSceneSummary get scene => widget.scene;
+  String? get selectedNodeId => widget.selectedNodeId;
+  ValueChanged<String>? get onSelectNode => widget.onSelectNode;
+  bool get expandToFill => widget.expandToFill;
+
+  void _setZoom(double value) {
+    setState(() => _applyZoom(value));
+  }
+
+  void _applyZoom(double value, {Offset? focalPoint}) {
+    final nextZoom = value.clamp(_minZoom, _maxZoom).toDouble();
+    if (focalPoint != null && _zoom > 0) {
+      final focalWorldPosition = (focalPoint - _pan) / _zoom;
+      _pan = focalPoint - (focalWorldPosition * nextZoom);
+    }
+    _zoom = nextZoom;
+  }
+
+  void _resetView() {
+    setState(() {
+      _zoom = 1;
+      _pan = Offset.zero;
+    });
+  }
+
+  void _handleCanvasPanUpdate(DragUpdateDetails details) {
+    setState(() => _pan += details.delta);
+  }
+
+  void _handleTrackpadPanZoomStart(PointerPanZoomStartEvent event) {
+    _trackpadGestureStartZoom = _zoom;
+  }
+
+  void _handleTrackpadPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    setState(() {
+      _applyZoom(
+        _trackpadGestureStartZoom * event.scale,
+        focalPoint: event.localPosition,
+      );
+      _pan += event.panDelta;
+    });
+  }
+
+  void _handleTrackpadPanZoomEnd(PointerPanZoomEndEvent event) {
+    _trackpadGestureStartZoom = _zoom;
+  }
+
+  void _moveNodeLocally(String nodeId, Offset screenDelta) {
+    final layout = _SceneGraphLayoutPlan.fromScene(scene);
+    final worldPositions = _worldPositionsFor(layout);
+    final current = worldPositions[nodeId];
+    if (current == null) {
+      return;
+    }
+    setState(() {
+      _nodePositionOverrides[nodeId] = current + (screenDelta / _zoom);
+    });
+  }
+
+  void _persistNodeLayout(String nodeId) {
+    final position = _nodePositionOverrides[nodeId];
+    final updater = widget.onUpdateNodeLayout;
+    if (position == null || updater == null) {
+      return;
+    }
+    unawaited(updater(nodeId: nodeId, x: position.dx, y: position.dy));
+  }
+
+  Map<String, Offset> _worldPositionsFor(_SceneGraphLayoutPlan layout) {
+    return {
+      for (final entry in layout.positions.entries)
+        entry.key: _nodePositionOverrides[entry.key] ?? entry.value,
+    };
+  }
+
+  Map<String, Offset> _screenPositionsFor(Map<String, Offset> positions) {
+    return {
+      for (final entry in positions.entries)
+        entry.key: _screenOffset(entry.value),
+    };
+  }
+
+  Offset _screenOffset(Offset worldOffset) {
+    return (worldOffset * _zoom) + _pan;
+  }
+
+  Offset _edgeLabelPosition(
+    SceneEdge edge,
+    Map<String, Offset> worldPositions,
+  ) {
+    final from = worldPositions[edge.fromNodeId];
+    final to = worldPositions[edge.toNodeId];
+    if (from == null || to == null) {
+      return const Offset(12, 12);
+    }
+    return Offset(
+      (from.dx + to.dx + _SceneGraphLayoutPlan.nodeWidth) / 2 - 38,
+      (from.dy + to.dy + _SceneGraphLayoutPlan.nodeHeight) / 2 - 14,
+    );
+  }
 }
 
 class _SceneGraphNodeCard extends StatelessWidget {
   const _SceneGraphNodeCard({
     required this.node,
     required this.position,
+    required this.zoom,
     required this.isSelected,
+    required this.canDrag,
     required this.onSelect,
+    required this.onDragDelta,
+    required this.onDragEnd,
   });
 
   final SceneNode node;
   final Offset position;
+  final double zoom;
   final bool isSelected;
+  final bool canDrag;
   final VoidCallback? onSelect;
+  final ValueChanged<Offset> onDragDelta;
+  final VoidCallback onDragEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -133,11 +323,16 @@ class _SceneGraphNodeCard extends StatelessWidget {
     return Positioned(
       left: position.dx,
       top: position.dy,
-      width: _SceneGraphLayoutPlan.nodeWidth,
-      height: _SceneGraphLayoutPlan.nodeHeight,
+      width: _SceneGraphLayoutPlan.nodeWidth * zoom,
+      height: _SceneGraphLayoutPlan.nodeHeight * zoom,
       child: GestureDetector(
+        key: ValueKey('scene-graph-node-drag-target-${node.id}'),
         behavior: HitTestBehavior.opaque,
         onTap: onSelect,
+        onPanStart: canDrag ? (_) => onSelect?.call() : null,
+        onPanUpdate: canDrag ? (details) => onDragDelta(details.delta) : null,
+        onPanEnd: canDrag ? (_) => onDragEnd() : null,
+        onPanCancel: canDrag ? onDragEnd : null,
         child: Stack(
           children: [
             if (isSelected)
@@ -151,62 +346,71 @@ class _SceneGraphNodeCard extends StatelessWidget {
                 ),
               ),
             Positioned.fill(
-              child: Padding(
-                padding: isSelected ? const EdgeInsets.all(3) : EdgeInsets.zero,
-                child: PokeMapCard(
-                  key: ValueKey('scene-graph-node-${node.id}'),
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+              child: Transform.scale(
+                alignment: Alignment.topLeft,
+                scale: zoom,
+                child: SizedBox(
+                  width: _SceneGraphLayoutPlan.nodeWidth,
+                  height: _SceneGraphLayoutPlan.nodeHeight,
+                  child: Padding(
+                    padding:
+                        isSelected ? const EdgeInsets.all(3) : EdgeInsets.zero,
+                    child: PokeMapCard(
+                      key: ValueKey('scene-graph-node-${node.id}'),
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          PokeMapIconTile(
-                            icon: _iconForNode(node.kind),
-                            tone: tone,
-                            size: 24,
-                            iconSize: 13,
-                          ),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: Text(
-                              node.title ?? _nodeKindLabel(node.kind),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: colors.textPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
+                          Row(
+                            children: [
+                              PokeMapIconTile(
+                                icon: _iconForNode(node.kind),
+                                tone: tone,
+                                size: 24,
+                                iconSize: 13,
                               ),
+                              const SizedBox(width: 7),
+                              Expanded(
+                                child: Text(
+                                  node.title ?? _nodeKindLabel(node.kind),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: colors.textPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _nodeKindLabel(node.kind),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
+                          if (node.description != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              node.description!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 10,
+                                height: 1.2,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        _nodeKindLabel(node.kind),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (node.description != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          node.description!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: colors.textMuted,
-                            fontSize: 10,
-                            height: 1.2,
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -233,9 +437,11 @@ class _SceneGraphEdgeLabel extends StatelessWidget {
       key: ValueKey('scene-graph-edge-${edge.id}'),
       left: position.dx,
       top: position.dy,
-      child: _SceneGraphBadge(
-        label:
-            edge.label ?? '${_edgeKindLabel(edge.kind)} · ${edge.fromPortId}',
+      child: IgnorePointer(
+        child: _SceneGraphBadge(
+          label:
+              edge.label ?? '${_edgeKindLabel(edge.kind)} · ${edge.fromPortId}',
+        ),
       ),
     );
   }
@@ -273,10 +479,125 @@ class _SceneGraphBadge extends StatelessWidget {
   }
 }
 
+class _SceneGraphCanvasControls extends StatelessWidget {
+  const _SceneGraphCanvasControls({
+    required this.zoom,
+    required this.onZoomOut,
+    required this.onZoomReset,
+    required this.onZoomIn,
+    required this.onResetView,
+  });
+
+  final double zoom;
+  final VoidCallback onZoomOut;
+  final VoidCallback onZoomReset;
+  final VoidCallback onZoomIn;
+  final VoidCallback onResetView;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PokeMapIconButton(
+          key: const ValueKey('scene-graph-zoom-out'),
+          onPressed: onZoomOut,
+          tooltip: 'Zoom arrière',
+          variant: PokeMapIconButtonVariant.soft,
+          size: 30,
+          icon: const Icon(CupertinoIcons.minus),
+        ),
+        const SizedBox(width: 6),
+        PokeMapButton(
+          key: const ValueKey('scene-graph-zoom-reset'),
+          onPressed: onZoomReset,
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          child: Text(
+            '${(zoom * 100).round()}%',
+            key: const ValueKey('scene-graph-zoom-label'),
+          ),
+        ),
+        const SizedBox(width: 6),
+        PokeMapIconButton(
+          key: const ValueKey('scene-graph-zoom-in'),
+          onPressed: onZoomIn,
+          tooltip: 'Zoom avant',
+          variant: PokeMapIconButtonVariant.soft,
+          size: 30,
+          icon: const Icon(CupertinoIcons.plus),
+        ),
+        const SizedBox(width: 6),
+        PokeMapIconButton(
+          key: const ValueKey('scene-graph-reset-view'),
+          onPressed: onResetView,
+          tooltip: 'Recentrer le canvas',
+          variant: PokeMapIconButtonVariant.soft,
+          size: 30,
+          icon: const Icon(CupertinoIcons.scope),
+        ),
+      ],
+    );
+  }
+}
+
+class _SceneGraphGridPainter extends CustomPainter {
+  const _SceneGraphGridPainter({
+    required this.pan,
+    required this.zoom,
+    required this.lineColor,
+    required this.majorLineColor,
+  });
+
+  final Offset pan;
+  final double zoom;
+  final Color lineColor;
+  final Color majorLineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final spacing = 24 * zoom;
+    if (spacing <= 0) {
+      return;
+    }
+    final minorPaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1;
+    final majorPaint = Paint()
+      ..color = majorLineColor
+      ..strokeWidth = 1.2;
+
+    final startX = pan.dx % spacing;
+    var column = ((-pan.dx + startX) / spacing).round();
+    for (var x = startX; x <= size.width; x += spacing) {
+      final paint = column % 4 == 0 ? majorPaint : minorPaint;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      column++;
+    }
+
+    final startY = pan.dy % spacing;
+    var row = ((-pan.dy + startY) / spacing).round();
+    for (var y = startY; y <= size.height; y += spacing) {
+      final paint = row % 4 == 0 ? majorPaint : minorPaint;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      row++;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SceneGraphGridPainter oldDelegate) {
+    return oldDelegate.pan != pan ||
+        oldDelegate.zoom != zoom ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.majorLineColor != majorLineColor;
+  }
+}
+
 class _SceneGraphEdgePainter extends CustomPainter {
   const _SceneGraphEdgePainter({
     required this.edges,
     required this.positions,
+    required this.zoom,
     required this.lineColor,
     required this.labelColor,
     required this.labelBackground,
@@ -284,6 +605,7 @@ class _SceneGraphEdgePainter extends CustomPainter {
 
   final List<SceneEdge> edges;
   final Map<String, Offset> positions;
+  final double zoom;
   final Color lineColor;
   final Color labelColor;
   final Color labelBackground;
@@ -302,14 +624,15 @@ class _SceneGraphEdgePainter extends CustomPainter {
         continue;
       }
       final start = Offset(
-        from.dx + _SceneGraphLayoutPlan.nodeWidth,
-        from.dy + (_SceneGraphLayoutPlan.nodeHeight / 2),
+        from.dx + (_SceneGraphLayoutPlan.nodeWidth * zoom),
+        from.dy + ((_SceneGraphLayoutPlan.nodeHeight * zoom) / 2),
       );
       final end = Offset(
         to.dx,
-        to.dy + (_SceneGraphLayoutPlan.nodeHeight / 2),
+        to.dy + ((_SceneGraphLayoutPlan.nodeHeight * zoom) / 2),
       );
-      final controlDistance = math.max(48, (end.dx - start.dx).abs() / 2);
+      final controlDistance =
+          math.max(48 * zoom, (end.dx - start.dx).abs() / 2);
       final path = Path()
         ..moveTo(start.dx, start.dy)
         ..cubicTo(
@@ -338,6 +661,7 @@ class _SceneGraphEdgePainter extends CustomPainter {
   bool shouldRepaint(covariant _SceneGraphEdgePainter oldDelegate) {
     return oldDelegate.edges != edges ||
         oldDelegate.positions != positions ||
+        oldDelegate.zoom != zoom ||
         oldDelegate.lineColor != lineColor ||
         oldDelegate.labelColor != labelColor ||
         oldDelegate.labelBackground != labelBackground;
@@ -457,18 +781,6 @@ class _SceneGraphLayoutPlan {
       );
     }
     return positions;
-  }
-
-  Offset edgeLabelPosition(SceneEdge edge) {
-    final from = positions[edge.fromNodeId];
-    final to = positions[edge.toNodeId];
-    if (from == null || to == null) {
-      return const Offset(12, 12);
-    }
-    return Offset(
-      (from.dx + to.dx + nodeWidth) / 2 - 38,
-      (from.dy + to.dy + nodeHeight) / 2 - 14,
-    );
   }
 }
 

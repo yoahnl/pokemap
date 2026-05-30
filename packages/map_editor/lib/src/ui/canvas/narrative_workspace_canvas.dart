@@ -199,6 +199,38 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
           },
+          onUpdateNodeLayout: ({
+            required String sceneId,
+            required String nodeId,
+            required double x,
+            required double y,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return;
+            }
+            try {
+              final result = updateSceneNodeLayout(
+                project.scenes[sceneIndex],
+                nodeId: nodeId,
+                x: x,
+                y: y,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene node layout updated',
+              );
+            } on ArgumentError {
+              return;
+            }
+          },
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
