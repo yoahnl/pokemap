@@ -1,5 +1,6 @@
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
+import '../read_models/linked_asset_public_contracts.dart';
 
 enum SceneDiagnosticSeverity {
   error,
@@ -28,6 +29,19 @@ enum SceneDiagnosticCode {
   conditionUsesRawTechnicalId,
   conditionSourceMigratesToFactRegistry,
   conditionFactRefUnknown,
+  conditionWorldRuleRefUnknown,
+  edgeFromPortUnsupported,
+  edgeKindUnsupportedForPort,
+  duplicateOutgoingPortEdge,
+  requiredOutputPortMissing,
+  unreachableNode,
+  unreachableEndNode,
+  cycleUnsupported,
+  actionNodeUnsupported,
+  branchByOutcomeUnsupported,
+  dialogueRefUnknown,
+  battleTrainerRefUnknown,
+  cinematicRefUnknown,
   emptyGraph,
   legacyScenarioLeak,
 }
@@ -248,9 +262,40 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
     }
   }
 
+  _diagnosePorts(scene, nodeById, diagnostics);
+  _diagnoseReachability(scene, nodeById, diagnostics);
+  _diagnoseCycles(scene, nodeById, diagnostics);
+
   for (final node in scene.graph.nodes) {
     if (node.kind == SceneNodeKind.condition) {
       _diagnoseConditionNode(scene, node, diagnostics);
+    } else if (node.kind == SceneNodeKind.action) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.actionNodeUnsupported,
+          severity: SceneDiagnosticSeverity.warning,
+          message: 'ActionNode attend encore un contrat Action public V0.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel:
+              'Garder le nœud en draft ou attendre Action/Consequence V0.',
+        ),
+      );
+    } else if (node.kind == SceneNodeKind.branchByOutcome) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.branchByOutcomeUnsupported,
+          severity: SceneDiagnosticSeverity.warning,
+          message:
+              'BranchByOutcome attend un mapping explicite outcome -> sortie.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel:
+              'Garder le nœud en draft ou attendre BranchByOutcome V0.',
+        ),
+      );
     }
   }
 
@@ -341,33 +386,343 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   ProjectManifest project,
 ) {
   final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
+  final contracts = buildLinkedAssetContractsSnapshot(project);
+  final dialogueIds =
+      contracts.dialogues.map((dialogue) => dialogue.id).toSet();
+  final trainerIds =
+      contracts.battles.map((battle) => battle.trainerId).toSet();
+  final cinematicIds =
+      contracts.cinematics.map((cinematic) => cinematic.id).toSet();
   final factIds = project.facts.map((fact) => fact.id).toSet();
+  final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
 
   for (final node in scene.graph.nodes) {
     final payload = node.payload;
-    if (payload is! SceneConditionPayload) {
+    switch (payload) {
+      case SceneYarnDialoguePayload():
+        if (!dialogueIds.contains(payload.dialogueId)) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.dialogueRefUnknown,
+              severity: SceneDiagnosticSeverity.error,
+              message: 'Le dialogue Yarn référencé est absent du projet.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir un dialogue existant.',
+            ),
+          );
+        }
+      case SceneBattlePayload():
+        if (payload.battleKind == 'trainer' &&
+            (payload.trainerId == null ||
+                !trainerIds.contains(payload.trainerId))) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.battleTrainerRefUnknown,
+              severity: SceneDiagnosticSeverity.error,
+              message: 'Le combat trainer référence un dresseur absent.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir un trainer existant.',
+            ),
+          );
+        }
+      case SceneCinematicPayload():
+        if (!cinematicIds.contains(payload.cinematicId)) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.cinematicRefUnknown,
+              severity: SceneDiagnosticSeverity.warning,
+              message:
+                  'La cinématique référencée n’existe pas comme bridge public.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel:
+                  'Choisir un bridge cinematic existant ou attendre CinematicAsset.',
+            ),
+          );
+        }
+      case SceneConditionPayload():
+        final source = payload.conditionSource;
+        if (source == null) {
+          continue;
+        }
+        if (source.sourceKind == SceneConditionSourceKind.fact &&
+            !factIds.contains(source.sourceId)) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.conditionFactRefUnknown,
+              severity: SceneDiagnosticSeverity.error,
+              message: 'La condition référence un Fact absent du projet.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel: 'Choisir un Fact existant dans la registry.',
+            ),
+          );
+        }
+        if (source.sourceKind == SceneConditionSourceKind.worldState &&
+            !worldRuleIds.contains(source.sourceId)) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.conditionWorldRuleRefUnknown,
+              severity: SceneDiagnosticSeverity.warning,
+              message:
+                  'La condition référence une World Rule ou un état monde absent.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel:
+                  'Choisir une World Rule existante quand cette source sera active.',
+            ),
+          );
+        }
+      case SceneStartPayload():
+      case SceneEndPayload():
+      case SceneActionPayload():
+      case SceneBranchByOutcomePayload():
+      case SceneMergePayload():
+        break;
+    }
+  }
+
+  return SceneDiagnosticsReport(diagnostics: diagnostics);
+}
+
+void _diagnosePorts(
+  SceneAsset scene,
+  Map<String, SceneNode> nodeById,
+  List<SceneDiagnostic> diagnostics,
+) {
+  final edgeBySourcePort = <String, SceneEdge>{};
+
+  for (final edge in scene.graph.edges) {
+    final fromNode = nodeById[edge.fromNodeId];
+    if (fromNode == null) {
       continue;
     }
-    final source = payload.conditionSource;
-    if (source == null || source.sourceKind != SceneConditionSourceKind.fact) {
+    final portSpecs = _v0OutputPortSpecsForNode(fromNode);
+    if (portSpecs == null) {
       continue;
     }
-    if (!factIds.contains(source.sourceId)) {
+    final matchingPort = _findPortSpec(portSpecs, edge.fromPortId);
+    if (matchingPort == null) {
       diagnostics.add(
         SceneDiagnostic(
-          code: SceneDiagnosticCode.conditionFactRefUnknown,
+          code: SceneDiagnosticCode.edgeFromPortUnsupported,
           severity: SceneDiagnosticSeverity.error,
-          message: 'La condition référence un Fact absent du projet.',
+          message: 'Un lien part d’un port non supporté pour ce nœud.',
           sceneId: scene.id,
-          nodeId: node.id,
-          target: SceneDiagnosticTarget.node,
-          suggestedFixLabel: 'Choisir un Fact existant dans la registry.',
+          nodeId: fromNode.id,
+          edgeId: edge.id,
+          target: SceneDiagnosticTarget.edge,
+          suggestedFixLabel: 'Choisir un port de sortie disponible.',
+        ),
+      );
+      continue;
+    }
+    if (!matchingPort.edgeKinds.contains(edge.kind)) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.edgeKindUnsupportedForPort,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Le type de lien ne correspond pas au port source.',
+          sceneId: scene.id,
+          nodeId: fromNode.id,
+          edgeId: edge.id,
+          target: SceneDiagnosticTarget.edge,
+          suggestedFixLabel: 'Recréer le lien depuis le port source attendu.',
+        ),
+      );
+    }
+
+    final sourcePortKey = '${fromNode.id}|${edge.fromPortId}';
+    final previousEdge = edgeBySourcePort[sourcePortKey];
+    if (previousEdge == null) {
+      edgeBySourcePort[sourcePortKey] = edge;
+    } else {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.duplicateOutgoingPortEdge,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Ce port de sortie possède déjà un lien.',
+          sceneId: scene.id,
+          nodeId: fromNode.id,
+          edgeId: edge.id,
+          target: SceneDiagnosticTarget.edge,
+          suggestedFixLabel:
+              'Supprimer un des liens ou utiliser un autre port.',
         ),
       );
     }
   }
 
-  return SceneDiagnosticsReport(diagnostics: diagnostics);
+  for (final node in scene.graph.nodes) {
+    final portSpecs = _v0OutputPortSpecsForNode(node);
+    if (portSpecs == null) {
+      continue;
+    }
+    for (final port in portSpecs.where((port) => port.required)) {
+      final hasPortEdge = scene.graph.edges.any(
+        (edge) => edge.fromNodeId == node.id && edge.fromPortId == port.id,
+      );
+      if (hasPortEdge) {
+        continue;
+      }
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.requiredOutputPortMissing,
+          severity: SceneDiagnosticSeverity.warning,
+          message: 'Un port de sortie attendu n’est pas connecté.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Connecter le port ${port.id}.',
+        ),
+      );
+    }
+  }
+}
+
+void _diagnoseReachability(
+  SceneAsset scene,
+  Map<String, SceneNode> nodeById,
+  List<SceneDiagnostic> diagnostics,
+) {
+  final startNode = nodeById[scene.graph.startNodeId];
+  if (startNode == null) {
+    return;
+  }
+
+  final outgoingByNode = <String, List<SceneEdge>>{};
+  for (final edge in scene.graph.edges) {
+    outgoingByNode.putIfAbsent(edge.fromNodeId, () => []).add(edge);
+  }
+
+  final reachableNodeIds = <String>{};
+  final queue = <String>[startNode.id];
+  while (queue.isNotEmpty) {
+    final nodeId = queue.removeAt(0);
+    if (!reachableNodeIds.add(nodeId)) {
+      continue;
+    }
+    for (final edge in outgoingByNode[nodeId] ?? const <SceneEdge>[]) {
+      if (nodeById.containsKey(edge.toNodeId)) {
+        queue.add(edge.toNodeId);
+      }
+    }
+  }
+
+  for (final node in scene.graph.nodes) {
+    if (reachableNodeIds.contains(node.id)) {
+      continue;
+    }
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.unreachableNode,
+        severity: SceneDiagnosticSeverity.warning,
+        message: 'Ce nœud n’est pas atteignable depuis le départ.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Connecter ce nœud au graphe principal.',
+      ),
+    );
+    if (node.kind == SceneNodeKind.end) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.unreachableEndNode,
+          severity: SceneDiagnosticSeverity.warning,
+          message: 'Cette fin de scène n’est pas atteignable.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Créer un chemin vers cette fin ou la supprimer.',
+        ),
+      );
+    }
+  }
+
+  final hasReachableEnd = scene.graph.nodes.any(
+    (node) =>
+        node.kind == SceneNodeKind.end && reachableNodeIds.contains(node.id),
+  );
+  if (!hasReachableEnd &&
+      scene.graph.nodes.any((node) => node.kind == SceneNodeKind.end)) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.unreachableEndNode,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Aucune fin de scène n’est atteignable depuis le départ.',
+        sceneId: scene.id,
+        target: SceneDiagnosticTarget.graph,
+        suggestedFixLabel: 'Créer au moins un chemin vers une fin.',
+      ),
+    );
+  }
+}
+
+void _diagnoseCycles(
+  SceneAsset scene,
+  Map<String, SceneNode> nodeById,
+  List<SceneDiagnostic> diagnostics,
+) {
+  final startNode = nodeById[scene.graph.startNodeId];
+  if (startNode == null) {
+    return;
+  }
+  final outgoingByNode = <String, List<SceneEdge>>{};
+  for (final edge in scene.graph.edges) {
+    outgoingByNode.putIfAbsent(edge.fromNodeId, () => []).add(edge);
+  }
+  final visiting = <String>{};
+  final visited = <String>{};
+  String? cycleNodeId;
+
+  bool visit(String nodeId) {
+    if (cycleNodeId != null) {
+      return true;
+    }
+    if (visiting.contains(nodeId)) {
+      cycleNodeId = nodeId;
+      return true;
+    }
+    if (visited.contains(nodeId)) {
+      return false;
+    }
+    visiting.add(nodeId);
+    for (final edge in outgoingByNode[nodeId] ?? const <SceneEdge>[]) {
+      if (!nodeById.containsKey(edge.toNodeId)) {
+        continue;
+      }
+      if (visit(edge.toNodeId)) {
+        return true;
+      }
+    }
+    visiting.remove(nodeId);
+    visited.add(nodeId);
+    return false;
+  }
+
+  visit(startNode.id);
+  if (cycleNodeId == null) {
+    return;
+  }
+  diagnostics.add(
+    SceneDiagnostic(
+      code: SceneDiagnosticCode.cycleUnsupported,
+      severity: SceneDiagnosticSeverity.warning,
+      message: 'La scène contient un cycle non supporté en V0.',
+      sceneId: scene.id,
+      nodeId: cycleNodeId,
+      target: SceneDiagnosticTarget.graph,
+      suggestedFixLabel:
+          'Supprimer la boucle ou attendre le support runtime des cycles.',
+    ),
+  );
 }
 
 void _diagnoseConditionNode(
@@ -465,6 +820,68 @@ void _diagnoseConditionNode(
       ),
     );
   }
+}
+
+final class _SceneOutputPortSpec {
+  const _SceneOutputPortSpec({
+    required this.id,
+    required this.edgeKinds,
+    this.required = false,
+  });
+
+  final String id;
+  final Set<SceneEdgeKind> edgeKinds;
+  final bool required;
+}
+
+List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
+  return switch (node.kind) {
+    SceneNodeKind.start => const [
+        _SceneOutputPortSpec(
+          id: 'completed',
+          edgeKinds: {SceneEdgeKind.defaultFlow},
+          required: true,
+        ),
+      ],
+    SceneNodeKind.condition => const [
+        _SceneOutputPortSpec(
+          id: 'true',
+          edgeKinds: {SceneEdgeKind.conditionTrue},
+          required: true,
+        ),
+        _SceneOutputPortSpec(
+          id: 'false',
+          edgeKinds: {SceneEdgeKind.conditionFalse},
+          required: true,
+        ),
+      ],
+    SceneNodeKind.merge => const [
+        _SceneOutputPortSpec(
+          id: 'completed',
+          edgeKinds: {SceneEdgeKind.defaultFlow},
+          required: true,
+        ),
+      ],
+    SceneNodeKind.end => const [],
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.action ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome =>
+      null,
+  };
+}
+
+_SceneOutputPortSpec? _findPortSpec(
+  List<_SceneOutputPortSpec> specs,
+  String portId,
+) {
+  for (final spec in specs) {
+    if (spec.id == portId) {
+      return spec;
+    }
+  }
+  return null;
 }
 
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {

@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-25 — Diagnostics / Validator Expansion
+NS-SCENES-V1-26 — Scene Runtime Executor MVP
 ```
 
 ## Principes
@@ -47,7 +47,7 @@ NS-SCENES-V1-25 — Diagnostics / Validator Expansion
 | NS-SCENES-V1-23 | Event to Scene Trigger Prep | doc / architecture-review | Auditer les events existants et decider le contrat minimal Event local -> Scene V1. | Pas de modele persiste, pas de generated files, pas de runtime, pas de StorylineStep link, pas de migration ScenarioAsset. | rapport V1-23, roadmaps. | DONE : `git diff --check`. | Coder trop vite un champ `sceneId` au mauvais niveau ; recreer un script cache. | DONE : decision `startScene` page/action retenue, implementation reportee a un bis. | V1-21, V1-22. |
 | NS-SCENES-V1-23-bis | Event to Scene Link V0 | core / editor | Implementer le lien authoring persistant minimal `MapEventPage -> Scene V1` avec refs reelles, diagnostics et UI/picker bornes, sans execution runtime. | Pas de SceneRuntimePlan, pas de runtime Scene, pas de StorylineStep link, pas de ScenarioAsset final, pas de fake event/scene. | `map_event_definition.dart`, operations map events, validators/diagnostics, event properties panel, tests. | DONE : JSON/ops/validator/diagnostics/editor cible ; scene existante OK, scene manquante error, event sans scene OK, refs legacy non promues. | Toucher Freezed/JSON/generated ; melanger script/message/scene ; rendre le runtime implicite. | DONE : un event/page peut cibler une Scene reelle de facon visible et validable, sans execution. | V1-23. |
 | NS-SCENES-V1-24 | Scene Runtime Plan V0 | core | Ajouter `SceneRuntimePlan`, intents, builder pur depuis `SceneAsset` valide. | Pas d'execution runtime, pas de Flutter, pas de `ScenarioAsset` auto. | `packages/map_core/lib/src/runtime/scene_runtime_plan.dart`, `scene_runtime_plan_builder.dart`, tests core. | DONE : start/end/condition/merge/dialogue/battle/cinematic intents, diagnostics Scene error bloque, Action/Branch unsupported, layout ignore. | Figer trop tot un executor ; dupliquer ScenarioRuntime ; ignorer Event -> Scene. | DONE : plan pur testable, ignore layout, refuse scenes invalides et nodes unsupported, aucun runtime. | V1-22, V1-23 utile. |
-| NS-SCENES-V1-25 | Diagnostics / Validator Expansion | core / editor | Etendre diagnostics aux refs, ports requis, outcomes non geres, unreachable, cycles, sources conditions, facts, world rules et Event -> Scene. | Pas de correction auto, pas de Validator global complet si trop large. | `scene_diagnostics.dart`, diagnostics world rules/event, UI diagnostics. | Tests refs inconnues, missing outputs, unreachable, cycles, severity, fact/world rule/event refs. | Trop bloquer les drafts ; confusion warning/error. | Builder guide l'auteur sans empecher draft minimal valide, erreurs runtime bloquantes explicites. | V1-22, V1-23, V1-24. |
+| NS-SCENES-V1-25 | Diagnostics / Validator Expansion | core / editor | DONE : diagnostics refs projet, ports V0, duplicates, unreachable/cycles et Event -> Scene readiness renforces. | Pas de correction auto, pas de Validator global complet si trop large. | `scene_diagnostics.dart`, `event_scene_link_diagnostics.dart`, tests diagnostics/runtime-plan. | DONE : tests refs inconnues, missing outputs, unreachable, cycles, severity, fact/world rule/event refs. | Trop bloquer les drafts ; confusion warning/error. | DONE : erreurs runtime bloquantes explicites, warnings authoring conserves pour drafts, builder runtime-plan reste pur. | V1-22, V1-23, V1-24. |
 | NS-SCENES-V1-26 | Scene Runtime Executor MVP | runtime / core | Executer un sous-ensemble `SceneRuntimePlan` : start/end/dialogue/cinematic/battle/action via callbacks limites. | Pas de full bridge ScenarioAsset, pas StorylineStep link, pas de consequences persistantes implicites. | `map_runtime` scene executor, tests runtime. | Tests invalid scene blocked, dialogue/action/end outcomes, no layout dependency. | Refaire ScenarioRuntimeExecutor ; effets persistants implicites. | Executor lance un plan minimal, callbacks explicites, aucun ScenarioAsset canonique. | V1-24, V1-25. |
 | NS-SCENES-V1-27 | World Rules Map Editor Integration V0 | editor / core | Rendre les World Rules visibles/configurables depuis les maps, entites, PNJ et events cibles. | Pas de runtime Scene complet, pas de collision/warp dynamique, pas de seed Selbrume. | map/entity inspectors, world rule pickers, diagnostics. | Tests affichage contextuel, picker target, refs inconnues, overview toujours coherent. | World Rules inutilisables si seulement en overview ; UI trop large. | Les rules peuvent etre inspectees depuis leur cible map sans exposer flags bruts. | V1-20, V1-25 utile. |
 | NS-SCENES-V1-28 | Golden Slice Selbrume Scene/Event Prep | mixed / fixtures | Preparer le slice Lysa/rival en fixtures ou projet controle : event -> scene -> dialogue/outcome -> combat/consequence. | Pas de seed produit hardcode, pas de raccourci runtime. | fixtures tests, reports Selbrume. | Golden tests atteignabilite, diagnostics, event trigger prep. | Mettre des donnees Selbrume dans le produit ; scope trop large. | Slice de test prouve la chaine, sans hardcode produit. | V1-22, V1-23, V1-26, V1-27. |
@@ -287,6 +287,20 @@ Limites : pas de `SceneRuntimeExecutor`, pas de runtime Scene, pas de Event -> S
 Tests : `cd packages/map_core && dart test test/scene_runtime_plan_test.dart`, `cd packages/map_core && dart analyze`, `git diff --check`.
 
 Prochain lot exact : `NS-SCENES-V1-25 — Diagnostics / Validator Expansion`.
+
+## Mise a jour V1-25
+
+Statut : `NS-SCENES-V1-25 — Diagnostics / Validator Expansion` est DONE.
+
+Decision : V1-25 renforce le filet de securite sans ouvrir l'execution runtime. Les diagnostics locaux couvrent les ports V0 incompatibles, le type de lien incoherent, les doublons depuis un port single-output, les ports requis manquants, les nodes non atteignables, les fins non atteignables et les cycles V0 non supportes. Les diagnostics cross-project verifient Dialogue, Battle trainer, Fact, World Rule future source et Cinematic bridge via `ProjectManifest` et `LinkedAssetContractsSnapshot`.
+
+Event -> Scene : `diagnoseEventSceneLinks` detecte maintenant les pages qui melangent `sceneTarget` avec message/script legacy et signale une erreur runtime-readiness quand la Scene cible ne peut pas produire de `SceneRuntimePlan`.
+
+Limites : pas d'editor surfacing nouveau, pas de runtime Scene, pas de `SceneRuntimeExecutor`, pas de ScenarioAsset promu, pas de StorylineStep link, pas de donnees Selbrume. Les payloads/refs impossibles via les constructeurs stricts restent proteges au niveau modele.
+
+Tests : `cd packages/map_core && dart test test/scene_diagnostics_test.dart`, `cd packages/map_core && dart test test/scene_project_diagnostics_test.dart`, `cd packages/map_core && dart test test/event_scene_link_diagnostics_test.dart`, `cd packages/map_core && dart test test/scene_runtime_plan_test.dart`, `cd packages/map_core && dart analyze`, `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-26 — Scene Runtime Executor MVP`.
 
 ## Selbrume golden slice
 

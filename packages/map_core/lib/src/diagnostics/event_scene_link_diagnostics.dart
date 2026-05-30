@@ -1,5 +1,7 @@
 import '../models/map_data.dart';
+import '../models/map_event_definition.dart';
 import '../models/project_manifest.dart';
+import '../runtime/scene_runtime_plan_builder.dart';
 import 'scene_diagnostics.dart';
 
 enum EventSceneLinkDiagnosticSeverity {
@@ -13,6 +15,8 @@ enum EventSceneLinkDiagnosticCode {
   eventSceneTargetEmpty,
   eventSceneTargetDisabledPage,
   eventSceneTargetSceneHasErrors,
+  eventSceneTargetRuntimePlanNotBuildable,
+  eventSceneTargetMixedLegacyContent,
 }
 
 final class EventSceneLinkDiagnostic {
@@ -176,6 +180,25 @@ EventSceneLinkDiagnosticsReport diagnoseEventSceneLinks({
           );
         }
 
+        if (_hasLegacyPageContent(page)) {
+          diagnostics.add(
+            EventSceneLinkDiagnostic(
+              code: EventSceneLinkDiagnosticCode
+                  .eventSceneTargetMixedLegacyContent,
+              severity: EventSceneLinkDiagnosticSeverity.warning,
+              message:
+                  'La page combine une cible Scene V1 avec du contenu legacy.',
+              mapId: map.id,
+              eventId: event.id,
+              pageNumber: page.pageNumber,
+              pageIndex: pageIndex,
+              sceneId: sceneId,
+              suggestedFixLabel:
+                  'Vérifier si message/script doivent rester avec la Scene.',
+            ),
+          );
+        }
+
         if (diagnoseScene(scene).hasErrors) {
           diagnostics.add(
             EventSceneLinkDiagnostic(
@@ -193,9 +216,33 @@ EventSceneLinkDiagnosticsReport diagnoseEventSceneLinks({
             ),
           );
         }
+
+        final planResult = buildSceneRuntimePlan(scene);
+        if (!planResult.canBuild) {
+          diagnostics.add(
+            EventSceneLinkDiagnostic(
+              code: EventSceneLinkDiagnosticCode
+                  .eventSceneTargetRuntimePlanNotBuildable,
+              severity: EventSceneLinkDiagnosticSeverity.error,
+              message:
+                  'La Scene V1 ciblée ne peut pas produire de SceneRuntimePlan.',
+              mapId: map.id,
+              eventId: event.id,
+              pageNumber: page.pageNumber,
+              pageIndex: pageIndex,
+              sceneId: sceneId,
+              suggestedFixLabel:
+                  'Corriger les erreurs ou retirer les nodes non supportés.',
+            ),
+          );
+        }
       }
     }
   }
 
   return EventSceneLinkDiagnosticsReport(diagnostics: diagnostics);
+}
+
+bool _hasLegacyPageContent(MapEventPage page) {
+  return (page.message?.trim().isNotEmpty ?? false) || page.script != null;
 }

@@ -166,6 +166,289 @@ void main() {
           isEmpty);
     });
 
+    test('incompatible edge port emits blocking diagnostic', () {
+      final scene = _scene(
+        edges: [
+          SceneEdge(
+            id: 'edge_start_end',
+            fromNodeId: 'node_start',
+            fromPortId: 'missing',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      final diagnostic =
+          report.byCode(SceneDiagnosticCode.edgeFromPortUnsupported).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.edgeId, 'edge_start_end');
+      expect(diagnostic.nodeId, 'node_start');
+    });
+
+    test('edge kind mismatch emits blocking diagnostic', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_condition',
+            kind: SceneNodeKind.condition,
+            payload: _factConditionPayload(),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_condition_end',
+            fromNodeId: 'node_condition',
+            fromPortId: 'true',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      final diagnostic =
+          report.byCode(SceneDiagnosticCode.edgeKindUnsupportedForPort).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.edgeId, 'edge_condition_end');
+      expect(diagnostic.nodeId, 'node_condition');
+    });
+
+    test('duplicate edge from single output port emits blocking diagnostic',
+        () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_end',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_start_end_2',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      final diagnostic =
+          report.byCode(SceneDiagnosticCode.duplicateOutgoingPortEdge).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.nodeId, 'node_start');
+      expect(diagnostic.edgeId, 'edge_start_end_2');
+    });
+
+    test('missing required condition output emits warning', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_condition',
+            kind: SceneNodeKind.condition,
+            payload: _factConditionPayload(),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_condition_end',
+            fromNodeId: 'node_condition',
+            fromPortId: 'true',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.conditionTrue,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      final diagnostic =
+          report.byCode(SceneDiagnosticCode.requiredOutputPortMissing).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.warning);
+      expect(diagnostic.nodeId, 'node_condition');
+      expect(diagnostic.suggestedFixLabel, contains('false'));
+    });
+
+    test('unreachable node and unreachable end are diagnosed', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          SceneNode(id: 'node_merge', kind: SceneNodeKind.merge),
+          SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_end',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_merge_end_2',
+            fromNodeId: 'node_merge',
+            fromPortId: 'completed',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.unreachableNode)
+            .map((diagnostic) => diagnostic.nodeId),
+        containsAll(['node_merge', 'node_end_2']),
+      );
+      final unreachableEnd =
+          report.byCode(SceneDiagnosticCode.unreachableEndNode).single;
+      expect(unreachableEnd.severity, SceneDiagnosticSeverity.warning);
+      expect(unreachableEnd.nodeId, 'node_end_2');
+    });
+
+    test('cycle reachable from start is diagnosed as unsupported warning', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_condition',
+            kind: SceneNodeKind.condition,
+            payload: _factConditionPayload(),
+          ),
+          SceneNode(id: 'node_merge', kind: SceneNodeKind.merge),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_condition',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_condition_merge',
+            fromNodeId: 'node_condition',
+            fromPortId: 'true',
+            toNodeId: 'node_merge',
+            kind: SceneEdgeKind.conditionTrue,
+          ),
+          SceneEdge(
+            id: 'edge_merge_condition',
+            fromNodeId: 'node_merge',
+            fromPortId: 'completed',
+            toNodeId: 'node_condition',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_condition_end',
+            fromNodeId: 'node_condition',
+            fromPortId: 'false',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.conditionFalse,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      final diagnostic =
+          report.byCode(SceneDiagnosticCode.cycleUnsupported).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.warning);
+      expect(diagnostic.nodeId, 'node_condition');
+    });
+
+    test('action and branch nodes remain unsupported authoring warnings', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_action',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload(actionKind: 'action_test'),
+          ),
+          SceneNode(
+            id: 'node_branch',
+            kind: SceneNodeKind.branchByOutcome,
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_action',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_action',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_action_branch',
+            fromNodeId: 'node_action',
+            fromPortId: 'completed',
+            toNodeId: 'node_branch',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+          SceneEdge(
+            id: 'edge_branch_end',
+            fromNodeId: 'node_branch',
+            fromPortId: 'fallback',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.branchOutcome,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.actionNodeUnsupported)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.warning,
+      );
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.branchByOutcomeUnsupported)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.warning,
+      );
+    });
+
     test('fact source references must resolve against ProjectManifest facts',
         () {
       final scene = _scene(
@@ -271,12 +554,20 @@ void main() {
 
 ProjectManifest _project({
   List<NarrativeFactDefinition> facts = const [],
+  List<ProjectDialogueEntry> dialogues = const [],
+  List<ProjectTrainerEntry> trainers = const [],
+  List<ScenarioAsset> scenarios = const [],
+  List<WorldRuleDefinition> worldRules = const [],
 }) {
   return ProjectManifest(
     name: 'Scene diagnostics test',
     maps: const [],
     tilesets: const [],
     facts: facts,
+    dialogues: dialogues,
+    trainers: trainers,
+    scenarios: scenarios,
+    worldRules: worldRules,
   );
 }
 
@@ -318,5 +609,16 @@ SceneAsset _scene({
           ],
         ),
     declaredOutcomes: declaredOutcomes,
+  );
+}
+
+SceneConditionPayload _factConditionPayload() {
+  return SceneConditionPayload(
+    conditionSource: SceneConditionSource(
+      sourceKind: SceneConditionSourceKind.factLikeStoryFlag,
+      sourceId: 'flag_test',
+      operator: SceneConditionOperator.isTrue,
+      label: 'Flag test',
+    ),
   );
 }

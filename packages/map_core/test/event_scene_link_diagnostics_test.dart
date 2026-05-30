@@ -104,6 +104,60 @@ void main() {
           )
           .single;
       expect(diagnostic.severity, EventSceneLinkDiagnosticSeverity.warning);
+      expect(
+        report.byCode(
+          EventSceneLinkDiagnosticCode.eventSceneTargetRuntimePlanNotBuildable,
+        ),
+        hasLength(1),
+      );
+      expect(report.hasErrors, isTrue);
+    });
+
+    test('errors when the target scene cannot build a runtime plan', () {
+      final report = diagnoseEventSceneLinks(
+        project: _projectWithScenes([_notBuildableScene('scene_action')]),
+        maps: [
+          _mapWithPage(
+            const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_action'),
+            ),
+          ),
+        ],
+      );
+
+      final diagnostic = report
+          .byCode(
+            EventSceneLinkDiagnosticCode
+                .eventSceneTargetRuntimePlanNotBuildable,
+          )
+          .single;
+      expect(diagnostic.severity, EventSceneLinkDiagnosticSeverity.error);
+      expect(diagnostic.sceneId, 'scene_action');
+      expect(report.hasErrors, isTrue);
+    });
+
+    test('warns when legacy message or script coexist with scene target', () {
+      final report = diagnoseEventSceneLinks(
+        project: _projectWithScenes([_validScene('scene_intro')]),
+        maps: [
+          _mapWithPage(
+            const MapEventPage(
+              pageNumber: 0,
+              message: 'Legacy message',
+              script: ScriptRef(scriptId: 'script_test'),
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_intro'),
+            ),
+          ),
+        ],
+      );
+
+      final diagnostic = report
+          .byCode(
+            EventSceneLinkDiagnosticCode.eventSceneTargetMixedLegacyContent,
+          )
+          .single;
+      expect(diagnostic.severity, EventSceneLinkDiagnosticSeverity.warning);
       expect(report.hasErrors, isFalse);
     });
   });
@@ -173,6 +227,41 @@ SceneAsset _invalidScene(String id) {
       startNodeId: 'node_start',
       nodes: [
         SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+      ],
+    ),
+  );
+}
+
+SceneAsset _notBuildableScene(String id) {
+  return SceneAsset(
+    id: id,
+    name: 'Action Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload(actionKind: 'action_test'),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_action',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_action',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_action_end',
+          fromNodeId: 'node_action',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
       ],
     ),
   );

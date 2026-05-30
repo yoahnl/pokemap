@@ -148,11 +148,15 @@ void main() {
             SceneRuntimePlanDiagnosticCode.planBuildBlockedBySceneDiagnostics),
       );
       expect(
-        result.diagnostics.single.sourceSceneDiagnosticCode,
-        SceneDiagnosticCode.conditionSourceMissing,
+        result.diagnostics.map(
+          (diagnostic) => diagnostic.sourceSceneDiagnosticCode,
+        ),
+        contains(SceneDiagnosticCode.conditionSourceMissing),
       );
-      expect(result.diagnostics.single.severity,
-          SceneRuntimePlanDiagnosticSeverity.error);
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.severity),
+        everyElement(SceneRuntimePlanDiagnosticSeverity.error),
+      );
     });
 
     test('condition nodes become evaluateCondition intents', () {
