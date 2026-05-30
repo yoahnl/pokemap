@@ -472,6 +472,64 @@ void main() {
       );
     });
 
+    testWidgets('renders color-coded edge paths from output ports',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(
+          edges: [
+            SceneEdge(
+              id: 'edge_node_start_completed_node_condition',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_condition',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_node_condition_true_node_end',
+              fromNodeId: 'node_condition',
+              fromPortId: 'true',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.conditionTrue,
+            ),
+            SceneEdge(
+              id: 'edge_node_condition_false_node_end_2',
+              fromNodeId: 'node_condition',
+              fromPortId: 'false',
+              toNodeId: 'node_end_2',
+              kind: SceneEdgeKind.conditionFalse,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-output-port-node_condition-true',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-output-port-node_condition-false',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_15_wire_anchor_color_code.png',
+        ),
+      );
+    });
+
     testWidgets('trackpad pan zoom is ignored during visual port drag',
         (tester) async {
       await _pumpNarrativeShell(

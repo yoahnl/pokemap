@@ -89,6 +89,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
     final screenPositions = _screenPositionsFor(worldPositions);
     final inputPorts = _inputPortPlacements(screenPositions);
     final outputPorts = _outputPortPlacements(screenPositions);
+    final edgeColors = _SceneGraphEdgeColors.fromTokens(colors);
     final canvas = ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: DecoratedBox(
@@ -130,10 +131,13 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                           painter: _SceneGraphEdgePainter(
                             edges: scene.graph.edges,
                             positions: screenPositions,
+                            outputPortCenters:
+                                _outputPortCentersByKey(outputPorts),
+                            inputPortCenters:
+                                _inputPortCentersByNodeId(inputPorts),
                             zoom: _zoom,
                             selectedEdgeId: selectedEdgeId,
-                            lineColor: colors.borderStrong,
-                            selectedLineColor: colors.focusRing,
+                            edgeColors: edgeColors,
                             selectedShadowColor: colors.focusRing,
                             labelColor: colors.textSecondary,
                             labelBackground: colors.cardSurface,
@@ -162,7 +166,9 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                       ),
                       painter: _SceneGraphConnectionPreviewPainter(
                         connection: _visualConnection!,
-                        lineColor: colors.focusRing,
+                        lineColor: edgeColors.forKind(
+                          _visualConnection!.edgeKind,
+                        ),
                         shadowColor: colors.borderStrong,
                       ),
                     ),
@@ -187,6 +193,9 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                   isCompatible: _isCompatibleInputPort(port.nodeId),
                   isHovered:
                       _visualConnection?.hoveredTargetNodeId == port.nodeId,
+                  connectionColor: _visualConnection == null
+                      ? null
+                      : edgeColors.forKind(_visualConnection!.edgeKind),
                 ),
               for (final port in outputPorts)
                 _SceneGraphOutputPortHandle(
@@ -195,6 +204,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                     port.nodeId,
                     port.port.id,
                   ),
+                  toneColor: edgeColors.forKind(port.port.edgeKind),
                   onStart: () => _startVisualConnection(port),
                   onUpdate: _updateVisualConnection,
                   onEnd: _endVisualConnection,
@@ -361,6 +371,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       _visualConnection = _SceneGraphVisualConnection(
         fromNodeId: port.nodeId,
         fromPortId: port.port.id,
+        edgeKind: port.port.edgeKind,
         start: port.center,
         current: port.center,
       );
@@ -510,6 +521,23 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       }
     }
     return placements;
+  }
+
+  Map<String, Offset> _inputPortCentersByNodeId(
+    List<_SceneGraphInputPortPlacement> ports,
+  ) {
+    return {
+      for (final port in ports) port.nodeId: port.center,
+    };
+  }
+
+  Map<String, Offset> _outputPortCentersByKey(
+    List<_SceneGraphOutputPortPlacement> ports,
+  ) {
+    return {
+      for (final port in ports)
+        _sceneGraphPortKey(port.nodeId, port.port.id): port.center,
+    };
   }
 
   Offset _inputPortCenter(Offset nodePosition) {
@@ -697,6 +725,7 @@ final class _SceneGraphVisualConnection {
   const _SceneGraphVisualConnection({
     required this.fromNodeId,
     required this.fromPortId,
+    required this.edgeKind,
     required this.start,
     required this.current,
     this.hoveredTargetNodeId,
@@ -704,6 +733,7 @@ final class _SceneGraphVisualConnection {
 
   final String fromNodeId;
   final String fromPortId;
+  final SceneEdgeKind edgeKind;
   final Offset start;
   final Offset current;
   final String? hoveredTargetNodeId;
@@ -715,6 +745,7 @@ final class _SceneGraphVisualConnection {
     return _SceneGraphVisualConnection(
       fromNodeId: fromNodeId,
       fromPortId: fromPortId,
+      edgeKind: edgeKind,
       start: start,
       current: current,
       hoveredTargetNodeId: hoveredTargetNodeId,
@@ -755,24 +786,27 @@ class _SceneGraphInputPortHandle extends StatelessWidget {
     required this.placement,
     required this.isCompatible,
     required this.isHovered,
+    required this.connectionColor,
   });
 
   final _SceneGraphInputPortPlacement placement;
   final bool isCompatible;
   final bool isHovered;
+  final Color? connectionColor;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final activeColor = connectionColor ?? colors.success;
     final borderColor = isHovered
-        ? colors.focusRing
+        ? activeColor
         : isCompatible
-            ? colors.success
+            ? activeColor
             : colors.borderStrong;
     final fillColor = isHovered
-        ? colors.focusRing.withValues(alpha: 0.28)
+        ? activeColor.withValues(alpha: 0.28)
         : isCompatible
-            ? colors.success.withValues(alpha: 0.2)
+            ? activeColor.withValues(alpha: 0.2)
             : colors.backgroundShell.withValues(alpha: 0.9);
     return Positioned(
       key: ValueKey('scene-graph-input-port-${placement.nodeId}-in'),
@@ -818,6 +852,7 @@ class _SceneGraphOutputPortHandle extends StatelessWidget {
   const _SceneGraphOutputPortHandle({
     required this.placement,
     required this.isDisabled,
+    required this.toneColor,
     required this.onStart,
     required this.onUpdate,
     required this.onEnd,
@@ -825,6 +860,7 @@ class _SceneGraphOutputPortHandle extends StatelessWidget {
 
   final _SceneGraphOutputPortPlacement placement;
   final bool isDisabled;
+  final Color toneColor;
   final VoidCallback onStart;
   final ValueChanged<Offset> onUpdate;
   final VoidCallback onEnd;
@@ -832,7 +868,7 @@ class _SceneGraphOutputPortHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final toneColor = isDisabled ? colors.textMuted : colors.focusRing;
+    final effectiveToneColor = isDisabled ? colors.textMuted : toneColor;
     return Positioned(
       key: ValueKey(
         'scene-graph-output-port-${placement.nodeId}-${placement.port.id}',
@@ -860,10 +896,10 @@ class _SceneGraphOutputPortHandle extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isDisabled
                           ? colors.backgroundShell.withValues(alpha: 0.85)
-                          : colors.focusRing.withValues(alpha: 0.22),
+                          : effectiveToneColor.withValues(alpha: 0.22),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: toneColor,
+                        color: effectiveToneColor,
                         width: isDisabled ? 1.2 : 1.8,
                       ),
                     ),
@@ -880,7 +916,7 @@ class _SceneGraphOutputPortHandle extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: toneColor,
+                    color: effectiveToneColor,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                   ),
@@ -964,6 +1000,9 @@ class _SceneGraphEdgeLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final toneColor = _SceneGraphEdgeColors.fromTokens(colors).forKind(
+      edge.kind,
+    );
     return Positioned(
       key: ValueKey('scene-graph-edge-${edge.id}'),
       left: position.dx,
@@ -977,17 +1016,17 @@ class _SceneGraphEdgeLabel extends StatelessWidget {
               : null,
           decoration: BoxDecoration(
             color: isSelected
-                ? colors.focusRing.withValues(alpha: 0.18)
+                ? toneColor.withValues(alpha: 0.18)
                 : colors.controlSurface,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: isSelected ? colors.focusRing : colors.borderSubtle,
+              color: isSelected ? toneColor : toneColor.withValues(alpha: 0.44),
               width: isSelected ? 1.5 : 1,
             ),
             boxShadow: [
               if (isSelected)
                 BoxShadow(
-                  color: colors.focusRing.withValues(alpha: 0.24),
+                  color: toneColor.withValues(alpha: 0.24),
                   blurRadius: 12,
                   spreadRadius: 1,
                 ),
@@ -998,7 +1037,7 @@ class _SceneGraphEdgeLabel extends StatelessWidget {
             child: Text(
               edge.label ?? '${_edgeKindLabel(edge.kind)} · ${edge.fromPortId}',
               style: TextStyle(
-                color: isSelected ? colors.textPrimary : colors.textSecondary,
+                color: isSelected ? colors.textPrimary : toneColor,
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w900 : FontWeight.w800,
               ),
@@ -1131,6 +1170,66 @@ class _SceneGraphCanvasControls extends StatelessWidget {
   }
 }
 
+final class _SceneGraphEdgeColors {
+  const _SceneGraphEdgeColors({
+    required this.defaultFlow,
+    required this.conditionTrue,
+    required this.conditionFalse,
+    required this.dialogueOutcome,
+    required this.battleVictory,
+    required this.battleDefeat,
+    required this.cinematicCompleted,
+    required this.actionCompleted,
+    required this.branchOutcome,
+    required this.error,
+    required this.blocked,
+  });
+
+  factory _SceneGraphEdgeColors.fromTokens(PokeMapColorTokens colors) {
+    return _SceneGraphEdgeColors(
+      defaultFlow: colors.textPrimary.withValues(alpha: 0.86),
+      conditionTrue: colors.success,
+      conditionFalse: colors.error,
+      dialogueOutcome: colors.focusRing,
+      battleVictory: colors.success,
+      battleDefeat: colors.error,
+      cinematicCompleted: colors.warning,
+      actionCompleted: colors.warning,
+      branchOutcome: colors.focusRing,
+      error: colors.error,
+      blocked: colors.warning,
+    );
+  }
+
+  final Color defaultFlow;
+  final Color conditionTrue;
+  final Color conditionFalse;
+  final Color dialogueOutcome;
+  final Color battleVictory;
+  final Color battleDefeat;
+  final Color cinematicCompleted;
+  final Color actionCompleted;
+  final Color branchOutcome;
+  final Color error;
+  final Color blocked;
+
+  Color forKind(SceneEdgeKind kind) {
+    return switch (kind) {
+      SceneEdgeKind.defaultFlow => defaultFlow,
+      SceneEdgeKind.conditionTrue => conditionTrue,
+      SceneEdgeKind.conditionFalse => conditionFalse,
+      SceneEdgeKind.dialogueOutcome => dialogueOutcome,
+      SceneEdgeKind.battleVictory => battleVictory,
+      SceneEdgeKind.battleDefeat => battleDefeat,
+      SceneEdgeKind.cinematicCompleted => cinematicCompleted,
+      SceneEdgeKind.actionCompleted => actionCompleted,
+      SceneEdgeKind.branchOutcome => branchOutcome,
+      SceneEdgeKind.error => error,
+      SceneEdgeKind.blocked => blocked,
+    };
+  }
+}
+
 class _SceneGraphGridPainter extends CustomPainter {
   const _SceneGraphGridPainter({
     required this.pan,
@@ -1187,10 +1286,11 @@ class _SceneGraphEdgePainter extends CustomPainter {
   const _SceneGraphEdgePainter({
     required this.edges,
     required this.positions,
+    required this.outputPortCenters,
+    required this.inputPortCenters,
     required this.zoom,
     required this.selectedEdgeId,
-    required this.lineColor,
-    required this.selectedLineColor,
+    required this.edgeColors,
     required this.selectedShadowColor,
     required this.labelColor,
     required this.labelBackground,
@@ -1198,10 +1298,11 @@ class _SceneGraphEdgePainter extends CustomPainter {
 
   final List<SceneEdge> edges;
   final Map<String, Offset> positions;
+  final Map<String, Offset> outputPortCenters;
+  final Map<String, Offset> inputPortCenters;
   final double zoom;
   final String? selectedEdgeId;
-  final Color lineColor;
-  final Color selectedLineColor;
+  final _SceneGraphEdgeColors edgeColors;
   final Color selectedShadowColor;
   final Color labelColor;
   final Color labelBackground;
@@ -1215,19 +1316,23 @@ class _SceneGraphEdgePainter extends CustomPainter {
         continue;
       }
       final selected = edge.id == selectedEdgeId;
+      final lineColor = edgeColors.forKind(edge.kind);
       final paint = Paint()
-        ..color = selected ? selectedLineColor : lineColor
+        ..color = lineColor
         ..strokeWidth = selected ? 2.8 : 1.4
         ..style = PaintingStyle.stroke
         ..strokeCap = selected ? StrokeCap.round : StrokeCap.butt;
-      final start = Offset(
-        from.dx + (_SceneGraphLayoutPlan.nodeWidth * zoom),
-        from.dy + ((_SceneGraphLayoutPlan.nodeHeight * zoom) / 2),
-      );
-      final end = Offset(
-        to.dx,
-        to.dy + ((_SceneGraphLayoutPlan.nodeHeight * zoom) / 2),
-      );
+      final start = outputPortCenters[
+              _sceneGraphPortKey(edge.fromNodeId, edge.fromPortId)] ??
+          Offset(
+            from.dx + (_SceneGraphLayoutPlan.nodeWidth * zoom),
+            from.dy + ((_SceneGraphLayoutPlan.nodeHeight * zoom) / 2),
+          );
+      final end = inputPortCenters[edge.toNodeId] ??
+          Offset(
+            to.dx,
+            to.dy + ((_SceneGraphLayoutPlan.nodeHeight * zoom) / 2),
+          );
       final controlDistance =
           math.max(48 * zoom, (end.dx - start.dx).abs() / 2);
       final path = Path()
@@ -1268,10 +1373,11 @@ class _SceneGraphEdgePainter extends CustomPainter {
   bool shouldRepaint(covariant _SceneGraphEdgePainter oldDelegate) {
     return oldDelegate.edges != edges ||
         oldDelegate.positions != positions ||
+        oldDelegate.outputPortCenters != outputPortCenters ||
+        oldDelegate.inputPortCenters != inputPortCenters ||
         oldDelegate.zoom != zoom ||
         oldDelegate.selectedEdgeId != selectedEdgeId ||
-        oldDelegate.lineColor != lineColor ||
-        oldDelegate.selectedLineColor != selectedLineColor ||
+        oldDelegate.edgeColors != edgeColors ||
         oldDelegate.selectedShadowColor != selectedShadowColor ||
         oldDelegate.labelColor != labelColor ||
         oldDelegate.labelBackground != labelBackground;
@@ -1451,3 +1557,5 @@ String _edgeKindLabel(SceneEdgeKind kind) {
     SceneEdgeKind.blocked => 'blocked',
   };
 }
+
+String _sceneGraphPortKey(String nodeId, String portId) => '$nodeId::$portId';
