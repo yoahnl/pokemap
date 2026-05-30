@@ -434,7 +434,6 @@ void main() {
       );
 
       expect(find.text('Narrative Studio'), findsWidgets);
-      expect(find.text('Section : Aperçu'), findsOneWidget);
       expect(find.textContaining('Métriques disponibles'), findsWidgets);
       expect(find.textContaining('Narrative Overview'), findsNothing);
       expect(

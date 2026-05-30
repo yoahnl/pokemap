@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
-import 'package:map_editor/src/ui/panels/narrative_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
@@ -84,9 +83,20 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         ref.watch(editorNotifierProvider.select((s) => s.activeMap));
     final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
+
+    final isNarrativeWorkspace = switch (workspaceMode) {
+      EditorWorkspaceMode.narrativeOverview ||
+      EditorWorkspaceMode.globalStory ||
+      EditorWorkspaceMode.scenes ||
+      EditorWorkspaceMode.step ||
+      EditorWorkspaceMode.cutscene ||
+      EditorWorkspaceMode.dialogue =>
+        true,
+      _ => false,
+    };
+
     final supportsRightInspector = switch (workspaceMode) {
-      EditorWorkspaceMode.narrativeOverview => false,
-      EditorWorkspaceMode.scenes => false,
+      _ when isNarrativeWorkspace => false,
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.pathStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
@@ -106,17 +116,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         _flashToast(next, isError: false);
       }
     });
-
-    final isNarrativeWorkspace = switch (workspaceMode) {
-      EditorWorkspaceMode.narrativeOverview ||
-      EditorWorkspaceMode.globalStory ||
-      EditorWorkspaceMode.scenes ||
-      EditorWorkspaceMode.step ||
-      EditorWorkspaceMode.cutscene ||
-      EditorWorkspaceMode.dialogue =>
-        true,
-      _ => false,
-    };
 
     final double expandedWidth = isNarrativeWorkspace ? 268.0 : 344.0;
     final double currentSidebarWidth =
@@ -595,12 +594,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                 EditorWorkspaceMode
                                                       .environmentStudio =>
                                                   const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode
-                                                    .globalStory ||
+                                                EditorWorkspaceMode.globalStory ||
                                                 EditorWorkspaceMode.step ||
                                                 EditorWorkspaceMode.cutscene ||
                                                 EditorWorkspaceMode.dialogue =>
-                                                  const NarrativeInspectorPanel(),
+                                                  const _EmptyWorkspaceInspector(),
                                               },
                                             ),
                                           ),
