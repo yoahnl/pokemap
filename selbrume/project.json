@@ -13041,6 +13041,8 @@
       }
     }
   ],
+  "facts": [],
+  "worldRules": [],
   "scenes": [
     {
       "id": "scene_test",
@@ -13070,7 +13072,17 @@
             "kind": "condition",
             "title": "Condition",
             "payload": {
-              "kind": "condition"
+              "kind": "condition",
+              "conditionLabel": "Introduction à Selbrume",
+              "conditionRef": "step_intro_selbrume",
+              "conditionSource": {
+                "sourceKind": "storyStepCompletion",
+                "sourceId": "step_intro_selbrume",
+                "operator": "equals",
+                "value": "completed",
+                "label": "Introduction à Selbrume",
+                "debugTechnicalLabel": "story_main_brume_phare:chapter_1_port:step_intro_selbrume"
+              }
             }
           },
           {
@@ -13113,7 +13125,7 @@
         "nodeLayouts": [
           {
             "nodeId": "node_start",
-            "x": 128.27734375,
+            "x": 104.63287559117919,
             "y": 149.69921875
           },
           {
@@ -13123,8 +13135,8 @@
           },
           {
             "nodeId": "node_condition",
-            "x": 456.3125,
-            "y": 61.62890625
+            "x": 406.3125,
+            "y": 37.62890625
           },
           {
             "nodeId": "node_end_2",
