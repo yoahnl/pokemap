@@ -307,6 +307,136 @@ void main() {
       expect(find.text('Annonce au port'), findsNothing);
     });
 
+    testWidgets(
+        'dialogue payload picker creates a Yarn node from real contracts',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithPayloadPickerContracts(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-yarn')),
+      );
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-yarn')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-dialogue-picker-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Test Dialogue'), findsOneWidget);
+      expect(find.text('test_dialogue'), findsWidgets);
+      expect(find.text('dialogues/test_dialogue.yarn'), findsOneWidget);
+      expect(
+        find.text(
+            'Dialogue outcomes are not exposed by a public contract yet.'),
+        findsOneWidget,
+      );
+      expect(find.text('confident'), findsNothing);
+      expect(find.text('hesitant'), findsNothing);
+      expect(find.text('aggressive'), findsNothing);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-dialogue-picker-option-test_dialogue'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      final node = scene.graph.nodes.last;
+      expect(node.kind, SceneNodeKind.yarnDialogue);
+      expect(node.title, 'Test Dialogue');
+      final payload = node.payload as SceneYarnDialoguePayload;
+      expect(payload.dialogueId, 'test_dialogue');
+      expect(payload.yarnNodeName, 'Start');
+      expect(payload.expectedOutcomes, isEmpty);
+      expect(
+          find.byKey(ValueKey('scene-graph-node-${node.id}')), findsOneWidget);
+      expect(find.text('dialogue_demo'), findsNothing);
+      expect(find.text('selbrume_port'), findsNothing);
+    });
+
+    testWidgets(
+        'battle payload picker creates trainer battle node from contracts',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithPayloadPickerContracts(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-battle')),
+      );
+      await tester.tap(find.byKey(const ValueKey('scenes-add-node-battle')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-battle-picker-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Trainer Test Trainer'), findsOneWidget);
+      expect(find.text('test_trainer'), findsWidgets);
+      expect(find.text('trainer'), findsWidgets);
+      expect(find.text('victory / defeat'), findsOneWidget);
+      expect(find.text('Trainer battle has no authored team yet.'),
+          findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-battle-picker-option-trainer_test_trainer'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      final node = scene.graph.nodes.last;
+      expect(node.kind, SceneNodeKind.battle);
+      expect(node.title, 'Trainer Test Trainer');
+      final payload = node.payload as SceneBattlePayload;
+      expect(payload.battleKind, 'trainer');
+      expect(payload.trainerId, 'test_trainer');
+      expect(payload.declaredOutcomes, ['victory', 'defeat']);
+      expect(
+          find.byKey(ValueKey('scene-graph-node-${node.id}')), findsOneWidget);
+      expect(find.text('battle_demo'), findsNothing);
+      expect(find.text('trainer_lysa'), findsNothing);
+    });
+
+    testWidgets('cinematic action and branch remain honestly disabled',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithPayloadPickerContracts(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final cinematicButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('scenes-add-node-cinematic-disabled')).first,
+      );
+      final actionButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('scenes-add-node-action-disabled')).first,
+      );
+      final branchButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('scenes-add-node-branch-disabled')).first,
+      );
+
+      expect(cinematicButton.onPressed, isNull);
+      expect(actionButton.onPressed, isNull);
+      expect(branchButton.onPressed, isNull);
+      expect(find.textContaining('bridge Scenario'), findsOneWidget);
+      expect(find.textContaining('contrat futur'), findsOneWidget);
+      expect(find.textContaining('mapping futur'), findsOneWidget);
+      expect(find.text('CinematicAsset final'), findsNothing);
+      expect(find.text('mael_intro'), findsNothing);
+      expect(find.text('lysa_rival'), findsNothing);
+    });
+
     testWidgets('connects start.completed to a target node explicitly',
         (tester) async {
       final project = _projectWithEdgeAuthoringScene();
@@ -2164,6 +2294,67 @@ ProjectManifest _projectWithEdgeAuthoringScene({
             SceneNodeLayout(nodeId: 'node_merge', x: 420, y: 210),
             SceneNodeLayout(nodeId: 'node_end', x: 420, y: 36),
             SceneNodeLayout(nodeId: 'node_end_2', x: 420, y: 154),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithPayloadPickerContracts() {
+  return ProjectManifest(
+    name: 'Scenes payload picker test',
+    maps: const [],
+    tilesets: const [],
+    dialogues: const [
+      ProjectDialogueEntry(
+        id: 'test_dialogue',
+        name: 'Test Dialogue',
+        relativePath: 'dialogues/test_dialogue.yarn',
+        defaultStartNode: 'Start',
+      ),
+    ],
+    trainers: const [
+      ProjectTrainerEntry(
+        id: 'test_trainer',
+        name: 'Test Trainer',
+        trainerClass: 'Trainer',
+      ),
+    ],
+    scenarios: const [
+      ScenarioAsset(
+        id: 'test_cinematic_bridge',
+        name: 'Test Cinematic Bridge',
+        entryNodeId: 'scenario_node_start',
+        nodes: [
+          ScenarioNode(
+            id: 'scenario_node_start',
+            type: ScenarioNodeType.start,
+            title: 'Start',
+          ),
+        ],
+        metadata: {
+          'authoring.cutsceneSchema': 'test_bridge',
+        },
+      ),
+    ],
+    scenes: [
+      SceneAsset(
+        id: 'scene_payload_picker',
+        name: 'Payload Picker Test Scene',
+        description: 'Fixture locale pour choisir des payloads.',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end, title: 'Fin'),
+          ],
+          edges: const [],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_end', x: 420, y: 80),
           ],
         ),
       ),

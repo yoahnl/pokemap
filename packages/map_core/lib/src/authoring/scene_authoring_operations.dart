@@ -329,6 +329,64 @@ SceneNodeDraftCreationResult addSceneNodeDraft(
   );
 }
 
+SceneNodeDraftCreationResult addSceneLinkedAssetNodeDraft(
+  SceneAsset scene, {
+  required SceneNodePayload payload,
+  String? title,
+  String? afterNodeId,
+}) {
+  if (!_isSupportedLinkedAssetPayloadKind(payload.kind)) {
+    throw ArgumentError.value(
+      payload.kind,
+      'payload.kind',
+      'Scene node kind ${payload.kind.name} is not supported by Payload '
+          'Pickers V0.',
+    );
+  }
+
+  final nodeId = _uniqueNodeId(
+    _linkedAssetNodeIdBaseForKind(payload.kind),
+    scene.graph.nodes.map((node) => node.id),
+  );
+  final createdNode = SceneNode(
+    id: nodeId,
+    kind: payload.kind,
+    title:
+        _trimOptional(title) ?? _defaultLinkedAssetTitleForKind(payload.kind),
+    payload: payload,
+  );
+  final createdLayout = _layoutForNewNode(
+    scene,
+    nodeId: nodeId,
+    afterNodeId: afterNodeId,
+  );
+
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [...scene.graph.nodes, createdNode],
+      edges: scene.graph.edges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [...scene.layout.nodeLayouts, createdLayout],
+      edgeLayouts: scene.layout.edgeLayouts,
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneNodeDraftCreationResult(
+    updatedScene: updatedScene,
+    createdNode: createdNode,
+  );
+}
+
 SceneEdgeDraftCreationResult addSceneEdgeDraft(
   SceneAsset scene, {
   required String fromNodeId,
@@ -709,6 +767,22 @@ bool _isSupportedDraftNodeKind(SceneNodeKind kind) {
   };
 }
 
+bool _isSupportedLinkedAssetPayloadKind(SceneNodeKind kind) {
+  return switch (kind) {
+    SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.battle ||
+    SceneNodeKind.cinematic =>
+      true,
+    SceneNodeKind.start ||
+    SceneNodeKind.end ||
+    SceneNodeKind.condition ||
+    SceneNodeKind.action ||
+    SceneNodeKind.branchByOutcome ||
+    SceneNodeKind.merge =>
+      false,
+  };
+}
+
 String _nodeIdBaseForKind(SceneNodeKind kind) {
   return switch (kind) {
     SceneNodeKind.condition => 'node_condition',
@@ -724,6 +798,25 @@ String _nodeIdBaseForKind(SceneNodeKind kind) {
   };
 }
 
+String _linkedAssetNodeIdBaseForKind(SceneNodeKind kind) {
+  return switch (kind) {
+    SceneNodeKind.yarnDialogue => 'node_yarn_dialogue',
+    SceneNodeKind.battle => 'node_battle',
+    SceneNodeKind.cinematic => 'node_cinematic',
+    SceneNodeKind.start ||
+    SceneNodeKind.end ||
+    SceneNodeKind.condition ||
+    SceneNodeKind.action ||
+    SceneNodeKind.branchByOutcome ||
+    SceneNodeKind.merge =>
+      throw ArgumentError.value(
+        kind,
+        'kind',
+        'Unsupported linked asset node kind.',
+      ),
+  };
+}
+
 String _defaultTitleForKind(SceneNodeKind kind) {
   return switch (kind) {
     SceneNodeKind.condition => 'Condition',
@@ -736,6 +829,25 @@ String _defaultTitleForKind(SceneNodeKind kind) {
     SceneNodeKind.cinematic ||
     SceneNodeKind.branchByOutcome =>
       throw ArgumentError.value(kind, 'kind', 'Unsupported draft node kind.'),
+  };
+}
+
+String _defaultLinkedAssetTitleForKind(SceneNodeKind kind) {
+  return switch (kind) {
+    SceneNodeKind.yarnDialogue => 'Dialogue',
+    SceneNodeKind.battle => 'Combat',
+    SceneNodeKind.cinematic => 'Cinématique',
+    SceneNodeKind.start ||
+    SceneNodeKind.end ||
+    SceneNodeKind.condition ||
+    SceneNodeKind.action ||
+    SceneNodeKind.branchByOutcome ||
+    SceneNodeKind.merge =>
+      throw ArgumentError.value(
+        kind,
+        'kind',
+        'Unsupported linked asset node kind.',
+      ),
   };
 }
 

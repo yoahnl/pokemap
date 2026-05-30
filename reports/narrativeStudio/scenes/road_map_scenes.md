@@ -64,7 +64,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint | DONE | Checkpoint produit post World Rules : la suite retenue est Payload Pickers V0 avant Event -> Scene, Runtime Plan, diagnostics et runtime MVP. |
 | NS-SCENES-V1-21-prep — Linked Asset Public Contracts Audit | DONE | Audit documentaire des contrats publics exposes au Scene Builder par Dialogue Yarn, Cinematic/Cutscene, Battle, Action/Consequence et outcomes avant pickers. |
 | NS-SCENES-V1-21 — Linked Asset Contracts V0 | DONE | Contrats/read models publics minimaux dans `map_core` : Dialogue, Battle trainer, Cinematic scenarioBridge, snapshot agrege, diagnostics, statuts et outcomes disponibles, sans runtime ni UI picker. |
-| NS-SCENES-V1-22 — Payload Pickers V0 | TODO | Ajouter des pickers/drafts honnetes pour Yarn, Cinematic, Battle et Action en consommant les contrats publics, pas des IDs bruts. |
+| NS-SCENES-V1-22 — Payload Pickers V0 | DONE | Ajouter des pickers/drafts honnetes pour Dialogue Yarn et Battle trainer depuis les contrats publics V1-21 ; Cinematic reste bridgeOnly/desactive, Action et Branch restent desactives. |
 | NS-SCENES-V1-23 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume, sans execution runtime complete. |
 | NS-SCENES-V1-24 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
 | NS-SCENES-V1-25 — Diagnostics / Validator Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles, payloads incomplets, Facts et World Rules. |
@@ -75,13 +75,28 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-22 — Payload Pickers V0`
+`NS-SCENES-V1-23 — Event to Scene Trigger Prep`
 
-Raison : V1-21 a produit les contrats publics minimaux que les futurs pickers doivent consommer. Le Scene Builder peut maintenant lire des refs stables, labels, statuts, diagnostics et outcomes disponibles pour Dialogue, Battle trainer et Cinematic bridge explicite, sans ouvrir les entrailles des assets. Le prochain blocage produit redevient donc l'UI de pickers/drafts honnetes pour configurer les payloads metier sans IDs bruts ni fake refs.
+Raison : V1-22 permet maintenant d'ajouter des nodes Dialogue Yarn et Battle trainer depuis des contrats publics reels, sans champ d'ID brut ni fake ref. La scene peut commencer a pointer vers du contenu metier honnete ; le prochain blocage produit est donc de preparer comment un Event local pourra cibler une Scene V1 sans brancher encore le runtime complet.
 
 Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Decisions V1-22
+
+- `addSceneLinkedAssetNodeDraft` ajoute un node depuis un payload deja forme et refuse les kinds hors scope, sans muter la scene originale ni generer de ref.
+- `ScenesWorkspace` consomme `LinkedAssetContractsSnapshot` construit depuis le `ProjectManifest` courant, puis expose des pickers Dialogue et Battle.
+- Le picker Dialogue lit `DialoguePublicContract`, affiche label, id, sourceRef, start node et diagnostics ; il cree un `SceneYarnDialoguePayload` avec `dialogueId` reel et `expectedOutcomes` vide quand le contrat ne declare aucun outcome.
+- Le picker Battle lit `BattlePublicContract`, affiche battle label, trainerId/trainerLabel, kind `trainer`, outcomes `victory` / `defeat` et warning equipe vide ; il cree un `SceneBattlePayload` trainer stable.
+- Cinematic reste desactive dans la palette avec raison `bridge Scenario uniquement` si un contrat bridgeOnly existe ; aucun `CinematicAsset` final n'est improvise.
+- Action reste desactive avec raison `contrat futur requis`.
+- BranchByOutcome reste desactive avec raison `mapping futur requis`.
+- Aucun runtime, Event -> Scene, StorylineStep link, SceneRuntimePlan, Action Registry, Branch mapping, fake ref, outcome Yarn invente ou donnee Selbrume n'est ajoute.
+- Tests executes : `cd packages/map_core && dart test test/scene_authoring_operations_test.dart`, `cd packages/map_core && dart test test/linked_asset_public_contracts_test.dart`, `cd packages/map_core && dart analyze`, `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`, `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_shell_navigation_test.dart`, `cd packages/map_editor && flutter test --reporter=compact test/narrative_workspace_projection_test.dart`, analyse ciblee `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/scenes_workspace.dart lib/src/ui/canvas/narrative_workspace_canvas.dart test/scenes_workspace_shell_test.dart`.
+- Commandes non bloquantes documentees : `test/ui/canvas/narrative_studio_header_test.dart` est absent ; `flutter analyze --no-fatal-infos` global echoue sur des erreurs existantes hors scope dans `pokemon_sdk_move_catalog_converter.dart`.
+
+Prochain lot exact : `NS-SCENES-V1-23 — Event to Scene Trigger Prep`.
 
 ## Decisions V1-21
 

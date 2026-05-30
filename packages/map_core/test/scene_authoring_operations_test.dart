@@ -171,6 +171,73 @@ void main() {
       }
     });
 
+    test('adds linked asset payload nodes without fake refs', () {
+      var scene = _scene('scene_authoring');
+
+      final dialogue = addSceneLinkedAssetNodeDraft(
+        scene,
+        payload: SceneYarnDialoguePayload(
+          dialogueId: 'test_dialogue',
+          yarnNodeName: 'Start',
+        ),
+        title: 'Test Dialogue',
+      );
+      scene = dialogue.updatedScene;
+      final battle = addSceneLinkedAssetNodeDraft(
+        scene,
+        payload: SceneBattlePayload(
+          battleKind: 'trainer',
+          trainerId: 'test_trainer',
+          declaredOutcomes: const ['victory', 'defeat'],
+        ),
+        title: 'Trainer Battle',
+      );
+
+      expect(dialogue.createdNode.id, 'node_yarn_dialogue');
+      expect(dialogue.createdNode.kind, SceneNodeKind.yarnDialogue);
+      expect(dialogue.createdNode.payload, isA<SceneYarnDialoguePayload>());
+      expect(
+        (dialogue.createdNode.payload as SceneYarnDialoguePayload)
+            .expectedOutcomes,
+        isEmpty,
+      );
+      expect(battle.createdNode.id, 'node_battle');
+      expect(battle.createdNode.kind, SceneNodeKind.battle);
+      expect(
+        (battle.createdNode.payload as SceneBattlePayload).declaredOutcomes,
+        ['victory', 'defeat'],
+      );
+      expect(battle.updatedScene.graph.edges, scene.graph.edges);
+      expect(
+        battle.updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+        containsAll(['node_yarn_dialogue', 'node_battle']),
+      );
+      expect(_scene('scene_authoring').graph.nodes.map((node) => node.id), [
+        'node_start',
+        'node_end',
+      ]);
+    });
+
+    test('rejects linked asset node drafts outside V1-22 scope', () {
+      final scene = _scene('scene_authoring');
+
+      for (final payload in [
+        SceneActionPayload(actionKind: 'test_action'),
+        SceneBranchByOutcomePayload(),
+        SceneConditionPayload(),
+        SceneEndPayload(),
+        SceneMergePayload(),
+        SceneStartPayload(),
+      ]) {
+        expect(
+          () => addSceneLinkedAssetNodeDraft(scene, payload: payload),
+          throwsA(isA<ArgumentError>()),
+          reason:
+              '${payload.kind.name} must not be added by payload pickers V0',
+        );
+      }
+    });
+
     test('exposes authorable output ports for V0 node kinds', () {
       expect(
         authorableSceneOutputPortsForNode(

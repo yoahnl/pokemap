@@ -123,6 +123,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.scenes => ScenesWorkspace(
           scenes: projection.scenes,
+          linkedAssetContracts: editor.project == null
+              ? null
+              : buildLinkedAssetContractsSnapshot(editor.project!),
           conditionSourceOptions: editor.project == null
               ? const []
               : _buildSceneConditionSourceOptions(
@@ -172,6 +175,37 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               statusMessage: 'Scene node draft added',
             );
             return result.createdNode.id;
+          },
+          onAddLinkedAssetNodeDraft: ({
+            required String sceneId,
+            required SceneNodePayload payload,
+            String? title,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return null;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return null;
+            }
+            try {
+              final result = addSceneLinkedAssetNodeDraft(
+                project.scenes[sceneIndex],
+                payload: payload,
+                title: title,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene linked asset node draft added',
+              );
+              return result.createdNode.id;
+            } on ArgumentError {
+              return null;
+            }
           },
           onAddEdgeDraft: ({
             required String sceneId,

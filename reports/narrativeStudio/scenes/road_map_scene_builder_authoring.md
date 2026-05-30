@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-22 — Payload Pickers V0
+NS-SCENES-V1-23 — Event to Scene Trigger Prep
 ```
 
 ## Principes
@@ -43,7 +43,7 @@ NS-SCENES-V1-22 — Payload Pickers V0
 | NS-SCENES-V1-20-checkpoint | Narrative Studio Direction Checkpoint | doc-only / product-architecture | Relire la vision Narrative Studio et choisir la meilleure suite apres World Rules V0. | Pas de code, pas de runtime, pas de payload picker, pas de StorylineStep link. | rapport checkpoint, roadmaps. | DONE : `git diff --check`. | Checkpoint trop vague ; retarder inutilement le golden slice ; repartir sur runtime sans priorisation produit. | DONE : Payload Pickers V0 retenu comme V1-21, trajectoire Selbrume revalidee. | V1-20-bis. |
 | NS-SCENES-V1-21-prep | Linked Asset Public Contracts Audit | doc-only / architecture-review | Auditer Dialogue Yarn, Cinematic/Cutscene, Battle, Action/Consequence et BranchByOutcome avant les pickers. | Pas de code, pas de widget, pas de modele, pas de tests, pas de build_runner. | rapport V1-21-prep, roadmaps. | DONE : `git diff --check`. | Lancer des pickers d'IDs bruts ; confondre contrats publics et implementation interne. | DONE : contrats publics recommandes, node verdicts, V1-21 ajuste vers Linked Asset Contracts V0. | V1-20-checkpoint. |
 | NS-SCENES-V1-21 | Linked Asset Contracts V0 | core / doc | Formaliser les contrats/read models publics minimaux consommes par Scene Builder : refs stables, labels, existence, diagnostics, outputs/outcomes et contraintes. | Pas de runtime, pas de UI picker complet, pas de CinematicAsset final improvise, pas de ScenarioAsset canonique pour Scene. | read models/contract docs selon decision, diagnostics refs si bornes. | DONE : tests contrats/read models purs + `dart analyze`. | Sur-modeliser ; exposer trop d'internals ; retarder inutilement Yarn/Battle prets. | DONE : Dialogue/Battle/Cinematic bridge exposent contrats publics ; Action/Branch restent disabled. | V1-21-prep. |
-| NS-SCENES-V1-22 | Payload Pickers V0 | editor / core | Remplacer IDs libres par pickers/drafts honnetes en consommant les contrats publics : Yarn, battle, cinematic si contrat pret, action si consequence contract pret. | Pas de runtime, pas de full payload editor, pas de seed Selbrume, pas de refs tapees a la main en workflow normal. | workspace Scenes, inspector draft controls, projection refs, diagnostics refs. | Tests pickers refs reelles, refs inconnues diagnostic, boutons honnetes, nodes metier activables seulement avec payload valide. | Faux contenus Selbrume, refs tapees a la main, branch nodes actifs sans outcome source. | Node payloads metier configurables avec vraies refs ou drafts clairement invalides, aucun fake ref. | V1-21. |
+| NS-SCENES-V1-22 | Payload Pickers V0 | editor / core | Remplacer IDs libres par pickers/drafts honnetes en consommant les contrats publics : Dialogue Yarn et Battle trainer V0 ; Cinematic bridgeOnly reste desactive prudemment. | Pas de runtime, pas de full payload editor, pas de seed Selbrume, pas de refs tapees a la main en workflow normal, pas d'Action/Branch actifs. | workspace Scenes, operations authoring, tests Scene Builder. | DONE : tests pickers refs reelles, diagnostics visibles, outcomes Yarn non inventes, battle victory/defeat, boutons honnetes. | Faux contenus Selbrume, refs tapees a la main, branch nodes actifs sans outcome source. | DONE : Dialogue/Battle configurables avec vraies refs, Cinematic/Action/Branch restent honnetement desactives, aucun fake ref. | V1-21. |
 | NS-SCENES-V1-23 | Event to Scene Trigger Prep | core / editor / doc | Preparer le lien Event local/runtime -> Scene V1. | Pas encore runtime complet, pas StorylineStep link, pas de migration ScenarioAsset. | event models/authoring si decide, reports, tests refs. | Tests Event ref scene, conditions, no migration legacy. | Brancher trop tot sur MapEventDefinition legacy ; cibler des scenes incompletes. | Un Event peut referencer une Scene de maniere valide/honnete, sans execution si runtime absent. | V1-21, V1-22. |
 | NS-SCENES-V1-24 | Scene Runtime Plan V0 | core | Ajouter `SceneRuntimePlan`, intents, builder pur depuis `SceneAsset` valide. | Pas d'execution runtime, pas de Flutter, pas de `ScenarioAsset` auto. | `packages/map_core/lib/src/runtime/scene_runtime_plan.dart`, tests core. | Draft minimal, yarn/battle/cinematic/action intents, diagnostics error bloque, layout ignore. | Figer trop tot un executor ; dupliquer ScenarioRuntime ; ignorer Event -> Scene. | Plan pur testable, ignore layout, refuse scenes invalides. | V1-22, V1-23 utile. |
 | NS-SCENES-V1-25 | Diagnostics / Validator Expansion | core / editor | Etendre diagnostics aux refs, ports requis, outcomes non geres, unreachable, cycles, sources conditions, facts, world rules et Event -> Scene. | Pas de correction auto, pas de Validator global complet si trop large. | `scene_diagnostics.dart`, diagnostics world rules/event, UI diagnostics. | Tests refs inconnues, missing outputs, unreachable, cycles, severity, fact/world rule/event refs. | Trop bloquer les drafts ; confusion warning/error. | Builder guide l'auteur sans empecher draft minimal valide, erreurs runtime bloquantes explicites. | V1-22, V1-23, V1-24. |
@@ -234,6 +234,18 @@ Decision : V1-21 ajoute un read model public pur dans `map_core` pour que les fu
 Limites : pas de Payload Picker UI, pas de runtime, pas de `CinematicAsset`, pas d'Action Registry, pas de Consequence authoring, pas de BranchByOutcome mapping, pas d'Event -> Scene, pas de StorylineStep link et aucune donnee Selbrume.
 
 Prochain lot exact : `NS-SCENES-V1-22 — Payload Pickers V0`.
+
+## Mise a jour V1-22
+
+Statut : `NS-SCENES-V1-22 — Payload Pickers V0` est DONE.
+
+Decision : V1-22 active seulement les pickers dont les contrats publics V1-21 sont assez honnetes pour creer un payload sans ID brut. Le picker Dialogue consomme `DialoguePublicContract` et cree un `SceneYarnDialoguePayload` avec `dialogueId` reel, start node connu et outcomes Yarn non inventes. Le picker Battle consomme `BattlePublicContract` et cree un `SceneBattlePayload` trainer avec outcomes `victory` / `defeat`.
+
+Scope prudent : Cinematic reste desactive meme quand un contrat `scenarioBridge` existe, avec raison `bridge Scenario uniquement`, car ce n'est pas encore un `CinematicAsset` canonique. Action reste desactivee jusqu'a `ActionPublicContract` / `ConsequencePublicContract`. BranchByOutcome reste desactivee jusqu'aux mappings outcome -> edge.
+
+Limites : pas de runtime, pas de Event -> Scene, pas de SceneRuntimePlan, pas de StorylineStep link, pas d'Action Registry, pas de Branch mapping, pas de donnees Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-23 — Event to Scene Trigger Prep`.
 
 ## Selbrume golden slice
 

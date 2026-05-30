@@ -17,6 +17,17 @@ typedef SceneNodeDraftCreator = Future<String?> Function({
   required SceneNodeKind kind,
 });
 
+typedef SceneLinkedAssetNodeDraftCreator = Future<String?> Function({
+  required String sceneId,
+  required SceneNodePayload payload,
+  String? title,
+});
+
+typedef _SelectedLinkedAssetNodeDraftCreator = Future<void> Function({
+  required SceneNodePayload payload,
+  String? title,
+});
+
 typedef SceneEdgeDraftCreator = Future<String?> Function({
   required String sceneId,
   required String fromNodeId,
@@ -51,9 +62,11 @@ class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
     required this.scenes,
+    this.linkedAssetContracts,
     this.conditionSourceOptions = const [],
     required this.onCreateSceneDraft,
     required this.onAddNodeDraft,
+    required this.onAddLinkedAssetNodeDraft,
     required this.onAddEdgeDraft,
     required this.onRemoveEdgeDraft,
     required this.onRemoveNodeDraft,
@@ -62,9 +75,11 @@ class ScenesWorkspace extends StatefulWidget {
   });
 
   final List<NarrativeSceneSummary> scenes;
+  final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneDraftCreator onCreateSceneDraft;
   final SceneNodeDraftCreator onAddNodeDraft;
+  final SceneLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
   final SceneEdgeDraftCreator onAddEdgeDraft;
   final SceneEdgeDraftRemover onRemoveEdgeDraft;
   final SceneNodeDraftRemover onRemoveNodeDraft;
@@ -178,6 +193,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onSelectNode: _handleGraphNodeTap,
                     onSelectEdge: _handleGraphEdgeTap,
                     onAddNodeDraft: _addNodeDraft,
+                    onAddLinkedAssetNodeDraft: _addLinkedAssetNodeDraft,
+                    linkedAssetContracts: widget.linkedAssetContracts,
                     onAddEdgeDraft: _addEdgeDraft,
                     onStartConnection: _startConnection,
                     onCancelConnection: _cancelConnection,
@@ -252,6 +269,30 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     final createdNodeId = await widget.onAddNodeDraft(
       sceneId: selected.id,
       kind: kind,
+    );
+    if (!mounted || createdNodeId == null) {
+      return;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = createdNodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+  }
+
+  Future<void> _addLinkedAssetNodeDraft({
+    required SceneNodePayload payload,
+    String? title,
+  }) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return;
+    }
+    final createdNodeId = await widget.onAddLinkedAssetNodeDraft(
+      sceneId: selected.id,
+      payload: payload,
+      title: title,
     );
     if (!mounted || createdNodeId == null) {
       return;
@@ -821,6 +862,8 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.onSelectNode,
     required this.onSelectEdge,
     required this.onAddNodeDraft,
+    required this.onAddLinkedAssetNodeDraft,
+    required this.linkedAssetContracts,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
@@ -834,6 +877,8 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final ValueChanged<String> onSelectNode;
   final ValueChanged<String> onSelectEdge;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
+  final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
+  final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
@@ -855,6 +900,8 @@ class _SceneReadOnlySummary extends StatelessWidget {
               onSelectNode: onSelectNode,
               onSelectEdge: onSelectEdge,
               onAddNodeDraft: onAddNodeDraft,
+              onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
+              linkedAssetContracts: linkedAssetContracts,
               onAddEdgeDraft: onAddEdgeDraft,
               onStartConnection: onStartConnection,
               onCancelConnection: onCancelConnection,
@@ -888,6 +935,8 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.onSelectNode,
     required this.onSelectEdge,
     required this.onAddNodeDraft,
+    required this.onAddLinkedAssetNodeDraft,
+    required this.linkedAssetContracts,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
@@ -901,6 +950,8 @@ class _SelectedSceneSummary extends StatelessWidget {
   final ValueChanged<String> onSelectNode;
   final ValueChanged<String> onSelectEdge;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
+  final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
+  final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
@@ -938,7 +989,11 @@ class _SelectedSceneSummary extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _SceneNodeDraftPalette(onAddNodeDraft: onAddNodeDraft),
+          _SceneNodeDraftPalette(
+            linkedAssetContracts: linkedAssetContracts,
+            onAddNodeDraft: onAddNodeDraft,
+            onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
+          ),
           const SizedBox(height: 8),
           _SceneEdgeDraftToolbar(
             scene: scene,
@@ -987,13 +1042,25 @@ class _SelectedSceneSummary extends StatelessWidget {
 }
 
 class _SceneNodeDraftPalette extends StatelessWidget {
-  const _SceneNodeDraftPalette({required this.onAddNodeDraft});
+  const _SceneNodeDraftPalette({
+    required this.linkedAssetContracts,
+    required this.onAddNodeDraft,
+    required this.onAddLinkedAssetNodeDraft,
+  });
 
+  final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
+  final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final contracts = linkedAssetContracts;
+    final hasDialogues = contracts?.dialogues.isNotEmpty ?? false;
+    final hasBattles = contracts?.battles.isNotEmpty ?? false;
+    final cinematicReason = (contracts?.cinematics.isNotEmpty ?? false)
+        ? 'bridge Scenario uniquement'
+        : 'bridge absent';
     return SizedBox(
       key: const ValueKey('scenes-add-node-palette'),
       height: 34,
@@ -1031,6 +1098,34 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                     icon: CupertinoIcons.flag,
                     onPressed: () => onAddNodeDraft(SceneNodeKind.end),
                   ),
+                  _NodeDraftButton(
+                    buttonKey: hasDialogues
+                        ? const ValueKey('scenes-add-node-yarn')
+                        : const ValueKey('scenes-add-node-yarn-disabled'),
+                    label: 'Dialogue',
+                    icon: CupertinoIcons.text_bubble,
+                    disabledReason: hasDialogues ? null : 'contrat absent',
+                    onPressed: hasDialogues
+                        ? () => _pickDialogueAndAddNode(
+                              context,
+                              contracts!.dialogues,
+                            )
+                        : null,
+                  ),
+                  _NodeDraftButton(
+                    buttonKey: hasBattles
+                        ? const ValueKey('scenes-add-node-battle')
+                        : const ValueKey('scenes-add-node-battle-disabled'),
+                    label: 'Combat',
+                    icon: CupertinoIcons.asterisk_circle,
+                    disabledReason: hasBattles ? null : 'contrat absent',
+                    onPressed: hasBattles
+                        ? () => _pickBattleAndAddNode(
+                              context,
+                              contracts!.battles,
+                            )
+                        : null,
+                  ),
                   const _NodeDraftButton(
                     buttonKey: ValueKey('scenes-add-node-start-disabled'),
                     label: 'Début',
@@ -1038,34 +1133,23 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                     disabledReason: 'déjà unique',
                   ),
                   const _NodeDraftButton(
-                    buttonKey: ValueKey('scenes-add-node-yarn-disabled'),
-                    label: 'Dialogue',
-                    icon: CupertinoIcons.text_bubble,
-                    disabledReason: 'picker requis',
-                  ),
-                  const _NodeDraftButton(
                     buttonKey: ValueKey('scenes-add-node-action-disabled'),
                     label: 'Action',
                     icon: CupertinoIcons.bolt,
-                    disabledReason: 'registre requis',
+                    disabledReason: 'contrat futur requis',
                   ),
-                  const _NodeDraftButton(
-                    buttonKey: ValueKey('scenes-add-node-battle-disabled'),
-                    label: 'Combat',
-                    icon: CupertinoIcons.asterisk_circle,
-                    disabledReason: 'picker requis',
-                  ),
-                  const _NodeDraftButton(
-                    buttonKey: ValueKey('scenes-add-node-cinematic-disabled'),
+                  _NodeDraftButton(
+                    buttonKey:
+                        const ValueKey('scenes-add-node-cinematic-disabled'),
                     label: 'Cinématique',
                     icon: CupertinoIcons.film,
-                    disabledReason: 'picker requis',
+                    disabledReason: cinematicReason,
                   ),
                   const _NodeDraftButton(
                     buttonKey: ValueKey('scenes-add-node-branch-disabled'),
                     label: 'Branche',
                     icon: CupertinoIcons.arrow_branch,
-                    disabledReason: 'source requise',
+                    disabledReason: 'mapping futur requis',
                   ),
                 ],
               ),
@@ -1075,6 +1159,265 @@ class _SceneNodeDraftPalette extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _pickDialogueAndAddNode(
+    BuildContext context,
+    List<DialoguePublicContract> dialogues,
+  ) async {
+    final contract = await showCupertinoDialog<DialoguePublicContract>(
+      context: context,
+      builder: (context) => _DialoguePayloadPickerDialog(dialogues: dialogues),
+    );
+    if (contract == null) {
+      return;
+    }
+    await onAddLinkedAssetNodeDraft(
+      payload: SceneYarnDialoguePayload(
+        dialogueId: contract.id,
+        yarnNodeName: contract.defaultStartNode,
+        expectedOutcomes: [
+          for (final outcome in contract.declaredOutcomes) outcome.id,
+        ],
+      ),
+      title: contract.label,
+    );
+  }
+
+  Future<void> _pickBattleAndAddNode(
+    BuildContext context,
+    List<BattlePublicContract> battles,
+  ) async {
+    final contract = await showCupertinoDialog<BattlePublicContract>(
+      context: context,
+      builder: (context) => _BattlePayloadPickerDialog(battles: battles),
+    );
+    if (contract == null) {
+      return;
+    }
+    await onAddLinkedAssetNodeDraft(
+      payload: SceneBattlePayload(
+        battleKind: contract.battleKind.name,
+        trainerId: contract.trainerId,
+        declaredOutcomes: [
+          for (final outcome in contract.possibleOutcomes) outcome.id,
+        ],
+      ),
+      title: contract.label,
+    );
+  }
+}
+
+class _DialoguePayloadPickerDialog extends StatelessWidget {
+  const _DialoguePayloadPickerDialog({required this.dialogues});
+
+  final List<DialoguePublicContract> dialogues;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-dialogue-picker-dialog'),
+      title: const Text('Choisir un dialogue'),
+      content: _PayloadPickerContent(
+        children: [
+          for (final dialogue in dialogues)
+            _PayloadPickerOptionButton(
+              key: ValueKey('scene-dialogue-picker-option-${dialogue.id}'),
+              title: dialogue.label,
+              subtitle: dialogue.id,
+              details: [
+                dialogue.sourceRef,
+                if (dialogue.defaultStartNode != null)
+                  'Start: ${dialogue.defaultStartNode}',
+              ],
+              diagnostics: dialogue.diagnostics,
+              onPressed: () => Navigator.of(context).pop(dialogue),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+}
+
+class _BattlePayloadPickerDialog extends StatelessWidget {
+  const _BattlePayloadPickerDialog({required this.battles});
+
+  final List<BattlePublicContract> battles;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-battle-picker-dialog'),
+      title: const Text('Choisir un combat'),
+      content: _PayloadPickerContent(
+        children: [
+          for (final battle in battles)
+            _PayloadPickerOptionButton(
+              key: ValueKey(
+                'scene-battle-picker-option-${_pickerKeyPart(battle.id)}',
+              ),
+              title: battle.label,
+              subtitle: battle.trainerId,
+              details: [
+                battle.battleKind.name,
+                battle.trainerLabel,
+                battle.possibleOutcomes
+                    .map((outcome) => outcome.id)
+                    .join(' / '),
+              ],
+              diagnostics: battle.diagnostics,
+              onPressed: () => Navigator.of(context).pop(battle),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+}
+
+class _PayloadPickerContent extends StatelessWidget {
+  const _PayloadPickerContent({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 360,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PayloadPickerOptionButton extends StatelessWidget {
+  const _PayloadPickerOptionButton({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.details,
+    required this.diagnostics,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<String> details;
+  final List<LinkedAssetContractDiagnostic> diagnostics;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: PokeMapCard(
+        onTap: onPressed,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            for (final detail in details.where((value) => value.isNotEmpty))
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  detail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            for (final diagnostic in diagnostics)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  diagnostic.message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _diagnosticColor(context, diagnostic.severity),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Color _diagnosticColor(
+  BuildContext context,
+  LinkedAssetContractDiagnosticSeverity severity,
+) {
+  final colors = context.pokeMapColors;
+  return switch (severity) {
+    LinkedAssetContractDiagnosticSeverity.error => colors.error,
+    LinkedAssetContractDiagnosticSeverity.warning => colors.warning,
+    LinkedAssetContractDiagnosticSeverity.info => colors.textMuted,
+  };
+}
+
+String _pickerKeyPart(String value) {
+  final buffer = StringBuffer();
+  var wroteSeparator = false;
+  for (final codeUnit in value.trim().toLowerCase().codeUnits) {
+    final isDigit = codeUnit >= 48 && codeUnit <= 57;
+    final isAsciiLetter = codeUnit >= 97 && codeUnit <= 122;
+    if (isDigit || isAsciiLetter) {
+      buffer.writeCharCode(codeUnit);
+      wroteSeparator = false;
+    } else if (!wroteSeparator && buffer.isNotEmpty) {
+      buffer.write('_');
+      wroteSeparator = true;
+    }
+  }
+  final slug = buffer.toString();
+  return slug.endsWith('_') ? slug.substring(0, slug.length - 1) : slug;
 }
 
 class _SceneEdgeDraftToolbar extends StatelessWidget {
