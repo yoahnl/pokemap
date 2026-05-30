@@ -52,20 +52,46 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-12 — Node Authoring V0 | DONE | Operation pure `addSceneNodeDraft` et palette editor V0 : ajout Condition / Merge / Fin en memoire, selection auto, aucun edge automatique ni fake ref. |
 | NS-SCENES-V1-13 — Edge Authoring V0 | DONE | Operation pure `addSceneEdgeDraft` et UI de connexion V0 : ports explicites start.completed, condition.true/false, merge.completed, edge kind derive, mise a jour memoire sans runtime. |
 | NS-SCENES-V1-14 — Blueprint Graph Canvas Foundation / Layout Authoring V0 | DONE | Canvas Blueprint-like de base : grille, zoom local par boutons et pinch trackpad, pan local, deplacement de nodes, persistence memoire de `SceneGraphLayout`, edges qui suivent, sans impact runtime. |
-| NS-SCENES-V1-15 — Visual Port Connection UX V0 | TODO | Rendre la connexion V1-13 plus Blueprint-like : ports visuels sur nodes, preview line locale, highlight des cibles, sans drag complexe ni runtime. |
-| NS-SCENES-V1-16 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
-| NS-SCENES-V1-17 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
-| NS-SCENES-V1-18 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
-| NS-SCENES-V1-19 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
-| NS-SCENES-V1-20 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
-| NS-SCENES-V1-21 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
-| NS-SCENES-V1-22 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
+| NS-SCENES-V1-15 — Visual Port Connection UX V0 | DONE | Ports visuels V0, drag depuis output, preview wire, highlight/snap des inputs compatibles, drop valide cree un edge via les regles V1-13, drop vide annule. |
+| NS-SCENES-V1-16 — Condition Authoring V0 | TODO | Ajouter le premier authoring minimal du payload Condition sans fake refs, avec diagnostics honnetes et sans runtime. |
+| NS-SCENES-V1-17 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-18 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
+| NS-SCENES-V1-19 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
+| NS-SCENES-V1-20 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume. |
+| NS-SCENES-V1-21 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
+| NS-SCENES-V1-22 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
+| NS-SCENES-V1-23 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers et runtime MVP stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-15 — Visual Port Connection UX V0`
+`NS-SCENES-V1-16 — Condition Authoring V0`
 
-Raison : V1-14 donne enfin un canvas Blueprint-like de base avec grille, zoom, pan et nodes deplacables. Le prochain blocage UX n'est plus le placement, mais la connexion visuelle : il faut rendre les ports V1-13 visibles et connectables de facon plus naturelle avant de revenir au `SceneRuntimePlan`.
+Raison : V1-15 rend les connexions credibles visuellement. Le prochain blocage authoring est le premier payload metier honnete : configurer une Condition V0 sans fake refs et avec diagnostics clairs, avant de reprendre les pickers lourds ou le runtime plan.
+
+## Decisions V1-15
+
+- Ports visuels ajoutes sur les nodes V0 : input `in` sur condition/merge/end, outputs `completed`, `true`, `false` selon les ports V1-13.
+- Drag depuis un output authorable cree un etat local de connexion visuelle.
+- Preview wire dessine un cable temporaire qui suit le pointeur.
+- Les ports d'entree compatibles sont mis en evidence ; le port le plus proche est snappe dans un rayon borne.
+- Drop sur un input compatible appelle l'operation V1-13 existante via le callback editor, donc `SceneEdge.kind`, duplicate source port, self-loop et ports invalides restent valides par le core.
+- Drop hors cible annule sans mutation.
+- Les outputs deja utilises restent visibles mais non actifs.
+- Aucun runtime, aucun StorylineStep link, aucune fake ref.
+
+## Limites V1-15
+
+- Pas de suppression ni reconnexion avancee.
+- Pas de port visuel pour Yarn/Action/Battle/Cinematic/Branch.
+- Pas d'edition de payload.
+- L'ancien toolbar de connexion reste disponible comme fallback, mais la voie Blueprint-like est maintenant le drag visuel des ports.
+
+## Tests V1-15
+
+- `cd packages/map_core && dart test test/scene_authoring_operations_test.dart`
+- `cd packages/map_core && dart analyze`
+- `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`
+- `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/scenes/scene_graph_read_only_view.dart lib/src/ui/canvas/scenes_workspace.dart test/scenes_workspace_shell_test.dart`
 
 ## Decisions V1-14
 

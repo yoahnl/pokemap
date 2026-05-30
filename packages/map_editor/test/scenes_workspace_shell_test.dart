@@ -360,6 +360,201 @@ void main() {
       expect(project.scenes.single.graph.edges, isEmpty);
     });
 
+    testWidgets('shows visual input and output ports for V0 nodes',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_start-completed'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-input-port-node_condition-in')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+            const ValueKey('scene-graph-output-port-node_condition-true')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_condition-false'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-input-port-node_merge-in')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_merge-completed'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-input-port-node_end-in')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_end-completed'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'visual port drag shows preview, highlights target, and creates edge',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final output = find.byKey(
+        const ValueKey('scene-graph-output-port-node_start-completed'),
+      );
+      final input = find.byKey(
+        const ValueKey('scene-graph-input-port-node_condition-in'),
+      );
+      final conditionNode = find.byKey(
+        const ValueKey('scene-graph-node-node_condition'),
+      );
+      final conditionTopLeftBeforeDrag = tester.getTopLeft(conditionNode);
+      final outputHandleCenter =
+          tester.getTopLeft(output) + const Offset(16, 16);
+      final gesture = await tester.startGesture(outputHandleCenter);
+      await tester.pump();
+      await gesture.moveTo(tester.getCenter(input));
+      await tester.pump();
+      expect(tester.getTopLeft(conditionNode), conditionTopLeftBeforeDrag);
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-connection-preview-wire')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-input-port-hover-node_condition'),
+        ),
+        findsOneWidget,
+      );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final edges = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .edges;
+      expect(edges, hasLength(1));
+      expect(edges.single.id, 'edge_node_start_completed_node_condition');
+      expect(edges.single.kind, SceneEdgeKind.defaultFlow);
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-edge-edge_node_start_completed_node_condition',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('trackpad pan zoom is ignored during visual port drag',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final output = find.byKey(
+        const ValueKey('scene-graph-output-port-node_start-completed'),
+      );
+      final conditionNode = find.byKey(
+        const ValueKey('scene-graph-node-node_condition'),
+      );
+      final surface = find.byKey(const ValueKey('scene-graph-pan-surface'));
+      final conditionTopLeftBeforeDrag = tester.getTopLeft(conditionNode);
+      final outputHandleCenter =
+          tester.getTopLeft(output) + const Offset(16, 16);
+      final gesture = await tester.startGesture(outputHandleCenter);
+      await tester.pump();
+
+      final center = tester.getCenter(surface);
+      tester.binding.handlePointerEvent(
+        PointerPanZoomStartEvent(position: center),
+      );
+      tester.binding.handlePointerEvent(
+        PointerPanZoomUpdateEvent(
+          position: center,
+          panDelta: const Offset(56, 24),
+          scale: 1.25,
+        ),
+      );
+      tester.binding.handlePointerEvent(
+        PointerPanZoomEndEvent(position: center),
+      );
+      await tester.pump();
+
+      expect(find.text('100%'), findsOneWidget);
+      expect(tester.getTopLeft(conditionNode), conditionTopLeftBeforeDrag);
+      expect(
+        find.byKey(const ValueKey('scene-graph-connection-preview-wire')),
+        findsOneWidget,
+      );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('visual port drop in empty canvas cancels without edge',
+        (tester) async {
+      final project = _projectWithEdgeAuthoringScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final output = find.byKey(
+        const ValueKey('scene-graph-output-port-node_start-completed'),
+      );
+      final surface = find.byKey(const ValueKey('scene-graph-pan-surface'));
+      final emptyPoint = tester.getBottomLeft(surface) + const Offset(32, -32);
+      final outputHandleCenter =
+          tester.getTopLeft(output) + const Offset(16, 16);
+      final gesture = await tester.startGesture(outputHandleCenter);
+      await tester.pump();
+      await gesture.moveTo(emptyPoint);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('scene-graph-connection-preview-wire')),
+        findsOneWidget,
+      );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-connection-preview-wire')),
+        findsNothing,
+      );
+      expect(container.read(editorNotifierProvider).project, project);
+    });
+
     testWidgets('connects condition true and false ports with derived kinds',
         (tester) async {
       final container = await _pumpNarrativeShell(
@@ -1141,7 +1336,7 @@ void main() {
           find.byKey(const ValueKey('scene-graph-zoom-reset')), findsOneWidget);
     });
 
-    testWidgets('writes V1-14 blueprint canvas visual gate screenshot',
+    testWidgets('keeps the V1-14 blueprint canvas visual flow valid',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -1167,13 +1362,59 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const ValueKey('scene-graph-grid')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('scene-graph-zoom-reset')), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-graph-edge-edge_node_start_completed_node_condition',
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('writes V1-15 visual port connection UX screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEdgeAuthoringScene(
+          edges: [
+            SceneEdge(
+              id: 'edge_node_merge_completed_node_end',
+              fromNodeId: 'node_merge',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final output = find.byKey(
+        const ValueKey('scene-graph-output-port-node_start-completed'),
+      );
+      final input = find.byKey(
+        const ValueKey('scene-graph-input-port-node_condition-in'),
+      );
+      final gesture = await tester.startGesture(
+        tester.getTopLeft(output) + const Offset(16, 16),
+      );
+      await tester.pump();
+      await gesture.moveTo(tester.getCenter(input));
+      await tester.pump();
+
       await expectLater(
         find.byKey(const ValueKey('scenes-workspace-shell')),
         matchesGoldenFile(
           '../../../reports/narrativeStudio/scenes/screenshots/'
-          'ns_scenes_v1_14_blueprint_graph_canvas_foundation.png',
+          'ns_scenes_v1_15_visual_port_connection_ux_v0.png',
         ),
       );
+
+      await gesture.up();
     });
   });
 }

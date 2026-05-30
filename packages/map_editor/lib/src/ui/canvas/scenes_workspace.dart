@@ -142,6 +142,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     pendingConnection: _pendingConnection,
                     onSelectNode: _handleGraphNodeTap,
                     onAddNodeDraft: _addNodeDraft,
+                    onAddEdgeDraft: _addEdgeDraft,
                     onStartConnection: _startConnection,
                     onCancelConnection: _cancelConnection,
                     onUpdateNodeLayout: _updateNodeLayout,
@@ -679,6 +680,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.pendingConnection,
     required this.onSelectNode,
     required this.onAddNodeDraft,
+    required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
     required this.onUpdateNodeLayout,
@@ -689,6 +691,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final _PendingSceneConnection? pendingConnection;
   final ValueChanged<String> onSelectNode;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
+  final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
@@ -707,6 +710,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               pendingConnection: pendingConnection,
               onSelectNode: onSelectNode,
               onAddNodeDraft: onAddNodeDraft,
+              onAddEdgeDraft: onAddEdgeDraft,
               onStartConnection: onStartConnection,
               onCancelConnection: onCancelConnection,
               onUpdateNodeLayout: onUpdateNodeLayout,
@@ -737,6 +741,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.pendingConnection,
     required this.onSelectNode,
     required this.onAddNodeDraft,
+    required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
     required this.onUpdateNodeLayout,
@@ -747,6 +752,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final _PendingSceneConnection? pendingConnection;
   final ValueChanged<String> onSelectNode;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
+  final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
@@ -799,6 +805,16 @@ class _SelectedSceneSummary extends StatelessWidget {
               selectedNodeId: selectedNodeId,
               onSelectNode: onSelectNode,
               canDragNodes: pendingConnection == null,
+              onCreateEdgeDraft: ({
+                required fromNodeId,
+                required fromPortId,
+                required toNodeId,
+              }) =>
+                  onAddEdgeDraft(
+                fromNodeId: fromNodeId,
+                fromPortId: fromPortId,
+                toNodeId: toNodeId,
+              ),
               onUpdateNodeLayout: ({
                 required nodeId,
                 required x,

@@ -15,6 +15,12 @@ typedef SceneNodeLayoutChanged = Future<void> Function({
   required double y,
 });
 
+typedef SceneVisualEdgeDraftCreator = Future<void> Function({
+  required String fromNodeId,
+  required String fromPortId,
+  required String toNodeId,
+});
+
 class SceneGraphReadOnlyView extends StatefulWidget {
   const SceneGraphReadOnlyView({
     super.key,
@@ -22,6 +28,7 @@ class SceneGraphReadOnlyView extends StatefulWidget {
     this.selectedNodeId,
     this.onSelectNode,
     this.onUpdateNodeLayout,
+    this.onCreateEdgeDraft,
     this.canDragNodes = true,
     this.expandToFill = false,
   });
@@ -30,6 +37,7 @@ class SceneGraphReadOnlyView extends StatefulWidget {
   final String? selectedNodeId;
   final ValueChanged<String>? onSelectNode;
   final SceneNodeLayoutChanged? onUpdateNodeLayout;
+  final SceneVisualEdgeDraftCreator? onCreateEdgeDraft;
   final bool canDragNodes;
   final bool expandToFill;
 
@@ -46,6 +54,8 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
   Offset _pan = Offset.zero;
   double _trackpadGestureStartZoom = 1;
   final Map<String, Offset> _nodePositionOverrides = {};
+  final GlobalKey _canvasKey = GlobalKey();
+  _SceneGraphVisualConnection? _visualConnection;
 
   @override
   void didUpdateWidget(covariant SceneGraphReadOnlyView oldWidget) {
@@ -54,12 +64,17 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       _zoom = 1;
       _pan = Offset.zero;
       _nodePositionOverrides.clear();
+      _visualConnection = null;
       return;
     }
 
     final nodeIds = widget.scene.graph.nodes.map((node) => node.id).toSet();
     _nodePositionOverrides
         .removeWhere((nodeId, _) => !nodeIds.contains(nodeId));
+    if (_visualConnection != null &&
+        !nodeIds.contains(_visualConnection!.fromNodeId)) {
+      _visualConnection = null;
+    }
   }
 
   @override
@@ -68,6 +83,8 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
     final layout = _SceneGraphLayoutPlan.fromScene(scene);
     final worldPositions = _worldPositionsFor(layout);
     final screenPositions = _screenPositionsFor(worldPositions);
+    final inputPorts = _inputPortPlacements(screenPositions);
+    final outputPorts = _outputPortPlacements(screenPositions);
     final canvas = ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: DecoratedBox(
@@ -80,59 +97,100 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
           onPointerPanZoomStart: _handleTrackpadPanZoomStart,
           onPointerPanZoomUpdate: _handleTrackpadPanZoomUpdate,
           onPointerPanZoomEnd: _handleTrackpadPanZoomEnd,
-          child: GestureDetector(
-            key: const ValueKey('scene-graph-pan-surface'),
-            behavior: HitTestBehavior.opaque,
-            onPanUpdate: _handleCanvasPanUpdate,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
+          child: Stack(
+            key: _canvasKey,
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  key: const ValueKey('scene-graph-pan-surface'),
+                  behavior: HitTestBehavior.opaque,
+                  onPanUpdate: _handleCanvasPanUpdate,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: CustomPaint(
+                          key: const ValueKey('scene-graph-grid'),
+                          painter: _SceneGraphGridPainter(
+                            pan: _pan,
+                            zoom: _zoom,
+                            lineColor:
+                                colors.borderSubtle.withValues(alpha: 0.32),
+                            majorLineColor:
+                                colors.borderStrong.withValues(alpha: 0.22),
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _SceneGraphEdgePainter(
+                            edges: scene.graph.edges,
+                            positions: screenPositions,
+                            zoom: _zoom,
+                            lineColor: colors.borderStrong,
+                            labelColor: colors.textSecondary,
+                            labelBackground: colors.cardSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              for (final edge in scene.graph.edges)
+                _SceneGraphEdgeLabel(
+                  edge: edge,
+                  position: _screenOffset(
+                    _edgeLabelPosition(edge, worldPositions),
+                  ),
+                ),
+              if (_visualConnection != null)
                 Positioned.fill(
-                  child: CustomPaint(
-                    key: const ValueKey('scene-graph-grid'),
-                    painter: _SceneGraphGridPainter(
-                      pan: _pan,
-                      zoom: _zoom,
-                      lineColor: colors.borderSubtle.withValues(alpha: 0.32),
-                      majorLineColor:
-                          colors.borderStrong.withValues(alpha: 0.22),
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      key: const ValueKey(
+                        'scene-graph-connection-preview-wire',
+                      ),
+                      painter: _SceneGraphConnectionPreviewPainter(
+                        connection: _visualConnection!,
+                        lineColor: colors.focusRing,
+                        shadowColor: colors.borderStrong,
+                      ),
                     ),
                   ),
                 ),
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _SceneGraphEdgePainter(
-                      edges: scene.graph.edges,
-                      positions: screenPositions,
-                      zoom: _zoom,
-                      lineColor: colors.borderStrong,
-                      labelColor: colors.textSecondary,
-                      labelBackground: colors.cardSurface,
-                    ),
-                  ),
+              for (final node in scene.graph.nodes)
+                _SceneGraphNodeCard(
+                  node: node,
+                  position: screenPositions[node.id]!,
+                  zoom: _zoom,
+                  isSelected: node.id == selectedNodeId,
+                  canDrag: widget.canDragNodes && _visualConnection == null,
+                  onSelect: onSelectNode == null
+                      ? null
+                      : () => onSelectNode!(node.id),
+                  onDragDelta: (delta) => _moveNodeLocally(node.id, delta),
+                  onDragEnd: () => _persistNodeLayout(node.id),
                 ),
-                for (final edge in scene.graph.edges)
-                  _SceneGraphEdgeLabel(
-                    edge: edge,
-                    position: _screenOffset(
-                      _edgeLabelPosition(edge, worldPositions),
-                    ),
+              for (final port in inputPorts)
+                _SceneGraphInputPortHandle(
+                  placement: port,
+                  isCompatible: _isCompatibleInputPort(port.nodeId),
+                  isHovered:
+                      _visualConnection?.hoveredTargetNodeId == port.nodeId,
+                ),
+              for (final port in outputPorts)
+                _SceneGraphOutputPortHandle(
+                  placement: port,
+                  isDisabled: _isOutputPortUsed(
+                    port.nodeId,
+                    port.port.id,
                   ),
-                for (final node in scene.graph.nodes)
-                  _SceneGraphNodeCard(
-                    node: node,
-                    position: screenPositions[node.id]!,
-                    zoom: _zoom,
-                    isSelected: node.id == selectedNodeId,
-                    canDrag: widget.canDragNodes,
-                    onSelect: onSelectNode == null
-                        ? null
-                        : () => onSelectNode!(node.id),
-                    onDragDelta: (delta) => _moveNodeLocally(node.id, delta),
-                    onDragEnd: () => _persistNodeLayout(node.id),
-                  ),
-              ],
-            ),
+                  onStart: () => _startVisualConnection(port),
+                  onUpdate: _updateVisualConnection,
+                  onEnd: _endVisualConnection,
+                ),
+            ],
           ),
         ),
       ),
@@ -219,14 +277,23 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
   }
 
   void _handleCanvasPanUpdate(DragUpdateDetails details) {
+    if (_visualConnection != null) {
+      return;
+    }
     setState(() => _pan += details.delta);
   }
 
   void _handleTrackpadPanZoomStart(PointerPanZoomStartEvent event) {
+    if (_visualConnection != null) {
+      return;
+    }
     _trackpadGestureStartZoom = _zoom;
   }
 
   void _handleTrackpadPanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    if (_visualConnection != null) {
+      return;
+    }
     setState(() {
       _applyZoom(
         _trackpadGestureStartZoom * event.scale,
@@ -237,6 +304,9 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
   }
 
   void _handleTrackpadPanZoomEnd(PointerPanZoomEndEvent event) {
+    if (_visualConnection != null) {
+      return;
+    }
     _trackpadGestureStartZoom = _zoom;
   }
 
@@ -259,6 +329,187 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       return;
     }
     unawaited(updater(nodeId: nodeId, x: position.dx, y: position.dy));
+  }
+
+  void _startVisualConnection(_SceneGraphOutputPortPlacement port) {
+    if (_isOutputPortUsed(port.nodeId, port.port.id) ||
+        widget.onCreateEdgeDraft == null) {
+      return;
+    }
+    onSelectNode?.call(port.nodeId);
+    setState(() {
+      _visualConnection = _SceneGraphVisualConnection(
+        fromNodeId: port.nodeId,
+        fromPortId: port.port.id,
+        start: port.center,
+        current: port.center,
+      );
+    });
+  }
+
+  void _updateVisualConnection(Offset globalPosition) {
+    final connection = _visualConnection;
+    if (connection == null) {
+      return;
+    }
+    final pointer = _globalToCanvasOffset(globalPosition);
+    if (pointer == null) {
+      return;
+    }
+    final snap = _nearestCompatibleInputPort(pointer);
+    setState(() {
+      _visualConnection = connection.copyWith(
+        current: snap?.center ?? pointer,
+        hoveredTargetNodeId: snap?.nodeId,
+      );
+    });
+  }
+
+  void _endVisualConnection() {
+    final connection = _visualConnection;
+    if (connection == null) {
+      return;
+    }
+    setState(() => _visualConnection = null);
+    final targetNodeId = connection.hoveredTargetNodeId;
+    final createEdge = widget.onCreateEdgeDraft;
+    if (targetNodeId == null || createEdge == null) {
+      return;
+    }
+    unawaited(createEdge(
+      fromNodeId: connection.fromNodeId,
+      fromPortId: connection.fromPortId,
+      toNodeId: targetNodeId,
+    ));
+  }
+
+  Offset? _globalToCanvasOffset(Offset globalPosition) {
+    final context = _canvasKey.currentContext;
+    if (context == null) {
+      return null;
+    }
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox) {
+      return null;
+    }
+    return renderObject.globalToLocal(globalPosition);
+  }
+
+  _SceneGraphInputPortPlacement? _nearestCompatibleInputPort(Offset pointer) {
+    final layout = _SceneGraphLayoutPlan.fromScene(scene);
+    final inputPorts = _inputPortPlacements(
+      _screenPositionsFor(_worldPositionsFor(layout)),
+    );
+    _SceneGraphInputPortPlacement? nearest;
+    var nearestDistance = double.infinity;
+    for (final port in inputPorts) {
+      if (!_isCompatibleInputPort(port.nodeId)) {
+        continue;
+      }
+      final distance = (port.center - pointer).distance;
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = port;
+      }
+    }
+    if (nearestDistance <= _SceneGraphPortMetrics.snapRadius * _zoom) {
+      return nearest;
+    }
+    return null;
+  }
+
+  bool _isCompatibleInputPort(String nodeId) {
+    final connection = _visualConnection;
+    if (connection == null) {
+      return false;
+    }
+    return nodeId != connection.fromNodeId && _hasInputPort(nodeId);
+  }
+
+  bool _hasInputPort(String nodeId) {
+    for (final node in scene.graph.nodes) {
+      if (node.id == nodeId) {
+        return switch (node.kind) {
+          SceneNodeKind.condition ||
+          SceneNodeKind.merge ||
+          SceneNodeKind.end =>
+            true,
+          SceneNodeKind.start ||
+          SceneNodeKind.yarnDialogue ||
+          SceneNodeKind.action ||
+          SceneNodeKind.battle ||
+          SceneNodeKind.cinematic ||
+          SceneNodeKind.branchByOutcome =>
+            false,
+        };
+      }
+    }
+    return false;
+  }
+
+  bool _isOutputPortUsed(String nodeId, String portId) {
+    for (final edge in scene.graph.edges) {
+      if (edge.fromNodeId == nodeId && edge.fromPortId == portId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<_SceneGraphInputPortPlacement> _inputPortPlacements(
+    Map<String, Offset> screenPositions,
+  ) {
+    return [
+      for (final node in scene.graph.nodes)
+        if (_hasInputPort(node.id))
+          _SceneGraphInputPortPlacement(
+            nodeId: node.id,
+            center: _inputPortCenter(screenPositions[node.id]!),
+          ),
+    ];
+  }
+
+  List<_SceneGraphOutputPortPlacement> _outputPortPlacements(
+    Map<String, Offset> screenPositions,
+  ) {
+    final placements = <_SceneGraphOutputPortPlacement>[];
+    for (final node in scene.graph.nodes) {
+      final ports = authorableSceneOutputPortsForNode(node);
+      for (var index = 0; index < ports.length; index++) {
+        placements.add(
+          _SceneGraphOutputPortPlacement(
+            nodeId: node.id,
+            port: ports[index],
+            center: _outputPortCenter(
+              screenPositions[node.id]!,
+              index,
+              ports.length,
+            ),
+          ),
+        );
+      }
+    }
+    return placements;
+  }
+
+  Offset _inputPortCenter(Offset nodePosition) {
+    return Offset(
+      nodePosition.dx,
+      nodePosition.dy + (_SceneGraphLayoutPlan.nodeHeight * _zoom / 2),
+    );
+  }
+
+  Offset _outputPortCenter(
+    Offset nodePosition,
+    int index,
+    int count,
+  ) {
+    final height = _SceneGraphLayoutPlan.nodeHeight * _zoom;
+    final y = count == 1 ? height / 2 : height * ((index + 1) / (count + 1));
+    return Offset(
+      nodePosition.dx + (_SceneGraphLayoutPlan.nodeWidth * _zoom),
+      nodePosition.dy + y,
+    );
   }
 
   Map<String, Offset> _worldPositionsFor(_SceneGraphLayoutPlan layout) {
@@ -419,6 +670,261 @@ class _SceneGraphNodeCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+final class _SceneGraphVisualConnection {
+  const _SceneGraphVisualConnection({
+    required this.fromNodeId,
+    required this.fromPortId,
+    required this.start,
+    required this.current,
+    this.hoveredTargetNodeId,
+  });
+
+  final String fromNodeId;
+  final String fromPortId;
+  final Offset start;
+  final Offset current;
+  final String? hoveredTargetNodeId;
+
+  _SceneGraphVisualConnection copyWith({
+    required Offset current,
+    required String? hoveredTargetNodeId,
+  }) {
+    return _SceneGraphVisualConnection(
+      fromNodeId: fromNodeId,
+      fromPortId: fromPortId,
+      start: start,
+      current: current,
+      hoveredTargetNodeId: hoveredTargetNodeId,
+    );
+  }
+}
+
+final class _SceneGraphInputPortPlacement {
+  const _SceneGraphInputPortPlacement({
+    required this.nodeId,
+    required this.center,
+  });
+
+  final String nodeId;
+  final Offset center;
+}
+
+final class _SceneGraphOutputPortPlacement {
+  const _SceneGraphOutputPortPlacement({
+    required this.nodeId,
+    required this.port,
+    required this.center,
+  });
+
+  final String nodeId;
+  final SceneAuthorableOutputPort port;
+  final Offset center;
+}
+
+abstract final class _SceneGraphPortMetrics {
+  static const double visualSize = 14;
+  static const double hitSize = 32;
+  static const double snapRadius = 30;
+}
+
+class _SceneGraphInputPortHandle extends StatelessWidget {
+  const _SceneGraphInputPortHandle({
+    required this.placement,
+    required this.isCompatible,
+    required this.isHovered,
+  });
+
+  final _SceneGraphInputPortPlacement placement;
+  final bool isCompatible;
+  final bool isHovered;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final borderColor = isHovered
+        ? colors.focusRing
+        : isCompatible
+            ? colors.success
+            : colors.borderStrong;
+    final fillColor = isHovered
+        ? colors.focusRing.withValues(alpha: 0.28)
+        : isCompatible
+            ? colors.success.withValues(alpha: 0.2)
+            : colors.backgroundShell.withValues(alpha: 0.9);
+    return Positioned(
+      key: ValueKey('scene-graph-input-port-${placement.nodeId}-in'),
+      left: placement.center.dx - (_SceneGraphPortMetrics.hitSize / 2),
+      top: placement.center.dy - (_SceneGraphPortMetrics.hitSize / 2),
+      width: _SceneGraphPortMetrics.hitSize,
+      height: _SceneGraphPortMetrics.hitSize,
+      child: Center(
+        child: DecoratedBox(
+          key: ValueKey(
+            isHovered
+                ? 'scene-graph-input-port-hover-${placement.nodeId}'
+                : isCompatible
+                    ? 'scene-graph-input-port-compatible-${placement.nodeId}'
+                    : 'scene-graph-input-port-neutral-${placement.nodeId}',
+          ),
+          decoration: BoxDecoration(
+            color: fillColor,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: borderColor,
+              width: isHovered ? 2.4 : 1.5,
+            ),
+            boxShadow: [
+              if (isCompatible || isHovered)
+                BoxShadow(
+                  color: borderColor.withValues(alpha: 0.28),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+            ],
+          ),
+          child: const SizedBox.square(
+            dimension: _SceneGraphPortMetrics.visualSize,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SceneGraphOutputPortHandle extends StatelessWidget {
+  const _SceneGraphOutputPortHandle({
+    required this.placement,
+    required this.isDisabled,
+    required this.onStart,
+    required this.onUpdate,
+    required this.onEnd,
+  });
+
+  final _SceneGraphOutputPortPlacement placement;
+  final bool isDisabled;
+  final VoidCallback onStart;
+  final ValueChanged<Offset> onUpdate;
+  final VoidCallback onEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final toneColor = isDisabled ? colors.textMuted : colors.focusRing;
+    return Positioned(
+      key: ValueKey(
+        'scene-graph-output-port-${placement.nodeId}-${placement.port.id}',
+      ),
+      left: placement.center.dx - (_SceneGraphPortMetrics.hitSize / 2),
+      top: placement.center.dy - (_SceneGraphPortMetrics.hitSize / 2),
+      width: _SceneGraphPortMetrics.hitSize + 72,
+      height: _SceneGraphPortMetrics.hitSize,
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: isDisabled ? null : (_) => onStart(),
+        onPointerMove: isDisabled ? null : (event) => onUpdate(event.position),
+        onPointerUp: isDisabled ? null : (_) => onEnd(),
+        onPointerCancel: isDisabled ? null : (_) => onEnd(),
+        child: MouseRegion(
+          cursor:
+              isDisabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+          child: Row(
+            children: [
+              SizedBox(
+                width: _SceneGraphPortMetrics.hitSize,
+                height: _SceneGraphPortMetrics.hitSize,
+                child: Center(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: isDisabled
+                          ? colors.backgroundShell.withValues(alpha: 0.85)
+                          : colors.focusRing.withValues(alpha: 0.22),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: toneColor,
+                        width: isDisabled ? 1.2 : 1.8,
+                      ),
+                    ),
+                    child: const SizedBox.square(
+                      dimension: _SceneGraphPortMetrics.visualSize,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  placement.port.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: toneColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SceneGraphConnectionPreviewPainter extends CustomPainter {
+  const _SceneGraphConnectionPreviewPainter({
+    required this.connection,
+    required this.lineColor,
+    required this.shadowColor,
+  });
+
+  final _SceneGraphVisualConnection connection;
+  final Color lineColor;
+  final Color shadowColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final start = connection.start;
+    final end = connection.current;
+    final controlDistance = math.max(44, (end.dx - start.dx).abs() / 2);
+    final path = Path()
+      ..moveTo(start.dx, start.dy)
+      ..cubicTo(
+        start.dx + controlDistance,
+        start.dy,
+        end.dx - controlDistance,
+        end.dy,
+        end.dx,
+        end.dy,
+      );
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = shadowColor.withValues(alpha: 0.44)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = lineColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(
+      covariant _SceneGraphConnectionPreviewPainter oldDelegate) {
+    return oldDelegate.connection != connection ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.shadowColor != shadowColor;
   }
 }
 
