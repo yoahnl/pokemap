@@ -62,24 +62,41 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-20 — World Rules V0 | DONE | Premier modele/authoring/validation de World Rules controlees : registry `ProjectManifest.worldRules`, operations pures, diagnostics, projection pure et apercu editor minimal. |
 | NS-SCENES-V1-20-bis — Roadmap Checkpoint Correction | DONE | Correction documentaire : inserer le checkpoint Narrative Studio obligatoire apres V1-20 et conserver V1-21 comme candidat, pas comme prochain automatique. |
 | NS-SCENES-V1-20-checkpoint — Narrative Studio Direction Checkpoint | DONE | Checkpoint produit post World Rules : la suite retenue est Payload Pickers V0 avant Event -> Scene, Runtime Plan, diagnostics et runtime MVP. |
-| NS-SCENES-V1-21 — Payload Pickers V0 | TODO | Ajouter des pickers/drafts honnetes pour Yarn, Cinematic, Battle et Action afin de configurer les nodes metier sans fake refs. |
-| NS-SCENES-V1-22 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume, sans execution runtime complete. |
-| NS-SCENES-V1-23 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
-| NS-SCENES-V1-24 — Diagnostics / Validator Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles, payloads incomplets, Facts et World Rules. |
-| NS-SCENES-V1-25 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
-| NS-SCENES-V1-26 — World Rules Map Editor Integration V0 | TODO | Rendre les World Rules visibles/configurables depuis le contexte map/entity/event sans brancher de runtime Scene. |
-| NS-SCENES-V1-27 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
-| NS-SCENES-V1-28 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP et golden slice stabilises. |
+| NS-SCENES-V1-21-prep — Linked Asset Public Contracts Audit | DONE | Audit documentaire des contrats publics exposes au Scene Builder par Dialogue Yarn, Cinematic/Cutscene, Battle, Action/Consequence et outcomes avant pickers. |
+| NS-SCENES-V1-21 — Linked Asset Contracts V0 | TODO | Formaliser les contrats/read models publics minimaux des assets lies : refs stables, labels, existence, diagnostics, outputs/outcomes et contraintes, sans runtime. |
+| NS-SCENES-V1-22 — Payload Pickers V0 | TODO | Ajouter des pickers/drafts honnetes pour Yarn, Cinematic, Battle et Action en consommant les contrats publics, pas des IDs bruts. |
+| NS-SCENES-V1-23 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume, sans execution runtime complete. |
+| NS-SCENES-V1-24 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
+| NS-SCENES-V1-25 — Diagnostics / Validator Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles, payloads incomplets, Facts et World Rules. |
+| NS-SCENES-V1-26 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
+| NS-SCENES-V1-27 — World Rules Map Editor Integration V0 | TODO | Rendre les World Rules visibles/configurables depuis le contexte map/entity/event sans brancher de runtime Scene. |
+| NS-SCENES-V1-28 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
+| NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP et golden slice stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-21 — Payload Pickers V0`
+`NS-SCENES-V1-21 — Linked Asset Contracts V0`
 
-Raison : le checkpoint V1-20 confirme que le Scene Builder est maintenant assez solide visuellement et structurellement, mais qu'il ne sait pas encore authorer les nodes metier du golden slice sans references reelles. Le prochain blocage produit est donc de rendre configurables les refs Yarn, Cinematic, Battle et Action sans fake data. `Event -> Scene` et `SceneRuntimePlan` restent indispensables, mais ils deviennent plus utiles une fois qu'une Scene peut porter des payloads metier honnetes.
+Raison : le checkpoint V1-20 confirme que le Scene Builder doit maintenant pointer vers de vrais contenus metier. L'audit V1-21-prep precise cependant qu'un picker direct risquerait de redevenir un selecteur d'ID brut tant que Dialogue, Cinematic, Battle, Action et BranchByOutcome n'exposent pas un contrat public minimal lisible par Scene Builder : label, existence, statut, diagnostics, outputs/outcomes et contraintes. Le prochain blocage produit est donc de cadrer/produire ces contrats publics avant l'UI de pickers.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
+Ordre corrige : Linked Asset Contracts V0, puis Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Decisions V1-21-prep
+
+- Lot documentation-only : aucun code, widget, modele Dart, test, build_runner, runtime, Event -> Scene, StorylineStep link ou donnee Selbrume n'est ajoute.
+- Decision principale : ne pas lancer directement `NS-SCENES-V1-21 — Payload Pickers V0`.
+- Option retenue : inserer `NS-SCENES-V1-21 — Linked Asset Contracts V0`, puis deplacer `Payload Pickers V0` en V1-22.
+- Principe retenu : `SceneAsset` stocke des refs stables, mais le Scene Builder doit lire un contrat public minimal des assets lies. Il ne doit pas connaitre l'implementation interne complete.
+- Dialogue/Yarn : registry existante via `ProjectManifest.dialogues` et `ProjectDialogueEntry`; dialogue activable apres contrat public, mais outcomes Yarn doivent etre declares/exposes proprement avant `BranchByOutcome`.
+- Cinematic/Cutscene : pas de vrai `CinematicAsset` canonique ; Cutscene Studio compile vers `ScenarioAsset`, bridge utile mais non final. `CinematicNode` reste disabled tant qu'un contrat public cinematic ou bridge explicitement borne n'existe pas.
+- Battle/Trainer : `ProjectManifest.trainers`, `ProjectTrainerEntry`, battle requests runtime et outcomes `victory/defeat` donnent une base assez mure pour un contrat public trainer battle V0.
+- Action/Consequence : actions encore dispersees entre `ScriptAsset`, `ScenarioRuntimeExecutor`, Facts et World Rules ; `ActionNode` reste disabled jusqu'a un contrat `ActionPublicContract` / `ConsequencePublicContract` V0.
+- BranchByOutcome : reste disabled tant que les producteurs d'outcomes et mappings outcome -> edge ne sont pas modelises explicitement.
+- `Event -> Scene` reste prioritaire apres que les scenes puissent pointer vers des contenus metier honnetes.
+- `Scene Runtime Plan V0` reste necessaire apres contrats/payloads et Event -> Scene.
+- `StorylineStep.sceneLinkIds` reste repousse apres builder, triggers, runtime MVP et golden slice stabilises.
 
 ## Decisions V1-20-checkpoint
 
