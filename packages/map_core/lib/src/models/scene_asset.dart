@@ -29,6 +29,7 @@ enum SceneEdgeKind {
 }
 
 enum SceneConditionSourceKind {
+  fact,
   factLikeStoryFlag,
   storyStepCompletion,
   consumedEvent,

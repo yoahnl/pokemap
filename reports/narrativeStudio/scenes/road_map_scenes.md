@@ -57,7 +57,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-16-prep — Condition Sources / Facts / World Rules Roadmap Review | DONE | Revue architecture/roadmap : refuser une Condition V0 textuelle magique, cadrer sources metier, Facts, World Rules et consequences avant authoring payload. |
 | NS-SCENES-V1-16 — Condition Sources Contract V0 | DONE | Contrat no-code des sources de condition : sources V0 autorisees, sources reportees, mapping technique, operateurs, pickers et diagnostics, sans code ni UI. |
 | NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only) | DONE | `ConditionNode` configurable avec source structuree V0 depuis refs existantes : fact-like story flag, story step completion et event consumed, sans texte magique ni fake ref. |
-| NS-SCENES-V1-18 — Fact Registry V0 | TODO | Ajouter une registry authoring de Facts lisibles, bool-first, preparant les pickers no-code et le mapping runtime vers l'etat persistant. |
+| NS-SCENES-V1-18 — Fact Registry V0 | DONE | Registry authoring de Facts lisibles bool-first dans `ProjectManifest.facts`, operations pures, JSON, diagnostics refs inconnues et picker Condition prioritaire. |
 | NS-SCENES-V1-19 — World Rule Contract V0 | TODO | Formaliser les World Rules comme regles visibles derivees de Facts/Steps/conditions, sans encore brancher tout le runtime. |
 | NS-SCENES-V1-20 — World Rules V0 | TODO | Premier authoring/validation de World Rules controlees : visibilite, dialogue, portes/collisions ou map state selon contrat. |
 | NS-SCENES-V1-21 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
@@ -70,9 +70,41 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-18 — Fact Registry V0`
+`NS-SCENES-V1-19 — World Rule Contract V0`
 
-Raison : V1-17 permet maintenant de configurer une condition avec les sources existantes autorisees, mais les sources fact-like restent encore des flags techniques presentes avec prudence. Le prochain bloc produit doit les envelopper dans une registry de Facts lisibles, bool-first, avant d'elargir World Rules, payload pickers ou runtime.
+Raison : V1-18 donne aux conditions une source Fact lisible, bool-first, sans exposer les flags techniques comme experience principale. Le prochain bloc doit cadrer les World Rules avant d'ajouter leurs modeles/UI, afin de decrire proprement les changements visibles du monde derives des Facts/Steps/conditions.
+
+## Decisions V1-18
+
+- `NarrativeFactDefinition` est ajoute comme definition authoring bool-first : id stable, label lisible, description, categorie, valeur par defaut, tags et lien optionnel vers un flag legacy.
+- `ProjectManifest.facts` devient le stockage canonique de la registry authoring des Facts V0.
+- Les operations pures `addNarrativeFact`, `updateNarrativeFact` et `removeNarrativeFact` manipulent la registry sans muter le manifest original.
+- La suppression d'un Fact reference par une condition Scene V1 est refusee explicitement.
+- `SceneConditionSourceKind.fact` devient une source authorable V0 avec operateurs `isTrue` / `isFalse`.
+- `diagnoseSceneAgainstProject` ajoute un controle project-aware des references Fact inconnues, sans remplacer `diagnoseScene(scene)` pour les diagnostics locaux.
+- Le picker Condition privilegie les Facts lisibles de la registry ; `factLikeStoryFlag` reste un fallback technique, sans migration automatique.
+- Aucun runtime, World Rule, Event -> Scene, StorylineStep link ou seed Selbrume n'est ajoute.
+
+## Limites V1-18
+
+- Facts V0 bool-first seulement ; pas de types number/text/enum.
+- Pas encore d'ecran dedie de gestion de registry dans l'editor.
+- Pas de migration automatique de `factLikeStoryFlag` vers `Fact`.
+- Pas de stockage runtime nouveau : le mapping vers l'etat persistant reste a cadrer/brancher plus tard.
+- Pas de World Rules codees.
+
+## Tests V1-18
+
+- `cd packages/map_core && dart test test/narrative_fact_test.dart test/narrative_fact_authoring_operations_test.dart test/project_manifest_facts_test.dart test/scene_diagnostics_test.dart test/scene_asset_json_test.dart`
+- `cd packages/map_core && dart run build_runner build --delete-conflicting-outputs`
+- `cd packages/map_core && dart analyze`
+- `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart --plain-name "authors a condition from a Fact Registry source"`
+- `cd packages/map_editor && flutter test --update-goldens --reporter=compact test/scenes_workspace_shell_test.dart --plain-name "writes V1-18 Fact Registry screenshot"`
+- `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_shell_navigation_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_studio_header_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/narrative_workspace_projection_test.dart`
+- `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/narrative_workspace_canvas.dart lib/src/ui/canvas/scenes_workspace.dart lib/src/ui/canvas/scenes/scene_node_read_only_inspector.dart test/scenes_workspace_shell_test.dart`
 
 ## Decisions V1-17
 

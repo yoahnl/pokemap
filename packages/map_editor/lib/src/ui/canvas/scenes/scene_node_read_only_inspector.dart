@@ -16,12 +16,16 @@ final class SceneConditionSourcePickerOption {
     required this.sourceId,
     required this.label,
     required this.debugTechnicalLabel,
+    this.description = '',
+    this.category = '',
   });
 
   final SceneConditionSourceKind sourceKind;
   final String sourceId;
   final String label;
   final String debugTechnicalLabel;
+  final String description;
+  final String category;
 }
 
 class SceneNodeReadOnlyInspector extends StatelessWidget {
@@ -545,6 +549,17 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
             _ConditionButtonRow(
               label: 'Source',
               children: [
+                if (_optionsForKind(SceneConditionSourceKind.fact).isNotEmpty)
+                  _conditionButton(
+                    key: const ValueKey(
+                      'scene-condition-source-kind-fact',
+                    ),
+                    label: 'Fact Registry',
+                    selected: _sourceKind == SceneConditionSourceKind.fact,
+                    onPressed: () => _selectSourceKind(
+                      SceneConditionSourceKind.fact,
+                    ),
+                  ),
                 _conditionButton(
                   key: const ValueKey(
                     'scene-condition-source-kind-factLikeStoryFlag',
@@ -585,6 +600,14 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
               label: 'Référence',
               children: _referenceButtons(),
             ),
+            if (_sourceKind == SceneConditionSourceKind.fact &&
+                _selectedOptionSummary != null) ...[
+              const SizedBox(height: 2),
+              _ConditionMutedLabel(
+                key: const ValueKey('scene-condition-selected-source-summary'),
+                label: _selectedOptionSummary!,
+              ),
+            ],
             const SizedBox(height: 8),
             _ConditionButtonRow(
               label: 'Opérateur',
@@ -752,6 +775,18 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
     return null;
   }
 
+  String? get _selectedOptionSummary {
+    final option = _selectedOption;
+    if (option == null) {
+      return null;
+    }
+    final parts = [
+      option.category.trim(),
+      option.description.trim(),
+    ].where((part) => part.isNotEmpty).toList(growable: false);
+    return parts.isEmpty ? option.debugTechnicalLabel : parts.join(' · ');
+  }
+
   List<SceneConditionSourcePickerOption> _optionsForKind(
     SceneConditionSourceKind kind,
   ) {
@@ -763,6 +798,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
 
   SceneConditionSourceKind _firstAvailableKind() {
     for (final kind in const [
+      SceneConditionSourceKind.fact,
       SceneConditionSourceKind.factLikeStoryFlag,
       SceneConditionSourceKind.storyStepCompletion,
       SceneConditionSourceKind.consumedEvent,
@@ -777,6 +813,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
   bool _isSourceKindAuthorable(SceneConditionSourceKind kind) {
     return switch (kind) {
       SceneConditionSourceKind.factLikeStoryFlag ||
+      SceneConditionSourceKind.fact ||
       SceneConditionSourceKind.storyStepCompletion ||
       SceneConditionSourceKind.consumedEvent =>
         true,
@@ -1038,6 +1075,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionOperator.equals,
+    SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent =>
       SceneConditionOperator.isTrue,
@@ -1057,6 +1095,7 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionValues.completed,
+    SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent ||
     SceneConditionSourceKind.storyStepActive ||

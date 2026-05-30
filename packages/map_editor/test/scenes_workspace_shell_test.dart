@@ -908,6 +908,14 @@ void main() {
       await tester.tap(
         find.byKey(
           const ValueKey(
+            'scene-condition-source-kind-factLikeStoryFlag',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
             'scene-condition-source-option-factLikeStoryFlag-story_flag.harbor_fog_seen',
           ),
         ),
@@ -973,6 +981,60 @@ void main() {
       expect(payload.conditionSource!.sourceId, 'mapEnter:map_test');
       expect(find.text('Inventory item'), findsNothing);
       expect(find.text('Aucune donnée Selbrume'), findsNothing);
+    });
+
+    testWidgets('authors a condition from a Fact Registry source',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConditionAuthoringSources(includeFacts: true),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Fact Registry'), findsOneWidget);
+      expect(find.text('Brume vue au port'), findsOneWidget);
+      expect(find.text('Port · Etat narratif lisible.'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-source-kind-fact')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-option-fact-fact_harbor_fog_seen',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-operator-isTrue')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-save-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final payload = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((node) => node.id == 'node_condition')
+          .payload as SceneConditionPayload;
+      expect(
+          payload.conditionSource!.sourceKind, SceneConditionSourceKind.fact);
+      expect(payload.conditionSource!.sourceId, 'fact_harbor_fog_seen');
+      expect(payload.conditionSource!.label, 'Brume vue au port');
+      expect(payload.conditionSource!.operator, SceneConditionOperator.isTrue);
+      expect(payload.conditionRef, 'fact_harbor_fog_seen');
     });
 
     testWidgets('unsupported node kinds expose no active V0 connection output',
@@ -1793,6 +1855,39 @@ void main() {
         ),
       );
     });
+
+    testWidgets('writes V1-18 Fact Registry screenshot', (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConditionAuthoringSources(includeFacts: true),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_condition')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-condition-source-kind-fact')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-condition-source-option-fact-fact_harbor_fog_seen',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_18_fact_registry_v0.png',
+        ),
+      );
+    });
   });
 }
 
@@ -1935,7 +2030,9 @@ ProjectManifest _projectWithEdgeAuthoringScene({
   );
 }
 
-ProjectManifest _projectWithConditionAuthoringSources() {
+ProjectManifest _projectWithConditionAuthoringSources({
+  bool includeFacts = false,
+}) {
   return ProjectManifest(
     name: 'Scenes condition authoring test',
     maps: const [
@@ -1946,6 +2043,19 @@ ProjectManifest _projectWithConditionAuthoringSources() {
       ),
     ],
     tilesets: const [],
+    facts: includeFacts
+        ? [
+            NarrativeFactDefinition(
+              id: 'fact_harbor_fog_seen',
+              label: 'Brume vue au port',
+              description: 'Etat narratif lisible.',
+              category: 'Port',
+              defaultValue: false,
+              tags: const ['brume'],
+              legacyFlagName: 'story_flag.harbor_fog_seen',
+            ),
+          ]
+        : const [],
     scenarios: const [
       ScenarioAsset(
         id: 'scenario_flag_sources',

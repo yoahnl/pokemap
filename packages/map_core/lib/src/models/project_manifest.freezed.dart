@@ -57,6 +57,8 @@ mixin _$ProjectManifest {
       throw _privateConstructorUsedError;
   List<ProjectScriptEntry> get scripts => throw _privateConstructorUsedError;
   List<ScenarioAsset> get scenarios => throw _privateConstructorUsedError;
+  @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+  List<NarrativeFactDefinition> get facts => throw _privateConstructorUsedError;
   @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
   List<SceneAsset> get scenes => throw _privateConstructorUsedError;
   @JsonKey(
@@ -131,6 +133,8 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
+      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+      List<NarrativeFactDefinition> facts,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
       @JsonKey(
@@ -194,6 +198,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? dialogues = null,
     Object? scripts = null,
     Object? scenarios = null,
+    Object? facts = null,
     Object? scenes = null,
     Object? storylines = null,
     Object? trainers = null,
@@ -282,6 +287,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.scenarios
           : scenarios // ignore: cast_nullable_to_non_nullable
               as List<ScenarioAsset>,
+      facts: null == facts
+          ? _value.facts
+          : facts // ignore: cast_nullable_to_non_nullable
+              as List<NarrativeFactDefinition>,
       scenes: null == scenes
           ? _value.scenes
           : scenes // ignore: cast_nullable_to_non_nullable
@@ -382,6 +391,8 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
+      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+      List<NarrativeFactDefinition> facts,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
       @JsonKey(
@@ -445,6 +456,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? dialogues = null,
     Object? scripts = null,
     Object? scenarios = null,
+    Object? facts = null,
     Object? scenes = null,
     Object? storylines = null,
     Object? trainers = null,
@@ -533,6 +545,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._scenarios
           : scenarios // ignore: cast_nullable_to_non_nullable
               as List<ScenarioAsset>,
+      facts: null == facts
+          ? _value._facts
+          : facts // ignore: cast_nullable_to_non_nullable
+              as List<NarrativeFactDefinition>,
       scenes: null == scenes
           ? _value._scenes
           : scenes // ignore: cast_nullable_to_non_nullable
@@ -609,12 +625,11 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectDialogueEntry> dialogues = const [],
       final List<ProjectScriptEntry> scripts = const [],
       final List<ScenarioAsset> scenarios = const [],
+      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+      final List<NarrativeFactDefinition> facts = const [],
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       final List<SceneAsset> scenes = const [],
-      @JsonKey(
-          name: 'storylines',
-          fromJson: _storylinesFromJson,
-          toJson: _storylinesToJson)
+      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
       final List<StorylineAsset> storylines = const [],
       final List<ProjectTrainerEntry> trainers = const [],
       final List<ProjectCharacterEntry> characters = const [],
@@ -652,6 +667,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _dialogues = dialogues,
         _scripts = scripts,
         _scenarios = scenarios,
+        _facts = facts,
         _scenes = scenes,
         _storylines = storylines,
         _trainers = trainers,
@@ -827,6 +843,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_scenarios);
   }
 
+  final List<NarrativeFactDefinition> _facts;
+  @override
+  @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+  List<NarrativeFactDefinition> get facts {
+    if (_facts is EqualUnmodifiableListView) return _facts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_facts);
+  }
+
   final List<SceneAsset> _scenes;
   @override
   @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
@@ -901,7 +926,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, facts: $facts, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -940,6 +965,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality().equals(other._scripts, _scripts) &&
             const DeepCollectionEquality()
                 .equals(other._scenarios, _scenarios) &&
+            const DeepCollectionEquality().equals(other._facts, _facts) &&
             const DeepCollectionEquality().equals(other._scenes, _scenes) &&
             const DeepCollectionEquality()
                 .equals(other._storylines, _storylines) &&
@@ -984,6 +1010,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_dialogues),
         const DeepCollectionEquality().hash(_scripts),
         const DeepCollectionEquality().hash(_scenarios),
+        const DeepCollectionEquality().hash(_facts),
         const DeepCollectionEquality().hash(_scenes),
         const DeepCollectionEquality().hash(_storylines),
         const DeepCollectionEquality().hash(_trainers),
@@ -1042,6 +1069,8 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectDialogueEntry> dialogues,
       final List<ProjectScriptEntry> scripts,
       final List<ScenarioAsset> scenarios,
+      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+      final List<NarrativeFactDefinition> facts,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       final List<SceneAsset> scenes,
       @JsonKey(
@@ -1118,6 +1147,9 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectScriptEntry> get scripts;
   @override
   List<ScenarioAsset> get scenarios;
+  @override
+  @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+  List<NarrativeFactDefinition> get facts;
   @override
   @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
   List<SceneAsset> get scenes;

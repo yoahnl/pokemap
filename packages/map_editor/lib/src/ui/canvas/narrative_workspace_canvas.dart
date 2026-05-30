@@ -376,6 +376,19 @@ List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
     );
   }
 
+  for (final fact in project.facts) {
+    add(
+      SceneConditionSourcePickerOption(
+        sourceKind: SceneConditionSourceKind.fact,
+        sourceId: fact.id,
+        label: fact.label,
+        debugTechnicalLabel: fact.legacyFlagName ?? fact.id,
+        description: fact.description,
+        category: fact.category,
+      ),
+    );
+  }
+
   for (final reference in buildNarrativePredicateReferencePickerOptions(
     project,
   )) {

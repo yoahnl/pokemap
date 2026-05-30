@@ -118,6 +118,28 @@ void main() {
       expect(conditionSource['debugTechnicalLabel'], 'step_intro_completed');
       expect(decoded, equals(payload));
     });
+
+    test('round-trips Fact Registry condition source payload', () {
+      final payload = SceneConditionPayload(
+        conditionLabel: 'Brume vue au port',
+        conditionRef: 'fact_harbor_fog_seen',
+        conditionSource: SceneConditionSource(
+          sourceKind: SceneConditionSourceKind.fact,
+          sourceId: 'fact_harbor_fog_seen',
+          operator: SceneConditionOperator.isTrue,
+          label: 'Brume vue au port',
+          debugTechnicalLabel: 'story_flag.harbor_fog_seen',
+        ),
+      );
+
+      final json = payload.toJson();
+      final conditionSource = json['conditionSource'] as Map<String, dynamic>;
+      final decoded = SceneNodePayload.fromJson(json);
+
+      expect(conditionSource['sourceKind'], 'fact');
+      expect(conditionSource['sourceId'], 'fact_harbor_fog_seen');
+      expect(decoded, equals(payload));
+    });
   });
 
   group('SceneAsset JSON defaults and invalid shapes', () {

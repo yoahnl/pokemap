@@ -1,3 +1,4 @@
+import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 
 enum SceneDiagnosticSeverity {
@@ -26,6 +27,7 @@ enum SceneDiagnosticCode {
   conditionUsesFutureSource,
   conditionUsesRawTechnicalId,
   conditionSourceMigratesToFactRegistry,
+  conditionFactRefUnknown,
   emptyGraph,
   legacyScenarioLeak,
 }
@@ -334,6 +336,40 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
   return SceneDiagnosticsReport(diagnostics: diagnostics);
 }
 
+SceneDiagnosticsReport diagnoseSceneAgainstProject(
+  SceneAsset scene,
+  ProjectManifest project,
+) {
+  final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
+  final factIds = project.facts.map((fact) => fact.id).toSet();
+
+  for (final node in scene.graph.nodes) {
+    final payload = node.payload;
+    if (payload is! SceneConditionPayload) {
+      continue;
+    }
+    final source = payload.conditionSource;
+    if (source == null || source.sourceKind != SceneConditionSourceKind.fact) {
+      continue;
+    }
+    if (!factIds.contains(source.sourceId)) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: SceneDiagnosticCode.conditionFactRefUnknown,
+          severity: SceneDiagnosticSeverity.error,
+          message: 'La condition référence un Fact absent du projet.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          suggestedFixLabel: 'Choisir un Fact existant dans la registry.',
+        ),
+      );
+    }
+  }
+
+  return SceneDiagnosticsReport(diagnostics: diagnostics);
+}
+
 void _diagnoseConditionNode(
   SceneAsset scene,
   SceneNode node,
@@ -433,6 +469,7 @@ void _diagnoseConditionNode(
 
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
   return switch (kind) {
+    SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.storyStepCompletion ||
     SceneConditionSourceKind.consumedEvent =>
@@ -451,6 +488,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent =>
       source.operator == SceneConditionOperator.isTrue ||

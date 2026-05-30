@@ -166,6 +166,53 @@ void main() {
           isEmpty);
     });
 
+    test('fact source references must resolve against ProjectManifest facts',
+        () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_condition',
+            kind: SceneNodeKind.condition,
+            payload: SceneConditionPayload(
+              conditionSource: SceneConditionSource(
+                sourceKind: SceneConditionSourceKind.fact,
+                sourceId: 'fact_harbor_fog_seen',
+                operator: SceneConditionOperator.isTrue,
+                label: 'Brume vue au port',
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      final missingReport = diagnoseSceneAgainstProject(scene, _project());
+
+      final diagnostic = missingReport
+          .byCode(SceneDiagnosticCode.conditionFactRefUnknown)
+          .single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.nodeId, 'node_condition');
+
+      final validReport = diagnoseSceneAgainstProject(
+        scene,
+        _project(
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_harbor_fog_seen',
+              label: 'Brume vue au port',
+            ),
+          ],
+        ),
+      );
+
+      expect(validReport.byCode(SceneDiagnosticCode.conditionFactRefUnknown),
+          isEmpty);
+      expect(validReport.byCode(SceneDiagnosticCode.conditionSourceMissing),
+          isEmpty);
+    });
+
     test('future and incomplete condition sources are diagnosed', () {
       final futureScene = _scene(
         nodes: [
@@ -222,11 +269,14 @@ void main() {
   });
 }
 
-ProjectManifest _project() {
+ProjectManifest _project({
+  List<NarrativeFactDefinition> facts = const [],
+}) {
   return ProjectManifest(
     name: 'Scene diagnostics test',
     maps: const [],
     tilesets: const [],
+    facts: facts,
   );
 }
 

@@ -5,6 +5,7 @@ import 'element_collision_profile.dart';
 import 'environment.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
+import 'narrative_fact.dart';
 import 'project_path_pattern_preset.dart';
 import 'projected_building_shadow.dart';
 import 'scenario_asset.dart';
@@ -111,6 +112,41 @@ Map<String, dynamic> _sceneJsonObject(Object? json) {
   return json.map((key, value) {
     if (key is! String) {
       throw const ValidationException('scene JSON keys must be strings');
+    }
+    return MapEntry(key, value);
+  });
+}
+
+/// JSON -> authoring narrative Facts.
+///
+/// Missing or `null` keeps old projects readable as an empty list. This does
+/// not migrate legacy story flags automatically.
+List<NarrativeFactDefinition> _factsFromJson(Object? json) {
+  if (json == null) {
+    return const <NarrativeFactDefinition>[];
+  }
+  if (json is! List) {
+    throw const ValidationException('facts must be a JSON list');
+  }
+  return [
+    for (final item in json)
+      NarrativeFactDefinition.fromJson(_factJsonObject(item)),
+  ];
+}
+
+List<Map<String, dynamic>> _factsToJson(
+  List<NarrativeFactDefinition> facts,
+) {
+  return [for (final fact in facts) fact.toJson()];
+}
+
+Map<String, dynamic> _factJsonObject(Object? json) {
+  if (json is! Map) {
+    throw const ValidationException('fact must be a JSON object');
+  }
+  return json.map((key, value) {
+    if (key is! String) {
+      throw const ValidationException('fact JSON keys must be strings');
     }
     return MapEntry(key, value);
   });
@@ -234,6 +270,13 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectDialogueEntry> dialogues,
     @Default([]) List<ProjectScriptEntry> scripts,
     @Default([]) List<ScenarioAsset> scenarios,
+    @Default([])
+    @JsonKey(
+      name: 'facts',
+      fromJson: _factsFromJson,
+      toJson: _factsToJson,
+    )
+    List<NarrativeFactDefinition> facts,
     @Default([])
     @JsonKey(
       name: 'scenes',

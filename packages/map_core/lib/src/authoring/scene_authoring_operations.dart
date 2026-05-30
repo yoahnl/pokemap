@@ -421,6 +421,7 @@ SceneEdgeDraftRemovalResult removeSceneEdgeDraft(
 
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.fact:
     case SceneConditionSourceKind.factLikeStoryFlag:
     case SceneConditionSourceKind.consumedEvent:
       if (source.operator != SceneConditionOperator.isTrue &&
