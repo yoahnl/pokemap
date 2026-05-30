@@ -89,6 +89,7 @@ export 'src/authoring/narrative_validator_authoring_adapter.dart';
 export 'src/authoring/storyline_legacy_import_preview.dart';
 export 'src/read_models/narrative_reference_picker_read_models.dart';
 export 'src/read_models/linked_asset_public_contracts.dart';
+export 'src/read_models/world_rule_target_context_read_model.dart';
 export 'src/runtime/scene_runtime_plan.dart';
 export 'src/runtime/scene_runtime_plan_builder.dart';
 export 'src/runtime/scene_runtime_executor.dart';

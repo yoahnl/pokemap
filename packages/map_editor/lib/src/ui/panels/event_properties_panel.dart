@@ -8,8 +8,10 @@ import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../theme/theme.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import 'world_rule_target_section.dart';
 
 const _kScriptNoneMenuId = '__event_script_none__';
 const _kStartNodeDefaultMenuId = '__event_script_start_default__';
@@ -336,9 +338,9 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
             project: state.project,
           ),
         if (widget.embedded)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: const InspectorEmbeddedFootnote(
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: InspectorEmbeddedFootnote(
               text:
                   'Event = interaction locale conditionnelle. Pour les acteurs gameplay riches (NPC complet, item complexe), continue d’utiliser Map Entities.',
               accent: accent,
@@ -626,6 +628,16 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
           ],
         ),
         const SizedBox(height: 12),
+        if (project != null) ...[
+          _buildEventWorldRulesSection(
+            context: context,
+            notifier: notifier,
+            project: project,
+            map: map,
+            selectedEvent: selectedEvent,
+          ),
+          const SizedBox(height: 12),
+        ],
         const EditorHorizontalDivider(),
         const SizedBox(height: 12),
         Row(
@@ -787,6 +799,140 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
         ],
       ],
     );
+  }
+
+  Widget _buildEventWorldRulesSection({
+    required BuildContext context,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required MapData map,
+    required MapEventDefinition selectedEvent,
+  }) {
+    final model = buildWorldRuleTargetContextReadModel(
+      project,
+      targetKind: WorldRuleTargetKind.mapEvent,
+      mapId: map.id,
+      eventId: selectedEvent.id,
+      maps: [map],
+    );
+    return WorldRuleTargetSection(
+      model: model,
+      facts: project.facts,
+      allowMapEventCreation: true,
+      onCreateEventRule: (draft) => _createWorldRuleForEvent(
+        context: context,
+        notifier: notifier,
+        project: project,
+        map: map,
+        selectedEvent: selectedEvent,
+        draft: draft,
+      ),
+      onToggleEnabled: (rule) => _toggleWorldRuleEnabled(
+        context: context,
+        notifier: notifier,
+        project: project,
+        map: map,
+        rule: rule,
+      ),
+    );
+  }
+
+  Future<void> _createWorldRuleForEvent({
+    required BuildContext context,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required MapData map,
+    required MapEventDefinition selectedEvent,
+    required WorldRuleEventRuleDraft draft,
+  }) async {
+    NarrativeFactDefinition? fact;
+    for (final candidate in project.facts) {
+      if (candidate.id == draft.factId) {
+        fact = candidate;
+        break;
+      }
+    }
+    if (fact == null) {
+      await showCupertinoEditorAlert(
+        context,
+        message: 'Fact source introuvable pour cette règle.',
+      );
+      return;
+    }
+    try {
+      final result = addWorldRule(
+        project,
+        label: draft.label,
+        enabled: draft.enabled,
+        source: WorldRuleSource(
+          kind: WorldRuleSourceKind.fact,
+          sourceId: fact.id,
+          predicate: draft.predicate,
+          label: fact.label,
+        ),
+        target: WorldRuleTarget(
+          kind: WorldRuleTargetKind.mapEvent,
+          mapId: map.id,
+          eventId: selectedEvent.id,
+          label: selectedEvent.title.trim().isEmpty
+              ? selectedEvent.id
+              : selectedEvent.title,
+        ),
+        effect: WorldRuleEffect(kind: draft.effectKind),
+        maps: [map],
+      );
+      notifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'World Rule créée pour cet event',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await showCupertinoEditorAlert(
+        context,
+        message: 'Impossible de créer la World Rule: $error',
+      );
+    }
+  }
+
+  Future<void> _toggleWorldRuleEnabled({
+    required BuildContext context,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required MapData map,
+    required WorldRuleDefinition rule,
+  }) async {
+    try {
+      final result = updateWorldRule(
+        project,
+        ruleId: rule.id,
+        label: rule.label,
+        description: rule.description,
+        enabled: !rule.enabled,
+        source: rule.source,
+        target: rule.target,
+        effect: rule.effect,
+        priority: rule.priority,
+        tags: rule.tags,
+        debugTechnicalLabel: rule.debugTechnicalLabel,
+        maps: [map],
+      );
+      notifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: result.updatedRule.enabled
+            ? 'World Rule activée'
+            : 'World Rule désactivée',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await showCupertinoEditorAlert(
+        context,
+        message: 'Impossible de modifier la World Rule: $error',
+      );
+    }
   }
 
   Widget _buildScriptSelectors({
@@ -1115,7 +1261,7 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
   }
 
   Widget _buildRawJsonExamples(BuildContext context) {
-    final accent = EditorChrome.inspectorJoyCyan;
+    const accent = EditorChrome.inspectorJoyCyan;
     final hintColor = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1178,7 +1324,7 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
     int maxLines = 1,
     String? placeholder,
   }) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = context.pokeMapColors.textMuted;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

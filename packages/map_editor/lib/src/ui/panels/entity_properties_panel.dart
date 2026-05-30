@@ -14,6 +14,7 @@ import '../../features/editor/tools/editor_tool.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import 'world_rule_target_section.dart';
 part 'entity_properties/entity_properties_dialogue_support.dart';
 part 'entity_properties/entity_properties_drafts.dart';
 part 'entity_properties/entity_properties_dialogue_bindings.dart';
@@ -317,6 +318,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                   state: state,
                   notifier: notifier,
                   project: state.project,
+                  map: map,
                   selectedEntity: selectedEntity,
                 ),
             ],
@@ -1536,6 +1538,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     required EditorState state,
     required EditorNotifier notifier,
     required ProjectManifest? project,
+    required MapData map,
     required MapEntity selectedEntity,
   }) {
     return Column(
@@ -1700,6 +1703,16 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             onChanged: (v) => setState(() => _blocksMovement = v),
           ),
         ],
+        if (project != null) ...[
+          const SizedBox(height: 12),
+          ..._buildEntityWorldRuleSections(
+            context: context,
+            notifier: notifier,
+            project: project,
+            map: map,
+            selectedEntity: selectedEntity,
+          ),
+        ],
         if (_selectedKind != MapEntityKind.npc) ...[
           const SizedBox(height: 12),
           ..._editorVisualFields(context, project),
@@ -1803,6 +1816,98 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         ),
       ],
     );
+  }
+
+  List<Widget> _buildEntityWorldRuleSections({
+    required BuildContext context,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required MapData map,
+    required MapEntity selectedEntity,
+  }) {
+    final entityRules = buildWorldRuleTargetContextReadModel(
+      project,
+      targetKind: WorldRuleTargetKind.mapEntity,
+      mapId: map.id,
+      entityId: selectedEntity.id,
+      maps: [map],
+    );
+    final sections = <Widget>[
+      WorldRuleTargetSection(
+        model: entityRules,
+        facts: project.facts,
+        onToggleEnabled: (rule) => _toggleWorldRuleEnabled(
+          context: context,
+          notifier: notifier,
+          project: project,
+          map: map,
+          rule: rule,
+        ),
+      ),
+    ];
+    if (selectedEntity.kind == MapEntityKind.npc) {
+      final dialogueRules = buildWorldRuleTargetContextReadModel(
+        project,
+        targetKind: WorldRuleTargetKind.npcDialogue,
+        mapId: map.id,
+        entityId: selectedEntity.id,
+        maps: [map],
+      );
+      sections.addAll([
+        const SizedBox(height: 10),
+        WorldRuleTargetSection(
+          model: dialogueRules,
+          facts: project.facts,
+          onToggleEnabled: (rule) => _toggleWorldRuleEnabled(
+            context: context,
+            notifier: notifier,
+            project: project,
+            map: map,
+            rule: rule,
+          ),
+        ),
+      ]);
+    }
+    return sections;
+  }
+
+  Future<void> _toggleWorldRuleEnabled({
+    required BuildContext context,
+    required EditorNotifier notifier,
+    required ProjectManifest project,
+    required MapData map,
+    required WorldRuleDefinition rule,
+  }) async {
+    try {
+      final result = updateWorldRule(
+        project,
+        ruleId: rule.id,
+        label: rule.label,
+        description: rule.description,
+        enabled: !rule.enabled,
+        source: rule.source,
+        target: rule.target,
+        effect: rule.effect,
+        priority: rule.priority,
+        tags: rule.tags,
+        debugTechnicalLabel: rule.debugTechnicalLabel,
+        maps: [map],
+      );
+      notifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: result.updatedRule.enabled
+            ? 'World Rule activée'
+            : 'World Rule désactivée',
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await showCupertinoEditorAlert(
+        context,
+        message: 'Impossible de modifier la World Rule: $error',
+      );
+    }
   }
 
   void _syncControllers(MapEntity? entity, ProjectManifest? project) {

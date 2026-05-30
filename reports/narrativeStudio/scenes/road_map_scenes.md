@@ -72,19 +72,33 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-25-bis — Dialogue/Battle Ports Authoring V0 | DONE | Ports authorables Dialogue.completed et Battle.victory/defeat ajoutes aux sources de verite, diagnostics, runtime-plan preservation et canvas visual-port, sans runtime ni outcomes Yarn inventes. |
 | NS-SCENES-V1-26 — Scene Runtime Executor MVP | DONE | Executor pur `map_core` pour parcourir un `SceneRuntimePlan` via callbacks condition/dialogue/battle/cinematic, trace, erreurs propres et `maxSteps`, sans branchement runtime map. |
 | NS-SCENES-V1-26-bis — Scene Runtime Executor Evidence & Review Hardening | DONE | Review/evidence hardening de V1-26 : executor confirme pur, tests/analyze relances, fichiers executor/test reproduits integralement, aucun runtime map ni V1-27 demarre. |
-| NS-SCENES-V1-27 — World Rules Map Editor Integration V0 | TODO | Rendre les World Rules visibles/configurables depuis le contexte map/entity/event sans brancher de runtime Scene. |
+| NS-SCENES-V1-27 — World Rules Map Editor Integration V0 | DONE | World Rules retrouvees depuis leurs cibles Map Editor : events, entites et dialogues PNJ, avec diagnostics, toggle enabled et creation V0 fact -> map event. |
 | NS-SCENES-V1-28 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
 | NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP et golden slice stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-27 — World Rules Map Editor Integration V0`
+`NS-SCENES-V1-28 — Golden Slice Selbrume Scene/Event Prep`
 
-Raison : V1-26-bis a confirme l'evidence et la surete de l'executor pur V1-26 sans demarrer V1-27. Avant le golden slice complet, les World Rules doivent maintenant devenir visibles/configurables depuis leurs cibles map/entity/event pour que les consequences ne restent pas de simples lignes abstraites dans l'overview.
+Raison : V1-27 rend les World Rules visibles et corrigibles depuis les cibles naturelles du Map Editor sans brancher de runtime. Le prochain verrou utile est donc une preparation de golden slice controlee, en fixtures/tests et sans seed produit Selbrume, pour verifier que event -> scene -> dialogue/battle/consequence reste atteignable.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Mise a jour V1-27
+
+Statut : `NS-SCENES-V1-27 — World Rules Map Editor Integration V0` est DONE.
+
+Decision : V1-27 ajoute un read model pur `WorldRuleTargetContextReadModel` cote `map_core` pour filtrer les World Rules par cible explicite `mapEvent`, `mapEntity` ou `npcDialogue`, attacher les diagnostics existants et produire des labels source/effet lisibles sans `GameState`, runtime, disque ou mutation.
+
+Editor : `EventPropertiesPanel` affiche les rules ciblant l'event selectionne, expose diagnostics et toggle enabled, et permet de creer une World Rule V0 fact -> event avec mapId/eventId auto-remplis depuis le contexte. `EntityPropertiesPanel` affiche et permet de toggler les rules ciblant l'entite et, pour les PNJ, les rules de dialogue PNJ.
+
+Limites : pas de runtime Scene, pas d'application dynamique des World Rules au monde, pas de collision/warp dynamique, pas de StorylineStep link, pas de Event -> Scene runtime trigger, pas de donnees Selbrume, pas de creation avancee mapEntity/npcDialogue depuis l'inspector.
+
+Tests : `cd packages/map_core && dart test test/world_rule_test.dart && dart test test/world_rule_authoring_operations_test.dart && dart test test/world_rule_diagnostics_test.dart && dart test test/world_rule_projection_test.dart && dart test test/world_rule_target_context_read_model_test.dart && dart analyze`, tests editor Event/Entity/Overview/Shell/Projection/Guardrail, analyse ciblee editor, visual gate V1-27 et `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-28 — Golden Slice Selbrume Scene/Event Prep`.
 
 ## Decisions V1-24
 

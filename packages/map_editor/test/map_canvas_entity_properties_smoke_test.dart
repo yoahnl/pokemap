@@ -66,10 +66,22 @@ void main() {
             id: 'ground',
             name: 'Ground',
             tiles: <int>[
-              0, 0, 0, 0,
-              0, 0, 0, 0,
-              0, 0, 0, 0,
-              0, 0, 0, 0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
             ],
           ),
         ],
@@ -88,10 +100,39 @@ void main() {
 
       return EditorState(
         projectRootPath: tempProjectRoot.path,
-        project: const ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'smoke_project',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_guide_hidden',
+              label: 'Guide hidden fact',
+            ),
+          ],
+          dialogues: const [
+            ProjectDialogueEntry(
+              id: 'dialogue_guide_after',
+              name: 'Guide after',
+              relativePath: 'dialogues/guide_after.yarn',
+            ),
+          ],
+          worldRules: [
+            _entityWorldRule(
+              id: 'rule_hide_guide',
+              label: 'Guide hidden',
+              targetKind: WorldRuleTargetKind.mapEntity,
+              effectKind: WorldRuleEffectKind.entityHidden,
+            ),
+            _entityWorldRule(
+              id: 'rule_guide_dialogue',
+              label: 'Guide dialogue',
+              targetKind: WorldRuleTargetKind.npcDialogue,
+              effectKind: WorldRuleEffectKind.npcDialogueOverride,
+              dialogueId: 'dialogue_guide_after',
+            ),
+          ],
         ),
         activeMap: activeMap,
         activeLayerId: 'ground',
@@ -104,7 +145,8 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = buildEditorState();
+      container.read(editorNotifierProvider.notifier).state =
+          buildEditorState();
 
       await pumpEditorSurface(
         tester,
@@ -127,7 +169,8 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = buildEditorState();
+      container.read(editorNotifierProvider.notifier).state =
+          buildEditorState();
 
       await pumpEditorSurface(
         tester,
@@ -143,7 +186,52 @@ void main() {
 
       expect(find.text('PNJ'), findsWidgets);
       expect(find.text('Enregistrer'), findsOneWidget);
+      expect(find.text('Guide hidden'), findsOneWidget);
+      expect(find.text('Guide dialogue'), findsOneWidget);
+      expect(find.textContaining('Entité cachée'), findsOneWidget);
+      expect(find.textContaining('Dialogue remplacé par Guide after'),
+          findsOneWidget);
       expect(tester.takeException(), isNull);
+
+      await tester.tap(
+        find.byKey(const ValueKey('world-rule-toggle-rule_hide_guide')),
+      );
+      await tester.pumpAndSettle();
+
+      final rule = container
+          .read(editorNotifierProvider)
+          .project!
+          .worldRules
+          .firstWhere((worldRule) => worldRule.id == 'rule_hide_guide');
+      expect(rule.enabled, isFalse);
     });
   });
+}
+
+WorldRuleDefinition _entityWorldRule({
+  required String id,
+  required String label,
+  required WorldRuleTargetKind targetKind,
+  required WorldRuleEffectKind effectKind,
+  String? dialogueId,
+}) {
+  return WorldRuleDefinition(
+    id: id,
+    label: label,
+    source: const WorldRuleSource(
+      kind: WorldRuleSourceKind.fact,
+      sourceId: 'fact_guide_hidden',
+      predicate: WorldRuleSourcePredicate.isTrue,
+    ),
+    target: WorldRuleTarget(
+      kind: targetKind,
+      mapId: 'route_1',
+      entityId: 'npc_1',
+      label: 'Guide',
+    ),
+    effect: WorldRuleEffect(
+      kind: effectKind,
+      dialogueId: dialogueId,
+    ),
+  );
 }
