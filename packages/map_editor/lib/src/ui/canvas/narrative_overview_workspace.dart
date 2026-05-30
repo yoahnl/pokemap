@@ -486,6 +486,17 @@ class _ModuleCard extends StatelessWidget {
               height: 1.3,
             ),
           ),
+          if (module.previewLabels.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final label in module.previewLabels)
+                  _ModulePreviewLabel(label: label),
+              ],
+            ),
+          ],
           const SizedBox(height: 10),
           Text(
             _moduleCardValue(module),
@@ -522,6 +533,36 @@ class _ModuleCard extends StatelessWidget {
       minimumSize: Size.zero,
       onPressed: onTap,
       child: content,
+    );
+  }
+}
+
+class _ModulePreviewLabel extends StatelessWidget {
+  const _ModulePreviewLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: EditorChrome.chipFill(context),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: EditorChrome.activeAccent(context).withValues(alpha: 0.24),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: EditorChrome.primaryLabel(context),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }

@@ -114,15 +114,7 @@ void main() {
       expect(sidebar, findsOneWidget);
       expect(transientNavigation, findsNothing);
       expect(mainContent, findsOneWidget);
-      expect(
-        find.descendant(
-          of: shell,
-          matching: find.byKey(const ValueKey('narrative-studio-header')),
-        ),
-        findsOneWidget,
-      );
       expect(find.text('Narrative Studio'), findsWidgets);
-      expect(find.text('Section : Aperçu'), findsOneWidget);
       expect(
         find.descendant(
           of: shell,
@@ -166,14 +158,12 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:globalStory'), findsOneWidget);
-      expect(find.text('Section : Storylines'), findsOneWidget);
 
       await tester.tap(
-        find.byKey(const ValueKey('narrative-studio-header-action-overview')),
+        find.descendant(of: sidebar, matching: find.text('Aperçu')),
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-      expect(find.text('Section : Aperçu'), findsOneWidget);
 
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Scènes')),
@@ -242,16 +232,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('workspace:narrativeOverview'), findsOneWidget);
 
-      for (final key in <String>[
-        'narrative-studio-header-action-new-storyline',
-        'narrative-studio-header-action-validate',
-        'narrative-studio-header-action-search',
-        'narrative-studio-header-action-notifications',
-        'narrative-studio-header-action-settings',
-      ]) {
-        await tester.tap(find.byKey(ValueKey(key)));
-        await tester.pumpAndSettle();
-      }
       expect(find.text('workspace:narrativeOverview'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -527,32 +507,6 @@ void main() {
 
       expect(find.text('Locale : FR'), findsNothing);
       expect(find.text('v0.3.0'), findsNothing);
-      expect(
-        find.byKey(
-          const ValueKey('narrative-studio-header-action-new-storyline'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('narrative-studio-header-action-validate')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('narrative-studio-header-action-search')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('narrative-studio-header-action-notifications'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('narrative-studio-header-notifications-badge'),
-        ),
-        findsNothing,
-      );
       expect(find.textContaining('Selbrume'), findsNothing);
       expect(find.text('42'), findsNothing);
       expect(find.text('1 236'), findsNothing);
@@ -658,8 +612,6 @@ void main() {
           findsOneWidget);
       expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
           findsOneWidget);
-      expect(find.byKey(const ValueKey('narrative-studio-header')),
-          findsOneWidget);
       expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
           findsOneWidget);
       expect(
@@ -690,23 +642,6 @@ void main() {
         );
       }
 
-      for (final key in <String>[
-        'narrative-studio-header-action-new-storyline',
-        'narrative-studio-header-action-validate',
-        'narrative-studio-header-action-search',
-        'narrative-studio-header-action-notifications',
-        'narrative-studio-header-action-settings',
-      ]) {
-        await tester.tap(find.byKey(ValueKey(key)));
-        await tester.pumpAndSettle();
-      }
-
-      expect(
-        find.byKey(
-          const ValueKey('narrative-studio-header-notifications-badge'),
-        ),
-        findsNothing,
-      );
       expect(find.textContaining('Selbrume'), findsNothing);
       expect(find.text('FR'), findsNothing);
       expect(find.text('v0.3.0'), findsNothing);

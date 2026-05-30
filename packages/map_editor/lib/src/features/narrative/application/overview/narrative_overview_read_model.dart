@@ -216,6 +216,7 @@ class NarrativeModuleSummary {
     required this.emptyStateMessage,
     required this.destination,
     this.secondaryStats = const <NarrativeMetricSummary>[],
+    this.previewLabels = const <String>[],
   });
 
   final String id;
@@ -226,6 +227,7 @@ class NarrativeModuleSummary {
   final String emptyStateMessage;
   final String? destination;
   final List<NarrativeMetricSummary> secondaryStats;
+  final List<String> previewLabels;
 }
 
 class NarrativeStructureInspectorSummary {
@@ -335,6 +337,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
   final allSteps = allStepContexts
       .expand((context) => context.stepDocument.steps)
       .toList(growable: false);
+  final worldRuleDiagnostics = diagnoseWorldRules(project);
   final validation = _buildEditorialStatus(
     narrativeValidationReport: narrativeValidationReport,
     authoringDiagnostics: authoringDiagnostics,
@@ -383,8 +386,8 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
   final worldRules = _metricWithCount(
     id: 'world_rules',
     label: 'Règles du monde',
-    count: _countWorldRules(allSteps),
-    emptyStateMessage: 'Aucune règle du monde définie.',
+    count: project.worldRules.length,
+    emptyStateMessage: 'Aucune World Rule authorée.',
     unavailableMessage: 'Règles du monde indisponibles.',
   );
   final openIssues = validation.notEvaluated
@@ -445,7 +448,13 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     ),
   );
 
-  final modules = _buildModules(metrics);
+  final modules = _buildModules(
+    metrics,
+    worldRuleDiagnostics: worldRuleDiagnostics,
+    worldRulePreviewLabels: [
+      for (final rule in project.worldRules.take(3)) rule.label,
+    ],
+  );
   final projectHealth = _buildProjectHealth(validation, metrics);
   final structureInspector = _buildStructureInspector(
     project: project,
@@ -801,13 +810,6 @@ bool _completionHasDependency(StepStudioCompletionRule completion) {
   };
 }
 
-int _countWorldRules(List<StepStudioStep> steps) {
-  return steps.fold<int>(
-    0,
-    (sum, step) => sum + step.worldChanges.length,
-  );
-}
-
 Set<String> _collectDialogueIdsFromScenarios({
   required ProjectManifest project,
   required Set<String> scenarioIds,
@@ -956,7 +958,11 @@ NarrativeChapterEditorialStatus _chapterStatusFor(
   return NarrativeChapterEditorialStatus.defined;
 }
 
-List<NarrativeModuleSummary> _buildModules(NarrativeOverviewMetrics metrics) {
+List<NarrativeModuleSummary> _buildModules(
+  NarrativeOverviewMetrics metrics, {
+  required WorldRuleDiagnosticsReport worldRuleDiagnostics,
+  required List<String> worldRulePreviewLabels,
+}) {
   return <NarrativeModuleSummary>[
     const NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.quests,
@@ -1004,6 +1010,10 @@ List<NarrativeModuleSummary> _buildModules(NarrativeOverviewMetrics metrics) {
       availability: metrics.worldRules.availability,
       emptyStateMessage: metrics.worldRules.emptyStateMessage,
       destination: 'step_studio',
+      secondaryStats: <NarrativeMetricSummary>[
+        _worldRuleDiagnosticsMetric(worldRuleDiagnostics),
+      ],
+      previewLabels: worldRulePreviewLabels,
     ),
     const NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.facts,
@@ -1016,6 +1026,25 @@ List<NarrativeModuleSummary> _buildModules(NarrativeOverviewMetrics metrics) {
       destination: null,
     ),
   ];
+}
+
+NarrativeMetricSummary _worldRuleDiagnosticsMetric(
+  WorldRuleDiagnosticsReport report,
+) {
+  final issueCount = report.errorCount + report.warningCount;
+  return NarrativeMetricSummary(
+    id: 'world_rule_diagnostics',
+    label: 'Diagnostics',
+    count: issueCount,
+    availability: issueCount == 0
+        ? NarrativeOverviewAvailability.empty
+        : NarrativeOverviewAvailability.available,
+    sourceStatus: report.hasDiagnostics
+        ? NarrativeOverviewSourceStatus.explicit
+        : NarrativeOverviewSourceStatus.missing,
+    emptyStateMessage: 'Aucun diagnostic World Rule.',
+    unavailableMessage: 'Diagnostics World Rules indisponibles.',
+  );
 }
 
 NarrativeProjectHealthSummary _buildProjectHealth(

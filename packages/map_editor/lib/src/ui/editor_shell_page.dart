@@ -426,30 +426,27 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                       CrossAxisAlignment
                                                           .stretch,
                                                   children: [
-                                                    _WorkspaceStageHeader(
-                                                      title:
-                                                          shell.workspaceTitle,
-                                                      subtitle: shell
-                                                          .workspaceSubtitle,
-                                                      workspaceMode:
-                                                          workspaceMode,
-                                                      rightPanelVisible:
-                                                          _rightInspectorVisible,
-                                                      showRightPanelToggle:
-                                                          supportsRightInspector,
-                                                      onToggleRightPanel: () {
-                                                        setState(() {
-                                                          _rightInspectorVisible =
-                                                              !_rightInspectorVisible;
-                                                        });
-                                                      },
-                                                    ),
-                                                    SizedBox(
-                                                      height:
-                                                          isNarrativeWorkspace
-                                                              ? 12
-                                                              : 18,
-                                                    ),
+                                                    if (!isNarrativeWorkspace) ...[
+                                                      _WorkspaceStageHeader(
+                                                        title:
+                                                            shell.workspaceTitle,
+                                                        subtitle: shell
+                                                            .workspaceSubtitle,
+                                                        workspaceMode:
+                                                            workspaceMode,
+                                                        rightPanelVisible:
+                                                            _rightInspectorVisible,
+                                                        showRightPanelToggle:
+                                                            supportsRightInspector,
+                                                        onToggleRightPanel: () {
+                                                          setState(() {
+                                                            _rightInspectorVisible =
+                                                                !_rightInspectorVisible;
+                                                          });
+                                                        },
+                                                      ),
+                                                      const SizedBox(height: 18),
+                                                    ],
                                                     Expanded(
                                                       child: workspaceMode ==
                                                                   EditorWorkspaceMode

@@ -240,6 +240,10 @@ void main() {
               relativePath: 'dialogues/test_dialogue_1.yarn',
             ),
           ],
+          facts: [
+            NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
+          ],
+          worldRules: [_overviewWorldRule()],
         ),
       );
 
@@ -349,6 +353,10 @@ void main() {
               relativePath: 'dialogues/test_dialogue_1.yarn',
             ),
           ],
+          facts: [
+            NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
+          ],
+          worldRules: [_overviewWorldRule()],
         ),
       );
 
@@ -565,6 +573,10 @@ void main() {
               relativePath: 'dialogues/test_dialogue_1.yarn',
             ),
           ],
+          facts: [
+            NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
+          ],
+          worldRules: [_overviewWorldRule()],
         ),
       );
 
@@ -577,6 +589,19 @@ void main() {
       expect(_textInModule(NarrativeOverviewModuleIds.conditions, '2'),
           findsOneWidget);
       expect(_textInModule(NarrativeOverviewModuleIds.worldRules, '1'),
+          findsOneWidget);
+      expect(
+        _textInModule(NarrativeOverviewModuleIds.worldRules, 'Diagnostics'),
+        findsOneWidget,
+      );
+      expect(
+        _textInModule(
+          NarrativeOverviewModuleIds.worldRules,
+          'Visible world rule',
+        ),
+        findsOneWidget,
+      );
+      expect(_textInModule(NarrativeOverviewModuleIds.worldRules, '0'),
           findsOneWidget);
       expect(
         _textInModule(NarrativeOverviewModuleIds.dialogues, 'Indisponible'),
@@ -595,6 +620,42 @@ void main() {
       expect(find.text('24'), findsNothing);
       expect(find.text('12'), findsNothing);
       expect(find.text('312'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace renders ProjectManifest world rule diagnostics',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject(
+          'test_project',
+          worldRules: [
+            _overviewWorldRule(
+              sourceId: 'fact_missing',
+              label: 'Rule with missing fact',
+            ),
+          ],
+        ),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1040, height: 1120);
+
+      expect(_textInModule(NarrativeOverviewModuleIds.worldRules, '1'),
+          findsWidgets);
+      expect(
+        _textInModule(NarrativeOverviewModuleIds.worldRules, 'Diagnostics'),
+        findsOneWidget,
+      );
+      expect(
+        _textInModule(
+          NarrativeOverviewModuleIds.worldRules,
+          'Rule with missing fact',
+        ),
+        findsOneWidget,
+      );
+      expect(_textInModule(NarrativeOverviewModuleIds.worldRules, '1'),
+          findsWidgets);
+      expect(find.textContaining('Selbrume'), findsNothing);
     },
   );
 
@@ -959,6 +1020,81 @@ void main() {
       );
 
       expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace captures V1-20 World Rules screenshot when requested',
+    (tester) async {
+      if (!const bool.fromEnvironment('NS_SCENES_V1_20_CAPTURE_SCREENSHOT')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      tester.view.physicalSize = const Size(1180, 840);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject(
+          'test_project',
+          facts: [
+            NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
+          ],
+          worldRules: [_overviewWorldRule()],
+        ),
+      );
+
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: ColoredBox(
+                key: const ValueKey('ns-scenes-v1-20-screenshot-root'),
+                color: const Color(0xFF07111F),
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(fontFamily: _screenshotFontFamily),
+                  child: Center(
+                    child: SizedBox(
+                      width: 1180,
+                      height: 840,
+                      child: NarrativeOverviewWorkspace(readModel: readModel),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.scrollUntilVisible(
+        find.byKey(
+          const ValueKey(
+            'narrative-overview-module-${NarrativeOverviewModuleIds.worldRules}',
+          ),
+          skipOffstage: false,
+        ),
+        260,
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_20_world_rules_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('ns-scenes-v1-20-screenshot-root')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+      expect(find.textContaining('Selbrume'), findsNothing);
     },
   );
 
@@ -1516,14 +1652,45 @@ ProjectManifest _minimalProject(
   String name, {
   List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
+  List<NarrativeFactDefinition> facts = const <NarrativeFactDefinition>[],
+  List<WorldRuleDefinition> worldRules = const <WorldRuleDefinition>[],
 }) {
   return ProjectManifest(
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: name,
-    maps: const <ProjectMapEntry>[],
+    maps: const <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'map_test',
+        name: 'Map test',
+        relativePath: 'maps/map_test.json',
+      ),
+    ],
     tilesets: const <ProjectTilesetEntry>[],
     scenarios: scenarios,
     dialogues: dialogues,
+    facts: facts,
+    worldRules: worldRules,
+  );
+}
+
+WorldRuleDefinition _overviewWorldRule({
+  String sourceId = 'fact_known',
+  String label = 'Visible world rule',
+}) {
+  return WorldRuleDefinition(
+    id: 'world_rule_visible',
+    label: label,
+    source: WorldRuleSource(
+      kind: WorldRuleSourceKind.fact,
+      sourceId: sourceId,
+      predicate: WorldRuleSourcePredicate.isTrue,
+    ),
+    target: const WorldRuleTarget(
+      kind: WorldRuleTargetKind.mapEntity,
+      mapId: 'map_test',
+      entityId: 'entity_test',
+    ),
+    effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityVisible),
   );
 }
 

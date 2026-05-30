@@ -17,6 +17,7 @@ import 'storyline_asset.dart';
 import 'surface_catalog.dart';
 import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
+import 'world_rule.dart';
 
 import '../exceptions/map_exceptions.dart';
 import '../operations/environment_preset_json_codec.dart';
@@ -152,6 +153,41 @@ Map<String, dynamic> _factJsonObject(Object? json) {
   });
 }
 
+/// JSON -> authoring World Rules.
+///
+/// Missing or `null` keeps old projects readable as an empty list. This does
+/// not convert legacy map predicates or script conditions automatically.
+List<WorldRuleDefinition> _worldRulesFromJson(Object? json) {
+  if (json == null) {
+    return const <WorldRuleDefinition>[];
+  }
+  if (json is! List) {
+    throw const ValidationException('worldRules must be a JSON list');
+  }
+  return [
+    for (final item in json)
+      WorldRuleDefinition.fromJson(_worldRuleJsonObject(item)),
+  ];
+}
+
+List<Map<String, dynamic>> _worldRulesToJson(
+  List<WorldRuleDefinition> worldRules,
+) {
+  return [for (final rule in worldRules) rule.toJson()];
+}
+
+Map<String, dynamic> _worldRuleJsonObject(Object? json) {
+  if (json is! Map) {
+    throw const ValidationException('worldRule must be a JSON object');
+  }
+  return json.map((key, value) {
+    if (key is! String) {
+      throw const ValidationException('worldRule JSON keys must be strings');
+    }
+    return MapEntry(key, value);
+  });
+}
+
 /// JSON -> ShadowV2 projected building shadow catalog.
 ///
 /// Missing or `null` root data remains an empty in-memory catalog. When the
@@ -277,6 +313,13 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _factsToJson,
     )
     List<NarrativeFactDefinition> facts,
+    @Default([])
+    @JsonKey(
+      name: 'worldRules',
+      fromJson: _worldRulesFromJson,
+      toJson: _worldRulesToJson,
+    )
+    List<WorldRuleDefinition> worldRules,
     @Default([])
     @JsonKey(
       name: 'scenes',

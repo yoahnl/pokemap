@@ -58,8 +58,8 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-16 — Condition Sources Contract V0 | DONE | Contrat no-code des sources de condition : sources V0 autorisees, sources reportees, mapping technique, operateurs, pickers et diagnostics, sans code ni UI. |
 | NS-SCENES-V1-17 — Condition Authoring V0 (Existing Sources Only) | DONE | `ConditionNode` configurable avec source structuree V0 depuis refs existantes : fact-like story flag, story step completion et event consumed, sans texte magique ni fake ref. |
 | NS-SCENES-V1-18 — Fact Registry V0 | DONE | Registry authoring de Facts lisibles bool-first dans `ProjectManifest.facts`, operations pures, JSON, diagnostics refs inconnues et picker Condition prioritaire. |
-| NS-SCENES-V1-19 — World Rule Contract V0 | TODO | Formaliser les World Rules comme regles visibles derivees de Facts/Steps/conditions, sans encore brancher tout le runtime. |
-| NS-SCENES-V1-20 — World Rules V0 | TODO | Premier authoring/validation de World Rules controlees : visibilite, dialogue, portes/collisions ou map state selon contrat. |
+| NS-SCENES-V1-19 — World Rule Contract V0 | DONE | Contrat produit/technique des World Rules V0 : registry projet future avec targets explicites, sources Fact/Step/Event, effets V0 limites et diagnostics requis. |
+| NS-SCENES-V1-20 — World Rules V0 | DONE | Premier modele/authoring/validation de World Rules controlees : registry `ProjectManifest.worldRules`, operations pures, diagnostics, projection pure et apercu editor minimal. |
 | NS-SCENES-V1-21 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
 | NS-SCENES-V1-22 — Payload Pickers V0 | TODO | Ajouter les pickers Yarn, cinematic, battle/action refs et limiter les IDs libres. |
 | NS-SCENES-V1-23 — Diagnostics Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles et payloads incomplets. |
@@ -70,9 +70,77 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-19 — World Rule Contract V0`
+`NS-SCENES-V1-21 — Scene Runtime Plan V0`
 
-Raison : V1-18 donne aux conditions une source Fact lisible, bool-first, sans exposer les flags techniques comme experience principale. Le prochain bloc doit cadrer les World Rules avant d'ajouter leurs modeles/UI, afin de decrire proprement les changements visibles du monde derives des Facts/Steps/conditions.
+Raison : V1-20 a ajoute les World Rules authoring comme donnees projet validables, sans les brancher au runtime. Le prochain bloc peut revenir a la preparation d'execution Scene V1 avec un `SceneRuntimePlan` pur, en gardant layout, World Rules et runtime separes.
+
+## Decisions V1-20
+
+- `WorldRuleDefinition` est ajoute comme modele authoring declaratif : id, label, description, enabled, source, target, effect, priority, tags et debug technique optionnel.
+- `ProjectManifest.worldRules` devient la registry canonique V0 des World Rules ; champ absent ou null => liste vide, sans migration automatique depuis predicates legacy, Step Studio ou map entities.
+- Sources V0 codees : `Fact`, `StoryStep completion` et `consumed event`, avec predicates compatibles controles.
+- Targets V0 codees : `mapEntity`, `npcDialogue`, `mapEvent`.
+- Effets V0 codes : `entityVisible`, `entityHidden`, `npcDialogueOverride`, `eventEnabled`, `eventDisabled`, `eventHidden`.
+- Les operations pures `addWorldRule`, `updateWorldRule` et `removeWorldRule` preservent le manifest original, generent des IDs stables et refusent labels vides, refs structurellement invalides et mismatches target/effect.
+- `diagnoseWorldRules` signale sources/targets/effects manquants ou inconnus, predicates incompatibles, mismatches, conflits de priorite et fuites d'IDs/predicates techniques.
+- `projectWorldRuleEffects` projette des effets resolus depuis `ProjectManifest` + `GameState`, sans muter `ProjectManifest`, `MapData` ou `GameState`.
+- L'editor affiche un etat minimal honnete dans l'aperçu : compteur World Rules, diagnostics et premiers labels, sans authoring UI complet.
+- Aucun runtime Scene, aucun Event -> Scene, aucun StorylineStep link, aucune migration ScenarioAsset et aucune donnee Selbrume ne sont ajoutes.
+
+## Limites V1-20
+
+- Pas d'ecran dedie d'authoring World Rules dans l'editor.
+- Pas de picker map/entity/event/dialogue cote UI, seulement une integration overview minimale.
+- La projection pure reste non destructive et non branchee au runtime.
+- Les collisions dynamiques, warps, tiles, ambience/map state, mouvements d'entites et effets composites restent hors scope.
+- Les Facts restent bool-first et la projection s'appuie sur `GameState.storyFlags` / `legacyFlagName` quand disponible.
+
+## Tests V1-20
+
+- `cd packages/map_core && dart test test/world_rule_test.dart`
+- `cd packages/map_core && dart test test/world_rule_authoring_operations_test.dart`
+- `cd packages/map_core && dart test test/project_manifest_world_rules_test.dart`
+- `cd packages/map_core && dart test test/world_rule_diagnostics_test.dart`
+- `cd packages/map_core && dart test test/world_rule_projection_test.dart`
+- `cd packages/map_core && dart test test/project_manifest_facts_test.dart`
+- `cd packages/map_core && dart run build_runner build --delete-conflicting-outputs`
+- `cd packages/map_core && dart analyze`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_workspace_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_overview_shell_navigation_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/ui/canvas/narrative_studio_header_test.dart`
+- `cd packages/map_editor && flutter test --reporter=compact test/narrative_workspace_projection_test.dart`
+- `cd packages/map_editor && flutter test --update-goldens --reporter=compact --dart-define=NS_SCENES_V1_20_CAPTURE_SCREENSHOT=true test/ui/canvas/narrative_overview_workspace_test.dart --plain-name "NarrativeOverviewWorkspace captures V1-20 World Rules screenshot when requested"`
+- `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/features/narrative/application/overview/narrative_overview_read_model.dart lib/src/ui/canvas/narrative_overview_workspace.dart test/ui/canvas/narrative_overview_workspace_test.dart`
+- Verification finale : `git diff --check`.
+
+## Decisions V1-19
+
+- Lot documentation-only : aucun code, widget, modele Dart, runtime, test ou fixture n'est modifie.
+- Une World Rule est une regle authoring declarative, inspectable et validable qui projette un changement visible ou actif du monde depuis une source lisible.
+- Une World Rule n'est pas un script cache, une action one-shot, une condition dissimulee dans un PNJ ou un flag technique expose comme UX principale.
+- Stockage futur recommande : registry projet canonique, avec targets explicites et affichage contextuel depuis Map Editor/entity inspector.
+- Sources V0 recommandees : Fact Registry fact, StoryStep completed/notCompleted, consumed event ; `ScriptCondition` reste backend/legacy, pas surface produit.
+- Effets V0 prioritaires : presence/visibilite d'entite, dialogue conditionnel PNJ, disponibilite simple d'event si la cible est validee.
+- Effets repousses : collision dynamique, warp dynamique, deplacement d'entite, ambience/map state global et World Rule source derivee d'une autre World Rule.
+- Runtime futur recommande : projection/resolution non destructive depuis `GameState`, sans muter `MapData` ou `ProjectManifest`.
+- Diagnostics requis : source/target/effect manquants ou inconnus, mismatch target/effect, conflits de priorite, cycles et fuite d'IDs techniques.
+- Prochain lot exact : `NS-SCENES-V1-20 — World Rules V0`.
+
+## Limites V1-19
+
+- Aucun modele `WorldRule` n'est cree.
+- Aucun champ `ProjectManifest.worldRules` n'est ajoute.
+- Aucun runtime, gameplay, editor widget ou payload Scene n'est modifie.
+- Les portes/collisions/warps restent conceptuellement analyses mais non autorises comme effet V0 direct.
+- Aucune donnee Selbrume n'est creee.
+
+## Tests V1-19
+
+- Dart analyze non requis : lot documentation-only.
+- Flutter analyze non requis : lot documentation-only.
+- Dart test non requis : lot documentation-only.
+- Flutter test non requis : lot documentation-only.
+- Verification requise : `git diff --check`.
 
 ## Decisions V1-18
 
