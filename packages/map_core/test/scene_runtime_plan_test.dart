@@ -207,18 +207,22 @@ void main() {
             yarnNodeName: 'Start',
           ),
         ),
-        outgoingEdgeKind: SceneEdgeKind.dialogueOutcome,
       );
 
-      final dialogueNode = buildSceneRuntimePlan(scene)
-          .plan!
-          .nodes
-          .singleWhere((node) => node.id == 'node_dialogue');
+      final result = buildSceneRuntimePlan(scene);
+      final dialogueNode =
+          result.plan!.nodes.singleWhere((node) => node.id == 'node_dialogue');
+      final dialogueEdge = result.plan!.edges.singleWhere(
+        (edge) => edge.fromNodeId == 'node_dialogue',
+      );
 
+      expect(result.canBuild, isTrue);
       expect(dialogueNode.intent.kind, SceneRuntimePlanIntentKind.showDialogue);
       expect(dialogueNode.intent.dialogueId, 'dialogue_test');
       expect(dialogueNode.intent.yarnNodeName, 'Start');
       expect(dialogueNode.intent.expectedOutcomes, isEmpty);
+      expect(dialogueEdge.fromPortId, 'completed');
+      expect(dialogueEdge.kind, SceneEdgeKind.defaultFlow);
     });
 
     test(
@@ -235,19 +239,84 @@ void main() {
             declaredOutcomes: const ['victory', 'defeat'],
           ),
         ),
+        outgoingPortId: 'victory',
         outgoingEdgeKind: SceneEdgeKind.battleVictory,
       );
 
-      final battleNode = buildSceneRuntimePlan(scene)
-          .plan!
-          .nodes
-          .singleWhere((node) => node.id == 'node_battle');
+      final result = buildSceneRuntimePlan(scene);
+      final battleNode =
+          result.plan!.nodes.singleWhere((node) => node.id == 'node_battle');
+      final battleEdge = result.plan!.edges.singleWhere(
+        (edge) => edge.fromNodeId == 'node_battle',
+      );
 
+      expect(result.canBuild, isTrue);
       expect(battleNode.intent.kind, SceneRuntimePlanIntentKind.startBattle);
       expect(battleNode.intent.battleKind, 'trainer');
       expect(battleNode.intent.trainerId, 'trainer_test');
       expect(battleNode.intent.battleTemplateId, 'battle_test');
       expect(battleNode.intent.battleDeclaredOutcomes, ['victory', 'defeat']);
+      expect(battleEdge.fromPortId, 'victory');
+      expect(battleEdge.kind, SceneEdgeKind.battleVictory);
+    });
+
+    test('battle plan preserves victory and defeat edges', () {
+      final scene = SceneAsset(
+        id: 'scene_test',
+        name: 'Runtime Plan Battle Branches',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_battle',
+              kind: SceneNodeKind.battle,
+              payload: SceneBattlePayload(
+                battleKind: 'trainer',
+                trainerId: 'trainer_test',
+                declaredOutcomes: const ['victory', 'defeat'],
+              ),
+            ),
+            SceneNode(id: 'node_end_victory', kind: SceneNodeKind.end),
+            SceneNode(id: 'node_end_defeat', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_battle',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_battle',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_battle_victory',
+              fromNodeId: 'node_battle',
+              fromPortId: 'victory',
+              toNodeId: 'node_end_victory',
+              kind: SceneEdgeKind.battleVictory,
+            ),
+            SceneEdge(
+              id: 'edge_battle_defeat',
+              fromNodeId: 'node_battle',
+              fromPortId: 'defeat',
+              toNodeId: 'node_end_defeat',
+              kind: SceneEdgeKind.battleDefeat,
+            ),
+          ],
+        ),
+      );
+
+      final result = buildSceneRuntimePlan(scene);
+
+      expect(result.canBuild, isTrue);
+      expect(
+        result.plan!.edges.map((edge) => (edge.fromPortId, edge.kind)),
+        [
+          ('completed', SceneEdgeKind.defaultFlow),
+          ('victory', SceneEdgeKind.battleVictory),
+          ('defeat', SceneEdgeKind.battleDefeat),
+        ],
+      );
     });
 
     test('cinematic payload becomes playCinematic intent with bridge warning',

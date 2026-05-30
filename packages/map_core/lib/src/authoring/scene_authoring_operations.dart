@@ -163,10 +163,27 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
           edgeKind: SceneEdgeKind.defaultFlow,
         ),
       ],
+    SceneNodeKind.yarnDialogue => const [
+        SceneAuthorableOutputPort(
+          id: 'completed',
+          label: 'completed',
+          edgeKind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    SceneNodeKind.battle => const [
+        SceneAuthorableOutputPort(
+          id: 'victory',
+          label: 'victory',
+          edgeKind: SceneEdgeKind.battleVictory,
+        ),
+        SceneAuthorableOutputPort(
+          id: 'defeat',
+          label: 'defeat',
+          edgeKind: SceneEdgeKind.battleDefeat,
+        ),
+      ],
     SceneNodeKind.end ||
-    SceneNodeKind.yarnDialogue ||
     SceneNodeKind.action ||
-    SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.branchByOutcome =>
       const <SceneAuthorableOutputPort>[],

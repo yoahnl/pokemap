@@ -862,10 +862,27 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
           required: true,
         ),
       ],
+    SceneNodeKind.yarnDialogue => const [
+        _SceneOutputPortSpec(
+          id: 'completed',
+          edgeKinds: {SceneEdgeKind.defaultFlow},
+          required: true,
+        ),
+      ],
+    SceneNodeKind.battle => const [
+        _SceneOutputPortSpec(
+          id: 'victory',
+          edgeKinds: {SceneEdgeKind.battleVictory},
+          required: true,
+        ),
+        _SceneOutputPortSpec(
+          id: 'defeat',
+          edgeKinds: {SceneEdgeKind.battleDefeat},
+          required: true,
+        ),
+      ],
     SceneNodeKind.end => const [],
-    SceneNodeKind.yarnDialogue ||
     SceneNodeKind.action ||
-    SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.branchByOutcome =>
       null,

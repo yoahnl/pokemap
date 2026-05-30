@@ -462,13 +462,13 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       if (node.id == nodeId) {
         return switch (node.kind) {
           SceneNodeKind.condition ||
+          SceneNodeKind.yarnDialogue ||
+          SceneNodeKind.battle ||
           SceneNodeKind.merge ||
           SceneNodeKind.end =>
             true,
           SceneNodeKind.start ||
-          SceneNodeKind.yarnDialogue ||
           SceneNodeKind.action ||
-          SceneNodeKind.battle ||
           SceneNodeKind.cinematic ||
           SceneNodeKind.branchByOutcome =>
             false,

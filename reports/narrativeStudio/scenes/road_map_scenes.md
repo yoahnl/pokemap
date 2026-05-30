@@ -69,6 +69,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-23-bis — Event to Scene Link V0 | DONE | Lien authoring persistant `MapEventPage.sceneTarget -> Scene V1`, operations set/clear, validation/diagnostics et picker editor bornes, sans runtime Scene ni migration legacy. |
 | NS-SCENES-V1-24 — Scene Runtime Plan V0 | DONE | Modele pur `SceneRuntimePlan` / intents dans `map_core`, builder `SceneAsset -> SceneRuntimePlanBuildResult`, diagnostics runtime-plan, layout ignore, sans runtime ni ScenarioAsset final. |
 | NS-SCENES-V1-25 — Diagnostics / Validator Expansion | DONE | Diagnostics Scene V1 renforces : ports V0, duplicates, unreachable/cycles, refs projet Dialogue/Battle/Cinematic/Facts/World Rules et readiness Event -> Scene via SceneRuntimePlan. |
+| NS-SCENES-V1-25-bis — Dialogue/Battle Ports Authoring V0 | DONE | Ports authorables Dialogue.completed et Battle.victory/defeat ajoutes aux sources de verite, diagnostics, runtime-plan preservation et canvas visual-port, sans runtime ni outcomes Yarn inventes. |
 | NS-SCENES-V1-26 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
 | NS-SCENES-V1-27 — World Rules Map Editor Integration V0 | TODO | Rendre les World Rules visibles/configurables depuis le contexte map/entity/event sans brancher de runtime Scene. |
 | NS-SCENES-V1-28 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
@@ -78,9 +79,9 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 `NS-SCENES-V1-26 — Scene Runtime Executor MVP`
 
-Raison : V1-25 a renforce le filet de securite auteur/runtime autour des refs projet, ports, reachability, cycles et liens Event -> Scene. Le prochain verrou logique est maintenant l'execution controlee d'un sous-ensemble de `SceneRuntimePlan`, sans promouvoir `ScenarioAsset`.
+Raison : V1-25 a renforce le filet de securite auteur/runtime autour des refs projet, ports, reachability, cycles et liens Event -> Scene, puis V1-25-bis a rendu les nodes Dialogue Yarn et Battle branchables dans le Scene Builder avec des ports authorables honnetes. Le prochain verrou logique est maintenant l'execution controlee d'un sous-ensemble de `SceneRuntimePlan`, sans promouvoir `ScenarioAsset`.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -109,6 +110,19 @@ Prochain lot exact : `NS-SCENES-V1-25 — Diagnostics / Validator Expansion`.
 - Les cas structurellement impossibles via le modele public (`fromNodeId`/`toNodeId` inconnus, payload kind incoherent, payload obligatoire absent Yarn/Battle/Cinematic) restent bloques a la construction `SceneGraph` / `SceneNode`; ils sont documentes comme deja proteges par le modele strict.
 - Aucun editor surfacing nouveau n'a ete ajoute : les diagnostics existants consommeront les nouveaux codes via les listes deja branchees.
 - Tests executes : `cd packages/map_core && dart test test/scene_diagnostics_test.dart`, `cd packages/map_core && dart test test/scene_project_diagnostics_test.dart`, `cd packages/map_core && dart test test/event_scene_link_diagnostics_test.dart`, `cd packages/map_core && dart test test/scene_runtime_plan_test.dart`, `cd packages/map_core && dart analyze`, verification finale `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-26 — Scene Runtime Executor MVP`.
+
+## Decisions V1-25-bis
+
+- `yarnDialogue` expose maintenant un port authorable `completed`, mappe vers `SceneEdgeKind.defaultFlow` et reste volontairement limite a une sortie de continuation simple.
+- `battle` expose maintenant deux ports authorables `victory` et `defeat`, mappes respectivement vers `SceneEdgeKind.battleVictory` et `SceneEdgeKind.battleDefeat`.
+- `addSceneEdgeDraft` reutilise la source de verite des ports : `edge.kind` reste derive du port, les doublons depuis un port single-output restent refuses, les self-loops et ports inconnus restent invalides.
+- `diagnoseScene(scene)` reconnait ces ports comme valides ; les sorties manquantes restent des warnings de draft, tandis que port invalide, kind incompatible et doublon restent des errors runtime-bloquantes.
+- `SceneRuntimePlan` reste pur et conserve les edges Dialogue.completed / Battle.victory / Battle.defeat sans appeler Yarn, battle runtime, Flame, Scenario runtime ou disque.
+- Le canvas Scene Builder affiche et connecte ces ports via le systeme visuel V1-15 existant ; les nodes Action/Cinematic/Branch restent sans sortie active dans ce lot.
+- Aucun `SceneRuntimeExecutor`, runtime Scene, Event -> Scene runtime trigger, `StorylineStep.sceneLinkIds`, BranchByOutcome authoring, outcome Yarn invente, import `map_battle`, fake ref ou donnee Selbrume n'est ajoute.
+- Tests executes : `cd packages/map_core && dart test test/scene_authoring_operations_test.dart`, `cd packages/map_core && dart test test/scene_diagnostics_test.dart`, `cd packages/map_core && dart test test/scene_runtime_plan_test.dart`, `cd packages/map_core && dart analyze`, `cd packages/map_editor && flutter test --reporter=compact test/scenes_workspace_shell_test.dart`, `cd packages/map_editor && flutter analyze --no-fatal-infos lib/src/ui/canvas/scenes_workspace.dart lib/src/ui/canvas/scenes/scene_graph_read_only_view.dart lib/src/ui/canvas/scenes/scene_node_read_only_inspector.dart test/scenes_workspace_shell_test.dart`, verification finale `git diff --check`.
 
 Prochain lot exact : `NS-SCENES-V1-26 — Scene Runtime Executor MVP`.
 

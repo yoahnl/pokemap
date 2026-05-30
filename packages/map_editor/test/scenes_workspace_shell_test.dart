@@ -541,6 +541,46 @@ void main() {
       );
     });
 
+    testWidgets('shows visual ports for Dialogue and Battle authoring nodes',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithDialogueBattlePortsScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-input-port-node_dialogue-in'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_dialogue-completed'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-input-port-node_battle-in'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_battle-victory'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_battle-defeat'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets(
         'visual port drag shows preview, highlights target, and creates edge',
         (tester) async {
@@ -597,6 +637,115 @@ void main() {
           const ValueKey(
             'scene-graph-edge-edge_node_start_completed_node_condition',
           ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('visual drag connects Dialogue.completed to a target node',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithDialogueBattlePortsScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final output = find.byKey(
+        const ValueKey('scene-graph-output-port-node_dialogue-completed'),
+      );
+      final input = find.byKey(
+        const ValueKey('scene-graph-input-port-node_end-in'),
+      );
+      final gesture = await tester.startGesture(
+        tester.getTopLeft(output) + const Offset(16, 16),
+      );
+      await tester.pump();
+      await gesture.moveTo(tester.getCenter(input));
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-connection-preview-wire')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-input-port-hover-node_end')),
+        findsOneWidget,
+      );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final edges = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .edges;
+      expect(edges, hasLength(1));
+      expect(edges.single.id, 'edge_node_dialogue_completed_node_end');
+      expect(edges.single.fromPortId, 'completed');
+      expect(edges.single.kind, SceneEdgeKind.defaultFlow);
+    });
+
+    testWidgets('visual drag connects Battle victory and defeat ports',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithDialogueBattlePortsScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      final victoryOutput = find.byKey(
+        const ValueKey('scene-graph-output-port-node_battle-victory'),
+      );
+      final victoryInput = find.byKey(
+        const ValueKey('scene-graph-input-port-node_end-in'),
+      );
+      final victoryGesture = await tester.startGesture(
+        tester.getTopLeft(victoryOutput) + const Offset(16, 16),
+      );
+      await tester.pump();
+      await victoryGesture.moveTo(tester.getCenter(victoryInput));
+      await tester.pump();
+      await victoryGesture.up();
+      await tester.pumpAndSettle();
+
+      final defeatOutput = find.byKey(
+        const ValueKey('scene-graph-output-port-node_battle-defeat'),
+      );
+      final defeatInput = find.byKey(
+        const ValueKey('scene-graph-input-port-node_end_2-in'),
+      );
+      final defeatGesture = await tester.startGesture(
+        tester.getTopLeft(defeatOutput) + const Offset(16, 16),
+      );
+      await tester.pump();
+      await defeatGesture.moveTo(tester.getCenter(defeatInput));
+      await tester.pump();
+      await defeatGesture.up();
+      await tester.pumpAndSettle();
+
+      final edges = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .edges;
+      expect(edges.map((edge) => (edge.fromPortId, edge.kind)), [
+        ('victory', SceneEdgeKind.battleVictory),
+        ('defeat', SceneEdgeKind.battleDefeat),
+      ]);
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-edge-edge_node_battle_victory_node_end'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-edge-edge_node_battle_defeat_node_end_2'),
         ),
         findsOneWidget,
       );
@@ -818,7 +967,7 @@ void main() {
         find.byKey(const ValueKey('scenes-connect-port-completed')).first,
       );
       expect(usedButton.onPressed, isNull);
-      expect(find.textContaining('connecté'), findsOneWidget);
+      expect(find.text('completed · connecté'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('scene-graph-node-node_end')));
       await tester.pumpAndSettle();
@@ -1281,16 +1430,16 @@ void main() {
       expect(payload.conditionRef, 'fact_harbor_fog_seen');
     });
 
-    testWidgets('unsupported node kinds expose no active V0 connection output',
+    testWidgets('unsupported Action/Cinematic/Branch expose no active output',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
-        project: _projectWithScene(),
+        project: _projectWithUnsupportedConnectionNodes(),
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
       await tester
-          .tap(find.byKey(const ValueKey('scene-graph-node-node_yarn')));
+          .tap(find.byKey(const ValueKey('scene-graph-node-node_action')));
       await tester.pumpAndSettle();
 
       expect(
@@ -1298,8 +1447,24 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('scenes-connect-port-accept')),
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
         findsNothing,
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('scene-graph-node-node_cinematic')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scenes-edge-no-outputs')),
+        findsOneWidget,
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('scene-graph-node-node_branch')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scenes-edge-no-outputs')),
+        findsOneWidget,
       );
     });
 
@@ -2086,6 +2251,60 @@ void main() {
       );
     });
 
+    testWidgets('writes V1-25-bis dialogue battle ports screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithDialogueBattlePortsScene(
+          edges: [
+            SceneEdge(
+              id: 'edge_node_dialogue_completed_node_end',
+              fromNodeId: 'node_dialogue',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_node_battle_victory_node_end',
+              fromNodeId: 'node_battle',
+              fromPortId: 'victory',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.battleVictory,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_battle')),
+      );
+      await tester.pumpAndSettle();
+
+      final defeatOutput = find.byKey(
+        const ValueKey('scene-graph-output-port-node_battle-defeat'),
+      );
+      final defeatInput = find.byKey(
+        const ValueKey('scene-graph-input-port-node_end_2-in'),
+      );
+      final gesture = await tester.startGesture(
+        tester.getTopLeft(defeatOutput) + const Offset(16, 16),
+      );
+      await tester.pump();
+      await gesture.moveTo(tester.getCenter(defeatInput));
+      await tester.pump();
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_25_bis_dialogue_battle_ports_authoring_v0.png',
+        ),
+      );
+
+      await gesture.up();
+    });
+
     testWidgets('writes V1-17 condition authoring screenshot', (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -2294,6 +2513,104 @@ ProjectManifest _projectWithEdgeAuthoringScene({
             SceneNodeLayout(nodeId: 'node_merge', x: 420, y: 210),
             SceneNodeLayout(nodeId: 'node_end', x: 420, y: 36),
             SceneNodeLayout(nodeId: 'node_end_2', x: 420, y: 154),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithDialogueBattlePortsScene({
+  List<SceneEdge> edges = const [],
+}) {
+  return ProjectManifest(
+    name: 'Scenes shell test',
+    maps: const [],
+    tilesets: const [],
+    scenes: [
+      SceneAsset(
+        id: 'scene_dialogue_battle_ports',
+        name: 'Dialogue Battle Ports Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              title: 'Dialogue test',
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'dialogue_test',
+                yarnNodeName: 'Start',
+              ),
+            ),
+            SceneNode(
+              id: 'node_battle',
+              kind: SceneNodeKind.battle,
+              title: 'Battle test',
+              payload: SceneBattlePayload(
+                battleKind: 'trainer',
+                trainerId: 'trainer_test',
+                declaredOutcomes: const ['victory', 'defeat'],
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+            SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+          ],
+          edges: edges,
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_dialogue', x: 260, y: 80),
+            SceneNodeLayout(nodeId: 'node_battle', x: 260, y: 220),
+            SceneNodeLayout(nodeId: 'node_end', x: 560, y: 80),
+            SceneNodeLayout(nodeId: 'node_end_2', x: 560, y: 220),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithUnsupportedConnectionNodes() {
+  return ProjectManifest(
+    name: 'Scenes shell test',
+    maps: const [],
+    tilesets: const [],
+    scenes: [
+      SceneAsset(
+        id: 'scene_unsupported_connection_nodes',
+        name: 'Unsupported Connection Nodes Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_action',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload(actionKind: 'action_test'),
+            ),
+            SceneNode(
+              id: 'node_cinematic',
+              kind: SceneNodeKind.cinematic,
+              payload: SceneCinematicPayload(cinematicId: 'cinematic_test'),
+            ),
+            SceneNode(
+              id: 'node_branch',
+              kind: SceneNodeKind.branchByOutcome,
+              payload: SceneBranchByOutcomePayload(sourceNodeId: 'node_action'),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_action', x: 260, y: 40),
+            SceneNodeLayout(nodeId: 'node_cinematic', x: 260, y: 180),
+            SceneNodeLayout(nodeId: 'node_branch', x: 496, y: 110),
+            SceneNodeLayout(nodeId: 'node_end', x: 760, y: 110),
           ],
         ),
       ),
@@ -2563,10 +2880,10 @@ SceneAsset _testIntroScene() {
         SceneEdge(
           id: 'edge_yarn_battle',
           fromNodeId: 'node_yarn',
-          fromPortId: 'accept',
+          fromPortId: 'completed',
           toNodeId: 'node_battle',
-          kind: SceneEdgeKind.dialogueOutcome,
-          label: 'accept',
+          kind: SceneEdgeKind.defaultFlow,
+          label: 'completed',
         ),
         SceneEdge(
           id: 'edge_battle_merge',

@@ -299,6 +299,282 @@ void main() {
       expect(diagnostic.suggestedFixLabel, contains('false'));
     });
 
+    test('dialogue completed output is validated as default flow', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_dialogue',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_test'),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_dialogue',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_dialogue',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_dialogue_end',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      expect(
+          report.byCode(SceneDiagnosticCode.edgeFromPortUnsupported), isEmpty);
+      expect(
+        report.byCode(SceneDiagnosticCode.edgeKindUnsupportedForPort),
+        isEmpty,
+      );
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.requiredOutputPortMissing)
+            .where((diagnostic) => diagnostic.nodeId == 'node_dialogue'),
+        isEmpty,
+      );
+    });
+
+    test('dialogue missing, invalid and duplicate outputs are diagnosed', () {
+      final missingScene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_dialogue',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_test'),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_dialogue',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_dialogue',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final invalidKindScene = _scene(
+        nodes: missingScene.graph.nodes,
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_dialogue_end',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.dialogueOutcome,
+          ),
+        ],
+      );
+      final invalidPortScene = _scene(
+        nodes: missingScene.graph.nodes,
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_dialogue_end',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'accept',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.dialogueOutcome,
+          ),
+        ],
+      );
+      final duplicateScene = _scene(
+        nodes: [
+          ...missingScene.graph.nodes,
+          SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_dialogue_end',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_dialogue_end_2',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'completed',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final missingDiagnostic = diagnoseScene(missingScene)
+          .byCode(SceneDiagnosticCode.requiredOutputPortMissing)
+          .singleWhere((diagnostic) => diagnostic.nodeId == 'node_dialogue');
+      expect(missingDiagnostic.severity, SceneDiagnosticSeverity.warning);
+      expect(missingDiagnostic.suggestedFixLabel, contains('completed'));
+      expect(
+        diagnoseScene(invalidKindScene)
+            .byCode(SceneDiagnosticCode.edgeKindUnsupportedForPort)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+      expect(
+        diagnoseScene(invalidPortScene)
+            .byCode(SceneDiagnosticCode.edgeFromPortUnsupported)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+      expect(
+        diagnoseScene(duplicateScene)
+            .byCode(SceneDiagnosticCode.duplicateOutgoingPortEdge)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+    });
+
+    test('battle victory and defeat outputs are validated', () {
+      final scene = _battleScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_start_battle',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_battle',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_battle_victory',
+            fromNodeId: 'node_battle',
+            fromPortId: 'victory',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.battleVictory,
+          ),
+          SceneEdge(
+            id: 'edge_battle_defeat',
+            fromNodeId: 'node_battle',
+            fromPortId: 'defeat',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.battleDefeat,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      expect(
+          report.byCode(SceneDiagnosticCode.edgeFromPortUnsupported), isEmpty);
+      expect(
+        report.byCode(SceneDiagnosticCode.edgeKindUnsupportedForPort),
+        isEmpty,
+      );
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.requiredOutputPortMissing)
+            .where((diagnostic) => diagnostic.nodeId == 'node_battle'),
+        isEmpty,
+      );
+    });
+
+    test('battle missing, invalid and duplicate outputs are diagnosed', () {
+      final missingScene = _battleScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_start_battle',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_battle',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final invalidKindScene = _battleScene(
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_battle_victory',
+            fromNodeId: 'node_battle',
+            fromPortId: 'victory',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final invalidPortScene = _battleScene(
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_battle_completed',
+            fromNodeId: 'node_battle',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final duplicateScene = _battleScene(
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_battle_victory',
+            fromNodeId: 'node_battle',
+            fromPortId: 'victory',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.battleVictory,
+          ),
+          SceneEdge(
+            id: 'edge_battle_victory_2',
+            fromNodeId: 'node_battle',
+            fromPortId: 'victory',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.battleVictory,
+          ),
+        ],
+      );
+
+      final missingBattleDiagnostics = diagnoseScene(missingScene)
+          .byCode(SceneDiagnosticCode.requiredOutputPortMissing)
+          .where((diagnostic) => diagnostic.nodeId == 'node_battle')
+          .toList();
+      expect(missingBattleDiagnostics, hasLength(2));
+      expect(
+        missingBattleDiagnostics
+            .map((diagnostic) => diagnostic.suggestedFixLabel),
+        containsAll([contains('victory'), contains('defeat')]),
+      );
+      expect(
+        diagnoseScene(invalidKindScene)
+            .byCode(SceneDiagnosticCode.edgeKindUnsupportedForPort)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+      expect(
+        diagnoseScene(invalidPortScene)
+            .byCode(SceneDiagnosticCode.edgeFromPortUnsupported)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+      expect(
+        diagnoseScene(duplicateScene)
+            .byCode(SceneDiagnosticCode.duplicateOutgoingPortEdge)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+    });
+
     test('unreachable node and unreachable end are diagnosed', () {
       final scene = _scene(
         nodes: [
@@ -620,5 +896,27 @@ SceneConditionPayload _factConditionPayload() {
       operator: SceneConditionOperator.isTrue,
       label: 'Flag test',
     ),
+  );
+}
+
+SceneAsset _battleScene({
+  required List<SceneEdge> edges,
+}) {
+  return _scene(
+    nodes: [
+      SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'node_battle',
+        kind: SceneNodeKind.battle,
+        payload: SceneBattlePayload(
+          battleKind: 'trainer',
+          trainerId: 'trainer_test',
+          declaredOutcomes: const ['victory', 'defeat'],
+        ),
+      ),
+      SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+    ],
+    edges: edges,
   );
 }

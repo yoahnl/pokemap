@@ -266,6 +266,33 @@ void main() {
         ),
         isEmpty,
       );
+      expect(
+        authorableSceneOutputPortsForNode(
+          SceneNode(
+            id: 'node_dialogue',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_test'),
+          ),
+        ).map((port) => (port.id, port.edgeKind)),
+        [('completed', SceneEdgeKind.defaultFlow)],
+      );
+      expect(
+        authorableSceneOutputPortsForNode(
+          SceneNode(
+            id: 'node_battle',
+            kind: SceneNodeKind.battle,
+            payload: SceneBattlePayload(
+              battleKind: 'trainer',
+              trainerId: 'trainer_test',
+              declaredOutcomes: const ['victory', 'defeat'],
+            ),
+          ),
+        ).map((port) => (port.id, port.edgeKind)),
+        [
+          ('victory', SceneEdgeKind.battleVictory),
+          ('defeat', SceneEdgeKind.battleDefeat),
+        ],
+      );
     });
 
     test('adds a start completed edge with derived default kind', () {
@@ -329,6 +356,48 @@ void main() {
       expect(result.createdEdge.id, 'edge_node_merge_completed_node_end');
       expect(result.createdEdge.kind, SceneEdgeKind.defaultFlow);
       expect(result.createdEdge.label, 'completed');
+    });
+
+    test('adds dialogue completed edge with derived default kind', () {
+      final scene = _edgeAuthoringSceneWithYarnSource();
+
+      final result = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_yarn',
+        fromPortId: 'completed',
+        toNodeId: 'node_end',
+      );
+
+      expect(result.createdEdge.id, 'edge_node_yarn_completed_node_end');
+      expect(result.createdEdge.kind, SceneEdgeKind.defaultFlow);
+      expect(result.createdEdge.label, 'completed');
+    });
+
+    test('adds battle victory and defeat edges with derived kinds', () {
+      var scene = _edgeAuthoringSceneWithBattleSource();
+
+      final victoryEdge = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_battle',
+        fromPortId: 'victory',
+        toNodeId: 'node_end',
+      );
+      scene = victoryEdge.updatedScene;
+      final defeatEdge = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_battle',
+        fromPortId: 'defeat',
+        toNodeId: 'node_end_2',
+      );
+
+      expect(victoryEdge.createdEdge.kind, SceneEdgeKind.battleVictory);
+      expect(victoryEdge.createdEdge.label, 'victory');
+      expect(defeatEdge.createdEdge.kind, SceneEdgeKind.battleDefeat);
+      expect(defeatEdge.createdEdge.label, 'defeat');
+      expect(defeatEdge.updatedScene.graph.edges, [
+        victoryEdge.createdEdge,
+        defeatEdge.createdEdge,
+      ]);
     });
 
     test('generates suffixed edge ids on collision', () {
@@ -645,6 +714,75 @@ void main() {
           fromNodeId: 'node_yarn',
           fromPortId: 'accept',
           toNodeId: 'node_end',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          _edgeAuthoringSceneWithBattleSource(),
+          fromNodeId: 'node_battle',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects duplicate dialogue and battle source ports', () {
+      final dialogueScene = _edgeAuthoringSceneWithYarnSource(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_yarn_completed_node_end',
+            fromNodeId: 'node_yarn',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final battleScene = _edgeAuthoringSceneWithBattleSource(
+        edges: [
+          SceneEdge(
+            id: 'edge_node_battle_victory_node_end',
+            fromNodeId: 'node_battle',
+            fromPortId: 'victory',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.battleVictory,
+          ),
+          SceneEdge(
+            id: 'edge_node_battle_defeat_node_end_2',
+            fromNodeId: 'node_battle',
+            fromPortId: 'defeat',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.battleDefeat,
+          ),
+        ],
+      );
+
+      expect(
+        () => addSceneEdgeDraft(
+          dialogueScene,
+          fromNodeId: 'node_yarn',
+          fromPortId: 'completed',
+          toNodeId: 'node_start',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          battleScene,
+          fromNodeId: 'node_battle',
+          fromPortId: 'victory',
+          toNodeId: 'node_start',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneEdgeDraft(
+          battleScene,
+          fromNodeId: 'node_battle',
+          fromPortId: 'defeat',
+          toNodeId: 'node_start',
         ),
         throwsArgumentError,
       );
@@ -966,7 +1104,9 @@ SceneAsset _edgeAuthoringScene({
   );
 }
 
-SceneAsset _edgeAuthoringSceneWithYarnSource() {
+SceneAsset _edgeAuthoringSceneWithYarnSource({
+  List<SceneEdge> edges = const [],
+}) {
   return SceneAsset(
     id: 'scene_edge_authoring_yarn',
     name: 'Edge Authoring Yarn Source',
@@ -984,12 +1124,48 @@ SceneAsset _edgeAuthoringSceneWithYarnSource() {
         ),
         SceneNode(id: 'node_end', kind: SceneNodeKind.end),
       ],
+      edges: edges,
     ),
     layout: SceneGraphLayout(
       nodeLayouts: [
         SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
         SceneNodeLayout(nodeId: 'node_yarn', x: 324, y: 80),
         SceneNodeLayout(nodeId: 'node_end', x: 624, y: 80),
+      ],
+    ),
+  );
+}
+
+SceneAsset _edgeAuthoringSceneWithBattleSource({
+  List<SceneEdge> edges = const [],
+}) {
+  return SceneAsset(
+    id: 'scene_edge_authoring_battle',
+    name: 'Edge Authoring Battle Source',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_battle',
+          kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(
+            battleKind: 'trainer',
+            trainerId: 'trainer_test',
+            declaredOutcomes: const ['victory', 'defeat'],
+          ),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+      ],
+      edges: edges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_battle', x: 324, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 624, y: 40),
+        SceneNodeLayout(nodeId: 'node_end_2', x: 624, y: 160),
       ],
     ),
   );
