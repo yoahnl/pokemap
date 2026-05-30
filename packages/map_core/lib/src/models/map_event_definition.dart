@@ -82,6 +82,22 @@ enum MapEventType {
   effect,
 }
 
+/// Cible Scene V1 authoring d'une page d'event.
+///
+/// Ce contrat ne lance rien en runtime. Il dit seulement que la page active de
+/// l'event pointe vers une [SceneAsset] existante dans le manifest projet.
+@freezed
+class MapEventSceneTarget with _$MapEventSceneTarget {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapEventSceneTarget({
+    /// Identifiant de la Scene V1 cible.
+    required String sceneId,
+  }) = _MapEventSceneTarget;
+
+  factory MapEventSceneTarget.fromJson(Map<String, dynamic> json) =>
+      _$MapEventSceneTargetFromJson(json);
+}
+
 /// Page d'un événement.
 ///
 /// Une page contient :
@@ -110,6 +126,11 @@ class MapEventPage with _$MapEventPage {
 
     /// Message à afficher (alternative simple au script).
     String? message,
+
+    /// Cible Scene V1 authoring.
+    ///
+    /// Null signifie que cette page ne cible aucune Scene V1.
+    @JsonKey(includeIfNull: false) MapEventSceneTarget? sceneTarget,
 
     /// Si true, l'événement est invisible mais toujours interactif.
     @Default(false) bool isHidden,

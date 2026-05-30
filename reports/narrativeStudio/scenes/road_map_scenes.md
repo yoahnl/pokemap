@@ -66,7 +66,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-21 — Linked Asset Contracts V0 | DONE | Contrats/read models publics minimaux dans `map_core` : Dialogue, Battle trainer, Cinematic scenarioBridge, snapshot agrege, diagnostics, statuts et outcomes disponibles, sans runtime ni UI picker. |
 | NS-SCENES-V1-22 — Payload Pickers V0 | DONE | Ajouter des pickers/drafts honnetes pour Dialogue Yarn et Battle trainer depuis les contrats publics V1-21 ; Cinematic reste bridgeOnly/desactive, Action et Branch restent desactives. |
 | NS-SCENES-V1-23 — Event to Scene Trigger Prep | DONE | Decision Event -> Scene : viser un contrat explicite page/action `startScene`, ne pas ajouter `sceneId` direct sur l'event entier, ne pas reutiliser `ScenarioAsset`, et reporter l'implementation persistante a un bis cible. |
-| NS-SCENES-V1-23-bis — Event to Scene Link V0 | TODO | Implementer le lien authoring persistant minimal `MapEventPage -> Scene V1` avec refs validables et diagnostics, sans runtime Scene ni migration legacy. |
+| NS-SCENES-V1-23-bis — Event to Scene Link V0 | DONE | Lien authoring persistant `MapEventPage.sceneTarget -> Scene V1`, operations set/clear, validation/diagnostics et picker editor bornes, sans runtime Scene ni migration legacy. |
 | NS-SCENES-V1-24 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
 | NS-SCENES-V1-25 — Diagnostics / Validator Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles, payloads incomplets, Facts et World Rules. |
 | NS-SCENES-V1-26 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
@@ -76,13 +76,26 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-23-bis — Event to Scene Link V0`
+`NS-SCENES-V1-24 — Scene Runtime Plan V0`
 
-Raison : V1-23 a tranche le contrat sans modifier les modeles sensibles. Le bon niveau n'est pas `MapEventDefinition.sceneId`, mais une cible explicite de page/action `startScene`, car les pages d'event portent deja conditions, message/script et activation. L'implementation doit maintenant etre isolee dans un lot V1-23-bis avec tests JSON/authoring/diagnostics, sans runtime Scene.
+Raison : V1-23-bis a livre le contrat authoring persistant Event page -> Scene V1 avec refs reelles et diagnostics, sans execution. La suite peut maintenant compiler une `SceneAsset` valide en plan pur et testable, tout en gardant le runtime debranche.
 
 Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Decisions V1-23-bis
+
+- `MapEventPage` porte maintenant un `sceneTarget` explicite vers une `SceneAsset` reelle ; aucun `sceneId` global n'est ajoute sur `MapEventDefinition`.
+- `MapEventSceneTarget(sceneId)` est serialise en JSON de facon retro-compatible : ancien JSON sans `sceneTarget` reste lisible, et `sceneTarget` null n'est pas ecrit comme objet vide.
+- Les operations pures `setMapEventPageSceneTarget` et `clearMapEventPageSceneTarget` ciblent `eventId + pageNumber`, preservent message/script/condition/metadata et refusent event/page inconnus ou `sceneId` vide.
+- `MapValidator` valide les refs Scene lorsque `projectDialogueContext.scenes` est disponible.
+- `diagnoseEventSceneLinks` signale refs Scene inconnues, cibles vides, pages desactivees avec cible et Scene cible avec erreurs de diagnostics Scene V1.
+- `EventPropertiesPanel` expose un picker Scene V1 depuis `ProjectManifest.scenes`, un bouton `Retirer Scene`, un message `Lien authoring uniquement, runtime Scene à venir.` et ne masque pas message/script legacy.
+- Aucun runtime Scene, `SceneRuntimePlan`, `ScenarioAsset` promu, `StorylineStep.sceneLinkIds`, metadata magic string, fake ref ou donnee Selbrume n'est ajoute.
+- Tests executes : tests core JSON/ops/validator/diagnostics, `dart analyze`, widget test `EventPropertiesPanel`, tests Scenes workspace, overview shell navigation, projection narrative, analyse ciblee editor.
+
+Prochain lot exact : `NS-SCENES-V1-24 — Scene Runtime Plan V0`.
 
 ## Decisions V1-23
 

@@ -154,6 +154,8 @@ MapData updatePageOnMapEvent(
   bool clearScript = false,
   String? spriteId,
   String? message,
+  MapEventSceneTarget? sceneTarget,
+  bool clearSceneTarget = false,
   bool? isHidden,
   bool? isDisabled,
   Map<String, String>? metadata,
@@ -174,6 +176,8 @@ MapData updatePageOnMapEvent(
     script: clearScript ? null : (script ?? currentPage.script),
     spriteId: spriteId ?? currentPage.spriteId,
     message: message ?? currentPage.message,
+    sceneTarget:
+        clearSceneTarget ? null : (sceneTarget ?? currentPage.sceneTarget),
     isHidden: isHidden ?? currentPage.isHidden,
     isDisabled: isDisabled ?? currentPage.isDisabled,
     metadata:
@@ -185,6 +189,47 @@ MapData updatePageOnMapEvent(
     map,
     eventId: eventId,
     pages: nextPages,
+  );
+}
+
+MapData setMapEventPageSceneTarget(
+  MapData map, {
+  required String eventId,
+  required int pageNumber,
+  required String sceneId,
+}) {
+  final normalizedSceneId = sceneId.trim();
+  if (normalizedSceneId.isEmpty) {
+    throw const ValidationException('Scene target sceneId cannot be empty');
+  }
+  final event = findMapEventById(map, eventId);
+  if (event == null) {
+    throw ValidationException('Map event not found: $eventId');
+  }
+  final pageIndex = _findPageIndexByNumber(event, pageNumber);
+  return updatePageOnMapEvent(
+    map,
+    eventId: eventId,
+    pageIndex: pageIndex,
+    sceneTarget: MapEventSceneTarget(sceneId: normalizedSceneId),
+  );
+}
+
+MapData clearMapEventPageSceneTarget(
+  MapData map, {
+  required String eventId,
+  required int pageNumber,
+}) {
+  final event = findMapEventById(map, eventId);
+  if (event == null) {
+    throw ValidationException('Map event not found: $eventId');
+  }
+  final pageIndex = _findPageIndexByNumber(event, pageNumber);
+  return updatePageOnMapEvent(
+    map,
+    eventId: eventId,
+    pageIndex: pageIndex,
+    clearSceneTarget: true,
   );
 }
 
@@ -234,6 +279,7 @@ MapEventDefinition _normalizeEvent(MapEventDefinition event) {
 
 MapEventPage _normalizePage(MapEventPage page) {
   final script = page.script;
+  final sceneTarget = page.sceneTarget;
   return page.copyWith(
     spriteId: _trimOptional(page.spriteId),
     message: _trimOptional(page.message),
@@ -243,6 +289,9 @@ MapEventPage _normalizePage(MapEventPage page) {
             scriptId: script.scriptId.trim(),
             startNode: _trimOptional(script.startNode),
           ),
+    sceneTarget: sceneTarget == null
+        ? null
+        : sceneTarget.copyWith(sceneId: sceneTarget.sceneId.trim()),
     metadata: _normalizeMetadata(page.metadata),
   );
 }
@@ -309,6 +358,12 @@ void _validateEvent(
         'Map event $id page[$i] has a script reference with empty scriptId',
       );
     }
+    final sceneTarget = page.sceneTarget;
+    if (sceneTarget != null && sceneTarget.sceneId.trim().isEmpty) {
+      throw ValidationException(
+        'Map event $id page[$i] has a scene target with empty sceneId',
+      );
+    }
     for (final key in page.metadata.keys) {
       if (key.trim().isEmpty) {
         throw ValidationException(
@@ -322,4 +377,14 @@ void _validateEvent(
       throw ValidationException('Map event $id has an empty metadata key');
     }
   }
+}
+
+int _findPageIndexByNumber(MapEventDefinition event, int pageNumber) {
+  final index = event.pages.indexWhere((page) => page.pageNumber == pageNumber);
+  if (index < 0) {
+    throw ValidationException(
+      'Map event page not found: event=${event.id} pageNumber=$pageNumber',
+    );
+  }
+  return index;
 }

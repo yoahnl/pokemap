@@ -548,6 +548,161 @@ abstract class _EventPosition implements EventPosition {
       throw _privateConstructorUsedError;
 }
 
+MapEventSceneTarget _$MapEventSceneTargetFromJson(Map<String, dynamic> json) {
+  return _MapEventSceneTarget.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapEventSceneTarget {
+  /// Identifiant de la Scene V1 cible.
+  String get sceneId => throw _privateConstructorUsedError;
+
+  /// Serializes this MapEventSceneTarget to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapEventSceneTarget
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapEventSceneTargetCopyWith<MapEventSceneTarget> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapEventSceneTargetCopyWith<$Res> {
+  factory $MapEventSceneTargetCopyWith(
+          MapEventSceneTarget value, $Res Function(MapEventSceneTarget) then) =
+      _$MapEventSceneTargetCopyWithImpl<$Res, MapEventSceneTarget>;
+  @useResult
+  $Res call({String sceneId});
+}
+
+/// @nodoc
+class _$MapEventSceneTargetCopyWithImpl<$Res, $Val extends MapEventSceneTarget>
+    implements $MapEventSceneTargetCopyWith<$Res> {
+  _$MapEventSceneTargetCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapEventSceneTarget
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? sceneId = null,
+  }) {
+    return _then(_value.copyWith(
+      sceneId: null == sceneId
+          ? _value.sceneId
+          : sceneId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$MapEventSceneTargetImplCopyWith<$Res>
+    implements $MapEventSceneTargetCopyWith<$Res> {
+  factory _$$MapEventSceneTargetImplCopyWith(_$MapEventSceneTargetImpl value,
+          $Res Function(_$MapEventSceneTargetImpl) then) =
+      __$$MapEventSceneTargetImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String sceneId});
+}
+
+/// @nodoc
+class __$$MapEventSceneTargetImplCopyWithImpl<$Res>
+    extends _$MapEventSceneTargetCopyWithImpl<$Res, _$MapEventSceneTargetImpl>
+    implements _$$MapEventSceneTargetImplCopyWith<$Res> {
+  __$$MapEventSceneTargetImplCopyWithImpl(_$MapEventSceneTargetImpl _value,
+      $Res Function(_$MapEventSceneTargetImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapEventSceneTarget
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? sceneId = null,
+  }) {
+    return _then(_$MapEventSceneTargetImpl(
+      sceneId: null == sceneId
+          ? _value.sceneId
+          : sceneId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapEventSceneTargetImpl implements _MapEventSceneTarget {
+  const _$MapEventSceneTargetImpl({required this.sceneId});
+
+  factory _$MapEventSceneTargetImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MapEventSceneTargetImplFromJson(json);
+
+  /// Identifiant de la Scene V1 cible.
+  @override
+  final String sceneId;
+
+  @override
+  String toString() {
+    return 'MapEventSceneTarget(sceneId: $sceneId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapEventSceneTargetImpl &&
+            (identical(other.sceneId, sceneId) || other.sceneId == sceneId));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, sceneId);
+
+  /// Create a copy of MapEventSceneTarget
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapEventSceneTargetImplCopyWith<_$MapEventSceneTargetImpl> get copyWith =>
+      __$$MapEventSceneTargetImplCopyWithImpl<_$MapEventSceneTargetImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapEventSceneTargetImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapEventSceneTarget implements MapEventSceneTarget {
+  const factory _MapEventSceneTarget({required final String sceneId}) =
+      _$MapEventSceneTargetImpl;
+
+  factory _MapEventSceneTarget.fromJson(Map<String, dynamic> json) =
+      _$MapEventSceneTargetImpl.fromJson;
+
+  /// Identifiant de la Scene V1 cible.
+  @override
+  String get sceneId;
+
+  /// Create a copy of MapEventSceneTarget
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapEventSceneTargetImplCopyWith<_$MapEventSceneTargetImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 MapEventPage _$MapEventPageFromJson(Map<String, dynamic> json) {
   return _MapEventPage.fromJson(json);
 }
@@ -569,6 +724,12 @@ mixin _$MapEventPage {
 
   /// Message à afficher (alternative simple au script).
   String? get message => throw _privateConstructorUsedError;
+
+  /// Cible Scene V1 authoring.
+  ///
+  /// Null signifie que cette page ne cible aucune Scene V1.
+  @JsonKey(includeIfNull: false)
+  MapEventSceneTarget? get sceneTarget => throw _privateConstructorUsedError;
 
   /// Si true, l'événement est invisible mais toujours interactif.
   bool get isHidden => throw _privateConstructorUsedError;
@@ -601,12 +762,14 @@ abstract class $MapEventPageCopyWith<$Res> {
       ScriptRef? script,
       String? spriteId,
       String? message,
+      @JsonKey(includeIfNull: false) MapEventSceneTarget? sceneTarget,
       bool isHidden,
       bool isDisabled,
       Map<String, String> metadata});
 
   $ScriptConditionCopyWith<$Res>? get condition;
   $ScriptRefCopyWith<$Res>? get script;
+  $MapEventSceneTargetCopyWith<$Res>? get sceneTarget;
 }
 
 /// @nodoc
@@ -629,6 +792,7 @@ class _$MapEventPageCopyWithImpl<$Res, $Val extends MapEventPage>
     Object? script = freezed,
     Object? spriteId = freezed,
     Object? message = freezed,
+    Object? sceneTarget = freezed,
     Object? isHidden = null,
     Object? isDisabled = null,
     Object? metadata = null,
@@ -654,6 +818,10 @@ class _$MapEventPageCopyWithImpl<$Res, $Val extends MapEventPage>
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
               as String?,
+      sceneTarget: freezed == sceneTarget
+          ? _value.sceneTarget
+          : sceneTarget // ignore: cast_nullable_to_non_nullable
+              as MapEventSceneTarget?,
       isHidden: null == isHidden
           ? _value.isHidden
           : isHidden // ignore: cast_nullable_to_non_nullable
@@ -696,6 +864,20 @@ class _$MapEventPageCopyWithImpl<$Res, $Val extends MapEventPage>
       return _then(_value.copyWith(script: value) as $Val);
     });
   }
+
+  /// Create a copy of MapEventPage
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $MapEventSceneTargetCopyWith<$Res>? get sceneTarget {
+    if (_value.sceneTarget == null) {
+      return null;
+    }
+
+    return $MapEventSceneTargetCopyWith<$Res>(_value.sceneTarget!, (value) {
+      return _then(_value.copyWith(sceneTarget: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -712,6 +894,7 @@ abstract class _$$MapEventPageImplCopyWith<$Res>
       ScriptRef? script,
       String? spriteId,
       String? message,
+      @JsonKey(includeIfNull: false) MapEventSceneTarget? sceneTarget,
       bool isHidden,
       bool isDisabled,
       Map<String, String> metadata});
@@ -720,6 +903,8 @@ abstract class _$$MapEventPageImplCopyWith<$Res>
   $ScriptConditionCopyWith<$Res>? get condition;
   @override
   $ScriptRefCopyWith<$Res>? get script;
+  @override
+  $MapEventSceneTargetCopyWith<$Res>? get sceneTarget;
 }
 
 /// @nodoc
@@ -740,6 +925,7 @@ class __$$MapEventPageImplCopyWithImpl<$Res>
     Object? script = freezed,
     Object? spriteId = freezed,
     Object? message = freezed,
+    Object? sceneTarget = freezed,
     Object? isHidden = null,
     Object? isDisabled = null,
     Object? metadata = null,
@@ -765,6 +951,10 @@ class __$$MapEventPageImplCopyWithImpl<$Res>
           ? _value.message
           : message // ignore: cast_nullable_to_non_nullable
               as String?,
+      sceneTarget: freezed == sceneTarget
+          ? _value.sceneTarget
+          : sceneTarget // ignore: cast_nullable_to_non_nullable
+              as MapEventSceneTarget?,
       isHidden: null == isHidden
           ? _value.isHidden
           : isHidden // ignore: cast_nullable_to_non_nullable
@@ -791,6 +981,7 @@ class _$MapEventPageImpl implements _MapEventPage {
       this.script,
       this.spriteId,
       this.message,
+      @JsonKey(includeIfNull: false) this.sceneTarget,
       this.isHidden = false,
       this.isDisabled = false,
       final Map<String, String> metadata = const {}})
@@ -820,6 +1011,13 @@ class _$MapEventPageImpl implements _MapEventPage {
   @override
   final String? message;
 
+  /// Cible Scene V1 authoring.
+  ///
+  /// Null signifie que cette page ne cible aucune Scene V1.
+  @override
+  @JsonKey(includeIfNull: false)
+  final MapEventSceneTarget? sceneTarget;
+
   /// Si true, l'événement est invisible mais toujours interactif.
   @override
   @JsonKey()
@@ -844,7 +1042,7 @@ class _$MapEventPageImpl implements _MapEventPage {
 
   @override
   String toString() {
-    return 'MapEventPage(pageNumber: $pageNumber, condition: $condition, script: $script, spriteId: $spriteId, message: $message, isHidden: $isHidden, isDisabled: $isDisabled, metadata: $metadata)';
+    return 'MapEventPage(pageNumber: $pageNumber, condition: $condition, script: $script, spriteId: $spriteId, message: $message, sceneTarget: $sceneTarget, isHidden: $isHidden, isDisabled: $isDisabled, metadata: $metadata)';
   }
 
   @override
@@ -860,6 +1058,8 @@ class _$MapEventPageImpl implements _MapEventPage {
             (identical(other.spriteId, spriteId) ||
                 other.spriteId == spriteId) &&
             (identical(other.message, message) || other.message == message) &&
+            (identical(other.sceneTarget, sceneTarget) ||
+                other.sceneTarget == sceneTarget) &&
             (identical(other.isHidden, isHidden) ||
                 other.isHidden == isHidden) &&
             (identical(other.isDisabled, isDisabled) ||
@@ -876,6 +1076,7 @@ class _$MapEventPageImpl implements _MapEventPage {
       script,
       spriteId,
       message,
+      sceneTarget,
       isHidden,
       isDisabled,
       const DeepCollectionEquality().hash(_metadata));
@@ -903,6 +1104,7 @@ abstract class _MapEventPage implements MapEventPage {
       final ScriptRef? script,
       final String? spriteId,
       final String? message,
+      @JsonKey(includeIfNull: false) final MapEventSceneTarget? sceneTarget,
       final bool isHidden,
       final bool isDisabled,
       final Map<String, String> metadata}) = _$MapEventPageImpl;
@@ -930,6 +1132,13 @@ abstract class _MapEventPage implements MapEventPage {
   /// Message à afficher (alternative simple au script).
   @override
   String? get message;
+
+  /// Cible Scene V1 authoring.
+  ///
+  /// Null signifie que cette page ne cible aucune Scene V1.
+  @override
+  @JsonKey(includeIfNull: false)
+  MapEventSceneTarget? get sceneTarget;
 
   /// Si true, l'événement est invisible mais toujours interactif.
   @override

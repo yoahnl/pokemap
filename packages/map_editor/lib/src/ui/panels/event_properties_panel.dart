@@ -13,6 +13,7 @@ import '../shared/inspector_embedded_widgets.dart';
 
 const _kScriptNoneMenuId = '__event_script_none__';
 const _kStartNodeDefaultMenuId = '__event_script_start_default__';
+const _kSceneNoneMenuId = '__event_scene_none__';
 const _kConditionJsonRawModeHelpTextFr =
     'Colle ici uniquement un objet JSON de type ScriptCondition. '
     'Utilise ce mode pour les conditions avancées non couvertes par '
@@ -123,6 +124,7 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
   int _selectedPageIndex = 0;
   String _selectedScriptMenuId = _kScriptNoneMenuId;
   String _selectedStartNodeMenuId = _kStartNodeDefaultMenuId;
+  String _selectedSceneMenuId = _kSceneNoneMenuId;
   _EventConditionMode _conditionMode = _EventConditionMode.none;
 
   @override
@@ -471,12 +473,14 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
         return;
       }
       final updatedScript = _buildScriptRefFromDraft();
+      final updatedSceneTarget = _buildSceneTargetFromDraft();
       final nextPages = List<MapEventPage>.from(pages, growable: false);
       nextPages[safePageIndex] = selectedPage.copyWith(
         pageNumber: pageNumber,
         message: _normalizeOptional(_pageMessageController.text),
         condition: updatedCondition,
         script: updatedScript,
+        sceneTarget: updatedSceneTarget,
       );
       final x = int.tryParse(_xController.text.trim());
       final y = int.tryParse(_yController.text.trim());
@@ -764,9 +768,16 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
             project: project,
           ),
           const SizedBox(height: 8),
+          _buildSceneTargetSelector(
+            context: context,
+            project: project,
+            selectedPage: selectedPage,
+          ),
+          const SizedBox(height: 8),
           _buildConditionEditor(context),
           const SizedBox(height: 10),
           InspectorEmbeddedPrimaryCapsule(
+            key: const ValueKey('event-save-page-button'),
             accent: accent,
             icon: CupertinoIcons.check_mark_circled_solid,
             label: widget.embedded ? 'Enregistrer page' : 'Save page',
@@ -875,6 +886,113 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
           },
           tooltip: widget.embedded ? 'Noeud de départ' : 'Start node',
         ),
+      ],
+    );
+  }
+
+  Widget _buildSceneTargetSelector({
+    required BuildContext context,
+    required ProjectManifest? project,
+    required MapEventPage selectedPage,
+  }) {
+    const accent = EditorChrome.inspectorJoyCyan;
+    final scenes = project?.scenes ?? const <SceneAsset>[];
+    final hasSceneTarget = _selectedSceneMenuId != _kSceneNoneMenuId &&
+        _selectedSceneMenuId.trim().isNotEmpty;
+    final orderedSceneIds = <String>[
+      _kSceneNoneMenuId,
+      ...scenes.map((scene) => scene.id),
+      if (hasSceneTarget &&
+          !scenes.any((scene) => scene.id == _selectedSceneMenuId))
+        _selectedSceneMenuId,
+    ];
+    final safeSceneMenuId = orderedSceneIds.contains(_selectedSceneMenuId)
+        ? _selectedSceneMenuId
+        : _kSceneNoneMenuId;
+
+    String sceneValueLabel(String id) {
+      if (id == _kSceneNoneMenuId) {
+        return 'Aucune Scene V1';
+      }
+      for (final scene in scenes) {
+        if (scene.id == id) {
+          return '${scene.name} (${scene.id})';
+        }
+      }
+      return 'Scene manquante: $id';
+    }
+
+    final pageHasLegacyContent =
+        selectedPage.message?.trim().isNotEmpty == true ||
+            selectedPage.script != null;
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InspectorEmbeddedDropdown(
+          key: const ValueKey('event-scene-target-dropdown'),
+          accent: accent,
+          fieldLabel: 'Scene V1',
+          valueLabel: sceneValueLabel(safeSceneMenuId),
+          orderedIds: orderedSceneIds,
+          selectedMenuValue: safeSceneMenuId,
+          selectedIdForCheck: safeSceneMenuId,
+          idToLabel: sceneValueLabel,
+          onSelected: (id) {
+            setState(() {
+              _selectedSceneMenuId = id;
+            });
+          },
+          tooltip: 'Scene V1 cible de la page',
+        ),
+        if (scenes.isEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Aucune Scene V1 disponible',
+            style: TextStyle(
+              fontSize: 11,
+              color: secondary,
+              height: 1.25,
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: InspectorEmbeddedSecondaryCapsule(
+                key: const ValueKey('event-clear-scene-target'),
+                accent: EditorChrome.inspectorJoyCoral,
+                icon: CupertinoIcons.clear_circled,
+                label: 'Retirer Scene',
+                enabled: safeSceneMenuId != _kSceneNoneMenuId,
+                onPressed: () {
+                  setState(() {
+                    _selectedSceneMenuId = _kSceneNoneMenuId;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const InspectorEmbeddedFootnote(
+          text: 'Lien authoring uniquement, runtime Scene à venir.',
+          accent: accent,
+        ),
+        if (pageHasLegacyContent) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Cette page contient aussi un message ou un script legacy. '
+            'Le lien Scene V1 ne les remplace pas.',
+            style: TextStyle(
+              fontSize: 11,
+              color: secondary,
+              height: 1.25,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1141,6 +1259,14 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
     );
   }
 
+  MapEventSceneTarget? _buildSceneTargetFromDraft() {
+    final sceneId = _selectedSceneMenuId.trim();
+    if (sceneId.isEmpty || sceneId == _kSceneNoneMenuId) {
+      return null;
+    }
+    return MapEventSceneTarget(sceneId: sceneId);
+  }
+
   void _syncEventControllers({
     required MapEventDefinition? selectedEvent,
     required MapData? map,
@@ -1193,6 +1319,7 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
       _conditionJsonController.text = '';
       _selectedScriptMenuId = _kScriptNoneMenuId;
       _selectedStartNodeMenuId = _kStartNodeDefaultMenuId;
+      _selectedSceneMenuId = _kSceneNoneMenuId;
       _conditionMode = _EventConditionMode.none;
       return;
     }
@@ -1200,7 +1327,7 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
         _selectedPageIndex.clamp(0, selectedEvent.pages.length - 1);
     final page = selectedEvent.pages[safeIndex];
     final pageFingerprint =
-        '${selectedEvent.id}:$safeIndex:${page.pageNumber}:${page.message}:${page.script?.scriptId}:${page.script?.startNode}:${page.condition?.type.name}:${page.condition?.params.hashCode}:${page.condition?.children.length}';
+        '${selectedEvent.id}:$safeIndex:${page.pageNumber}:${page.message}:${page.script?.scriptId}:${page.script?.startNode}:${page.sceneTarget?.sceneId}:${page.condition?.type.name}:${page.condition?.params.hashCode}:${page.condition?.children.length}';
     if (_boundPageFingerprint == pageFingerprint) {
       return;
     }
@@ -1223,6 +1350,13 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
           !project.scripts.any((entry) => entry.id == _selectedScriptMenuId)) {
         _selectedScriptMenuId = script.scriptId;
       }
+    }
+
+    final sceneTarget = page.sceneTarget;
+    if (sceneTarget == null || sceneTarget.sceneId.trim().isEmpty) {
+      _selectedSceneMenuId = _kSceneNoneMenuId;
+    } else {
+      _selectedSceneMenuId = sceneTarget.sceneId.trim();
     }
 
     final condition = page.condition;

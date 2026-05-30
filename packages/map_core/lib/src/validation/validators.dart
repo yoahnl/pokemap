@@ -1598,6 +1598,11 @@ class MapValidator {
         : {
             for (final script in projectDialogueContext.scripts) script.id,
           };
+    final sceneIds = projectDialogueContext == null
+        ? null
+        : {
+            for (final scene in projectDialogueContext.scenes) scene.id,
+          };
     final layerIds = <String>{for (final layer in map.layers) layer.id};
     for (final event in map.events) {
       _validateMapEvent(
@@ -1605,6 +1610,7 @@ class MapValidator {
         event,
         layerIds: layerIds,
         knownScriptIds: scriptIds,
+        knownSceneIds: sceneIds,
       );
     }
     _validateUniqueIds(
@@ -1804,6 +1810,7 @@ class MapValidator {
     MapEventDefinition event, {
     required Set<String> layerIds,
     required Set<String>? knownScriptIds,
+    required Set<String>? knownSceneIds,
   }) {
     final eventId = _requireNonBlank(event.id, 'Map event ID cannot be empty');
     final layerId = _requireNonBlank(
@@ -1851,6 +1858,7 @@ class MapValidator {
         pageIndex: pageIndex,
         page: page,
         knownScriptIds: knownScriptIds,
+        knownSceneIds: knownSceneIds,
       );
     }
   }
@@ -1860,6 +1868,7 @@ class MapValidator {
     required int pageIndex,
     required MapEventPage page,
     required Set<String>? knownScriptIds,
+    required Set<String>? knownSceneIds,
   }) {
     for (final key in page.metadata.keys) {
       if (key.trim().isEmpty) {
@@ -1883,6 +1892,18 @@ class MapValidator {
       if (startNode != null && startNode.isEmpty) {
         throw ValidationException(
           'Map event $eventId page[$pageIndex] startNode must be null or non-empty',
+        );
+      }
+    }
+    final sceneTarget = page.sceneTarget;
+    if (sceneTarget != null) {
+      final sceneId = _requireNonBlank(
+        sceneTarget.sceneId,
+        'Map event $eventId page[$pageIndex] has empty sceneTarget.sceneId',
+      );
+      if (knownSceneIds != null && !knownSceneIds.contains(sceneId)) {
+        throw ValidationException(
+          'Map event $eventId page[$pageIndex] references unknown scene: $sceneId',
         );
       }
     }

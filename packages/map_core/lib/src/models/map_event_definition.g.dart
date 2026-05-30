@@ -56,6 +56,18 @@ Map<String, dynamic> _$$EventPositionImplToJson(_$EventPositionImpl instance) =>
       'y': instance.y,
     };
 
+_$MapEventSceneTargetImpl _$$MapEventSceneTargetImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MapEventSceneTargetImpl(
+      sceneId: json['sceneId'] as String,
+    );
+
+Map<String, dynamic> _$$MapEventSceneTargetImplToJson(
+        _$MapEventSceneTargetImpl instance) =>
+    <String, dynamic>{
+      'sceneId': instance.sceneId,
+    };
+
 _$MapEventPageImpl _$$MapEventPageImplFromJson(Map<String, dynamic> json) =>
     _$MapEventPageImpl(
       pageNumber: (json['pageNumber'] as num).toInt(),
@@ -67,6 +79,10 @@ _$MapEventPageImpl _$$MapEventPageImplFromJson(Map<String, dynamic> json) =>
           : ScriptRef.fromJson(json['script'] as Map<String, dynamic>),
       spriteId: json['spriteId'] as String?,
       message: json['message'] as String?,
+      sceneTarget: json['sceneTarget'] == null
+          ? null
+          : MapEventSceneTarget.fromJson(
+              json['sceneTarget'] as Map<String, dynamic>),
       isHidden: json['isHidden'] as bool? ?? false,
       isDisabled: json['isDisabled'] as bool? ?? false,
       metadata: (json['metadata'] as Map<String, dynamic>?)?.map(
@@ -82,6 +98,8 @@ Map<String, dynamic> _$$MapEventPageImplToJson(_$MapEventPageImpl instance) =>
       'script': instance.script?.toJson(),
       'spriteId': instance.spriteId,
       'message': instance.message,
+      if (instance.sceneTarget?.toJson() case final value?)
+        'sceneTarget': value,
       'isHidden': instance.isHidden,
       'isDisabled': instance.isDisabled,
       'metadata': instance.metadata,
