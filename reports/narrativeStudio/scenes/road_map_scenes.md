@@ -65,7 +65,8 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-21-prep — Linked Asset Public Contracts Audit | DONE | Audit documentaire des contrats publics exposes au Scene Builder par Dialogue Yarn, Cinematic/Cutscene, Battle, Action/Consequence et outcomes avant pickers. |
 | NS-SCENES-V1-21 — Linked Asset Contracts V0 | DONE | Contrats/read models publics minimaux dans `map_core` : Dialogue, Battle trainer, Cinematic scenarioBridge, snapshot agrege, diagnostics, statuts et outcomes disponibles, sans runtime ni UI picker. |
 | NS-SCENES-V1-22 — Payload Pickers V0 | DONE | Ajouter des pickers/drafts honnetes pour Dialogue Yarn et Battle trainer depuis les contrats publics V1-21 ; Cinematic reste bridgeOnly/desactive, Action et Branch restent desactives. |
-| NS-SCENES-V1-23 — Event to Scene Trigger Prep | TODO | Preparer le lien Event local/runtime -> Scene V1, plus prioritaire que StorylineStep pour Selbrume, sans execution runtime complete. |
+| NS-SCENES-V1-23 — Event to Scene Trigger Prep | DONE | Decision Event -> Scene : viser un contrat explicite page/action `startScene`, ne pas ajouter `sceneId` direct sur l'event entier, ne pas reutiliser `ScenarioAsset`, et reporter l'implementation persistante a un bis cible. |
+| NS-SCENES-V1-23-bis — Event to Scene Link V0 | TODO | Implementer le lien authoring persistant minimal `MapEventPage -> Scene V1` avec refs validables et diagnostics, sans runtime Scene ni migration legacy. |
 | NS-SCENES-V1-24 — Scene Runtime Plan V0 | TODO | Ajouter un modele pur `SceneRuntimePlan` / intents dans `map_core`, compiler `SceneAsset` valide en plan executable sans layout ni Flutter. |
 | NS-SCENES-V1-25 — Diagnostics / Validator Expansion | TODO | Etendre diagnostics aux refs, ports, outcomes non geres, unreachable/cycles, payloads incomplets, Facts et World Rules. |
 | NS-SCENES-V1-26 — Scene Runtime Executor MVP | TODO | Executer un sous-ensemble Scene V1 depuis un `SceneRuntimePlan`, sans passer par `ScenarioAsset` comme modele produit. |
@@ -75,13 +76,27 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-23 — Event to Scene Trigger Prep`
+`NS-SCENES-V1-23-bis — Event to Scene Link V0`
 
-Raison : V1-22 permet maintenant d'ajouter des nodes Dialogue Yarn et Battle trainer depuis des contrats publics reels, sans champ d'ID brut ni fake ref. La scene peut commencer a pointer vers du contenu metier honnete ; le prochain blocage produit est donc de preparer comment un Event local pourra cibler une Scene V1 sans brancher encore le runtime complet.
+Raison : V1-23 a tranche le contrat sans modifier les modeles sensibles. Le bon niveau n'est pas `MapEventDefinition.sceneId`, mais une cible explicite de page/action `startScene`, car les pages d'event portent deja conditions, message/script et activation. L'implementation doit maintenant etre isolee dans un lot V1-23-bis avec tests JSON/authoring/diagnostics, sans runtime Scene.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion et Runtime Executor MVP.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Decisions V1-23
+
+- Lot architecture/audit uniquement : aucun code Dart, widget, modele persiste, generated file, runtime, test ou fixture Selbrume n'est ajoute.
+- Decision principale : le plus petit contrat honnete pour Event -> Scene doit vivre au niveau de la page/action active d'un event, sous une forme explicite `startScene` ou equivalente.
+- Option A `sceneId` directement sur `MapEventDefinition` est rejetee pour V1 : trop coarse pour un event a pages conditionnelles, et trop risquee comme changement JSON/generated.
+- Option B `startScene` dedie est retenue comme contrat cible : elle garde le declencheur Event distinct de la Scene, evite un script cache, et prepare le runtime futur.
+- Option C read model/draft non persistant est retenue seulement comme posture de V1-23 : documenter et cadrer sans migration.
+- Option D `ScenarioAsset`/legacy est rejetee : ScenarioRuntimeExecutor peut inspirer le flux, mais ne devient pas le modele produit Scene V1.
+- Le futur lien devra referencer une `SceneAsset` reelle dans `ProjectManifest.scenes`, produire diagnostics refs inconnues, et refuser execution tant que la scene cible a des erreurs bloquantes.
+- `StorylineStep.sceneLinkIds` reste desactive ; Event -> Scene reste prioritaire pour Selbrume.
+- Checks executes : `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-23-bis — Event to Scene Link V0`.
 
 ## Decisions V1-22
 
