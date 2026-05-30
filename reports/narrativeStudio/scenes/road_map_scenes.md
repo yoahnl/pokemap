@@ -71,6 +71,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-25 — Diagnostics / Validator Expansion | DONE | Diagnostics Scene V1 renforces : ports V0, duplicates, unreachable/cycles, refs projet Dialogue/Battle/Cinematic/Facts/World Rules et readiness Event -> Scene via SceneRuntimePlan. |
 | NS-SCENES-V1-25-bis — Dialogue/Battle Ports Authoring V0 | DONE | Ports authorables Dialogue.completed et Battle.victory/defeat ajoutes aux sources de verite, diagnostics, runtime-plan preservation et canvas visual-port, sans runtime ni outcomes Yarn inventes. |
 | NS-SCENES-V1-26 — Scene Runtime Executor MVP | DONE | Executor pur `map_core` pour parcourir un `SceneRuntimePlan` via callbacks condition/dialogue/battle/cinematic, trace, erreurs propres et `maxSteps`, sans branchement runtime map. |
+| NS-SCENES-V1-26-bis — Scene Runtime Executor Evidence & Review Hardening | DONE | Review/evidence hardening de V1-26 : executor confirme pur, tests/analyze relances, fichiers executor/test reproduits integralement, aucun runtime map ni V1-27 demarre. |
 | NS-SCENES-V1-27 — World Rules Map Editor Integration V0 | TODO | Rendre les World Rules visibles/configurables depuis le contexte map/entity/event sans brancher de runtime Scene. |
 | NS-SCENES-V1-28 — Golden Slice Selbrume Scene/Event Prep | TODO | Preparer le slice test Lysa/rival via fixtures ou projet controle, sans hardcode produit. |
 | NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP et golden slice stabilises. |
@@ -79,9 +80,9 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 `NS-SCENES-V1-27 — World Rules Map Editor Integration V0`
 
-Raison : V1-26 a pose un executor pur et testable pour `SceneRuntimePlan`, sans branchement `PlayableMapGame` ni consequences persistantes. Avant le golden slice complet, les World Rules doivent maintenant devenir visibles/configurables depuis leurs cibles map/entity/event pour que les consequences ne restent pas de simples lignes abstraites dans l'overview.
+Raison : V1-26-bis a confirme l'evidence et la surete de l'executor pur V1-26 sans demarrer V1-27. Avant le golden slice complet, les World Rules doivent maintenant devenir visibles/configurables depuis leurs cibles map/entity/event pour que les consequences ne restent pas de simples lignes abstraites dans l'overview.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis World Rules Map Editor Integration V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -136,6 +137,18 @@ Prochain lot exact : `NS-SCENES-V1-26 — Scene Runtime Executor MVP`.
 - Erreurs runtime propres : start manquant, transition manquante, transition ambigue, cible manquante, port retourne non supporte, callback en erreur et limite de pas depassee.
 - `maxSteps` protege contre les cycles sans faire d'analyse de graph dans l'executor.
 - Aucun `PlayableMapGame`, Event -> Scene runtime trigger, `ScenarioRuntimeExecutor`, `StorylineStep.sceneLinkIds`, import `map_battle`, mutation `GameState`, Fact write, World Rule projection runtime, fake ref ou donnee Selbrume n'est ajoute.
+- Tests executes : `cd packages/map_core && dart test test/scene_runtime_executor_test.dart`, `cd packages/map_core && dart test test/scene_runtime_plan_test.dart`, `cd packages/map_core && dart analyze`, verification finale `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-27 — World Rules Map Editor Integration V0`.
+
+## Decisions V1-26-bis
+
+- `SceneRuntimeExecutor` V1-26 est confirme comme pur : il importe seulement `dart:async` et `scene_runtime_plan.dart`.
+- L'audit confirme l'absence de `map_runtime`, `map_battle`, `map_gameplay`, Flutter, Flame, disque, Yarn parser, `ScenarioRuntimeExecutor`, `PlayableMapGame`, `GameState` et `ProjectManifest` dans l'executor.
+- Les callbacks restent la seule frontiere metier : condition, dialogue, battle et cinematic retournent des ports, puis l'executor suit uniquement `currentNodeId + outputPortId`.
+- La trace, les erreurs, `maxSteps`, la non-mutation de `SceneRuntimePlan` et les listes immuables sont documentes dans un Evidence Pack complet.
+- Aucun test ou correctif code supplementaire n'a ete necessaire apres review ; les tests V1-26 ont ete relances.
+- Aucun `PlayableMapGame`, Event -> Scene runtime trigger, `ScenarioRuntimeExecutor`, `StorylineStep.sceneLinkIds`, import `map_battle`, mutation `GameState`, Fact write, World Rule projection runtime, consequence persistante, fake ref ou donnee Selbrume n'est ajoute.
 - Tests executes : `cd packages/map_core && dart test test/scene_runtime_executor_test.dart`, `cd packages/map_core && dart test test/scene_runtime_plan_test.dart`, `cd packages/map_core && dart analyze`, verification finale `git diff --check`.
 
 Prochain lot exact : `NS-SCENES-V1-27 — World Rules Map Editor Integration V0`.
