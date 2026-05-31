@@ -1033,8 +1033,16 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         ),
         const _InspectorRow(label: 'Sorties attendues', value: 'true / false'),
       ],
-    SceneActionPayload(:final actionKind, :final parameters) => [
-        _InspectorRow(label: 'actionKind', value: actionKind),
+    SceneActionPayload(
+      :final actionKind,
+      :final parameters,
+      :final consequence,
+    ) =>
+      [
+        _InspectorRow(
+          label: 'actionKind',
+          value: actionKind ?? 'Aucune action legacy.',
+        ),
         _InspectorRow(
           label: 'parameters',
           value: parameters.isEmpty
@@ -1043,6 +1051,7 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
                   .map((entry) => '${entry.key}=${entry.value}')
                   .join(', '),
         ),
+        ..._sceneConsequenceRows(consequence),
         const _InspectorRow(label: 'Sortie attendue', value: 'completed'),
       ],
     SceneBattlePayload(
@@ -1098,6 +1107,34 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         _InspectorRow(label: 'Payload', value: 'Payload non reconnu.'),
       ],
   };
+}
+
+List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
+  if (consequence == null) {
+    return const [
+      _InspectorRow(label: 'consequence', value: 'Aucune conséquence typée.'),
+    ];
+  }
+  if (consequence is SceneSetFactConsequence) {
+    return [
+      const _InspectorRow(label: 'consequence', value: 'setFact'),
+      _InspectorRow(label: 'factId', value: consequence.factId),
+      _InspectorRow(label: 'value', value: consequence.value.toString()),
+    ];
+  }
+  if (consequence is SceneMarkEventConsumedConsequence) {
+    return [
+      const _InspectorRow(
+        label: 'consequence',
+        value: 'markEventConsumed',
+      ),
+      _InspectorRow(label: 'mapId', value: consequence.mapId),
+      _InspectorRow(label: 'eventId', value: consequence.eventId),
+    ];
+  }
+  return const [
+    _InspectorRow(label: 'consequence', value: 'Conséquence non reconnue.'),
+  ];
 }
 
 SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {

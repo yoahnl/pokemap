@@ -369,30 +369,65 @@ void main() {
       expect(result.diagnostics.single.nodeId, 'node_action');
     });
 
-    test('typed consequence action nodes remain non executable in V0', () {
+    test('typed setFact action nodes become applyConsequence intents', () {
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_test_gate_unlocked',
+        value: true,
+      );
       final scene = _sceneWithSingleMiddleNode(
         SceneNode(
           id: 'node_action_set_fact',
           kind: SceneNodeKind.action,
-          payload: SceneActionPayload.consequence(
-            SceneConsequence.setFact(
-              factId: 'fact_test_gate_unlocked',
-              value: true,
-            ),
-          ),
+          payload: SceneActionPayload.consequence(consequence),
         ),
         outgoingEdgeKind: SceneEdgeKind.actionCompleted,
       );
 
       final result = buildSceneRuntimePlan(scene);
-
-      expect(result.canBuild, isFalse);
-      expect(result.plan, isNull);
-      expect(
-        result.diagnostics.single.code,
-        SceneRuntimePlanDiagnosticCode.unsupportedAction,
+      final actionNode = result.plan!.nodes.singleWhere(
+        (node) => node.id == 'node_action_set_fact',
       );
-      expect(result.diagnostics.single.nodeId, 'node_action_set_fact');
+
+      expect(result.canBuild, isTrue);
+      expect(result.diagnostics, isEmpty);
+      expect(
+        actionNode.intent.kind,
+        SceneRuntimePlanIntentKind.applyConsequence,
+      );
+      expect(actionNode.intent.consequence, consequence);
+      expect(
+          result.plan!.edges
+              .singleWhere(
+                (edge) => edge.fromNodeId == 'node_action_set_fact',
+              )
+              .fromPortId,
+          'completed');
+    });
+
+    test('typed markEventConsumed action nodes preserve consequence payload',
+        () {
+      final consequence = SceneConsequence.markEventConsumed(
+        mapId: 'map_test',
+        eventId: 'event_gate',
+      );
+      final scene = _sceneWithSingleMiddleNode(
+        SceneNode(
+          id: 'node_action_mark_event',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(consequence),
+        ),
+        outgoingEdgeKind: SceneEdgeKind.actionCompleted,
+      );
+
+      final result = buildSceneRuntimePlan(scene);
+      final actionNode = result.plan!.nodes.singleWhere(
+        (node) => node.id == 'node_action_mark_event',
+      );
+
+      expect(result.canBuild, isTrue);
+      expect(
+          actionNode.intent.kind, SceneRuntimePlanIntentKind.applyConsequence);
+      expect(actionNode.intent.consequence, consequence);
     });
 
     test('branchByOutcome nodes produce unsupported diagnostics and no plan',

@@ -59,6 +59,13 @@ export 'src/application/runtime_story_branching.dart'
     show RuntimeStoryBranching;
 export 'src/application/scene_runtime/scene_event_runtime_hook.dart'
     show SceneEventRuntimeHook;
+export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
+    show SceneConsequenceRuntimeWriter;
+export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'
+    show
+        SceneConsequenceRuntimeWriteErrorCode,
+        SceneConsequenceRuntimeWriteResult,
+        SceneConsequenceRuntimeWriteStatus;
 export 'src/application/scene_runtime/scene_runtime_host_callbacks.dart'
     show SceneRuntimeHostCallbacks;
 export 'src/application/scene_runtime/scene_runtime_hook_result.dart'

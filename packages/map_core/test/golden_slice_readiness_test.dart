@@ -171,6 +171,7 @@ Future<SceneRuntimeExecutionResult> _execute(
       showDialogue: (_) => 'completed',
       startBattle: (_) => battleResult,
       playCinematic: (_) => 'completed',
+      applyConsequence: (_) => 'completed',
     ),
   ).execute(plan);
 }

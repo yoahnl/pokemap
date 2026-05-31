@@ -13,12 +13,15 @@ final class SceneRuntimeHostCallbacks {
   final SceneRuntimeIntentCallback startBattle;
   final SceneRuntimeIntentCallback playCinematic;
 
-  SceneRuntimeExecutionCallbacks toExecutionCallbacks() {
+  SceneRuntimeExecutionCallbacks toExecutionCallbacks({
+    required SceneRuntimeConsequenceCallback applyConsequence,
+  }) {
     return SceneRuntimeExecutionCallbacks(
       evaluateCondition: evaluateCondition,
       showDialogue: showDialogue,
       startBattle: startBattle,
       playCinematic: playCinematic,
+      applyConsequence: applyConsequence,
     );
   }
 }

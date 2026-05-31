@@ -182,6 +182,157 @@ void main() {
       expect(gameState.toJson(), gameStateBefore);
     });
 
+    test('stages setFact consequence and commits it when scene completes',
+        () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequence(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(calls: <String>[]),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        contains('fact_test_scene_done'),
+      );
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+      expect(result.consequenceWriteResult?.appliedConsequences, hasLength(1));
+    });
+
+    test('stages markEventConsumed consequence and commits it on completion',
+        () async {
+      final fixture = _fixture(scene: _sceneWithMarkEventConsumedConsequence());
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(calls: <String>[]),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(
+        result.updatedGameState?.consumedEventIds,
+        contains('event_test_scene'),
+      );
+      expect(gameState.consumedEventIds, isEmpty);
+    });
+
+    test('discards staged consequence when later callback fails', () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequenceThenDialogue(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: <String>[],
+          showDialogue: (_) => throw StateError('dialogue seam failed'),
+        ),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.failed);
+      expect(
+        result.errorCode,
+        SceneEventRuntimeHookErrorCode.sceneExecutionFailed,
+      );
+      expect(result.updatedGameState, isNull);
+      expect(result.consequenceWriteResult, isNull);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('does not commit consequences when runtime plan fails', () async {
+      final fixture = _fixture(scene: _sceneWithUnsupportedAction());
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(calls: <String>[]),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.failed);
+      expect(
+        result.errorCode,
+        SceneEventRuntimeHookErrorCode.sceneTargetRuntimePlanFailed,
+      );
+      expect(result.updatedGameState, isNull);
+      expect(result.consequenceWriteResult, isNull);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('does not apply World Rules or complete StorylineStep directly',
+        () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequence(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+      );
+      const gameState = GameState(
+        saveId: 'save_test_runtime',
+        progression: PlayerProgression(completedStepIds: ['step_before']),
+      );
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(calls: <String>[]),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(
+        result.updatedGameState?.progression.completedStepIds,
+        ['step_before'],
+      );
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        contains('fact_test_scene_done'),
+      );
+    });
+
     test('reports callback execution failure without mutating state', () async {
       final fixture = _fixture();
 
@@ -258,6 +409,7 @@ SceneRuntimeHostCallbacks _callbacks({
 _RuntimeSceneFixture _fixture({
   bool withSceneTarget = true,
   SceneAsset? scene,
+  List<NarrativeFactDefinition> facts = const [],
 }) {
   final resolvedScene = scene ?? _scene();
   final project = ProjectManifest(
@@ -287,6 +439,7 @@ _RuntimeSceneFixture _fixture({
         ],
       ),
     ],
+    facts: facts,
     scenes: [resolvedScene],
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
@@ -413,6 +566,117 @@ SceneAsset _sceneWithUnsupportedAction() {
           id: 'node_action',
           kind: SceneNodeKind.action,
           payload: SceneActionPayload(actionKind: 'runtime_test_action'),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_action',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_action',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_action_end',
+          fromNodeId: 'node_action',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _sceneWithSetFactConsequence() {
+  return _actionConsequenceScene(
+    payload: SceneActionPayload.consequence(
+      SceneConsequence.setFact(
+        factId: 'fact_test_scene_done',
+        value: true,
+      ),
+    ),
+  );
+}
+
+SceneAsset _sceneWithMarkEventConsumedConsequence() {
+  return _actionConsequenceScene(
+    payload: SceneActionPayload.consequence(
+      SceneConsequence.markEventConsumed(
+        mapId: 'map_test_runtime',
+        eventId: 'event_test_scene',
+      ),
+    ),
+  );
+}
+
+SceneAsset _sceneWithSetFactConsequenceThenDialogue() {
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Consequence Then Dialogue Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_scene_done',
+              value: true,
+            ),
+          ),
+        ),
+        SceneNode(
+          id: 'node_dialogue',
+          kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_test_intro'),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_action',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_action',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_action_dialogue',
+          fromNodeId: 'node_action',
+          fromPortId: 'completed',
+          toNodeId: 'node_dialogue',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'edge_dialogue_end',
+          fromNodeId: 'node_dialogue',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _actionConsequenceScene({
+  required SceneActionPayload payload,
+}) {
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Consequence Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: payload,
         ),
         SceneNode(id: 'node_end', kind: SceneNodeKind.end),
       ],

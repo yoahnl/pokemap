@@ -1871,6 +1871,32 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
+    testWidgets('shows typed consequence action payload in inspector',
+        (tester) async {
+      final project = _projectWithTypedConsequenceActionScene();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_action')),
+        findsOneWidget,
+      );
+      expect(find.text('Action'), findsWidgets);
+      expect(find.text('Aucune action legacy.'), findsOneWidget);
+      expect(find.text('setFact'), findsOneWidget);
+      expect(find.text('fact_gate_open'), findsOneWidget);
+      expect(find.text('true'), findsOneWidget);
+      expect(container.read(editorNotifierProvider).project, equals(project));
+    });
+
     testWidgets('scene change recalculates local selected node',
         (tester) async {
       final project = _projectWithTwoScenes();
@@ -2611,6 +2637,67 @@ ProjectManifest _projectWithUnsupportedConnectionNodes() {
             SceneNodeLayout(nodeId: 'node_cinematic', x: 260, y: 180),
             SceneNodeLayout(nodeId: 'node_branch', x: 496, y: 110),
             SceneNodeLayout(nodeId: 'node_end', x: 760, y: 110),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithTypedConsequenceActionScene() {
+  return ProjectManifest(
+    name: 'Scenes typed consequence action test',
+    maps: const [],
+    tilesets: const [],
+    facts: [
+      NarrativeFactDefinition(
+        id: 'fact_gate_open',
+        label: 'Gate open',
+      ),
+    ],
+    scenes: [
+      SceneAsset(
+        id: 'scene_typed_consequence_action',
+        name: 'Typed Consequence Action Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_action',
+              kind: SceneNodeKind.action,
+              title: 'Action',
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.setFact(
+                  factId: 'fact_gate_open',
+                  value: true,
+                ),
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_action',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_action',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_action_end',
+              fromNodeId: 'node_action',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_action', x: 260, y: 80),
+            SceneNodeLayout(nodeId: 'node_end', x: 520, y: 80),
           ],
         ),
       ),

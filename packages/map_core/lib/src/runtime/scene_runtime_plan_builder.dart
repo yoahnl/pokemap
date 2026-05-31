@@ -26,15 +26,19 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
   for (final node in scene.graph.nodes) {
     switch (node.kind) {
       case SceneNodeKind.action:
-        diagnostics.add(
-          SceneRuntimePlanDiagnostic(
-            code: SceneRuntimePlanDiagnosticCode.unsupportedAction,
-            severity: SceneRuntimePlanDiagnosticSeverity.error,
-            message: 'ActionNode n’a pas encore de contrat runtime public V0.',
-            sceneId: scene.id,
-            nodeId: node.id,
-          ),
-        );
+        final payload = node.payload;
+        if (payload is! SceneActionPayload || payload.consequence == null) {
+          diagnostics.add(
+            SceneRuntimePlanDiagnostic(
+              code: SceneRuntimePlanDiagnosticCode.unsupportedAction,
+              severity: SceneRuntimePlanDiagnosticSeverity.error,
+              message:
+                  'ActionNode legacy sans conséquence typée reste non exécutable.',
+              sceneId: scene.id,
+              nodeId: node.id,
+            ),
+          );
+        }
       case SceneNodeKind.branchByOutcome:
         diagnostics.add(
           SceneRuntimePlanDiagnostic(
@@ -127,13 +131,25 @@ SceneRuntimePlanIntent _runtimeIntentForNode(SceneNode node) {
     SceneNodeKind.cinematic => SceneRuntimePlanIntent.playCinematic(
         cinematicId: (node.payload as SceneCinematicPayload).cinematicId,
       ),
-    SceneNodeKind.action => throw StateError(
-        'ActionNode must be blocked before runtime intent creation.',
+    SceneNodeKind.action => _actionIntent(
+        node.payload as SceneActionPayload,
       ),
     SceneNodeKind.branchByOutcome => throw StateError(
         'BranchByOutcome must be blocked before runtime intent creation.',
       ),
   };
+}
+
+SceneRuntimePlanIntent _actionIntent(SceneActionPayload payload) {
+  final consequence = payload.consequence;
+  if (consequence == null) {
+    throw StateError(
+      'Legacy ActionNode must be blocked before runtime intent creation.',
+    );
+  }
+  return SceneRuntimePlanIntent.applyConsequence(
+    consequence: consequence,
+  );
 }
 
 SceneRuntimePlanIntent _dialogueIntent(SceneYarnDialoguePayload payload) {

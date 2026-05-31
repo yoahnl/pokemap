@@ -1,9 +1,14 @@
 import 'dart:async';
 
+import '../models/scene_consequence.dart';
 import 'scene_runtime_plan.dart';
 
 typedef SceneRuntimeIntentCallback = FutureOr<String> Function(
   SceneRuntimePlanIntent intent,
+);
+
+typedef SceneRuntimeConsequenceCallback = FutureOr<String> Function(
+  SceneConsequence consequence,
 );
 
 enum SceneRuntimeExecutionStatus {
@@ -28,12 +33,14 @@ final class SceneRuntimeExecutionCallbacks {
     required this.showDialogue,
     required this.startBattle,
     required this.playCinematic,
+    required this.applyConsequence,
   });
 
   final SceneRuntimeIntentCallback evaluateCondition;
   final SceneRuntimeIntentCallback showDialogue;
   final SceneRuntimeIntentCallback startBattle;
   final SceneRuntimeIntentCallback playCinematic;
+  final SceneRuntimeConsequenceCallback applyConsequence;
 }
 
 final class SceneRuntimeExecutionTraceEntry {
@@ -208,7 +215,41 @@ final class SceneRuntimeExecutor {
           callbacks.playCinematic,
           const {'completed'},
         );
+      case SceneRuntimePlanIntentKind.applyConsequence:
+        return _consequenceCallbackOutput(intent);
     }
+  }
+
+  Future<_OutputPortResult> _consequenceCallbackOutput(
+    SceneRuntimePlanIntent intent,
+  ) async {
+    final consequence = intent.consequence;
+    if (consequence == null) {
+      return _OutputPortResult(
+        errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
+        message: 'Scene runtime consequence intent is missing consequence.',
+      );
+    }
+    String outputPortId;
+    try {
+      outputPortId = await callbacks.applyConsequence(consequence);
+    } catch (error) {
+      return _OutputPortResult(
+        errorCode: SceneRuntimeExecutionErrorCode.callbackFailed,
+        message:
+            'Scene runtime callback failed for ${intent.kind.name}: $error',
+      );
+    }
+    if (outputPortId != 'completed') {
+      return _OutputPortResult(
+        outputPortId: outputPortId,
+        errorCode: SceneRuntimeExecutionErrorCode.unsupportedPortResult,
+        message:
+            'Scene runtime callback returned unsupported port "$outputPortId" '
+            'for ${intent.kind.name}.',
+      );
+    }
+    return _OutputPortResult(outputPortId: outputPortId);
   }
 
   Future<_OutputPortResult> _callbackOutput(

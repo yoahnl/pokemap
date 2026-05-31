@@ -4905,6 +4905,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         map: _bundle.map,
         event: event,
         page: page.page,
+        gameState: _gameState,
       );
 
       debugPrint(
@@ -4915,6 +4916,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       if (!result.success && result.handled) {
         _showNotification(result.message ?? 'Scene V1 impossible.');
+      } else if (result.updatedGameState != null) {
+        _gameState = result.updatedGameState!;
       }
     } catch (error, stackTrace) {
       debugPrint(

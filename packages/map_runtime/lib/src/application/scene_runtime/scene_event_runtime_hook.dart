@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import 'scene_consequence_runtime_writer.dart';
 import 'scene_runtime_host_callbacks.dart';
 import 'scene_runtime_hook_result.dart';
 
@@ -25,6 +26,7 @@ final class SceneEventRuntimeHook {
     required MapData map,
     required MapEventDefinition event,
     required MapEventPage page,
+    GameState? gameState,
   }) async {
     final sceneTarget = page.sceneTarget;
     if (sceneTarget == null) {
@@ -42,7 +44,11 @@ final class SceneEventRuntimeHook {
       );
     }
 
-    final diagnostics = diagnoseSceneAgainstProject(scene, project);
+    final diagnostics = diagnoseSceneAgainstProject(
+      scene,
+      project,
+      mapsById: {map.id: map},
+    );
     if (diagnostics.hasErrors) {
       return SceneEventRuntimeHookResult.failed(
         errorCode: SceneEventRuntimeHookErrorCode.sceneTargetDiagnosticsFailed,
@@ -62,15 +68,55 @@ final class SceneEventRuntimeHook {
       );
     }
 
+    final pendingConsequences = <SceneConsequence>[];
     final executionResult = await SceneRuntimeExecutor(
-      callbacks: callbacks.toExecutionCallbacks(),
+      callbacks: callbacks.toExecutionCallbacks(
+        applyConsequence: (consequence) {
+          pendingConsequences.add(consequence);
+          return 'completed';
+        },
+      ),
       maxSteps: maxSteps,
     ).execute(planResult.plan!);
 
     if (executionResult.status == SceneRuntimeExecutionStatus.completed) {
+      if (pendingConsequences.isEmpty) {
+        return SceneEventRuntimeHookResult.completed(
+          sceneId: sceneId,
+          executionResult: executionResult,
+        );
+      }
+
+      if (gameState == null) {
+        return SceneEventRuntimeHookResult.failed(
+          errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
+          sceneId: sceneId,
+          message: 'Scene V1 "$sceneId" produced consequences but no '
+              'GameState was provided for a controlled commit.',
+          executionResult: executionResult,
+        );
+      }
+
+      final writeResult = SceneConsequenceRuntimeWriter(
+        project: project,
+        mapsById: {map.id: map},
+      ).applyAll(gameState, pendingConsequences);
+      if (!writeResult.success) {
+        return SceneEventRuntimeHookResult.failed(
+          errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
+          sceneId: sceneId,
+          message: writeResult.message ??
+              'Scene V1 "$sceneId" consequence commit failed.',
+          executionResult: executionResult,
+          consequenceWriteResult: writeResult,
+        );
+      }
+
       return SceneEventRuntimeHookResult.completed(
         sceneId: sceneId,
         executionResult: executionResult,
+        updatedGameState: writeResult.gameState,
+        consequenceWriteResult: writeResult,
       );
     }
 

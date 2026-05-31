@@ -257,6 +257,95 @@ void main() {
       expect(result.trace[1].outputPortId, 'completed');
     });
 
+    test('calls applyConsequence and follows completed output', () async {
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_test_gate_unlocked',
+        value: true,
+      );
+      final plan = _plan(
+        nodes: [_startNode(), _consequenceNode(consequence), _endNode()],
+        edges: [
+          _edge(
+            'edge_start_consequence',
+            'node_start',
+            'completed',
+            'node_consequence',
+          ),
+          _edge(
+            'edge_consequence_end',
+            'node_consequence',
+            'completed',
+            'node_end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      );
+      final applied = <SceneConsequence>[];
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          applyConsequence: (consequence) {
+            applied.add(consequence);
+            return 'completed';
+          },
+        ),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end');
+      expect(applied, [consequence]);
+      expect(
+        result.trace.map((entry) => (entry.nodeId, entry.outputPortId)),
+        [
+          ('node_start', 'completed'),
+          ('node_consequence', 'completed'),
+          ('node_end', null),
+        ],
+      );
+    });
+
+    test('fails when applyConsequence callback throws', () async {
+      final plan = _plan(
+        nodes: [
+          _startNode(),
+          _consequenceNode(
+            SceneConsequence.markEventConsumed(
+              mapId: 'map_test',
+              eventId: 'event_gate',
+            ),
+          ),
+          _endNode(),
+        ],
+        edges: [
+          _edge(
+            'edge_start_consequence',
+            'node_start',
+            'completed',
+            'node_consequence',
+          ),
+          _edge(
+            'edge_consequence_end',
+            'node_consequence',
+            'completed',
+            'node_end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      );
+
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(
+          applyConsequence: (_) => throw StateError('write seam unavailable'),
+        ),
+      ).execute(plan);
+
+      expect(result.status, SceneRuntimeExecutionStatus.failed);
+      expect(result.errorCode, SceneRuntimeExecutionErrorCode.callbackFailed);
+      expect(result.message, contains('write seam unavailable'));
+      expect(result.trace.last.nodeId, 'node_consequence');
+      expect(result.trace.last.outputPortId, isNull);
+    });
+
     test('fails when start node is missing from plan', () async {
       final plan = _plan(
         nodes: [_endNode()],
@@ -403,12 +492,14 @@ SceneRuntimeExecutionCallbacks _callbacks({
   FutureOr<String> Function(SceneRuntimePlanIntent intent)? showDialogue,
   FutureOr<String> Function(SceneRuntimePlanIntent intent)? startBattle,
   FutureOr<String> Function(SceneRuntimePlanIntent intent)? playCinematic,
+  FutureOr<String> Function(SceneConsequence consequence)? applyConsequence,
 }) {
   return SceneRuntimeExecutionCallbacks(
     evaluateCondition: evaluateCondition ?? (_) => 'true',
     showDialogue: showDialogue ?? (_) => 'completed',
     startBattle: startBattle ?? (_) => 'victory',
     playCinematic: playCinematic ?? (_) => 'completed',
+    applyConsequence: applyConsequence ?? (_) => 'completed',
   );
 }
 
@@ -552,6 +643,16 @@ SceneRuntimePlanNode _cinematicNode() {
     kind: SceneNodeKind.cinematic,
     intent: SceneRuntimePlanIntent.playCinematic(
       cinematicId: 'cinematic_test',
+    ),
+  );
+}
+
+SceneRuntimePlanNode _consequenceNode(SceneConsequence consequence) {
+  return SceneRuntimePlanNode(
+    id: 'node_consequence',
+    kind: SceneNodeKind.action,
+    intent: SceneRuntimePlanIntent.applyConsequence(
+      consequence: consequence,
     ),
   );
 }

@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_consequence.dart';
 
 enum SceneRuntimePlanIntentKind {
   start,
@@ -11,6 +12,7 @@ enum SceneRuntimePlanIntentKind {
   showDialogue,
   startBattle,
   playCinematic,
+  applyConsequence,
 }
 
 enum SceneRuntimePlanDiagnosticSeverity {
@@ -109,6 +111,7 @@ final class SceneRuntimePlanIntent {
     this.npcEntityId,
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
+    this.consequence,
   })  : expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
         battleDeclaredOutcomes =
             List<String>.unmodifiable(battleDeclaredOutcomes);
@@ -176,6 +179,15 @@ final class SceneRuntimePlanIntent {
     );
   }
 
+  factory SceneRuntimePlanIntent.applyConsequence({
+    required SceneConsequence consequence,
+  }) {
+    return SceneRuntimePlanIntent._(
+      kind: SceneRuntimePlanIntentKind.applyConsequence,
+      consequence: consequence,
+    );
+  }
+
   final SceneRuntimePlanIntentKind kind;
   final String? sceneOutcomeId;
   final SceneConditionSource? conditionSource;
@@ -188,6 +200,7 @@ final class SceneRuntimePlanIntent {
   final String? npcEntityId;
   final List<String> battleDeclaredOutcomes;
   final String? cinematicId;
+  final SceneConsequence? consequence;
 
   @override
   bool operator ==(Object other) =>
@@ -207,7 +220,8 @@ final class SceneRuntimePlanIntent {
             other.battleDeclaredOutcomes,
             battleDeclaredOutcomes,
           ) &&
-          other.cinematicId == cinematicId;
+          other.cinematicId == cinematicId &&
+          other.consequence == consequence;
 
   @override
   int get hashCode => Object.hash(
@@ -223,6 +237,7 @@ final class SceneRuntimePlanIntent {
         npcEntityId,
         Object.hashAll(battleDeclaredOutcomes),
         cinematicId,
+        consequence,
       );
 }
 
