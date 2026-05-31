@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-29 — StorylineStep to Scene Link
+NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint
 ```
 
 ## Principes
@@ -60,7 +60,7 @@ NS-SCENES-V1-29 — StorylineStep to Scene Link
 | NS-SCENES-V1-28-sexies | Battle Runtime Outcome Adapter V0 | runtime / integration | DONE : fournir au Scene runtime un vrai resultat battle awaitable `victory` / `defeat` pour suivre les ports BattleNode existants. | Pas de resultat invente, pas de StorylineStep link, pas de consequence supplementaire, pas de refonte battle. | `scene_battle_runtime_outcome_adapter.dart`, result, `PlayableMapGame`, hook tests. | DONE : adapter victory/defeat/failure, hook battle branches + consequences, core non-regression, analyzes. | Coupler Scene V1 aux internes battle ; court-circuiter le flow runtime existant ; inventer une victoire. | DONE : BattleNode avance sur un outcome runtime reel et testable, sans consequence ecrite par l'adapter. | V1-28-bis, V1-28-quinquies. |
 | NS-SCENES-V1-28-septies | Dialogue Runtime Awaitable Adapter V0 | runtime / integration | DONE : rendre `showDialogue` awaitable pour que la Scene continue apres fermeture reelle du dialogue. | Pas d'outcomes Yarn inventes, pas de BranchByOutcome, pas de refactor Dialogue Studio. | `scene_dialogue_runtime_awaitable_adapter.dart`, result, `PlayableMapGame`, hook tests. | DONE : dialogue completed reel, failure propre, no consequence write partiel, pending hook prouve. | Laisser la Scene continuer trop tot ; confondre completed avec outcomes Yarn. | DONE : Dialogue.completed devient temporellement fiable depuis `DialogueOverlayComponent.onFinished`. | V1-28-bis, V1-28-sexies. |
 | NS-SCENES-V1-28-octies | Golden Slice Runtime Smoke V0 | runtime / integration | DONE : prouver la chaine runtime controlee Event -> Scene -> Dialogue awaitable -> Battle outcome -> consequences commit. | Pas de StorylineStep link, pas de donnees Selbrume produit, pas de nouveaux payloads, pas de World Rule direct apply. | `scene_runtime_golden_slice_smoke_test.dart`, rapport, roadmaps. | DONE : smoke victory pending dialogue + battle victory + commit, smoke defeat, smoke failure no partial write, non-regressions hook/adapters/core. | Confondre smoke neutre et seed produit ; masquer un failure dialogue/battle. | DONE : chaine runtime complete prouvee avant `StorylineStep.sceneLinkIds`. | V1-28-bis, V1-28-quinquies, V1-28-sexies, V1-28-septies. |
-| NS-SCENES-V1-29 | StorylineStep to Scene Link | core / editor | Brancher `StorylineStep.sceneLinkIds` vers scenes stables. | Pas de declenchement runtime par StoryStep seul, pas de lien scenario legacy. | storyline models/UI validators si necessaire. | Tests refs scene, UI disabled/enabled, diagnostics link. | Confondre step et trigger ; progression pilotant toute la scene. | StoryStep peut referencer Scene pour lecture/progression, sans remplacer Event trigger. | V1-23, V1-26, V1-28-octies. |
+| NS-SCENES-V1-29 | StorylineStep to Scene Link | core / editor | Brancher `StorylineStep.sceneLinkIds` vers scenes stables comme lien authoring/progression. | Pas de declenchement runtime par StoryStep seul, pas de lien scenario legacy, pas de completion Step runtime. | operations Storyline scene links, diagnostics/read model, Storylines workspace, tests. | DONE : JSON/ops/diagnostics/read model, UI picker scenes reelles, remove link, visual gate, analyzes. | Confondre step et trigger ; progression pilotant toute la scene. | DONE : StoryStep peut referencer Scene pour lecture/progression, sans remplacer Event trigger. | V1-23, V1-26, V1-28-octies. |
 
 ## Options comparees
 
@@ -477,6 +477,20 @@ Limites : pas de runtime Flame complet, pas de StorylineStep link, pas de World 
 
 Prochain lot exact : `NS-SCENES-V1-29 — StorylineStep to Scene Link`.
 
+## Mise a jour V1-29
+
+Statut : `NS-SCENES-V1-29 — StorylineStep to Scene Link` est DONE.
+
+Decision : le lien `StorylineStep.sceneLinkIds` est active uniquement comme relation de lecture, organisation et progression narrative. Event -> Scene reste le declencheur runtime local. Aucune Step ne lance de Scene, ne complete une progression et n'ecrit dans `GameState`.
+
+Scope realise : operations pures add/remove/replace/clear dans `map_core`, diagnostics refs inconnues et scenes liees problematiques, read model StorylineStep -> Scenes, section `Scenes liees` dans l'edition de Step avec picker depuis `ProjectManifest.scenes`, suppression de lien et message authoring/progression only.
+
+Preuve : tests core JSON/operations/diagnostics/read model, `scene_runtime_plan_test.dart`, test widget Storylines scene links avec golden V1-29, analyses ciblees, recherches anti-Selbrume/anti-runtime et `git diff --check`.
+
+Limites : pas de cross-navigation avancee vers le Scene Builder, pas d'impact runtime, pas de StorylineStep completion, pas de remplacement `MapEventPage.sceneTarget`, pas de donnees Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint`.
+
 ## Selbrume golden slice
 
 Avant le golden slice, il faut au minimum :
@@ -498,7 +512,8 @@ Avant le golden slice, il faut au minimum :
 
 Peut attendre apres le slice :
 
-- StorylineStep -> Scene Link complet.
+- Dialogue outcomes avances.
+- BranchByOutcome authoring/runtime.
 - World Rule editor avance au-dela des effets V0.
 - Fact registry avance.
 - Cinematic editor avance si une cinematic fixture controlee suffit.

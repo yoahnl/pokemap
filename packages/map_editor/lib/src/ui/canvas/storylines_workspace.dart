@@ -453,6 +453,8 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
         deleteKey: const ValueKey('storylines-edit-step-delete-action'),
         initialTitle: step.title,
         initialDescription: step.description,
+        initialSceneLinkIds: step.sceneLinkIds,
+        availableScenes: project.scenes,
         submitLabel: 'Enregistrer',
       ),
     );
@@ -463,28 +465,51 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
       await _deleteStep(project, storyline, chapter, step);
       return;
     }
+    var workingProject = project;
+    var workingStoryline = storyline;
+    var workingChapter = chapter;
+    var workingStep = step;
+    final draftSceneLinkIds = draft.sceneLinkIds;
+    if (draftSceneLinkIds != null &&
+        !_stringListEquals(draftSceneLinkIds, step.sceneLinkIds)) {
+      final result = replaceStorylineStepSceneLinks(
+        project,
+        storylineId: storyline.id,
+        chapterId: chapter.id,
+        stepId: step.id,
+        sceneIds: draftSceneLinkIds,
+      );
+      workingProject = result.updatedProject;
+      workingStoryline = result.updatedStoryline;
+      workingChapter = workingStoryline.chapters
+          .singleWhere((current) => current.id == chapter.id);
+      workingStep = result.updatedStep;
+    }
     final updatedStep = _copyStepWith(
-      step,
+      workingStep,
       title: draft.title,
       description: draft.description,
       replaceDescription: true,
     );
     final updatedChapter = _copyChapterWith(
-      chapter,
-      steps: chapter.steps
-          .map((current) => current.id == step.id ? updatedStep : current)
+      workingChapter,
+      steps: workingChapter.steps
+          .map(
+            (current) => current.id == workingStep.id ? updatedStep : current,
+          )
           .toList(growable: false),
     );
     final updatedStoryline = _copyStorylineWith(
-      storyline,
-      chapters: storyline.chapters
+      workingStoryline,
+      chapters: workingStoryline.chapters
           .map(
-            (current) => current.id == chapter.id ? updatedChapter : current,
+            (current) =>
+                current.id == workingChapter.id ? updatedChapter : current,
           )
           .toList(growable: false),
     );
     _applyStorylineUpdate(
-      project,
+      workingProject,
       updatedStoryline,
       statusMessage: 'Étape narrative modifiée',
     );
@@ -808,6 +833,7 @@ StorylineStep _copyStepWith(
   String? description,
   bool replaceDescription = false,
   int? order,
+  List<String>? sceneLinkIds,
 }) {
   return StorylineStep(
     id: step.id,
@@ -817,12 +843,24 @@ StorylineStep _copyStepWith(
     order: order ?? step.order,
     entryCondition: step.entryCondition,
     completionCondition: step.completionCondition,
-    sceneLinkIds: step.sceneLinkIds,
+    sceneLinkIds: sceneLinkIds ?? step.sceneLinkIds,
     expectedOutcomeIds: step.expectedOutcomeIds,
     status: step.status,
     authorNotes: step.authorNotes,
     metadata: step.metadata,
   );
+}
+
+bool _stringListEquals(List<String> left, List<String> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 List<StorylineChapter> _normalizeChapterOrders(
@@ -1966,15 +2004,18 @@ class _StructureItemDraft {
   const _StructureItemDraft({
     required this.title,
     required this.description,
+    this.sceneLinkIds,
   }) : deleteRequested = false;
 
   const _StructureItemDraft.delete()
       : title = '',
         description = null,
+        sceneLinkIds = null,
         deleteRequested = true;
 
   final String title;
   final String? description;
+  final List<String>? sceneLinkIds;
   final bool deleteRequested;
 }
 
@@ -2226,6 +2267,8 @@ class _CreateStructureItemDialog extends StatefulWidget {
     this.deleteKey,
     this.initialTitle,
     this.initialDescription,
+    this.initialSceneLinkIds,
+    this.availableScenes,
     this.submitLabel = 'Créer',
   });
 
@@ -2238,6 +2281,8 @@ class _CreateStructureItemDialog extends StatefulWidget {
   final Key? deleteKey;
   final String? initialTitle;
   final String? initialDescription;
+  final List<String>? initialSceneLinkIds;
+  final List<SceneAsset>? availableScenes;
   final String submitLabel;
 
   @override
@@ -2249,12 +2294,17 @@ class _CreateStructureItemDialogState
     extends State<_CreateStructureItemDialog> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  late final List<String> _initialSceneLinkIds;
+  late List<String> _sceneLinkIds;
 
   @override
   void initState() {
     super.initState();
     _titleController.text = widget.initialTitle ?? '';
     _descriptionController.text = widget.initialDescription ?? '';
+    _initialSceneLinkIds =
+        List<String>.unmodifiable(widget.initialSceneLinkIds ?? const []);
+    _sceneLinkIds = [..._initialSceneLinkIds];
   }
 
   @override
@@ -2300,6 +2350,15 @@ class _CreateStructureItemDialogState
                 placeholder: 'Description optionnelle',
                 maxLines: 3,
               ),
+              if (widget.availableScenes != null) ...[
+                const SizedBox(height: 14),
+                _StorylineStepSceneLinksSection(
+                  sceneLinkIds: _sceneLinkIds,
+                  availableScenes: widget.availableScenes!,
+                  onLinkScene: _linkScene,
+                  onUnlinkScene: _unlinkScene,
+                ),
+              ],
               if (title.isEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -2346,6 +2405,9 @@ class _CreateStructureItemDialogState
                                 title: title,
                                 description:
                                     description.isEmpty ? null : description,
+                                sceneLinkIds: widget.availableScenes == null
+                                    ? null
+                                    : List<String>.unmodifiable(_sceneLinkIds),
                               ),
                             );
                           },
@@ -2358,6 +2420,222 @@ class _CreateStructureItemDialogState
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _linkScene(String sceneId) {
+    if (_sceneLinkIds.contains(sceneId)) {
+      return;
+    }
+    setState(() {
+      _sceneLinkIds = [..._sceneLinkIds, sceneId];
+    });
+  }
+
+  void _unlinkScene(String sceneId) {
+    setState(() {
+      _sceneLinkIds = _sceneLinkIds
+          .where((current) => current != sceneId)
+          .toList(growable: false);
+    });
+  }
+}
+
+class _StorylineStepSceneLinksSection extends StatelessWidget {
+  const _StorylineStepSceneLinksSection({
+    required this.sceneLinkIds,
+    required this.availableScenes,
+    required this.onLinkScene,
+    required this.onUnlinkScene,
+  });
+
+  final List<String> sceneLinkIds;
+  final List<SceneAsset> availableScenes;
+  final ValueChanged<String> onLinkScene;
+  final ValueChanged<String> onUnlinkScene;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final scenesById = {
+      for (final scene in availableScenes) scene.id: scene,
+    };
+    final orderedScenes = [...availableScenes]..sort((left, right) {
+        final label = left.name.compareTo(right.name);
+        if (label != 0) return label;
+        return left.id.compareTo(right.id);
+      });
+    return PokeMapCard(
+      key: const ValueKey('storylines-step-scene-links-section'),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.link,
+                tone: PokeMapTone.narrative,
+                size: 28,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Scènes liées',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              _StorylinesV1Badge(label: sceneLinkIds.length.toString()),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            StorylineStepSceneLinksReadModel.authoringOnlyMessage,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 11.5,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (sceneLinkIds.isEmpty)
+            PokeMapCard(
+              key: const ValueKey('storylines-step-scene-link-empty'),
+              padding: const EdgeInsets.all(10),
+              child: Text(
+                'Aucune Scene liée à cette étape.',
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 11.5,
+                  height: 1.35,
+                ),
+              ),
+            )
+          else
+            ...sceneLinkIds.map(
+              (sceneId) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _StorylineLinkedSceneRow(
+                  sceneId: sceneId,
+                  scene: scenesById[sceneId],
+                  onUnlinkScene: onUnlinkScene,
+                ),
+              ),
+            ),
+          const SizedBox(height: 10),
+          Text(
+            'Ajouter une Scene existante',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (orderedScenes.isEmpty)
+            Text(
+              'Créez une Scene dans le workspace Scènes avant de la lier.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 11.5,
+                height: 1.35,
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final scene in orderedScenes)
+                  PokeMapButton(
+                    key: ValueKey('storylines-step-link-scene-${scene.id}'),
+                    onPressed: sceneLinkIds.contains(scene.id)
+                        ? null
+                        : () => onLinkScene(scene.id),
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.plus),
+                    child: Text(scene.name),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StorylineLinkedSceneRow extends StatelessWidget {
+  const _StorylineLinkedSceneRow({
+    required this.sceneId,
+    required this.scene,
+    required this.onUnlinkScene,
+  });
+
+  final String sceneId;
+  final SceneAsset? scene;
+  final ValueChanged<String> onUnlinkScene;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final scene = this.scene;
+    return PokeMapCard(
+      key: ValueKey('storylines-step-scene-link-row-$sceneId'),
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        children: [
+          PokeMapIconTile(
+            icon: scene == null
+                ? CupertinoIcons.exclamationmark_triangle
+                : CupertinoIcons.square_list,
+            tone: scene == null ? PokeMapTone.warning : PokeMapTone.narrative,
+            size: 26,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  scene?.name ?? 'Scene introuvable',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  sceneId,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scene == null ? colors.warning : colors.textMuted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: ValueKey('storylines-step-unlink-scene-$sceneId'),
+            onPressed: () => onUnlinkScene(sceneId),
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.xmark),
+            child: const Text('Retirer'),
+          ),
+        ],
       ),
     );
   }
