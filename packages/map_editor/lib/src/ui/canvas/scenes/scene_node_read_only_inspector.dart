@@ -211,6 +211,8 @@ class _NodeInspectorBody extends StatelessWidget {
     final outgoing = scene.graph.edges
         .where((edge) => edge.fromNodeId == node.id)
         .toList(growable: false);
+    final removalBlocker = sceneNodeDraftRemovalBlocker(scene.graph, node);
+    final canRemoveNode = removalBlocker == null && onRemoveNodeDraft != null;
 
     return SingleChildScrollView(
       child: Column(
@@ -284,31 +286,70 @@ class _NodeInspectorBody extends StatelessWidget {
           const SizedBox(height: 10),
           if (isSceneNodeDraftRemovable(node)) ...[
             _InspectorSection(
-              title: 'Action',
+              title: 'Zone dangereuse',
               children: [
                 PokeMapButton(
                   key: const ValueKey('scene-node-delete-action'),
-                  onPressed: onRemoveNodeDraft == null
+                  onPressed: !canRemoveNode
                       ? null
-                      : () => onRemoveNodeDraft!(node.id),
+                      : () {
+                          _confirmAndRemoveNode(context);
+                        },
                   variant: PokeMapButtonVariant.danger,
                   size: PokeMapButtonSize.small,
                   leading: const Icon(CupertinoIcons.delete),
                   child: const Text('Supprimer le nœud'),
                 ),
+                const SizedBox(height: 8),
+                _InspectorNote(
+                  label: removalBlocker ??
+                      'Supprime ce nœud et ses liens entrants/sortants. '
+                          'Aucune reconnexion automatique.',
+                ),
               ],
-            ),
-            const SizedBox(height: 10),
-            const _InspectorNote(
-              label: 'La suppression retire ce nœud draft et ses liens '
-                  'entrants/sortants. Les autres nœuds et le layout restant '
-                  'sont conservés.',
             ),
             const SizedBox(height: 10),
           ],
           const _InspectorNote(),
         ],
       ),
+    );
+  }
+
+  Future<void> _confirmAndRemoveNode(BuildContext context) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => const _ConfirmNodeDeletionDialog(),
+    );
+    if (confirmed ?? false) {
+      onRemoveNodeDraft?.call(node.id);
+    }
+  }
+}
+
+class _ConfirmNodeDeletionDialog extends StatelessWidget {
+  const _ConfirmNodeDeletionDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-node-delete-confirm-dialog'),
+      title: const Text('Supprimer ce nœud ?'),
+      content: const Text(
+        'Cette action supprime le nœud sélectionné et ses liens '
+        'entrants/sortants. Le graph ne sera pas reconnecté automatiquement.',
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
+        CupertinoDialogAction(
+          isDestructiveAction: true,
+          child: const Text('Supprimer'),
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+      ],
     );
   }
 }

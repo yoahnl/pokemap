@@ -83,16 +83,29 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-28-octies — Golden Slice Runtime Smoke V0 | DONE | Smoke runtime neutre prouve : Event -> Scene -> Dialogue awaitable pending/completed -> Battle victory/defeat awaitable -> consequences stagees puis commit atomique GameState. |
 | NS-SCENES-V1-29 — StorylineStep to Scene Link | DONE | `StorylineStep.sceneLinkIds` rendu utilisable comme lien authoring/progression vers des `SceneAsset` reelles : operations pures, diagnostics refs, read model et UI Storylines, sans runtime trigger ni remplacement Event -> Scene. |
 | NS-SCENES-V1-30 — Scene Node Payload Editing V0 | DONE | Edition en inspecteur des payloads Dialogue Yarn et Battle trainer depuis les contrats publics reels : operations pures, pickers honnetes, `ProjectManifest.scenes` mis a jour en memoire, sans runtime ni fake refs. |
+| NS-SCENES-V1-30-bis — Scene Node Deletion UX V0 | DONE | Suppression controlee des nodes non-start depuis l'inspecteur : node + edges entrants/sortants + layouts associes retires, Start et dernier End proteges, confirmation destructive, sans runtime ni reconnexion automatique. |
 
 ## Prochain lot recommande
 
 `NS-SCENES-V1-31 — Scene Consequence Authoring UI V0`
 
-Raison : les nodes Dialogue Yarn et Battle trainer peuvent maintenant etre crees et corriges depuis des contrats publics reels. Le prochain blocage produit visible est l'ActionNode/Consequence authoring : les consequences `setFact` et `markEventConsumed` existent cote modele/runtime, mais ne sont pas encore authorables proprement depuis le Scene Builder.
+Raison : les nodes Dialogue Yarn et Battle trainer peuvent maintenant etre crees, corriges et supprimes proprement depuis le Scene Builder. Le prochain blocage produit visible est l'ActionNode/Consequence authoring : les consequences `setFact` et `markEventConsumed` existent cote modele/runtime, mais ne sont pas encore authorables proprement depuis le Scene Builder.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Mise a jour V1-30-bis
+
+Statut : `NS-SCENES-V1-30-bis — Scene Node Deletion UX V0` est DONE.
+
+Decision : les nodes Scene non-start sont supprimables depuis l'inspecteur Scene Builder. La suppression retire le node cible, ses edges entrants/sortants et les layouts associes, avec confirmation destructive. Le Start reste interdit et le dernier End reste bloque.
+
+Scope realise : core `removeSceneNodeDraft` elargi, helper de blocage de suppression, danger zone inspecteur, update en memoire de `ProjectManifest.scenes`, tests core/editor, visual gate.
+
+Limites : pas de suppression clavier, pas de reconnexion automatique, pas de runtime, pas de modification Storyline/Event/GameState, pas de Consequence UI.
+
+Prochain lot exact : `NS-SCENES-V1-31 — Scene Consequence Authoring UI V0`.
 
 ## Mise a jour V1-27
 

@@ -1281,6 +1281,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('scene-node-delete-action')));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Supprimer').last);
+      await tester.pumpAndSettle();
 
       final updatedScene =
           container.read(editorNotifierProvider).project!.scenes.single;
@@ -1339,6 +1341,164 @@ void main() {
         find.byKey(const ValueKey('scene-node-delete-action')),
         findsNothing,
       );
+    });
+
+    testWidgets('deletes a selected dialogue node and its connected edges',
+        (tester) async {
+      const incomingEdgeId = 'edge_start_dialogue';
+      const outgoingEdgeId = 'edge_dialogue_end';
+      final project = _projectWithDialogueBattlePortsScene(
+        edges: [
+          SceneEdge(
+            id: incomingEdgeId,
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_dialogue',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: outgoingEdgeId,
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_battle_victory_end_2',
+            fromNodeId: 'node_battle',
+            fromPortId: 'victory',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.battleVictory,
+          ),
+        ],
+      );
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zone dangereuse'), findsOneWidget);
+      expect(find.byKey(const ValueKey('scene-node-delete-action')),
+          findsOneWidget);
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scene-node-delete-action')));
+      await tester.pumpAndSettle();
+      expect(find.text('Supprimer ce nœud ?'), findsOneWidget);
+      await tester.tap(find.text('Supprimer').last);
+      await tester.pumpAndSettle();
+
+      final updatedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      expect(updatedScene.graph.nodes.map((node) => node.id),
+          isNot(contains('node_dialogue')));
+      expect(updatedScene.graph.edges.map((edge) => edge.id), [
+        'edge_battle_victory_end_2',
+      ]);
+      expect(updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+          isNot(contains('node_dialogue')));
+      expect(find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+          findsNothing);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_battle')),
+          findsOneWidget);
+    });
+
+    testWidgets('deletes a selected battle node and its outcome edges',
+        (tester) async {
+      final project = _projectWithDialogueBattlePortsScene(
+        edges: [
+          SceneEdge(
+            id: 'edge_start_battle',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_battle',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_battle_victory_end',
+            fromNodeId: 'node_battle',
+            fromPortId: 'victory',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.battleVictory,
+          ),
+          SceneEdge(
+            id: 'edge_battle_defeat_end_2',
+            fromNodeId: 'node_battle',
+            fromPortId: 'defeat',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.battleDefeat,
+          ),
+          SceneEdge(
+            id: 'edge_dialogue_completed_end',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_battle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zone dangereuse'), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('scene-node-delete-action')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Supprimer').last);
+      await tester.pumpAndSettle();
+
+      final updatedScene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      expect(updatedScene.graph.nodes.map((node) => node.id),
+          isNot(contains('node_battle')));
+      expect(updatedScene.graph.edges.map((edge) => edge.id), [
+        'edge_dialogue_completed_end',
+      ]);
+      expect(updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+          isNot(contains('node_battle')));
+      expect(find.byKey(const ValueKey('scene-graph-node-node_battle')),
+          findsNothing);
+      expect(find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+          findsOneWidget);
+    });
+
+    testWidgets('last end node shows deletion as blocked', (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithSingleEndScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('scene-graph-node-node_end')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zone dangereuse'), findsOneWidget);
+      expect(find.text('Une scène doit garder au moins une fin.'),
+          findsOneWidget);
+      final deleteButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+      );
+      expect(deleteButton.onPressed, isNull);
     });
 
     testWidgets('authors a condition from an existing story step source',
@@ -2481,6 +2641,58 @@ void main() {
       );
     });
 
+    testWidgets('writes V1-30-bis scene node deletion UX screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithDialogueBattlePortsScene(
+          edges: [
+            SceneEdge(
+              id: 'edge_start_dialogue',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_dialogue',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_dialogue_battle',
+              fromNodeId: 'node_dialogue',
+              fromPortId: 'completed',
+              toNodeId: 'node_battle',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_battle_victory_end',
+              fromNodeId: 'node_battle',
+              fromPortId: 'victory',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.battleVictory,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zone dangereuse'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+        findsOneWidget,
+      );
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_30_bis_scene_node_deletion_ux_v0.png',
+        ),
+      );
+    });
+
     testWidgets('writes V1-17 condition authoring screenshot', (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -2614,6 +2826,42 @@ ProjectManifest _projectWithScene() {
     maps: const [],
     tilesets: const [],
     scenes: [_testIntroScene()],
+  );
+}
+
+ProjectManifest _projectWithSingleEndScene() {
+  return ProjectManifest(
+    name: 'Scenes shell test',
+    maps: const [],
+    tilesets: const [],
+    scenes: [
+      SceneAsset(
+        id: 'scene_single_end',
+        name: 'Single End Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_end',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_end', x: 280, y: 80),
+          ],
+        ),
+      ),
+    ],
   );
 }
 

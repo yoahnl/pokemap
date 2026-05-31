@@ -146,15 +146,35 @@ bool isSceneNodeDraftRemovable(SceneNode node) {
 
 bool isSceneNodeDraftKindRemovable(SceneNodeKind kind) {
   return switch (kind) {
-    SceneNodeKind.condition || SceneNodeKind.merge || SceneNodeKind.end => true,
-    SceneNodeKind.start ||
+    SceneNodeKind.start => false,
+    SceneNodeKind.end ||
     SceneNodeKind.yarnDialogue ||
+    SceneNodeKind.condition ||
     SceneNodeKind.action ||
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
-    SceneNodeKind.branchByOutcome =>
-      false,
+    SceneNodeKind.branchByOutcome ||
+    SceneNodeKind.merge =>
+      true,
   };
+}
+
+String? sceneNodeDraftRemovalBlocker(SceneGraph graph, SceneNode node) {
+  if (node.kind == SceneNodeKind.start || graph.startNodeId == node.id) {
+    return 'Le nœud de départ ne peut pas être supprimé.';
+  }
+  if (node.kind == SceneNodeKind.end) {
+    final endCount =
+        graph.nodes.where((candidate) => candidate.kind == SceneNodeKind.end);
+    if (endCount.length <= 1) {
+      return 'Une scène doit garder au moins une fin.';
+    }
+  }
+  return null;
+}
+
+bool canRemoveSceneNodeDraft(SceneGraph graph, SceneNode node) {
+  return sceneNodeDraftRemovalBlocker(graph, node) == null;
 }
 
 List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
@@ -637,20 +657,29 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
   SceneAsset scene,
   String nodeId,
 ) {
-  final removedNode = _findNodeOrThrow(scene, nodeId, 'nodeId');
-  if (!isSceneNodeDraftRemovable(removedNode) ||
-      scene.graph.startNodeId == nodeId) {
+  final trimmedNodeId = _trimRequired(
+    nodeId,
+    'nodeId',
+    'Scene node deletion requires a node id.',
+  );
+  final removedNode = _findNodeOrThrow(scene, trimmedNodeId, 'nodeId');
+  final removalBlocker = sceneNodeDraftRemovalBlocker(
+    scene.graph,
+    removedNode,
+  );
+  if (removalBlocker != null || !isSceneNodeDraftRemovable(removedNode)) {
     throw ArgumentError.value(
       nodeId,
       'nodeId',
-      'Scene node kind ${removedNode.kind.name} cannot be removed by Node Authoring V0.',
+      removalBlocker ??
+          'Scene node kind ${removedNode.kind.name} cannot be removed by Node Authoring V0.',
     );
   }
 
   final removedEdges = <SceneEdge>[];
   final remainingEdges = <SceneEdge>[];
   for (final edge in scene.graph.edges) {
-    if (edge.fromNodeId == nodeId || edge.toNodeId == nodeId) {
+    if (edge.fromNodeId == trimmedNodeId || edge.toNodeId == trimmedNodeId) {
       removedEdges.add(edge);
     } else {
       remainingEdges.add(edge);
@@ -669,14 +698,14 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
       startNodeId: scene.graph.startNodeId,
       nodes: [
         for (final node in scene.graph.nodes)
-          if (node.id != nodeId) node,
+          if (node.id != trimmedNodeId) node,
       ],
       edges: remainingEdges,
     ),
     layout: SceneGraphLayout(
       nodeLayouts: [
         for (final layout in scene.layout.nodeLayouts)
-          if (layout.nodeId != nodeId) layout,
+          if (layout.nodeId != trimmedNodeId) layout,
       ],
       edgeLayouts: [
         for (final layout in scene.layout.edgeLayouts)

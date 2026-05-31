@@ -760,19 +760,113 @@ void main() {
       expect(scene.graph.edges, [incomingEdge, outgoingEdge, keptEdge]);
     });
 
-    test('rejects removing start and non V0 node drafts', () {
+    test('removes a dialogue node draft and its connected edges', () {
+      final incomingEdge = SceneEdge(
+        id: 'edge_node_start_completed_node_yarn',
+        fromNodeId: 'node_start',
+        fromPortId: 'completed',
+        toNodeId: 'node_yarn',
+        kind: SceneEdgeKind.defaultFlow,
+      );
+      final outgoingEdge = SceneEdge(
+        id: 'edge_node_yarn_completed_node_end',
+        fromNodeId: 'node_yarn',
+        fromPortId: 'completed',
+        toNodeId: 'node_end',
+        kind: SceneEdgeKind.defaultFlow,
+      );
+      final scene = _edgeAuthoringSceneWithYarnSource(
+        edges: [incomingEdge, outgoingEdge],
+        edgeLayouts: [
+          SceneEdgeLayout(edgeId: incomingEdge.id),
+          SceneEdgeLayout(edgeId: outgoingEdge.id),
+        ],
+      );
+
+      final result = removeSceneNodeDraft(scene, 'node_yarn');
+
+      expect(result.removedNode.kind, SceneNodeKind.yarnDialogue);
+      expect(result.removedEdges, [incomingEdge, outgoingEdge]);
+      expect(
+        result.updatedScene.graph.nodes.map((node) => node.id),
+        ['node_start', 'node_end'],
+      );
+      expect(result.updatedScene.graph.edges, isEmpty);
+      expect(
+        result.updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+        ['node_start', 'node_end'],
+      );
+      expect(result.updatedScene.layout.edgeLayouts, isEmpty);
+      expect(scene.graph.nodes.map((node) => node.id), contains('node_yarn'));
+      expect(scene.graph.edges, [incomingEdge, outgoingEdge]);
+    });
+
+    test('removes a battle node draft and its victory defeat edges', () {
+      final incomingEdge = SceneEdge(
+        id: 'edge_node_start_completed_node_battle',
+        fromNodeId: 'node_start',
+        fromPortId: 'completed',
+        toNodeId: 'node_battle',
+        kind: SceneEdgeKind.defaultFlow,
+      );
+      final victoryEdge = SceneEdge(
+        id: 'edge_node_battle_victory_node_end',
+        fromNodeId: 'node_battle',
+        fromPortId: 'victory',
+        toNodeId: 'node_end',
+        kind: SceneEdgeKind.battleVictory,
+      );
+      final defeatEdge = SceneEdge(
+        id: 'edge_node_battle_defeat_node_end_2',
+        fromNodeId: 'node_battle',
+        fromPortId: 'defeat',
+        toNodeId: 'node_end_2',
+        kind: SceneEdgeKind.battleDefeat,
+      );
+      final scene = _edgeAuthoringSceneWithBattleSource(
+        edges: [incomingEdge, victoryEdge, defeatEdge],
+        edgeLayouts: [
+          SceneEdgeLayout(edgeId: incomingEdge.id),
+          SceneEdgeLayout(edgeId: victoryEdge.id),
+          SceneEdgeLayout(edgeId: defeatEdge.id),
+        ],
+      );
+
+      final result = removeSceneNodeDraft(scene, 'node_battle');
+
+      expect(result.removedNode.kind, SceneNodeKind.battle);
+      expect(result.removedEdges, [incomingEdge, victoryEdge, defeatEdge]);
+      expect(
+        result.updatedScene.graph.nodes.map((node) => node.id),
+        ['node_start', 'node_end', 'node_end_2'],
+      );
+      expect(result.updatedScene.graph.edges, isEmpty);
+      expect(
+        result.updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+        ['node_start', 'node_end', 'node_end_2'],
+      );
+      expect(result.updatedScene.layout.edgeLayouts, isEmpty);
+      expect(scene.graph.nodes.map((node) => node.id), contains('node_battle'));
+      expect(scene.graph.edges, [incomingEdge, victoryEdge, defeatEdge]);
+    });
+
+    test('rejects empty node id, start node, unknown node and last end', () {
       final scene = _edgeAuthoringSceneWithYarnSource();
 
+      expect(
+        () => removeSceneNodeDraft(scene, '  '),
+        throwsArgumentError,
+      );
       expect(
         () => removeSceneNodeDraft(scene, 'node_start'),
         throwsArgumentError,
       );
       expect(
-        () => removeSceneNodeDraft(scene, 'node_yarn'),
+        () => removeSceneNodeDraft(scene, 'node_missing'),
         throwsArgumentError,
       );
       expect(
-        () => removeSceneNodeDraft(scene, 'node_missing'),
+        () => removeSceneNodeDraft(scene, 'node_end'),
         throwsArgumentError,
       );
       expect(scene.graph.nodes.map((node) => node.id), [
@@ -1247,6 +1341,7 @@ SceneAsset _edgeAuthoringScene({
 
 SceneAsset _edgeAuthoringSceneWithYarnSource({
   List<SceneEdge> edges = const [],
+  List<SceneEdgeLayout> edgeLayouts = const [],
 }) {
   return SceneAsset(
     id: 'scene_edge_authoring_yarn',
@@ -1273,12 +1368,14 @@ SceneAsset _edgeAuthoringSceneWithYarnSource({
         SceneNodeLayout(nodeId: 'node_yarn', x: 324, y: 80),
         SceneNodeLayout(nodeId: 'node_end', x: 624, y: 80),
       ],
+      edgeLayouts: edgeLayouts,
     ),
   );
 }
 
 SceneAsset _edgeAuthoringSceneWithBattleSource({
   List<SceneEdge> edges = const [],
+  List<SceneEdgeLayout> edgeLayouts = const [],
 }) {
   return SceneAsset(
     id: 'scene_edge_authoring_battle',
@@ -1308,6 +1405,7 @@ SceneAsset _edgeAuthoringSceneWithBattleSource({
         SceneNodeLayout(nodeId: 'node_end', x: 624, y: 40),
         SceneNodeLayout(nodeId: 'node_end_2', x: 624, y: 160),
       ],
+      edgeLayouts: edgeLayouts,
     ),
   );
 }
