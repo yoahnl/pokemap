@@ -82,14 +82,15 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0 | DONE | Adapter runtime dialogue awaitable : DialogueNode ouvre le dialogue existant, attend la fermeture reelle de l'overlay, retourne seulement `completed`, failures propres, aucune consequence Scene ecrite par l'adapter. |
 | NS-SCENES-V1-28-octies — Golden Slice Runtime Smoke V0 | DONE | Smoke runtime neutre prouve : Event -> Scene -> Dialogue awaitable pending/completed -> Battle victory/defeat awaitable -> consequences stagees puis commit atomique GameState. |
 | NS-SCENES-V1-29 — StorylineStep to Scene Link | DONE | `StorylineStep.sceneLinkIds` rendu utilisable comme lien authoring/progression vers des `SceneAsset` reelles : operations pures, diagnostics refs, read model et UI Storylines, sans runtime trigger ni remplacement Event -> Scene. |
+| NS-SCENES-V1-30 — Scene Node Payload Editing V0 | DONE | Edition en inspecteur des payloads Dialogue Yarn et Battle trainer depuis les contrats publics reels : operations pures, pickers honnetes, `ProjectManifest.scenes` mis a jour en memoire, sans runtime ni fake refs. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint`
+`NS-SCENES-V1-31 — Scene Consequence Authoring UI V0`
 
-Raison : les grandes briques Scene V1 sont maintenant posees : authoring graph, refs Dialogue/Battle, Event -> Scene runtime, consequences V0, adapters dialogue/battle awaitables, smoke runtime neutre et lien StorylineStep -> Scene authoring/progression. Un checkpoint beta doit verifier le produit et la technique avant d'ouvrir Dialogue outcomes, BranchByOutcome, Cinematic V1 avance ou contenu produit Selbrume.
+Raison : les nodes Dialogue Yarn et Battle trainer peuvent maintenant etre crees et corriges depuis des contrats publics reels. Le prochain blocage produit visible est l'ActionNode/Consequence authoring : les consequences `setFact` et `markEventConsumed` existent cote modele/runtime, mais ne sont pas encore authorables proprement depuis le Scene Builder.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene V1 Beta Readiness Checkpoint.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -231,7 +232,21 @@ Tests : tests core JSON/operations/diagnostics/read model, `scene_runtime_plan_t
 
 Limites : pas de cross-navigation Scene <-> StorylineStep avancee, pas de completion runtime de Step, pas de `GameState` mutation, pas de remplacement Event -> Scene, pas de World Rule direct apply, pas de BranchByOutcome/Yarn outcomes et pas de donnee Selbrume produit.
 
-Prochain lot exact : `NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint`.
+Prochain lot initialement prevu : `NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint`. Il est supersede par `NS-SCENES-V1-30 — Scene Node Payload Editing V0`, car les payloads Dialogue/Battle devaient rester corrigeables avant checkpoint beta.
+
+## Mise a jour V1-30
+
+Statut : `NS-SCENES-V1-30 — Scene Node Payload Editing V0` est DONE.
+
+Decision : le Scene Builder peut corriger les references metier deja posees pour Dialogue Yarn et Battle trainer sans ouvrir d'edition brute. Les choix passent par `DialoguePublicContract` et `BattlePublicContract`; l'inspecteur affiche un badge editable seulement quand un contrat public existe, sinon le node reste honnetement en lecture seule.
+
+Scope realise : operations pures `updateSceneYarnDialoguePayload` et `updateSceneBattlePayload` dans `map_core`, pickers inspecteur pour Dialogue/Battle, update en memoire de `ProjectManifest.scenes`, preservation des nodes/edges/layout/outcomes/metadata et visual gate V1-30.
+
+Limites : pas d'outcomes Yarn detailles, pas de `BranchByOutcome`, pas de payload Cinematic/Action avance, pas de runtime, pas de `StorylineStep` runtime, pas de donnees Selbrume.
+
+Preuve : tests core authoring/diagnostics/runtime-plan/contracts, tests widget Scene Builder, overview/projection, analyses ciblees, visual gate V1-30, recherches anti-scope et `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-31 — Scene Consequence Authoring UI V0`.
 
 ## Decisions V1-24
 

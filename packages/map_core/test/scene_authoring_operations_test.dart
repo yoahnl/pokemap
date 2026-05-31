@@ -238,6 +238,147 @@ void main() {
       }
     });
 
+    test('updates a Yarn dialogue payload without mutating scene structure',
+        () {
+      final existingEdge = SceneEdge(
+        id: 'edge_node_yarn_completed_node_end',
+        fromNodeId: 'node_yarn',
+        fromPortId: 'completed',
+        toNodeId: 'node_end',
+        kind: SceneEdgeKind.defaultFlow,
+      );
+      final scene = _edgeAuthoringSceneWithYarnSource(
+        edges: [existingEdge],
+      );
+
+      final result = updateSceneYarnDialoguePayload(
+        scene,
+        nodeId: 'node_yarn',
+        dialogueId: ' dialogue_updated ',
+        yarnNodeName: ' UpdatedStart ',
+      );
+
+      final payload = result.updatedPayload;
+      expect(payload.dialogueId, 'dialogue_updated');
+      expect(payload.yarnNodeName, 'UpdatedStart');
+      expect(payload.expectedOutcomes, ['accept']);
+      expect(result.updatedNode.id, 'node_yarn');
+      expect(result.updatedNode.kind, SceneNodeKind.yarnDialogue);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.layout, scene.layout);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(
+        (scene.graph.nodes.firstWhere((node) => node.id == 'node_yarn').payload
+                as SceneYarnDialoguePayload)
+            .dialogueId,
+        'dialogue_test',
+      );
+    });
+
+    test('rejects invalid Yarn dialogue payload updates', () {
+      final scene = _edgeAuthoringSceneWithYarnSource();
+
+      expect(
+        () => updateSceneYarnDialoguePayload(
+          scene,
+          nodeId: 'node_missing',
+          dialogueId: 'dialogue_updated',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneYarnDialoguePayload(
+          scene,
+          nodeId: 'node_start',
+          dialogueId: 'dialogue_updated',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneYarnDialoguePayload(
+          scene,
+          nodeId: 'node_yarn',
+          dialogueId: '   ',
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('updates a trainer battle payload without mutating scene structure',
+        () {
+      final victoryEdge = SceneEdge(
+        id: 'edge_node_battle_victory_node_end',
+        fromNodeId: 'node_battle',
+        fromPortId: 'victory',
+        toNodeId: 'node_end',
+        kind: SceneEdgeKind.battleVictory,
+      );
+      final defeatEdge = SceneEdge(
+        id: 'edge_node_battle_defeat_node_end_2',
+        fromNodeId: 'node_battle',
+        fromPortId: 'defeat',
+        toNodeId: 'node_end_2',
+        kind: SceneEdgeKind.battleDefeat,
+      );
+      final scene = _edgeAuthoringSceneWithBattleSource(
+        edges: [victoryEdge, defeatEdge],
+      );
+
+      final result = updateSceneBattlePayload(
+        scene,
+        nodeId: 'node_battle',
+        trainerId: ' trainer_updated ',
+      );
+
+      final payload = result.updatedPayload;
+      expect(payload.battleKind, 'trainer');
+      expect(payload.trainerId, 'trainer_updated');
+      expect(payload.declaredOutcomes, ['victory', 'defeat']);
+      expect(result.updatedNode.id, 'node_battle');
+      expect(result.updatedNode.kind, SceneNodeKind.battle);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.layout, scene.layout);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(
+        (scene.graph.nodes
+                .firstWhere((node) => node.id == 'node_battle')
+                .payload as SceneBattlePayload)
+            .trainerId,
+        'trainer_test',
+      );
+    });
+
+    test('rejects invalid trainer battle payload updates', () {
+      final scene = _edgeAuthoringSceneWithBattleSource();
+
+      expect(
+        () => updateSceneBattlePayload(
+          scene,
+          nodeId: 'node_missing',
+          trainerId: 'trainer_updated',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneBattlePayload(
+          scene,
+          nodeId: 'node_start',
+          trainerId: 'trainer_updated',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneBattlePayload(
+          scene,
+          nodeId: 'node_battle',
+          trainerId: '   ',
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('exposes authorable output ports for V0 node kinds', () {
       expect(
         authorableSceneOutputPortsForNode(

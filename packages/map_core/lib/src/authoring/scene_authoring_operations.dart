@@ -75,6 +75,30 @@ final class SceneConditionSourceUpdateResult {
   final SceneConditionPayload updatedPayload;
 }
 
+final class SceneYarnDialoguePayloadUpdateResult {
+  const SceneYarnDialoguePayloadUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final SceneYarnDialoguePayload updatedPayload;
+}
+
+final class SceneBattlePayloadUpdateResult {
+  const SceneBattlePayloadUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final SceneBattlePayload updatedPayload;
+}
+
 final class SceneAuthorableOutputPort {
   const SceneAuthorableOutputPort({
     required this.id,
@@ -239,6 +263,92 @@ SceneConditionSourceUpdateResult updateSceneConditionSource(
   );
 
   return SceneConditionSourceUpdateResult(
+    updatedScene: updatedScene,
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
+SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
+  SceneAsset scene, {
+  required String nodeId,
+  required String dialogueId,
+  String? yarnNodeName,
+}) {
+  final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
+  if (node.kind != SceneNodeKind.yarnDialogue ||
+      node.payload is! SceneYarnDialoguePayload) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Scene payload editing V0 can only update Yarn dialogue nodes.',
+    );
+  }
+  final normalizedDialogueId = _trimRequired(
+    dialogueId,
+    'dialogueId',
+    'Dialogue id is required by Scene payload editing V0.',
+  );
+  final currentPayload = node.payload as SceneYarnDialoguePayload;
+  final updatedPayload = SceneYarnDialoguePayload(
+    dialogueId: normalizedDialogueId,
+    yarnNodeName: _trimOptional(yarnNodeName),
+    expectedOutcomes: currentPayload.expectedOutcomes,
+    speakerHints: currentPayload.speakerHints,
+  );
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
+
+  return SceneYarnDialoguePayloadUpdateResult(
+    updatedScene: updatedScene,
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
+SceneBattlePayloadUpdateResult updateSceneBattlePayload(
+  SceneAsset scene, {
+  required String nodeId,
+  required String trainerId,
+}) {
+  final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
+  if (node.kind != SceneNodeKind.battle ||
+      node.payload is! SceneBattlePayload) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Scene payload editing V0 can only update trainer battle nodes.',
+    );
+  }
+  final normalizedTrainerId = _trimRequired(
+    trainerId,
+    'trainerId',
+    'Trainer id is required by Scene payload editing V0.',
+  );
+  final currentPayload = node.payload as SceneBattlePayload;
+  final updatedPayload = SceneBattlePayload(
+    battleKind: 'trainer',
+    trainerId: normalizedTrainerId,
+    battleTemplateId: currentPayload.battleTemplateId,
+    npcEntityId: currentPayload.npcEntityId,
+    declaredOutcomes: const ['victory', 'defeat'],
+  );
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
+
+  return SceneBattlePayloadUpdateResult(
     updatedScene: updatedScene,
     updatedNode: updatedNode,
     updatedPayload: updatedPayload,
@@ -756,6 +866,29 @@ String _uniqueEdgeId(String base, Iterable<String> existingIds) {
   return '${base}_$suffix';
 }
 
+SceneAsset _sceneWithUpdatedNode(SceneAsset scene, SceneNode updatedNode) {
+  final updatedNodes = [
+    for (final candidate in scene.graph.nodes)
+      if (candidate.id == updatedNode.id) updatedNode else candidate,
+  ];
+  return SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: updatedNodes,
+      edges: scene.graph.edges,
+    ),
+    layout: scene.layout,
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+}
+
 String _edgeIdBase({
   required String fromNodeId,
   required String fromPortId,
@@ -932,6 +1065,18 @@ String _slugify(String value) {
 
   final slug = buffer.toString();
   return slug.endsWith('_') ? slug.substring(0, slug.length - 1) : slug;
+}
+
+String _trimRequired(
+  String value,
+  String argumentName,
+  String message,
+) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    throw ArgumentError.value(value, argumentName, message);
+  }
+  return trimmed;
 }
 
 String? _trimOptional(String? value) {

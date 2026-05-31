@@ -437,6 +437,134 @@ void main() {
       expect(find.text('lysa_rival'), findsNothing);
     });
 
+    testWidgets('edits a Yarn dialogue payload from real public contracts',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEditablePayloadNodes(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Éditable'), findsWidgets);
+      expect(find.text('Dialogue lié'), findsOneWidget);
+      expect(find.text('dialogue_old'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-payload-edit-dialogue-action')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-payload-edit-dialogue-action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-dialogue-payload-edit-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Updated Dialogue'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-dialogue-payload-edit-option-dialogue_updated'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      final node =
+          scene.graph.nodes.firstWhere((node) => node.id == 'node_dialogue');
+      final payload = node.payload as SceneYarnDialoguePayload;
+      expect(payload.dialogueId, 'dialogue_updated');
+      expect(payload.yarnNodeName, 'UpdatedStart');
+      expect(payload.expectedOutcomes, ['accept']);
+      expect(scene.graph.edges.map((edge) => edge.id), [
+        'edge_dialogue_completed_end',
+        'edge_battle_victory_end',
+        'edge_battle_defeat_end_2',
+      ]);
+      expect(scene.layout.nodeLayouts.map((layout) => layout.nodeId), [
+        'node_start',
+        'node_dialogue',
+        'node_battle',
+        'node_end',
+        'node_end_2',
+      ]);
+      expect(find.text('dialogue_updated'), findsOneWidget);
+      expect(find.text('selbrume_port'), findsNothing);
+    });
+
+    testWidgets('edits a trainer battle payload from real public contracts',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEditablePayloadNodes(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_battle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Éditable'), findsWidgets);
+      expect(find.text('Combat lié'), findsOneWidget);
+      expect(find.text('trainer_old'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-payload-edit-battle-action')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-payload-edit-battle-action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-battle-payload-edit-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Trainer Updated Trainer'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-battle-payload-edit-option-trainer_updated',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scene =
+          container.read(editorNotifierProvider).project!.scenes.single;
+      final node =
+          scene.graph.nodes.firstWhere((node) => node.id == 'node_battle');
+      final payload = node.payload as SceneBattlePayload;
+      expect(payload.battleKind, 'trainer');
+      expect(payload.trainerId, 'trainer_updated');
+      expect(payload.declaredOutcomes, ['victory', 'defeat']);
+      expect(scene.graph.edges.map((edge) => edge.id), [
+        'edge_dialogue_completed_end',
+        'edge_battle_victory_end',
+        'edge_battle_defeat_end_2',
+      ]);
+      expect(scene.layout.nodeLayouts.map((layout) => layout.nodeId), [
+        'node_start',
+        'node_dialogue',
+        'node_battle',
+        'node_end',
+        'node_end_2',
+      ]);
+      expect(find.text('trainer_updated'), findsWidgets);
+      expect(find.text('trainer_lysa'), findsNothing);
+    });
+
     testWidgets('connects start.completed to a target node explicitly',
         (tester) async {
       final project = _projectWithEdgeAuthoringScene();
@@ -2331,6 +2459,28 @@ void main() {
       await gesture.up();
     });
 
+    testWidgets('writes V1-30 scene node payload editing screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithEditablePayloadNodes(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_30_scene_node_payload_editing_v0.png',
+        ),
+      );
+    });
+
     testWidgets('writes V1-17 condition authoring screenshot', (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -2759,6 +2909,106 @@ ProjectManifest _projectWithPayloadPickerContracts() {
           nodeLayouts: [
             SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
             SceneNodeLayout(nodeId: 'node_end', x: 420, y: 80),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithEditablePayloadNodes() {
+  return ProjectManifest(
+    name: 'Scenes payload editing test',
+    maps: const [],
+    tilesets: const [],
+    dialogues: const [
+      ProjectDialogueEntry(
+        id: 'dialogue_old',
+        name: 'Old Dialogue',
+        relativePath: 'dialogues/dialogue_old.yarn',
+        defaultStartNode: 'OldStart',
+      ),
+      ProjectDialogueEntry(
+        id: 'dialogue_updated',
+        name: 'Updated Dialogue',
+        relativePath: 'dialogues/dialogue_updated.yarn',
+        defaultStartNode: 'UpdatedStart',
+      ),
+    ],
+    trainers: const [
+      ProjectTrainerEntry(
+        id: 'trainer_old',
+        name: 'Old Trainer',
+        trainerClass: 'Trainer',
+      ),
+      ProjectTrainerEntry(
+        id: 'trainer_updated',
+        name: 'Updated Trainer',
+        trainerClass: 'Trainer',
+      ),
+    ],
+    scenes: [
+      SceneAsset(
+        id: 'scene_payload_editing',
+        name: 'Payload Editing Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              title: 'Old Dialogue',
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'dialogue_old',
+                yarnNodeName: 'OldStart',
+                expectedOutcomes: const ['accept'],
+              ),
+            ),
+            SceneNode(
+              id: 'node_battle',
+              kind: SceneNodeKind.battle,
+              title: 'Old Battle',
+              payload: SceneBattlePayload(
+                battleKind: 'trainer',
+                trainerId: 'trainer_old',
+                declaredOutcomes: const ['victory', 'defeat'],
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+            SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_dialogue_completed_end',
+              fromNodeId: 'node_dialogue',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_battle_victory_end',
+              fromNodeId: 'node_battle',
+              fromPortId: 'victory',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.battleVictory,
+            ),
+            SceneEdge(
+              id: 'edge_battle_defeat_end_2',
+              fromNodeId: 'node_battle',
+              fromPortId: 'defeat',
+              toNodeId: 'node_end_2',
+              kind: SceneEdgeKind.battleDefeat,
+            ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_dialogue', x: 260, y: 80),
+            SceneNodeLayout(nodeId: 'node_battle', x: 260, y: 220),
+            SceneNodeLayout(nodeId: 'node_end', x: 560, y: 80),
+            SceneNodeLayout(nodeId: 'node_end_2', x: 560, y: 220),
           ],
         ),
       ),

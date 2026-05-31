@@ -58,6 +58,19 @@ typedef SceneConditionSourceUpdater = Future<bool> Function({
   required SceneConditionSource source,
 });
 
+typedef SceneYarnDialoguePayloadUpdater = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+  required String dialogueId,
+  String? yarnNodeName,
+});
+
+typedef SceneBattlePayloadUpdater = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+  required String trainerId,
+});
+
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
@@ -72,6 +85,8 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onRemoveNodeDraft,
     required this.onUpdateNodeLayout,
     required this.onUpdateConditionSource,
+    required this.onUpdateYarnDialoguePayload,
+    required this.onUpdateBattlePayload,
   });
 
   final List<NarrativeSceneSummary> scenes;
@@ -85,6 +100,8 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneNodeDraftRemover onRemoveNodeDraft;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
   final SceneConditionSourceUpdater onUpdateConditionSource;
+  final SceneYarnDialoguePayloadUpdater onUpdateYarnDialoguePayload;
+  final SceneBattlePayloadUpdater onUpdateBattlePayload;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -224,6 +241,11 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                                 conditionSourceOptions:
                                     widget.conditionSourceOptions,
                                 onUpdateConditionSource: _updateConditionSource,
+                                linkedAssetContracts:
+                                    widget.linkedAssetContracts,
+                                onUpdateYarnDialoguePayload:
+                                    _updateYarnDialoguePayload,
+                                onUpdateBattlePayload: _updateBattlePayload,
                               ),
                       ),
                     );
@@ -454,6 +476,58 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       sceneId: selected.id,
       nodeId: nodeId,
       source: source,
+    );
+    if (!mounted || !updated) {
+      return false;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return true;
+  }
+
+  Future<bool> _updateYarnDialoguePayload({
+    required String nodeId,
+    required String dialogueId,
+    String? yarnNodeName,
+  }) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return false;
+    }
+    final updated = await widget.onUpdateYarnDialoguePayload(
+      sceneId: selected.id,
+      nodeId: nodeId,
+      dialogueId: dialogueId,
+      yarnNodeName: yarnNodeName,
+    );
+    if (!mounted || !updated) {
+      return false;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return true;
+  }
+
+  Future<bool> _updateBattlePayload({
+    required String nodeId,
+    required String trainerId,
+  }) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return false;
+    }
+    final updated = await widget.onUpdateBattlePayload(
+      sceneId: selected.id,
+      nodeId: nodeId,
+      trainerId: trainerId,
     );
     if (!mounted || !updated) {
       return false;

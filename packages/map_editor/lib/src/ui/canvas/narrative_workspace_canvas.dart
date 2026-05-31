@@ -361,6 +361,70 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
+          onUpdateYarnDialoguePayload: ({
+            required String sceneId,
+            required String nodeId,
+            required String dialogueId,
+            String? yarnNodeName,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return false;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return false;
+            }
+            try {
+              final result = updateSceneYarnDialoguePayload(
+                project.scenes[sceneIndex],
+                nodeId: nodeId,
+                dialogueId: dialogueId,
+                yarnNodeName: yarnNodeName,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene dialogue payload updated',
+              );
+              return true;
+            } on ArgumentError {
+              return false;
+            }
+          },
+          onUpdateBattlePayload: ({
+            required String sceneId,
+            required String nodeId,
+            required String trainerId,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return false;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return false;
+            }
+            try {
+              final result = updateSceneBattlePayload(
+                project.scenes[sceneIndex],
+                nodeId: nodeId,
+                trainerId: trainerId,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene battle payload updated',
+              );
+              return true;
+            } on ArgumentError {
+              return false;
+            }
+          },
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,

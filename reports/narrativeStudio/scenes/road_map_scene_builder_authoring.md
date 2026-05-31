@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint
+NS-SCENES-V1-31 — Scene Consequence Authoring UI V0
 ```
 
 ## Principes
@@ -61,6 +61,8 @@ NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint
 | NS-SCENES-V1-28-septies | Dialogue Runtime Awaitable Adapter V0 | runtime / integration | DONE : rendre `showDialogue` awaitable pour que la Scene continue apres fermeture reelle du dialogue. | Pas d'outcomes Yarn inventes, pas de BranchByOutcome, pas de refactor Dialogue Studio. | `scene_dialogue_runtime_awaitable_adapter.dart`, result, `PlayableMapGame`, hook tests. | DONE : dialogue completed reel, failure propre, no consequence write partiel, pending hook prouve. | Laisser la Scene continuer trop tot ; confondre completed avec outcomes Yarn. | DONE : Dialogue.completed devient temporellement fiable depuis `DialogueOverlayComponent.onFinished`. | V1-28-bis, V1-28-sexies. |
 | NS-SCENES-V1-28-octies | Golden Slice Runtime Smoke V0 | runtime / integration | DONE : prouver la chaine runtime controlee Event -> Scene -> Dialogue awaitable -> Battle outcome -> consequences commit. | Pas de StorylineStep link, pas de donnees Selbrume produit, pas de nouveaux payloads, pas de World Rule direct apply. | `scene_runtime_golden_slice_smoke_test.dart`, rapport, roadmaps. | DONE : smoke victory pending dialogue + battle victory + commit, smoke defeat, smoke failure no partial write, non-regressions hook/adapters/core. | Confondre smoke neutre et seed produit ; masquer un failure dialogue/battle. | DONE : chaine runtime complete prouvee avant `StorylineStep.sceneLinkIds`. | V1-28-bis, V1-28-quinquies, V1-28-sexies, V1-28-septies. |
 | NS-SCENES-V1-29 | StorylineStep to Scene Link | core / editor | Brancher `StorylineStep.sceneLinkIds` vers scenes stables comme lien authoring/progression. | Pas de declenchement runtime par StoryStep seul, pas de lien scenario legacy, pas de completion Step runtime. | operations Storyline scene links, diagnostics/read model, Storylines workspace, tests. | DONE : JSON/ops/diagnostics/read model, UI picker scenes reelles, remove link, visual gate, analyzes. | Confondre step et trigger ; progression pilotant toute la scene. | DONE : StoryStep peut referencer Scene pour lecture/progression, sans remplacer Event trigger. | V1-23, V1-26, V1-28-octies. |
+| NS-SCENES-V1-30 | Scene Node Payload Editing V0 | core / editor | Rendre les payloads Dialogue Yarn et Battle trainer corrigeables depuis l'inspecteur via contrats publics reels. | Pas d'outcomes Yarn, pas de BranchByOutcome, pas de Cinematic/Action avance, pas de runtime. | operations Scene payload, inspector Scenes, tests core/editor, visual gate. | DONE : operations pures, pickers Dialogue/Battle, update memoire `ProjectManifest.scenes`, tests/analyze, aucun fake ref. | Revenir a des IDs tapes a la main ; dupliquer les pickers ; modifier runtime. | DONE : refs Dialogue/Battle modifiables sans changer graph/layout/runtime et sans inventer d'outcomes. | V1-21, V1-22, V1-25-bis. |
+| NS-SCENES-V1-31 | Scene Consequence Authoring UI V0 | core / editor | Exposer l'authoring no-code des consequences V0 `setFact` et `markEventConsumed` depuis ActionNode/inspector. | Pas de giveItem/warp/storyStep runtime, pas de World Rule direct apply, pas de BranchByOutcome. | inspector/action authoring, consequence pickers, tests diagnostics/runtime non-regression. | Attendus : ActionNode consequence editable, refs Fact/map/event pickers, no fake refs, runtime write existant non casse. | Transformer ActionNode en script libre ; ecrire trop tot dans runtime depuis l'UI. | TODO : consequences V0 authorables proprement et validables avant checkpoint beta. | V1-28-quater, V1-28-quinquies, V1-30. |
 
 ## Options comparees
 
@@ -489,7 +491,19 @@ Preuve : tests core JSON/operations/diagnostics/read model, `scene_runtime_plan_
 
 Limites : pas de cross-navigation avancee vers le Scene Builder, pas d'impact runtime, pas de StorylineStep completion, pas de remplacement `MapEventPage.sceneTarget`, pas de donnees Selbrume.
 
-Prochain lot exact : `NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint`.
+Prochain lot initialement prevu : `NS-SCENES-V1-30 — Scene V1 Beta Readiness Checkpoint`. Il est remplace par `NS-SCENES-V1-30 — Scene Node Payload Editing V0` pour corriger les refs Dialogue/Battle avant checkpoint.
+
+## Mise a jour V1-30
+
+Statut : `NS-SCENES-V1-30 — Scene Node Payload Editing V0` est DONE.
+
+Decision : les payloads Dialogue Yarn et Battle trainer deviennent editables depuis l'inspecteur uniquement si des contrats publics reels existent. Les nodes restent lecture seule quand aucun contrat fiable n'est disponible, afin d'eviter un retour aux IDs libres.
+
+Scope realise : operations pures `updateSceneYarnDialoguePayload` et `updateSceneBattlePayload`, pickers inspecteur Dialogue/Battle, update en memoire de `ProjectManifest.scenes`, preservation du graph/layout/outcomes et visual gate.
+
+Limites : pas de Yarn outcomes detailles, pas de BranchByOutcome, pas de Cinematic/Action payload authoring avance, pas de runtime Scene, pas de seed Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-31 — Scene Consequence Authoring UI V0`.
 
 ## Selbrume golden slice
 
@@ -500,6 +514,7 @@ Avant le golden slice, il faut au minimum :
 - Visual Port Connection UX V0 pour rendre la construction de graph utilisable sans ambiguite.
 - Linked Asset Contracts V0 avant Payload Pickers, pour eviter que les pickers ne soient de simples selecteurs d'IDs bruts.
 - Payload Pickers V0 pour Yarn, battle, cinematic/action.
+- Scene Node Payload Editing V0 pour corriger les refs Dialogue/Battle deja placees sans supprimer/recreer les nodes.
 - Event to Scene Trigger Prep pour decider le contrat Event local -> Scene V1 sans StorylineStep comme declencheur.
 - Event to Scene Link V0 pour authorer et valider ce lien avant toute execution.
 - Scene Runtime Plan V0 pour compiler une Scene valide en intents sans layout.

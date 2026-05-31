@@ -10,6 +10,17 @@ typedef SceneConditionSourceDraftUpdater = Future<bool> Function({
   required SceneConditionSource source,
 });
 
+typedef SceneYarnDialoguePayloadDraftUpdater = Future<bool> Function({
+  required String nodeId,
+  required String dialogueId,
+  String? yarnNodeName,
+});
+
+typedef SceneBattlePayloadDraftUpdater = Future<bool> Function({
+  required String nodeId,
+  required String trainerId,
+});
+
 final class SceneConditionSourcePickerOption {
   const SceneConditionSourcePickerOption({
     required this.sourceKind,
@@ -38,6 +49,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onRemoveNodeDraft,
     this.conditionSourceOptions = const [],
     this.onUpdateConditionSource,
+    this.linkedAssetContracts,
+    this.onUpdateYarnDialoguePayload,
+    this.onUpdateBattlePayload,
   });
 
   final NarrativeSceneSummary scene;
@@ -47,6 +61,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
+  final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
+  final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +74,8 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       header: _InspectorHeader(
         title: edge == null ? 'Détails du nœud' : 'Détails du lien',
-        chipLabel: edge == null && node?.kind == SceneNodeKind.condition
-            ? 'Authoring V0'
+        chipLabel: edge == null && node != null
+            ? _nodeInspectorModeLabel(node, linkedAssetContracts)
             : 'Lecture seule',
       ),
       child: edge != null
@@ -75,6 +92,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
                   onRemoveNodeDraft: onRemoveNodeDraft,
                   conditionSourceOptions: conditionSourceOptions,
                   onUpdateConditionSource: onUpdateConditionSource,
+                  linkedAssetContracts: linkedAssetContracts,
+                  onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
+                  onUpdateBattlePayload: onUpdateBattlePayload,
                 ),
     );
   }
@@ -169,6 +189,9 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.onRemoveNodeDraft,
     required this.conditionSourceOptions,
     required this.onUpdateConditionSource,
+    required this.linkedAssetContracts,
+    required this.onUpdateYarnDialoguePayload,
+    required this.onUpdateBattlePayload,
   });
 
   final NarrativeSceneSummary scene;
@@ -176,6 +199,9 @@ class _NodeInspectorBody extends StatelessWidget {
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
+  final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
+  final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +234,26 @@ class _NodeInspectorBody extends StatelessWidget {
               node: node,
               options: conditionSourceOptions,
               onUpdateConditionSource: onUpdateConditionSource,
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (node.payload is SceneYarnDialoguePayload &&
+              (linkedAssetContracts?.dialogues.isNotEmpty ?? false)) ...[
+            _YarnDialoguePayloadAuthoringPanel(
+              node: node,
+              payload: node.payload as SceneYarnDialoguePayload,
+              dialogues: linkedAssetContracts?.dialogues ?? const [],
+              onUpdatePayload: onUpdateYarnDialoguePayload,
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (node.payload is SceneBattlePayload &&
+              (linkedAssetContracts?.battles.isNotEmpty ?? false)) ...[
+            _BattlePayloadAuthoringPanel(
+              node: node,
+              payload: node.payload as SceneBattlePayload,
+              battles: linkedAssetContracts?.battles ?? const [],
+              onUpdatePayload: onUpdateBattlePayload,
             ),
             const SizedBox(height: 10),
           ],
@@ -462,6 +508,396 @@ class _InspectorRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
+  const _YarnDialoguePayloadAuthoringPanel({
+    required this.node,
+    required this.payload,
+    required this.dialogues,
+    required this.onUpdatePayload,
+  });
+
+  final SceneNode node;
+  final SceneYarnDialoguePayload payload;
+  final List<DialoguePublicContract> dialogues;
+  final SceneYarnDialoguePayloadDraftUpdater? onUpdatePayload;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentContract = _dialogueContractFor(payload.dialogueId);
+    final authorableDialogues = [
+      for (final dialogue in dialogues)
+        if (dialogue.id.trim().isNotEmpty) dialogue,
+    ];
+    return _InspectorSection(
+      title: 'Dialogue lié',
+      children: [
+        _InspectorRow(
+          label: 'Dialogue actuel',
+          value: currentContract == null
+              ? payload.dialogueId
+              : '${currentContract.label} · ${currentContract.id}',
+        ),
+        _InspectorRow(
+          label: 'Yarn start',
+          value: payload.yarnNodeName ?? 'Start par défaut du dialogue.',
+        ),
+        _InspectorRow(
+          label: 'Outcomes Scene',
+          value: _joinOrEmpty(payload.expectedOutcomes),
+        ),
+        if (currentContract == null)
+          const _InspectorRow(
+            label: 'Contrat public',
+            value: 'Référence actuelle absente des dialogues publics.',
+          )
+        else
+          _InspectorRow(
+            label: 'Source',
+            value: currentContract.sourceRef,
+          ),
+        const SizedBox(height: 4),
+        PokeMapButton(
+          key: const ValueKey('scene-payload-edit-dialogue-action'),
+          onPressed: onUpdatePayload == null || authorableDialogues.isEmpty
+              ? null
+              : () => _pickDialogue(context, authorableDialogues),
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.text_bubble),
+          child: const Text('Changer le dialogue'),
+        ),
+        const SizedBox(height: 8),
+        const _InspectorNote(
+          label: 'Cette édition modifie uniquement le payload du nœud Scene. '
+              'Les outcomes Yarn restent read-only tant que leur contrat '
+              'public n’expose pas de mapping fiable.',
+        ),
+      ],
+    );
+  }
+
+  DialoguePublicContract? _dialogueContractFor(String dialogueId) {
+    for (final dialogue in dialogues) {
+      if (dialogue.id == dialogueId) {
+        return dialogue;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _pickDialogue(
+    BuildContext context,
+    List<DialoguePublicContract> dialogues,
+  ) async {
+    final updater = onUpdatePayload;
+    if (updater == null) {
+      return;
+    }
+    final contract = await showCupertinoDialog<DialoguePublicContract>(
+      context: context,
+      builder: (context) => _DialoguePayloadEditDialog(dialogues: dialogues),
+    );
+    if (contract == null || !context.mounted) {
+      return;
+    }
+    await updater(
+      nodeId: node.id,
+      dialogueId: contract.id,
+      yarnNodeName: contract.defaultStartNode,
+    );
+  }
+}
+
+class _BattlePayloadAuthoringPanel extends StatelessWidget {
+  const _BattlePayloadAuthoringPanel({
+    required this.node,
+    required this.payload,
+    required this.battles,
+    required this.onUpdatePayload,
+  });
+
+  final SceneNode node;
+  final SceneBattlePayload payload;
+  final List<BattlePublicContract> battles;
+  final SceneBattlePayloadDraftUpdater? onUpdatePayload;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentContract = _battleContractFor(payload.trainerId);
+    final authorableBattles = [
+      for (final battle in battles)
+        if (battle.battleKind == BattlePublicContractKind.trainer &&
+            battle.trainerId.trim().isNotEmpty)
+          battle,
+    ];
+    return _InspectorSection(
+      title: 'Combat lié',
+      children: [
+        _InspectorRow(label: 'battleKind', value: payload.battleKind),
+        _InspectorRow(
+          label: 'Trainer actuel',
+          value: currentContract == null
+              ? payload.trainerId ?? 'Aucun trainer.'
+              : '${currentContract.trainerLabel} · ${currentContract.trainerId}',
+        ),
+        _InspectorRow(
+          label: 'Outcomes Scene',
+          value: _joinOrEmpty(payload.declaredOutcomes),
+        ),
+        if (currentContract == null)
+          const _InspectorRow(
+            label: 'Contrat public',
+            value: 'Référence actuelle absente des combats publics.',
+          )
+        else
+          _InspectorRow(
+            label: 'Outcomes contrat',
+            value: _joinOrEmpty([
+              for (final outcome in currentContract.possibleOutcomes)
+                outcome.id,
+            ]),
+          ),
+        const SizedBox(height: 4),
+        PokeMapButton(
+          key: const ValueKey('scene-payload-edit-battle-action'),
+          onPressed: onUpdatePayload == null || authorableBattles.isEmpty
+              ? null
+              : () => _pickBattle(context, authorableBattles),
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.asterisk_circle),
+          child: const Text('Changer le combat'),
+        ),
+        const SizedBox(height: 8),
+        const _InspectorNote(
+          label: 'Cette édition modifie uniquement le payload du nœud Scene. '
+              'Le runtime, les events et les liens Storyline ne sont pas '
+              'modifiés.',
+        ),
+      ],
+    );
+  }
+
+  BattlePublicContract? _battleContractFor(String? trainerId) {
+    if (trainerId == null) {
+      return null;
+    }
+    for (final battle in battles) {
+      if (battle.trainerId == trainerId) {
+        return battle;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _pickBattle(
+    BuildContext context,
+    List<BattlePublicContract> battles,
+  ) async {
+    final updater = onUpdatePayload;
+    if (updater == null) {
+      return;
+    }
+    final contract = await showCupertinoDialog<BattlePublicContract>(
+      context: context,
+      builder: (context) => _BattlePayloadEditDialog(battles: battles),
+    );
+    if (contract == null || !context.mounted) {
+      return;
+    }
+    await updater(nodeId: node.id, trainerId: contract.trainerId);
+  }
+}
+
+class _DialoguePayloadEditDialog extends StatelessWidget {
+  const _DialoguePayloadEditDialog({required this.dialogues});
+
+  final List<DialoguePublicContract> dialogues;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-dialogue-payload-edit-dialog'),
+      title: const Text('Choisir un dialogue'),
+      content: _PayloadEditDialogContent(
+        children: [
+          for (final dialogue in dialogues)
+            _PayloadEditOptionButton(
+              key: ValueKey(
+                'scene-dialogue-payload-edit-option-${dialogue.id}',
+              ),
+              title: dialogue.label,
+              subtitle: dialogue.id,
+              details: [
+                dialogue.sourceRef,
+                if (dialogue.defaultStartNode != null)
+                  'Start: ${dialogue.defaultStartNode}',
+              ],
+              diagnostics: dialogue.diagnostics,
+              onPressed: () => Navigator.of(context).pop(dialogue),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+}
+
+class _BattlePayloadEditDialog extends StatelessWidget {
+  const _BattlePayloadEditDialog({required this.battles});
+
+  final List<BattlePublicContract> battles;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-battle-payload-edit-dialog'),
+      title: const Text('Choisir un combat'),
+      content: _PayloadEditDialogContent(
+        children: [
+          for (final battle in battles)
+            _PayloadEditOptionButton(
+              key: ValueKey(
+                'scene-battle-payload-edit-option-'
+                '${_payloadEditKeyPart(battle.trainerId)}',
+              ),
+              title: battle.label,
+              subtitle: battle.trainerId,
+              details: [
+                battle.battleKind.name,
+                battle.trainerLabel,
+                battle.possibleOutcomes
+                    .map((outcome) => outcome.id)
+                    .join(' / '),
+              ],
+              diagnostics: battle.diagnostics,
+              onPressed: () => Navigator.of(context).pop(battle),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+}
+
+class _PayloadEditDialogContent extends StatelessWidget {
+  const _PayloadEditDialogContent({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 360,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PayloadEditOptionButton extends StatelessWidget {
+  const _PayloadEditOptionButton({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.details,
+    required this.diagnostics,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<String> details;
+  final List<LinkedAssetContractDiagnostic> diagnostics;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: PokeMapCard(
+        onTap: onPressed,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            for (final detail in details.where((value) => value.isNotEmpty))
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  detail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            for (final diagnostic in diagnostics)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  diagnostic.message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _linkedAssetDiagnosticColor(
+                      context,
+                      diagnostic.severity,
+                    ),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1174,6 +1610,59 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.worldState =>
       null,
   };
+}
+
+String _nodeInspectorModeLabel(
+  SceneNode node,
+  LinkedAssetContractsSnapshot? linkedAssetContracts,
+) {
+  return switch (node.kind) {
+    SceneNodeKind.condition => 'Authoring V0',
+    SceneNodeKind.yarnDialogue =>
+      (linkedAssetContracts?.dialogues.isNotEmpty ?? false)
+          ? 'Éditable'
+          : 'Lecture seule',
+    SceneNodeKind.battle => (linkedAssetContracts?.battles.isNotEmpty ?? false)
+        ? 'Éditable'
+        : 'Lecture seule',
+    SceneNodeKind.start ||
+    SceneNodeKind.end ||
+    SceneNodeKind.action ||
+    SceneNodeKind.cinematic ||
+    SceneNodeKind.branchByOutcome ||
+    SceneNodeKind.merge =>
+      'Lecture seule',
+  };
+}
+
+Color _linkedAssetDiagnosticColor(
+  BuildContext context,
+  LinkedAssetContractDiagnosticSeverity severity,
+) {
+  final colors = context.pokeMapColors;
+  return switch (severity) {
+    LinkedAssetContractDiagnosticSeverity.error => colors.error,
+    LinkedAssetContractDiagnosticSeverity.warning => colors.warning,
+    LinkedAssetContractDiagnosticSeverity.info => colors.textMuted,
+  };
+}
+
+String _payloadEditKeyPart(String value) {
+  final buffer = StringBuffer();
+  var wroteSeparator = false;
+  for (final codeUnit in value.trim().toLowerCase().codeUnits) {
+    final isDigit = codeUnit >= 48 && codeUnit <= 57;
+    final isAsciiLetter = codeUnit >= 97 && codeUnit <= 122;
+    if (isDigit || isAsciiLetter) {
+      buffer.writeCharCode(codeUnit);
+      wroteSeparator = false;
+    } else if (!wroteSeparator && buffer.isNotEmpty) {
+      buffer.write('_');
+      wroteSeparator = true;
+    }
+  }
+  final slug = buffer.toString();
+  return slug.endsWith('_') ? slug.substring(0, slug.length - 1) : slug;
 }
 
 extension _FirstOrNull<T> on Iterable<T> {
