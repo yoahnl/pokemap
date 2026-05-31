@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:PokeMap_Loader/src/runtime_touch_controls.dart';
+import 'package:pokemap_loader/src/runtime_touch_controls.dart';
 
 void main() {
   testWidgets('lays out the virtual joystick and buttons for portrait',

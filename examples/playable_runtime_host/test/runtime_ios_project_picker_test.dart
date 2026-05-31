@@ -1,5 +1,5 @@
-import 'package:PokeMap_Loader/src/runtime_ios_project_picker.dart';
-import 'package:PokeMap_Loader/src/runtime_project_picker.dart';
+import 'package:pokemap_loader/src/runtime_ios_project_picker.dart';
+import 'package:pokemap_loader/src/runtime_project_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

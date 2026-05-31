@@ -1,5 +1,5 @@
-import 'package:PokeMap_Loader/src/in_game_menu.dart';
-import 'package:PokeMap_Loader/src/runtime_pokedex_loader.dart';
+import 'package:pokemap_loader/src/in_game_menu.dart';
+import 'package:pokemap_loader/src/runtime_pokedex_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';

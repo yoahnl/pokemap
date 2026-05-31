@@ -31,4 +31,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   config:
-    enable-swift-package-manager: false
+    enable-swift-package-manager: true
+
+dependency_overrides:
+  gamepads_darwin:
+    path: ../../packages/gamepads_darwin
+  gamepads_ios:
+    path: ../../packages/gamepads_ios
+

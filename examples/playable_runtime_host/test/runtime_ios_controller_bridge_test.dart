@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:PokeMap_Loader/src/runtime_ios_controller_bridge.dart';
+import 'package:pokemap_loader/src/runtime_ios_controller_bridge.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

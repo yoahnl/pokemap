@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:PokeMap_Loader/src/runtime_gamepad_bridge.dart';
+import 'package:pokemap_loader/src/runtime_gamepad_bridge.dart';
 
 void main() {
   group('RuntimeGamepadBridge', () {

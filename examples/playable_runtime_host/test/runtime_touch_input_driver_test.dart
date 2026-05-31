@@ -1,4 +1,4 @@
-import 'package:PokeMap_Loader/src/runtime_touch_input_driver.dart';
+import 'package:pokemap_loader/src/runtime_touch_input_driver.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
 

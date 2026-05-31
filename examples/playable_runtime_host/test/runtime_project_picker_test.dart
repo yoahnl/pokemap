@@ -1,4 +1,4 @@
-import 'package:PokeMap_Loader/src/runtime_project_picker.dart';
+import 'package:pokemap_loader/src/runtime_project_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

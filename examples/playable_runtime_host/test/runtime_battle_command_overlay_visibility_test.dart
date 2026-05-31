@@ -1,4 +1,4 @@
-import 'package:PokeMap_Loader/src/runtime_battle_command_overlay_visibility.dart';
+import 'package:pokemap_loader/src/runtime_battle_command_overlay_visibility.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
