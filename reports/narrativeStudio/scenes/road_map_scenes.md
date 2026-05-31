@@ -87,14 +87,16 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-31 — Scene Consequence Authoring UI V0 | DONE | Authoring no-code des ActionNode/Consequences V0 : creation depuis vrais Facts/events, edition inspecteur `setFact` et `markEventConsumed`, port `completed` connectable, sans runtime ni fake refs. |
 | NS-SCENES-V1-31-bis — Scene Consequence Runtime Evidence Sweep | DONE | Evidence sweep post V1-31 : runtime-plan, executor, hook runtime, writer consequences et golden smoke relances ; V1-31 confirme sans feature ni modification runtime. |
 | NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint | DONE | Checkpoint beta : Scene V1 est prete pour une beta controlee authoring/smoke, mais pas encore pour golden-slice jouable complet ; prochain verrou retenu = persistance runtime des etats narratifs ecrits par Scene. |
+| NS-SCENES-V1-33 — Runtime State Persistence Gate V0 | DONE | Gate persistence runtime : les consequences Scene V1 `setFact` et `markEventConsumed` ecrites par `SceneEventRuntimeHook` survivent au save/reload et restent lisibles par Conditions Scene et World Rules en projection pure. |
+| NS-SCENES-V1-34 — World Rules Runtime Projection Hook V0 | DONE | Hook runtime borne : World Rules projetees depuis `GameState` pilotent presence PNJ, dialogue override et disponibilite d'events sans muter `GameState`, `ProjectManifest` ou `MapData`. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-33 — Runtime State Persistence Gate V0`
+`NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`
 
-Raison : V1-32 confirme que les consequences Scene V1 ecrivent dans `GameState` et que les sauvegardes narratives generales existent, mais il manque encore une preuve ciblee que les writes produits par `SceneEventRuntimeHook` survivent a un save/reload puis restent lisibles par Conditions et World Rules. Ce verrou doit preceder la projection runtime des World Rules et le vrai golden slice jouable.
+Raison : V1-34 verrouille maintenant l'application runtime controlee des World Rules projetees. Le prochain blocage produit est l'authoring no-code centralise de Facts et World Rules : l'overview et les panneaux contextuels existent, mais il manque encore un espace dedie pour les gerer sans exposer des flags techniques.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -135,6 +137,28 @@ Decision roadmap : le prochain lot exact devient `NS-SCENES-V1-33 — Runtime St
 Limites confirmees : pas de BranchByOutcome, pas d'outcomes Yarn detailles, Cinematic encore bridge/provisoire, pas de completion StoryStep runtime depuis Scene, Facts overview encore a aligner, pas de suppression clavier/undo-redo graph, pas de World Rules runtime apply.
 
 Prochain lot exact : `NS-SCENES-V1-33 — Runtime State Persistence Gate V0`.
+
+## Mise a jour V1-33
+
+Statut : `NS-SCENES-V1-33 — Runtime State Persistence Gate V0` est DONE.
+
+Decision : V1-33 ajoute un gate runtime cible qui relie les vraies briques `SceneEventRuntimeHook`, `SceneConsequenceRuntimeWriter`, `FileGameSaveRepository`, `LoadGameUseCase`, Conditions Scene V1 et `projectWorldRuleEffects`. Le test prouve que `setFact` et `markEventConsumed` ecrits par une Scene completee sont sauvegardes, recharges, puis relus sans mutation par une Condition et par une projection World Rules pure.
+
+Limites : aucun hook World Rules runtime n'est branche, aucune application visuelle du monde n'est faite, aucun nouveau payload/consequence n'est ajoute, aucun `PlayableMapGame` golden slice complet n'est code, aucune donnee Selbrume n'est creee et aucun package editor/battle/gameplay/examples n'est modifie.
+
+Prochain lot exact : `NS-SCENES-V1-34 — World Rules Runtime Projection Hook V0`.
+
+## Mise a jour V1-34
+
+Statut : `NS-SCENES-V1-34 — World Rules Runtime Projection Hook V0` est DONE.
+
+Decision : V1-34 ajoute un hook runtime borne pour transformer les effets de `projectWorldRuleEffects` en read model runtime applique au monde jouable. Les effets V0 supportes pilotent la presence/visibilite d'entites, les events `enabled/disabled/hidden` et les overrides de dialogue PNJ. La projection est relue depuis le `GameState` courant ou recharge, et ne mute jamais les sources.
+
+Integration runtime : `PlayableMapGame` combine la presence PNJ existante avec la projection World Rules, resout un override de dialogue PNJ si une rule active le demande, bloque les interactions d'events disabled/hidden et rafraichit la presence PNJ apres une Scene qui commit un nouveau `GameState`.
+
+Limites : pas de nouveau modele, pas de manager UI, pas de Fact/World Rule authoring nouveau, pas de World Rule qui ecrit dans `GameState`, pas de completion StoryStep, pas de BranchByOutcome, pas de donnees Selbrume et aucun package editor/battle/gameplay/examples modifie par V1-34.
+
+Prochain lot exact : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`.
 
 ## Mise a jour V1-30-bis
 

@@ -64,6 +64,7 @@ import '../../application/step_studio_completion_runtime.dart';
 import '../../application/step_studio_world_presence_runtime.dart';
 import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
+import '../../application/world_rules/runtime_world_rule_projection_hook.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import '../../shadow/runtime_actor_contact_shadow_collection.dart';
@@ -841,12 +842,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   NpcMapPresencePredicate _npcPresencePredicateFor(ProjectManifest manifest) {
     return (String mapId, MapEntity npcEntity) {
       _ensureStepStudioWorldRulesForManifest(manifest);
-      return isNpcRuntimePresentOnMap(
+      final baseVisible = isNpcRuntimePresentOnMap(
         gameState: _gameState,
         manifest: manifest,
         stepStudioWorldRules: _cachedStepStudioWorldRules,
         mapId: mapId,
         entity: npcEntity,
+      );
+      final projection = _resolveWorldRuleProjectionForMap(mapId, manifest);
+      if (projection == null) {
+        return baseVisible;
+      }
+      return projection.isMapEntityVisible(
+        npcEntity,
+        defaultVisible: baseVisible,
       );
     };
   }
@@ -857,11 +866,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (npc == null) {
       return null;
     }
+    final projection = _resolveWorldRuleProjectionForMap(
+      _world.map.id,
+      _bundle.manifest,
+    );
+    final overrideDialogueId = projection?.dialogueOverrideForEntity(entity.id);
+    if (overrideDialogueId != null) {
+      return DialogueRef(dialogueId: overrideDialogueId);
+    }
     return MapEntityRuntimePredicateEvaluator(
       gameState: _gameState,
       chapterIndex:
           buildGlobalStoryChapterStepIndex(_bundle.manifest.scenarios),
     ).resolveNpcDialogue(npc);
+  }
+
+  RuntimeWorldRuleProjectionState? _resolveWorldRuleProjectionForMap(
+    String mapId,
+    ProjectManifest manifest,
+  ) {
+    final map = _runtimeBundleByMapId[mapId]?.map ??
+        _loadedMapsById[mapId]?.bundle.map ??
+        (mapId == _bundle.map.id ? _bundle.map : null);
+    if (map == null) {
+      return null;
+    }
+    return const RuntimeWorldRuleProjectionHook().resolve(
+      project: manifest,
+      gameState: _gameState,
+      map: map,
+    );
   }
 
   void _refreshWorldNpcPresence() {
@@ -4937,7 +4971,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (activePage == null) return;
 
-    if (activePage.page.isDisabled) return;
+    final worldRuleProjection = _resolveWorldRuleProjectionForMap(
+      map.id,
+      _bundle.manifest,
+    );
+    final defaultEnabled = !activePage.page.isDisabled;
+    if (worldRuleProjection != null &&
+        !worldRuleProjection.canTriggerMapEvent(
+          event,
+          defaultEnabled: defaultEnabled,
+        )) {
+      return;
+    }
+    if (worldRuleProjection == null && activePage.page.isDisabled) return;
 
     debugPrint('[interact] MapEvent: ${event.id} page=${activePage.pageIndex}');
     _handleMapEventInteraction(event, activePage);
@@ -4993,6 +5039,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification(result.message ?? 'Scene V1 impossible.');
       } else if (result.updatedGameState != null) {
         _gameState = result.updatedGameState!;
+        _refreshWorldNpcPresence();
       }
     } catch (error, stackTrace) {
       debugPrint(

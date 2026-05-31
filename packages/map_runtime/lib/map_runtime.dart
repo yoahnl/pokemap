@@ -22,6 +22,8 @@ export 'src/application/runtime_battle_setup_exception.dart'
     show RuntimeBattleSetupException;
 export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
+export 'src/application/world_rules/runtime_world_rule_projection_hook.dart'
+    show RuntimeWorldRuleProjectionHook, RuntimeWorldRuleProjectionState;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;
 export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
     show

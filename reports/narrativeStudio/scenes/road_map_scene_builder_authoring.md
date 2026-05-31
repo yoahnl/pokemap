@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-33 — Runtime State Persistence Gate V0
+NS-SCENES-V1-35 — Facts & World Rules Manager UI V0
 ```
 
 ## Principes
@@ -66,7 +66,9 @@ NS-SCENES-V1-33 — Runtime State Persistence Gate V0
 | NS-SCENES-V1-31 | Scene Consequence Authoring UI V0 | core / editor | Exposer l'authoring no-code des consequences V0 `setFact` et `markEventConsumed` depuis ActionNode/inspector. | Pas de giveItem/warp/storyStep runtime, pas de World Rule direct apply, pas de BranchByOutcome. | inspector/action authoring, consequence pickers, tests diagnostics/runtime non-regression. | DONE : ActionNode consequence editable, refs Fact/map/event pickers, no fake refs, runtime write existant non casse. | Transformer ActionNode en script libre ; ecrire trop tot dans runtime depuis l'UI. | DONE : consequences V0 authorables proprement et validables avant checkpoint beta. | V1-28-quater, V1-28-quinquies, V1-30-bis. |
 | NS-SCENES-V1-31-bis | Scene Consequence Runtime Evidence Sweep | review / evidence | Confirmer que V1-31 n'a pas casse runtime-plan, executor, hook runtime, writer consequences et golden smoke. | Pas de nouvelle feature, pas de code produit, pas de runtime nouveau, pas de checkpoint beta complet. | rapport V1-31-bis, roadmaps. | DONE : tests core/runtime/editor/analyze et anti-scope relances. | Confondre evidence sweep et nouveau lot runtime ; corriger hors scope. | DONE : V1-31 confirme, aucun 31-ter necessaire. | V1-31. |
 | NS-SCENES-V1-32 | Scene V1 Beta Readiness Checkpoint | review / roadmap | Auditer l'etat beta Scene V1 apres authoring payloads, consequences, runtime hook et golden smoke. | Pas de nouveau node, pas de runtime additionnel, pas de modele, pas de migration. | rapport checkpoint, roadmaps, audit gaps. | DONE : tests/analyze cibles relances, readiness matrix, gap register, risques et prochain lot exact. | Continuer a coder sans verifier le systeme complet ; ignorer les limites UX/runtime. | DONE : beta controlee oui, golden-slice jouable complet non, prochain verrou persistance runtime. | V1-31. |
-| NS-SCENES-V1-33 | Runtime State Persistence Gate V0 | runtime / integration | Prouver que les writes Scene V1 (`setFact`, `markEventConsumed`) survivent a save/reload et restent lisibles par Conditions/World Rules. | Pas de nouveau node, pas de payload picker, pas de projection World Rules runtime, pas de golden slice jouable complet. | tests runtime save/load, hook Scene, repository save/load, rapport. | Attendus : Scene -> consequence write -> save -> reload -> condition/world rule source readable, regressions runtime ciblees. | Construire la projection monde avant d'avoir verrouille l'etat persistant ; confondre save generale et preuve Scene-specific. | TODO : lot non demarre, ne pas marquer DONE sans test save/reload Scene-specific. | V1-32. |
+| NS-SCENES-V1-33 | Runtime State Persistence Gate V0 | runtime / integration | Prouver que les writes Scene V1 (`setFact`, `markEventConsumed`) survivent a save/reload et restent lisibles par Conditions/World Rules. | Pas de nouveau node, pas de payload picker, pas de projection World Rules runtime, pas de golden slice jouable complet. | `scene_runtime_state_persistence_gate_test.dart`, rapport, roadmaps. | DONE : Scene -> consequence write -> save -> reload -> condition/world rule source readable, regressions runtime ciblees. | Construire la projection monde avant d'avoir verrouille l'etat persistant ; confondre save generale et preuve Scene-specific. | DONE : gate save/reload Scene-specific vert, aucune production modifiee. | V1-32. |
+| NS-SCENES-V1-34 | World Rules Runtime Projection Hook V0 | runtime / integration | Appliquer prudemment au runtime jouable les effets World Rules projetes depuis le `GameState` recharge, apres le verrou persistence V1-33. | Pas de nouvelle consequence, pas de Scene payload, pas de World Rule editor avance, pas de StorylineStep runtime trigger. | runtime world rule projection hook, map runtime tests, rapport. | DONE : projection fact/event consomme lue depuis GameState, application runtime bornee aux entites/events/dialogue override, non-mutation du manifest/map/state et regressions save/load. | Appliquer les World Rules trop largement ; confondre projection pure et mutation definitive du monde. | DONE : hook runtime pur + branchement presence/dialogue/event, sans mutation durable ni nouvelle consequence. | V1-33. |
+| NS-SCENES-V1-35 | Facts & World Rules Manager UI V0 | editor / product | Donner un espace no-code dedie pour gerer Facts et World Rules au-dela des apercus contextuels, avec labels lisibles, diagnostics et navigation vers cibles. | Pas de runtime nouveau, pas de nouveaux effets, pas de Scene consequence supplementaire, pas de seed Selbrume. | manager Facts/World Rules, read models editor, tests widget, rapport. | Attendus : liste/edition bornée, creation/suppression controlee, diagnostics visibles, aucun ID libre comme workflow principal. | Refaire un editeur de flags techniques ; dupliquer les panneaux contextuels map sans coherence. | TODO : ne pas demarrer avant V1-34 valide. | V1-34. |
 
 ## Options comparees
 
@@ -556,6 +558,28 @@ Decision roadmap : le prochain lot exact devient `NS-SCENES-V1-33 — Runtime St
 Limites confirmees : `BranchByOutcome` reste reporte, les outcomes Yarn detailles ne sont pas authorables/runtime, Cinematic reste bridge/provisoire, `completeStoryStep` runtime Scene reste absent, l'overview Facts doit etre aligne, les diagnostics no-code doivent encore etre durcis, et l'undo/redo ou la suppression clavier des graphes restent hors beta critique.
 
 Prochain lot exact : `NS-SCENES-V1-33 — Runtime State Persistence Gate V0`.
+
+## Mise a jour V1-33
+
+Statut : `NS-SCENES-V1-33 — Runtime State Persistence Gate V0` est DONE.
+
+Decision : le verrou persistence Scene-specific est ferme par un test runtime dedie. La chaine couverte est `SceneEventRuntimeHook` -> consequences V0 stagees -> `SceneConsequenceRuntimeWriter` -> `GameState` -> `FileGameSaveRepository` -> reload -> Condition Scene V1 -> `projectWorldRuleEffects`.
+
+Limites : pas de projection runtime World Rules, pas d'application visuelle du monde, pas de nouveau type de consequence, pas d'editor, pas de `PlayableMapGame` full golden slice et aucune donnee Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-34 — World Rules Runtime Projection Hook V0`.
+
+## Mise a jour V1-34
+
+Statut : `NS-SCENES-V1-34 — World Rules Runtime Projection Hook V0` est DONE.
+
+Decision : les World Rules restent des projections declaratives lues depuis `ProjectManifest.worldRules` et `GameState`; elles ne deviennent pas des consequences Scene et n'ecrivent ni `GameState`, ni `ProjectManifest`, ni `MapData`. Le runtime dispose maintenant d'un hook borne `RuntimeWorldRuleProjectionHook` qui expose un etat lisible : entites forcees visibles/cachees, events actives/desactives/caches et overrides de dialogue PNJ.
+
+Integration : `PlayableMapGame` utilise cette projection pour la presence PNJ, les overrides de dialogue PNJ et la possibilite de trigger un map event. Apres une Scene qui ecrit un Fact, la presence PNJ est rafraichie ; les events relisent la projection au prochain trigger.
+
+Limites : pas de manager UI Facts/World Rules, pas de nouveau type de World Rule, pas de mutation definitive du monde, pas de collision/warp/tile dynamic state, pas de `completeStoryStep`, pas de `giveItem`, pas de BranchByOutcome et aucune donnee Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`.
 
 ## Selbrume golden slice
 
