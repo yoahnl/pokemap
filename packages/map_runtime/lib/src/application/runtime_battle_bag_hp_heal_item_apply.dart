@@ -2,6 +2,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
 import 'runtime_battle_outcome_apply.dart';
+import 'runtime_psdk_battle_session_adapter.dart';
 
 const _runtimeBattleMedicineCategoryId = 'medicine';
 const _runtimeBattlePotionHealAmount = 20;
@@ -19,6 +20,24 @@ class RuntimeBattleBagHpHealItemApplyResult {
   });
 
   final BattleSession updatedSession;
+  final GameState updatedGameState;
+  final BattleBagHpHealItemKind itemKind;
+  final String targetSpeciesId;
+  final int targetLineupIndex;
+  final int healedAmount;
+}
+
+class RuntimePsdkBattleBagHpHealItemApplyResult {
+  const RuntimePsdkBattleBagHpHealItemApplyResult({
+    required this.updatedDisplaySession,
+    required this.updatedGameState,
+    required this.itemKind,
+    required this.targetSpeciesId,
+    required this.targetLineupIndex,
+    required this.healedAmount,
+  });
+
+  final BattleSession updatedDisplaySession;
   final GameState updatedGameState;
   final BattleBagHpHealItemKind itemKind;
   final String targetSpeciesId;
@@ -107,6 +126,80 @@ RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleMaxPotionUse({
     context: context,
     itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion),
     targetLineupIndex: targetLineupIndex,
+  );
+}
+
+RuntimePsdkBattleBagHpHealItemApplyResult?
+    tryApplyRuntimePsdkBattleBagHpHealItemUse({
+  required RuntimePsdkBattleSessionAdapter psdkSession,
+  required BattleSession displaySession,
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required String itemId,
+  required int targetLineupIndex,
+  required bool isTrainerBattle,
+  String? trainerId,
+  bool allowCapture = false,
+}) {
+  if (psdkSession.decisionRequest.kind !=
+      BattleEngineDecisionRequestKind.turnChoice) {
+    return null;
+  }
+
+  final itemSpec = _runtimeItemSpecForItemId(itemId);
+  if (itemSpec == null) {
+    return null;
+  }
+
+  final targetCombatant = displaySession.state.player;
+  if (targetCombatant.lineupIndex != targetLineupIndex ||
+      targetCombatant.isFainted ||
+      targetCombatant.currentHp >= targetCombatant.maxHp) {
+    return null;
+  }
+
+  if (!_hasBagHpHealItemAvailable(
+    bag: gameState.bag,
+    itemSpec: itemSpec,
+  )) {
+    return null;
+  }
+
+  final healedAmount = switch (itemSpec.effect) {
+    BattleBagFlatHpHealEffect(:final amount) => amount.clamp(
+        0,
+        targetCombatant.maxHp - targetCombatant.currentHp,
+      ),
+    BattleBagRestoreToFullHpHealEffect() =>
+      targetCombatant.maxHp - targetCombatant.currentHp,
+  };
+  if (healedAmount <= 0) {
+    return null;
+  }
+
+  psdkSession.submitHpHealItem(
+    itemId: itemSpec.itemId,
+    effect: _toPsdkHpHealItemEffect(itemSpec.effect),
+  );
+  final updatedDisplaySession = psdkSession.createLegacyDisplaySession(
+    isTrainerBattle: isTrainerBattle,
+    trainerId: trainerId,
+    allowCapture: allowCapture,
+  );
+  final updatedGameState = _applyCommittedBagHpHealItemTurnToRuntimeState(
+    gameState: gameState,
+    context: context,
+    updatedSession: updatedDisplaySession,
+    itemSpec: itemSpec,
+  );
+
+  return RuntimePsdkBattleBagHpHealItemApplyResult(
+    updatedDisplaySession: updatedDisplaySession,
+    updatedGameState: updatedGameState,
+    itemKind: itemSpec.kind,
+    targetSpeciesId: targetCombatant.speciesId,
+    targetLineupIndex: targetCombatant.lineupIndex,
+    healedAmount: healedAmount,
   );
 }
 
@@ -303,6 +396,27 @@ _RuntimeBattleBagHpHealItemSpec _runtimeItemSpec(
         label: 'Max Potion',
         effect: BattleBagRestoreToFullHpHealEffect(),
       ),
+  };
+}
+
+_RuntimeBattleBagHpHealItemSpec? _runtimeItemSpecForItemId(String itemId) {
+  return switch (itemId) {
+    'potion' => _runtimeItemSpec(BattleBagHpHealItemKind.potion),
+    'super-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.superPotion),
+    'hyper-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.hyperPotion),
+    'max-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion),
+    _ => null,
+  };
+}
+
+PsdkBattleHpHealItemEffect _toPsdkHpHealItemEffect(
+  BattleBagHpHealEffect effect,
+) {
+  return switch (effect) {
+    BattleBagFlatHpHealEffect(:final amount) =>
+      PsdkBattleHpHealItemEffect.flat(amount),
+    BattleBagRestoreToFullHpHealEffect() =>
+      const PsdkBattleHpHealItemEffect.full(),
   };
 }
 

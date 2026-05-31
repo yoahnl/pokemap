@@ -91,6 +91,72 @@ void main() {
       expect(seed.moves[1].power, equals(45));
     });
 
+    test('builds a PSDK combatant seed with moves rejected by legacy bridge',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      final seed = await builder.buildPlayerPsdkCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          ivs: PokemonStatSpread(
+            hp: 31,
+            attack: 31,
+            specialAttack: 15,
+            speed: 7,
+          ),
+          evs: PokemonStatSpread(
+            hp: 8,
+            attack: 12,
+            specialAttack: 20,
+            speed: 16,
+          ),
+          knownMoveIds: <String>['wrap', 'haze', 'coil', 'gastro_acid'],
+          currentHp: 23,
+        ),
+      );
+
+      expect(seed.speciesId, equals('sproutle'));
+      expect(seed.currentHp, equals(23));
+      expect(
+        seed.moves.map((move) => move.battleEngineMethod).toList(),
+        equals(<String>['s_bind', 's_haze', 's_self_stat', 's_gastro_acid']),
+      );
+      expect(seed.filteredMoveDiagnostics, isEmpty);
+      expect(
+        seed.moveDiagnostics
+            .where((diagnostic) => !diagnostic.runtimeBridgeable),
+        isNotEmpty,
+      );
+
+      final setup = seed.toPsdkBattleCombatantSetup(
+        lineupIndex: 2,
+        idPrefix: 'player',
+      );
+
+      expect(setup.id, equals('player_2'));
+      expect(setup.speciesId, equals('sproutle'));
+      expect(setup.currentHp, equals(23));
+      expect(setup.maxHp, equals(36));
+      expect(setup.abilityId, equals('overgrow'));
+      expect(setup.types.primary, equals('grass'));
+      expect(setup.stats.attack, equals(20));
+      expect(
+          setup.moves.map((move) => move.id).toList(),
+          equals(
+            <String>['wrap', 'haze', 'coil', 'gastro_acid'],
+          ));
+    });
+
     test(
         'toBattleCombatantData can stamp a stable lineupIndex for BE10 write-back',
         () {
@@ -920,6 +986,37 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
             'showdown_callback:condition.onFieldEnd',
           ],
         ),
+        _moveEntry(
+          'wrap',
+          'Wrap',
+          15,
+          category: PokemonMoveCategory.physical,
+          pp: 20,
+          accuracy: 90,
+        ),
+        _moveEntry(
+          'haze',
+          'Haze',
+          0,
+          type: 'ice',
+          target: PokemonMoveTarget.all,
+          pp: 30,
+        ),
+        _moveEntry(
+          'coil',
+          'Coil',
+          0,
+          type: 'poison',
+          target: PokemonMoveTarget.self,
+          pp: 20,
+        ),
+        _moveEntry(
+          'gastro_acid',
+          'Gastro Acid',
+          0,
+          type: 'poison',
+          pp: 10,
+        ),
       ],
     },
   );
@@ -931,6 +1028,7 @@ Map<String, Object?> _moveEntry(
   int power, {
   String type = 'normal',
   PokemonMoveTarget target = PokemonMoveTarget.normal,
+  PokemonMoveCategory? category,
   int pp = 35,
   int accuracy = 100,
   int priority = 0,
@@ -947,8 +1045,8 @@ Map<String, Object?> _moveEntry(
     generation: 1,
     source: 'test_runtime_fixture',
     type: type,
-    category:
-        power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special,
+    category: category ??
+        (power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special),
     target: target,
     basePower: power,
     accuracy: power == 0
@@ -1034,6 +1132,37 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
         PokemonMoveEffect.setPseudoWeather(
           targetScope: PokemonMoveEffectTargetScope.field,
           pseudoWeatherId: 'trickroom',
+        ),
+      ],
+    'wrap' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyVolatileStatus(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          volatileStatusId: 'bind',
+        ),
+      ],
+    'coil' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.self,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.attack,
+              stages: 1,
+            ),
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: 1,
+            ),
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.accuracy,
+              stages: 1,
+            ),
+          ],
+        ),
+      ],
+    'gastro_acid' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyVolatileStatus(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          volatileStatusId: 'ability_suppressed',
         ),
       ],
     _ => const <PokemonMoveEffect>[],

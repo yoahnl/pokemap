@@ -110,6 +110,81 @@ class PsdkGoldenFixture {
   }
 }
 
+final class PsdkGoldenFixtureCorpus {
+  PsdkGoldenFixtureCorpus({
+    required List<PsdkGoldenFixture> fixtures,
+    required this.summary,
+  }) : fixtures = List<PsdkGoldenFixture>.unmodifiable(fixtures);
+
+  static Future<PsdkGoldenFixtureCorpus> load(Directory directory) async {
+    final files = <File>[];
+    if (await directory.exists()) {
+      await for (final entity in directory.list(recursive: true)) {
+        if (entity is File && entity.path.endsWith('.json')) {
+          files.add(entity);
+        }
+      }
+    }
+    files.sort((left, right) => left.path.compareTo(right.path));
+
+    final fixtures = <PsdkGoldenFixture>[];
+    final scenarioIds = <String>{};
+    final tags = <String>{};
+    var strictAttacks = 0;
+    var portedMethods = 0;
+    var portedEffects = 0;
+
+    for (final file in files) {
+      final fixture = await PsdkGoldenFixture.load(file);
+      final expectedScenarioId = _jsonFileStem(file);
+      if (fixture.scenarioId != expectedScenarioId) {
+        throw FormatException(
+          'Golden fixture scenarioId "${fixture.scenarioId}" must match '
+          'filename "$expectedScenarioId".',
+        );
+      }
+      if (!scenarioIds.add(fixture.scenarioId)) {
+        throw FormatException(
+          'Duplicate golden fixture scenarioId "${fixture.scenarioId}".',
+        );
+      }
+      fixtures.add(fixture);
+      tags.addAll(fixture.tags);
+      strictAttacks += fixture.expectedAuditDeltas.strictAttacks;
+      portedMethods += fixture.expectedAuditDeltas.portedMethods;
+      portedEffects += fixture.expectedAuditDeltas.portedEffects;
+    }
+
+    return PsdkGoldenFixtureCorpus(
+      fixtures: fixtures,
+      summary: PsdkGoldenCorpusSummary(
+        count: fixtures.length,
+        tags: Set<String>.unmodifiable(tags),
+        auditDeltas: PsdkGoldenExpectedAuditDeltas(
+          strictAttacks: strictAttacks,
+          portedMethods: portedMethods,
+          portedEffects: portedEffects,
+        ),
+      ),
+    );
+  }
+
+  final List<PsdkGoldenFixture> fixtures;
+  final PsdkGoldenCorpusSummary summary;
+}
+
+final class PsdkGoldenCorpusSummary {
+  const PsdkGoldenCorpusSummary({
+    required this.count,
+    required this.tags,
+    required this.auditDeltas,
+  });
+
+  final int count;
+  final Set<String> tags;
+  final PsdkGoldenExpectedAuditDeltas auditDeltas;
+}
+
 class PsdkGoldenExpectedAuditDeltas {
   const PsdkGoldenExpectedAuditDeltas({
     required this.strictAttacks,
@@ -313,9 +388,16 @@ class PsdkGoldenExpectedTimeline {
   PsdkGoldenExpectedTimeline({
     required List<String> eventKinds,
     required List<PsdkGoldenExpectedDamageEvent> damageEvents,
+    required List<PsdkGoldenExpectedStatusEvent> statusEvents,
+    required List<PsdkGoldenExpectedStatStageEvent> statStageEvents,
   })  : eventKinds = List<String>.unmodifiable(eventKinds),
         damageEvents =
-            List<PsdkGoldenExpectedDamageEvent>.unmodifiable(damageEvents);
+            List<PsdkGoldenExpectedDamageEvent>.unmodifiable(damageEvents),
+        statusEvents =
+            List<PsdkGoldenExpectedStatusEvent>.unmodifiable(statusEvents),
+        statStageEvents = List<PsdkGoldenExpectedStatStageEvent>.unmodifiable(
+          statStageEvents,
+        );
 
   factory PsdkGoldenExpectedTimeline.fromJson(Map<String, Object?> json) {
     final damageEvents = json['damageEvents'] == null
@@ -325,16 +407,34 @@ class PsdkGoldenExpectedTimeline {
                   _asMap(value, 'damageEvents[]'),
                 ))
             .toList(growable: false);
+    final statusEvents = json['statusEvents'] == null
+        ? const <PsdkGoldenExpectedStatusEvent>[]
+        : _asList(json['statusEvents'], 'statusEvents')
+            .map((value) => PsdkGoldenExpectedStatusEvent.fromJson(
+                  _asMap(value, 'statusEvents[]'),
+                ))
+            .toList(growable: false);
+    final statStageEvents = json['statStageEvents'] == null
+        ? const <PsdkGoldenExpectedStatStageEvent>[]
+        : _asList(json['statStageEvents'], 'statStageEvents')
+            .map((value) => PsdkGoldenExpectedStatStageEvent.fromJson(
+                  _asMap(value, 'statStageEvents[]'),
+                ))
+            .toList(growable: false);
     return PsdkGoldenExpectedTimeline(
       eventKinds: _requiredNonEmptyList(json, 'eventKinds')
           .map((value) => _asString(value, 'eventKinds[]'))
           .toList(growable: false),
       damageEvents: damageEvents,
+      statusEvents: statusEvents,
+      statStageEvents: statStageEvents,
     );
   }
 
   final List<String> eventKinds;
   final List<PsdkGoldenExpectedDamageEvent> damageEvents;
+  final List<PsdkGoldenExpectedStatusEvent> statusEvents;
+  final List<PsdkGoldenExpectedStatStageEvent> statStageEvents;
 
   List<String> compare(PsdkBattleTimeline timeline) {
     final mismatches = <String>[];
@@ -360,6 +460,42 @@ class PsdkGoldenExpectedTimeline {
     for (var index = 0; index < count; index += 1) {
       mismatches.addAll(damageEvents[index].compare(
         actualDamageEvents[index],
+        index,
+      ));
+    }
+
+    final actualStatusEvents =
+        timeline.events.whereType<PsdkBattleStatusEvent>().toList();
+    if (actualStatusEvents.length != statusEvents.length) {
+      mismatches.add(
+        'timeline.statusEvents length expected ${statusEvents.length}, '
+        'got ${actualStatusEvents.length}',
+      );
+    }
+    final statusCount = actualStatusEvents.length < statusEvents.length
+        ? actualStatusEvents.length
+        : statusEvents.length;
+    for (var index = 0; index < statusCount; index += 1) {
+      mismatches.addAll(statusEvents[index].compare(
+        actualStatusEvents[index],
+        index,
+      ));
+    }
+
+    final actualStatStageEvents =
+        timeline.events.whereType<PsdkBattleStatStageEvent>().toList();
+    if (actualStatStageEvents.length != statStageEvents.length) {
+      mismatches.add(
+        'timeline.statStageEvents length expected ${statStageEvents.length}, '
+        'got ${actualStatStageEvents.length}',
+      );
+    }
+    final statStageCount = actualStatStageEvents.length < statStageEvents.length
+        ? actualStatStageEvents.length
+        : statStageEvents.length;
+    for (var index = 0; index < statStageCount; index += 1) {
+      mismatches.addAll(statStageEvents[index].compare(
+        actualStatStageEvents[index],
         index,
       ));
     }
@@ -404,6 +540,89 @@ class PsdkGoldenExpectedDamageEvent {
       mismatches.add(
         'timeline.damageEvents[$index].remainingHp expected $remainingHp, '
         'got ${event.remainingHp}',
+      );
+    }
+    return mismatches;
+  }
+}
+
+class PsdkGoldenExpectedStatusEvent {
+  const PsdkGoldenExpectedStatusEvent({
+    required this.moveId,
+    required this.status,
+  });
+
+  factory PsdkGoldenExpectedStatusEvent.fromJson(Map<String, Object?> json) {
+    return PsdkGoldenExpectedStatusEvent(
+      moveId: _requiredString(json, 'moveId'),
+      status: _requiredEnum(
+        PsdkBattleMajorStatus.values,
+        _requiredString(json, 'status'),
+        'status',
+      ),
+    );
+  }
+
+  final String moveId;
+  final PsdkBattleMajorStatus status;
+
+  List<String> compare(PsdkBattleStatusEvent event, int index) {
+    final mismatches = <String>[];
+    if (event.moveId != moveId) {
+      mismatches.add(
+        'timeline.statusEvents[$index].moveId expected $moveId, '
+        'got ${event.moveId}',
+      );
+    }
+    if (event.status != status) {
+      mismatches.add(
+        'timeline.statusEvents[$index].status expected ${status.name}, '
+        'got ${event.status.name}',
+      );
+    }
+    return mismatches;
+  }
+}
+
+class PsdkGoldenExpectedStatStageEvent {
+  const PsdkGoldenExpectedStatStageEvent({
+    required this.stat,
+    required this.amount,
+    required this.currentStage,
+  });
+
+  factory PsdkGoldenExpectedStatStageEvent.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return PsdkGoldenExpectedStatStageEvent(
+      stat: _requiredString(json, 'stat'),
+      amount: _requiredInt(json, 'amount'),
+      currentStage: _requiredInt(json, 'currentStage'),
+    );
+  }
+
+  final String stat;
+  final int amount;
+  final int currentStage;
+
+  List<String> compare(PsdkBattleStatStageEvent event, int index) {
+    final mismatches = <String>[];
+    if (event.stat != stat) {
+      mismatches.add(
+        'timeline.statStageEvents[$index].stat expected $stat, '
+        'got ${event.stat}',
+      );
+    }
+    if (event.amount != amount) {
+      mismatches.add(
+        'timeline.statStageEvents[$index].amount expected $amount, '
+        'got ${event.amount}',
+      );
+    }
+    if (event.currentStage != currentStage) {
+      mismatches.add(
+        'timeline.statStageEvents[$index].currentStage expected '
+        '$currentStage, got ${event.currentStage}',
       );
     }
     return mismatches;
@@ -504,6 +723,57 @@ PsdkBattleMoveData _moveFromJson(Map<String, Object?> json) {
     magicCoatAffected: _optionalBool(json, 'magicCoatAffected') ??
         _optionalBool(json, 'isMagicCoatAffected') ??
         false,
+    statuses: _statusesFromJson(json['statuses']),
+    stageMods: _stageModsFromJson(json['stageMods']),
+  );
+}
+
+List<PsdkBattleMoveStatus> _statusesFromJson(Object? value) {
+  if (value == null) {
+    return const <PsdkBattleMoveStatus>[];
+  }
+  return _asList(value, 'statuses')
+      .map((entry) => _statusFromJson(_asMap(entry, 'statuses[]')))
+      .toList(growable: false);
+}
+
+PsdkBattleMoveStatus _statusFromJson(Map<String, Object?> json) {
+  final chance = _requiredInt(json, 'chance');
+  final volatileStatus = json['volatileStatus'];
+  if (volatileStatus != null) {
+    return PsdkBattleMoveStatus.volatile(
+      status: _requiredEnum(
+        PsdkBattleVolatileStatus.values,
+        _asString(volatileStatus, 'volatileStatus'),
+        'volatileStatus',
+      ),
+      chance: chance,
+    );
+  }
+  return PsdkBattleMoveStatus(
+    status: _requiredEnum(
+      PsdkBattleMajorStatus.values,
+      _requiredString(json, 'status'),
+      'status',
+    ),
+    chance: chance,
+  );
+}
+
+List<PsdkBattleMoveStageMod> _stageModsFromJson(Object? value) {
+  if (value == null) {
+    return const <PsdkBattleMoveStageMod>[];
+  }
+  return _asList(value, 'stageMods')
+      .map((entry) => _stageModFromJson(_asMap(entry, 'stageMods[]')))
+      .toList(growable: false);
+}
+
+PsdkBattleMoveStageMod _stageModFromJson(Map<String, Object?> json) {
+  return PsdkBattleMoveStageMod(
+    stat: _requiredString(json, 'stat'),
+    stages: _requiredInt(json, 'stages'),
+    chance: _optionalInt(json, 'chance'),
   );
 }
 
@@ -641,4 +911,12 @@ void _validateGateTags(List<String> tags) {
       '${psdkGoldenGateTags.join(', ')}.',
     );
   }
+}
+
+String _jsonFileStem(File file) {
+  final path = file.path.replaceAll('\\', '/');
+  final filename = path.split('/').last;
+  return filename.endsWith('.json')
+      ? filename.substring(0, filename.length - '.json'.length)
+      : filename;
 }

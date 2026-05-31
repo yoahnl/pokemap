@@ -9,6 +9,8 @@ import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
+import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+import 'package:map_runtime/src/application/runtime_psdk_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/application/runtime_pokemon_learnset_loader.dart';
@@ -31,6 +33,63 @@ void main() {
       if (await tempProjectRoot.exists()) {
         await tempProjectRoot.delete(recursive: true);
       }
+    });
+
+    test('maps a PSDK setup and executes a legacy-filtered PSDK move',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final psdkMapper = RuntimePsdkBattleSetupMapper();
+
+      final setup = await psdkMapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-psdk',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['wrap', 'haze', 'coil', 'gastro_acid'],
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(
+        setup.player.moves.map((move) => move.battleEngineMethod).toList(),
+        equals(<String>['s_bind', 's_haze', 's_self_stat', 's_gastro_acid']),
+      );
+
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
+      final coilSlot = session.decisionRequest.fightChoices
+          .singleWhere((choice) => choice.moveId == 'coil')
+          .moveSlot;
+      final result =
+          session.submitPlayerChoice(PlayerBattleChoiceFight(coilSlot));
+
+      expect(
+        result.timeline.events.whereType<BattleStatStageChangeTimelineEvent>(),
+        isNotEmpty,
+      );
+      expect(
+        session.state.psdkState
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('accuracy'),
+        equals(1),
+      );
     });
 
     test('maps the real player party member from runtime save data', () async {
@@ -1856,6 +1915,37 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
             'showdown_callback:condition.onFieldEnd',
           ],
         ),
+        _moveEntry(
+          'wrap',
+          'Wrap',
+          15,
+          category: PokemonMoveCategory.physical,
+          pp: 20,
+          accuracy: 90,
+        ),
+        _moveEntry(
+          'haze',
+          'Haze',
+          0,
+          type: 'ice',
+          target: PokemonMoveTarget.all,
+          pp: 30,
+        ),
+        _moveEntry(
+          'coil',
+          'Coil',
+          0,
+          type: 'poison',
+          target: PokemonMoveTarget.self,
+          pp: 20,
+        ),
+        _moveEntry(
+          'gastro_acid',
+          'Gastro Acid',
+          0,
+          type: 'poison',
+          pp: 10,
+        ),
       ],
     },
   );
@@ -2001,6 +2091,37 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
         PokemonMoveEffect.setPseudoWeather(
           targetScope: PokemonMoveEffectTargetScope.field,
           pseudoWeatherId: 'trickroom',
+        ),
+      ],
+    'wrap' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyVolatileStatus(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          volatileStatusId: 'bind',
+        ),
+      ],
+    'coil' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.self,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.attack,
+              stages: 1,
+            ),
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: 1,
+            ),
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.accuracy,
+              stages: 1,
+            ),
+          ],
+        ),
+      ],
+    'gastro_acid' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyVolatileStatus(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          volatileStatusId: 'ability_suppressed',
         ),
       ],
     _ => const <PokemonMoveEffect>[],

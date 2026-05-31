@@ -683,17 +683,71 @@ class RuntimeBattleMoveBridge {
     );
   }
 
+  PsdkBattleMoveData toPsdkBattleMoveData({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    final battleEngineMethod = _resolveBattleEngineMethod(move);
+    if (battleEngineMethod == null) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'psdk_battle_engine_method_not_found',
+      );
+    }
+    final registryStatus = _psdkRegistryStatusFor(battleEngineMethod);
+    if (registryStatus != PsdkPortStatus.ported.name) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'psdk_battle_engine_method_not_ported:$battleEngineMethod',
+      );
+    }
+
+    return PsdkBattleMoveData(
+      id: move.id,
+      dbSymbol: move.id,
+      name: move.name,
+      type: _translateType(move: move, combatantLabel: combatantLabel),
+      category: _translatePsdkCategory(move.category),
+      power: move.basePower < 0 ? 0 : move.basePower,
+      accuracy: _translatePsdkAccuracy(move.accuracy),
+      pp: move.pp,
+      priority: move.priority,
+      criticalRate: move.critRatio,
+      battleEngineMethod: battleEngineMethod,
+      target: _translatePsdkTarget(move.target),
+      contact: move.flags.contains(PokemonMoveFlag.contact),
+      sound: move.flags.contains(PokemonMoveFlag.sound),
+      bite: move.flags.contains(PokemonMoveFlag.bite),
+      pulse: move.flags.contains(PokemonMoveFlag.pulse),
+      wind: move.flags.contains(PokemonMoveFlag.wind),
+      ballistics: move.flags.contains(PokemonMoveFlag.bullet),
+      dance: move.flags.contains(PokemonMoveFlag.dance),
+      heal: move.flags.contains(PokemonMoveFlag.heal),
+      charge: move.flags.contains(PokemonMoveFlag.charge),
+      recharge: move.flags.contains(PokemonMoveFlag.recharge),
+      snatchable: move.flags.contains(PokemonMoveFlag.snatch),
+      magicCoatAffected: move.flags.contains(PokemonMoveFlag.reflectable),
+      statuses: _psdkStatusesFor(move),
+      stageMods: _psdkStageModsFor(move),
+    );
+  }
+
   RuntimeBattleMoveBridgeDiagnostics inspectMove({
     required PokemonMove move,
     required String combatantLabel,
   }) {
     final battleEngineMethod = _resolveBattleEngineMethod(move);
     final psdkRegistryStatus = _psdkRegistryStatusFor(battleEngineMethod);
+    final psdkBridgeable = psdkRegistryStatus == PsdkPortStatus.ported.name;
     try {
       toBattleMoveData(move: move, combatantLabel: combatantLabel);
       return RuntimeBattleMoveBridgeDiagnostics(
         moveId: move.id,
         bridgeable: true,
+        runtimeBridgeable: true,
+        psdkBridgeable: psdkBridgeable,
         reason: 'bridgeable',
         engineSupportLevel: move.engineSupportLevel,
         unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
@@ -707,7 +761,9 @@ class RuntimeBattleMoveBridge {
       );
       return RuntimeBattleMoveBridgeDiagnostics(
         moveId: move.id,
-        bridgeable: false,
+        bridgeable: psdkBridgeable,
+        runtimeBridgeable: false,
+        psdkBridgeable: psdkBridgeable,
         reason: bridgeLimit ?? 'runtime_bridge_rejected',
         engineSupportLevel: move.engineSupportLevel,
         unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
@@ -780,6 +836,44 @@ class RuntimeBattleMoveBridge {
       PokemonMoveCategory.physical => BattleMoveCategory.physical,
       PokemonMoveCategory.special => BattleMoveCategory.special,
       PokemonMoveCategory.status => BattleMoveCategory.status,
+    };
+  }
+
+  PsdkBattleMoveCategory _translatePsdkCategory(PokemonMoveCategory category) {
+    return switch (category) {
+      PokemonMoveCategory.physical => PsdkBattleMoveCategory.physical,
+      PokemonMoveCategory.special => PsdkBattleMoveCategory.special,
+      PokemonMoveCategory.status => PsdkBattleMoveCategory.status,
+    };
+  }
+
+  int _translatePsdkAccuracy(PokemonMoveAccuracy accuracy) {
+    return accuracy.map(
+      percent: (accuracy) => accuracy.value,
+      alwaysHits: (_) => 0,
+    );
+  }
+
+  PsdkBattleMoveTarget _translatePsdkTarget(PokemonMoveTarget target) {
+    return switch (target) {
+      PokemonMoveTarget.adjacentAlly => PsdkBattleMoveTarget.adjacentAlly,
+      PokemonMoveTarget.adjacentAllyOrSelf =>
+        PsdkBattleMoveTarget.adjacentAllyOrSelf,
+      PokemonMoveTarget.adjacentFoe ||
+      PokemonMoveTarget.normal =>
+        PsdkBattleMoveTarget.adjacentFoe,
+      PokemonMoveTarget.all => PsdkBattleMoveTarget.allBattlers,
+      PokemonMoveTarget.allAdjacent => PsdkBattleMoveTarget.allAdjacent,
+      PokemonMoveTarget.allAdjacentFoes => PsdkBattleMoveTarget.allAdjacentFoes,
+      PokemonMoveTarget.allies ||
+      PokemonMoveTarget.allyTeam =>
+        PsdkBattleMoveTarget.allAllies,
+      PokemonMoveTarget.allySide => PsdkBattleMoveTarget.userSide,
+      PokemonMoveTarget.any => PsdkBattleMoveTarget.anyFoe,
+      PokemonMoveTarget.foeSide => PsdkBattleMoveTarget.foeSide,
+      PokemonMoveTarget.randomNormal => PsdkBattleMoveTarget.randomFoe,
+      PokemonMoveTarget.scripted => PsdkBattleMoveTarget.none,
+      PokemonMoveTarget.self => PsdkBattleMoveTarget.user,
     };
   }
 
@@ -899,6 +993,122 @@ class RuntimeBattleMoveBridge {
           combatantLabel: combatantLabel,
           bridgeLimit: 'unsupported_volatile_status:$normalizedStatusId',
         ),
+    };
+  }
+
+  List<PsdkBattleMoveStatus> _psdkStatusesFor(PokemonMove move) {
+    final statuses = <PsdkBattleMoveStatus>[];
+    for (final effect in move.effects) {
+      effect.map(
+        fixedDamage: (_) {},
+        multiHit: (_) {},
+        applyStatus: (effect) {
+          final status = _psdkMajorStatusFor(effect.statusId);
+          if (status != null) {
+            statuses.add(
+              PsdkBattleMoveStatus(
+                status: status,
+                chance: effect.chance ?? 100,
+              ),
+            );
+          }
+        },
+        applyVolatileStatus: (effect) {
+          final status = _psdkVolatileStatusFor(effect.volatileStatusId);
+          if (status != null) {
+            statuses.add(
+              PsdkBattleMoveStatus.volatile(
+                status: status,
+                chance: effect.chance ?? 100,
+              ),
+            );
+          }
+        },
+        modifyStats: (_) {},
+        heal: (_) {},
+        drain: (_) {},
+        recoil: (_) {},
+        setWeather: (_) {},
+        setTerrain: (_) {},
+        setPseudoWeather: (_) {},
+        selfSwitch: (_) {},
+        forceSwitch: (_) {},
+        breakProtect: (_) {},
+        requireRecharge: (_) {},
+        chargeThenStrike: (_) {},
+        setSideCondition: (_) {},
+        setSlotCondition: (_) {},
+      );
+    }
+    return List<PsdkBattleMoveStatus>.unmodifiable(statuses);
+  }
+
+  List<PsdkBattleMoveStageMod> _psdkStageModsFor(PokemonMove move) {
+    final stageMods = <PsdkBattleMoveStageMod>[];
+    for (final effect in move.effects) {
+      effect.map(
+        fixedDamage: (_) {},
+        multiHit: (_) {},
+        applyStatus: (_) {},
+        applyVolatileStatus: (_) {},
+        modifyStats: (effect) {
+          for (final change in effect.stageChanges) {
+            stageMods.add(
+              PsdkBattleMoveStageMod(
+                stat: _psdkStatNameFor(change.stat),
+                stages: change.stages,
+                chance: effect.chance,
+              ),
+            );
+          }
+        },
+        heal: (_) {},
+        drain: (_) {},
+        recoil: (_) {},
+        setWeather: (_) {},
+        setTerrain: (_) {},
+        setPseudoWeather: (_) {},
+        selfSwitch: (_) {},
+        forceSwitch: (_) {},
+        breakProtect: (_) {},
+        requireRecharge: (_) {},
+        chargeThenStrike: (_) {},
+        setSideCondition: (_) {},
+        setSlotCondition: (_) {},
+      );
+    }
+    return List<PsdkBattleMoveStageMod>.unmodifiable(stageMods);
+  }
+
+  PsdkBattleMajorStatus? _psdkMajorStatusFor(String statusId) {
+    return switch (statusId.trim().toLowerCase()) {
+      'par' || 'paralysis' => PsdkBattleMajorStatus.paralysis,
+      'brn' || 'burn' => PsdkBattleMajorStatus.burn,
+      'psn' || 'poison' => PsdkBattleMajorStatus.poison,
+      'tox' || 'toxic' => PsdkBattleMajorStatus.toxic,
+      'slp' || 'sleep' => PsdkBattleMajorStatus.sleep,
+      'frz' || 'freeze' => PsdkBattleMajorStatus.freeze,
+      _ => null,
+    };
+  }
+
+  PsdkBattleVolatileStatus? _psdkVolatileStatusFor(String statusId) {
+    return switch (statusId.trim().toLowerCase()) {
+      'confusion' || 'confused' => PsdkBattleVolatileStatus.confusion,
+      'flinch' => PsdkBattleVolatileStatus.flinch,
+      _ => null,
+    };
+  }
+
+  String _psdkStatNameFor(PokemonMoveStatId stat) {
+    return switch (stat) {
+      PokemonMoveStatId.attack => 'attack',
+      PokemonMoveStatId.defense => 'defense',
+      PokemonMoveStatId.specialAttack => 'specialAttack',
+      PokemonMoveStatId.specialDefense => 'specialDefense',
+      PokemonMoveStatId.speed => 'speed',
+      PokemonMoveStatId.accuracy => 'accuracy',
+      PokemonMoveStatId.evasion => 'evasion',
     };
   }
 
@@ -1310,6 +1520,10 @@ String? _resolveBattleEngineMethod(PokemonMove move) {
     final method = _knownPsdkMethodByMoveId[sourceId];
     if (method != null) {
       return method;
+    }
+    final psdkMethod = psdkBattleEngineMethodForMoveId(sourceId);
+    if (psdkMethod != null) {
+      return psdkMethod;
     }
   }
 

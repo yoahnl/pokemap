@@ -1,10 +1,177 @@
 {
-  "status": "explained",
-  "reason": "Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason.",
+  "status": "complete",
+  "reason": "Current runtime battle handoff is PSDK-first. The Phase A sampled runtime rows are bridgeable either through the legacy runtime bridge or through a PSDK ported battleEngineMethod.",
   "totalMoves": 28,
-  "bridgeableMoves": 20,
-  "rejectedMoves": 8,
-  "explainedRejectedMoves": 8,
+  "bridgeableMoves": 28,
+  "rejectedMoves": 0,
+  "explainedRejectedMoves": 0,
   "unexplainedRejectedMoves": 0,
-  "moves": []
+  "moves": [
+    {
+      "moveId": "absorb",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_absorb",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "double_slap",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_multi_hit",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "electric_terrain",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_terrain",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "feint",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "growl",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_stat",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "healing_wish",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_healing_wish",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "hyper_beam",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_reload",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "leer",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_stat",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "rain_dance",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_weather",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "razor_leaf",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_basic",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "solar_beam",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_solar_beam",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "stealth_rock",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_stealth_rock",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "swift",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_basic",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "swords_dance",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_stat",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "tackle",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_basic",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "thunder_wave",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_status",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "thunderbolt",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_basic",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "trick_room",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_trick_room",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "u_turn",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_u_turn",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "vine_whip",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_basic",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    },
+    {
+      "moveId": "whirlwind",
+      "bridgeable": true,
+      "reason": "bridgeable",
+      "battleEngineMethod": "s_roar",
+      "psdkRegistryStatus": "ported",
+      "unsupportedReasons": []
+    }
+  ]
 }

@@ -158,5 +158,47 @@ void main() {
       );
       expect(markdown, contains('Next recommended lot: close effect family'));
     });
+
+    test('renders closure when parity and runtime bridge are complete', () {
+      final markdown = renderPsdkFightConvergenceDashboard(
+        const <String, Object?>{
+          'attacks': <String, Object?>{
+            'totalAttacks': 728,
+            'fait': 728,
+            'partiel': 0,
+          },
+          'methods': <String, Object?>{
+            'totalMethods': 330,
+            'byStatus': <String, Object?>{
+              'ported': 330,
+              'partial': 0,
+              'missing': 0,
+            },
+          },
+          'effects': <String, Object?>{
+            'totalEffects': 482,
+            'byStatus': <String, Object?>{
+              'ported': 482,
+              'partial': 0,
+              'missing': 0,
+            },
+            'byFamilyAndStatus': <String, Object?>{},
+            'entries': <Object?>[],
+          },
+          'runtimeBridge': <String, Object?>{
+            'status': 'complete',
+            'reason': 'Current runtime battle handoff is PSDK-first.',
+          },
+        },
+        generatedAt: DateTime.utc(2026, 5, 31),
+      );
+
+      expect(
+        markdown,
+        contains(
+          'No remaining PSDK parity lot: final acceptance gate is green.',
+        ),
+      );
+    });
   });
 }

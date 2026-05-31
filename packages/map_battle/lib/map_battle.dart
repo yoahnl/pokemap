@@ -209,6 +209,8 @@ export 'src/data/generated/psdk_move_registry_manifest.dart'
         PsdkMoveRegistryManifestEntry,
         PsdkPortStatus,
         PsdkMoveDependency;
+export 'src/data/psdk_move_method_index.dart'
+    show psdkBattleEngineMethodForMoveId;
 export 'src/domain/decision/battle_decision.dart'
     show
         BattleDecision,

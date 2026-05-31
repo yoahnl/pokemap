@@ -1,6 +1,6 @@
 # PSDK Fight 100 Percent Acceptance Gate
 
-Date: 2026-05-25
+Date: 2026-05-31
 
 ## Purpose
 
@@ -37,9 +37,10 @@ The gate now passes on the measured PSDK fight parity axes:
 - methods complete: `330 / 330`
 - effects complete: `482 / 482`
 - unknown methods: `0`
-- runtime bridge: `28` sampled runtime moves, `20` bridgeable,
-  `8` rejected with diagnostics, `0` unexplained rejections
+- runtime bridge: `28` sampled runtime rows, `28` bridgeable,
+  `0` rejected, `0` unexplained rejections
 
-The runtime bridge remains intentionally measured as a sampled integration
-surface: unsupported playable host rows are accepted only because each rejected
-row has an explicit diagnostic reason.
+The runtime bridge is still a sampled integration surface, but the sampled
+Phase A rows are now complete because battle handoff is PSDK-first. Moves that
+the legacy runtime bridge cannot project directly are accepted when the PSDK
+registry marks their battle engine method as `ported`.

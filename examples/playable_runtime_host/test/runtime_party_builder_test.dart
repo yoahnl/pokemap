@@ -1,9 +1,9 @@
-import 'package:PokeMap_Loader/src/runtime_demo_party_seed.dart';
-import 'package:PokeMap_Loader/src/runtime_party_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:pokemap_loader/src/runtime_demo_party_seed.dart';
+import 'package:pokemap_loader/src/runtime_party_builder.dart';
 
 void main() {
   testWidgets('adds a selected pokemon with level and suggested moves',
@@ -183,6 +183,18 @@ void main() {
                           PokemonMoveEngineSupportLevel.structuredSupported,
                       unsupportedReasons: <String>[],
                     ),
+                    'wrap': RuntimeBattleMoveBridgeDiagnostics(
+                      moveId: 'wrap',
+                      bridgeable: true,
+                      runtimeBridgeable: false,
+                      psdkBridgeable: true,
+                      reason: 'unsupported_apply_volatile_status_scope:target',
+                      engineSupportLevel:
+                          PokemonMoveEngineSupportLevel.structuredSupported,
+                      unsupportedReasons: <String>[],
+                      battleEngineMethod: 's_bind',
+                      psdkRegistryStatus: 'ported',
+                    ),
                     'baton_pass': RuntimeBattleMoveBridgeDiagnostics(
                       moveId: 'baton_pass',
                       bridgeable: false,
@@ -218,9 +230,28 @@ void main() {
 
     expect(find.text('Moves filtres'), findsOneWidget);
     expect(
-      find.text('baton_pass - unsupported_effect_kind:self_switch'),
+      find.text('baton_pass - Switch utilisateur non expose en runtime'),
       findsOneWidget,
     );
-    expect(find.text('mega_punch - bridgeable'), findsNothing);
+    final filteredMoveTooltip = tester.widget<Tooltip>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Tooltip &&
+            widget.message != null &&
+            widget.message!.contains('raison technique: '
+                'unsupported_effect_kind:self_switch'),
+      ),
+    );
+    expect(filteredMoveTooltip.message, contains('statut PSDK: partial'));
+    expect(
+      find.text(
+        'wrap - Statut volatile hors contrat (target)',
+      ),
+      findsNothing,
+    );
+    expect(
+      find.text('mega_punch - Pris en charge par le bridge combat'),
+      findsNothing,
+    );
   });
 }

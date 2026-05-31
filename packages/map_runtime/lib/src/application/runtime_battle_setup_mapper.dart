@@ -170,7 +170,7 @@ class RuntimeBattleSetupMapper {
       //   storage minimal persistant ;
       // - aucune capture sans Poké Ball réelle dans le bag du joueur.
       allowCapture: request is WildBattleStartRequest &&
-          _playerHasAtLeastOnePokeBall(gameState.bag),
+          playerHasAtLeastOneRuntimePokeBall(gameState.bag),
     );
   }
 
@@ -305,7 +305,7 @@ final class _RuntimeBattleEnemyLineup {
 ///
 /// On tolère des IDs non normalisés en mémoire (`" poke-ball "`) pour rester
 /// robuste face à un état runtime pas encore passé par le pipeline save/load.
-bool _playerHasAtLeastOnePokeBall(Bag bag) {
+bool playerHasAtLeastOneRuntimePokeBall(Bag bag) {
   for (final entry in bag.entries) {
     if (entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
         entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId &&

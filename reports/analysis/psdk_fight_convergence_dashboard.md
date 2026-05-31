@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-25T11:53:28.303399Z
+Generated: 2026-05-31T19:52:13.781137Z
 
 ## Final Gate Axes
 
@@ -25,9 +25,9 @@ Generated: 2026-05-25T11:53:28.303399Z
 
 | Metric | Value |
 | --- | --- |
-| Status | `explained` |
-| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
+| Status | `complete` |
+| Reason | Current runtime battle handoff is PSDK-first. The Phase A sampled runtime rows are bridgeable either through the legacy runtime bridge or through a PSDK ported battleEngineMethod. |
 
 ## Next Recommendation
 
-Next recommended lot: run final acceptance gate.
+No remaining PSDK parity lot: final acceptance gate is green.

@@ -204,6 +204,396 @@ void main() {
       expect(updatedState.storyFlags.activeFlags, isEmpty);
     });
 
+    test('PlayableMapGame opens PSDK battle as the primary runtime bridge',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(_playerState()),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugBattleOverlayMounted, isTrue);
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      expect(game.debugBattleSessionSnapshot, isNotNull);
+      expect(
+        game.debugBattleSessionSnapshot!.state.player.moves.map(
+          (move) => move.id,
+        ),
+        equals(<String>['vine_whip']),
+      );
+    });
+
+    test('PlayableMapGame opens PSDK battle for legacy-filtered PSDK moves',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+      const initialState = GameState(
+        saveId: 'wild-flow-psdk-save',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: <String>['wrap', 'coil'],
+              currentHp: 20,
+            ),
+          ],
+        ),
+      );
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(initialState),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugBattleOverlayMounted, isTrue);
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      expect(game.debugBattleSessionSnapshot, isNotNull);
+      expect(
+        game.debugBattleSessionSnapshot!.state.player.moves.map(
+          (move) => move.id,
+        ),
+        equals(<String>['wrap', 'coil']),
+      );
+      expect(
+        game.debugBattleSessionSnapshot!.state.player.moves.first.currentPp,
+        equals(20),
+      );
+
+      final overlay = game.debugBattleOverlayComponent;
+      expect(overlay, isNotNull);
+      expect(overlay!.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.fight);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      expect(
+        game.debugBattleSessionSnapshot!.state.player.moves.first.currentPp,
+        equals(19),
+      );
+    });
+
+    test('PlayableMapGame can capture from a PSDK battle', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+      const initialState = GameState(
+        saveId: 'wild-flow-psdk-capture-save',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+          ],
+        ),
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: <String>['wrap', 'coil'],
+              currentHp: 20,
+            ),
+          ],
+        ),
+      );
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(initialState),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      final overlay = game.debugBattleOverlayComponent;
+      expect(overlay, isNotNull);
+      overlay!.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      await game.debugWaitForBattleOverlaySync();
+
+      for (var i = 0; i < 8 && game.debugFlowPhaseName != 'overworld'; i++) {
+        game.update(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      final snapshot = game.gameStateSnapshot;
+      expect(game.debugFlowPhaseName, equals('overworld'));
+      expect(game.debugPsdkBattleSessionActive, isFalse);
+      expect(snapshot.party.members, hasLength(2));
+      expect(snapshot.party.members.last.speciesId, equals('sparkitten'));
+      expect(
+        snapshot.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+          ],
+        ),
+      );
+      expect(snapshot.progression.caughtSpeciesIds, contains('sparkitten'));
+    });
+
+    test('PlayableMapGame can use a potion in a PSDK battle', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+      const initialState = GameState(
+        saveId: 'wild-flow-psdk-potion-save',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          ],
+        ),
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: <String>['wrap', 'coil'],
+              currentHp: 12,
+            ),
+          ],
+        ),
+      );
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(initialState),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      final initialBattleHp =
+          game.debugBattleSessionSnapshot!.state.player.currentHp;
+      expect(initialBattleHp, equals(12));
+
+      final overlay = game.debugBattleOverlayComponent;
+      expect(overlay, isNotNull);
+      overlay!.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bagMedicineTarget);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugFlowPhaseName, equals('battle'));
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      expect(game.gameStateSnapshot.bag.entries, isEmpty);
+      expect(
+        game.gameStateSnapshot.party.members.first.currentHp,
+        equals(game.debugBattleSessionSnapshot!.state.player.currentHp),
+      );
+      expect(
+        game.debugBattleSessionSnapshot!.state.player.currentHp,
+        greaterThan(initialBattleHp),
+      );
+    });
+
+    test('PlayableMapGame can run from a PSDK battle', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+      const initialState = GameState(
+        saveId: 'wild-flow-psdk-run-save',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: <String>['wrap', 'coil'],
+              currentHp: 20,
+            ),
+          ],
+        ),
+      );
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(initialState),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugPsdkBattleSessionActive, isTrue);
+      final overlay = game.debugBattleOverlayComponent;
+      expect(overlay, isNotNull);
+      final activeOverlay = overlay!;
+      for (var i = 0; i < 12 && !activeOverlay.commandPanelMounted; i++) {
+        game.update(0.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(activeOverlay.commandPanelMounted, isTrue);
+
+      expect(
+        game.selectBattleRootEntry(BattleCommandRootAction.run.index),
+        isTrue,
+      );
+      await game.debugWaitForBattleOverlaySync();
+
+      for (var i = 0; i < 4 && game.debugFlowPhaseName != 'overworld'; i++) {
+        game.update(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(game.debugFlowPhaseName, equals('overworld'));
+      expect(game.debugPsdkBattleSessionActive, isFalse);
+      expect(game.debugBattleOverlayComponent, isNull);
+    });
+
     test('wild capture is disabled when the player has no poke-ball', () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
       final map = _buildMap();
@@ -1189,7 +1579,7 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
   final manifest = ProjectManifest(
     name: 'Wild Battle Flow Test',
     maps: <ProjectMapEntry>[
-      ProjectMapEntry(
+      const ProjectMapEntry(
         id: 'field_map',
         name: 'Field Map',
         relativePath: 'maps/field_map.json',
@@ -1198,7 +1588,7 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
     tilesets: <ProjectTilesetEntry>[],
     surfaceCatalog: ProjectSurfaceCatalog(),
     encounterTables: <ProjectEncounterTable>[
-      ProjectEncounterTable(
+      const ProjectEncounterTable(
         id: 'field_grass',
         name: 'Field Grass',
         encounterKind: EncounterKind.walk,
@@ -1212,7 +1602,7 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
         ],
       ),
     ],
-    pokemon: ProjectPokemonConfig(
+    pokemon: const ProjectPokemonConfig(
       dataRoot: 'data/pokemon',
       speciesDir: 'data/pokemon/species',
       learnsetsDir: 'data/pokemon/learnsets',
@@ -1361,6 +1751,46 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'entries': <Map<String, Object?>>[
         _moveEntry('vine_whip', 'Vine Whip', 12, type: 'grass'),
         _moveEntry('scratch', 'Scratch', 5),
+        _moveEntry(
+          'wrap',
+          'Wrap',
+          15,
+          pp: 20,
+          accuracy: 90,
+          effects: const <PokemonMoveEffect>[
+            PokemonMoveEffect.applyVolatileStatus(
+              targetScope: PokemonMoveEffectTargetScope.target,
+              volatileStatusId: 'bind',
+            ),
+          ],
+        ),
+        _moveEntry(
+          'coil',
+          'Coil',
+          0,
+          type: 'poison',
+          target: PokemonMoveTarget.self,
+          pp: 20,
+          effects: const <PokemonMoveEffect>[
+            PokemonMoveEffect.modifyStats(
+              targetScope: PokemonMoveEffectTargetScope.self,
+              stageChanges: <PokemonMoveStatStageChange>[
+                PokemonMoveStatStageChange(
+                  stat: PokemonMoveStatId.attack,
+                  stages: 1,
+                ),
+                PokemonMoveStatStageChange(
+                  stat: PokemonMoveStatId.defense,
+                  stages: 1,
+                ),
+                PokemonMoveStatStageChange(
+                  stat: PokemonMoveStatId.accuracy,
+                  stages: 1,
+                ),
+              ],
+            ),
+          ],
+        ),
       ],
     },
   );
@@ -1371,6 +1801,10 @@ Map<String, Object?> _moveEntry(
   String name,
   int power, {
   String type = 'normal',
+  PokemonMoveTarget target = PokemonMoveTarget.normal,
+  int pp = 35,
+  int accuracy = 100,
+  List<PokemonMoveEffect> effects = const <PokemonMoveEffect>[],
 }) {
   return PokemonMove(
     id: id,
@@ -1381,12 +1815,13 @@ Map<String, Object?> _moveEntry(
     type: type,
     category:
         power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.physical,
-    target: PokemonMoveTarget.normal,
+    target: target,
     basePower: power,
     accuracy: power == 0
         ? const PokemonMoveAccuracy.alwaysHits()
-        : const PokemonMoveAccuracy.percent(value: 100),
-    pp: 35,
+        : PokemonMoveAccuracy.percent(value: accuracy),
+    pp: pp,
+    effects: effects,
     engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
   ).toJson();
 }

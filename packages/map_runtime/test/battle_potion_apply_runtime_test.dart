@@ -5,6 +5,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
+import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -116,6 +117,87 @@ RuntimeActiveBattleContext _context({
     ),
     playerPartyIndex: playerPartyIndex,
     playerPartySlotIndicesByLineupIndex: lineupPartyIndices,
+  );
+}
+
+RuntimePsdkBattleSessionAdapter _psdkSession({
+  int currentHp = 30,
+  int maxHp = 100,
+  List<PsdkBattleCombatantSetup> playerReserves =
+      const <PsdkBattleCombatantSetup>[],
+}) {
+  return RuntimePsdkBattleSessionAdapter.fromSetup(
+    PsdkBattleSetup.singles(
+      player: _psdkCombatant(
+        id: 'player_0',
+        speciesId: 'sproutle',
+        currentHp: currentHp,
+        maxHp: maxHp,
+      ),
+      playerReserves: playerReserves,
+      opponent: _psdkCombatant(
+        id: 'opponent_0',
+        speciesId: 'sparkitten',
+        currentHp: 80,
+        maxHp: 80,
+        moves: <PsdkBattleMoveData>[_psdkMove(id: 'wait', power: 0)],
+      ),
+      rngSeeds: const PsdkBattleRngSeeds(
+        moveDamage: 17,
+        moveCritical: 23,
+        moveAccuracy: 31,
+        generic: 47,
+      ),
+    ),
+  );
+}
+
+PsdkBattleCombatantSetup _psdkCombatant({
+  required String id,
+  required String speciesId,
+  required int currentHp,
+  required int maxHp,
+  List<PsdkBattleMoveData>? moves,
+}) {
+  return PsdkBattleCombatantSetup(
+    id: id,
+    speciesId: speciesId,
+    displayName: speciesId,
+    level: 20,
+    maxHp: maxHp,
+    currentHp: currentHp,
+    types: const PsdkBattleTypes(primary: 'normal'),
+    stats: const PsdkBattleStats(
+      attack: 50,
+      defense: 50,
+      specialAttack: 50,
+      specialDefense: 50,
+      speed: 50,
+    ),
+    moves: moves ?? <PsdkBattleMoveData>[_psdkMove(id: 'tackle', power: 40)],
+  );
+}
+
+PsdkBattleMoveData _psdkMove({
+  required String id,
+  required int power,
+}) {
+  return PsdkBattleMoveData(
+    id: id,
+    dbSymbol: id,
+    name: id,
+    type: 'normal',
+    category: power <= 0
+        ? PsdkBattleMoveCategory.status
+        : PsdkBattleMoveCategory.physical,
+    power: power,
+    accuracy: 100,
+    pp: 35,
+    priority: 0,
+    battleEngineMethod: 's_basic',
+    target: power <= 0
+        ? PsdkBattleMoveTarget.user
+        : PsdkBattleMoveTarget.adjacentFoe,
   );
 }
 
@@ -813,6 +895,146 @@ void main() {
       expect(faintedSession.state.player.currentHp, equals(0));
       expect(faintedState.party.members.first.currentHp, equals(0));
       expect(faintedState.bag.entries.single.quantity, equals(1));
+    });
+
+    test('PSDK HP medicines update battle state and runtime bag', () {
+      const cases = <({
+        String itemId,
+        BattleBagHpHealItemKind kind,
+        int currentHp,
+        int maxHp,
+        int expectedHp,
+      })>[
+        (
+          itemId: 'potion',
+          kind: BattleBagHpHealItemKind.potion,
+          currentHp: 30,
+          maxHp: 100,
+          expectedHp: 50,
+        ),
+        (
+          itemId: 'super-potion',
+          kind: BattleBagHpHealItemKind.superPotion,
+          currentHp: 30,
+          maxHp: 100,
+          expectedHp: 80,
+        ),
+        (
+          itemId: 'hyper-potion',
+          kind: BattleBagHpHealItemKind.hyperPotion,
+          currentHp: 30,
+          maxHp: 100,
+          expectedHp: 100,
+        ),
+        (
+          itemId: 'max-potion',
+          kind: BattleBagHpHealItemKind.maxPotion,
+          currentHp: 30,
+          maxHp: 100,
+          expectedHp: 100,
+        ),
+      ];
+
+      for (final itemCase in cases) {
+        final psdkSession = _psdkSession(
+          currentHp: itemCase.currentHp,
+          maxHp: itemCase.maxHp,
+        );
+        final displaySession = psdkSession.createLegacyDisplaySession(
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        );
+        final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+          psdkSession: psdkSession,
+          displaySession: displaySession,
+          gameState: _gameState(
+            bag: Bag(
+              entries: <BagEntry>[
+                BagEntry(
+                  itemId: itemCase.itemId,
+                  categoryId: 'medicine',
+                  quantity: 1,
+                ),
+              ],
+            ),
+            partyMembers: <PlayerPokemon>[
+              _partyMember(
+                speciesId: 'sproutle',
+                currentHp: itemCase.currentHp,
+              ),
+            ],
+          ),
+          context: _context(
+            playerPartyIndex: 0,
+            lineupPartyIndices: const <int>[0],
+          ),
+          itemId: itemCase.itemId,
+          targetLineupIndex: 0,
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        );
+
+        expect(result, isNotNull, reason: itemCase.itemId);
+        expect(result!.itemKind, itemCase.kind);
+        expect(result.updatedDisplaySession.state.player.currentHp,
+            itemCase.expectedHp);
+        expect(result.updatedGameState.party.members.first.currentHp,
+            itemCase.expectedHp);
+        expect(result.updatedGameState.bag.entries, isEmpty);
+        expect(
+          psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).currentHp,
+          itemCase.expectedHp,
+        );
+      }
+    });
+
+    test('PSDK HP medicines stay limited to the active battler', () {
+      final psdkSession = _psdkSession(
+        currentHp: 30,
+        maxHp: 100,
+        playerReserves: <PsdkBattleCombatantSetup>[
+          _psdkCombatant(
+            id: 'player_1',
+            speciesId: 'sproutle',
+            currentHp: 40,
+            maxHp: 100,
+          ),
+        ],
+      );
+      final displaySession = psdkSession.createLegacyDisplaySession(
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+      final gameState = _gameState(
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          ],
+        ),
+        partyMembers: <PlayerPokemon>[
+          _partyMember(speciesId: 'sproutle', currentHp: 30),
+          _partyMember(speciesId: 'sproutle', currentHp: 40),
+        ],
+      );
+
+      final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+        psdkSession: psdkSession,
+        displaySession: displaySession,
+        gameState: gameState,
+        context: _context(
+          playerPartyIndex: 0,
+          lineupPartyIndices: const <int>[0, 1],
+        ),
+        itemId: 'potion',
+        targetLineupIndex: 1,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      expect(result, isNull);
+      expect(gameState.bag.entries.single.quantity, equals(1));
+      expect(psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).currentHp,
+          equals(30));
     });
   });
 }

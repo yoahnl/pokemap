@@ -9,11 +9,10 @@ import 'package:test/test.dart';
 void main() {
   group('PSDK parity gate', () {
     test('passes the current Pokemon SDK parity baseline', () async {
+      final sourceDirectories = _resolvePsdkSourceDirectories();
       final audit = await buildPsdkFightParityAudit(
-        movesDirectory:
-            Directory('../../pokémon_sdk_test_project/Data/Studio/moves'),
-        psdkBattleDirectory:
-            Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        movesDirectory: sourceDirectories.movesDirectory,
+        psdkBattleDirectory: sourceDirectories.psdkBattleDirectory,
       );
 
       final result = psdkLot02ParityGate.evaluate(audit);
@@ -97,4 +96,43 @@ void main() {
       );
     });
   });
+}
+
+({Directory movesDirectory, Directory psdkBattleDirectory})
+    _resolvePsdkSourceDirectories() {
+  final directMoves =
+      Directory('../../pokémon_sdk_test_project/Data/Studio/moves');
+  final directBattle =
+      Directory('../../pokemonsdk-development/scripts/5 Battle');
+  if (directMoves.existsSync() && directBattle.existsSync()) {
+    return (
+      movesDirectory: directMoves,
+      psdkBattleDirectory: directBattle,
+    );
+  }
+
+  final result = Process.runSync(
+    'git',
+    <String>['rev-parse', '--git-common-dir'],
+  );
+  if (result.exitCode == 0) {
+    final root = Directory('${result.stdout}'.trim()).parent;
+    final moves = Directory.fromUri(
+      root.uri.resolve('pokémon_sdk_test_project/Data/Studio/moves'),
+    );
+    final battle = Directory.fromUri(
+      root.uri.resolve('pokemonsdk-development/scripts/5 Battle'),
+    );
+    if (moves.existsSync() && battle.existsSync()) {
+      return (
+        movesDirectory: moves,
+        psdkBattleDirectory: battle,
+      );
+    }
+  }
+
+  return (
+    movesDirectory: directMoves,
+    psdkBattleDirectory: directBattle,
+  );
 }

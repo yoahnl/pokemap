@@ -203,12 +203,8 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
               spacing: 8,
               runSpacing: 8,
               children: option.filteredMoveDiagnostics.map((diagnostic) {
-                final registry = diagnostic.psdkRegistryStatus == null
-                    ? ''
-                    : ' / PSDK ${diagnostic.psdkRegistryStatus}';
                 return Tooltip(
-                  message: '${diagnostic.moveId}: ${diagnostic.reason}'
-                      '$registry',
+                  message: diagnostic.userFacingTooltip,
                   child: Chip(
                     visualDensity: VisualDensity.compact,
                     avatar: Icon(
@@ -217,7 +213,7 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
                       color: theme.colorScheme.error,
                     ),
                     label: Text(
-                      '${diagnostic.moveId} - ${diagnostic.reason}',
+                      '${diagnostic.moveId} - ${diagnostic.userFacingReason}',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

@@ -6,7 +6,11 @@ import 'package:test/test.dart';
 void main() {
   group('PSDK final parity gate', () {
     test('requires the phase E golden fixture floor', () {
-      expect(psdkFinalParityGate.minimumGoldenFixtures, 2);
+      expect(psdkFinalParityGate.minimumGoldenFixtures, 3);
+      expect(
+        psdkFinalParityGate.requiredGoldenTags,
+        containsAll(<String>['move_method', 'status', 'field']),
+      );
     });
 
     test('fails if any required axis lacks ported or approved status', () {
@@ -40,7 +44,11 @@ void main() {
         minimumGoldenFixtures: 2,
       );
 
-      final result = gate.evaluate(audit, goldenFixtureCount: 0);
+      final result = gate.evaluate(
+        audit,
+        goldenFixtureCount: 0,
+        goldenTags: const <String>{},
+      );
 
       expect(result.passed, isFalse);
       expect(result.message, contains('unknown_methods=1 must be 0'));
@@ -58,6 +66,55 @@ void main() {
       );
       expect(result.message, contains('runtime_bridge status is not measured'));
       expect(result.message, contains('golden_fixtures=0 is below minimum 2'));
+    });
+
+    test('fails if required golden evidence tags are missing', () {
+      final audit = PsdkFightParityAudit(
+        sourceDescription: 'complete fixture',
+        attackMetrics: const PsdkAttackParityMetrics(
+          totalAttacks: 1,
+          uniqueBattleEngineMethods: 1,
+          fait: 1,
+          partiel: 0,
+          pasFait: 0,
+          unknownMethods: 0,
+        ),
+        methodMetrics: PsdkMethodParityMetrics(
+          totalMethods: 1,
+          byStatus: _counts(ported: 1),
+        ),
+        effectMetrics: PsdkEffectParityMetrics(
+          totalEffects: 1,
+          byStatus: _counts(ported: 1),
+          byFamilyAndStatus: <String, Map<PsdkPortStatus, int>>{
+            'move': _counts(ported: 1),
+          },
+        ),
+        runtimeBridge: const PsdkRuntimeBridgeParity(
+          status: 'explained',
+          reason: 'fixture',
+        ),
+      );
+
+      const gate = PsdkFinalParityGatePolicy(
+        requiredTotalAttacks: 1,
+        requiredTotalMethods: 1,
+        requiredTotalEffects: 1,
+        minimumGoldenFixtures: 1,
+        requiredGoldenTags: <String>{'move_method', 'status', 'field'},
+      );
+
+      final result = gate.evaluate(
+        audit,
+        goldenFixtureCount: 1,
+        goldenTags: const <String>{'move_method'},
+      );
+
+      expect(result.passed, isFalse);
+      expect(
+        result.message,
+        contains('golden_tags missing required tags: field, status'),
+      );
     });
 
     test('passes with complete coverage or explicit approved out-of-scope gaps',
@@ -99,7 +156,11 @@ void main() {
         minimumGoldenFixtures: 2,
       );
 
-      final result = gate.evaluate(audit, goldenFixtureCount: 2);
+      final result = gate.evaluate(
+        audit,
+        goldenFixtureCount: 2,
+        goldenTags: const <String>{'move_method'},
+      );
 
       expect(result.passed, isTrue, reason: result.message);
     });

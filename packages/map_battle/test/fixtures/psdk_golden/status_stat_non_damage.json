@@ -1,0 +1,150 @@
+{
+  "scenarioId": "status_stat_non_damage",
+  "tags": [
+    "move_method",
+    "status"
+  ],
+  "psdkSourcePaths": [
+    "10 Move/1 Mechanics/102 Status Stat.rb"
+  ],
+  "sourcePsdkVersion": "pokemonsdk-development-local-2026-05-31",
+  "initialBattle": {
+    "rngSeeds": {
+      "moveDamage": 1,
+      "moveCritical": 99999,
+      "moveAccuracy": 1,
+      "generic": 1
+    },
+    "player": {
+      "id": "player-status-user",
+      "speciesId": "fixture_status_user",
+      "displayName": "Fixture Status User",
+      "level": 30,
+      "maxHp": 80,
+      "currentHp": 80,
+      "types": {
+        "primary": "normal"
+      },
+      "stats": {
+        "attack": 50,
+        "defense": 50,
+        "specialAttack": 50,
+        "specialDefense": 50,
+        "speed": 60
+      },
+      "moves": [
+        {
+          "id": "scary_wave",
+          "dbSymbol": "scary_wave",
+          "name": "Scary Wave",
+          "type": "normal",
+          "category": "status",
+          "power": 0,
+          "accuracy": 100,
+          "pp": 20,
+          "priority": 0,
+          "criticalRate": 0,
+          "battleEngineMethod": "s_stat",
+          "target": "adjacentFoe",
+          "statuses": [
+            {
+              "status": "paralysis",
+              "chance": 100
+            }
+          ],
+          "stageMods": [
+            {
+              "stat": "attack",
+              "stages": -1,
+              "chance": 100
+            }
+          ]
+        }
+      ]
+    },
+    "opponent": {
+      "id": "opponent-status-target",
+      "speciesId": "fixture_status_target",
+      "displayName": "Fixture Status Target",
+      "level": 30,
+      "maxHp": 80,
+      "currentHp": 80,
+      "types": {
+        "primary": "normal"
+      },
+      "stats": {
+        "attack": 55,
+        "defense": 55,
+        "specialAttack": 40,
+        "specialDefense": 50,
+        "speed": 45
+      },
+      "moves": [
+        {
+          "id": "hold_hands",
+          "dbSymbol": "hold_hands",
+          "name": "Hold Hands",
+          "type": "normal",
+          "category": "status",
+          "power": 0,
+          "accuracy": 100,
+          "pp": 40,
+          "priority": 0,
+          "criticalRate": 0,
+          "battleEngineMethod": "s_do_nothing",
+          "target": "self"
+        }
+      ]
+    }
+  },
+  "actions": [
+    {
+      "actor": "player",
+      "kind": "fight",
+      "moveSlot": 0
+    }
+  ],
+  "expectedFinalState": {
+    "player": {
+      "currentHp": 80
+    },
+    "opponent": {
+      "currentHp": 80
+    }
+  },
+  "expectedTimeline": {
+    "eventKinds": [
+      "turn_started",
+      "move_pp_spent",
+      "move_declared",
+      "animation_cue",
+      "status",
+      "stat_stage_change",
+      "move_pp_spent",
+      "move_declared",
+      "animation_cue"
+    ],
+    "statusEvents": [
+      {
+        "moveId": "scary_wave",
+        "status": "paralysis"
+      }
+    ],
+    "statStageEvents": [
+      {
+        "stat": "attack",
+        "amount": -1,
+        "currentStage": -1
+      }
+    ]
+  },
+  "expectedAuditDeltas": {
+    "strictAttacks": 1,
+    "portedMethods": 1,
+    "portedEffects": 0
+  },
+  "notes": [
+    "Golden fixture for a strict status/stat move that produces no damage.",
+    "It prevents the final PSDK gate from being represented only by damage fixtures."
+  ]
+}
