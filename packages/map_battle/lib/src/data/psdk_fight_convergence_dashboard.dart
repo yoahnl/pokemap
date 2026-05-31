@@ -97,6 +97,10 @@ String renderPsdkFightConvergenceDashboard(
     buffer.writeln('Next recommended lot: close partial move methods.');
   } else if (partialAttacks > 0) {
     buffer.writeln('Next recommended lot: close partial attack entries.');
+  } else if (runtimeStatus == 'complete') {
+    buffer.writeln(
+      'No remaining PSDK parity lot: final acceptance gate is green.',
+    );
   } else {
     buffer.writeln('Next recommended lot: run final acceptance gate.');
   }

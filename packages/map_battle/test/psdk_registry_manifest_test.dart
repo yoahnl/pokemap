@@ -67,8 +67,7 @@ void main() {
     });
 
     test('ported methods require source, behavior, and test evidence', () {
-      final psdkBattleRoot =
-          Directory('../../pokemonsdk-development/scripts/5 Battle');
+      final psdkBattleRoot = _psdkBattleRoot();
       final testCorpus = _readTestCorpus(Directory('test'));
 
       for (final entry in psdkMoveRegistryManifest
@@ -128,7 +127,7 @@ void main() {
         Directory('test/fixtures/psdk_golden'),
       );
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final families = effectEntries.map((entry) => entry.family).toSet();
 
@@ -159,7 +158,7 @@ void main() {
 
     test('effect parity mirrors ported ability and item manifests', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -195,7 +194,7 @@ void main() {
     test('effect parity promotes Lot 98 ability damage type accuracy batch',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -231,7 +230,7 @@ void main() {
     test('effect parity promotes Lot 99 ability status selection batch',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -258,7 +257,7 @@ void main() {
     test('effect parity promotes Lot 100 ability switch residual batch',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -289,7 +288,7 @@ void main() {
     test('effect parity promotes Lot 102 passive item modifier batch',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -322,7 +321,7 @@ void main() {
 
     test('effect parity promotes Lot 103 active item trigger batch', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -363,7 +362,7 @@ void main() {
     test('effect parity promotes Lot 249 existing item modifier families',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -387,7 +386,7 @@ void main() {
 
     test('effect parity promotes Lot 250 reactive held item effects', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -415,7 +414,7 @@ void main() {
 
     test('effect parity promotes Lot 253 passive ability effects', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -438,7 +437,7 @@ void main() {
     test('effect parity promotes Lot 254 switch and flinch ability effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -462,7 +461,7 @@ void main() {
     test('effect parity promotes Lot 255 Truant and Unnerve ability effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -492,7 +491,7 @@ void main() {
     test('effect parity promotes Lot 261 quick closure ability effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -518,7 +517,7 @@ void main() {
         'effect parity promotes Cotton Down and scopes Mirror Armor reflection',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -538,7 +537,7 @@ void main() {
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -564,7 +563,7 @@ void main() {
 
     test('effect parity promotes selection lock move effects', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -592,7 +591,7 @@ void main() {
     test('effect parity promotes Lot 94 protection and redirection effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -623,7 +622,7 @@ void main() {
 
     test('effect parity promotes pre-attack preparation effects', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -642,7 +641,7 @@ void main() {
 
     test('effect parity reconciles implemented move effect hooks', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -687,7 +686,7 @@ void main() {
     test('effect parity promotes Lot 95 field weather terrain and side effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -721,7 +720,7 @@ void main() {
 
     test('effect parity promotes Lot 104 generic mechanics classes', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
-        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+        _psdkBattleRoot(),
       );
       final byFamilyAndName = {
         for (final entry in effectEntries)
@@ -3151,13 +3150,62 @@ bool _hasEffectEvidence(
 }
 
 bool _psdkSourceExists(String rubyPath) {
-  final repoRoot = Directory('../..');
-  if (File('${repoRoot.path}/$rubyPath').existsSync()) {
-    return true;
+  for (final root in _psdkSourceRoots()) {
+    if (File.fromUri(root.uri.resolve(rubyPath)).existsSync()) {
+      return true;
+    }
   }
-  final psdkBattleRoot =
-      Directory('../../pokemonsdk-development/scripts/5 Battle');
-  return File('${psdkBattleRoot.path}/$rubyPath').existsSync();
+  return false;
+}
+
+Iterable<Directory> _psdkSourceRoots() sync* {
+  yield Directory('../..');
+  final gitRoot = _gitCommonRoot();
+  if (gitRoot != null) {
+    yield gitRoot;
+  }
+  yield _psdkBattleRoot();
+}
+
+Directory _psdkBattleRoot() {
+  final direct = Directory('../../pokemonsdk-development/scripts/5 Battle');
+  if (direct.existsSync()) {
+    return direct;
+  }
+
+  final gitRoot = _gitCommonRoot();
+  if (gitRoot == null) {
+    return direct;
+  }
+
+  final fallback = Directory.fromUri(
+    gitRoot.uri.resolve('pokemonsdk-development/scripts/5 Battle'),
+  );
+  if (fallback.existsSync()) {
+    return fallback;
+  }
+  return direct;
+}
+
+Directory? _gitCommonRoot() {
+  final result = Process.runSync(
+    'git',
+    <String>['rev-parse', '--git-common-dir'],
+  );
+  if (result.exitCode != 0) {
+    return null;
+  }
+
+  final commonPath = '${result.stdout}'.trim();
+  if (commonPath.isEmpty) {
+    return null;
+  }
+
+  final commonDirectory = Directory(commonPath);
+  if (commonDirectory.absolute.path.endsWith('${Platform.pathSeparator}.git')) {
+    return commonDirectory.parent;
+  }
+  return null;
 }
 
 String _snakeCase(String value) {

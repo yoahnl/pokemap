@@ -113,7 +113,7 @@ void main() {
       expect(diagnostic.psdkRegistryStatus, equals('ported'));
     });
 
-    test('inspectMove reports Baton Pass as not bridgeable without throwing',
+    test('inspectMove reports Baton Pass as PSDK-bridgeable without throwing',
         () {
       const move = PokemonMove(
         id: 'baton_pass',
@@ -138,17 +138,18 @@ void main() {
         combatantLabel: 'Le Pokémon actif du joueur',
       );
 
-      expect(diagnostic.bridgeable, isFalse);
+      expect(diagnostic.bridgeable, isTrue);
       expect(diagnostic.runtimeBridgeable, isFalse);
+      expect(diagnostic.psdkBridgeable, isTrue);
       expect(diagnostic.psdkRegistered, isTrue);
-      expect(diagnostic.psdkPartial, isTrue);
+      expect(diagnostic.psdkPartial, isFalse);
       expect(diagnostic.reason, equals('unsupported_effect_kind:self_switch'));
       expect(
         diagnostic.engineSupportLevel,
         equals(PokemonMoveEngineSupportLevel.structuredSupported),
       );
       expect(diagnostic.battleEngineMethod, equals('s_baton_pass'));
-      expect(diagnostic.psdkRegistryStatus, equals('partial'));
+      expect(diagnostic.psdkRegistryStatus, equals('ported'));
       expect(
         diagnostic.debugDetails,
         contains('bridgeLimit=unsupported_effect_kind:self_switch'),
@@ -159,8 +160,307 @@ void main() {
       );
       expect(
         diagnostic.toJson(),
-        containsPair('psdkRegistryStatus', 'partial'),
+        containsPair('psdkRegistryStatus', 'ported'),
       );
+    });
+
+    test('projects PSDK-ported moves rejected by the legacy battle bridge', () {
+      final wrap = bridge.toPsdkBattleMoveData(
+        move: _psdkMove(
+          id: 'wrap',
+          name: 'Wrap',
+          type: 'normal',
+          category: PokemonMoveCategory.physical,
+          target: PokemonMoveTarget.normal,
+          basePower: 15,
+          accuracy: const PokemonMoveAccuracy.percent(value: 90),
+          effects: const <PokemonMoveEffect>[
+            PokemonMoveEffect.applyVolatileStatus(
+              volatileStatusId: 'bind',
+            ),
+          ],
+        ),
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+      final haze = bridge.toPsdkBattleMoveData(
+        move: _psdkMove(
+          id: 'haze',
+          name: 'Haze',
+          type: 'ice',
+          category: PokemonMoveCategory.status,
+          target: PokemonMoveTarget.all,
+          basePower: 0,
+          accuracy: const PokemonMoveAccuracy.alwaysHits(),
+        ),
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+      final spitUp = bridge.toPsdkBattleMoveData(
+        move: _psdkMove(
+          id: 'spit_up',
+          name: 'Spit Up',
+          type: 'normal',
+          category: PokemonMoveCategory.special,
+          target: PokemonMoveTarget.normal,
+          basePower: 0,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        ),
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(wrap.battleEngineMethod, equals('s_bind'));
+      expect(wrap.target, equals(PsdkBattleMoveTarget.adjacentFoe));
+      expect(wrap.accuracy, equals(90));
+      expect(haze.battleEngineMethod, equals('s_haze'));
+      expect(haze.target, equals(PsdkBattleMoveTarget.allBattlers));
+      expect(haze.accuracy, equals(0));
+      expect(spitUp.battleEngineMethod, equals('s_split_up'));
+    });
+
+    test('projects PSDK stat stages including accuracy for Coil', () {
+      final coil = bridge.toPsdkBattleMoveData(
+        move: _psdkMove(
+          id: 'coil',
+          name: 'Coil',
+          type: 'poison',
+          category: PokemonMoveCategory.status,
+          target: PokemonMoveTarget.self,
+          basePower: 0,
+          accuracy: const PokemonMoveAccuracy.alwaysHits(),
+          effects: const <PokemonMoveEffect>[
+            PokemonMoveEffect.modifyStats(
+              targetScope: PokemonMoveEffectTargetScope.self,
+              stageChanges: <PokemonMoveStatStageChange>[
+                PokemonMoveStatStageChange(
+                  stat: PokemonMoveStatId.attack,
+                  stages: 1,
+                ),
+                PokemonMoveStatStageChange(
+                  stat: PokemonMoveStatId.defense,
+                  stages: 1,
+                ),
+                PokemonMoveStatStageChange(
+                  stat: PokemonMoveStatId.accuracy,
+                  stages: 1,
+                ),
+              ],
+            ),
+          ],
+        ),
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(coil.battleEngineMethod, equals('s_self_stat'));
+      expect(coil.target, equals(PsdkBattleMoveTarget.user));
+      expect(
+        coil.stageMods.map((mod) => (stat: mod.stat, stages: mod.stages)),
+        containsAll(<({String stat, int stages})>[
+          (stat: 'attack', stages: 1),
+          (stat: 'defense', stages: 1),
+          (stat: 'accuracy', stages: 1),
+        ]),
+      );
+    });
+
+    test('inspectMove marks PSDK-ported legacy-rejected moves as bridgeable',
+        () {
+      final diagnostic = bridge.inspectMove(
+        move: _psdkMove(
+          id: 'gastro_acid',
+          name: 'Gastro Acid',
+          type: 'poison',
+          category: PokemonMoveCategory.status,
+          target: PokemonMoveTarget.normal,
+          basePower: 0,
+          accuracy: const PokemonMoveAccuracy.percent(value: 100),
+          effects: const <PokemonMoveEffect>[
+            PokemonMoveEffect.applyVolatileStatus(
+              volatileStatusId: 'ability_suppressed',
+            ),
+          ],
+        ),
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(diagnostic.bridgeable, isTrue);
+      expect(diagnostic.runtimeBridgeable, isFalse);
+      expect(diagnostic.psdkBridgeable, isTrue);
+      expect(
+        diagnostic.reason,
+        equals('unsupported_apply_volatile_status_scope:target'),
+      );
+      expect(diagnostic.battleEngineMethod, equals('s_gastro_acid'));
+      expect(diagnostic.psdkRegistryStatus, equals('ported'));
+      expect(
+        diagnostic.debugDetails,
+        contains('unsupported_apply_volatile_status_scope:target'),
+      );
+      expect(diagnostic.toJson(), containsPair('psdkBridgeable', true));
+    });
+
+    test('keeps the screenshot filtered move set bridgeable through PSDK', () {
+      final cases = <({
+        PokemonMove move,
+        String expectedMethod,
+      })>[
+        (
+          move: _psdkMove(
+            id: 'wrap',
+            name: 'Wrap',
+            type: 'normal',
+            category: PokemonMoveCategory.physical,
+            target: PokemonMoveTarget.normal,
+            basePower: 15,
+            accuracy: const PokemonMoveAccuracy.percent(value: 90),
+            effects: const <PokemonMoveEffect>[
+              PokemonMoveEffect.applyVolatileStatus(
+                volatileStatusId: 'bind',
+              ),
+            ],
+          ),
+          expectedMethod: 's_bind',
+        ),
+        (
+          move: _psdkMove(
+            id: 'bite',
+            name: 'Bite',
+            type: 'dark',
+            category: PokemonMoveCategory.physical,
+            target: PokemonMoveTarget.normal,
+            basePower: 60,
+            effects: const <PokemonMoveEffect>[
+              PokemonMoveEffect.applyVolatileStatus(
+                chance: 30,
+                volatileStatusId: 'flinch',
+              ),
+            ],
+            flags: const <PokemonMoveFlag>[PokemonMoveFlag.bite],
+          ),
+          expectedMethod: 's_basic',
+        ),
+        (
+          move: _psdkMove(
+            id: 'haze',
+            name: 'Haze',
+            type: 'ice',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.all,
+            basePower: 0,
+            accuracy: const PokemonMoveAccuracy.alwaysHits(),
+          ),
+          expectedMethod: 's_haze',
+        ),
+        (
+          move: _psdkMove(
+            id: 'spit_up',
+            name: 'Spit Up',
+            type: 'normal',
+            category: PokemonMoveCategory.special,
+            target: PokemonMoveTarget.normal,
+            basePower: 0,
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+          ),
+          expectedMethod: 's_split_up',
+        ),
+        (
+          move: _psdkMove(
+            id: 'stockpile',
+            name: 'Stockpile',
+            type: 'normal',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.self,
+            basePower: 0,
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+          ),
+          expectedMethod: 's_stockpile',
+        ),
+        (
+          move: _psdkMove(
+            id: 'swallow',
+            name: 'Swallow',
+            type: 'normal',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.self,
+            basePower: 0,
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+          ),
+          expectedMethod: 's_swallow',
+        ),
+        (
+          move: _psdkMove(
+            id: 'mud_bomb',
+            name: 'Mud Bomb',
+            type: 'ground',
+            category: PokemonMoveCategory.special,
+            target: PokemonMoveTarget.normal,
+            basePower: 65,
+            accuracy: const PokemonMoveAccuracy.percent(value: 85),
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+          ),
+          expectedMethod: 's_basic',
+        ),
+        (
+          move: _psdkMove(
+            id: 'gastro_acid',
+            name: 'Gastro Acid',
+            type: 'poison',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.normal,
+            basePower: 0,
+            effects: const <PokemonMoveEffect>[
+              PokemonMoveEffect.applyVolatileStatus(
+                volatileStatusId: 'ability_suppressed',
+              ),
+            ],
+          ),
+          expectedMethod: 's_gastro_acid',
+        ),
+        (
+          move: _psdkMove(
+            id: 'coil',
+            name: 'Coil',
+            type: 'poison',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.self,
+            basePower: 0,
+            effects: const <PokemonMoveEffect>[
+              PokemonMoveEffect.modifyStats(
+                targetScope: PokemonMoveEffectTargetScope.self,
+                stageChanges: <PokemonMoveStatStageChange>[
+                  PokemonMoveStatStageChange(
+                    stat: PokemonMoveStatId.attack,
+                    stages: 1,
+                  ),
+                  PokemonMoveStatStageChange(
+                    stat: PokemonMoveStatId.defense,
+                    stages: 1,
+                  ),
+                  PokemonMoveStatStageChange(
+                    stat: PokemonMoveStatId.accuracy,
+                    stages: 1,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          expectedMethod: 's_self_stat',
+        ),
+      ];
+
+      for (final item in cases) {
+        final diagnostic = bridge.inspectMove(
+          move: item.move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        );
+        final psdkMove = bridge.toPsdkBattleMoveData(
+          move: item.move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        );
+
+        expect(diagnostic.bridgeable, isTrue, reason: item.move.id);
+        expect(diagnostic.psdkBridgeable, isTrue, reason: item.move.id);
+        expect(diagnostic.battleEngineMethod, item.expectedMethod);
+        expect(psdkMove.battleEngineMethod, item.expectedMethod);
+      }
     });
 
     test('projects target any as the active foe in the local singles slice',
@@ -1532,4 +1832,35 @@ void main() {
       );
     });
   });
+}
+
+PokemonMove _psdkMove({
+  required String id,
+  required String name,
+  required String type,
+  required PokemonMoveCategory category,
+  required PokemonMoveTarget target,
+  required int basePower,
+  PokemonMoveAccuracy accuracy = const PokemonMoveAccuracy.percent(value: 100),
+  PokemonMoveEngineSupportLevel engineSupportLevel =
+      PokemonMoveEngineSupportLevel.structuredSupported,
+  List<PokemonMoveEffect> effects = const <PokemonMoveEffect>[],
+  List<PokemonMoveFlag> flags = const <PokemonMoveFlag>[],
+}) {
+  return PokemonMove(
+    id: id,
+    name: name,
+    names: <String, String>{'en': name},
+    generation: 1,
+    source: 'test',
+    type: type,
+    category: category,
+    target: target,
+    basePower: basePower,
+    accuracy: accuracy,
+    pp: 10,
+    effects: effects,
+    flags: flags,
+    engineSupportLevel: engineSupportLevel,
+  );
 }

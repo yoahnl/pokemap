@@ -269,6 +269,53 @@ class BattleSession {
     );
   }
 
+  /// Reprojette une session d'affichage déjà construite vers un état runtime.
+  ///
+  /// Le bridge runtime PSDK utilise cette façade pour exposer au vieil overlay
+  /// une `BattleSession` lisible sans réexécuter le tour dans le moteur legacy :
+  /// - les combattants, le champ et les PP viennent déjà du setup d'affichage ;
+  /// - `currentTurn` porte la narration/timeline réellement produite côté PSDK ;
+  /// - `outcome` permet à l'overlay d'afficher la fin avant le write-back.
+  ///
+  /// Ce n'est pas une API de mutation gameplay : elle ne change ni les sides,
+  /// ni le RNG, ni la continuation interne de tour.
+  BattleSession withRuntimeDisplayState({
+    BattlePhase? phase,
+    BattleTurnResult? currentTurn,
+    BattleOutcome? outcome,
+  }) {
+    final resolvedPhase = phase ?? state.phase;
+    if (resolvedPhase == BattlePhase.finished && outcome == null) {
+      throw ArgumentError.value(
+        outcome,
+        'outcome',
+        'A finished runtime display state must carry a BattleOutcome.',
+      );
+    }
+    if (resolvedPhase != BattlePhase.finished && outcome != null) {
+      throw ArgumentError.value(
+        outcome,
+        'outcome',
+        'Only a finished runtime display state can carry a BattleOutcome.',
+      );
+    }
+
+    return BattleSession._(
+      state: BattleState(
+        phase: resolvedPhase,
+        playerSide: state.playerSide,
+        enemySide: state.enemySide,
+        field: state.field,
+        currentTurn: currentTurn,
+        outcome: outcome,
+      ),
+      setup: setup,
+      rng: rng,
+      opponentPolicy: opponentPolicy,
+      pendingTurn: pendingTurn,
+    );
+  }
+
   /// Commit une vraie action de tour `Potion`.
   ///
   /// Lot 9-f conserve cette façade explicite pour éviter de vendre une API

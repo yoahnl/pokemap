@@ -72,7 +72,7 @@ class RuntimePartyBuilderPokemonOption {
 
   List<RuntimeBattleMoveBridgeDiagnostics> get filteredMoveDiagnostics {
     final diagnostics = moveDiagnostics.values
-        .where((diagnostic) => !diagnostic.runtimeBridgeable)
+        .where((diagnostic) => !diagnostic.bridgeable)
         .toList(growable: false);
     return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(diagnostics);
   }

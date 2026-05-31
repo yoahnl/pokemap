@@ -45,6 +45,11 @@ Move objects contain:
 - `battleEngineMethod`: Pokemon SDK method symbol such as `s_basic`.
 - `target`: a `PsdkBattleMoveTarget` enum name such as `adjacentFoe`.
 - Optional booleans: `contact`, `protectable`, `sound`.
+- Optional `statuses`: ordered status riders. Major statuses use
+  `{ "status": "paralysis", "chance": 100 }`; volatile statuses use
+  `{ "volatileStatus": "confusion", "chance": 100 }`.
+- Optional `stageMods`: ordered stat-stage riders, each with `stat`, `stages`
+  and optional `chance`.
 
 Actions currently support:
 
@@ -61,6 +66,10 @@ Actions currently support:
 - `eventKinds`: exact ordered list of emitted event kinds.
 - `damageEvents`: optional list of `{ "moveId", "damage", "remainingHp" }`
   checks, in emitted order.
+- `statusEvents`: optional list of `{ "moveId", "status" }` checks, in
+  emitted order.
+- `statStageEvents`: optional list of `{ "stat", "amount", "currentStage" }`
+  checks, in emitted order.
 
 At least one tag must be a parity-gate tag:
 
@@ -74,6 +83,10 @@ At least one tag must be a parity-gate tag:
 - `runtime_bridge`
 
 Focused behavior tags such as `damage` may be added alongside gate tags.
+
+The final PSDK parity gate currently requires the golden corpus to contain at
+least the `move_method`, `status`, and `field` gate tags. This prevents the
+100% counter gate from being backed only by one narrow fixture family.
 
 `expectedAuditDeltas`, when present, contains:
 

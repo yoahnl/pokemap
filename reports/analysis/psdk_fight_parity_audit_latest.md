@@ -1,6 +1,6 @@
 # PSDK Fight Parity Audit
 
-Source: `moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle`
+Source: `moves=/Users/karim/Project/pokemonProject/pokémon_sdk_test_project/Data/Studio/moves; effects=/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
 
 Important: `partiel` is executable coverage, not strict PSDK parity.
 
@@ -63,10 +63,10 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Metric | Value |
 | --- | --- |
-| Status | `explained` |
-| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
+| Status | `complete` |
+| Reason | Current runtime battle handoff is PSDK-first. The Phase A sampled runtime rows are bridgeable either through the legacy runtime bridge or through a PSDK ported battleEngineMethod. |
 | Total moves | 28 |
-| Bridgeable moves | 20 |
-| Rejected moves | 8 |
-| Explained rejected moves | 8 |
+| Bridgeable moves | 28 |
+| Rejected moves | 0 |
+| Explained rejected moves | 0 |
 | Unexplained rejected moves | 0 |

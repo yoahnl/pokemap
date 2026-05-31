@@ -238,6 +238,46 @@ void main() {
       );
     });
 
+    test('current request policy can keep damaged reserves visible but blocked',
+        () {
+      final model = buildBattleMedicineTargetMenuModel(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 20,
+            maxHp: 40,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'bench_one',
+              lineupIndex: 1,
+              currentHp: 10,
+              maxHp: 30,
+              moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+          ),
+        ),
+        itemId: 'potion',
+        categoryId: 'medicine',
+        isTargetAllowed: (combatant) => combatant.lineupIndex == 0,
+      );
+
+      expect(model.activeEntry.isSelectable, isTrue);
+      expect(model.reserveEntries.single.isSelectable, isFalse);
+      expect(
+        model.reserveEntries.single.disabledReason,
+        equals(BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest),
+      );
+      expect(model.hasSelectableEntries, isTrue);
+    });
+
     test('hasSelectableEntries is false when everyone is full hp or fainted',
         () {
       final model = buildBattleMedicineTargetMenuModel(

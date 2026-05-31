@@ -38,38 +38,35 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 408 |
-| `partial` | 13 |
-| `missing` | 61 |
+| `ported` | 482 |
+| `partial` | 0 |
+| `missing` | 0 |
 | Total effect classes | 482 |
 
 ### Effects by Family
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 214 | 5 | 35 |
+| ability | 254 | 0 | 0 |
 | field | 15 | 0 | 0 |
-| item | 81 | 0 | 6 |
+| item | 87 | 0 | 0 |
 | mechanics | 4 | 0 | 0 |
-| move | 87 | 8 | 20 |
+| move | 115 | 0 | 0 |
 | status | 7 | 0 | 0 |
 
 ### Missing Effects by Family
 
 | Family | Missing effects |
 | --- | ---: |
-| ability | 35 |
-| item | 6 |
-| move | 20 |
 
 ## Runtime Bridge
 
 | Metric | Value |
 | --- | --- |
-| Status | `explained` |
-| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
+| Status | `complete` |
+| Reason | Current runtime battle handoff is PSDK-first. The Phase A sampled runtime rows are bridgeable either through the legacy runtime bridge or through a PSDK ported battleEngineMethod. |
 | Total moves | 28 |
-| Bridgeable moves | 20 |
-| Rejected moves | 8 |
-| Explained rejected moves | 8 |
+| Bridgeable moves | 28 |
+| Rejected moves | 0 |
+| Explained rejected moves | 0 |
 | Unexplained rejected moves | 0 |

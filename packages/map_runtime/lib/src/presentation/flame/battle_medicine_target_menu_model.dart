@@ -59,8 +59,10 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required BattleSession session,
   required String itemId,
   required String categoryId,
+  bool Function(BattleCombatant combatant)? isTargetAllowed,
 }) {
   final allowsTargeting = session.decisionRequest is BattleTurnChoiceRequest;
+  final allowsCombatant = isTargetAllowed ?? (_) => true;
 
   BattleMedicineTargetEntry buildEntry({
     required int visualIndex,
@@ -70,10 +72,12 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   }) {
     final isFainted = combatant.isFainted;
     final isFullHp = combatant.currentHp >= combatant.maxHp;
-    final isSelectable = allowsTargeting && !isFainted && !isFullHp;
+    final targetAllowed = allowsCombatant(combatant);
+    final isSelectable =
+        allowsTargeting && targetAllowed && !isFainted && !isFullHp;
     final disabledReason = isSelectable
         ? null
-        : !allowsTargeting
+        : !allowsTargeting || !targetAllowed
             ? BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest
             : isFainted
                 ? BattleMedicineTargetDisabledReason.fainted

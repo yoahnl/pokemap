@@ -44,6 +44,8 @@ import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/runtime_pokemon_species_loader.dart';
+import '../../application/runtime_psdk_battle_session_adapter.dart';
+import '../../application/runtime_psdk_battle_setup_mapper.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
@@ -242,6 +244,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       learnsetLoader: _battleLearnsetLoader,
     ),
   );
+  late final RuntimePsdkBattleSetupMapper _psdkBattleSetupMapper =
+      RuntimePsdkBattleSetupMapper(
+    moveCatalogLoader: _battleMoveCatalogLoader,
+    combatantSeedBuilder: RuntimeBattleCombatantSeedBuilder(
+      speciesLoader: _battleSpeciesLoader,
+      learnsetLoader: _battleLearnsetLoader,
+    ),
+  );
   final BattleBackgroundResolver _battleBackgroundResolver =
       const BattleBackgroundResolver();
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
@@ -348,6 +358,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   // Battle system (map_battle integration)
   BattleSession? _battleSession;
+  RuntimePsdkBattleSessionAdapter? _psdkBattleSession;
   RuntimeActiveBattleContext? _activeBattleContext;
   final ValueNotifier<BattleCommandOverlaySnapshot?>
       _battleCommandOverlayNotifier =
@@ -726,6 +737,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   BattleSession? get debugBattleSessionSnapshot => _battleSession;
 
   @visibleForTesting
+  bool get debugPsdkBattleSessionActive => _psdkBattleSession != null;
+
+  @visibleForTesting
   Future<void> debugOpenBattleForTest(BattleStartRequest request) async {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       throw StateError('Battle test seam requires overworld flow.');
@@ -754,6 +768,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleSession = null;
+    _psdkBattleSession = null;
     _activeBattleContext = null;
     _isBattleResolving = false;
     _pendingBattleRequest = null;
@@ -4244,16 +4259,36 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         () => _battleSetupMapper.selectPlayerBattleLineup(_gameState.party),
       );
 
-      // Le lot 9 remplace enfin le setup placeholder par un mapping réel
-      // depuis la save runtime et les données projet.
-      final setup = await _traceAsync(
-        'battle',
-        'toBattleSetup',
-        () => _toBattleSetup(
-          request,
-          playerPartyIndex: playerLineup.activeIndex,
-        ),
-      );
+      PsdkBattleSetup? psdkSetup;
+      BattleSetup? setup;
+      try {
+        // Le bridge PSDK est maintenant le chemin runtime normal dès qu'il
+        // peut mapper honnêtement la save et les données projet. Le setup
+        // legacy reste uniquement un filet de compatibilité pour les cas que
+        // le bridge PSDK ne sait pas encore convertir.
+        psdkSetup = await _traceAsync(
+          'battle',
+          'toPsdkBattleSetup',
+          () => _toPsdkBattleSetup(
+            request,
+            playerPartyIndex: playerLineup.activeIndex,
+          ),
+        );
+      } on RuntimeBattleSetupException catch (psdkSetupError) {
+        debugPrint(
+          '[battle][psdk] PSDK setup failed, trying legacy bridge: '
+          '${psdkSetupError.message} '
+          'details=${psdkSetupError.debugDetails ?? 'n/a'}',
+        );
+        setup = await _traceAsync(
+          'battle',
+          'toBattleSetup',
+          () => _toBattleSetup(
+            request,
+            playerPartyIndex: playerLineup.activeIndex,
+          ),
+        );
+      }
 
       // Lot 12 pose le premier write runtime honnête du "seen" :
       // l'espèce ennemie n'est marquée vue qu'une fois le handoff réellement
@@ -4268,7 +4303,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'markSpeciesSeen',
         () => markSpeciesSeenInGameState(
           _gameState,
-          setup.enemyPokemon.speciesId,
+          psdkSetup?.opponent.speciesId ?? setup!.enemyPokemon.speciesId,
         ),
       );
       _flowPhase = _RuntimeFlowPhase.battle;
@@ -4283,15 +4318,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         manifest: _bundle.manifest,
       );
 
-      // Créer la session de combat
-      _battleSession = _traceSync(
-        'battle',
-        'createSession',
-        () => createBattleSession(
-          setup,
-          opponentPolicy: opponentPolicy,
-        ),
-      );
+      if (psdkSetup != null) {
+        _psdkBattleSession = _traceSync(
+          'battle',
+          'createPsdkSession',
+          () => RuntimePsdkBattleSessionAdapter.fromSetup(psdkSetup!),
+        );
+        _battleSession = _psdkBattleSession!.createLegacyDisplaySession(
+          isTrainerBattle: request is TrainerBattleStartRequest,
+          trainerId:
+              request is TrainerBattleStartRequest ? request.trainerId : null,
+          allowCapture: _battleRequestAllowsCapture(request),
+        );
+      } else {
+        // Créer la session de combat legacy
+        _psdkBattleSession = null;
+        _battleSession = _traceSync(
+          'battle',
+          'createSession',
+          () => createBattleSession(
+            setup!,
+            opponentPolicy: opponentPolicy,
+          ),
+        );
+      }
       _activeBattleContext = RuntimeActiveBattleContext(
         request: request,
         playerPartyIndex: playerLineup.activeIndex,
@@ -4343,6 +4393,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           },
           preferTouchListDragScroll: false,
           useFlutterCommandOverlay: _preferBattleFlutterCommandOverlay,
+          allowMedicineReserveTargets: _psdkBattleSession == null,
         ),
       );
       camera.viewport.add(overlay);
@@ -4385,6 +4436,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
+  Future<PsdkBattleSetup> _toPsdkBattleSetup(
+    BattleStartRequest request, {
+    int? playerPartyIndex,
+  }) {
+    return _psdkBattleSetupMapper.map(
+      bundle: _bundle,
+      gameState: _gameState,
+      request: request,
+      playerPartyIndex: playerPartyIndex,
+    );
+  }
+
+  bool _battleRequestAllowsCapture(BattleStartRequest? request) {
+    return request is WildBattleStartRequest &&
+        playerHasAtLeastOneRuntimePokeBall(_gameState.bag);
+  }
+
   void _cancelBattleHandoff({
     required String userMessage,
     String? debugDetails,
@@ -4403,6 +4471,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleSession = null;
+    _psdkBattleSession = null;
     _activeBattleContext = null;
     _isBattleResolving = false;
     _flowPhase = _RuntimeFlowPhase.overworld;
@@ -4482,15 +4551,48 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     var battleFinishDeferred = false;
 
     try {
-      // Appliquer le choix (retourne une nouvelle session immutable)
-      _battleSession = _battleSession!.applyChoice(choice);
+      final psdkSession = _psdkBattleSession;
+      if (psdkSession != null) {
+        final request = _activeBattleContext?.request;
+        final isTrainerBattle = request is TrainerBattleStartRequest;
+        final trainerId = isTrainerBattle ? request.trainerId : null;
+        if (choice is PlayerBattleChoiceCapture ||
+            choice is PlayerBattleChoiceRun) {
+          _battleSession = _battleSession!.applyChoice(choice);
+        } else {
+          psdkSession.submitPlayerChoice(choice);
+          _battleSession = psdkSession.createLegacyDisplaySession(
+            isTrainerBattle: isTrainerBattle,
+            trainerId: trainerId,
+            allowCapture: _battleRequestAllowsCapture(request),
+          );
+        }
+      } else {
+        // Appliquer le choix (retourne une nouvelle session immutable)
+        _battleSession = _battleSession!.applyChoice(choice);
+      }
 
       // Mettre à jour l'UI avec le nouvel état
       final overlay = _battleOverlay;
       overlay?.updateState(_battleSession!, gameState: _gameState);
 
       // Vérifier si le combat est fini
-      if (_battleSession!.state.isFinished) {
+      if (psdkSession != null && psdkSession.state.isFinished) {
+        battleFinishDeferred = true;
+        final request = _activeBattleContext?.request;
+        final isTrainerBattle = request is TrainerBattleStartRequest;
+        final trainerId = isTrainerBattle ? request.trainerId : null;
+        unawaited(
+          _finishBattleAfterPresentation(
+            finishedSession: _battleSession!,
+            overlay: overlay,
+            outcome: psdkSession.createLegacyOutcome(
+              isTrainerBattle: isTrainerBattle,
+              trainerId: trainerId,
+            ),
+          ),
+        );
+      } else if (_battleSession!.state.isFinished) {
         battleFinishDeferred = true;
         unawaited(
           _finishBattleAfterPresentation(
@@ -4525,7 +4627,55 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     _isBattleResolving = true;
+    var battleFinishDeferred = false;
     try {
+      final psdkSession = _psdkBattleSession;
+      if (psdkSession != null) {
+        final request = activeBattleContext.request;
+        final isTrainerBattle = request is TrainerBattleStartRequest;
+        final trainerId = isTrainerBattle ? request.trainerId : null;
+        final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+          psdkSession: psdkSession,
+          displaySession: battleSession,
+          gameState: _gameState,
+          context: activeBattleContext,
+          itemId: action.itemId,
+          targetLineupIndex: entry.lineupIndex,
+          isTrainerBattle: isTrainerBattle,
+          trainerId: trainerId,
+          allowCapture: _battleRequestAllowsCapture(request),
+        );
+        if (result == null) {
+          return false;
+        }
+
+        _battleSession = result.updatedDisplaySession;
+        _gameState = result.updatedGameState;
+        final overlay = _battleOverlay;
+        overlay?.updateState(
+          _battleSession!,
+          gameState: _gameState,
+        );
+
+        if (psdkSession.state.isFinished) {
+          battleFinishDeferred = true;
+          unawaited(
+            _finishBattleAfterPresentation(
+              finishedSession: _battleSession!,
+              overlay: overlay,
+              outcome: psdkSession.createLegacyOutcome(
+                isTrainerBattle: isTrainerBattle,
+                trainerId: trainerId,
+              ),
+            ),
+          );
+        } else if (_flowPhase == _RuntimeFlowPhase.battle) {
+          _isBattleResolving = false;
+        }
+
+        return true;
+      }
+
       // Lots 9-e à 9-h gardent `PlayableMapGame` comme propriétaire honnête
       // du runtime autour du moteur battle :
       // - le moteur battle produit un `currentTurn` et une timeline honnêtes ;
@@ -4571,6 +4721,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (_battleSession!.state.isFinished) {
+        battleFinishDeferred = true;
         unawaited(
           _finishBattleAfterPresentation(
             finishedSession: _battleSession!,
@@ -4585,6 +4736,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return true;
     } finally {
       if (_flowPhase == _RuntimeFlowPhase.battle &&
+          !battleFinishDeferred &&
           !(_battleSession?.state.isFinished ?? false)) {
         _isBattleResolving = false;
       }
@@ -4673,6 +4825,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleSession = null;
+    _psdkBattleSession = null;
     _activeBattleContext = null;
     _isBattleResolving = false; // Reset lock anti-spam
 
@@ -6981,6 +7134,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // à l'état overworld courant. On l'efface donc explicitement avec le reste
     // de l'UI transitoire.
     _activeBattleContext = null;
+    _psdkBattleSession = null;
     _warpTransitionOverlay?.removeFromParent();
     _warpTransitionOverlay = null;
     _clearPressedMovementControls();

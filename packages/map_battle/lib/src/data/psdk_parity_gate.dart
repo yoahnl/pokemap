@@ -13,7 +13,12 @@ const psdkFinalParityGate = PsdkFinalParityGatePolicy(
   requiredTotalAttacks: 728,
   requiredTotalMethods: 330,
   requiredTotalEffects: 482,
-  minimumGoldenFixtures: 2,
+  minimumGoldenFixtures: 3,
+  requiredGoldenTags: <String>{
+    'move_method',
+    'status',
+    'field',
+  },
 );
 
 final class PsdkParityGatePolicy {
@@ -92,6 +97,7 @@ final class PsdkFinalParityGatePolicy {
     this.approvedOutOfScopeMethods = 0,
     this.approvedOutOfScopeEffects = 0,
     this.minimumGoldenFixtures = 0,
+    this.requiredGoldenTags = const <String>{},
     this.requireRuntimeBridge = true,
   });
 
@@ -102,11 +108,13 @@ final class PsdkFinalParityGatePolicy {
   final int approvedOutOfScopeMethods;
   final int approvedOutOfScopeEffects;
   final int minimumGoldenFixtures;
+  final Set<String> requiredGoldenTags;
   final bool requireRuntimeBridge;
 
   PsdkParityGateResult evaluate(
     PsdkFightParityAudit audit, {
     required int goldenFixtureCount,
+    Set<String> goldenTags = const <String>{},
   }) {
     final failures = <String>[];
     final unknownMethods = audit.attackMetrics.unknownMethods;
@@ -172,6 +180,15 @@ final class PsdkFinalParityGatePolicy {
       failures.add(
         'golden_fixtures=$goldenFixtureCount is below minimum '
         '$minimumGoldenFixtures',
+      );
+    }
+    final missingGoldenTags = requiredGoldenTags
+        .difference(goldenTags)
+        .toList(growable: false)
+      ..sort();
+    if (missingGoldenTags.isNotEmpty) {
+      failures.add(
+        'golden_tags missing required tags: ${missingGoldenTags.join(', ')}',
       );
     }
 

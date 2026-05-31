@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
+import 'package:map_battle/src/data/psdk_golden_fixture.dart';
 import 'package:map_battle/src/data/psdk_parity_gate.dart';
 
 Future<void> main(List<String> args) async {
@@ -11,9 +12,17 @@ Future<void> main(List<String> args) async {
     return;
   }
 
+  final movesDirectory = await _resolveAuditDirectory(
+    options.movesDirectory,
+    fallbackFromGitRoot: _defaultMovesDirectoryFromGitRoot,
+  );
+  final psdkBattleDirectory = await _resolveAuditDirectory(
+    options.psdkBattleDirectory,
+    fallbackFromGitRoot: _defaultPsdkBattleDirectoryFromGitRoot,
+  );
   final audit = await buildPsdkFightParityAudit(
-    movesDirectory: Directory(options.movesDirectory),
-    psdkBattleDirectory: Directory(options.psdkBattleDirectory),
+    movesDirectory: movesDirectory,
+    psdkBattleDirectory: psdkBattleDirectory,
     runtimeBridge: await _loadRuntimeBridge(options.runtimeBridgePath),
   );
 
@@ -34,12 +43,13 @@ Future<void> main(List<String> args) async {
     stdout.writeln(gateResult.message);
   }
   if (options.runFinalGate) {
-    final goldenFixtureCount = await _countGoldenFixtures(
+    final goldenCorpus = await PsdkGoldenFixtureCorpus.load(
       Directory(options.goldenFixturesDirectory),
     );
     final gateResult = psdkFinalParityGate.evaluate(
       audit,
-      goldenFixtureCount: goldenFixtureCount,
+      goldenFixtureCount: goldenCorpus.summary.count,
+      goldenTags: goldenCorpus.summary.tags,
     );
     if (!gateResult.passed) {
       stderr.writeln(gateResult.message);
@@ -47,6 +57,7 @@ Future<void> main(List<String> args) async {
       return;
     }
     stdout.writeln(gateResult.message);
+    stdout.writeln(_goldenCorpusSummaryLine(goldenCorpus.summary));
   }
 
   if (options.jsonOutputPath == null && options.markdownOutputPath == null) {
@@ -100,8 +111,8 @@ final class _AuditCliOptions {
   });
 
   factory _AuditCliOptions.parse(List<String> args) {
-    var movesDirectory = '../../pokémon_sdk_test_project/Data/Studio/moves';
-    var psdkBattleDirectory = '../../pokemonsdk-development/scripts/5 Battle';
+    var movesDirectory = _defaultMovesDirectory;
+    var psdkBattleDirectory = _defaultPsdkBattleDirectory;
     var goldenFixturesDirectory = 'test/fixtures/psdk_golden';
     String? jsonOutputPath;
     String? markdownOutputPath;
@@ -173,6 +184,16 @@ Future<void> _writeTextFile(String path, String content) async {
   await file.writeAsString(content);
 }
 
+String _goldenCorpusSummaryLine(PsdkGoldenCorpusSummary summary) {
+  final tags = summary.tags.toList(growable: false)..sort();
+  final deltas = summary.auditDeltas;
+  return 'Golden fixtures: ${summary.count} '
+      '(tags: ${tags.join(', ')}; '
+      'audit deltas: strictAttacks=${deltas.strictAttacks}, '
+      'portedMethods=${deltas.portedMethods}, '
+      'portedEffects=${deltas.portedEffects})';
+}
+
 Future<PsdkRuntimeBridgeParity> _loadRuntimeBridge(String? path) async {
   final diagnosticsPath = path ?? _defaultRuntimeBridgePath;
   final diagnosticsFile = File(diagnosticsPath);
@@ -188,16 +209,49 @@ Future<PsdkRuntimeBridgeParity> _loadRuntimeBridge(String? path) async {
 
 const _defaultRuntimeBridgePath =
     '../../reports/analysis/psdk_runtime_bridge_diagnostics_latest.json';
+const _defaultMovesDirectory =
+    '../../pokémon_sdk_test_project/Data/Studio/moves';
+const _defaultPsdkBattleDirectory =
+    '../../pokemonsdk-development/scripts/5 Battle';
+const _defaultMovesDirectoryFromGitRoot =
+    'pokémon_sdk_test_project/Data/Studio/moves';
+const _defaultPsdkBattleDirectoryFromGitRoot =
+    'pokemonsdk-development/scripts/5 Battle';
 
-Future<int> _countGoldenFixtures(Directory directory) async {
-  if (!await directory.exists()) {
-    return 0;
+Future<Directory> _resolveAuditDirectory(
+  String path, {
+  required String fallbackFromGitRoot,
+}) async {
+  final direct = Directory(path);
+  if (await direct.exists()) {
+    return direct;
   }
-  var count = 0;
-  await for (final entity in directory.list(recursive: true)) {
-    if (entity is File && entity.path.endsWith('.json')) {
-      count += 1;
-    }
+  final gitRoot = await _gitCommonRoot();
+  if (gitRoot == null) {
+    return direct;
   }
-  return count;
+  final fallback = Directory.fromUri(gitRoot.uri.resolve(fallbackFromGitRoot));
+  if (await fallback.exists()) {
+    return fallback;
+  }
+  return direct;
+}
+
+Future<Directory?> _gitCommonRoot() async {
+  final result = await Process.run(
+    'git',
+    <String>['rev-parse', '--git-common-dir'],
+  );
+  if (result.exitCode != 0) {
+    return null;
+  }
+  final commonDir = '${result.stdout}'.trim();
+  if (commonDir.isEmpty) {
+    return null;
+  }
+  final commonDirectory = Directory(commonDir);
+  if (commonDirectory.absolute.path.endsWith('${Platform.pathSeparator}.git')) {
+    return commonDirectory.parent;
+  }
+  return null;
 }

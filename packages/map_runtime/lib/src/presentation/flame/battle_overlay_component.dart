@@ -437,6 +437,7 @@ class BattleOverlayComponent extends PositionComponent {
     BattleFxBundleCache? fxBundleCache,
     bool preferTouchListDragScroll = false,
     bool useFlutterCommandOverlay = false,
+    bool allowMedicineReserveTargets = true,
   })  : _session = session,
         _gameState = gameState,
         _moveCatalog = moveCatalog ??
@@ -444,6 +445,7 @@ class BattleOverlayComponent extends PositionComponent {
         _fxBundleCache = fxBundleCache ?? BattleFxBundleCache(),
         _preferTouchListDragScroll = preferTouchListDragScroll,
         _useFlutterCommandOverlay = useFlutterCommandOverlay,
+        _allowMedicineReserveTargets = allowMedicineReserveTargets,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -480,6 +482,7 @@ class BattleOverlayComponent extends PositionComponent {
   final bool showDebugPanel;
   bool _preferTouchListDragScroll;
   bool _useFlutterCommandOverlay;
+  final bool _allowMedicineReserveTargets;
 
   BattleSceneBackdropComponent? _backdrop;
   BattleSceneCombatantComponent? _enemyCombatant;
@@ -1942,6 +1945,9 @@ class BattleOverlayComponent extends PositionComponent {
       session: _session,
       itemId: selectedMedicineAction.itemId,
       categoryId: selectedMedicineAction.categoryId,
+      isTargetAllowed: (combatant) =>
+          _allowMedicineReserveTargets ||
+          combatant.lineupIndex == _session.state.player.lineupIndex,
     );
   }
 

@@ -175,6 +175,107 @@ RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
   );
 }
 
+List<PsdkBattleMoveData> resolvePsdkBattleMovesForSeed({
+  required List<String> moveIds,
+  required String combatantLabel,
+  required PokemonMove? Function(String moveId) lookupMove,
+  RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+}) {
+  return resolvePsdkBattleMovesForSeedWithDiagnostics(
+    moveIds: moveIds,
+    combatantLabel: combatantLabel,
+    lookupMove: lookupMove,
+    battleMoveBridge: battleMoveBridge,
+  ).moves;
+}
+
+RuntimePsdkBattleMoveProjection resolvePsdkBattleMovesForSeedWithDiagnostics({
+  required List<String> moveIds,
+  required String combatantLabel,
+  required PokemonMove? Function(String moveId) lookupMove,
+  RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+}) {
+  final candidateMoveIds = List<String>.unmodifiable(
+    _normalizeUniqueMoveIdsPreserveOrder(moveIds)
+        .take(4)
+        .toList(growable: false),
+  );
+
+  if (candidateMoveIds.isEmpty) {
+    throw RuntimeBattleSetupException(
+      '$combatantLabel n’a aucune attaque exploitable pour démarrer le combat.',
+    );
+  }
+
+  final moves = <PsdkBattleMoveData>[];
+  final diagnostics = <RuntimeBattleMoveBridgeDiagnostics>[];
+  final rejectedMoves = <_RejectedBridgeMove>[];
+
+  for (final moveId in candidateMoveIds) {
+    final move = lookupMove(moveId);
+    if (move == null) {
+      throw RuntimeBattleSetupException(
+        'Le catalogue local des attaques ne contient pas "$moveId".',
+        debugDetails: 'combatant=$combatantLabel',
+      );
+    }
+
+    final diagnostic = battleMoveBridge.inspectMove(
+      move: move,
+      combatantLabel: combatantLabel,
+    );
+    diagnostics.add(diagnostic);
+
+    if (!diagnostic.psdkBridgeable) {
+      rejectedMoves.add(
+        _RejectedBridgeMove.fromDiagnostic(
+          move: move,
+          diagnostic: diagnostic,
+        ),
+      );
+      continue;
+    }
+
+    try {
+      moves.add(
+        battleMoveBridge.toPsdkBattleMoveData(
+          move: move,
+          combatantLabel: combatantLabel,
+        ),
+      );
+    } on RuntimeBattleSetupException catch (error) {
+      final rejectedMove = _RejectedBridgeMove.fromBridgeRejection(
+        move: move,
+        debugDetails: error.debugDetails,
+      );
+
+      if (!rejectedMove.isFilterableDuringSeedAssembly) {
+        rethrow;
+      }
+
+      rejectedMoves.add(rejectedMove);
+    }
+  }
+
+  if (moves.isNotEmpty) {
+    return RuntimePsdkBattleMoveProjection(
+      moves: moves,
+      diagnostics: diagnostics,
+    );
+  }
+
+  throw RuntimeBattleSetupException(
+    'Le combat ne peut pas démarrer car "$combatantLabel" n’a aucun move PSDK bridgeable restant après filtrage. '
+    'Attribuez-lui au moins une attaque portée par le moteur battle PSDK.',
+    debugDetails: 'combatant=$combatantLabel, '
+        'candidateMoveIds=${_formatDebugStringList(candidateMoveIds)}, '
+        'rejectedMoveIds=${_formatDebugStringList(rejectedMoves.map((move) => move.moveId).toList(growable: false))}, '
+        'rejectedMoves=[${rejectedMoves.map((move) => move.toDebugDetails()).join('; ')}], '
+        'filterResult=no_psdk_bridgeable_moves_remaining_after_filtering, '
+        'resolutionHint=assign_at_least_one_psdk_bridgeable_move',
+  );
+}
+
 class RuntimeBattleMoveProjection {
   RuntimeBattleMoveProjection({
     required List<BattleMoveData> moves,
@@ -189,6 +290,24 @@ class RuntimeBattleMoveProjection {
   List<RuntimeBattleMoveBridgeDiagnostics> get filteredDiagnostics {
     return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(
       diagnostics.where((diagnostic) => !diagnostic.runtimeBridgeable),
+    );
+  }
+}
+
+class RuntimePsdkBattleMoveProjection {
+  RuntimePsdkBattleMoveProjection({
+    required List<PsdkBattleMoveData> moves,
+    required List<RuntimeBattleMoveBridgeDiagnostics> diagnostics,
+  })  : moves = List<PsdkBattleMoveData>.unmodifiable(moves),
+        diagnostics =
+            List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(diagnostics);
+
+  final List<PsdkBattleMoveData> moves;
+  final List<RuntimeBattleMoveBridgeDiagnostics> diagnostics;
+
+  List<RuntimeBattleMoveBridgeDiagnostics> get filteredDiagnostics {
+    return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(
+      diagnostics.where((diagnostic) => !diagnostic.psdkBridgeable),
     );
   }
 }
@@ -297,6 +416,61 @@ class RuntimeBattleCombatantSeedBuilder {
     );
   }
 
+  Future<RuntimePsdkBattleCombatantSeed> buildPlayerPsdkCombatantSeed({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required RuntimeMoveCatalog movesCatalog,
+    required PlayerPokemon playerPokemon,
+    String combatantLabel = 'Le Pokémon actif du joueur',
+  }) async {
+    final species = await speciesLoader.loadById(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesId: playerPokemon.speciesId,
+    );
+    final moveIds = playerPokemon.knownMoveIds.isNotEmpty
+        ? playerPokemon.knownMoveIds
+        : await _deriveLearnsetMoveIds(
+            projectRootDirectory: projectRootDirectory,
+            pokemonConfig: pokemonConfig,
+            species: species,
+            level: playerPokemon.level,
+          );
+
+    final moveProjection = _resolvePsdkBattleMoves(
+      movesCatalog: movesCatalog,
+      moveIds: moveIds,
+      combatantLabel: combatantLabel,
+    );
+
+    final maxHp = _calculateMaxHp(
+      baseHp: species.baseHp,
+      level: playerPokemon.level,
+      ivHp: playerPokemon.ivs.hp,
+      evHp: playerPokemon.evs.hp,
+    );
+    final stats = _calculateStatsSnapshot(
+      species: species,
+      level: playerPokemon.level,
+      ivs: playerPokemon.ivs,
+      evs: playerPokemon.evs,
+    );
+
+    return RuntimePsdkBattleCombatantSeed(
+      speciesId: playerPokemon.speciesId.trim(),
+      level: playerPokemon.level,
+      maxHp: maxHp,
+      stats: stats,
+      typing: _buildBattleTypingSnapshot(species),
+      currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
+      abilityId: playerPokemon.abilityId.trim().isEmpty
+          ? 'unknown'
+          : playerPokemon.abilityId.trim(),
+      moves: moveProjection.moves,
+      moveDiagnostics: moveProjection.diagnostics,
+    );
+  }
+
   Future<RuntimeBattleCombatantSeed> buildWildCombatantSeed({
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
@@ -321,6 +495,49 @@ class RuntimeBattleCombatantSeedBuilder {
     );
 
     return RuntimeBattleCombatantSeed(
+      speciesId: request.speciesId.trim(),
+      level: request.level,
+      maxHp: _calculateMaxHp(
+        baseHp: species.baseHp,
+        level: request.level,
+      ),
+      stats: _calculateStatsSnapshot(
+        species: species,
+        level: request.level,
+      ),
+      typing: _buildBattleTypingSnapshot(species),
+      abilityId: species.primaryAbilityId.isEmpty
+          ? 'unknown'
+          : species.primaryAbilityId,
+      moves: moveProjection.moves,
+      moveDiagnostics: moveProjection.diagnostics,
+    );
+  }
+
+  Future<RuntimePsdkBattleCombatantSeed> buildWildPsdkCombatantSeed({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required RuntimeMoveCatalog movesCatalog,
+    required WildBattleStartRequest request,
+  }) async {
+    final species = await speciesLoader.loadById(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesId: request.speciesId,
+    );
+    final moveIds = await _deriveLearnsetMoveIds(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      species: species,
+      level: request.level,
+    );
+    final moveProjection = _resolvePsdkBattleMoves(
+      movesCatalog: movesCatalog,
+      moveIds: moveIds,
+      combatantLabel: 'Le Pokémon sauvage "${request.speciesId}"',
+    );
+
+    return RuntimePsdkBattleCombatantSeed(
       speciesId: request.speciesId.trim(),
       level: request.level,
       maxHp: _calculateMaxHp(
@@ -388,6 +605,54 @@ class RuntimeBattleCombatantSeedBuilder {
     );
   }
 
+  Future<RuntimePsdkBattleCombatantSeed> buildTrainerPsdkCombatantSeed({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required RuntimeMoveCatalog movesCatalog,
+    required ProjectTrainerPokemonEntry teamMember,
+    required String trainerName,
+  }) async {
+    final species = await speciesLoader.loadById(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesId: teamMember.speciesId,
+    );
+    final moveIds = teamMember.moves.isNotEmpty
+        ? teamMember.moves
+        : await _deriveLearnsetMoveIds(
+            projectRootDirectory: projectRootDirectory,
+            pokemonConfig: pokemonConfig,
+            species: species,
+            level: teamMember.level,
+          );
+
+    final moveProjection = _resolvePsdkBattleMoves(
+      movesCatalog: movesCatalog,
+      moveIds: moveIds,
+      combatantLabel:
+          'Le Pokémon du dresseur "$trainerName" (${teamMember.speciesId})',
+    );
+
+    return RuntimePsdkBattleCombatantSeed(
+      speciesId: teamMember.speciesId.trim(),
+      level: teamMember.level,
+      maxHp: _calculateMaxHp(
+        baseHp: species.baseHp,
+        level: teamMember.level,
+      ),
+      stats: _calculateStatsSnapshot(
+        species: species,
+        level: teamMember.level,
+      ),
+      typing: _buildBattleTypingSnapshot(species),
+      abilityId: species.primaryAbilityId.isEmpty
+          ? 'unknown'
+          : species.primaryAbilityId,
+      moves: moveProjection.moves,
+      moveDiagnostics: moveProjection.diagnostics,
+    );
+  }
+
   Future<List<String>> _deriveLearnsetMoveIds({
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
@@ -416,6 +681,19 @@ class RuntimeBattleCombatantSeedBuilder {
     // partagée, afin que l'outillage Phase B puisse mesurer le même seam sans
     // reconstruire une variante plus permissive.
     return resolveBattleMovesForSeedWithDiagnostics(
+      moveIds: moveIds,
+      combatantLabel: combatantLabel,
+      lookupMove: movesCatalog.lookup,
+      battleMoveBridge: battleMoveBridge,
+    );
+  }
+
+  RuntimePsdkBattleMoveProjection _resolvePsdkBattleMoves({
+    required RuntimeMoveCatalog movesCatalog,
+    required List<String> moveIds,
+    required String combatantLabel,
+  }) {
+    return resolvePsdkBattleMovesForSeedWithDiagnostics(
       moveIds: moveIds,
       combatantLabel: combatantLabel,
       lookupMove: movesCatalog.lookup,
@@ -695,6 +973,63 @@ class RuntimeBattleCombatantSeed {
       currentHp: currentHp,
       abilityId: abilityId,
       moves: moves,
+    );
+  }
+}
+
+class RuntimePsdkBattleCombatantSeed {
+  const RuntimePsdkBattleCombatantSeed({
+    required this.speciesId,
+    required this.level,
+    required this.maxHp,
+    required this.stats,
+    required this.typing,
+    required this.abilityId,
+    required this.moves,
+    this.moveDiagnostics = const <RuntimeBattleMoveBridgeDiagnostics>[],
+    this.currentHp,
+  });
+
+  final String speciesId;
+  final int level;
+  final int maxHp;
+  final BattleStatsSnapshot stats;
+  final BattleTypingSnapshot typing;
+  final int? currentHp;
+  final String abilityId;
+  final List<PsdkBattleMoveData> moves;
+  final List<RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
+
+  List<RuntimeBattleMoveBridgeDiagnostics> get filteredMoveDiagnostics {
+    return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(
+      moveDiagnostics.where((diagnostic) => !diagnostic.psdkBridgeable),
+    );
+  }
+
+  PsdkBattleCombatantSetup toPsdkBattleCombatantSetup({
+    int lineupIndex = 0,
+    String idPrefix = 'combatant',
+  }) {
+    return PsdkBattleCombatantSetup(
+      id: '${idPrefix}_$lineupIndex',
+      speciesId: speciesId,
+      displayName: speciesId,
+      level: level,
+      maxHp: maxHp,
+      currentHp: currentHp ?? maxHp,
+      types: PsdkBattleTypes(
+        primary: typing.primaryType,
+        secondary: typing.secondaryType,
+      ),
+      stats: PsdkBattleStats(
+        attack: stats.attack,
+        defense: stats.defense,
+        specialAttack: stats.specialAttack,
+        specialDefense: stats.specialDefense,
+        speed: stats.speed,
+      ),
+      moves: moves,
+      abilityId: abilityId,
     );
   }
 }

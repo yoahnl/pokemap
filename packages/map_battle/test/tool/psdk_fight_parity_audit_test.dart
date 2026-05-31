@@ -436,8 +436,35 @@ void main() {
       final json =
           jsonDecode(await outputFile.readAsString()) as Map<String, Object?>;
       final runtimeBridge = json['runtimeBridge']! as Map<String, Object?>;
-      expect(runtimeBridge['status'], 'explained');
+      expect(runtimeBridge['status'], 'complete');
+      expect(runtimeBridge['rejectedMoves'], 0);
       expect(runtimeBridge['unexplainedRejectedMoves'], 0);
+    });
+
+    test('CLI final gate reports golden corpus evidence', () async {
+      final result = await Process.run(
+        Platform.resolvedExecutable,
+        <String>[
+          'run',
+          'tool/psdk_fight_parity_audit.dart',
+          '--final-gate',
+        ],
+      );
+
+      expect(result.exitCode, 0, reason: '${result.stderr}');
+      expect(result.stdout, contains('PSDK parity gate passed.'));
+      expect(result.stdout, contains('Golden fixtures: 3'));
+      expect(
+        result.stdout,
+        contains('tags: damage, field, move_method, status'),
+      );
+      expect(
+        result.stdout,
+        contains(
+          'audit deltas: strictAttacks=2, '
+          'portedMethods=2, portedEffects=1',
+        ),
+      );
     });
   });
 }

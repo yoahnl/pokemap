@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:PokeMap_Loader/src/runtime_demo_party_seed.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:pokemap_loader/src/runtime_demo_party_seed.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -247,15 +247,15 @@ void main() {
       final mew = options.singleWhere((option) => option.speciesId == 'mew');
       expect(
         mew.suggestedMoveIds,
-        equals(<String>['pound', 'transform', 'mega_punch', 'swift']),
+        equals(<String>['transform', 'mega_punch', 'swift', 'baton_pass']),
       );
-      expect(mew.availableMoveIds, isNot(contains('baton_pass')));
+      expect(mew.availableMoveIds, contains('baton_pass'));
       expect(mew.availableMoveIds, isNot(contains('metronome')));
       expect(
         mew.filteredMoveIds,
-        equals(<String>['baton_pass', 'metronome']),
+        equals(<String>['metronome']),
       );
-      expect(mew.filteredMoveDiagnostics, hasLength(2));
+      expect(mew.filteredMoveDiagnostics, hasLength(1));
       expect(mew.moveDiagnostics['transform']?.bridgeable, isTrue);
       expect(mew.moveDiagnostics['transform']?.battleEngineMethod,
           equals('s_transform'));
@@ -263,18 +263,14 @@ void main() {
         mew.moveDiagnostics['transform']?.psdkRegistryStatus,
         equals('ported'),
       );
-      expect(mew.moveDiagnostics['baton_pass']?.bridgeable, isFalse);
-      expect(
-        mew.moveDiagnostics['baton_pass']?.reason,
-        equals('unsupported_effect_kind:self_switch'),
-      );
+      expect(mew.moveDiagnostics['baton_pass']?.bridgeable, isTrue);
       expect(mew.moveDiagnostics['baton_pass']?.battleEngineMethod,
           equals('s_baton_pass'));
       expect(
         mew.moveDiagnostics['baton_pass']?.psdkRegistryStatus,
-        equals('partial'),
+        equals('ported'),
       );
-      expect(mew.moveDiagnostics['baton_pass']?.psdkPartial, isTrue);
+      expect(mew.moveDiagnostics['baton_pass']?.psdkPartial, isFalse);
     });
   });
 }
