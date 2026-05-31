@@ -85,6 +85,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-30 — Scene Node Payload Editing V0 | DONE | Edition en inspecteur des payloads Dialogue Yarn et Battle trainer depuis les contrats publics reels : operations pures, pickers honnetes, `ProjectManifest.scenes` mis a jour en memoire, sans runtime ni fake refs. |
 | NS-SCENES-V1-30-bis — Scene Node Deletion UX V0 | DONE | Suppression controlee des nodes non-start depuis l'inspecteur : node + edges entrants/sortants + layouts associes retires, Start et dernier End proteges, confirmation destructive, sans runtime ni reconnexion automatique. |
 | NS-SCENES-V1-31 — Scene Consequence Authoring UI V0 | DONE | Authoring no-code des ActionNode/Consequences V0 : creation depuis vrais Facts/events, edition inspecteur `setFact` et `markEventConsumed`, port `completed` connectable, sans runtime ni fake refs. |
+| NS-SCENES-V1-31-bis — Scene Consequence Runtime Evidence Sweep | DONE | Evidence sweep post V1-31 : runtime-plan, executor, hook runtime, writer consequences et golden smoke relances ; V1-31 confirme sans feature ni modification runtime. |
 
 ## Prochain lot recommande
 
@@ -105,6 +106,18 @@ Decision : l'ActionNode devient authorable seulement comme porteur de `SceneCons
 Scope realise : operations pures `addSceneConsequenceActionNodeDraft` et `updateSceneActionConsequencePayload`, port `Action.completed` authorable et diagnostique, palette Action/Conséquence active seulement quand une cible reelle existe, pickers Facts/events, edition inspecteur, update en memoire de `ProjectManifest.scenes`, tests core/editor et visual gate.
 
 Limites : pas de `giveItem`, `warpPlayer`, completion de StoryStep, World Rule direct apply, BranchByOutcome, Yarn outcomes, Cinematic authoring, runtime Scene, GameState mutation depuis editor, `MapEventPage.sceneTarget` ou `StorylineStep.sceneLinkIds`.
+
+Prochain lot exact : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`.
+
+## Mise a jour V1-31-bis
+
+Statut : `NS-SCENES-V1-31-bis — Scene Consequence Runtime Evidence Sweep` est DONE.
+
+Decision : V1-31 est confirme par evidence runtime. Les ActionNode typés consequence restent diagnostiques correctement, compilent en intent `applyConsequence`, sont executes par `SceneRuntimeExecutor` via callback `applyConsequence`, puis sont stages/commits par `SceneEventRuntimeHook` et `SceneConsequenceRuntimeWriter` comme avant.
+
+Preuve : tests `scene_consequence_model`, authoring operations, diagnostics, runtime-plan, runtime-executor, writer runtime, hook runtime, golden smoke, Scenes workspace, overview/projection et analyses ciblees relances. Les checks anti-scope confirment qu'aucun fichier `map_runtime`, `map_battle`, `map_gameplay`, `examples` ou `selbrume` n'est modifie par le bis.
+
+Limites : aucune feature, aucun runtime nouveau, aucun `PlayableMapGame`, `SceneEventRuntimeHook`, `SceneConsequenceRuntimeWriter`, `GameState`, BranchByOutcome, outcome Yarn, World Rule direct apply ou donnee Selbrume n'est ajoute.
 
 Prochain lot exact : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`.
 
