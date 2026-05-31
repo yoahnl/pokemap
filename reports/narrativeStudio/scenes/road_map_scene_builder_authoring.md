@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-35 — Facts & World Rules Manager UI V0
+NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision
 ```
 
 ## Principes
@@ -68,7 +68,8 @@ NS-SCENES-V1-35 — Facts & World Rules Manager UI V0
 | NS-SCENES-V1-32 | Scene V1 Beta Readiness Checkpoint | review / roadmap | Auditer l'etat beta Scene V1 apres authoring payloads, consequences, runtime hook et golden smoke. | Pas de nouveau node, pas de runtime additionnel, pas de modele, pas de migration. | rapport checkpoint, roadmaps, audit gaps. | DONE : tests/analyze cibles relances, readiness matrix, gap register, risques et prochain lot exact. | Continuer a coder sans verifier le systeme complet ; ignorer les limites UX/runtime. | DONE : beta controlee oui, golden-slice jouable complet non, prochain verrou persistance runtime. | V1-31. |
 | NS-SCENES-V1-33 | Runtime State Persistence Gate V0 | runtime / integration | Prouver que les writes Scene V1 (`setFact`, `markEventConsumed`) survivent a save/reload et restent lisibles par Conditions/World Rules. | Pas de nouveau node, pas de payload picker, pas de projection World Rules runtime, pas de golden slice jouable complet. | `scene_runtime_state_persistence_gate_test.dart`, rapport, roadmaps. | DONE : Scene -> consequence write -> save -> reload -> condition/world rule source readable, regressions runtime ciblees. | Construire la projection monde avant d'avoir verrouille l'etat persistant ; confondre save generale et preuve Scene-specific. | DONE : gate save/reload Scene-specific vert, aucune production modifiee. | V1-32. |
 | NS-SCENES-V1-34 | World Rules Runtime Projection Hook V0 | runtime / integration | Appliquer prudemment au runtime jouable les effets World Rules projetes depuis le `GameState` recharge, apres le verrou persistence V1-33. | Pas de nouvelle consequence, pas de Scene payload, pas de World Rule editor avance, pas de StorylineStep runtime trigger. | runtime world rule projection hook, map runtime tests, rapport. | DONE : projection fact/event consomme lue depuis GameState, application runtime bornee aux entites/events/dialogue override, non-mutation du manifest/map/state et regressions save/load. | Appliquer les World Rules trop largement ; confondre projection pure et mutation definitive du monde. | DONE : hook runtime pur + branchement presence/dialogue/event, sans mutation durable ni nouvelle consequence. | V1-33. |
-| NS-SCENES-V1-35 | Facts & World Rules Manager UI V0 | editor / product | Donner un espace no-code dedie pour gerer Facts et World Rules au-dela des apercus contextuels, avec labels lisibles, diagnostics et navigation vers cibles. | Pas de runtime nouveau, pas de nouveaux effets, pas de Scene consequence supplementaire, pas de seed Selbrume. | manager Facts/World Rules, read models editor, tests widget, rapport. | Attendus : liste/edition bornée, creation/suppression controlee, diagnostics visibles, aucun ID libre comme workflow principal. | Refaire un editeur de flags techniques ; dupliquer les panneaux contextuels map sans coherence. | TODO : ne pas demarrer avant V1-34 valide. | V1-34. |
+| NS-SCENES-V1-35 | Facts & World Rules Manager UI V0 | editor / product | Donner un espace no-code dedie pour gerer Facts et World Rules au-dela des apercus contextuels, avec labels lisibles, diagnostics et navigation vers cibles. | Pas de runtime nouveau, pas de nouveaux effets, pas de Scene consequence supplementaire, pas de seed Selbrume. | manager Facts/World Rules, read models editor, tests widget, rapport. | DONE : read model pur, creation/edition/suppression Facts, creation/edition/toggle/suppression World Rules, diagnostics/usages, overview/sidebar, visual gate et analyzes. | Refaire un editeur de flags techniques ; dupliquer les panneaux contextuels map sans coherence. | DONE : Facts et Regles du monde actifs, aucun ID libre comme workflow principal, aucun runtime modifie. | V1-34. |
+| NS-SCENES-V1-36 | Cinematic V1 Contract / Bridge Decision | doc / architecture-review | Decider le contrat Cinematic V1 canonique et la place du bridge Cutscene/Scenario avant Cinematics Library et Builder V2. | Pas de runtime cinematic nouveau, pas de refonte Cutscene Studio, pas de Scene payload supplementaire. | rapport V1-36, roadmaps, audit Cutscene/Scenario/Cinematic. | Attendus : contrat tranche, frontieres legacy, prochain lot exact. | Promouvoir ScenarioAsset comme modele final ; coder une cinematic avant contrat. | TODO : ne pas demarrer avant V1-35 valide. | V1-35. |
 
 ## Options comparees
 
@@ -579,7 +580,19 @@ Integration : `PlayableMapGame` utilise cette projection pour la presence PNJ, l
 
 Limites : pas de manager UI Facts/World Rules, pas de nouveau type de World Rule, pas de mutation definitive du monde, pas de collision/warp/tile dynamic state, pas de `completeStoryStep`, pas de `giveItem`, pas de BranchByOutcome et aucune donnee Selbrume.
 
-Prochain lot exact : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`.
+Prochain lot exact realise : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`.
+
+## Mise a jour V1-35
+
+Statut : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0` est DONE.
+
+Decision : l'authoring centralise Facts / World Rules quitte l'etat d'apercu. Narrative Studio expose deux entrees actives qui ouvrent un workspace partage : onglet Facts pour les faits persistants lisibles et onglet Regles du monde pour les changements visibles derives.
+
+Scope realise : read model pur manager, usages Fact depuis Scenes et World Rules, suppression Fact protegee, workspace UI no-code, creation/edition/suppression Facts, creation/edition/toggle/suppression World Rules V0, pickers reels source/cible/effet/dialogue, diagnostics visibles, overview/sidebar aligne, visual gate V1-35 et goldens Scene Builder regénérés pour le chrome commun.
+
+Limites : pas de runtime nouveau, pas de nouvel effet World Rule, pas de nouvelle source, pas de nouvelle SceneConsequence, pas de mutation `GameState` depuis l'editor, pas de seed Selbrume, pas de workflow principal par ID technique.
+
+Prochain lot exact : `NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision`.
 
 ## Selbrume golden slice
 

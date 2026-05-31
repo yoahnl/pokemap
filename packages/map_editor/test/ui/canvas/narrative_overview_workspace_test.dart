@@ -116,7 +116,7 @@ void main() {
       );
       await tester.pump();
       expect(
-        _textInEmptyState('facts', 'Nécessite un modèle'),
+        _textInEmptyState('facts', 'Vide'),
         findsOneWidget,
       );
       expect(
@@ -158,11 +158,11 @@ void main() {
 
       expect(find.text('Données à venir', skipOffstage: false), findsOneWidget);
       expect(_textInEmptyState('facts', 'Facts'), findsOneWidget);
-      expect(_textInEmptyState('facts', 'Nécessite un modèle'), findsOneWidget);
+      expect(_textInEmptyState('facts', 'Vide'), findsOneWidget);
       expect(
         _textInEmptyState(
           'facts',
-          'Registre de connaissances à définir avant affichage.',
+          'Aucun Fact authoré.',
         ),
         findsOneWidget,
       );
@@ -535,21 +535,21 @@ void main() {
       expect(
         _textInModule(
           NarrativeOverviewModuleIds.facts,
-          'Nécessite un modèle',
+          '0',
         ),
         findsOneWidget,
       );
       expect(
         _textInModule(
           NarrativeOverviewModuleIds.facts,
-          'Les Facts nécessitent un futur registre de connaissances.',
+          'Aucun Fact authoré.',
         ),
         findsOneWidget,
       );
       expect(
           _textInModule(NarrativeOverviewModuleIds.quests, '0'), findsNothing);
       expect(
-          _textInModule(NarrativeOverviewModuleIds.facts, '0'), findsNothing);
+          _textInModule(NarrativeOverviewModuleIds.facts, '0'), findsOneWidget);
     },
   );
 
@@ -728,7 +728,7 @@ void main() {
       );
       expect(_textInStructureCounter('facts', 'Facts'), findsOneWidget);
       expect(
-        _textInStructureCounter('facts', 'Nécessite un modèle'),
+        _textInStructureCounter('facts', '0'),
         findsOneWidget,
       );
 
@@ -780,7 +780,7 @@ void main() {
       expect(_textInStructureCounter('cutscenes', '1'), findsOneWidget);
       expect(_textInStructureCounter('dialogues', '1'), findsOneWidget);
       expect(
-        _textInStructureCounter('facts', 'Nécessite un modèle'),
+        _textInStructureCounter('facts', '0'),
         findsOneWidget,
       );
       expect(_textInStructureInspector('Test Chapter One'), findsOneWidget);
@@ -936,7 +936,7 @@ void main() {
 
       await _pumpOverview(tester, readModel, width: 1600, height: 1400);
 
-      expect(_textInEmptyState('facts', 'Nécessite un modèle'), findsOneWidget);
+      expect(_textInEmptyState('facts', 'Vide'), findsOneWidget);
       expect(
         _textInEmptyState('recent_activity', 'Hors scope V0'),
         findsOneWidget,

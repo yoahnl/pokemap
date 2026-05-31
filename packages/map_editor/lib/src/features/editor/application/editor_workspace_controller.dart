@@ -66,6 +66,14 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.dialogue);
   }
 
+  EditorState selectFactsWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.facts);
+  }
+
+  EditorState selectWorldRulesWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.worldRules);
+  }
+
   EditorState selectPathStudioWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.pathStudio);
   }

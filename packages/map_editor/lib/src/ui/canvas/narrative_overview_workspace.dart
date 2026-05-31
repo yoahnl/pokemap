@@ -17,6 +17,8 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
     this.onOpenScenes,
     this.onOpenCutscenes,
     this.onOpenDialogues,
+    this.onOpenFacts,
+    this.onOpenWorldRules,
   });
 
   final NarrativeOverviewReadModel readModel;
@@ -24,6 +26,8 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
   final VoidCallback? onOpenScenes;
   final VoidCallback? onOpenCutscenes;
   final VoidCallback? onOpenDialogues;
+  final VoidCallback? onOpenFacts;
+  final VoidCallback? onOpenWorldRules;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +43,8 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
           onOpenScenes: onOpenScenes,
           onOpenCutscenes: onOpenCutscenes,
           onOpenDialogues: onOpenDialogues,
+          onOpenFacts: onOpenFacts,
+          onOpenWorldRules: onOpenWorldRules,
         ),
       ],
     );
@@ -155,6 +161,8 @@ class _OverviewResponsiveBody extends StatelessWidget {
     required this.onOpenScenes,
     required this.onOpenCutscenes,
     required this.onOpenDialogues,
+    required this.onOpenFacts,
+    required this.onOpenWorldRules,
   });
 
   final NarrativeOverviewReadModel readModel;
@@ -162,6 +170,8 @@ class _OverviewResponsiveBody extends StatelessWidget {
   final VoidCallback? onOpenScenes;
   final VoidCallback? onOpenCutscenes;
   final VoidCallback? onOpenDialogues;
+  final VoidCallback? onOpenFacts;
+  final VoidCallback? onOpenWorldRules;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +183,8 @@ class _OverviewResponsiveBody extends StatelessWidget {
           onOpenScenes: onOpenScenes,
           onOpenCutscenes: onOpenCutscenes,
           onOpenDialogues: onOpenDialogues,
+          onOpenFacts: onOpenFacts,
+          onOpenWorldRules: onOpenWorldRules,
         );
         final structureInspector = NarrativeOverviewStructureInspector(
           inspector: readModel.structureInspector,
@@ -216,6 +228,8 @@ class _OverviewMainColumn extends StatelessWidget {
     required this.onOpenScenes,
     required this.onOpenCutscenes,
     required this.onOpenDialogues,
+    required this.onOpenFacts,
+    required this.onOpenWorldRules,
   });
 
   final NarrativeOverviewReadModel readModel;
@@ -223,6 +237,8 @@ class _OverviewMainColumn extends StatelessWidget {
   final VoidCallback? onOpenScenes;
   final VoidCallback? onOpenCutscenes;
   final VoidCallback? onOpenDialogues;
+  final VoidCallback? onOpenFacts;
+  final VoidCallback? onOpenWorldRules;
 
   @override
   Widget build(BuildContext context) {
@@ -264,6 +280,8 @@ class _OverviewMainColumn extends StatelessWidget {
           modules: readModel.modules,
           onOpenCutscenes: onOpenCutscenes,
           onOpenDialogues: onOpenDialogues,
+          onOpenFacts: onOpenFacts,
+          onOpenWorldRules: onOpenWorldRules,
         ),
         const SizedBox(height: 8),
         NarrativeOverviewUnavailableDataSection(
@@ -365,11 +383,15 @@ class _ModuleCardsSection extends StatelessWidget {
     required this.modules,
     required this.onOpenCutscenes,
     required this.onOpenDialogues,
+    required this.onOpenFacts,
+    required this.onOpenWorldRules,
   });
 
   final List<NarrativeModuleSummary> modules;
   final VoidCallback? onOpenCutscenes;
   final VoidCallback? onOpenDialogues;
+  final VoidCallback? onOpenFacts;
+  final VoidCallback? onOpenWorldRules;
 
   @override
   Widget build(BuildContext context) {
@@ -412,6 +434,8 @@ class _ModuleCardsSection extends StatelessWidget {
     return switch (moduleId) {
       NarrativeOverviewModuleIds.cutscenes => onOpenCutscenes,
       NarrativeOverviewModuleIds.dialogues => onOpenDialogues,
+      NarrativeOverviewModuleIds.facts => onOpenFacts,
+      NarrativeOverviewModuleIds.worldRules => onOpenWorldRules,
       _ => null,
     };
   }

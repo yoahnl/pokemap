@@ -198,23 +198,23 @@ void main() {
         findsNothing,
       );
 
-      for (final disabled in <String>[
+      for (final label in <String>[
         'Facts',
         'Règles du monde',
         'Validateur',
       ]) {
         expect(
-          find.descendant(of: sidebar, matching: find.text(disabled)),
+          find.descendant(of: sidebar, matching: find.text(label)),
           findsOneWidget,
         );
       }
-      for (final disabledState in <String>[
-        'Nécessite un modèle',
-        'À venir',
+      for (final sidebarState in <String>[
+        'Faits du monde',
+        'Changements visibles',
         'Non branché',
       ]) {
         expect(
-          find.descendant(of: sidebar, matching: find.text(disabledState)),
+          find.descendant(of: sidebar, matching: find.text(sidebarState)),
           findsOneWidget,
         );
       }
@@ -222,10 +222,20 @@ void main() {
       await tester
           .tap(find.descendant(of: sidebar, matching: find.text('Facts')));
       await tester.pumpAndSettle();
+      expect(find.text('workspace:facts'), findsOneWidget);
+
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Règles du monde')),
       );
       await tester.pumpAndSettle();
+      expect(find.text('workspace:worldRules'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(of: sidebar, matching: find.text('Aperçu')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Validateur')),
       );
@@ -328,11 +338,17 @@ void main() {
       expect(find.text('workspace:dialogue'), findsOneWidget);
       await returnToOverview();
 
+      await tapOverviewCard('narrative-overview-module-world_rules');
+      expect(find.text('workspace:worldRules'), findsOneWidget);
+      await returnToOverview();
+
+      await tapOverviewCard('narrative-overview-module-facts');
+      expect(find.text('workspace:facts'), findsOneWidget);
+      await returnToOverview();
+
       for (final disabledModule in <String>[
         'narrative-overview-module-quests',
         'narrative-overview-module-conditions',
-        'narrative-overview-module-world_rules',
-        'narrative-overview-module-facts',
       ]) {
         await tapOverviewCard(disabledModule);
         expect(find.text('workspace:narrativeOverview'), findsOneWidget);
@@ -512,6 +528,53 @@ void main() {
       expect(find.text('1236'), findsNothing);
       expect(find.text('24'), findsNothing);
       expect(find.text('12'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'EditorShellPage gives Facts and World Rules managers full narrative width',
+    (tester) async {
+      for (final workspaceMode in <EditorWorkspaceMode>[
+        EditorWorkspaceMode.facts,
+        EditorWorkspaceMode.worldRules,
+      ]) {
+        final stageSubtitle = switch (workspaceMode) {
+          EditorWorkspaceMode.facts =>
+            'Registre no-code des faits persistants lisibles par les scènes et règles du monde.',
+          EditorWorkspaceMode.worldRules =>
+            'Règles visibles du monde basées sur des sources authorées et des cibles de carte.',
+          _ => throw StateError('Unexpected workspace mode'),
+        };
+        await pumpEditorShellPage(
+          tester,
+          initialState: EditorState(
+            projectRootPath: '/tmp/ns_v1_35_manager_layout_project',
+            workspaceMode: workspaceMode,
+            project: _minimalProject('test_project'),
+          ),
+          surfaceSize: const Size(1600, 1000),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('facts-world-rules-workspace')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('narrative-studio-sidebar')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('editor_right_m')), findsNothing);
+        expect(find.byKey(const ValueKey('editor_right_n')), findsNothing);
+        expect(
+          find.text('Cette section n’a pas encore d’inspecteur dédié.'),
+          findsNothing,
+        );
+        expect(find.text(stageSubtitle), findsNothing);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      }
     },
   );
 

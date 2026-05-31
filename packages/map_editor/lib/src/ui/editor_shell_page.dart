@@ -90,7 +90,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
-      EditorWorkspaceMode.dialogue =>
+      EditorWorkspaceMode.dialogue ||
+      EditorWorkspaceMode.facts ||
+      EditorWorkspaceMode.worldRules =>
         true,
       _ => false,
     };
@@ -427,8 +429,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                   children: [
                                                     if (!isNarrativeWorkspace) ...[
                                                       _WorkspaceStageHeader(
-                                                        title:
-                                                            shell.workspaceTitle,
+                                                        title: shell
+                                                            .workspaceTitle,
                                                         subtitle: shell
                                                             .workspaceSubtitle,
                                                         workspaceMode:
@@ -444,7 +446,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                           });
                                                         },
                                                       ),
-                                                      const SizedBox(height: 18),
+                                                      const SizedBox(
+                                                          height: 18),
                                                     ],
                                                     Expanded(
                                                       child: workspaceMode ==
@@ -567,6 +570,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                       .islandNeutralTint,
                                                 EditorWorkspaceMode.dialogue =>
                                                   EditorChrome.islandCoolTint,
+                                                EditorWorkspaceMode.facts =>
+                                                  EditorChrome.islandCoolTint,
+                                                EditorWorkspaceMode
+                                                      .worldRules =>
+                                                  EditorChrome.islandCoolTint,
                                                 EditorWorkspaceMode
                                                       .pathStudio =>
                                                   EditorChrome.islandCoolTint,
@@ -588,13 +596,19 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                   const _EmptyWorkspaceInspector(),
                                                 EditorWorkspaceMode.scenes =>
                                                   const _EmptyWorkspaceInspector(),
+                                                EditorWorkspaceMode.facts =>
+                                                  const _EmptyWorkspaceInspector(),
+                                                EditorWorkspaceMode
+                                                      .worldRules =>
+                                                  const _EmptyWorkspaceInspector(),
                                                 EditorWorkspaceMode
                                                       .pathStudio =>
                                                   const _EmptyWorkspaceInspector(),
                                                 EditorWorkspaceMode
                                                       .environmentStudio =>
                                                   const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode.globalStory ||
+                                                EditorWorkspaceMode
+                                                    .globalStory ||
                                                 EditorWorkspaceMode.step ||
                                                 EditorWorkspaceMode.cutscene ||
                                                 EditorWorkspaceMode.dialogue =>
@@ -740,7 +754,9 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
-      EditorWorkspaceMode.dialogue =>
+      EditorWorkspaceMode.dialogue ||
+      EditorWorkspaceMode.facts ||
+      EditorWorkspaceMode.worldRules =>
         colors.narrative,
       EditorWorkspaceMode.pathStudio => colors.brandPrimary,
       EditorWorkspaceMode.environmentStudio => colors.mapAccent,
@@ -756,7 +772,9 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.scenes ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
-      EditorWorkspaceMode.dialogue =>
+      EditorWorkspaceMode.dialogue ||
+      EditorWorkspaceMode.facts ||
+      EditorWorkspaceMode.worldRules =>
         PokeMapBadgeVariant.narrative,
       _ => PokeMapBadgeVariant.neutral,
     };
@@ -772,6 +790,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.step => 'Étapes',
       EditorWorkspaceMode.cutscene => 'Cinématiques',
       EditorWorkspaceMode.dialogue => 'Dialogue',
+      EditorWorkspaceMode.facts => 'Facts',
+      EditorWorkspaceMode.worldRules => 'Règles',
       EditorWorkspaceMode.pathStudio => 'Chemins',
       EditorWorkspaceMode.environmentStudio => 'Envs',
     };
@@ -924,6 +944,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
               EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,
+              EditorWorkspaceMode.facts => CupertinoIcons.doc_text,
+              EditorWorkspaceMode.worldRules => CupertinoIcons.checkmark_seal,
               EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
               EditorWorkspaceMode.environmentStudio => CupertinoIcons.tree,
             },

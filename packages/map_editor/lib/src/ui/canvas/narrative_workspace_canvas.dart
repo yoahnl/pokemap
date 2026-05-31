@@ -11,6 +11,7 @@ import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
+import 'facts_world_rules/facts_world_rules_workspace.dart';
 import 'narrative_overview_workspace.dart';
 import 'narrative_studio_shell.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
@@ -45,9 +46,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         child: Text(
           'Load a project to start structuring Global Story, Steps and Cutscenes.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: CupertinoColors.secondaryLabel.resolveFrom(context),
-          ),
+          style: DefaultTextStyle.of(context).style.copyWith(
+                color: EditorChrome.subtleLabel(context),
+              ),
         ),
       );
     }
@@ -107,6 +108,14 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       editorNotifier.selectDialogueWorkspace();
     }
 
+    void openFacts() {
+      editorNotifier.selectFactsWorkspace();
+    }
+
+    void openWorldRules() {
+      editorNotifier.selectWorldRulesWorkspace();
+    }
+
     final mainContent = switch (editor.workspaceMode) {
       EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
           readModel: buildNarrativeOverviewReadModel(
@@ -116,6 +125,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           onOpenScenes: openScenes,
           onOpenCutscenes: openCutscene,
           onOpenDialogues: openDialogue,
+          onOpenFacts: openFacts,
+          onOpenWorldRules: openWorldRules,
         ),
       EditorWorkspaceMode.globalStory => StorylinesWorkspace(
           projection: projection,
@@ -540,6 +551,18 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           onSelectOutcome: narrativeController.selectOutcome,
         ),
       EditorWorkspaceMode.dialogue => const DialogueStudioWorkspace(),
+      EditorWorkspaceMode.facts => _buildFactsWorldRulesWorkspace(
+          editor: editor,
+          editorNotifier: editorNotifier,
+          readLatestProject: () => ref.read(editorNotifierProvider).project,
+          initialMode: FactsWorldRulesWorkspaceMode.facts,
+        ),
+      EditorWorkspaceMode.worldRules => _buildFactsWorldRulesWorkspace(
+          editor: editor,
+          editorNotifier: editorNotifier,
+          readLatestProject: () => ref.read(editorNotifierProvider).project,
+          initialMode: FactsWorldRulesWorkspaceMode.worldRules,
+        ),
       // Workspaces non narratifs: ce widget ne doit pas être utilisé.
       _ => const SizedBox.shrink(),
     };
@@ -552,9 +575,173 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       onSelectStep: openStep,
       onSelectCutscene: openCutscene,
       onSelectDialogue: openDialogue,
+      onSelectFacts: openFacts,
+      onSelectWorldRules: openWorldRules,
       child: mainContent,
     );
   }
+}
+
+Widget _buildFactsWorldRulesWorkspace({
+  required EditorState editor,
+  required EditorNotifier editorNotifier,
+  required ProjectManifest? Function() readLatestProject,
+  required FactsWorldRulesWorkspaceMode initialMode,
+}) {
+  final project = editor.project;
+  if (project == null) {
+    return const SizedBox.shrink();
+  }
+  final maps =
+      editor.activeMap == null ? const <MapData>[] : [editor.activeMap!];
+  return FactsWorldRulesWorkspace(
+    project: project,
+    activeMap: editor.activeMap,
+    initialMode: initialMode,
+    onCreateFact: ({required String label}) async {
+      try {
+        final result = addNarrativeFact(project, label: label);
+        editorNotifier.applyInMemoryProjectManifest(
+          result.updatedProject,
+          statusMessage: 'Fact created',
+        );
+        return result.createdFact.id;
+      } on ArgumentError {
+        return null;
+      }
+    },
+    onUpdateFact: ({
+      required String factId,
+      required String label,
+      required String description,
+      required String category,
+      required bool defaultValue,
+    }) async {
+      try {
+        final latest = readLatestProject();
+        if (latest == null) {
+          return false;
+        }
+        final result = updateNarrativeFact(
+          latest,
+          factId: factId,
+          label: label,
+          description: description,
+          category: category,
+          defaultValue: defaultValue,
+        );
+        editorNotifier.applyInMemoryProjectManifest(
+          result.updatedProject,
+          statusMessage: 'Fact updated',
+        );
+        return true;
+      } on ArgumentError {
+        return false;
+      }
+    },
+    onRemoveFact: ({required String factId}) async {
+      try {
+        final latest = readLatestProject();
+        if (latest == null) {
+          return false;
+        }
+        final result = removeNarrativeFact(latest, factId: factId);
+        editorNotifier.applyInMemoryProjectManifest(
+          result.updatedProject,
+          statusMessage: 'Fact removed',
+        );
+        return true;
+      } on ArgumentError {
+        return false;
+      }
+    },
+    onCreateWorldRule: ({
+      required String label,
+      required String description,
+      required bool enabled,
+      required WorldRuleSource source,
+      required WorldRuleTarget target,
+      required WorldRuleEffect effect,
+      required int priority,
+    }) async {
+      try {
+        final latest = readLatestProject();
+        if (latest == null) {
+          return null;
+        }
+        final result = addWorldRule(
+          latest,
+          label: label,
+          description: description,
+          enabled: enabled,
+          source: source,
+          target: target,
+          effect: effect,
+          priority: priority,
+          maps: maps,
+        );
+        editorNotifier.applyInMemoryProjectManifest(
+          result.updatedProject,
+          statusMessage: 'World rule created',
+        );
+        return result.createdRule.id;
+      } on ArgumentError {
+        return null;
+      }
+    },
+    onUpdateWorldRule: ({
+      required String ruleId,
+      required String label,
+      required String description,
+      required bool enabled,
+      required WorldRuleSource source,
+      required WorldRuleTarget target,
+      required WorldRuleEffect effect,
+      required int priority,
+    }) async {
+      try {
+        final latest = readLatestProject();
+        if (latest == null) {
+          return false;
+        }
+        final result = updateWorldRule(
+          latest,
+          ruleId: ruleId,
+          label: label,
+          description: description,
+          enabled: enabled,
+          source: source,
+          target: target,
+          effect: effect,
+          priority: priority,
+          maps: maps,
+        );
+        editorNotifier.applyInMemoryProjectManifest(
+          result.updatedProject,
+          statusMessage: 'World rule updated',
+        );
+        return true;
+      } on ArgumentError {
+        return false;
+      }
+    },
+    onRemoveWorldRule: ({required String ruleId}) async {
+      try {
+        final latest = readLatestProject();
+        if (latest == null) {
+          return false;
+        }
+        final result = removeWorldRule(latest, ruleId: ruleId);
+        editorNotifier.applyInMemoryProjectManifest(
+          result.updatedProject,
+          statusMessage: 'World rule removed',
+        );
+        return true;
+      } on ArgumentError {
+        return false;
+      }
+    },
+  );
 }
 
 List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
@@ -912,18 +1099,18 @@ class _NarrativeListCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
-              fontWeight: FontWeight.w700,
-            ),
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: EditorChrome.primaryLabel(context),
+                  fontWeight: FontWeight.w700,
+                ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
-              fontSize: 12,
-            ),
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: EditorChrome.subtleLabel(context),
+                  fontSize: 12,
+                ),
           ),
           const SizedBox(height: 10),
           Expanded(
@@ -932,11 +1119,10 @@ class _NarrativeListCard extends StatelessWidget {
                     child: Text(
                       emptyText,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color:
-                            CupertinoColors.secondaryLabel.resolveFrom(context),
-                        fontSize: 12,
-                      ),
+                      style: DefaultTextStyle.of(context).style.copyWith(
+                            color: EditorChrome.subtleLabel(context),
+                            fontSize: 12,
+                          ),
                     ),
                   )
                 : ListView.separated(

@@ -260,7 +260,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error creating project: $e');
-      state = state.copyWith(errorMessage: 'Impossible de créer le projet : $e');
+      state =
+          state.copyWith(errorMessage: 'Impossible de créer le projet : $e');
     }
   }
 
@@ -303,7 +304,8 @@ class EditorNotifier extends _$EditorNotifier {
               'Impossible de rouvrir automatiquement le dernier projet. Ouvrez-le manuellement une fois pour réautoriser l’accès.',
         );
       } else {
-        state = state.copyWith(errorMessage: 'Impossible de charger le projet : $e');
+        state = state.copyWith(
+            errorMessage: 'Impossible de charger le projet : $e');
       }
     }
   }
@@ -655,7 +657,8 @@ class EditorNotifier extends _$EditorNotifier {
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
       debugPrint('EditorNotifier: Error loading map: $e');
-      state = state.copyWith(errorMessage: 'Impossible de charger la carte : $e');
+      state =
+          state.copyWith(errorMessage: 'Impossible de charger la carte : $e');
     }
   }
 
@@ -730,7 +733,8 @@ class EditorNotifier extends _$EditorNotifier {
 
       if (committed == map) {
         state = state.copyWith(
-          statusMessage: 'La carte « ${map.id} » est déjà de taille ${width}x$height',
+          statusMessage:
+              'La carte « ${map.id} » est déjà de taille ${width}x$height',
           errorMessage: null,
         );
         return;
@@ -754,7 +758,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error resizing map: $e');
-      state = state.copyWith(errorMessage: 'Impossible de redimensionner la carte : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de redimensionner la carte : $e');
     }
   }
 
@@ -804,7 +809,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error renaming map: $e');
-      state = state.copyWith(errorMessage: 'Impossible de renommer la carte : $e');
+      state =
+          state.copyWith(errorMessage: 'Impossible de renommer la carte : $e');
     }
   }
 
@@ -825,7 +831,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error deleting map: $e');
-      state = state.copyWith(errorMessage: 'Impossible de supprimer la carte : $e');
+      state =
+          state.copyWith(errorMessage: 'Impossible de supprimer la carte : $e');
     }
   }
 
@@ -846,7 +853,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error duplicating map: $e');
-      state = state.copyWith(errorMessage: 'Impossible de dupliquer la carte : $e');
+      state =
+          state.copyWith(errorMessage: 'Impossible de dupliquer la carte : $e');
     }
   }
 
@@ -1550,6 +1558,16 @@ class EditorNotifier extends _$EditorNotifier {
   /// Bascule vers Dialogue Studio (bibliothèque + canvas + inspecteur).
   void selectDialogueWorkspace() {
     state = _editorWorkspaceController.selectDialogueWorkspace(state);
+  }
+
+  /// Bascule vers le manager Facts.
+  void selectFactsWorkspace() {
+    state = _editorWorkspaceController.selectFactsWorkspace(state);
+  }
+
+  /// Bascule vers le manager des règles du monde.
+  void selectWorldRulesWorkspace() {
+    state = _editorWorkspaceController.selectWorldRulesWorkspace(state);
   }
 
   /// Bascule vers Path Studio.
@@ -3592,7 +3610,8 @@ class EditorNotifier extends _$EditorNotifier {
     final sourceMap = state.activeMap;
     final selectedWarpId = state.selectedWarpId;
     if (fs == null) {
-      state = state.copyWith(errorMessage: 'Aucun système de fichiers de projet disponible');
+      state = state.copyWith(
+          errorMessage: 'Aucun système de fichiers de projet disponible');
       return;
     }
     if (project == null) {
@@ -6482,7 +6501,8 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Calque renommé',
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de renommer le calque : $e');
+      state =
+          state.copyWith(errorMessage: 'Impossible de renommer le calque : $e');
     }
   }
 
@@ -6513,7 +6533,8 @@ class EditorNotifier extends _$EditorNotifier {
     } on EditorValidationException catch (e) {
       state = state.copyWith(errorMessage: e.message);
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de supprimer le calque : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de supprimer le calque : $e');
     }
   }
 
@@ -6532,7 +6553,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de supprimer tous les calques : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de supprimer tous les calques : $e');
     }
   }
 
@@ -6573,7 +6595,8 @@ class EditorNotifier extends _$EditorNotifier {
         state = state.copyWith(errorMessage: null);
       }
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de réorganiser le calque : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de réorganiser le calque : $e');
     }
   }
 
@@ -6598,7 +6621,8 @@ class EditorNotifier extends _$EditorNotifier {
         state = state.copyWith(errorMessage: null);
       }
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de réorganiser le calque : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de réorganiser le calque : $e');
     }
   }
 
@@ -6628,7 +6652,8 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: isVisible ? 'Calque affiché' : 'Calque masqué',
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de mettre à jour le calque : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de mettre à jour le calque : $e');
     }
   }
 
@@ -6648,8 +6673,9 @@ class EditorNotifier extends _$EditorNotifier {
         preferredActiveLayerId: state.activeLayerId,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Impossible de mettre à jour l\'opacité du calque : $e');
+      state = state.copyWith(
+          errorMessage:
+              'Impossible de mettre à jour l\'opacité du calque : $e');
     }
   }
 
@@ -6732,7 +6758,8 @@ class EditorNotifier extends _$EditorNotifier {
 
   void selectSurfacePaintMode() {
     if (getSelectedSurfacePreset() == null) {
-      state = state.copyWith(errorMessage: 'Sélectionnez une surface avant de peindre');
+      state = state.copyWith(
+          errorMessage: 'Sélectionnez une surface avant de peindre');
       return;
     }
     state = state.copyWith(
@@ -6896,7 +6923,8 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de créer le preset de path : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de créer le preset de path : $e');
     }
   }
 
@@ -6948,7 +6976,8 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de mettre à jour le preset de path : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de mettre à jour le preset de path : $e');
     }
   }
 
@@ -6981,7 +7010,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       state = state.copyWith(
-          errorMessage: 'Impossible de mettre à jour les déclencheurs d\'animation : $e');
+          errorMessage:
+              'Impossible de mettre à jour les déclencheurs d\'animation : $e');
     }
   }
 
@@ -7004,8 +7034,9 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Mode d\'animation mis à jour',
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Impossible de mettre à jour le mode d\'animation : $e');
+      state = state.copyWith(
+          errorMessage:
+              'Impossible de mettre à jour le mode d\'animation : $e');
     }
   }
 
@@ -7029,7 +7060,8 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de supprimer le preset de path : $e');
+      state = state.copyWith(
+          errorMessage: 'Impossible de supprimer le preset de path : $e');
     }
   }
 

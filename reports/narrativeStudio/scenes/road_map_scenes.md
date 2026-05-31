@@ -89,16 +89,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint | DONE | Checkpoint beta : Scene V1 est prete pour une beta controlee authoring/smoke, mais pas encore pour golden-slice jouable complet ; prochain verrou retenu = persistance runtime des etats narratifs ecrits par Scene. |
 | NS-SCENES-V1-33 — Runtime State Persistence Gate V0 | DONE | Gate persistence runtime : les consequences Scene V1 `setFact` et `markEventConsumed` ecrites par `SceneEventRuntimeHook` survivent au save/reload et restent lisibles par Conditions Scene et World Rules en projection pure. |
 | NS-SCENES-V1-34 — World Rules Runtime Projection Hook V0 | DONE | Hook runtime borne : World Rules projetees depuis `GameState` pilotent presence PNJ, dialogue override et disponibilite d'events sans muter `GameState`, `ProjectManifest` ou `MapData`. |
+| NS-SCENES-V1-35 — Facts & World Rules Manager UI V0 | DONE | Manager no-code centralise : Facts et Regles du monde actifs depuis Narrative Studio, creation/edition/suppression bornee, pickers reels, usages/diagnostics visibles, overview aligne. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`
+`NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision`
 
-Raison : V1-34 verrouille maintenant l'application runtime controlee des World Rules projetees. Le prochain blocage produit est l'authoring no-code centralise de Facts et World Rules : l'overview et les panneaux contextuels existent, mais il manque encore un espace dedie pour les gerer sans exposer des flags techniques.
+Raison : V1-35 ferme le trou UX central Facts / World Rules. Le prochain blocage produit majeur est Cinematic : l'ancien Cutscene Studio existe encore comme bridge scenario, mais Cinematic V1 canonique doit etre decide avant Cinematics Library et Cinematic Builder V2.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision.
 
-Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
 ## Mise a jour V1-31
 
@@ -158,7 +159,19 @@ Integration runtime : `PlayableMapGame` combine la presence PNJ existante avec l
 
 Limites : pas de nouveau modele, pas de manager UI, pas de Fact/World Rule authoring nouveau, pas de World Rule qui ecrit dans `GameState`, pas de completion StoryStep, pas de BranchByOutcome, pas de donnees Selbrume et aucun package editor/battle/gameplay/examples modifie par V1-34.
 
-Prochain lot exact : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`.
+Prochain lot exact realise : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0`.
+
+## Mise a jour V1-35
+
+Statut : `NS-SCENES-V1-35 — Facts & World Rules Manager UI V0` est DONE.
+
+Decision : Facts et Regles du monde disposent maintenant d'un manager central no-code dans Narrative Studio. Les deux entrees de sidebar sont actives et ouvrent un workspace partage en onglets, avec compteurs, liste, recherche, edition guidee, phrase humaine de World Rule, diagnostics et usages de Facts.
+
+Scope realise : read model pur `FactsWorldRulesManagerReadModel`, garde de suppression `removeNarrativeFact` etendue aux usages Scene consequence / World Rule, workspace editor Facts/World Rules, mutations en memoire via `EditorNotifier.applyInMemoryProjectManifest`, overview aligne, tests core/editor et visual gate V1-35. Les goldens Scene Builder historiques ont ete regeneres car le chrome Narrative Studio commun affiche maintenant Facts et Regles du monde comme entrees actives.
+
+Limites : pas de runtime modifie, pas de nouveau type de Fact ou World Rule, pas de nouvel effet, pas de nouvelle SceneConsequence, pas de GameState mute depuis l'editor, pas de seed Selbrume, pas de workflow principal par ID technique.
+
+Prochain lot exact : `NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision`.
 
 ## Mise a jour V1-30-bis
 

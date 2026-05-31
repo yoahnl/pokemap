@@ -13,6 +13,8 @@ class NarrativeStudioShell extends StatelessWidget {
     required this.onSelectStep,
     required this.onSelectCutscene,
     required this.onSelectDialogue,
+    required this.onSelectFacts,
+    required this.onSelectWorldRules,
     required this.child,
   });
 
@@ -23,6 +25,8 @@ class NarrativeStudioShell extends StatelessWidget {
   final VoidCallback onSelectStep;
   final VoidCallback onSelectCutscene;
   final VoidCallback onSelectDialogue;
+  final VoidCallback onSelectFacts;
+  final VoidCallback onSelectWorldRules;
   final Widget child;
 
   @override
@@ -45,6 +49,8 @@ class NarrativeStudioShell extends StatelessWidget {
                 onSelectStep: onSelectStep,
                 onSelectCutscene: onSelectCutscene,
                 onSelectDialogue: onSelectDialogue,
+                onSelectFacts: onSelectFacts,
+                onSelectWorldRules: onSelectWorldRules,
                 compact: compactSidebar,
               ),
               SizedBox(width: compactSidebar ? 7 : 8),

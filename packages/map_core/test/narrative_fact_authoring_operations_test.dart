@@ -104,12 +104,39 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('refuses facts used by world rules or scene consequences', () {
+      final worldRuleFact = NarrativeFactDefinition(
+        id: 'fact_rule_source',
+        label: 'Rule source',
+      );
+      final consequenceFact = NarrativeFactDefinition(
+        id: 'fact_scene_write',
+        label: 'Scene write',
+      );
+      final manifest = _manifest(
+        facts: [worldRuleFact, consequenceFact],
+        scenes: [_sceneProducingFact('fact_scene_write')],
+        worldRules: [_worldRuleReferencingFact('fact_rule_source')],
+      );
+
+      expect(
+        () => removeNarrativeFact(manifest, factId: 'fact_rule_source'),
+        throwsArgumentError,
+      );
+      expect(
+        () => removeNarrativeFact(manifest, factId: 'fact_scene_write'),
+        throwsArgumentError,
+      );
+      expect(manifest.facts, [worldRuleFact, consequenceFact]);
+    });
   });
 }
 
 ProjectManifest _manifest({
   List<NarrativeFactDefinition> facts = const [],
   List<SceneAsset> scenes = const [],
+  List<WorldRuleDefinition> worldRules = const [],
 }) {
   return ProjectManifest(
     name: 'Facts test',
@@ -117,6 +144,7 @@ ProjectManifest _manifest({
     tilesets: const [],
     facts: facts,
     scenes: scenes,
+    worldRules: worldRules,
   );
 }
 
@@ -159,5 +187,45 @@ SceneAsset _sceneReferencingFact(String factId) {
       ],
       edges: const [],
     ),
+  );
+}
+
+SceneAsset _sceneProducingFact(String factId) {
+  return SceneAsset(
+    id: 'scene_fact_write',
+    name: 'Scene fact write',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(factId: factId, value: true),
+          ),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: const [],
+    ),
+  );
+}
+
+WorldRuleDefinition _worldRuleReferencingFact(String factId) {
+  return WorldRuleDefinition(
+    id: 'world_rule_fact_ref',
+    label: 'World rule fact ref',
+    source: WorldRuleSource(
+      kind: WorldRuleSourceKind.fact,
+      sourceId: factId,
+      predicate: WorldRuleSourcePredicate.isTrue,
+    ),
+    target: const WorldRuleTarget(
+      kind: WorldRuleTargetKind.mapEvent,
+      mapId: 'map_test',
+      eventId: 'event_test',
+    ),
+    effect: const WorldRuleEffect(kind: WorldRuleEffectKind.eventHidden),
   );
 }

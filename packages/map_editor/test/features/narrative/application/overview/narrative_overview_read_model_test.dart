@@ -30,9 +30,9 @@ void main() {
       expect(model.metrics.quests.count, isNull);
       expect(model.metrics.quests.availability,
           NarrativeOverviewAvailability.outOfScope);
-      expect(model.metrics.facts.count, isNull);
+      expect(model.metrics.facts.count, 0);
       expect(model.metrics.facts.availability,
-          NarrativeOverviewAvailability.needsModel);
+          NarrativeOverviewAvailability.empty);
       expect(model.metrics.openIssues.count, isNull);
       expect(
         model.metrics.openIssues.availability,
@@ -82,7 +82,7 @@ void main() {
       expect(model.metrics.cutscenes.count, 1);
       expect(model.metrics.dialogues.count, 1);
       expect(model.metrics.conditions.count, 3);
-      expect(model.metrics.worldRules.count, 1);
+      expect(model.metrics.worldRules.count, 0);
 
       expect(model.mainStory.availability,
           NarrativeOverviewAvailability.available);
@@ -105,9 +105,8 @@ void main() {
 
       final factsModule = model.modules.singleWhere(
           (module) => module.id == NarrativeOverviewModuleIds.facts);
-      expect(factsModule.count, isNull);
-      expect(
-          factsModule.availability, NarrativeOverviewAvailability.needsModel);
+      expect(factsModule.count, 0);
+      expect(factsModule.availability, NarrativeOverviewAvailability.empty);
     });
 
     test('marks chapters as fallback when Global Story metadata is absent', () {

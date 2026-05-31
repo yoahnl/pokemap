@@ -153,6 +153,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.step => 'Step Studio',
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
+    EditorWorkspaceMode.facts => 'Facts Manager',
+    EditorWorkspaceMode.worldRules => 'World Rules Manager',
     EditorWorkspaceMode.pathStudio => 'Path Studio',
     EditorWorkspaceMode.environmentStudio => 'Environment Studio',
   };
@@ -180,6 +182,10 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Espace d’exécution de scène : dialogues, mouvements, attentes, embranchements locaux.',
     EditorWorkspaceMode.dialogue =>
       'Création de conversations : blocs visuels, prévisualisation, export Yarn — pas un IDE de script brut.',
+    EditorWorkspaceMode.facts =>
+      'Registre no-code des faits persistants lisibles par les scènes et règles du monde.',
+    EditorWorkspaceMode.worldRules =>
+      'Règles visibles du monde basées sur des sources authorées et des cibles de carte.',
     EditorWorkspaceMode.pathStudio =>
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>

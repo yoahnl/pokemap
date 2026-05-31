@@ -28,7 +28,7 @@ class NarrativeOverviewUnavailableDataSection extends StatelessWidget {
         slot: 'facts',
         label: facts.label,
         value: _availabilityTitle(facts.availability),
-        detail: 'Registre de connaissances à définir avant affichage.',
+        detail: facts.emptyStateMessage,
         availability: facts.availability,
         icon: CupertinoIcons.book_fill,
       ),

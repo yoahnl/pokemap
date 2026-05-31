@@ -39,6 +39,12 @@ enum EditorWorkspaceMode {
   /// Studio de conversation (dialogues `.yarn` en blocs visuels).
   dialogue,
 
+  /// Manager no-code des Facts authorés.
+  facts,
+
+  /// Manager no-code des règles visibles du monde.
+  worldRules,
+
   /// Shell Path Studio V0.
   ///
   /// Ce mode expose une surface read-only pour les `ProjectPathPatternPreset` :

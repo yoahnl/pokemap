@@ -14,6 +14,8 @@ class NarrativeStudioSidebar extends StatelessWidget {
     required this.onSelectStep,
     required this.onSelectCutscene,
     required this.onSelectDialogue,
+    required this.onSelectFacts,
+    required this.onSelectWorldRules,
     required this.compact,
   });
 
@@ -24,6 +26,8 @@ class NarrativeStudioSidebar extends StatelessWidget {
   final VoidCallback onSelectStep;
   final VoidCallback onSelectCutscene;
   final VoidCallback onSelectDialogue;
+  final VoidCallback onSelectFacts;
+  final VoidCallback onSelectWorldRules;
   final bool compact;
 
   @override
@@ -46,22 +50,22 @@ class NarrativeStudioSidebar extends StatelessWidget {
                   'Narrative Studio',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        color: colors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
                 ),
                 const SizedBox(height: 1),
                 Text(
                   'Navigation interne',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textMuted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        color: colors.textMuted,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 _NarrativeSidebarItem(
@@ -114,22 +118,27 @@ class NarrativeStudioSidebar extends StatelessWidget {
                   onTap: onSelectDialogue,
                 ),
                 const SizedBox(height: 6),
-                const _SidebarSectionLabel('Non branché V0'),
+                const _SidebarSectionLabel('Données monde'),
                 const SizedBox(height: 4),
-                const _NarrativeSidebarItem(
-                  key: ValueKey('narrative-studio-sidebar-facts'),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-facts'),
                   icon: CupertinoIcons.doc_text,
                   label: 'Facts',
-                  subtitle: 'Nécessite un modèle',
-                  selected: false,
+                  subtitle: 'Faits du monde',
+                  selected: workspaceMode == EditorWorkspaceMode.facts,
+                  onTap: onSelectFacts,
                 ),
-                const _NarrativeSidebarItem(
-                  key: ValueKey('narrative-studio-sidebar-world-rules'),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-world-rules'),
                   icon: CupertinoIcons.checkmark_seal,
                   label: 'Règles du monde',
-                  subtitle: 'À venir',
-                  selected: false,
+                  subtitle: 'Changements visibles',
+                  selected: workspaceMode == EditorWorkspaceMode.worldRules,
+                  onTap: onSelectWorldRules,
                 ),
+                const SizedBox(height: 6),
+                const _SidebarSectionLabel('À venir'),
+                const SizedBox(height: 4),
                 const _NarrativeSidebarItem(
                   key: ValueKey('narrative-studio-sidebar-validator'),
                   icon: CupertinoIcons.check_mark_circled,
@@ -160,11 +169,11 @@ class _SidebarSectionLabel extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: colors.textMuted,
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-        ),
+        style: DefaultTextStyle.of(context).style.copyWith(
+              color: colors.textMuted,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+            ),
       ),
     );
   }

@@ -390,6 +390,13 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     emptyStateMessage: 'Aucune World Rule authorée.',
     unavailableMessage: 'Règles du monde indisponibles.',
   );
+  final facts = _metricWithCount(
+    id: 'facts',
+    label: 'Facts',
+    count: project.facts.length,
+    emptyStateMessage: 'Aucun Fact authoré.',
+    unavailableMessage: 'Facts indisponibles.',
+  );
   final openIssues = validation.notEvaluated
       ? const NarrativeMetricSummary(
           id: 'open_issues',
@@ -436,16 +443,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     openIssues: openIssues,
     conditions: conditions,
     worldRules: worldRules,
-    facts: const NarrativeMetricSummary(
-      id: 'facts',
-      label: 'Facts',
-      count: null,
-      availability: NarrativeOverviewAvailability.needsModel,
-      sourceStatus: NarrativeOverviewSourceStatus.notApplicable,
-      emptyStateMessage: 'Les Facts ne sont pas encore modélisés.',
-      unavailableMessage:
-          'Compteur Facts indisponible sans registre de connaissances.',
-    ),
+    facts: facts,
   );
 
   final modules = _buildModules(
@@ -453,6 +451,9 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     worldRuleDiagnostics: worldRuleDiagnostics,
     worldRulePreviewLabels: [
       for (final rule in project.worldRules.take(3)) rule.label,
+    ],
+    factPreviewLabels: [
+      for (final fact in project.facts.take(3)) fact.label,
     ],
   );
   final projectHealth = _buildProjectHealth(validation, metrics);
@@ -962,6 +963,7 @@ List<NarrativeModuleSummary> _buildModules(
   NarrativeOverviewMetrics metrics, {
   required WorldRuleDiagnosticsReport worldRuleDiagnostics,
   required List<String> worldRulePreviewLabels,
+  required List<String> factPreviewLabels,
 }) {
   return <NarrativeModuleSummary>[
     const NarrativeModuleSummary(
@@ -1009,21 +1011,21 @@ List<NarrativeModuleSummary> _buildModules(
       count: metrics.worldRules.count,
       availability: metrics.worldRules.availability,
       emptyStateMessage: metrics.worldRules.emptyStateMessage,
-      destination: 'step_studio',
+      destination: 'world_rules_manager',
       secondaryStats: <NarrativeMetricSummary>[
         _worldRuleDiagnosticsMetric(worldRuleDiagnostics),
       ],
       previewLabels: worldRulePreviewLabels,
     ),
-    const NarrativeModuleSummary(
+    NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.facts,
       label: 'Facts',
-      description: 'Base de connaissances narrative et lore authoré.',
-      count: null,
-      availability: NarrativeOverviewAvailability.needsModel,
-      emptyStateMessage:
-          'Les Facts nécessitent un futur registre de connaissances.',
-      destination: null,
+      description: 'Faits persistants lisibles par les scènes et règles.',
+      count: metrics.facts.count,
+      availability: metrics.facts.availability,
+      emptyStateMessage: metrics.facts.emptyStateMessage,
+      destination: 'facts_manager',
+      previewLabels: factPreviewLabels,
     ),
   ];
 }

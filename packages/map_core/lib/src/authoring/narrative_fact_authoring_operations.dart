@@ -1,6 +1,8 @@
 import '../models/narrative_fact.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_consequence.dart';
+import '../models/world_rule.dart';
 
 final class NarrativeFactCreationResult {
   const NarrativeFactCreationResult({
@@ -107,12 +109,59 @@ NarrativeFactRemovalResult removeNarrativeFact(
       'Cannot remove narrative fact referenced by scene ${referencingScene.id}.',
     );
   }
+  final producingScene = _firstSceneProducingFact(manifest, factId);
+  if (producingScene != null) {
+    throw ArgumentError.value(
+      factId,
+      'factId',
+      'Cannot remove narrative fact produced by scene ${producingScene.id}.',
+    );
+  }
+  final referencingWorldRule = _firstWorldRuleReferencingFact(manifest, factId);
+  if (referencingWorldRule != null) {
+    throw ArgumentError.value(
+      factId,
+      'factId',
+      'Cannot remove narrative fact referenced by world rule '
+          '${referencingWorldRule.id}.',
+    );
+  }
   final removedFact = manifest.facts[index];
   final facts = manifest.facts.toList(growable: true)..removeAt(index);
   return NarrativeFactRemovalResult(
     updatedProject: manifest.copyWith(facts: facts),
     removedFact: removedFact,
   );
+}
+
+SceneAsset? _firstSceneProducingFact(ProjectManifest manifest, String factId) {
+  for (final scene in manifest.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneActionPayload) {
+        continue;
+      }
+      final consequence = payload.consequence;
+      if (consequence is SceneSetFactConsequence &&
+          consequence.factId == factId) {
+        return scene;
+      }
+    }
+  }
+  return null;
+}
+
+WorldRuleDefinition? _firstWorldRuleReferencingFact(
+  ProjectManifest manifest,
+  String factId,
+) {
+  for (final rule in manifest.worldRules) {
+    if (rule.source.kind == WorldRuleSourceKind.fact &&
+        rule.source.sourceId == factId) {
+      return rule;
+    }
+  }
+  return null;
 }
 
 SceneAsset? _firstSceneReferencingFact(
