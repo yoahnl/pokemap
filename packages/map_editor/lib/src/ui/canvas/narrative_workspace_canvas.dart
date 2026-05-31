@@ -9,6 +9,8 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../shared/cupertino_editor_widgets.dart';
+import '../design_system/design_system.dart';
+import 'cinematics/cinematics_library_workspace.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'facts_world_rules/facts_world_rules_workspace.dart';
@@ -536,7 +538,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           project: editor.project,
           activeMap: editor.activeMap,
         ),
-      EditorWorkspaceMode.cutscene => _CutsceneWorkspaceBody(
+      EditorWorkspaceMode.cutscene => _CinematicsWorkspaceBody(
           editorNotifier: editorNotifier,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -975,6 +977,200 @@ class _StepWorkspaceBody extends StatelessWidget {
       onOpenCutsceneStudio: onOpenCutsceneStudio,
     );
   }
+}
+
+class _CinematicsWorkspaceBody extends StatefulWidget {
+  const _CinematicsWorkspaceBody({
+    required this.editorNotifier,
+    required this.project,
+    required this.activeMap,
+    required this.projection,
+    required this.selectedCutscene,
+    required this.onSelectCutscene,
+    required this.onSelectOutcome,
+  });
+
+  final EditorNotifier editorNotifier;
+  final ProjectManifest? project;
+  final MapData? activeMap;
+  final NarrativeWorkspaceProjection projection;
+  final NarrativeScenarioSummary? selectedCutscene;
+  final ValueChanged<String> onSelectCutscene;
+  final ValueChanged<String?> onSelectOutcome;
+
+  @override
+  State<_CinematicsWorkspaceBody> createState() =>
+      _CinematicsWorkspaceBodyState();
+}
+
+class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
+  bool _showLegacyCutsceneStudio = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final project = widget.project;
+    if (project == null) {
+      return Center(
+        child: Text(
+          'Load a project to browse CinematicAsset.',
+          textAlign: TextAlign.center,
+          style: DefaultTextStyle.of(context).style.copyWith(
+                color: EditorChrome.subtleLabel(context),
+              ),
+        ),
+      );
+    }
+
+    if (_showLegacyCutsceneStudio) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PokeMapButton(
+              key: const ValueKey('cinematics-library-back-button'),
+              onPressed: () {
+                setState(() => _showLegacyCutsceneStudio = false);
+              },
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.chevron_left),
+              child: const Text('Retour à la Library cinématiques'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _CutsceneWorkspaceBody(
+              editorNotifier: widget.editorNotifier,
+              project: project,
+              activeMap: widget.activeMap,
+              projection: widget.projection,
+              selectedCutscene: widget.selectedCutscene,
+              onSelectCutscene: widget.onSelectCutscene,
+              onSelectOutcome: widget.onSelectOutcome,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return CinematicsLibraryWorkspace(
+      project: project,
+      onCreateCinematicShell: _createCinematicShell,
+      onUpdateCinematicMetadata: _updateCinematicMetadata,
+      onRemoveCinematic: _removeCinematic,
+      onOpenLegacyCutsceneStudio: () {
+        setState(() => _showLegacyCutsceneStudio = true);
+      },
+    );
+  }
+
+  Future<String?> _createCinematicShell({required String title}) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      return null;
+    }
+    final id = _nextCinematicAssetId(project, cleanTitle);
+    try {
+      final result = addCinematicAsset(
+        project,
+        CinematicAsset(
+          id: id,
+          title: cleanTitle,
+          timeline: CinematicTimeline(),
+        ),
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'CinematicAsset created',
+      );
+      return result.cinematic.id;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<bool> _updateCinematicMetadata({
+    required String cinematicId,
+    required String title,
+    required String description,
+    required String notes,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    final existing = findCinematicById(project, cinematicId);
+    if (existing == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicAsset(
+        project,
+        CinematicAsset(
+          id: existing.id,
+          title: title.trim(),
+          description: description.trim(),
+          storylineId: existing.storylineId,
+          chapterId: existing.chapterId,
+          mapId: existing.mapId,
+          tags: existing.tags,
+          requiredActors: existing.requiredActors,
+          timeline: existing.timeline,
+          notes: notes.trim(),
+          metadata: existing.metadata,
+          legacyBridge: existing.legacyBridge,
+        ),
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'CinematicAsset metadata updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _removeCinematic({required String cinematicId}) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = removeCinematicAsset(project, cinematicId);
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'CinematicAsset removed',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+}
+
+String _nextCinematicAssetId(ProjectManifest project, String title) {
+  final slug = title
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  final base = slug.isEmpty ? 'cinematic' : 'cinematic_$slug';
+  final existingIds = project.cinematics.map((asset) => asset.id).toSet();
+  if (!existingIds.contains(base)) {
+    return base;
+  }
+  var index = 2;
+  while (existingIds.contains('${base}_$index')) {
+    index++;
+  }
+  return '${base}_$index';
 }
 
 class _CutsceneWorkspaceBody extends StatelessWidget {

@@ -407,21 +407,38 @@ class _ModuleCardsSection extends StatelessWidget {
               >= 620 => 2,
               _ => 1,
             };
-            final cardWidth = (maxWidth - spacing * (columns - 1)) / columns;
 
-            return Wrap(
+            final rowsCount = (modules.length / columns).ceil();
+            return Column(
               key: const ValueKey('narrative-overview-module-grid'),
-              spacing: spacing,
-              runSpacing: spacing,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final module in modules)
-                  SizedBox(
-                    width: cardWidth,
-                    child: _ModuleCard(
-                      module: module,
-                      onTap: _moduleCallback(module.id),
+                for (var r = 0; r < rowsCount; r++) ...[
+                  if (r > 0) const SizedBox(height: spacing),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var c = 0; c < columns; c++) ...[
+                          if (c > 0) const SizedBox(width: spacing),
+                          Expanded(
+                            child: () {
+                              final index = r * columns + c;
+                              if (index < modules.length) {
+                                final module = modules[index];
+                                return _ModuleCard(
+                                  module: module,
+                                  onTap: _moduleCallback(module.id),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }(),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
+                ],
               ],
             );
           },
@@ -441,7 +458,7 @@ class _ModuleCardsSection extends StatelessWidget {
   }
 }
 
-class _ModuleCard extends StatelessWidget {
+class _ModuleCard extends StatefulWidget {
   const _ModuleCard({
     required this.module,
     required this.onTap,
@@ -451,10 +468,17 @@ class _ModuleCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
+  State<_ModuleCard> createState() => _ModuleCardState();
+}
+
+class _ModuleCardState extends State<_ModuleCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final accent = _availabilityAccent(context, module.availability);
+    final accent = _availabilityAccent(context, widget.module.availability);
     final content = Container(
-      key: ValueKey('narrative-overview-module-${module.id}'),
+      key: ValueKey('narrative-overview-module-${widget.module.id}'),
       constraints: const BoxConstraints(minHeight: 156),
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
@@ -472,14 +496,14 @@ class _ModuleCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ModuleIcon(moduleId: module.id, accent: accent),
+              _ModuleIcon(moduleId: widget.module.id, accent: accent),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      module.label,
+                      widget.module.label,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -490,7 +514,7 @@ class _ModuleCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     _AvailabilityPill(
-                      label: _moduleSupportLabel(module),
+                      label: _moduleSupportLabel(widget.module),
                       accent: accent,
                     ),
                   ],
@@ -500,7 +524,7 @@ class _ModuleCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            module.description,
+            widget.module.description,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -510,53 +534,62 @@ class _ModuleCard extends StatelessWidget {
               height: 1.3,
             ),
           ),
-          if (module.previewLabels.isNotEmpty) ...[
+          if (widget.module.previewLabels.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: [
-                for (final label in module.previewLabels)
+                for (final label in widget.module.previewLabels)
                   _ModulePreviewLabel(label: label),
               ],
             ),
           ],
           const SizedBox(height: 10),
           Text(
-            _moduleCardValue(module),
+            _moduleCardValue(widget.module),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: EditorChrome.primaryLabel(context),
-              fontSize: _moduleCardValue(module).length > 12 ? 18 : 24,
+              fontSize: _moduleCardValue(widget.module).length > 12 ? 18 : 24,
               fontWeight: FontWeight.w900,
               letterSpacing: 0,
             ),
           ),
-          if (module.secondaryStats.isNotEmpty) ...[
+          if (widget.module.secondaryStats.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final stat in module.secondaryStats)
+                for (final stat in widget.module.secondaryStats)
                   _ModuleSecondaryStat(stat: stat),
               ],
             ),
           ],
           const SizedBox(height: 8),
-          _ModuleDestinationPill(enabled: onTap != null),
+          _ModuleDestinationPill(enabled: widget.onTap != null),
         ],
       ),
     );
-    if (onTap == null) {
+    if (widget.onTap == null) {
       return content;
     }
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
-      onPressed: onTap,
-      child: content,
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedOpacity(
+          opacity: _isPressed ? 0.45 : 1.0,
+          duration: const Duration(milliseconds: 50),
+          child: content,
+        ),
+      ),
     );
   }
 }

@@ -244,6 +244,13 @@ void main() {
             NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
           ],
           worldRules: [_overviewWorldRule()],
+          cinematics: [
+            CinematicAsset(
+              id: 'test_cinematic_1',
+              title: 'Test Cinematic',
+              timeline: CinematicTimeline(),
+            ),
+          ],
         ),
       );
 
@@ -768,6 +775,13 @@ void main() {
               id: 'test_dialogue_1',
               name: 'Test Dialogue',
               relativePath: 'dialogues/test_dialogue_1.yarn',
+            ),
+          ],
+          cinematics: [
+            CinematicAsset(
+              id: 'test_cinematic_1',
+              title: 'Test Cinematic',
+              timeline: CinematicTimeline(),
             ),
           ],
         ),
@@ -1654,6 +1668,7 @@ ProjectManifest _minimalProject(
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   List<NarrativeFactDefinition> facts = const <NarrativeFactDefinition>[],
   List<WorldRuleDefinition> worldRules = const <WorldRuleDefinition>[],
+  List<CinematicAsset> cinematics = const <CinematicAsset>[],
 }) {
   return ProjectManifest(
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
@@ -1670,6 +1685,7 @@ ProjectManifest _minimalProject(
     dialogues: dialogues,
     facts: facts,
     worldRules: worldRules,
+    cinematics: cinematics,
   );
 }
 

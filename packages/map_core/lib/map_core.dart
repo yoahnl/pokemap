@@ -96,6 +96,7 @@ export 'src/authoring/storyline_legacy_import_preview.dart';
 export 'src/read_models/narrative_reference_picker_read_models.dart';
 export 'src/read_models/golden_slice_readiness.dart';
 export 'src/read_models/linked_asset_public_contracts.dart';
+export 'src/read_models/cinematics_library_read_model.dart';
 export 'src/read_models/storyline_scene_links_read_model.dart';
 export 'src/read_models/world_rule_target_context_read_model.dart';
 export 'src/read_models/facts_world_rules_manager_read_model.dart';

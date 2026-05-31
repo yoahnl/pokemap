@@ -105,7 +105,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
                   key: const ValueKey('narrative-studio-sidebar-cutscenes'),
                   icon: CupertinoIcons.film,
                   label: 'Cinématiques',
-                  subtitle: 'Studio existant',
+                  subtitle: 'Library V0',
                   selected: workspaceMode == EditorWorkspaceMode.cutscene,
                   onTap: onSelectCutscene,
                 ),

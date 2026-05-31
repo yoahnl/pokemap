@@ -176,6 +176,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:cutscene'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('cinematics-library-workspace')),
+        findsOneWidget,
+      );
+      expect(find.text('Ouvrir l’ancien Cutscene Studio'), findsOneWidget);
 
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Dialogues')),

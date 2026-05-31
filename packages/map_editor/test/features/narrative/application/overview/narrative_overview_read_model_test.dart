@@ -67,6 +67,13 @@ void main() {
             relativePath: 'dialogues/test_dialogue_1.yarn',
           ),
         ],
+        cinematics: [
+          CinematicAsset(
+            id: 'test_cinematic_1',
+            title: 'Test Cinematic',
+            timeline: CinematicTimeline(),
+          ),
+        ],
       );
 
       final model = buildNarrativeOverviewReadModel(project: project);
@@ -100,6 +107,8 @@ void main() {
       final cutsceneModule = model.modules.singleWhere(
           (module) => module.id == NarrativeOverviewModuleIds.cutscenes);
       expect(cutsceneModule.count, 1);
+      expect(cutsceneModule.destination, 'cinematics_library');
+      expect(cutsceneModule.secondaryStats.single.count, 1);
       expect(
           cutsceneModule.availability, NarrativeOverviewAvailability.available);
 
@@ -305,6 +314,7 @@ ProjectManifest _project({
   String name = 'test_project',
   List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
+  List<CinematicAsset> cinematics = const <CinematicAsset>[],
 }) {
   return ProjectManifest(
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
@@ -313,6 +323,7 @@ ProjectManifest _project({
     tilesets: const <ProjectTilesetEntry>[],
     scenarios: scenarios,
     dialogues: dialogues,
+    cinematics: cinematics,
   );
 }
 

@@ -365,9 +365,16 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
   final cutscenes = _metricWithCount(
     id: 'cutscenes',
     label: 'Cinématiques',
-    count: cutsceneScenarioIds.length,
-    emptyStateMessage: 'Aucune cinématique authorée.',
+    count: project.cinematics.length,
+    emptyStateMessage: 'Aucune CinematicAsset canonique.',
     unavailableMessage: 'Cinématiques indisponibles.',
+  );
+  final cinematicBridges = _metricWithCount(
+    id: 'cinematic_bridges',
+    label: 'Bridges legacy',
+    count: cutsceneScenarioIds.length,
+    emptyStateMessage: 'Aucun bridge legacy Scenario/Cutscene.',
+    unavailableMessage: 'Bridges legacy indisponibles.',
   );
   final dialogues = _metricWithCount(
     id: 'dialogues',
@@ -448,6 +455,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
 
   final modules = _buildModules(
     metrics,
+    cinematicBridges: cinematicBridges,
     worldRuleDiagnostics: worldRuleDiagnostics,
     worldRulePreviewLabels: [
       for (final rule in project.worldRules.take(3)) rule.label,
@@ -961,6 +969,7 @@ NarrativeChapterEditorialStatus _chapterStatusFor(
 
 List<NarrativeModuleSummary> _buildModules(
   NarrativeOverviewMetrics metrics, {
+  required NarrativeMetricSummary cinematicBridges,
   required WorldRuleDiagnosticsReport worldRuleDiagnostics,
   required List<String> worldRulePreviewLabels,
   required List<String> factPreviewLabels,
@@ -979,11 +988,13 @@ List<NarrativeModuleSummary> _buildModules(
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.cutscenes,
       label: 'Cinématiques',
-      description: 'Séquences cinématiques et moments clés de l’histoire.',
+      description:
+          'CinematicAsset canoniques et bridges legacy Cutscene Studio.',
       count: metrics.cutscenes.count,
       availability: metrics.cutscenes.availability,
       emptyStateMessage: metrics.cutscenes.emptyStateMessage,
-      destination: 'cutscene_studio',
+      destination: 'cinematics_library',
+      secondaryStats: <NarrativeMetricSummary>[cinematicBridges],
     ),
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.dialogues,

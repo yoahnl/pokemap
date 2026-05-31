@@ -92,15 +92,15 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-35 — Facts & World Rules Manager UI V0 | DONE | Manager no-code centralise : Facts et Regles du monde actifs depuis Narrative Studio, creation/edition/suppression bornee, pickers reels, usages/diagnostics visibles, overview aligne. |
 | NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision | DONE | Decision canonique : Cinematic V1 devient un futur `CinematicAsset` lineaire dedie ; `ScenarioAsset`/Cutscene Studio restent bridge legacy explicite, jamais modele final implicite. |
 | NS-SCENES-V1-37 — CinematicAsset Core Model V0 | DONE | Modele core `CinematicAsset` dedie, timeline lineaire V0, `ProjectManifest.cinematics`, operations authoring, diagnostics, contrats publics canoniques + bridge scenarioBridge legacy, tests/analyze core. |
-| NS-SCENES-V1-38 — Cinematics Library V0 | TODO | Rendre les `CinematicAsset` visibles, navigables et diagnostiques dans Narrative Studio, sans Builder V2 ni runtime cinematic. |
+| NS-SCENES-V1-38 — Cinematics Library V0 | DONE | Library Narrative Studio pour `CinematicAsset` canoniques : read model pur, liste/selection, metadata authoring, diagnostics/usages, bridge legacy explicite et overview aligne, sans Builder V2 ni runtime cinematic. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-38 — Cinematics Library V0`
+`NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0`
 
-Raison : V1-37 a pose le modele core canonique. Le prochain verrou produit est de rendre les CinematicAsset visibles et navigables dans un workspace dedie avant de construire le Builder V2 ou le runtime adapter.
+Raison : V1-38 rend les CinematicAsset canoniques visibles et authorables en metadata-only. Le prochain verrou produit est de permettre au Scene Builder de choisir ces `CinematicAsset` canoniques dans un picker honnete, sans reutiliser silencieusement les bridges legacy.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
@@ -201,6 +201,18 @@ Limites : aucun widget, aucune Cinematics Library, aucun Builder V2, aucun runti
 Tests/analyze : tests core cibles CinematicAsset, ProjectManifest, authoring operations, diagnostics, linked asset contracts, scene project diagnostics et scene runtime plan ; `dart analyze` map_core vert.
 
 Prochain lot exact : `NS-SCENES-V1-38 — Cinematics Library V0`.
+
+## Mise a jour V1-38
+
+Statut : `NS-SCENES-V1-38 — Cinematics Library V0` est DONE.
+
+Decision : les CinematicAsset canoniques deviennent visibles et navigables dans Narrative Studio via une Library dediee. `ScenarioAsset` / Cutscene Studio reste un bridge legacy explicite, accessible depuis la Library mais jamais promu ni migre silencieusement.
+
+Scope realise : read model pur `buildCinematicsLibraryReadModel`, workspace `CinematicsLibraryWorkspace`, creation shell metadata-only, edition titre/description/notes, suppression protegee des assets non references, usages depuis Scenes, diagnostics cinematic, overview compte canoniques et bridges separement, visual gate.
+
+Limites : pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration Scenario/Cutscene, pas de picker Scene Builder cinematic, pas de donnee Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0`.
 
 ## Mise a jour V1-30-bis
 
