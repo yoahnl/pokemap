@@ -30,6 +30,7 @@ pubspec.lock
 
 # Local OS/editor noise
 .DS_Store
+.idea/
 
 /pokemon-showdown-master/
 /pokemon-showdown-client-master/
