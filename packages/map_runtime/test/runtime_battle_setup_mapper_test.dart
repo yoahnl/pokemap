@@ -92,6 +92,72 @@ void main() {
       );
     });
 
+    test(
+        'PSDK display session auto-replaces a trainer enemy after KO before reopening the move menu',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_ace',
+            name: 'Ace Jules',
+            trainerClass: 'Ace Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 18,
+                moves: <String>['growl'],
+              ),
+              ProjectTrainerPokemonEntry(
+                speciesId: 'sparkitten',
+                level: 17,
+                moves: <String>['ember'],
+              ),
+            ],
+          ),
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final psdkMapper = RuntimePsdkBattleSetupMapper();
+
+      final setup = await psdkMapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-psdk-trainer-replacement',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 80,
+                knownMoveIds: <String>['hyper_beam'],
+                currentHp: 120,
+              ),
+            ],
+          ),
+        ),
+        request: _trainerRequest(),
+      );
+
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
+      final hyperBeamSlot = session.decisionRequest.fightChoices
+          .singleWhere((choice) => choice.moveId == 'hyper_beam')
+          .moveSlot;
+
+      session.submitPlayerChoice(PlayerBattleChoiceFight(hyperBeamSlot));
+      final displaySession = session.createLegacyDisplaySession(
+        isTrainerBattle: true,
+        trainerId: 'trainer_ace',
+      );
+
+      expect(session.state.battlerAt(psdkOpponentSlot).speciesId,
+          equals('sparkitten'));
+      expect(displaySession.state.enemy.speciesId, equals('sparkitten'));
+      expect(displaySession.state.enemy.isFainted, isFalse);
+      expect(displaySession.decisionRequest, isA<BattleTurnChoiceRequest>());
+    });
+
     test('maps the real player party member from runtime save data', () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,

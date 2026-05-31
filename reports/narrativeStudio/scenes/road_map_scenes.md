@@ -90,14 +90,16 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-33 — Runtime State Persistence Gate V0 | DONE | Gate persistence runtime : les consequences Scene V1 `setFact` et `markEventConsumed` ecrites par `SceneEventRuntimeHook` survivent au save/reload et restent lisibles par Conditions Scene et World Rules en projection pure. |
 | NS-SCENES-V1-34 — World Rules Runtime Projection Hook V0 | DONE | Hook runtime borne : World Rules projetees depuis `GameState` pilotent presence PNJ, dialogue override et disponibilite d'events sans muter `GameState`, `ProjectManifest` ou `MapData`. |
 | NS-SCENES-V1-35 — Facts & World Rules Manager UI V0 | DONE | Manager no-code centralise : Facts et Regles du monde actifs depuis Narrative Studio, creation/edition/suppression bornee, pickers reels, usages/diagnostics visibles, overview aligne. |
+| NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision | DONE | Decision canonique : Cinematic V1 devient un futur `CinematicAsset` lineaire dedie ; `ScenarioAsset`/Cutscene Studio restent bridge legacy explicite, jamais modele final implicite. |
+| NS-SCENES-V1-37 — CinematicAsset Core Model V0 | TODO | Ajouter le modele core/storage/read contract minimal `CinematicAsset` avant Cinematics Library et Builder V2, sans runtime cinematic avance ni migration legacy. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision`
+`NS-SCENES-V1-37 — CinematicAsset Core Model V0`
 
-Raison : V1-35 ferme le trou UX central Facts / World Rules. Le prochain blocage produit majeur est Cinematic : l'ancien Cutscene Studio existe encore comme bridge scenario, mais Cinematic V1 canonique doit etre decide avant Cinematics Library et Cinematic Builder V2.
+Raison : V1-36 a tranche le contrat produit. Le prochain verrou est maintenant de donner a Cinematic V1 un modele core dedie, lineaire et diagnostiquable, avant de construire une Cinematics Library ou un Cinematic Builder V2.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
@@ -172,6 +174,18 @@ Scope realise : read model pur `FactsWorldRulesManagerReadModel`, garde de suppr
 Limites : pas de runtime modifie, pas de nouveau type de Fact ou World Rule, pas de nouvel effet, pas de nouvelle SceneConsequence, pas de GameState mute depuis l'editor, pas de seed Selbrume, pas de workflow principal par ID technique.
 
 Prochain lot exact : `NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision`.
+
+## Mise a jour V1-36
+
+Statut : `NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision` est DONE.
+
+Decision : Cinematic V1 est un futur asset canonique dedie, lineaire, visuel, referencable par Scene et diagnostiquable. Il ne branche pas, ne produit pas directement des Facts ou World Rules, ne lance pas de combat et ne remplace pas Dialogue Yarn. `ScenarioAsset` reste un bridge legacy explicite ; Cutscene Studio reste utilisable comme source/bridge transitoire, mais son schema plus large ne dicte pas Cinematic V1.
+
+Scope realise : audit documentaire du modele cible, de Cutscene Studio, `ScenarioAsset`, `ScenarioRuntimeExecutor`, `SceneRuntimePlan.playCinematic`, `CinematicPublicContract.scenarioBridge`, et decision de roadmap avant Cinematics Library / Cinematic Builder V2.
+
+Limites : aucun code, aucun widget, aucun modele Dart, aucune migration, aucun runtime cinematic nouveau, aucun seed Selbrume et aucune promotion implicite de `ScenarioAsset`.
+
+Prochain lot exact : `NS-SCENES-V1-37 — CinematicAsset Core Model V0`.
 
 ## Mise a jour V1-30-bis
 

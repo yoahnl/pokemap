@@ -525,6 +525,12 @@ final class BattleTurnRunner {
     if (_context.canBattleContinue) {
       final endTurn = _resolveEndTurn();
       timeline.addPsdkAll(endTurn.events);
+      _resolveAutomaticOpponentFaintReplacements(timeline);
+      final outcome = _context.resolveOutcome();
+      if (outcome != null) {
+        _context.finish(outcome);
+        timeline.add(BattleEndedTimelineEvent(outcome: outcome));
+      }
     }
     final publicState = BattlePublicState.fromContext(_context);
     return BattleEngineTurnResult(
@@ -645,6 +651,65 @@ final class BattleTurnRunner {
       target: action.user,
       partyIndex: action.partyIndex,
     );
+  }
+
+  void _resolveAutomaticOpponentFaintReplacements(
+    BattleTimelineBuilder timeline,
+  ) {
+    const switchHandler = BattleSwitchHandler();
+    final attemptedReplacementKeys = <String>{};
+
+    while (_context.canBattleContinue) {
+      final active = _context.state.battlerAt(psdkOpponentSlot);
+      if (!active.isFainted) {
+        return;
+      }
+
+      final partyIndex = _firstAvailableReplacementPartyIndex(
+        state: _context.state,
+        slot: psdkOpponentSlot,
+      );
+      if (partyIndex == null) {
+        return;
+      }
+
+      final replacementKey = '${active.id}:$partyIndex';
+      if (!attemptedReplacementKeys.add(replacementKey)) {
+        return;
+      }
+
+      final switched = switchHandler.switchCombatant(
+        context: BattleHandlerContext(
+          state: _context.state,
+          rng: _context.rng,
+          turn: _context.turnNumber,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkOpponentSlot,
+        partyIndex: partyIndex,
+      );
+      if (!switched.applied) {
+        return;
+      }
+
+      timeline.add(
+        BattleSwitchOutTimelineEvent(
+          turn: _context.turnNumber,
+          battler: _fromPsdkSlot(psdkOpponentSlot),
+        ),
+      );
+      _context.applyStateAndRng(
+        nextState: switched.state,
+        nextRng: switched.rng,
+      );
+      timeline.add(
+        BattleSwitchInTimelineEvent(
+          turn: _context.turnNumber,
+          battler: _fromPsdkSlot(psdkOpponentSlot),
+        ),
+      );
+      timeline.addPsdkAll(switched.events);
+    }
   }
 
   BattleHandlerResult _resolveItemAction(PsdkBattleItemAction action) {
@@ -1170,6 +1235,24 @@ bool _hasAlivePressureFoe({
     }
   }
   return false;
+}
+
+int? _firstAvailableReplacementPartyIndex({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef slot,
+}) {
+  final activeIds = <String>{
+    for (final entry in state.combatants.entries)
+      if (entry.key.bank == slot.bank) entry.value.id,
+  };
+  final party = state.partyForBank(slot.bank);
+  for (var index = 0; index < party.length; index += 1) {
+    final candidate = party[index];
+    if (!candidate.isFainted && !activeIds.contains(candidate.id)) {
+      return index;
+    }
+  }
+  return null;
 }
 
 String? _normalizedAbilityId(String? abilityId) {

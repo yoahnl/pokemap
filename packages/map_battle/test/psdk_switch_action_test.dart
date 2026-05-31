@@ -105,6 +105,56 @@ void main() {
       );
     });
 
+    test(
+        'auto-replaces a fainted opponent before exposing the next player request',
+        () {
+      final engine = BattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'player-arcanine',
+            speciesId: 'arcanine',
+            hp: 80,
+            attack: 120,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'take_down', power: 200),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent-bulbasaur',
+            speciesId: 'bulbasaur',
+            hp: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'tackle', power: 40),
+            ],
+          ),
+          opponentReserve: _combatant(
+            id: 'opponent-metapod',
+            speciesId: 'metapod',
+            hp: 60,
+            moves: <PsdkBattleMoveData>[
+              _move(id: 'harden', power: 0),
+            ],
+          ),
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.isFinished, isFalse);
+      expect(result.state.battlerAt(psdkOpponentSlot).speciesId, 'metapod');
+      expect(result.state.battlerAt(psdkOpponentSlot).isFainted, isFalse);
+      expect(
+          result.nextRequest?.kind, BattleEngineDecisionRequestKind.turnChoice);
+      expect(
+        result.timeline.events.whereType<BattleSwitchOutTimelineEvent>(),
+        hasLength(1),
+      );
+      expect(
+        result.timeline.events.whereType<BattleSwitchInTimelineEvent>(),
+        hasLength(1),
+      );
+    });
+
     test('Baton Pass transfers PSDK-transferable stages and effects', () {
       final engine = BattleEngine(
         setup: _setup(
@@ -255,6 +305,7 @@ BattleEngineSetup _setup({
   PsdkBattleCombatantSetup? player,
   PsdkBattleCombatantSetup? playerReserve,
   PsdkBattleCombatantSetup? opponent,
+  PsdkBattleCombatantSetup? opponentReserve,
   List<PsdkBattleMoveData>? opponentMoves,
 }) {
   return BattleEngineSetup.singles(
@@ -279,6 +330,9 @@ BattleEngineSetup _setup({
           hp: 70,
           moves: opponentMoves,
         ),
+    opponentReserves: <PsdkBattleCombatantSetup>[
+      if (opponentReserve != null) opponentReserve,
+    ],
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 99999,

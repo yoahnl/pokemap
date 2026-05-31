@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision
+NS-SCENES-V1-37 — CinematicAsset Core Model V0
 ```
 
 ## Principes
@@ -69,7 +69,8 @@ NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision
 | NS-SCENES-V1-33 | Runtime State Persistence Gate V0 | runtime / integration | Prouver que les writes Scene V1 (`setFact`, `markEventConsumed`) survivent a save/reload et restent lisibles par Conditions/World Rules. | Pas de nouveau node, pas de payload picker, pas de projection World Rules runtime, pas de golden slice jouable complet. | `scene_runtime_state_persistence_gate_test.dart`, rapport, roadmaps. | DONE : Scene -> consequence write -> save -> reload -> condition/world rule source readable, regressions runtime ciblees. | Construire la projection monde avant d'avoir verrouille l'etat persistant ; confondre save generale et preuve Scene-specific. | DONE : gate save/reload Scene-specific vert, aucune production modifiee. | V1-32. |
 | NS-SCENES-V1-34 | World Rules Runtime Projection Hook V0 | runtime / integration | Appliquer prudemment au runtime jouable les effets World Rules projetes depuis le `GameState` recharge, apres le verrou persistence V1-33. | Pas de nouvelle consequence, pas de Scene payload, pas de World Rule editor avance, pas de StorylineStep runtime trigger. | runtime world rule projection hook, map runtime tests, rapport. | DONE : projection fact/event consomme lue depuis GameState, application runtime bornee aux entites/events/dialogue override, non-mutation du manifest/map/state et regressions save/load. | Appliquer les World Rules trop largement ; confondre projection pure et mutation definitive du monde. | DONE : hook runtime pur + branchement presence/dialogue/event, sans mutation durable ni nouvelle consequence. | V1-33. |
 | NS-SCENES-V1-35 | Facts & World Rules Manager UI V0 | editor / product | Donner un espace no-code dedie pour gerer Facts et World Rules au-dela des apercus contextuels, avec labels lisibles, diagnostics et navigation vers cibles. | Pas de runtime nouveau, pas de nouveaux effets, pas de Scene consequence supplementaire, pas de seed Selbrume. | manager Facts/World Rules, read models editor, tests widget, rapport. | DONE : read model pur, creation/edition/suppression Facts, creation/edition/toggle/suppression World Rules, diagnostics/usages, overview/sidebar, visual gate et analyzes. | Refaire un editeur de flags techniques ; dupliquer les panneaux contextuels map sans coherence. | DONE : Facts et Regles du monde actifs, aucun ID libre comme workflow principal, aucun runtime modifie. | V1-34. |
-| NS-SCENES-V1-36 | Cinematic V1 Contract / Bridge Decision | doc / architecture-review | Decider le contrat Cinematic V1 canonique et la place du bridge Cutscene/Scenario avant Cinematics Library et Builder V2. | Pas de runtime cinematic nouveau, pas de refonte Cutscene Studio, pas de Scene payload supplementaire. | rapport V1-36, roadmaps, audit Cutscene/Scenario/Cinematic. | Attendus : contrat tranche, frontieres legacy, prochain lot exact. | Promouvoir ScenarioAsset comme modele final ; coder une cinematic avant contrat. | TODO : ne pas demarrer avant V1-35 valide. | V1-35. |
+| NS-SCENES-V1-36 | Cinematic V1 Contract / Bridge Decision | doc / architecture-review | Decider le contrat Cinematic V1 canonique et la place du bridge Cutscene/Scenario avant Cinematics Library et Builder V2. | Pas de runtime cinematic nouveau, pas de refonte Cutscene Studio, pas de Scene payload supplementaire. | rapport V1-36, roadmaps, audit Cutscene/Scenario/Cinematic. | DONE : `git diff --check`, contrat tranche, frontieres legacy, prochain lot exact. | Promouvoir ScenarioAsset comme modele final ; coder une cinematic avant contrat. | DONE : CinematicAsset futur retenu, ScenarioAsset/Cutscene restent bridge legacy explicite. | V1-35. |
+| NS-SCENES-V1-37 | CinematicAsset Core Model V0 | core / contract | Ajouter le modele core/storage/read contract minimal de Cinematic V1 lineaire et diagnostiquable. | Pas de Cinematic Builder V2, pas de runtime cinematic avance, pas de migration Cutscene/Scenario automatique, pas de SceneGraph bis. | `scene/cinematic` core model selon convention, `ProjectManifest.cinematics`, public contract, diagnostics/tests core. | Tests JSON/manifest/read model/diagnostics + analyze core. | Sur-modeliser la timeline ; convertir le legacy trop tot ; laisser des actions qui ecrivent le monde. | TODO : modele dedie stable, bridge legacy conserve, Scene peut viser un contrat canonique futur. | V1-36. |
 
 ## Options comparees
 
@@ -593,6 +594,18 @@ Scope realise : read model pur manager, usages Fact depuis Scenes et World Rules
 Limites : pas de runtime nouveau, pas de nouvel effet World Rule, pas de nouvelle source, pas de nouvelle SceneConsequence, pas de mutation `GameState` depuis l'editor, pas de seed Selbrume, pas de workflow principal par ID technique.
 
 Prochain lot exact : `NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision`.
+
+## Mise a jour V1-36
+
+Statut : `NS-SCENES-V1-36 — Cinematic V1 Contract / Bridge Decision` est DONE.
+
+Decision : Cinematic V1 ne doit pas heriter du graphe `ScenarioAsset`. Le futur contrat canonique est un `CinematicAsset` dedie, lineaire, visuel, referencable par un `SceneCinematicPayload.cinematicId`, expose par une Cinematics Library, puis editable dans un Cinematic Builder V2. Cutscene Studio et `ScenarioAsset` restent disponibles comme bridge/source transitoire, avec statut legacy explicite.
+
+Scope realise : audit documentaire Cutscene Studio, `ScenarioAsset`, `ScenarioRuntimeExecutor`, `RuntimeCutsceneAsset`, `SceneRuntimePlan.playCinematic`, `CinematicPublicContract.scenarioBridge` et frontieres produit Scene/Cinematic/Event/Yarn/Facts/World Rules.
+
+Limites : aucun code, aucun widget, aucun modele Dart, aucun runtime cinematic, aucune migration, aucune donnee Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-37 — CinematicAsset Core Model V0`.
 
 ## Selbrume golden slice
 

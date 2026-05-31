@@ -1548,7 +1548,14 @@ String? _psdkRegistryStatusFor(String? battleEngineMethod) {
 
 const _knownPsdkMethodByMoveId = <String, String>{
   'baton_pass': 's_baton_pass',
+  'copycat': 's_mirror_move',
+  'counter': 's_counter',
+  'endure': 's_protect',
+  'helping_hand': 's_helping_hand',
+  'helpinghand': 's_helping_hand',
   'protect': 's_protect',
+  'quick_guard': 's_protect',
+  'quickguard': 's_protect',
   'transform': 's_transform',
 };
 

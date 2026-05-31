@@ -164,6 +164,136 @@ void main() {
       );
     });
 
+    test('inspectMove bridges Selbrume PSDK catalog-only utility moves', () {
+      final cases = <({PokemonMove move, String method})>[
+        (
+          move: _psdkMove(
+            id: 'endure',
+            name: 'Endure',
+            type: 'normal',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.self,
+            basePower: 0,
+            accuracy: const PokemonMoveAccuracy.alwaysHits(),
+            effects: const <PokemonMoveEffect>[
+              PokemonMoveEffect.applyVolatileStatus(
+                targetScope: PokemonMoveEffectTargetScope.self,
+                volatileStatusId: 'endure',
+              ),
+            ],
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+            unsupportedReasons: const <String>[
+              'unsupported_mechanic:condition',
+              'unsupported_mechanic:stallingMove',
+            ],
+            showdownMoveId: 'endure',
+          ),
+          method: 's_protect',
+        ),
+        (
+          move: _psdkMove(
+            id: 'counter',
+            name: 'Counter',
+            type: 'fighting',
+            category: PokemonMoveCategory.physical,
+            target: PokemonMoveTarget.scripted,
+            basePower: 0,
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+            unsupportedReasons: const <String>[
+              'unsupported_mechanic:condition',
+              'unsupported_mechanic:maxMove',
+            ],
+            showdownMoveId: 'counter',
+          ),
+          method: 's_counter',
+        ),
+        (
+          move: _psdkMove(
+            id: 'copycat',
+            name: 'Copycat',
+            type: 'normal',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.self,
+            basePower: 0,
+            accuracy: const PokemonMoveAccuracy.alwaysHits(),
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+            unsupportedReasons: const <String>[
+              'unsupported_mechanic:callsMove',
+            ],
+            showdownMoveId: 'copycat',
+          ),
+          method: 's_mirror_move',
+        ),
+        (
+          move: _psdkMove(
+            id: 'quick_guard',
+            name: 'Quick Guard',
+            type: 'fighting',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.allySide,
+            basePower: 0,
+            accuracy: const PokemonMoveAccuracy.alwaysHits(),
+            effects: const <PokemonMoveEffect>[
+              PokemonMoveEffect.setSideCondition(
+                targetScope: PokemonMoveEffectTargetScope.allySide,
+                conditionId: 'quickguard',
+              ),
+            ],
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+            unsupportedReasons: const <String>[
+              'unsupported_mechanic:condition',
+            ],
+            showdownMoveId: 'quickguard',
+          ),
+          method: 's_protect',
+        ),
+        (
+          move: _psdkMove(
+            id: 'helping_hand',
+            name: 'Helping Hand',
+            type: 'normal',
+            category: PokemonMoveCategory.status,
+            target: PokemonMoveTarget.adjacentAlly,
+            basePower: 0,
+            accuracy: const PokemonMoveAccuracy.alwaysHits(),
+            effects: const <PokemonMoveEffect>[
+              PokemonMoveEffect.applyVolatileStatus(
+                targetScope: PokemonMoveEffectTargetScope.target,
+                volatileStatusId: 'helpinghand',
+              ),
+            ],
+            engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+            unsupportedReasons: const <String>[
+              'unsupported_mechanic:condition',
+            ],
+            showdownMoveId: 'helpinghand',
+          ),
+          method: 's_helping_hand',
+        ),
+      ];
+
+      for (final entry in cases) {
+        final diagnostic = bridge.inspectMove(
+          move: entry.move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        );
+
+        expect(diagnostic.bridgeable, isTrue, reason: entry.move.id);
+        expect(diagnostic.runtimeBridgeable, isFalse, reason: entry.move.id);
+        expect(diagnostic.psdkBridgeable, isTrue, reason: entry.move.id);
+        expect(
+            diagnostic.reason, equals('engine_support_level_not_bridgeable'));
+        expect(diagnostic.battleEngineMethod, equals(entry.method));
+        expect(diagnostic.psdkRegistryStatus, equals('ported'));
+
+        final psdkMove = bridge.toPsdkBattleMoveData(
+          move: entry.move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        );
+        expect(psdkMove.battleEngineMethod, equals(entry.method));
+      }
+    });
+
     test('projects PSDK-ported moves rejected by the legacy battle bridge', () {
       final wrap = bridge.toPsdkBattleMoveData(
         move: _psdkMove(
@@ -1846,6 +1976,8 @@ PokemonMove _psdkMove({
       PokemonMoveEngineSupportLevel.structuredSupported,
   List<PokemonMoveEffect> effects = const <PokemonMoveEffect>[],
   List<PokemonMoveFlag> flags = const <PokemonMoveFlag>[],
+  List<String> unsupportedReasons = const <String>[],
+  String? showdownMoveId,
 }) {
   return PokemonMove(
     id: id,
@@ -1862,5 +1994,9 @@ PokemonMove _psdkMove({
     effects: effects,
     flags: flags,
     engineSupportLevel: engineSupportLevel,
+    unsupportedReasons: unsupportedReasons,
+    sourceRefs: showdownMoveId == null
+        ? const PokemonMoveSourceRefs()
+        : PokemonMoveSourceRefs(showdownMoveId: showdownMoveId),
   );
 }
