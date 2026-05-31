@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0
+NS-SCENES-V1-28-octies — Golden Slice Runtime Smoke V0
 ```
 
 ## Principes
@@ -58,8 +58,9 @@ NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0
 | NS-SCENES-V1-28-quater | Scene Consequence Model V0 | core | DONE : ajouter un modele authoring pur de consequences Scene V1, porte par ActionNode/Consequence explicite, pour `setFact` et `markEventConsumed`. | Pas de runtime write, pas de World Rule application directe, pas de UI complete, pas de StorylineStep link, pas de battle adapter. | `scene_consequence.dart`, `scene_asset.dart`, `scene_diagnostics.dart`, tests model/JSON/diagnostics/runtime-plan. | DONE : tests JSON/model, diagnostics refs Fact/map/event, ActionNode typé encore bloque au runtime-plan, `dart analyze`. | Transformer ActionNode en mini-script ; ouvrir giveItem/storyStep trop tot. | DONE : consequences typées, lisibles, validables et non executées automatiquement. | V1-28-ter. |
 | NS-SCENES-V1-28-quinquies | Scene Consequence Runtime Write V0 | runtime / integration | DONE : appliquer explicitement les consequences V0 au runtime via un seam controle. | Pas de World Rule direct apply, pas de battle adapter, pas de StorylineStep link, pas de giveItem/teleport. | `scene_consequence_runtime_writer.dart`, hook runtime Scene, executor/plan, tests no partial writes. | DONE : setFact true/false, markEventConsumed, no WorldRule direct apply, no writes when executor/write fails. | Ecrire trop tot dans GameState ; appliquer les World Rules au lieu de projeter ; coupler aux battle outcomes. | DONE : consequences V0 appliquees explicitement et atomiquement au runtime, sans effets magiques. | V1-28-quater. |
 | NS-SCENES-V1-28-sexies | Battle Runtime Outcome Adapter V0 | runtime / integration | DONE : fournir au Scene runtime un vrai resultat battle awaitable `victory` / `defeat` pour suivre les ports BattleNode existants. | Pas de resultat invente, pas de StorylineStep link, pas de consequence supplementaire, pas de refonte battle. | `scene_battle_runtime_outcome_adapter.dart`, result, `PlayableMapGame`, hook tests. | DONE : adapter victory/defeat/failure, hook battle branches + consequences, core non-regression, analyzes. | Coupler Scene V1 aux internes battle ; court-circuiter le flow runtime existant ; inventer une victoire. | DONE : BattleNode avance sur un outcome runtime reel et testable, sans consequence ecrite par l'adapter. | V1-28-bis, V1-28-quinquies. |
-| NS-SCENES-V1-28-septies | Dialogue Runtime Awaitable Adapter V0 | runtime / integration | Rendre `showDialogue` awaitable pour que la Scene continue apres fermeture reelle du dialogue. | Pas d'outcomes Yarn inventes, pas de BranchByOutcome, pas de refactor Dialogue Studio. | dialogue overlay seam, callbacks Scene runtime, tests completed/failure/cancel. | Tests dialogue completed reel, failure propre, no consequence write partiel. | Laisser la Scene continuer trop tot ; confondre completed avec outcomes Yarn. | Dialogue.completed devient temporellement fiable. | V1-28-bis, V1-28-sexies. |
-| NS-SCENES-V1-29 | StorylineStep to Scene Link | core / editor | Brancher `StorylineStep.sceneLinkIds` vers scenes stables. | Pas de declenchement runtime par StoryStep seul, pas de lien scenario legacy. | storyline models/UI validators si necessaire. | Tests refs scene, UI disabled/enabled, diagnostics link. | Confondre step et trigger ; progression pilotant toute la scene. | StoryStep peut referencer Scene pour lecture/progression, sans remplacer Event trigger. | V1-23, V1-26, V1-28-septies. |
+| NS-SCENES-V1-28-septies | Dialogue Runtime Awaitable Adapter V0 | runtime / integration | DONE : rendre `showDialogue` awaitable pour que la Scene continue apres fermeture reelle du dialogue. | Pas d'outcomes Yarn inventes, pas de BranchByOutcome, pas de refactor Dialogue Studio. | `scene_dialogue_runtime_awaitable_adapter.dart`, result, `PlayableMapGame`, hook tests. | DONE : dialogue completed reel, failure propre, no consequence write partiel, pending hook prouve. | Laisser la Scene continuer trop tot ; confondre completed avec outcomes Yarn. | DONE : Dialogue.completed devient temporellement fiable depuis `DialogueOverlayComponent.onFinished`. | V1-28-bis, V1-28-sexies. |
+| NS-SCENES-V1-28-octies | Golden Slice Runtime Smoke V0 | runtime / integration | Prouver la chaine runtime controlee Event -> Scene -> Dialogue awaitable -> Battle outcome -> consequences commit. | Pas de StorylineStep link, pas de donnees Selbrume produit, pas de nouveaux payloads, pas de World Rule direct apply. | smoke test runtime cible, fixtures neutres, rapport. | Smoke test runtime complet + non-regressions hook/adapters/core. | Confondre smoke neutre et seed produit ; masquer un failure dialogue/battle. | La chaine runtime complete est prouvee avant `StorylineStep.sceneLinkIds`. | V1-28-bis, V1-28-quinquies, V1-28-sexies, V1-28-septies. |
+| NS-SCENES-V1-29 | StorylineStep to Scene Link | core / editor | Brancher `StorylineStep.sceneLinkIds` vers scenes stables. | Pas de declenchement runtime par StoryStep seul, pas de lien scenario legacy. | storyline models/UI validators si necessaire. | Tests refs scene, UI disabled/enabled, diagnostics link. | Confondre step et trigger ; progression pilotant toute la scene. | StoryStep peut referencer Scene pour lecture/progression, sans remplacer Event trigger. | V1-23, V1-26, V1-28-octies. |
 
 ## Options comparees
 
@@ -451,6 +452,18 @@ Limites : pas de refactor battle engine, pas de modification `map_battle`, pas d
 Tests : adapter victory/defeat/missing refs/failures/no mutation, hook victory/defeat avec consequences V0, no staged write on battle failure, core plan/executor/consequence non-regression, analyzes et recherches anti-scope.
 
 Prochain lot exact : `NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0`.
+
+## Mise a jour V1-28-septies
+
+Statut : `NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0` est DONE.
+
+Decision : le DialogueNode Scene V1 utilise maintenant un adapter awaitable. Le callback `showDialogue` de `PlayableMapGame` ouvre le dialogue runtime existant et attend la fermeture reelle via `DialogueOverlayComponent.onFinished` avant de retourner `completed`. Les erreurs d'ouverture, de chargement ou d'annulation retournent un failure controle qui fait echouer la Scene et discard les consequences stagees.
+
+Limites : aucun outcome Yarn detaille, aucun `BranchByOutcome`, aucun parser Yarn, aucun write `GameState` dans l'adapter, aucune World Rule appliquee, aucun `StorylineStep.sceneLinkIds`, aucun refactor Dialogue Studio.
+
+Tests : adapter dialogue awaitable, hook pending/completed/failure avec consequence stagee, tests core runtime-plan/executor/consequence, analyzes runtime/core et checks anti-scope.
+
+Prochain lot exact : `NS-SCENES-V1-28-octies — Golden Slice Runtime Smoke V0`.
 
 ## Selbrume golden slice
 

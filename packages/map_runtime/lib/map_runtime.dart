@@ -70,6 +70,16 @@ export 'src/application/scene_runtime/scene_battle_runtime_outcome_result.dart'
         SceneBattleRuntimeOutcomePort,
         SceneBattleRuntimeOutcomeResult,
         SceneBattleRuntimeOutcomeStatus;
+export 'src/application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart'
+    show
+        SceneDialogueRuntimeAwaitableAdapter,
+        SceneDialogueRuntimeDialogueRequest,
+        SceneDialogueRuntimeLauncher;
+export 'src/application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart'
+    show
+        SceneDialogueRuntimeAwaitableErrorCode,
+        SceneDialogueRuntimeAwaitableResult,
+        SceneDialogueRuntimeAwaitableStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
     show SceneConsequenceRuntimeWriter;
 export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'

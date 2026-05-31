@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -214,6 +215,58 @@ void main() {
       expect(result.consequenceWriteResult?.appliedConsequences, hasLength(1));
     });
 
+    test('stages setFact consequence and waits for pending dialogue', () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequenceThenDialogue(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+      final dialogueCompleter =
+          Completer<SceneDialogueRuntimeAwaitableResult>();
+      var hookCompleted = false;
+
+      final future = SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: <String>[],
+          showDialogue: _dialogueAdapterCallback(dialogueCompleter.future),
+        ),
+      )
+          .runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      )
+          .then((result) {
+        hookCompleted = true;
+        return result;
+      });
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(hookCompleted, isFalse);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+
+      dialogueCompleter.complete(
+        const SceneDialogueRuntimeAwaitableResult.completed(),
+      );
+
+      final result = await future;
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        contains('fact_test_scene_done'),
+      );
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
     test('stages markEventConsumed consequence and commits it on completion',
         () async {
       final fixture = _fixture(scene: _sceneWithMarkEventConsumedConsequence());
@@ -397,6 +450,48 @@ void main() {
       expect(gameState.storyFlags.activeFlags, isEmpty);
     });
 
+    test('discards staged consequence when awaitable dialogue fails', () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequenceThenDialogue(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: <String>[],
+          showDialogue: _dialogueAdapterCallback(
+            Future.value(
+              const SceneDialogueRuntimeAwaitableResult.failed(
+                errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+                message: 'Dialogue was cancelled.',
+              ),
+            ),
+          ),
+        ),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.failed);
+      expect(
+        result.errorCode,
+        SceneEventRuntimeHookErrorCode.sceneExecutionFailed,
+      );
+      expect(result.updatedGameState, isNull);
+      expect(result.consequenceWriteResult, isNull);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
     test('does not commit consequences when runtime plan fails', () async {
       final fixture = _fixture(scene: _sceneWithUnsupportedAction());
       const gameState = GameState(saveId: 'save_test_runtime');
@@ -549,6 +644,24 @@ SceneRuntimeIntentCallback _battleAdapterCallback(
     final scenePortId = result.scenePortId;
     if (!result.success || scenePortId == null) {
       throw StateError(result.message ?? 'Scene battle adapter failed.');
+    }
+    return scenePortId;
+  };
+}
+
+SceneRuntimeIntentCallback _dialogueAdapterCallback(
+  Future<SceneDialogueRuntimeAwaitableResult> result,
+) {
+  return (intent) async {
+    final adapter = SceneDialogueRuntimeAwaitableAdapter(
+      runtimeSourceId: 'scene:test:hook',
+      createdAtEpochMs: () => 1234,
+      launcher: _SceneTestDialogueLauncher((request) => result),
+    );
+    final dialogueResult = await adapter.showDialogue(intent);
+    final scenePortId = dialogueResult.scenePortId;
+    if (!dialogueResult.success || scenePortId == null) {
+      throw StateError(dialogueResult.message ?? 'Scene dialogue failed.');
     }
     return scenePortId;
   };
@@ -1014,6 +1127,21 @@ final class _SceneTestBattleLauncher implements SceneBattleRuntimeLauncher {
   @override
   Future<SceneBattleRuntimeOutcomeResult> startTrainerBattle(
     SceneBattleRuntimeBattleRequest request,
+  ) async {
+    return _handler(request);
+  }
+}
+
+final class _SceneTestDialogueLauncher implements SceneDialogueRuntimeLauncher {
+  const _SceneTestDialogueLauncher(this._handler);
+
+  final FutureOr<SceneDialogueRuntimeAwaitableResult> Function(
+    SceneDialogueRuntimeDialogueRequest request,
+  ) _handler;
+
+  @override
+  Future<SceneDialogueRuntimeAwaitableResult> showDialogue(
+    SceneDialogueRuntimeDialogueRequest request,
   ) async {
     return _handler(request);
   }

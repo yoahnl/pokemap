@@ -47,6 +47,8 @@ import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
+import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
+import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
@@ -187,6 +189,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Completer<SceneBattleRuntimeOutcomeResult>?
       _pendingSceneBattleOutcomeCompleter;
   String? _pendingSceneBattleRequestId;
+  Completer<SceneDialogueRuntimeAwaitableResult>?
+      _pendingSceneDialogueCompleter;
+  String? _pendingSceneDialogueRequestId;
   PlacedElementInteracted? _pendingPlacedElementBehavior;
   DialogueOverlayComponent? _dialogueOverlay;
   BattleTransitionOverlayComponent? _battleTransitionOverlay;
@@ -754,6 +759,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingBattleRequest = null;
     _pendingSceneBattleOutcomeCompleter = null;
     _pendingSceneBattleRequestId = null;
+    _completePendingSceneDialogue(
+      const SceneDialogueRuntimeAwaitableResult.failed(
+        errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+        message: 'Scene dialogue was cancelled by debug battle reset.',
+      ),
+    );
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();
   }
@@ -5001,19 +5012,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return SceneRuntimeHostCallbacks(
       evaluateCondition: _resolveSceneConditionOutput,
       showDialogue: (intent) {
-        final dialogueId = intent.dialogueId?.trim();
-        if (dialogueId == null || dialogueId.isEmpty) {
-          throw StateError('Scene dialogue intent is missing dialogueId.');
-        }
-        final opened = _openScenarioDialogueById(
-          dialogueId,
-          startNode: intent.yarnNodeName,
+        final adapter = SceneDialogueRuntimeAwaitableAdapter(
           runtimeSourceId: runtimeSourceId,
+          launcher: _CallbackSceneDialogueRuntimeLauncher(
+            _startSceneDialogue,
+          ),
         );
-        if (!opened) {
-          throw StateError('Scene dialogue "$dialogueId" could not open.');
-        }
-        return 'completed';
+        return adapter.showDialogue(intent).then((result) {
+          final scenePortId = result.scenePortId;
+          if (!result.success || scenePortId == null) {
+            throw StateError(
+              result.message ??
+                  'Scene V1 dialogue handoff failed '
+                      '(dialogueId=${intent.dialogueId}, '
+                      'yarnNodeName=${intent.yarnNodeName}).',
+            );
+          }
+          return scenePortId;
+        });
       },
       startBattle: (intent) {
         final adapter = SceneBattleRuntimeOutcomeAdapter(
@@ -5046,6 +5062,152 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
         return 'completed';
       },
+    );
+  }
+
+  Future<SceneDialogueRuntimeAwaitableResult> _startSceneDialogue(
+    SceneDialogueRuntimeDialogueRequest request,
+  ) {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      return Future.value(
+        const SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+          message: 'Scene dialogue requires overworld flow.',
+        ),
+      );
+    }
+    if (_activeBlockingInteractionSerial != null || _dialogueOverlay != null) {
+      return Future.value(
+        const SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+          message: 'A dialogue is already active.',
+        ),
+      );
+    }
+    if (_pendingSceneDialogueCompleter != null) {
+      return Future.value(
+        const SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+          message: 'A Scene dialogue is already pending.',
+        ),
+      );
+    }
+
+    final resolved = resolveDialogue(
+      entityId: request.requestId,
+      ref: DialogueRef(
+        dialogueId: request.dialogueId,
+        startNode: request.yarnNodeName,
+      ),
+      projectRootDirectory: _bundle.projectRootDirectory,
+      dialogues: _bundle.manifest.dialogues,
+    );
+    if (resolved == null) {
+      final message = 'Dialogue introuvable: ${request.dialogueId}';
+      _showNotification(message);
+      return Future.value(
+        SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+          message: message,
+        ),
+      );
+    }
+
+    final serial = _beginBlockingInteraction(
+      source: request.requestId,
+      pendingDialogueLoad: true,
+    );
+    final completer = Completer<SceneDialogueRuntimeAwaitableResult>();
+    _pendingSceneDialogueCompleter = completer;
+    _pendingSceneDialogueRequestId = request.requestId;
+    final stopwatch = Stopwatch()..start();
+
+    _dialogueSessionLoader(resolved).then((session) {
+      stopwatch.stop();
+      if (!_isBlockingInteractionActive(serial)) {
+        debugPrint(
+          '[scene_runtime] stale dialogue response ignored '
+          'request=${request.requestId} serial=$serial',
+        );
+        _completePendingSceneDialogue(
+          const SceneDialogueRuntimeAwaitableResult.failed(
+            errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+            message: 'Scene dialogue load was cancelled.',
+          ),
+        );
+        return;
+      }
+      if (session == null) {
+        final message = 'Dialogue introuvable: ${request.dialogueId}';
+        debugPrint(
+          '[scene_runtime] dialogue load failed '
+          'request=${request.requestId}',
+        );
+        _releaseBlockingInteraction(
+          serial: serial,
+          source: request.requestId,
+          reason: 'sceneDialogueLoadFailed',
+        );
+        _showNotification(message);
+        _completePendingSceneDialogue(
+          SceneDialogueRuntimeAwaitableResult.failed(
+            errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+            message: message,
+          ),
+        );
+        return;
+      }
+      debugPrint(
+        '[scene_runtime] dialogue content loaded '
+        'request=${request.requestId} '
+        'elapsedMs=${stopwatch.elapsedMilliseconds}',
+      );
+      _openDialogue(
+        session,
+        onDialogueFinished: () {
+          _completePendingSceneDialogue(
+            const SceneDialogueRuntimeAwaitableResult.completed(),
+          );
+        },
+      );
+    }).onError((Object error, StackTrace stackTrace) {
+      debugPrint(
+        '[scene_runtime] dialogue load error '
+        'request=${request.requestId} error=$error\n$stackTrace',
+      );
+      _releaseBlockingInteraction(
+        serial: serial,
+        source: request.requestId,
+        reason: 'sceneDialogueLoadFailed',
+      );
+      _showNotification('Dialogue introuvable: ${request.dialogueId}');
+      _completePendingSceneDialogue(
+        SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+          message: 'Scene dialogue launcher failed: $error',
+        ),
+      );
+    });
+
+    return completer.future;
+  }
+
+  void _completePendingSceneDialogue(
+    SceneDialogueRuntimeAwaitableResult result,
+  ) {
+    final completer = _pendingSceneDialogueCompleter;
+    if (completer == null) {
+      return;
+    }
+    final requestId = _pendingSceneDialogueRequestId;
+    _pendingSceneDialogueCompleter = null;
+    _pendingSceneDialogueRequestId = null;
+    if (!completer.isCompleted) {
+      completer.complete(result);
+    }
+    debugPrint(
+      '[scene_runtime] dialogue completed request=${requestId ?? '-'} '
+      'status=${result.status.name} port=${result.scenePortId ?? '-'}',
     );
   }
 
@@ -5626,7 +5788,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return true;
   }
 
-  void _openDialogue(DialogueSession session) {
+  void _openDialogue(
+    DialogueSession session, {
+    VoidCallback? onDialogueFinished,
+  }) {
     _notification?.removeFromParent();
     _notification = null;
     _clearBlockingInteractionWithoutUnlock(reason: 'dialogueOpened');
@@ -5643,7 +5808,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _awaitingSurfConfirmation = false;
         final action = _pendingPostDialogueAction;
         _pendingPostDialogueAction = null;
-        action?.call();
+        try {
+          action?.call();
+        } finally {
+          onDialogueFinished?.call();
+        }
       },
     );
     camera.viewport.add(overlay);
@@ -6792,6 +6961,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingPlacedElementBehavior = null;
     _notification?.removeFromParent();
     _notification = null;
+    _completePendingSceneDialogue(
+      const SceneDialogueRuntimeAwaitableResult.failed(
+        errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+        message: 'Scene dialogue was cancelled by transient UI reset.',
+      ),
+    );
     _dialogueOverlay?.removeFromParent();
     _dialogueOverlay = null;
     _battleTransitionOverlay?.removeFromParent();
@@ -8301,6 +8476,22 @@ final class _CallbackSceneBattleRuntimeLauncher
     SceneBattleRuntimeBattleRequest request,
   ) {
     return _startTrainerBattle(request);
+  }
+}
+
+final class _CallbackSceneDialogueRuntimeLauncher
+    implements SceneDialogueRuntimeLauncher {
+  const _CallbackSceneDialogueRuntimeLauncher(this._showDialogue);
+
+  final Future<SceneDialogueRuntimeAwaitableResult> Function(
+    SceneDialogueRuntimeDialogueRequest request,
+  ) _showDialogue;
+
+  @override
+  Future<SceneDialogueRuntimeAwaitableResult> showDialogue(
+    SceneDialogueRuntimeDialogueRequest request,
+  ) {
+    return _showDialogue(request);
   }
 }
 

@@ -79,16 +79,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-28-quater — Scene Consequence Model V0 | DONE | Modele authoring pur `SceneConsequence` V0 ajoute : `setFact` et `markEventConsumed`, integration typée dans ActionNode, JSON roundtrip, diagnostics refs Fact/map/event, runtime plan toujours non executable. |
 | NS-SCENES-V1-28-quinquies — Scene Consequence Runtime Write V0 | DONE | Runtime write controle pour consequences V0 : `applyConsequence` dans le plan/executor, staging dans le hook runtime, commit atomique `setFact` / `markEventConsumed`, sans World Rule direct apply ni StorylineStep link. |
 | NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0 | DONE | Adapter runtime battle awaitable : trainer battle lance via le handoff existant, resultat reel mappe vers `victory` / `defeat`, failures propres, aucune consequence Scene ecrite par l'adapter. |
-| NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0 | TODO | Rendre `showDialogue` awaitable cote Scene runtime pour retourner `completed` apres la vraie fermeture du dialogue, sans outcomes Yarn inventes. |
-| NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP, consequence model/runtime write, battle outcome adapter, dialogue awaitable, golden slice readiness et runtime hook stabilises. |
+| NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0 | DONE | Adapter runtime dialogue awaitable : DialogueNode ouvre le dialogue existant, attend la fermeture reelle de l'overlay, retourne seulement `completed`, failures propres, aucune consequence Scene ecrite par l'adapter. |
+| NS-SCENES-V1-28-octies — Golden Slice Runtime Smoke V0 | TODO | Prouver la chaine runtime controlee Event -> Scene -> Dialogue awaitable -> Battle outcome -> consequences commit dans un smoke test neutre, avant StorylineStep link. |
+| NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP, consequence model/runtime write, battle outcome adapter, dialogue awaitable, golden slice runtime smoke et runtime hook stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0`
+`NS-SCENES-V1-28-octies — Golden Slice Runtime Smoke V0`
 
-Raison : V1-28-sexies rend le BattleNode awaitable avec un vrai resultat runtime `victory` / `defeat`. Le dernier gros seam runtime visible reste le dialogue : `showDialogue` retourne encore `completed` immediatement et doit attendre la vraie fermeture du dialogue avant de laisser la Scene continuer.
+Raison : Event -> Scene, consequences runtime write, Battle awaitable et Dialogue awaitable sont maintenant connectes. Il faut prouver une chaine runtime complete dans un smoke test controle avant de brancher `StorylineStep.sceneLinkIds`.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -191,6 +192,18 @@ Limites : aucune modification de `map_battle`, aucun refactor du battle engine, 
 Tests : `scene_battle_runtime_outcome_adapter_test`, `scene_event_runtime_hook_test`, core `scene_runtime_plan_test`, `scene_runtime_executor_test`, `scene_consequence_model_test`, `map_core dart analyze`, analyse ciblee `map_runtime`, recherches anti-Selbrume/anti-scope et `git diff --check`.
 
 Prochain lot exact : `NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0`.
+
+## Mise a jour V1-28-septies
+
+Statut : `NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0` est DONE.
+
+Decision : `SceneRuntimeHostCallbacks.showDialogue` dans `PlayableMapGame` ne retourne plus `completed` immediatement apres l'ouverture du dialogue. Il passe par `SceneDialogueRuntimeAwaitableAdapter`, ouvre le dialogue runtime existant, puis attend le signal reel de fermeture de `DialogueOverlayComponent.onFinished` avant de retourner le port Scene `completed`.
+
+Limites : pas d'outcomes Yarn inventes, pas de BranchByOutcome, pas de parser Yarn, pas de Dialogue Studio, pas de nouvelle consequence, pas de World Rule direct apply, pas de StorylineStep link et pas de donnee Selbrume. L'adapter dialogue ne mute pas `GameState` et n'ecrit aucune consequence Scene.
+
+Tests : adapter dialogue awaitable, hook Scene pending/completed/failure avec consequence stagee, tests core runtime-plan/executor/consequence, analyzes runtime/core, recherches anti-scope et `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-28-octies — Golden Slice Runtime Smoke V0`.
 
 ## Decisions V1-24
 
