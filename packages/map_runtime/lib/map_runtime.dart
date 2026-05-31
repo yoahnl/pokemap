@@ -57,6 +57,15 @@ export 'src/application/story_flags_manager.dart' show StoryFlagsManager;
 export 'src/application/scenario_conditions.dart' show ScenarioConditions;
 export 'src/application/runtime_story_branching.dart'
     show RuntimeStoryBranching;
+export 'src/application/scene_runtime/scene_event_runtime_hook.dart'
+    show SceneEventRuntimeHook;
+export 'src/application/scene_runtime/scene_runtime_host_callbacks.dart'
+    show SceneRuntimeHostCallbacks;
+export 'src/application/scene_runtime/scene_runtime_hook_result.dart'
+    show
+        SceneEventRuntimeHookErrorCode,
+        SceneEventRuntimeHookResult,
+        SceneEventRuntimeHookStatus;
 export 'src/application/scenario_runtime/scenario_runtime_models.dart'
     show
         ScenarioRuntimeSourceType,

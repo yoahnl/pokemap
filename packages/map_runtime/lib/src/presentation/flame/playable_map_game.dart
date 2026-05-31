@@ -45,6 +45,8 @@ import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_story_branching.dart';
+import '../../application/scene_runtime/scene_event_runtime_hook.dart';
+import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
 import '../../application/scenario_runtime/scenario_battle_outcome_flags.dart';
@@ -4870,6 +4872,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     MapEventDefinition event,
     ActiveEventPage page,
   ) {
+    if (page.page.sceneTarget != null) {
+      unawaited(_runSceneTargetForMapEvent(event, page));
+      return;
+    }
+
     if (page.page.script != null) {
       final message = page.page.message?.trim();
       if (message != null && message.isNotEmpty) {
@@ -4881,6 +4888,128 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     } else {
       _showNotification('...');
     }
+  }
+
+  Future<void> _runSceneTargetForMapEvent(
+    MapEventDefinition event,
+    ActiveEventPage page,
+  ) async {
+    try {
+      final result = await SceneEventRuntimeHook(
+        callbacks: _buildSceneRuntimeHostCallbacks(
+          event: event,
+          page: page,
+        ),
+      ).runForEventPage(
+        project: _bundle.manifest,
+        map: _bundle.map,
+        event: event,
+        page: page.page,
+      );
+
+      debugPrint(
+        '[scene_runtime] event=${event.id} page=${page.pageIndex} '
+        'status=${result.status.name} scene=${result.sceneId ?? '-'} '
+        'message=${result.message ?? '-'}',
+      );
+
+      if (!result.success && result.handled) {
+        _showNotification(result.message ?? 'Scene V1 impossible.');
+      }
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[scene_runtime] unhandled hook error event=${event.id} '
+        'page=${page.pageIndex} error=$error\n$stackTrace',
+      );
+      _showNotification('Scene V1 impossible.');
+    }
+  }
+
+  SceneRuntimeHostCallbacks _buildSceneRuntimeHostCallbacks({
+    required MapEventDefinition event,
+    required ActiveEventPage page,
+  }) {
+    final runtimeSourceId =
+        'scene:${_bundle.map.id}:${event.id}:${page.pageIndex}';
+    return SceneRuntimeHostCallbacks(
+      evaluateCondition: _resolveSceneConditionOutput,
+      showDialogue: (intent) {
+        final dialogueId = intent.dialogueId?.trim();
+        if (dialogueId == null || dialogueId.isEmpty) {
+          throw StateError('Scene dialogue intent is missing dialogueId.');
+        }
+        final opened = _openScenarioDialogueById(
+          dialogueId,
+          startNode: intent.yarnNodeName,
+          runtimeSourceId: runtimeSourceId,
+        );
+        if (!opened) {
+          throw StateError('Scene dialogue "$dialogueId" could not open.');
+        }
+        return 'completed';
+      },
+      startBattle: (intent) {
+        throw UnsupportedError(
+          'Scene V1 battle handoff is not awaitable in runtime hook V0 '
+          '(battleKind=${intent.battleKind}, trainerId=${intent.trainerId}).',
+        );
+      },
+      playCinematic: (intent) {
+        final cinematicId = intent.cinematicId?.trim();
+        if (cinematicId == null || cinematicId.isEmpty) {
+          throw StateError('Scene cinematic intent is missing cinematicId.');
+        }
+        debugPrint(
+          '[scene_runtime] cinematic bridge acknowledged id=$cinematicId',
+        );
+        return 'completed';
+      },
+    );
+  }
+
+  String _resolveSceneConditionOutput(SceneRuntimePlanIntent intent) {
+    final source = intent.conditionSource;
+    if (source == null) {
+      throw StateError('Scene condition intent is missing a condition source.');
+    }
+
+    final value = switch (source.sourceKind) {
+      SceneConditionSourceKind.factLikeStoryFlag =>
+        _gameState.storyFlags.activeFlags.contains(source.sourceId) ||
+            _gameState.progression.storyFlags.contains(source.sourceId),
+      SceneConditionSourceKind.storyStepCompletion =>
+        _gameState.progression.completedStepIds.contains(source.sourceId),
+      SceneConditionSourceKind.consumedEvent =>
+        _gameState.consumedEventIds.contains(source.sourceId),
+      _ => throw UnsupportedError(
+          'Scene condition source ${source.sourceKind.name} is not supported '
+          'by runtime hook V0.',
+        ),
+    };
+
+    final matched = switch (source.operator) {
+      SceneConditionOperator.isTrue => value,
+      SceneConditionOperator.isFalse => !value,
+      SceneConditionOperator.equals =>
+        _matchesSceneConditionEquals(source, value),
+    };
+    return matched ? 'true' : 'false';
+  }
+
+  bool _matchesSceneConditionEquals(
+    SceneConditionSource source,
+    bool resolvedValue,
+  ) {
+    return switch (source.value) {
+      'true' => resolvedValue,
+      'false' => !resolvedValue,
+      SceneConditionValues.completed => resolvedValue,
+      SceneConditionValues.notCompleted => !resolvedValue,
+      _ => throw UnsupportedError(
+          'Scene condition equality value "${source.value}" is not supported '
+          'by runtime hook V0.',
+        ),
+    };
   }
 
   void _executeEventScript(
