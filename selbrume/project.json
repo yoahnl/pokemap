@@ -13068,54 +13068,88 @@
             }
           },
           {
-            "id": "node_condition",
-            "kind": "condition",
-            "title": "Condition",
-            "payload": {
-              "kind": "condition",
-              "conditionLabel": "Introduction à Selbrume",
-              "conditionRef": "step_intro_selbrume",
-              "conditionSource": {
-                "sourceKind": "storyStepCompletion",
-                "sourceId": "step_intro_selbrume",
-                "operator": "equals",
-                "value": "completed",
-                "label": "Introduction à Selbrume",
-                "debugTechnicalLabel": "story_main_brume_phare:chapter_1_port:step_intro_selbrume"
-              }
-            }
-          },
-          {
             "id": "node_end_2",
             "kind": "end",
             "title": "Fin",
             "payload": {
               "kind": "end"
             }
+          },
+          {
+            "id": "node_battle",
+            "kind": "battle",
+            "title": "grant",
+            "payload": {
+              "kind": "battle",
+              "battleKind": "trainer",
+              "trainerId": "grant",
+              "declaredOutcomes": [
+                "victory",
+                "defeat"
+              ]
+            }
+          },
+          {
+            "id": "node_yarn_dialogue",
+            "kind": "yarnDialogue",
+            "title": "g",
+            "payload": {
+              "kind": "yarnDialogue",
+              "dialogueId": "g",
+              "expectedOutcomes": [],
+              "speakerHints": []
+            }
+          },
+          {
+            "id": "node_yarn_dialogue_2",
+            "kind": "yarnDialogue",
+            "title": "g",
+            "payload": {
+              "kind": "yarnDialogue",
+              "dialogueId": "g",
+              "expectedOutcomes": [],
+              "speakerHints": []
+            }
           }
         ],
         "edges": [
           {
-            "id": "edge_node_condition_true_node_end",
-            "fromNodeId": "node_condition",
-            "fromPortId": "true",
-            "toNodeId": "node_end",
-            "kind": "conditionTrue",
-            "label": "true"
-          },
-          {
-            "id": "edge_node_condition_false_node_end_2",
-            "fromNodeId": "node_condition",
-            "fromPortId": "false",
-            "toNodeId": "node_end_2",
-            "kind": "conditionFalse",
-            "label": "false"
-          },
-          {
-            "id": "edge_node_start_completed_node_condition",
+            "id": "edge_node_start_completed_node_battle",
             "fromNodeId": "node_start",
             "fromPortId": "completed",
-            "toNodeId": "node_condition",
+            "toNodeId": "node_battle",
+            "kind": "default",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_battle_victory_node_yarn_dialogue",
+            "fromNodeId": "node_battle",
+            "fromPortId": "victory",
+            "toNodeId": "node_yarn_dialogue",
+            "kind": "battleVictory",
+            "label": "victory"
+          },
+          {
+            "id": "edge_node_yarn_dialogue_completed_node_end",
+            "fromNodeId": "node_yarn_dialogue",
+            "fromPortId": "completed",
+            "toNodeId": "node_end",
+            "kind": "default",
+            "label": "completed"
+          },
+          {
+            "id": "edge_node_battle_defeat_node_yarn_dialogue_2",
+            "fromNodeId": "node_battle",
+            "fromPortId": "defeat",
+            "toNodeId": "node_yarn_dialogue_2",
+            "kind": "battleDefeat",
+            "label": "defeat"
+          },
+          {
+            "id": "edge_node_yarn_dialogue_2_completed_node_end_2",
+            "fromNodeId": "node_yarn_dialogue_2",
+            "fromPortId": "completed",
+            "toNodeId": "node_end_2",
             "kind": "default",
             "label": "completed"
           }
@@ -13134,14 +13168,24 @@
             "y": -21.7734375
           },
           {
-            "nodeId": "node_condition",
-            "x": 406.3125,
-            "y": 37.62890625
-          },
-          {
             "nodeId": "node_end_2",
             "x": 808.78515625,
             "y": 125.15625
+          },
+          {
+            "nodeId": "node_battle",
+            "x": 400.4609375,
+            "y": 185.28515625
+          },
+          {
+            "nodeId": "node_yarn_dialogue",
+            "x": 550.84765625,
+            "y": 30.796875
+          },
+          {
+            "nodeId": "node_yarn_dialogue_2",
+            "x": 638.02734375,
+            "y": 302.73046875
           }
         ],
         "edgeLayouts": []
