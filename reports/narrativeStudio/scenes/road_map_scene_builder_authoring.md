@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-31 — Scene Consequence Authoring UI V0
+NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint
 ```
 
 ## Principes
@@ -63,7 +63,8 @@ NS-SCENES-V1-31 — Scene Consequence Authoring UI V0
 | NS-SCENES-V1-29 | StorylineStep to Scene Link | core / editor | Brancher `StorylineStep.sceneLinkIds` vers scenes stables comme lien authoring/progression. | Pas de declenchement runtime par StoryStep seul, pas de lien scenario legacy, pas de completion Step runtime. | operations Storyline scene links, diagnostics/read model, Storylines workspace, tests. | DONE : JSON/ops/diagnostics/read model, UI picker scenes reelles, remove link, visual gate, analyzes. | Confondre step et trigger ; progression pilotant toute la scene. | DONE : StoryStep peut referencer Scene pour lecture/progression, sans remplacer Event trigger. | V1-23, V1-26, V1-28-octies. |
 | NS-SCENES-V1-30 | Scene Node Payload Editing V0 | core / editor | Rendre les payloads Dialogue Yarn et Battle trainer corrigeables depuis l'inspecteur via contrats publics reels. | Pas d'outcomes Yarn, pas de BranchByOutcome, pas de Cinematic/Action avance, pas de runtime. | operations Scene payload, inspector Scenes, tests core/editor, visual gate. | DONE : operations pures, pickers Dialogue/Battle, update memoire `ProjectManifest.scenes`, tests/analyze, aucun fake ref. | Revenir a des IDs tapes a la main ; dupliquer les pickers ; modifier runtime. | DONE : refs Dialogue/Battle modifiables sans changer graph/layout/runtime et sans inventer d'outcomes. | V1-21, V1-22, V1-25-bis. |
 | NS-SCENES-V1-30-bis | Scene Node Deletion UX V0 | core / editor | Permettre la suppression controlee des nodes Scene non-start depuis l'inspecteur. | Pas de reconnexion automatique, pas de runtime, pas de payload editing supplementaire, pas de suppression de scene/event/storyline. | `removeSceneNodeDraft`, inspector danger zone, tests core/editor, visual gate. | DONE : nodes non-start supprimables, edges entrants/sortants et layouts nettoyes, Start et dernier End proteges, confirmation destructive. | Supprimer le Start ; auto-reparer le graph ; masquer les diagnostics apres deletion. | DONE : graph corrigible sans fake refs, sans runtime et sans mutation hors `ProjectManifest.scenes`. | V1-15-bis, V1-25-bis, V1-30. |
-| NS-SCENES-V1-31 | Scene Consequence Authoring UI V0 | core / editor | Exposer l'authoring no-code des consequences V0 `setFact` et `markEventConsumed` depuis ActionNode/inspector. | Pas de giveItem/warp/storyStep runtime, pas de World Rule direct apply, pas de BranchByOutcome. | inspector/action authoring, consequence pickers, tests diagnostics/runtime non-regression. | Attendus : ActionNode consequence editable, refs Fact/map/event pickers, no fake refs, runtime write existant non casse. | Transformer ActionNode en script libre ; ecrire trop tot dans runtime depuis l'UI. | TODO : consequences V0 authorables proprement et validables avant checkpoint beta. | V1-28-quater, V1-28-quinquies, V1-30-bis. |
+| NS-SCENES-V1-31 | Scene Consequence Authoring UI V0 | core / editor | Exposer l'authoring no-code des consequences V0 `setFact` et `markEventConsumed` depuis ActionNode/inspector. | Pas de giveItem/warp/storyStep runtime, pas de World Rule direct apply, pas de BranchByOutcome. | inspector/action authoring, consequence pickers, tests diagnostics/runtime non-regression. | DONE : ActionNode consequence editable, refs Fact/map/event pickers, no fake refs, runtime write existant non casse. | Transformer ActionNode en script libre ; ecrire trop tot dans runtime depuis l'UI. | DONE : consequences V0 authorables proprement et validables avant checkpoint beta. | V1-28-quater, V1-28-quinquies, V1-30-bis. |
+| NS-SCENES-V1-32 | Scene V1 Beta Readiness Checkpoint | review / roadmap | Auditer l'etat beta Scene V1 apres authoring payloads, consequences, runtime hook et golden smoke. | Pas de nouveau node, pas de runtime additionnel, pas de modele, pas de migration. | rapport checkpoint, roadmaps, audit gaps. | Attendus : tests/analyze utiles relances, gaps classes, risques et prochain lot exact. | Continuer a coder sans verifier le systeme complet ; ignorer les limites UX/runtime. | TODO : checkpoint non demarre. | V1-31. |
 
 ## Options comparees
 
@@ -517,6 +518,18 @@ Scope realise : operation pure `removeSceneNodeDraft` elargie et gardee, helper 
 Limites : pas de reconnexion automatique, pas de suppression via clavier, pas de suppression de Scene/Event/Storyline, pas de runtime, pas de Consequence UI demarree.
 
 Prochain lot exact : `NS-SCENES-V1-31 — Scene Consequence Authoring UI V0`.
+
+## Mise a jour V1-31
+
+Statut : `NS-SCENES-V1-31 — Scene Consequence Authoring UI V0` est DONE.
+
+Decision : l'ActionNode est ouvert uniquement pour les consequences V0 typées. Le flux no-code autorise `setFact(factId, true/false)` depuis la Fact Registry et `markEventConsumed(mapId, eventId)` depuis les events reels de la map active. Aucun ID libre ni action generique n'est expose dans le workflow normal.
+
+Scope realise : creation d'Action/Consequence depuis la palette quand une cible existe, pickers Facts/events, edition inspecteur des consequences, update memoire de `ProjectManifest.scenes`, port `completed` connectable, diagnostics compatibles et visual gate.
+
+Limites : pas de `giveItem`, `warpPlayer`, StoryStep completion, World Rule direct apply, BranchByOutcome, Yarn outcomes, Cinematic payload authoring, runtime Scene, mutation GameState depuis editor, Event -> Scene ou StorylineStep link.
+
+Prochain lot exact : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`.
 
 ## Selbrume golden slice
 

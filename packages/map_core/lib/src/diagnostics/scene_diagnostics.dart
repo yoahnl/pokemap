@@ -1043,11 +1043,18 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
           required: true,
         ),
       ],
+    SceneNodeKind.action => const [
+        _SceneOutputPortSpec(
+          id: 'completed',
+          edgeKinds: {
+            SceneEdgeKind.defaultFlow,
+            SceneEdgeKind.actionCompleted,
+          },
+          required: true,
+        ),
+      ],
     SceneNodeKind.end => const [],
-    SceneNodeKind.action ||
-    SceneNodeKind.cinematic ||
-    SceneNodeKind.branchByOutcome =>
-      null,
+    SceneNodeKind.cinematic || SceneNodeKind.branchByOutcome => null,
   };
 }
 

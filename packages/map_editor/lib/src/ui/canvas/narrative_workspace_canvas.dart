@@ -132,6 +132,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   editor.project!,
                   activeMap: editor.activeMap,
                 ),
+          consequenceFactOptions: editor.project == null
+              ? const []
+              : _buildSceneConsequenceFactOptions(editor.project!),
+          consequenceEventOptions: editor.project == null
+              ? const []
+              : _buildSceneConsequenceEventOptions(
+                  editor.project!,
+                  activeMap: editor.activeMap,
+                ),
           onCreateSceneDraft: ({
             required String name,
             String? description,
@@ -201,6 +210,37 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               editorNotifier.applyInMemoryProjectManifest(
                 project.copyWith(scenes: scenes),
                 statusMessage: 'Scene linked asset node draft added',
+              );
+              return result.createdNode.id;
+            } on ArgumentError {
+              return null;
+            }
+          },
+          onAddConsequenceActionNodeDraft: ({
+            required String sceneId,
+            required SceneConsequence consequence,
+            String? title,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return null;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return null;
+            }
+            try {
+              final result = addSceneConsequenceActionNodeDraft(
+                project.scenes[sceneIndex],
+                consequence: consequence,
+                title: title,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene consequence action node added',
               );
               return result.createdNode.id;
             } on ArgumentError {
@@ -425,6 +465,37 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
+          onUpdateActionConsequence: ({
+            required String sceneId,
+            required String nodeId,
+            required SceneConsequence consequence,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return false;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return false;
+            }
+            try {
+              final result = updateSceneActionConsequencePayload(
+                project.scenes[sceneIndex],
+                nodeId: nodeId,
+                consequence: consequence,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene consequence payload updated',
+              );
+              return true;
+            } on ArgumentError {
+              return false;
+            }
+          },
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
@@ -585,6 +656,68 @@ List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
     return a.sourceId.toLowerCase().compareTo(b.sourceId.toLowerCase());
   });
   return List<SceneConditionSourcePickerOption>.unmodifiable(options);
+}
+
+List<SceneConsequenceFactPickerOption> _buildSceneConsequenceFactOptions(
+  ProjectManifest project,
+) {
+  final options = [
+    for (final fact in project.facts)
+      if (fact.id.trim().isNotEmpty)
+        SceneConsequenceFactPickerOption(
+          factId: fact.id,
+          label: fact.label,
+          description: fact.description,
+          category: fact.category,
+          debugTechnicalLabel: fact.legacyFlagName ?? fact.id,
+        ),
+  ];
+  options.sort((a, b) {
+    final byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
+    if (byLabel != 0) {
+      return byLabel;
+    }
+    return a.factId.toLowerCase().compareTo(b.factId.toLowerCase());
+  });
+  return List<SceneConsequenceFactPickerOption>.unmodifiable(options);
+}
+
+List<SceneConsequenceEventPickerOption> _buildSceneConsequenceEventOptions(
+  ProjectManifest project, {
+  MapData? activeMap,
+}) {
+  if (activeMap == null) {
+    return const [];
+  }
+  final mapEntry = project.maps
+      .where((entry) => entry.id == activeMap.id)
+      .cast<ProjectMapEntry?>()
+      .firstWhere((entry) => entry != null, orElse: () => null);
+  final mapLabel = mapEntry?.name ?? activeMap.name;
+  final options = [
+    for (final event in activeMap.events)
+      if (event.id.trim().isNotEmpty)
+        SceneConsequenceEventPickerOption(
+          mapId: activeMap.id,
+          mapLabel: mapLabel,
+          eventId: event.id,
+          eventLabel: event.title.trim().isEmpty ? event.id : event.title,
+          debugTechnicalLabel: '${activeMap.id}:${event.id}',
+        ),
+  ];
+  options.sort((a, b) {
+    final byMap = a.mapLabel.toLowerCase().compareTo(b.mapLabel.toLowerCase());
+    if (byMap != 0) {
+      return byMap;
+    }
+    final byEvent =
+        a.eventLabel.toLowerCase().compareTo(b.eventLabel.toLowerCase());
+    if (byEvent != 0) {
+      return byEvent;
+    }
+    return a.eventId.toLowerCase().compareTo(b.eventId.toLowerCase());
+  });
+  return List<SceneConsequenceEventPickerOption>.unmodifiable(options);
 }
 
 NarrativeScenarioSummary? _resolveScenarioById(

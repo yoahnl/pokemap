@@ -84,16 +84,29 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-29 — StorylineStep to Scene Link | DONE | `StorylineStep.sceneLinkIds` rendu utilisable comme lien authoring/progression vers des `SceneAsset` reelles : operations pures, diagnostics refs, read model et UI Storylines, sans runtime trigger ni remplacement Event -> Scene. |
 | NS-SCENES-V1-30 — Scene Node Payload Editing V0 | DONE | Edition en inspecteur des payloads Dialogue Yarn et Battle trainer depuis les contrats publics reels : operations pures, pickers honnetes, `ProjectManifest.scenes` mis a jour en memoire, sans runtime ni fake refs. |
 | NS-SCENES-V1-30-bis — Scene Node Deletion UX V0 | DONE | Suppression controlee des nodes non-start depuis l'inspecteur : node + edges entrants/sortants + layouts associes retires, Start et dernier End proteges, confirmation destructive, sans runtime ni reconnexion automatique. |
+| NS-SCENES-V1-31 — Scene Consequence Authoring UI V0 | DONE | Authoring no-code des ActionNode/Consequences V0 : creation depuis vrais Facts/events, edition inspecteur `setFact` et `markEventConsumed`, port `completed` connectable, sans runtime ni fake refs. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-31 — Scene Consequence Authoring UI V0`
+`NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`
 
-Raison : les nodes Dialogue Yarn et Battle trainer peuvent maintenant etre crees, corriges et supprimes proprement depuis le Scene Builder. Le prochain blocage produit visible est l'ActionNode/Consequence authoring : les consequences `setFact` et `markEventConsumed` existent cote modele/runtime, mais ne sont pas encore authorables proprement depuis le Scene Builder.
+Raison : le Scene Builder sait maintenant creer, connecter, deplacer, supprimer et configurer les nodes metier essentiels du golden path beta : Condition, Dialogue Yarn, Battle trainer et Action/Consequence V0. Avant d'ajouter de nouveaux payloads ou d'elargir le runtime, il faut verifier l'etat beta complet : diagnostics, authoring gaps, runtime gaps, UX no-code et readiness golden slice.
 
 Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
+
+## Mise a jour V1-31
+
+Statut : `NS-SCENES-V1-31 — Scene Consequence Authoring UI V0` est DONE.
+
+Decision : l'ActionNode devient authorable seulement comme porteur de `SceneConsequence` typée V0. L'UI ne propose pas de script libre, pas d'ID tape a la main et pas d'action generique. Les deux consequences autorisees sont `setFact(factId, value)` via `ProjectManifest.facts` et `markEventConsumed(mapId, eventId)` via les events reels de la map active.
+
+Scope realise : operations pures `addSceneConsequenceActionNodeDraft` et `updateSceneActionConsequencePayload`, port `Action.completed` authorable et diagnostique, palette Action/Conséquence active seulement quand une cible reelle existe, pickers Facts/events, edition inspecteur, update en memoire de `ProjectManifest.scenes`, tests core/editor et visual gate.
+
+Limites : pas de `giveItem`, `warpPlayer`, completion de StoryStep, World Rule direct apply, BranchByOutcome, Yarn outcomes, Cinematic authoring, runtime Scene, GameState mutation depuis editor, `MapEventPage.sceneTarget` ou `StorylineStep.sceneLinkIds`.
+
+Prochain lot exact : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`.
 
 ## Mise a jour V1-30-bis
 

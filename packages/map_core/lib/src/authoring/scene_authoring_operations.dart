@@ -1,5 +1,6 @@
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_consequence.dart';
 
 final class SceneDraftCreationResult {
   const SceneDraftCreationResult({
@@ -97,6 +98,30 @@ final class SceneBattlePayloadUpdateResult {
   final SceneAsset updatedScene;
   final SceneNode updatedNode;
   final SceneBattlePayload updatedPayload;
+}
+
+final class SceneActionNodeDraftCreationResult {
+  const SceneActionNodeDraftCreationResult({
+    required this.updatedScene,
+    required this.createdNode,
+    required this.createdPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode createdNode;
+  final SceneActionPayload createdPayload;
+}
+
+final class SceneActionConsequencePayloadUpdateResult {
+  const SceneActionConsequencePayloadUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final SceneActionPayload updatedPayload;
 }
 
 final class SceneAuthorableOutputPort {
@@ -226,8 +251,14 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
           edgeKind: SceneEdgeKind.battleDefeat,
         ),
       ],
+    SceneNodeKind.action => const [
+        SceneAuthorableOutputPort(
+          id: 'completed',
+          label: 'completed',
+          edgeKind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
     SceneNodeKind.end ||
-    SceneNodeKind.action ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.branchByOutcome =>
       const <SceneAuthorableOutputPort>[],
@@ -369,6 +400,102 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
   final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
 
   return SceneBattlePayloadUpdateResult(
+    updatedScene: updatedScene,
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
+SceneActionNodeDraftCreationResult addSceneConsequenceActionNodeDraft(
+  SceneAsset scene, {
+  required SceneConsequence consequence,
+  String? title,
+  String? afterNodeId,
+}) {
+  _validateSceneConsequenceForAuthoring(consequence);
+
+  final nodeId = _uniqueNodeId(
+    'node_action',
+    scene.graph.nodes.map((node) => node.id),
+  );
+  final createdPayload = SceneActionPayload.consequence(consequence);
+  final createdNode = SceneNode(
+    id: nodeId,
+    kind: SceneNodeKind.action,
+    title: _trimOptional(title) ?? _defaultConsequenceActionTitle(consequence),
+    payload: createdPayload,
+  );
+  final createdLayout = _layoutForNewNode(
+    scene,
+    nodeId: nodeId,
+    afterNodeId: afterNodeId,
+  );
+
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [...scene.graph.nodes, createdNode],
+      edges: scene.graph.edges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [...scene.layout.nodeLayouts, createdLayout],
+      edgeLayouts: scene.layout.edgeLayouts,
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+
+  return SceneActionNodeDraftCreationResult(
+    updatedScene: updatedScene,
+    createdNode: createdNode,
+    createdPayload: createdPayload,
+  );
+}
+
+SceneActionConsequencePayloadUpdateResult updateSceneActionConsequencePayload(
+  SceneAsset scene, {
+  required String nodeId,
+  required SceneConsequence consequence,
+}) {
+  final trimmedNodeId = _trimRequired(
+    nodeId,
+    'nodeId',
+    'Scene consequence editing requires an action node id.',
+  );
+  final node = _findNodeOrThrow(scene, trimmedNodeId, 'nodeId');
+  if (node.kind != SceneNodeKind.action) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Scene consequence editing V0 can only update action nodes.',
+    );
+  }
+  _validateSceneConsequenceForAuthoring(consequence);
+
+  final currentPayload = node.payload;
+  final updatedPayload = currentPayload is SceneActionPayload
+      ? SceneActionPayload.consequence(
+          consequence,
+          actionKind: currentPayload.actionKind,
+          parameters: currentPayload.parameters,
+        )
+      : SceneActionPayload.consequence(consequence);
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
+
+  return SceneActionConsequencePayloadUpdateResult(
     updatedScene: updatedScene,
     updatedNode: updatedNode,
     updatedPayload: updatedPayload,
@@ -781,6 +908,34 @@ void _validateConditionSourceForV0(SceneConditionSource source) {
   }
 }
 
+void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
+  switch (consequence) {
+    case SceneSetFactConsequence():
+      _trimRequired(
+        consequence.factId,
+        'consequence.factId',
+        'setFact consequence requires a fact id.',
+      );
+    case SceneMarkEventConsumedConsequence():
+      _trimRequired(
+        consequence.mapId,
+        'consequence.mapId',
+        'markEventConsumed consequence requires a map id.',
+      );
+      _trimRequired(
+        consequence.eventId,
+        'consequence.eventId',
+        'markEventConsumed consequence requires an event id.',
+      );
+    case _:
+      throw ArgumentError.value(
+        consequence,
+        'consequence',
+        'Unsupported Scene consequence kind for authoring V0.',
+      );
+  }
+}
+
 SceneAsset _createSceneDraft({
   required String id,
   required String name,
@@ -1027,6 +1182,14 @@ String _defaultLinkedAssetTitleForKind(SceneNodeKind kind) {
         'kind',
         'Unsupported linked asset node kind.',
       ),
+  };
+}
+
+String _defaultConsequenceActionTitle(SceneConsequence consequence) {
+  return switch (consequence) {
+    SceneSetFactConsequence() => 'Définir un Fact',
+    SceneMarkEventConsumedConsequence() => 'Marquer event consommé',
+    _ => 'Conséquence',
   };
 }
 

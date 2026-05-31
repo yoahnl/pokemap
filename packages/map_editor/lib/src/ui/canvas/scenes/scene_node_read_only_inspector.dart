@@ -21,6 +21,11 @@ typedef SceneBattlePayloadDraftUpdater = Future<bool> Function({
   required String trainerId,
 });
 
+typedef SceneActionConsequenceDraftUpdater = Future<bool> Function({
+  required String nodeId,
+  required SceneConsequence consequence,
+});
+
 final class SceneConditionSourcePickerOption {
   const SceneConditionSourcePickerOption({
     required this.sourceKind,
@@ -39,6 +44,38 @@ final class SceneConditionSourcePickerOption {
   final String category;
 }
 
+final class SceneConsequenceFactPickerOption {
+  const SceneConsequenceFactPickerOption({
+    required this.factId,
+    required this.label,
+    this.description = '',
+    this.category = '',
+    this.debugTechnicalLabel = '',
+  });
+
+  final String factId;
+  final String label;
+  final String description;
+  final String category;
+  final String debugTechnicalLabel;
+}
+
+final class SceneConsequenceEventPickerOption {
+  const SceneConsequenceEventPickerOption({
+    required this.mapId,
+    required this.mapLabel,
+    required this.eventId,
+    required this.eventLabel,
+    this.debugTechnicalLabel = '',
+  });
+
+  final String mapId;
+  final String mapLabel;
+  final String eventId;
+  final String eventLabel;
+  final String debugTechnicalLabel;
+}
+
 class SceneNodeReadOnlyInspector extends StatelessWidget {
   const SceneNodeReadOnlyInspector({
     super.key,
@@ -52,6 +89,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.linkedAssetContracts,
     this.onUpdateYarnDialoguePayload,
     this.onUpdateBattlePayload,
+    this.consequenceFactOptions = const [],
+    this.consequenceEventOptions = const [],
+    this.onUpdateActionConsequence,
   });
 
   final NarrativeSceneSummary scene;
@@ -64,6 +104,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
+  final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
+  final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +138,9 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
                   linkedAssetContracts: linkedAssetContracts,
                   onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
                   onUpdateBattlePayload: onUpdateBattlePayload,
+                  consequenceFactOptions: consequenceFactOptions,
+                  consequenceEventOptions: consequenceEventOptions,
+                  onUpdateActionConsequence: onUpdateActionConsequence,
                 ),
     );
   }
@@ -192,6 +238,9 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.linkedAssetContracts,
     required this.onUpdateYarnDialoguePayload,
     required this.onUpdateBattlePayload,
+    required this.consequenceFactOptions,
+    required this.consequenceEventOptions,
+    required this.onUpdateActionConsequence,
   });
 
   final NarrativeSceneSummary scene;
@@ -202,6 +251,9 @@ class _NodeInspectorBody extends StatelessWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
+  final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
+  final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
 
   @override
   Widget build(BuildContext context) {
@@ -256,6 +308,17 @@ class _NodeInspectorBody extends StatelessWidget {
               payload: node.payload as SceneBattlePayload,
               battles: linkedAssetContracts?.battles ?? const [],
               onUpdatePayload: onUpdateBattlePayload,
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (node.kind == SceneNodeKind.action &&
+              node.payload is SceneActionPayload) ...[
+            _ActionConsequenceAuthoringPanel(
+              node: node,
+              payload: node.payload as SceneActionPayload,
+              factOptions: consequenceFactOptions,
+              eventOptions: consequenceEventOptions,
+              onUpdatePayload: onUpdateActionConsequence,
             ),
             const SizedBox(height: 10),
           ],
@@ -752,6 +815,307 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
       return;
     }
     await updater(nodeId: node.id, trainerId: contract.trainerId);
+  }
+}
+
+class _ActionConsequenceAuthoringPanel extends StatelessWidget {
+  const _ActionConsequenceAuthoringPanel({
+    required this.node,
+    required this.payload,
+    required this.factOptions,
+    required this.eventOptions,
+    required this.onUpdatePayload,
+  });
+
+  final SceneNode node;
+  final SceneActionPayload payload;
+  final List<SceneConsequenceFactPickerOption> factOptions;
+  final List<SceneConsequenceEventPickerOption> eventOptions;
+  final SceneActionConsequenceDraftUpdater? onUpdatePayload;
+
+  @override
+  Widget build(BuildContext context) {
+    final consequence = payload.consequence;
+    return _InspectorSection(
+      title: 'Conséquence',
+      children: [
+        if (consequence == null) ...[
+          const _InspectorRow(
+            label: 'Type',
+            value: 'Aucune conséquence typée.',
+          ),
+          const _InspectorNote(
+            label: 'Les actionKind legacy restent visibles, mais ne sont pas '
+                'le contrat final de Scene V1.',
+          ),
+        ] else if (consequence is SceneSetFactConsequence)
+          ..._setFactRows(context, consequence)
+        else if (consequence is SceneMarkEventConsumedConsequence)
+          ..._markEventRows(context, consequence)
+        else
+          const _InspectorRow(
+            label: 'Type',
+            value: 'Conséquence non reconnue.',
+          ),
+        const SizedBox(height: 8),
+        const _InspectorNote(
+          label: 'Scene écrit une conséquence explicite. Les World Rules '
+              'liront cet état plus tard ; aucun runtime n’est lancé ici.',
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _setFactRows(
+    BuildContext context,
+    SceneSetFactConsequence consequence,
+  ) {
+    final fact = _factOptionFor(consequence.factId);
+    return [
+      const _InspectorRow(label: 'Type', value: 'setFact'),
+      _InspectorRow(
+        label: 'Fact',
+        value: fact == null
+            ? consequence.factId
+            : '${fact.label} · ${fact.factId}',
+      ),
+      _InspectorRow(label: 'Valeur', value: consequence.value.toString()),
+      const SizedBox(height: 4),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          PokeMapButton(
+            key: const ValueKey('scene-consequence-edit-fact-action'),
+            onPressed: onUpdatePayload == null || factOptions.isEmpty
+                ? null
+                : () => _pickFact(context, consequence),
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.check_mark_circled),
+            child: const Text('Changer le Fact'),
+          ),
+          PokeMapButton(
+            key: const ValueKey('scene-consequence-value-true'),
+            onPressed: onUpdatePayload == null || consequence.value
+                ? null
+                : () => _updateSetFactValue(consequence, true),
+            variant: PokeMapButtonVariant.ghost,
+            size: PokeMapButtonSize.small,
+            child: const Text('true'),
+          ),
+          PokeMapButton(
+            key: const ValueKey('scene-consequence-value-false'),
+            onPressed: onUpdatePayload == null || !consequence.value
+                ? null
+                : () => _updateSetFactValue(consequence, false),
+            variant: PokeMapButtonVariant.ghost,
+            size: PokeMapButtonSize.small,
+            child: const Text('false'),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  List<Widget> _markEventRows(
+    BuildContext context,
+    SceneMarkEventConsumedConsequence consequence,
+  ) {
+    final event = _eventOptionFor(consequence.mapId, consequence.eventId);
+    return [
+      const _InspectorRow(label: 'Type', value: 'markEventConsumed'),
+      _InspectorRow(
+        label: 'Map',
+        value: event == null
+            ? consequence.mapId
+            : '${event.mapLabel} · ${event.mapId}',
+      ),
+      _InspectorRow(
+        label: 'Event',
+        value: event == null
+            ? consequence.eventId
+            : '${event.eventLabel} · ${event.eventId}',
+      ),
+      const SizedBox(height: 4),
+      PokeMapButton(
+        key: const ValueKey('scene-consequence-edit-event-action'),
+        onPressed: onUpdatePayload == null || eventOptions.isEmpty
+            ? null
+            : () => _pickEvent(context),
+        variant: PokeMapButtonVariant.secondary,
+        size: PokeMapButtonSize.small,
+        leading: const Icon(CupertinoIcons.flag),
+        child: const Text('Changer la cible'),
+      ),
+    ];
+  }
+
+  SceneConsequenceFactPickerOption? _factOptionFor(String factId) {
+    for (final option in factOptions) {
+      if (option.factId == factId) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  SceneConsequenceEventPickerOption? _eventOptionFor(
+    String mapId,
+    String eventId,
+  ) {
+    for (final option in eventOptions) {
+      if (option.mapId == mapId && option.eventId == eventId) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _pickFact(
+    BuildContext context,
+    SceneSetFactConsequence consequence,
+  ) async {
+    final updater = onUpdatePayload;
+    if (updater == null) {
+      return;
+    }
+    final option = await showCupertinoDialog<SceneConsequenceFactPickerOption>(
+      context: context,
+      builder: (context) => _SceneConsequenceFactEditDialog(
+        facts: factOptions,
+      ),
+    );
+    if (option == null || !context.mounted) {
+      return;
+    }
+    await updater(
+      nodeId: node.id,
+      consequence: SceneConsequence.setFact(
+        factId: option.factId,
+        value: consequence.value,
+      ),
+    );
+  }
+
+  Future<void> _pickEvent(BuildContext context) async {
+    final updater = onUpdatePayload;
+    if (updater == null) {
+      return;
+    }
+    final option = await showCupertinoDialog<SceneConsequenceEventPickerOption>(
+      context: context,
+      builder: (context) => _SceneConsequenceEventEditDialog(
+        events: eventOptions,
+      ),
+    );
+    if (option == null || !context.mounted) {
+      return;
+    }
+    await updater(
+      nodeId: node.id,
+      consequence: SceneConsequence.markEventConsumed(
+        mapId: option.mapId,
+        eventId: option.eventId,
+      ),
+    );
+  }
+
+  Future<void> _updateSetFactValue(
+    SceneSetFactConsequence consequence,
+    bool value,
+  ) async {
+    final updater = onUpdatePayload;
+    if (updater == null) {
+      return;
+    }
+    await updater(
+      nodeId: node.id,
+      consequence: SceneConsequence.setFact(
+        factId: consequence.factId,
+        value: value,
+      ),
+    );
+  }
+}
+
+class _SceneConsequenceFactEditDialog extends StatelessWidget {
+  const _SceneConsequenceFactEditDialog({required this.facts});
+
+  final List<SceneConsequenceFactPickerOption> facts;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-consequence-fact-edit-dialog'),
+      title: const Text('Choisir un Fact'),
+      content: _PayloadEditDialogContent(
+        children: [
+          for (final fact in facts)
+            _PayloadEditOptionButton(
+              key: ValueKey(
+                'scene-consequence-fact-edit-option-'
+                '${_payloadEditKeyPart(fact.factId)}',
+              ),
+              title: fact.label,
+              subtitle: fact.factId,
+              details: [
+                if (fact.category.isNotEmpty) fact.category,
+                if (fact.description.isNotEmpty) fact.description,
+              ],
+              diagnostics: const [],
+              onPressed: () => Navigator.of(context).pop(fact),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SceneConsequenceEventEditDialog extends StatelessWidget {
+  const _SceneConsequenceEventEditDialog({required this.events});
+
+  final List<SceneConsequenceEventPickerOption> events;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoAlertDialog(
+      key: const ValueKey('scene-consequence-event-edit-dialog'),
+      title: const Text('Choisir un event'),
+      content: _PayloadEditDialogContent(
+        children: [
+          for (final event in events)
+            _PayloadEditOptionButton(
+              key: ValueKey(
+                'scene-consequence-event-edit-option-'
+                '${_payloadEditKeyPart(event.mapId)}-'
+                '${_payloadEditKeyPart(event.eventId)}',
+              ),
+              title: event.eventLabel,
+              subtitle: event.eventId,
+              details: [
+                '${event.mapLabel} · ${event.mapId}',
+                if (event.debugTechnicalLabel.isNotEmpty)
+                  event.debugTechnicalLabel,
+              ],
+              diagnostics: const [],
+              onPressed: () => Navigator.of(context).pop(event),
+            ),
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
   }
 }
 
@@ -1666,9 +2030,9 @@ String _nodeInspectorModeLabel(
     SceneNodeKind.battle => (linkedAssetContracts?.battles.isNotEmpty ?? false)
         ? 'Éditable'
         : 'Lecture seule',
+    SceneNodeKind.action => 'Éditable',
     SceneNodeKind.start ||
     SceneNodeKind.end ||
-    SceneNodeKind.action ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.branchByOutcome ||
     SceneNodeKind.merge =>

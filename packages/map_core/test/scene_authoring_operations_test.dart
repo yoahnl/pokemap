@@ -410,6 +410,21 @@ void main() {
       expect(
         authorableSceneOutputPortsForNode(
           SceneNode(
+            id: 'node_action',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.setFact(
+                factId: 'fact_gate_open',
+                value: true,
+              ),
+            ),
+          ),
+        ).map((port) => (port.id, port.edgeKind)),
+        [('completed', SceneEdgeKind.defaultFlow)],
+      );
+      expect(
+        authorableSceneOutputPortsForNode(
+          SceneNode(
             id: 'node_dialogue',
             kind: SceneNodeKind.yarnDialogue,
             payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_test'),
@@ -433,6 +448,200 @@ void main() {
           ('victory', SceneEdgeKind.battleVictory),
           ('defeat', SceneEdgeKind.battleDefeat),
         ],
+      );
+    });
+
+    test('adds a setFact consequence action node without fake refs', () {
+      final scene = _scene(
+        'scene_authoring',
+        metadata: const {'owner': 'test'},
+        declaredOutcomes: [SceneOutcome(id: 'done', label: 'Done')],
+      );
+      final consequence = SceneConsequence.setFact(
+        factId: 'fact_gate_open',
+        value: true,
+        label: 'Open gate',
+      );
+
+      final result = addSceneConsequenceActionNodeDraft(
+        scene,
+        consequence: consequence,
+        afterNodeId: 'node_start',
+      );
+
+      expect(result.createdNode.id, 'node_action');
+      expect(result.createdNode.kind, SceneNodeKind.action);
+      expect(result.createdNode.title, 'Définir un Fact');
+      expect(result.createdPayload.actionKind, isNull);
+      expect(result.createdPayload.parameters, isEmpty);
+      expect(result.createdPayload.consequence, consequence);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.graph.nodes.map((node) => node.id), [
+        'node_start',
+        'node_end',
+        'node_action',
+      ]);
+      final layout = result.updatedScene.layout.nodeLayouts
+          .firstWhere((layout) => layout.nodeId == 'node_action');
+      expect(layout.x, 324);
+      expect(layout.y, 80);
+      expect(scene.graph.nodes.map((node) => node.id), [
+        'node_start',
+        'node_end',
+      ]);
+    });
+
+    test('adds a markEventConsumed consequence action node with stable ids',
+        () {
+      final scene = addSceneConsequenceActionNodeDraft(
+        _scene('scene_authoring'),
+        consequence: SceneConsequence.setFact(
+          factId: 'fact_gate_open',
+          value: true,
+        ),
+      ).updatedScene;
+      final consequence = SceneConsequence.markEventConsumed(
+        mapId: 'map_test',
+        eventId: 'event_gate',
+      );
+
+      final result = addSceneConsequenceActionNodeDraft(
+        scene,
+        consequence: consequence,
+      );
+
+      expect(result.createdNode.id, 'node_action_2');
+      expect(result.createdNode.title, 'Marquer event consommé');
+      expect(result.createdPayload.consequence, consequence);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.graph.nodes.map((node) => node.id), [
+        'node_start',
+        'node_end',
+        'node_action',
+        'node_action_2',
+      ]);
+    });
+
+    test('rejects structurally invalid consequence action drafts', () {
+      final scene = _scene('scene_authoring');
+
+      expect(
+        () => addSceneConsequenceActionNodeDraft(
+          scene,
+          consequence: SceneConsequence.setFact(
+            factId: '   ',
+            value: true,
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneConsequenceActionNodeDraft(
+          scene,
+          consequence: SceneConsequence.markEventConsumed(
+            mapId: 'map_test',
+            eventId: '   ',
+          ),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('updates an existing action node consequence without mutating graph',
+        () {
+      final originalConsequence = SceneConsequence.setFact(
+        factId: 'fact_old',
+        value: false,
+      );
+      final updatedConsequence = SceneConsequence.markEventConsumed(
+        mapId: 'map_test',
+        eventId: 'event_gate',
+      );
+      final scene = _edgeAuthoringSceneWithActionSource(
+        payload: SceneActionPayload.consequence(
+          originalConsequence,
+          actionKind: 'legacy_kind',
+          parameters: const {'legacy': 'kept'},
+        ),
+        edges: [
+          SceneEdge(
+            id: 'edge_node_action_completed_node_end',
+            fromNodeId: 'node_action',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+
+      final result = updateSceneActionConsequencePayload(
+        scene,
+        nodeId: 'node_action',
+        consequence: updatedConsequence,
+      );
+
+      expect(result.updatedPayload.consequence, updatedConsequence);
+      expect(result.updatedPayload.actionKind, 'legacy_kind');
+      expect(result.updatedPayload.parameters, {'legacy': 'kept'});
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.layout, scene.layout);
+      expect(
+        (scene.graph.nodes
+                .singleWhere((node) => node.id == 'node_action')
+                .payload as SceneActionPayload)
+            .consequence,
+        originalConsequence,
+      );
+    });
+
+    test('rejects invalid action consequence payload updates', () {
+      final scene = _edgeAuthoringSceneWithActionSource();
+
+      expect(
+        () => updateSceneActionConsequencePayload(
+          scene,
+          nodeId: '  ',
+          consequence: SceneConsequence.setFact(
+            factId: 'fact_gate_open',
+            value: true,
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneActionConsequencePayload(
+          scene,
+          nodeId: 'node_missing',
+          consequence: SceneConsequence.setFact(
+            factId: 'fact_gate_open',
+            value: true,
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneActionConsequencePayload(
+          scene,
+          nodeId: 'node_end',
+          consequence: SceneConsequence.setFact(
+            factId: 'fact_gate_open',
+            value: true,
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneActionConsequencePayload(
+          scene,
+          nodeId: 'node_action',
+          consequence: SceneConsequence.markEventConsumed(
+            mapId: '',
+            eventId: 'event_gate',
+          ),
+        ),
+        throwsArgumentError,
       );
     });
 
@@ -539,6 +748,22 @@ void main() {
         victoryEdge.createdEdge,
         defeatEdge.createdEdge,
       ]);
+    });
+
+    test('adds action completed edge with derived default kind', () {
+      final scene = _edgeAuthoringSceneWithActionSource();
+
+      final result = addSceneEdgeDraft(
+        scene,
+        fromNodeId: 'node_action',
+        fromPortId: 'completed',
+        toNodeId: 'node_end',
+      );
+
+      expect(result.createdEdge.id, 'edge_node_action_completed_node_end');
+      expect(result.createdEdge.kind, SceneEdgeKind.defaultFlow);
+      expect(result.createdEdge.label, 'completed');
+      expect(result.updatedScene.graph.edges, [result.createdEdge]);
     });
 
     test('generates suffixed edge ids on collision', () {
@@ -1404,6 +1629,44 @@ SceneAsset _edgeAuthoringSceneWithBattleSource({
         SceneNodeLayout(nodeId: 'node_battle', x: 324, y: 80),
         SceneNodeLayout(nodeId: 'node_end', x: 624, y: 40),
         SceneNodeLayout(nodeId: 'node_end_2', x: 624, y: 160),
+      ],
+      edgeLayouts: edgeLayouts,
+    ),
+  );
+}
+
+SceneAsset _edgeAuthoringSceneWithActionSource({
+  SceneActionPayload? payload,
+  List<SceneEdge> edges = const [],
+  List<SceneEdgeLayout> edgeLayouts = const [],
+}) {
+  return SceneAsset(
+    id: 'scene_edge_authoring_action',
+    name: 'Edge Authoring Action Source',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: payload ??
+              SceneActionPayload.consequence(
+                SceneConsequence.setFact(
+                  factId: 'fact_gate_open',
+                  value: true,
+                ),
+              ),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: edges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_action', x: 324, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 624, y: 80),
       ],
       edgeLayouts: edgeLayouts,
     ),

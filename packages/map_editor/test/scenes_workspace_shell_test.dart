@@ -408,6 +408,228 @@ void main() {
       expect(find.text('trainer_lysa'), findsNothing);
     });
 
+    testWidgets('creates a setFact consequence action node from real Facts',
+        (tester) async {
+      final project = _projectWithConsequenceAuthoringTargets();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+        activeMap: _mapWithConsequenceEvents(),
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-consequence-picker-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Porte ouverte'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-consequence-fact-option-fact_gate_open'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-setfact-value-false')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final updated = container.read(editorNotifierProvider).project!;
+      final scene = updated.scenes.single;
+      final node = scene.graph.nodes.last;
+      expect(node.id, 'node_action');
+      expect(node.kind, SceneNodeKind.action);
+      expect(node.title, 'Définir un Fact');
+      expect(scene.graph.edges, project.scenes.single.graph.edges);
+      final payload = node.payload as SceneActionPayload;
+      expect(payload.actionKind, isNull);
+      expect(payload.parameters, isEmpty);
+      final consequence = payload.consequence as SceneSetFactConsequence;
+      expect(consequence.factId, 'fact_gate_open');
+      expect(consequence.value, isFalse);
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_action')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_action-completed'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('selbrume_port'), findsNothing);
+    });
+
+    testWidgets(
+        'creates a markEventConsumed consequence action node from real map events',
+        (tester) async {
+      final project = _projectWithConsequenceAuthoringTargets();
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.scenes,
+        activeMap: _mapWithConsequenceEvents(),
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-consequence-kind-markEventConsumed'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-consequence-event-option-map_test-event_gate',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .last;
+      expect(node.kind, SceneNodeKind.action);
+      expect(node.title, 'Marquer event consommé');
+      final payload = node.payload as SceneActionPayload;
+      final consequence =
+          payload.consequence as SceneMarkEventConsumedConsequence;
+      expect(consequence.mapId, 'map_test');
+      expect(consequence.eventId, 'event_gate');
+      expect(find.textContaining('Event Gate'), findsWidgets);
+    });
+
+    testWidgets('edits a setFact consequence action payload from inspector',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithTypedConsequenceActionScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Porte ouverte'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-value-false')),
+      );
+      await tester.pumpAndSettle();
+
+      var payload = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((node) => node.id == 'node_action')
+          .payload as SceneActionPayload;
+      var consequence = payload.consequence as SceneSetFactConsequence;
+      expect(consequence.factId, 'fact_gate_open');
+      expect(consequence.value, isFalse);
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-edit-fact-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-consequence-fact-edit-option-fact_alarm_set'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      payload = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((node) => node.id == 'node_action')
+          .payload as SceneActionPayload;
+      consequence = payload.consequence as SceneSetFactConsequence;
+      expect(consequence.factId, 'fact_alarm_set');
+      expect(consequence.value, isFalse);
+      expect(find.textContaining('Alarme activée'), findsOneWidget);
+    });
+
+    testWidgets('edits a markEventConsumed consequence target from inspector',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithMarkEventConsumedActionScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+        activeMap: _mapWithConsequenceEvents(),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Event Gate'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-edit-event-action')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-consequence-event-edit-option-map_test-event_switch',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final payload = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((node) => node.id == 'node_action')
+          .payload as SceneActionPayload;
+      final consequence =
+          payload.consequence as SceneMarkEventConsumedConsequence;
+      expect(consequence.mapId, 'map_test');
+      expect(consequence.eventId, 'event_switch');
+      expect(find.textContaining('Event Switch'), findsOneWidget);
+    });
+
     testWidgets('cinematic action and branch remain honestly disabled',
         (tester) async {
       await _pumpNarrativeShell(
@@ -430,7 +652,7 @@ void main() {
       expect(actionButton.onPressed, isNull);
       expect(branchButton.onPressed, isNull);
       expect(find.textContaining('bridge Scenario'), findsOneWidget);
-      expect(find.textContaining('contrat futur'), findsOneWidget);
+      expect(find.textContaining('Fact ou event requis'), findsOneWidget);
       expect(find.textContaining('mapping futur'), findsOneWidget);
       expect(find.text('CinematicAsset final'), findsNothing);
       expect(find.text('mael_intro'), findsNothing);
@@ -1493,8 +1715,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Zone dangereuse'), findsOneWidget);
-      expect(find.text('Une scène doit garder au moins une fin.'),
-          findsOneWidget);
+      expect(
+          find.text('Une scène doit garder au moins une fin.'), findsOneWidget);
       final deleteButton = tester.widget<PokeMapButton>(
         find.byKey(const ValueKey('scene-node-delete-action')),
       );
@@ -1718,7 +1940,7 @@ void main() {
       expect(payload.conditionRef, 'fact_harbor_fog_seen');
     });
 
-    testWidgets('unsupported Action/Cinematic/Branch expose no active output',
+    testWidgets('Action exposes completed output while Cinematic/Branch do not',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -1731,12 +1953,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const ValueKey('scenes-edge-no-outputs')),
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('scenes-connect-port-completed')),
-        findsNothing,
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_action-completed'),
+        ),
+        findsOneWidget,
       );
 
       await tester
@@ -2179,9 +2403,9 @@ void main() {
       );
       expect(find.text('Action'), findsWidgets);
       expect(find.text('Aucune action legacy.'), findsOneWidget);
-      expect(find.text('setFact'), findsOneWidget);
+      expect(find.text('setFact'), findsWidgets);
       expect(find.text('fact_gate_open'), findsOneWidget);
-      expect(find.text('true'), findsOneWidget);
+      expect(find.text('true'), findsWidgets);
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
@@ -2693,6 +2917,29 @@ void main() {
       );
     });
 
+    testWidgets('writes V1-31 scene consequence authoring screenshot',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithMarkEventConsumedActionScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+        activeMap: _mapWithConsequenceEvents(),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+
+      await expectLater(
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        matchesGoldenFile(
+          '../../../reports/narrativeStudio/scenes/screenshots/'
+          'ns_scenes_v1_31_scene_consequence_authoring_ui_v0.png',
+        ),
+      );
+    });
+
     testWidgets('writes V1-17 condition authoring screenshot', (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -2773,6 +3020,7 @@ Future<ProviderContainer> _pumpNarrativeShell(
   WidgetTester tester, {
   required ProjectManifest project,
   required EditorWorkspaceMode workspaceMode,
+  MapData? activeMap,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2788,6 +3036,7 @@ Future<ProviderContainer> _pumpNarrativeShell(
   container.read(editorNotifierProvider.notifier).state = EditorState(
     project: project,
     workspaceMode: workspaceMode,
+    activeMap: activeMap,
   );
 
   await tester.pumpWidget(
@@ -3045,12 +3294,22 @@ ProjectManifest _projectWithUnsupportedConnectionNodes() {
 ProjectManifest _projectWithTypedConsequenceActionScene() {
   return ProjectManifest(
     name: 'Scenes typed consequence action test',
-    maps: const [],
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_test',
+        name: 'Carte de test',
+        relativePath: 'maps/map_test.json',
+      ),
+    ],
     tilesets: const [],
     facts: [
       NarrativeFactDefinition(
         id: 'fact_gate_open',
-        label: 'Gate open',
+        label: 'Porte ouverte',
+      ),
+      NarrativeFactDefinition(
+        id: 'fact_alarm_set',
+        label: 'Alarme activée',
       ),
     ],
     scenes: [
@@ -3098,6 +3357,135 @@ ProjectManifest _projectWithTypedConsequenceActionScene() {
             SceneNodeLayout(nodeId: 'node_end', x: 520, y: 80),
           ],
         ),
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectWithConsequenceAuthoringTargets() {
+  return ProjectManifest(
+    name: 'Scenes consequence authoring test',
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_test',
+        name: 'Carte de test',
+        relativePath: 'maps/map_test.json',
+      ),
+    ],
+    tilesets: const [],
+    facts: [
+      NarrativeFactDefinition(
+        id: 'fact_gate_open',
+        label: 'Porte ouverte',
+        description: 'Contrôle une ouverture authorée.',
+        category: 'Décor',
+      ),
+      NarrativeFactDefinition(
+        id: 'fact_alarm_set',
+        label: 'Alarme activée',
+        description: 'Etat persistant de test.',
+        category: 'Système',
+      ),
+    ],
+    scenes: [_sceneWithId('scene_consequence_authoring')],
+  );
+}
+
+ProjectManifest _projectWithMarkEventConsumedActionScene() {
+  return ProjectManifest(
+    name: 'Scenes mark event consumed action test',
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_test',
+        name: 'Carte de test',
+        relativePath: 'maps/map_test.json',
+      ),
+    ],
+    tilesets: const [],
+    facts: [
+      NarrativeFactDefinition(
+        id: 'fact_gate_open',
+        label: 'Porte ouverte',
+      ),
+    ],
+    scenes: [
+      SceneAsset(
+        id: 'scene_mark_event_consumed_action',
+        name: 'Mark Event Consumed Action Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_action',
+              kind: SceneNodeKind.action,
+              title: 'Action',
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.markEventConsumed(
+                  mapId: 'map_test',
+                  eventId: 'event_gate',
+                ),
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_action',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_action',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_action_end',
+              fromNodeId: 'node_action',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_action', x: 280, y: 80),
+            SceneNodeLayout(nodeId: 'node_end', x: 560, y: 80),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+MapData _mapWithConsequenceEvents() {
+  return MapData(
+    id: 'map_test',
+    name: 'Carte de test',
+    size: const GridSize(width: 8, height: 8),
+    layers: [
+      MapLayer.tile(
+        id: 'l_base',
+        name: 'Base',
+        tiles: List<int>.filled(64, 0),
+      ),
+    ],
+    events: const [
+      MapEventDefinition(
+        id: 'event_gate',
+        title: 'Event Gate',
+        position: EventPosition(layerId: 'l_base', x: 2, y: 2),
+        pages: [
+          MapEventPage(pageNumber: 0),
+        ],
+      ),
+      MapEventDefinition(
+        id: 'event_switch',
+        title: 'Event Switch',
+        position: EventPosition(layerId: 'l_base', x: 4, y: 3),
+        pages: [
+          MapEventPage(pageNumber: 0),
+        ],
       ),
     ],
   );
