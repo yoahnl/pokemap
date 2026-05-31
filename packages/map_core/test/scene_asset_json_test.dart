@@ -52,6 +52,13 @@ void main() {
           actionKind: 'setFlag',
           parameters: {'flagId': 'saw_lighthouse'},
         ),
+        SceneActionPayload.consequence(
+          SceneConsequence.setFact(
+            factId: 'fact_test_gate_unlocked',
+            value: true,
+            label: 'Unlock test gate',
+          ),
+        ),
         SceneBattlePayload(
           battleKind: 'trainer',
           trainerId: 'trainer_rival',

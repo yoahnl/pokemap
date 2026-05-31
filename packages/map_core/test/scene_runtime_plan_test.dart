@@ -369,6 +369,32 @@ void main() {
       expect(result.diagnostics.single.nodeId, 'node_action');
     });
 
+    test('typed consequence action nodes remain non executable in V0', () {
+      final scene = _sceneWithSingleMiddleNode(
+        SceneNode(
+          id: 'node_action_set_fact',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_gate_unlocked',
+              value: true,
+            ),
+          ),
+        ),
+        outgoingEdgeKind: SceneEdgeKind.actionCompleted,
+      );
+
+      final result = buildSceneRuntimePlan(scene);
+
+      expect(result.canBuild, isFalse);
+      expect(result.plan, isNull);
+      expect(
+        result.diagnostics.single.code,
+        SceneRuntimePlanDiagnosticCode.unsupportedAction,
+      );
+      expect(result.diagnostics.single.nodeId, 'node_action_set_fact');
+    });
+
     test('branchByOutcome nodes produce unsupported diagnostics and no plan',
         () {
       final scene = _sceneWithSingleMiddleNode(

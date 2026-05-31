@@ -27,6 +27,7 @@ export 'src/models/narrative_fact.dart';
 export 'src/models/project_trainer.dart';
 export 'src/models/scenario_asset.dart';
 export 'src/models/scene_asset.dart';
+export 'src/models/scene_consequence.dart';
 export 'src/models/storyline_asset.dart';
 export 'src/models/world_rule.dart';
 export 'src/models/visual_frame_json.dart';

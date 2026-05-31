@@ -1,5 +1,7 @@
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_consequence.dart';
+import '../models/map_data.dart';
 import '../read_models/linked_asset_public_contracts.dart';
 
 enum SceneDiagnosticSeverity {
@@ -30,6 +32,12 @@ enum SceneDiagnosticCode {
   conditionSourceMigratesToFactRegistry,
   conditionFactRefUnknown,
   conditionWorldRuleRefUnknown,
+  consequenceUnknownFact,
+  consequenceUnknownEvent,
+  consequenceMissingTarget,
+  consequenceWouldApplyWorldRuleDirectly,
+  actionPayloadLegacyUnsupported,
+  consequenceRuntimeUnsupported,
   edgeFromPortUnsupported,
   edgeKindUnsupportedForPort,
   duplicateOutgoingPortEdge,
@@ -270,18 +278,7 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
     if (node.kind == SceneNodeKind.condition) {
       _diagnoseConditionNode(scene, node, diagnostics);
     } else if (node.kind == SceneNodeKind.action) {
-      diagnostics.add(
-        SceneDiagnostic(
-          code: SceneDiagnosticCode.actionNodeUnsupported,
-          severity: SceneDiagnosticSeverity.warning,
-          message: 'ActionNode attend encore un contrat Action public V0.',
-          sceneId: scene.id,
-          nodeId: node.id,
-          target: SceneDiagnosticTarget.node,
-          suggestedFixLabel:
-              'Garder le nœud en draft ou attendre Action/Consequence V0.',
-        ),
-      );
+      _diagnoseActionNode(scene, node, diagnostics);
     } else if (node.kind == SceneNodeKind.branchByOutcome) {
       diagnostics.add(
         SceneDiagnostic(
@@ -383,8 +380,9 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
 
 SceneDiagnosticsReport diagnoseSceneAgainstProject(
   SceneAsset scene,
-  ProjectManifest project,
-) {
+  ProjectManifest project, {
+  Map<String, MapData> mapsById = const {},
+}) {
   final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
   final contracts = buildLinkedAssetContractsSnapshot(project);
   final dialogueIds =
@@ -395,6 +393,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
       contracts.cinematics.map((cinematic) => cinematic.id).toSet();
   final factIds = project.facts.map((fact) => fact.id).toSet();
   final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
+  final projectMapIds = project.maps.map((map) => map.id).toSet();
 
   for (final node in scene.graph.nodes) {
     final payload = node.payload;
@@ -480,9 +479,18 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
             ),
           );
         }
+      case SceneActionPayload():
+        _diagnoseActionConsequenceAgainstProject(
+          scene,
+          node,
+          payload,
+          factIds: factIds,
+          projectMapIds: projectMapIds,
+          mapsById: mapsById,
+          diagnostics: diagnostics,
+        );
       case SceneStartPayload():
       case SceneEndPayload():
-      case SceneActionPayload():
       case SceneBranchByOutcomePayload():
       case SceneMergePayload():
         break;
@@ -490,6 +498,160 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   }
 
   return SceneDiagnosticsReport(diagnostics: diagnostics);
+}
+
+void _diagnoseActionNode(
+  SceneAsset scene,
+  SceneNode node,
+  List<SceneDiagnostic> diagnostics,
+) {
+  final payload = node.payload;
+  if (payload is! SceneActionPayload) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.actionPayloadLegacyUnsupported,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'ActionNode doit avoir un payload action.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Reconfigurer le nœud Action.',
+      ),
+    );
+    return;
+  }
+
+  final consequence = payload.consequence;
+  if (consequence == null) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.actionPayloadLegacyUnsupported,
+        severity: SceneDiagnosticSeverity.warning,
+        message:
+            'ActionNode utilise encore un actionKind libre legacy non exécutable.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Configurer une conséquence typée V0.',
+      ),
+    );
+    return;
+  }
+
+  _diagnoseConsequenceShape(scene, node, consequence, diagnostics);
+}
+
+void _diagnoseConsequenceShape(
+  SceneAsset scene,
+  SceneNode node,
+  SceneConsequence consequence,
+  List<SceneDiagnostic> diagnostics,
+) {
+  switch (consequence) {
+    case SceneSetFactConsequence():
+      if (consequence.factId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence setFact doit cibler un Fact.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un Fact dans la registry.',
+          ),
+        );
+      }
+    case SceneMarkEventConsumedConsequence():
+      if (consequence.mapId.trim().isEmpty ||
+          consequence.eventId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence markEventConsumed doit cibler une map et un event.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir une map et un event existants.',
+          ),
+        );
+      }
+  }
+}
+
+void _diagnoseActionConsequenceAgainstProject(
+  SceneAsset scene,
+  SceneNode node,
+  SceneActionPayload payload, {
+  required Set<String> factIds,
+  required Set<String> projectMapIds,
+  required Map<String, MapData> mapsById,
+  required List<SceneDiagnostic> diagnostics,
+}) {
+  final consequence = payload.consequence;
+  if (consequence == null) {
+    return;
+  }
+
+  switch (consequence) {
+    case SceneSetFactConsequence():
+      if (consequence.factId.trim().isEmpty) {
+        return;
+      }
+      if (!factIds.contains(consequence.factId)) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceUnknownFact,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence setFact référence un Fact absent.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un Fact existant dans la registry.',
+          ),
+        );
+      }
+    case SceneMarkEventConsumedConsequence():
+      if (consequence.mapId.trim().isEmpty ||
+          consequence.eventId.trim().isEmpty) {
+        return;
+      }
+      final mapData = mapsById[consequence.mapId];
+      if (!projectMapIds.contains(consequence.mapId) && mapData == null) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceUnknownEvent,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence markEventConsumed cible une map absente.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir une map existante.',
+          ),
+        );
+        return;
+      }
+      if (mapData == null) {
+        return;
+      }
+      final hasEvent =
+          mapData.events.any((event) => event.id == consequence.eventId);
+      if (!hasEvent) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceUnknownEvent,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence markEventConsumed cible un event absent.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un event existant sur la map.',
+          ),
+        );
+      }
+  }
 }
 
 void _diagnosePorts(

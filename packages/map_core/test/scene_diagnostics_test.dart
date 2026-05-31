@@ -667,7 +667,8 @@ void main() {
       expect(diagnostic.nodeId, 'node_condition');
     });
 
-    test('action and branch nodes remain unsupported authoring warnings', () {
+    test('legacy action and branch nodes remain unsupported authoring warnings',
+        () {
       final scene = _scene(
         nodes: [
           SceneNode(id: 'node_start', kind: SceneNodeKind.start),
@@ -711,7 +712,7 @@ void main() {
 
       expect(
         report
-            .byCode(SceneDiagnosticCode.actionNodeUnsupported)
+            .byCode(SceneDiagnosticCode.actionPayloadLegacyUnsupported)
             .single
             .severity,
         SceneDiagnosticSeverity.warning,
@@ -722,6 +723,48 @@ void main() {
             .single
             .severity,
         SceneDiagnosticSeverity.warning,
+      );
+    });
+
+    test('typed consequence action does not emit raw action warning', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_action_set_fact',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.setFact(
+                factId: 'fact_test_gate_unlocked',
+                value: true,
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_action',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_action_set_fact',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_action_end',
+            fromNodeId: 'node_action_set_fact',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      expect(
+        report.byCode(SceneDiagnosticCode.actionPayloadLegacyUnsupported),
+        isEmpty,
       );
     });
 
@@ -770,6 +813,130 @@ void main() {
           isEmpty);
       expect(validReport.byCode(SceneDiagnosticCode.conditionSourceMissing),
           isEmpty);
+    });
+
+    test('setFact consequence references must resolve against facts', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_action_set_fact',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.setFact(
+                factId: 'fact_test_gate_unlocked',
+                value: true,
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      final missingReport = diagnoseSceneAgainstProject(scene, _project());
+
+      final diagnostic = missingReport
+          .byCode(SceneDiagnosticCode.consequenceUnknownFact)
+          .single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.nodeId, 'node_action_set_fact');
+
+      final validReport = diagnoseSceneAgainstProject(
+        scene,
+        _project(
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_test_gate_unlocked',
+              label: 'Test gate unlocked',
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        validReport.byCode(SceneDiagnosticCode.consequenceUnknownFact),
+        isEmpty,
+      );
+    });
+
+    test('markEventConsumed consequence references must resolve against maps',
+        () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_action_mark_event',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.markEventConsumed(
+                mapId: 'map_test',
+                eventId: 'event_gate',
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      final missingMapReport = diagnoseSceneAgainstProject(
+        scene,
+        _project(),
+      );
+      expect(
+        missingMapReport
+            .byCode(SceneDiagnosticCode.consequenceUnknownEvent)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+
+      final missingEventReport = diagnoseSceneAgainstProject(
+        scene,
+        _project(
+          maps: const [
+            ProjectMapEntry(
+              id: 'map_test',
+              name: 'Map Test',
+              relativePath: 'maps/map_test.json',
+            ),
+          ],
+        ),
+        mapsById: {
+          'map_test': _map(events: const []),
+        },
+      );
+      expect(
+        missingEventReport
+            .byCode(SceneDiagnosticCode.consequenceUnknownEvent)
+            .single
+            .message,
+        contains('event'),
+      );
+
+      final validReport = diagnoseSceneAgainstProject(
+        scene,
+        _project(
+          maps: const [
+            ProjectMapEntry(
+              id: 'map_test',
+              name: 'Map Test',
+              relativePath: 'maps/map_test.json',
+            ),
+          ],
+        ),
+        mapsById: {
+          'map_test': _map(
+            events: [
+              _event(id: 'event_gate'),
+            ],
+          ),
+        },
+      );
+
+      expect(
+        validReport.byCode(SceneDiagnosticCode.consequenceUnknownEvent),
+        isEmpty,
+      );
     });
 
     test('future and incomplete condition sources are diagnosed', () {
@@ -829,6 +996,7 @@ void main() {
 }
 
 ProjectManifest _project({
+  List<ProjectMapEntry> maps = const [],
   List<NarrativeFactDefinition> facts = const [],
   List<ProjectDialogueEntry> dialogues = const [],
   List<ProjectTrainerEntry> trainers = const [],
@@ -837,13 +1005,38 @@ ProjectManifest _project({
 }) {
   return ProjectManifest(
     name: 'Scene diagnostics test',
-    maps: const [],
+    maps: maps,
     tilesets: const [],
     facts: facts,
     dialogues: dialogues,
     trainers: trainers,
     scenarios: scenarios,
     worldRules: worldRules,
+  );
+}
+
+MapData _map({
+  List<MapEventDefinition> events = const [],
+}) {
+  return MapData(
+    id: 'map_test',
+    name: 'Map Test',
+    size: const GridSize(width: 10, height: 10),
+    events: events,
+  );
+}
+
+MapEventDefinition _event({required String id}) {
+  return MapEventDefinition(
+    id: id,
+    pages: const [
+      MapEventPage(pageNumber: 0),
+    ],
+    position: const EventPosition(
+      layerId: 'layer_test',
+      x: 1,
+      y: 1,
+    ),
   );
 }
 

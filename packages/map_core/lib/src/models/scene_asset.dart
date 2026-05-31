@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
+import 'scene_consequence.dart';
 
 enum SceneNodeKind {
   start,
@@ -839,41 +840,70 @@ final class SceneConditionPayload extends SceneNodePayload {
 @immutable
 final class SceneActionPayload extends SceneNodePayload {
   SceneActionPayload({
-    required this.actionKind,
+    String? actionKind,
     Map<String, String> parameters = const <String, String>{},
-  }) : parameters = Map<String, String>.unmodifiable(parameters) {
-    _requireNotBlank(actionKind, 'SceneActionPayload.actionKind');
+    this.consequence,
+  })  : actionKind = _trimOptional(actionKind),
+        parameters = Map<String, String>.unmodifiable(parameters) {
+    if (this.actionKind == null && consequence == null) {
+      throw ArgumentError.value(
+        actionKind,
+        'actionKind',
+        'SceneActionPayload requires a legacy actionKind or a typed consequence.',
+      );
+    }
+  }
+
+  factory SceneActionPayload.consequence(
+    SceneConsequence consequence, {
+    String? actionKind,
+    Map<String, String> parameters = const <String, String>{},
+  }) {
+    return SceneActionPayload(
+      actionKind: actionKind,
+      parameters: parameters,
+      consequence: consequence,
+    );
   }
 
   factory SceneActionPayload.fromJson(Map<String, dynamic> json) {
     return SceneActionPayload(
-      actionKind: _readRequiredString(json, 'actionKind'),
+      actionKind: _readOptionalString(json, 'actionKind'),
       parameters: _readStringMap(json, 'parameters'),
+      consequence: _readOptionalObject(
+        json,
+        'consequence',
+        SceneConsequence.fromJson,
+      ),
     );
   }
 
   @override
   SceneNodeKind get kind => SceneNodeKind.action;
 
-  final String actionKind;
+  final String? actionKind;
   final Map<String, String> parameters;
+  final SceneConsequence? consequence;
 
   @override
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => _withoutNulls({
         'kind': _enumToJson(kind),
         'actionKind': actionKind,
         'parameters': parameters,
-      };
+        'consequence': consequence?.toJson(),
+      });
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SceneActionPayload &&
           other.actionKind == actionKind &&
-          _mapEquals(other.parameters, parameters);
+          _mapEquals(other.parameters, parameters) &&
+          other.consequence == consequence;
 
   @override
-  int get hashCode => Object.hash(actionKind, _mapHash(parameters));
+  int get hashCode =>
+      Object.hash(actionKind, _mapHash(parameters), consequence);
 }
 
 @immutable
@@ -1186,6 +1216,11 @@ void _requireOptionalNotBlank(String? value, String field) {
   if (value != null && value.trim().isEmpty) {
     throw ValidationException('$field must not be blank when provided');
   }
+}
+
+String? _trimOptional(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
 
 void _requireFiniteNumber(double value, String field) {

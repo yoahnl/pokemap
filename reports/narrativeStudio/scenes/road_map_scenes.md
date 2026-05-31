@@ -76,16 +76,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-28 — Golden Slice Selbrume Scene/Event Prep | DONE | Readiness core controlee : event neutre -> Scene V1 -> Dialogue.completed -> Battle.victory/defeat -> fins, refs Dialogue/Battle, World Rule/Facts et executor pur verifies sans Selbrume produit ni runtime map. |
 | NS-SCENES-V1-28-bis — Event to Scene Runtime Hook V0 | DONE | Hook runtime map controle : `MapEventPage.sceneTarget` court-circuite message/script legacy de la meme page, verifie Scene/diagnostics/runtime-plan, puis execute via `SceneRuntimeExecutor` et callbacks limites. |
 | NS-SCENES-V1-28-ter — Scene Consequence Contract Prep | DONE | Contrat documentaire : consequences explicites via futur ActionNode/Consequence V0, V0 limite a setFact/markEventConsumed, World Rules en projection, battle/dialogue outcomes fiables requis avant writes runtime. |
-| NS-SCENES-V1-28-quater — Scene Consequence Model V0 | TODO | Coder le modele authoring pur des consequences Scene V1, probablement ActionNode/Consequence explicite avec setFact true/false et markEventConsumed, sans runtime write ni UI complete. |
-| NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP, consequence model, golden slice readiness et runtime hook stabilises. |
+| NS-SCENES-V1-28-quater — Scene Consequence Model V0 | DONE | Modele authoring pur `SceneConsequence` V0 ajoute : `setFact` et `markEventConsumed`, integration typée dans ActionNode, JSON roundtrip, diagnostics refs Fact/map/event, runtime plan toujours non executable. |
+| NS-SCENES-V1-28-quinquies — Scene Consequence Runtime Write V0 | TODO | Appliquer explicitement les consequences V0 au runtime via un seam controle, sans World Rule direct apply, sans battle adapter, sans StorylineStep link. |
+| NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP, consequence model/runtime write, golden slice readiness et runtime hook stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-28-quater — Scene Consequence Model V0`
+`NS-SCENES-V1-28-quinquies — Scene Consequence Runtime Write V0`
 
-Raison : V1-28-ter a tranche le contrat : une Scene ne doit pas appliquer directement une World Rule ni ecrire un Fact de facon implicite depuis un outcome. Le prochain pas doit donc coder un modele authoring pur de consequences explicites, avant tout write runtime et avant tout adapter battle awaitable.
+Raison : V1-28-quater a ajoute le modele authoring pur des consequences, sans write runtime. Le prochain verrou est donc un seam runtime explicite pour appliquer uniquement `setFact` et `markEventConsumed`, sans appliquer directement les World Rules et sans inventer de resultats battle.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -144,6 +145,22 @@ Battle/dialogue : le runtime battle doit fournir plus tard un vrai resultat awai
 Checks : documentation-only, aucun test Dart/Flutter requis, `git diff --check` final.
 
 Prochain lot exact : `NS-SCENES-V1-28-quater — Scene Consequence Model V0`.
+
+## Mise a jour V1-28-quater
+
+Statut : `NS-SCENES-V1-28-quater — Scene Consequence Model V0` est DONE.
+
+Decision : `SceneConsequence` devient le modele authoring pur des consequences persistantes Scene V1. V0 est volontairement borne a `setFact(factId, true/false)` et `markEventConsumed(mapId, eventId)`.
+
+Integration : `SceneActionPayload` peut porter une consequence typée tout en gardant la retrocompatibilite des anciens `actionKind` libres. Les `actionKind` legacy restent diagnostiques comme unsupported authoring et ne deviennent pas le contrat final.
+
+Diagnostics : `diagnoseSceneAgainstProject` valide `setFact` contre `ProjectManifest.facts` et `markEventConsumed` contre les maps/events fournis. Les cibles manquantes sont des erreurs. Aucun write runtime n'est code.
+
+Runtime : `buildSceneRuntimePlan` continue de refuser ActionNode avec `unsupportedAction`. `SceneRuntimeExecutor`, `map_runtime`, `map_editor`, `map_battle`, `map_gameplay` et `GameState` ne sont pas modifies.
+
+Tests : `scene_consequence_model_test`, `scene_diagnostics_test`, `scene_asset_json_test`, `scene_runtime_plan_test`, `golden_slice_readiness_test`, `scene_project_diagnostics_test`, `dart analyze`.
+
+Prochain lot exact : `NS-SCENES-V1-28-quinquies — Scene Consequence Runtime Write V0`.
 
 ## Decisions V1-24
 
