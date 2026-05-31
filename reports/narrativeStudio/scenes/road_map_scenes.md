@@ -78,16 +78,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-28-ter — Scene Consequence Contract Prep | DONE | Contrat documentaire : consequences explicites via futur ActionNode/Consequence V0, V0 limite a setFact/markEventConsumed, World Rules en projection, battle/dialogue outcomes fiables requis avant writes runtime. |
 | NS-SCENES-V1-28-quater — Scene Consequence Model V0 | DONE | Modele authoring pur `SceneConsequence` V0 ajoute : `setFact` et `markEventConsumed`, integration typée dans ActionNode, JSON roundtrip, diagnostics refs Fact/map/event, runtime plan toujours non executable. |
 | NS-SCENES-V1-28-quinquies — Scene Consequence Runtime Write V0 | DONE | Runtime write controle pour consequences V0 : `applyConsequence` dans le plan/executor, staging dans le hook runtime, commit atomique `setFact` / `markEventConsumed`, sans World Rule direct apply ni StorylineStep link. |
-| NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0 | TODO | Fournir un vrai resultat battle awaitable `victory` / `defeat` au Scene runtime, sans inventer l'outcome et sans coupler Scene V1 au moteur battle interne. |
-| NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP, consequence model/runtime write, battle outcome adapter, golden slice readiness et runtime hook stabilises. |
+| NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0 | DONE | Adapter runtime battle awaitable : trainer battle lance via le handoff existant, resultat reel mappe vers `victory` / `defeat`, failures propres, aucune consequence Scene ecrite par l'adapter. |
+| NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0 | TODO | Rendre `showDialogue` awaitable cote Scene runtime pour retourner `completed` apres la vraie fermeture du dialogue, sans outcomes Yarn inventes. |
+| NS-SCENES-V1-29 — StorylineStep to Scene Link | TODO | Brancher `StorylineStep.sceneLinkIds` seulement apres builder, triggers, runtime MVP, consequence model/runtime write, battle outcome adapter, dialogue awaitable, golden slice readiness et runtime hook stabilises. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0`
+`NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0`
 
-Raison : V1-28-quinquies sait maintenant appliquer atomiquement les consequences V0 quand une Scene se termine. Le prochain verrou runtime est le resultat de combat reel : `BattleNode` expose deja `victory` / `defeat`, mais le hook V0 ne doit pas inventer ce resultat.
+Raison : V1-28-sexies rend le BattleNode awaitable avec un vrai resultat runtime `victory` / `defeat`. Le dernier gros seam runtime visible reste le dialogue : `showDialogue` retourne encore `completed` immediatement et doit attendre la vraie fermeture du dialogue avant de laisser la Scene continuer.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -176,6 +177,20 @@ Limites : aucune World Rule n'est appliquee directement, aucun StorylineStep n'e
 Tests : `scene_consequence_model_test`, `scene_runtime_plan_test`, `scene_runtime_executor_test`, `scene_diagnostics_test`, `map_core dart analyze`, `scene_consequence_runtime_writer_test`, `scene_event_runtime_hook_test`, analyse ciblee `map_runtime`, recherches anti-Selbrume/anti-scope et `git diff --check`.
 
 Prochain lot exact : `NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0`.
+
+## Mise a jour V1-28-sexies
+
+Statut : `NS-SCENES-V1-28-sexies — Battle Runtime Outcome Adapter V0` est DONE.
+
+Decision : le callback Scene V1 `startBattle` de `PlayableMapGame` ne refuse plus le combat trainer par defaut. Il passe par `SceneBattleRuntimeOutcomeAdapter`, lance le handoff trainer battle existant, attend le `BattleOutcome` runtime reel puis retourne uniquement le port Scene `victory` ou `defeat`.
+
+Runtime : le seam awaitable est localise dans `PlayableMapGame` avec un completer pending Scene battle. `BattleOutcomeType.victory` devient `SceneBattleRuntimeOutcomePort.victory`; `BattleOutcomeType.defeat` devient `SceneBattleRuntimeOutcomePort.defeat`. `runaway` et `captured` restent non supportes pour ce V0 et echouent proprement.
+
+Limites : aucune modification de `map_battle`, aucun refactor du battle engine, aucune consequence Scene ecrite par l'adapter, aucune World Rule appliquee, aucun StorylineStep link, aucun BranchByOutcome et aucune donnee Selbrume.
+
+Tests : `scene_battle_runtime_outcome_adapter_test`, `scene_event_runtime_hook_test`, core `scene_runtime_plan_test`, `scene_runtime_executor_test`, `scene_consequence_model_test`, `map_core dart analyze`, analyse ciblee `map_runtime`, recherches anti-Selbrume/anti-scope et `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-28-septies — Dialogue Runtime Awaitable Adapter V0`.
 
 ## Decisions V1-24
 

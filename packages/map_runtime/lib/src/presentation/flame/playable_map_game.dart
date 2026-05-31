@@ -45,6 +45,8 @@ import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_story_branching.dart';
+import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dart';
+import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
@@ -182,6 +184,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   TriggeredWarp? _pendingWarp;
   TriggeredConnection? _pendingConnection;
   BattleStartRequest? _pendingBattleRequest;
+  Completer<SceneBattleRuntimeOutcomeResult>?
+      _pendingSceneBattleOutcomeCompleter;
+  String? _pendingSceneBattleRequestId;
   PlacedElementInteracted? _pendingPlacedElementBehavior;
   DialogueOverlayComponent? _dialogueOverlay;
   BattleTransitionOverlayComponent? _battleTransitionOverlay;
@@ -747,6 +752,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeBattleContext = null;
     _isBattleResolving = false;
     _pendingBattleRequest = null;
+    _pendingSceneBattleOutcomeCompleter = null;
+    _pendingSceneBattleRequestId = null;
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();
   }
@@ -4371,6 +4378,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String userMessage,
     String? debugDetails,
   }) {
+    _completePendingSceneBattleOutcome(
+      SceneBattleRuntimeOutcomeResult.failed(
+        errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
+        message: userMessage,
+      ),
+    );
     // On nettoie explicitement tout état battle partiellement initialisé.
     // Ce helper évite qu'un mapping KO laisse le runtime coincé en transition.
     _battleOverlay?.removeFromParent();
@@ -4387,6 +4400,49 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       '[battle] handoff cancelled message="$userMessage" details=${debugDetails ?? 'n/a'}',
     );
     _showNotification(userMessage);
+  }
+
+  void _completePendingSceneBattleOutcome(
+    SceneBattleRuntimeOutcomeResult result,
+  ) {
+    final completer = _pendingSceneBattleOutcomeCompleter;
+    if (completer == null) {
+      return;
+    }
+    final requestId = _pendingSceneBattleRequestId;
+    _pendingSceneBattleOutcomeCompleter = null;
+    _pendingSceneBattleRequestId = null;
+    if (!completer.isCompleted) {
+      completer.complete(result);
+    }
+    debugPrint(
+      '[scene_runtime] battle outcome completed request=${requestId ?? '-'} '
+      'status=${result.status.name} port=${result.scenePortId ?? '-'}',
+    );
+  }
+
+  SceneBattleRuntimeOutcomeResult _sceneBattleRuntimeOutcomeFromBattle(
+    BattleOutcome outcome,
+  ) {
+    return switch (outcome.type) {
+      BattleOutcomeType.victory =>
+        const SceneBattleRuntimeOutcomeResult.completed(
+          port: SceneBattleRuntimeOutcomePort.victory,
+        ),
+      BattleOutcomeType.defeat =>
+        const SceneBattleRuntimeOutcomeResult.completed(
+          port: SceneBattleRuntimeOutcomePort.defeat,
+        ),
+      BattleOutcomeType.runaway => const SceneBattleRuntimeOutcomeResult.failed(
+          errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedOutcome,
+          message: 'Scene trainer battle does not support runaway outcome.',
+        ),
+      BattleOutcomeType.captured =>
+        const SceneBattleRuntimeOutcomeResult.failed(
+          errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedOutcome,
+          message: 'Scene trainer battle does not support captured outcome.',
+        ),
+    };
   }
 
   /// Gère le choix du joueur pendant le combat.
@@ -4556,6 +4612,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// 3. Retourne à l'overworld
   void _onBattleFinished(BattleOutcome outcome) {
     debugPrint('[battle] battle finished outcome=${outcome.type.name}');
+    final sceneBattleOutcomeResult = _pendingSceneBattleOutcomeCompleter == null
+        ? null
+        : _sceneBattleRuntimeOutcomeFromBattle(outcome);
 
     // Le lot 10 normalise ici tout le write-back post-combat :
     // - PV du lineup joueur écrits sur les slots exacts mémorisés ;
@@ -4625,7 +4684,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // reprend le graphe après le node battle.
     final scenarioBattleSourceId = _pendingScenarioBattleSourceId;
     final scenarioBattleId = _pendingScenarioBattleId;
-    if (scenarioBattleSourceId != null && scenarioBattleId != null) {
+    if (scenarioBattleSourceId != null &&
+        scenarioBattleId != null &&
+        sceneBattleOutcomeResult == null) {
       // 1. Poser le flag d'outcome déterministe.
       final String outcomeSuffix;
       switch (outcome.type) {
@@ -4671,6 +4732,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();
     _prewarmActiveMapBattleData();
+    if (sceneBattleOutcomeResult != null) {
+      _completePendingSceneBattleOutcome(sceneBattleOutcomeResult);
+    }
     debugPrint('[battle] overworld resumed');
   }
 
@@ -4952,10 +5016,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return 'completed';
       },
       startBattle: (intent) {
-        throw UnsupportedError(
-          'Scene V1 battle handoff is not awaitable in runtime hook V0 '
-          '(battleKind=${intent.battleKind}, trainerId=${intent.trainerId}).',
+        final adapter = SceneBattleRuntimeOutcomeAdapter(
+          runtimeSourceId: runtimeSourceId,
+          defaultNpcEntityId: event.id,
+          launcher: _CallbackSceneBattleRuntimeLauncher(
+            _startSceneTrainerBattle,
+          ),
         );
+        return adapter.startBattle(intent).then((result) {
+          final scenePortId = result.scenePortId;
+          if (!result.success || scenePortId == null) {
+            throw StateError(
+              result.message ??
+                  'Scene V1 battle handoff failed '
+                      '(battleKind=${intent.battleKind}, '
+                      'trainerId=${intent.trainerId}).',
+            );
+          }
+          return scenePortId;
+        });
       },
       playCinematic: (intent) {
         final cinematicId = intent.cinematicId?.trim();
@@ -4968,6 +5047,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return 'completed';
       },
     );
+  }
+
+  Future<SceneBattleRuntimeOutcomeResult> _startSceneTrainerBattle(
+    SceneBattleRuntimeBattleRequest request,
+  ) {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      return Future.value(
+        const SceneBattleRuntimeOutcomeResult.failed(
+          errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
+          message: 'Scene trainer battle requires overworld flow.',
+        ),
+      );
+    }
+    if (_pendingSceneBattleOutcomeCompleter != null) {
+      return Future.value(
+        const SceneBattleRuntimeOutcomeResult.failed(
+          errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
+          message: 'A Scene trainer battle is already pending.',
+        ),
+      );
+    }
+
+    final completer = Completer<SceneBattleRuntimeOutcomeResult>();
+    _pendingSceneBattleOutcomeCompleter = completer;
+    _pendingSceneBattleRequestId = request.requestId;
+
+    final trainerRequest = TrainerBattleStartRequest(
+      requestId: request.requestId,
+      createdAtEpochMs: request.createdAtEpochMs,
+      returnContext: OverworldReturnContext(
+        mapId: _world.map.id,
+        playerPos: _world.player.pos,
+        playerFacing: _world.player.facing,
+      ),
+      trainerId: request.trainerId,
+      npcEntityId: request.npcEntityId,
+      mapId: _world.map.id,
+      playerPos: _world.player.pos,
+    );
+    _startBattleHandoff(trainerRequest);
+    return completer.future;
   }
 
   String _resolveSceneConditionOutput(SceneRuntimePlanIntent intent) {
@@ -8166,6 +8286,22 @@ class _PendingScenarioFollowRequest {
   GridPos? cachedPathDestination;
   GridPos? cachedPathLeaderPos;
   int consecutiveBlockedSteps = 0;
+}
+
+final class _CallbackSceneBattleRuntimeLauncher
+    implements SceneBattleRuntimeLauncher {
+  const _CallbackSceneBattleRuntimeLauncher(this._startTrainerBattle);
+
+  final Future<SceneBattleRuntimeOutcomeResult> Function(
+    SceneBattleRuntimeBattleRequest request,
+  ) _startTrainerBattle;
+
+  @override
+  Future<SceneBattleRuntimeOutcomeResult> startTrainerBattle(
+    SceneBattleRuntimeBattleRequest request,
+  ) {
+    return _startTrainerBattle(request);
+  }
 }
 
 class _PendingScenarioTransitionMapRequest {

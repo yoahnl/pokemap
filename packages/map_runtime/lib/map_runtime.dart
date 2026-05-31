@@ -59,6 +59,17 @@ export 'src/application/runtime_story_branching.dart'
     show RuntimeStoryBranching;
 export 'src/application/scene_runtime/scene_event_runtime_hook.dart'
     show SceneEventRuntimeHook;
+export 'src/application/scene_runtime/scene_battle_runtime_outcome_adapter.dart'
+    show
+        SceneBattleRuntimeBattleRequest,
+        SceneBattleRuntimeLauncher,
+        SceneBattleRuntimeOutcomeAdapter;
+export 'src/application/scene_runtime/scene_battle_runtime_outcome_result.dart'
+    show
+        SceneBattleRuntimeOutcomeErrorCode,
+        SceneBattleRuntimeOutcomePort,
+        SceneBattleRuntimeOutcomeResult,
+        SceneBattleRuntimeOutcomeStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
     show SceneConsequenceRuntimeWriter;
 export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'

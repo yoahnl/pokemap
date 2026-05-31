@@ -237,6 +237,131 @@ void main() {
       expect(gameState.consumedEventIds, isEmpty);
     });
 
+    test('battle victory follows victory branch and commits consequence',
+        () async {
+      final fixture = _fixture(
+        scene: _sceneWithBattleConsequenceBranches(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_battle_victory',
+            label: 'Battle victory',
+          ),
+          NarrativeFactDefinition(
+            id: 'fact_test_battle_defeat',
+            label: 'Battle defeat',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+      final calls = <String>[];
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: calls,
+          startBattle: _battleAdapterCallback(
+            calls,
+            SceneBattleRuntimeOutcomePort.victory,
+          ),
+        ),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(result.executionResult?.finalNodeId, 'node_end_victory');
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        contains('fact_test_battle_victory'),
+      );
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        isNot(contains('fact_test_battle_defeat')),
+      );
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('battle defeat follows defeat branch and commits consequence',
+        () async {
+      final fixture = _fixture(
+        scene: _sceneWithBattleConsequenceBranches(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_battle_victory',
+            label: 'Battle victory',
+          ),
+          NarrativeFactDefinition(
+            id: 'fact_test_battle_defeat',
+            label: 'Battle defeat',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+      final calls = <String>[];
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: calls,
+          startBattle: _battleAdapterCallback(
+            calls,
+            SceneBattleRuntimeOutcomePort.defeat,
+          ),
+        ),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(result.executionResult?.finalNodeId, 'node_end_defeat');
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        contains('fact_test_battle_defeat'),
+      );
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        isNot(contains('fact_test_battle_victory')),
+      );
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('battle failure discards staged consequence', () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequenceThenBattle(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: <String>[],
+          startBattle: (_) => throw StateError('battle seam failed'),
+        ),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.failed);
+      expect(result.updatedGameState, isNull);
+      expect(result.consequenceWriteResult, isNull);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
     test('discards staged consequence when later callback fails', () async {
       final fixture = _fixture(
         scene: _sceneWithSetFactConsequenceThenDialogue(),
@@ -404,6 +529,36 @@ SceneRuntimeHostCallbacks _callbacks({
           return 'completed';
         },
   );
+}
+
+SceneRuntimeIntentCallback _battleAdapterCallback(
+  List<String> calls,
+  SceneBattleRuntimeOutcomePort port,
+) {
+  return (intent) async {
+    final adapter = SceneBattleRuntimeOutcomeAdapter(
+      runtimeSourceId: 'scene:test:hook',
+      defaultNpcEntityId: 'event_test_scene',
+      createdAtEpochMs: () => 1234,
+      launcher: _SceneTestBattleLauncher((request) {
+        calls.add('battle:${request.trainerId}:${_portId(port)}');
+        return SceneBattleRuntimeOutcomeResult.completed(port: port);
+      }),
+    );
+    final result = await adapter.startBattle(intent);
+    final scenePortId = result.scenePortId;
+    if (!result.success || scenePortId == null) {
+      throw StateError(result.message ?? 'Scene battle adapter failed.');
+    }
+    return scenePortId;
+  };
+}
+
+String _portId(SceneBattleRuntimeOutcomePort port) {
+  return switch (port) {
+    SceneBattleRuntimeOutcomePort.victory => 'victory',
+    SceneBattleRuntimeOutcomePort.defeat => 'defeat',
+  };
 }
 
 _RuntimeSceneFixture _fixture({
@@ -663,6 +818,143 @@ SceneAsset _sceneWithSetFactConsequenceThenDialogue() {
   );
 }
 
+SceneAsset _sceneWithSetFactConsequenceThenBattle() {
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Consequence Then Battle Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_scene_done',
+              value: true,
+            ),
+          ),
+        ),
+        SceneNode(
+          id: 'node_battle',
+          kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(
+            battleKind: 'trainer',
+            trainerId: 'trainer_test_guard',
+            declaredOutcomes: const ['victory', 'defeat'],
+          ),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_action',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_action',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_action_battle',
+          fromNodeId: 'node_action',
+          fromPortId: 'completed',
+          toNodeId: 'node_battle',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'edge_battle_victory',
+          fromNodeId: 'node_battle',
+          fromPortId: 'victory',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.battleVictory,
+        ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _sceneWithBattleConsequenceBranches() {
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Battle Consequence Branches Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_battle',
+          kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(
+            battleKind: 'trainer',
+            trainerId: 'trainer_test_guard',
+            declaredOutcomes: const ['victory', 'defeat'],
+          ),
+        ),
+        SceneNode(
+          id: 'node_action_victory',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_battle_victory',
+              value: true,
+            ),
+          ),
+        ),
+        SceneNode(
+          id: 'node_action_defeat',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_battle_defeat',
+              value: true,
+            ),
+          ),
+        ),
+        SceneNode(id: 'node_end_victory', kind: SceneNodeKind.end),
+        SceneNode(id: 'node_end_defeat', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_battle',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_battle',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_battle_victory',
+          fromNodeId: 'node_battle',
+          fromPortId: 'victory',
+          toNodeId: 'node_action_victory',
+          kind: SceneEdgeKind.battleVictory,
+        ),
+        SceneEdge(
+          id: 'edge_battle_defeat',
+          fromNodeId: 'node_battle',
+          fromPortId: 'defeat',
+          toNodeId: 'node_action_defeat',
+          kind: SceneEdgeKind.battleDefeat,
+        ),
+        SceneEdge(
+          id: 'edge_action_victory_end',
+          fromNodeId: 'node_action_victory',
+          fromPortId: 'completed',
+          toNodeId: 'node_end_victory',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'edge_action_defeat_end',
+          fromNodeId: 'node_action_defeat',
+          fromPortId: 'completed',
+          toNodeId: 'node_end_defeat',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
+    ),
+  );
+}
+
 SceneAsset _actionConsequenceScene({
   required SceneActionPayload payload,
 }) {
@@ -710,4 +1002,19 @@ final class _RuntimeSceneFixture {
   final ProjectManifest project;
   final MapData map;
   final MapEventDefinition event;
+}
+
+final class _SceneTestBattleLauncher implements SceneBattleRuntimeLauncher {
+  const _SceneTestBattleLauncher(this._handler);
+
+  final SceneBattleRuntimeOutcomeResult Function(
+    SceneBattleRuntimeBattleRequest request,
+  ) _handler;
+
+  @override
+  Future<SceneBattleRuntimeOutcomeResult> startTrainerBattle(
+    SceneBattleRuntimeBattleRequest request,
+  ) async {
+    return _handler(request);
+  }
 }
