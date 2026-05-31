@@ -30,6 +30,10 @@ class RuntimeBattleMoveBridgeDiagnostics {
   bool get psdkPartial => psdkRegistryStatus == 'partial';
 
   String get userFacingReason {
+    if (_isDoubleBattleOrientedSideGuardMove(moveId) &&
+        reason == 'engine_support_level_not_bridgeable') {
+      return 'Attaque orientee combats doubles non prise en compte pour le moment';
+    }
     if (reason == 'bridgeable') {
       return 'Pris en charge par le bridge combat';
     }
@@ -211,6 +215,21 @@ String _targetLabel(String? value) {
 
 String _scopeLabel(String label, String? value) {
   return _valueLabel(label, value);
+}
+
+bool _isDoubleBattleOrientedSideGuardMove(String moveId) {
+  return switch (moveId.trim().toLowerCase()) {
+    'mat_block' ||
+    'matblock' ||
+    'wide_guard' ||
+    'wideguard' ||
+    'quick_guard' ||
+    'quickguard' ||
+    'crafty_shield' ||
+    'craftyshield' =>
+      true,
+    _ => false,
+  };
 }
 
 String _valueLabel(String label, String? value) {

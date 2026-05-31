@@ -78,7 +78,7 @@ void main() {
           isEmpty);
     });
 
-    test('detects missing cinematic bridge reference as warning', () {
+    test('detects missing cinematic public contract as warning', () {
       final scene = _sceneWithMiddleNode(
         SceneNode(
           id: 'node_cinematic',
@@ -111,6 +111,73 @@ void main() {
 
       expect(
           validReport.byCode(SceneDiagnosticCode.cinematicRefUnknown), isEmpty);
+    });
+
+    test('accepts canonical CinematicAsset references without bridge warning',
+        () {
+      final scene = _sceneWithMiddleNode(
+        SceneNode(
+          id: 'node_cinematic',
+          kind: SceneNodeKind.cinematic,
+          payload: SceneCinematicPayload(cinematicId: 'cinematic_test'),
+        ),
+        outgoingKind: SceneEdgeKind.cinematicCompleted,
+      );
+
+      final report = diagnoseSceneAgainstProject(
+        scene,
+        _project(
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_test',
+              title: 'Cinematic Test',
+              timeline: CinematicTimeline(
+                steps: [
+                  CinematicTimelineStep(
+                    id: 'step_wait',
+                    kind: CinematicTimelineStepKind.wait,
+                    durationMs: 100,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+      expect(report.byCode(SceneDiagnosticCode.cinematicRefUnknown), isEmpty);
+      expect(report.byCode(SceneDiagnosticCode.legacyScenarioLeak), isEmpty);
+    });
+
+    test('keeps scenario bridge references explicit as legacy warnings', () {
+      final scene = _sceneWithMiddleNode(
+        SceneNode(
+          id: 'node_cinematic',
+          kind: SceneNodeKind.cinematic,
+          payload: SceneCinematicPayload(cinematicId: 'cinematic_bridge'),
+        ),
+        outgoingKind: SceneEdgeKind.cinematicCompleted,
+      );
+
+      final report = diagnoseSceneAgainstProject(
+        scene,
+        _project(
+          scenarios: const [
+            ScenarioAsset(
+              id: 'cinematic_bridge',
+              name: 'Bridge Cutscene',
+              entryNodeId: 'scenario_start',
+              metadata: {'authoring.cutsceneSchema': 'v0'},
+            ),
+          ],
+        ),
+      );
+
+      expect(report.byCode(SceneDiagnosticCode.cinematicRefUnknown), isEmpty);
+      final diagnostic =
+          report.byCode(SceneDiagnosticCode.legacyScenarioLeak).single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.warning);
+      expect(diagnostic.nodeId, 'node_cinematic');
     });
 
     test('detects missing world rule reference from future world state source',
@@ -202,6 +269,7 @@ SceneAsset _sceneWithMiddleNode(
 ProjectManifest _project({
   List<ProjectDialogueEntry> dialogues = const [],
   List<ProjectTrainerEntry> trainers = const [],
+  List<CinematicAsset> cinematics = const [],
   List<ScenarioAsset> scenarios = const [],
   List<WorldRuleDefinition> worldRules = const [],
 }) {
@@ -217,6 +285,7 @@ ProjectManifest _project({
     tilesets: const [],
     dialogues: dialogues,
     trainers: trainers,
+    cinematics: cinematics,
     scenarios: scenarios,
     worldRules: worldRules,
   );

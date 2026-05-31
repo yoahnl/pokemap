@@ -1,5 +1,6 @@
 import '../domain/battle/battle_context.dart';
 import '../domain/battle/battle_setup.dart';
+import '../domain/ai/psdk_battle_ai.dart';
 import '../domain/decision/battle_decision.dart';
 import '../psdk/application/psdk_battle_move_behavior.dart';
 import '../psdk/domain/psdk_battle_setup.dart';
@@ -19,11 +20,13 @@ final class BattleSessionFacade {
   factory BattleSessionFacade.fromSetup({
     required BattleEngineSetup setup,
     PsdkBattleMoveBehaviorRegistry? moveBehaviorRegistry,
+    PsdkBattleAi? opponentAi,
   }) {
     return BattleSessionFacade(
       engine: BattleEngine(
         setup: setup,
         moveBehaviorRegistry: moveBehaviorRegistry,
+        opponentAi: opponentAi,
       ),
     );
   }
@@ -31,11 +34,13 @@ final class BattleSessionFacade {
   factory BattleSessionFacade.fromPsdkSetup({
     required PsdkBattleSetup setup,
     PsdkBattleMoveBehaviorRegistry? moveBehaviorRegistry,
+    PsdkBattleAi? opponentAi,
   }) {
     return BattleSessionFacade(
       engine: BattleEngine.fromPsdk(
         setup: setup,
         moveBehaviorRegistry: moveBehaviorRegistry,
+        opponentAi: opponentAi,
       ),
     );
   }

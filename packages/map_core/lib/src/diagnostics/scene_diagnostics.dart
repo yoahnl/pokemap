@@ -389,8 +389,9 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
       contracts.dialogues.map((dialogue) => dialogue.id).toSet();
   final trainerIds =
       contracts.battles.map((battle) => battle.trainerId).toSet();
-  final cinematicIds =
-      contracts.cinematics.map((cinematic) => cinematic.id).toSet();
+  final cinematicById = {
+    for (final cinematic in contracts.cinematics) cinematic.id: cinematic,
+  };
   final factIds = project.facts.map((fact) => fact.id).toSet();
   final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
   final projectMapIds = project.maps.map((map) => map.id).toSet();
@@ -429,18 +430,34 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           );
         }
       case SceneCinematicPayload():
-        if (!cinematicIds.contains(payload.cinematicId)) {
+        final cinematic = cinematicById[payload.cinematicId];
+        if (cinematic == null) {
           diagnostics.add(
             SceneDiagnostic(
               code: SceneDiagnosticCode.cinematicRefUnknown,
               severity: SceneDiagnosticSeverity.warning,
               message:
-                  'La cinématique référencée n’existe pas comme bridge public.',
+                  'La cinématique référencée n’existe pas comme CinematicAsset canonique ni bridge public.',
               sceneId: scene.id,
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
               suggestedFixLabel:
-                  'Choisir un bridge cinematic existant ou attendre CinematicAsset.',
+                  'Choisir une CinematicAsset existante ou un bridge explicitement disponible.',
+            ),
+          );
+        } else if (cinematic.sourceKind ==
+            CinematicPublicContractSourceKind.scenarioBridge) {
+          diagnostics.add(
+            SceneDiagnostic(
+              code: SceneDiagnosticCode.legacyScenarioLeak,
+              severity: SceneDiagnosticSeverity.warning,
+              message:
+                  'Cette cinématique référence un bridge Scenario legacy, pas une CinematicAsset canonique.',
+              sceneId: scene.id,
+              nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              suggestedFixLabel:
+                  'Préférer une CinematicAsset canonique quand elle existe.',
             ),
           );
         }

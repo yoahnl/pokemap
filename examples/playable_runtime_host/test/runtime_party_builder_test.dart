@@ -207,6 +207,18 @@ void main() {
                       battleEngineMethod: 's_baton_pass',
                       psdkRegistryStatus: 'partial',
                     ),
+                    'mat_block': RuntimeBattleMoveBridgeDiagnostics(
+                      moveId: 'mat_block',
+                      bridgeable: false,
+                      reason: 'engine_support_level_not_bridgeable',
+                      engineSupportLevel:
+                          PokemonMoveEngineSupportLevel.catalogOnly,
+                      unsupportedReasons: <String>[
+                        'unsupported_mechanic:condition',
+                        'unsupported_mechanic:isNonstandard',
+                        'unsupported_mechanic:stallingMove',
+                      ],
+                    ),
                   },
                 ),
               ],
@@ -231,6 +243,12 @@ void main() {
     expect(find.text('Moves filtres'), findsOneWidget);
     expect(
       find.text('baton_pass - Switch utilisateur non expose en runtime'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'mat_block - Attaque orientee combats doubles non prise en compte pour le moment',
+      ),
       findsOneWidget,
     );
     final filteredMoveTooltip = tester.widget<Tooltip>(

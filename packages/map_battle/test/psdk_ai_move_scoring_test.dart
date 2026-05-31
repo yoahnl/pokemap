@@ -184,6 +184,64 @@ void main() {
         contains('shadow_claw'),
       );
     });
+
+    test('BattleSessionFacade can use PSDK AI for the opponent move choice',
+        () {
+      final setup = PsdkBattleSetup.singles(
+        player: _setupCombatant(
+          id: 'player',
+          hp: 120,
+          types: const PsdkBattleTypes(primary: 'normal'),
+          moves: <PsdkBattleMoveData>[
+            _move(
+              id: 'wait',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+            ),
+          ],
+        ),
+        opponent: _setupCombatant(
+          id: 'opponent',
+          types: const PsdkBattleTypes(primary: 'normal'),
+          moves: <PsdkBattleMoveData>[
+            _move(
+              id: 'growl',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              stageMods: const <PsdkBattleMoveStageMod>[
+                PsdkBattleMoveStageMod(stat: 'attack', stages: -1),
+              ],
+            ),
+            _move(id: 'tackle', type: 'normal', power: 40),
+          ],
+        ),
+        rngSeeds: const PsdkBattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 1,
+          generic: 1,
+        ),
+      );
+      final facade = BattleSessionFacade.fromPsdkSetup(
+        setup: setup,
+        opponentAi: const PsdkBattleAi(level: 2),
+      );
+
+      final result = facade.submit(const BattleDecision.fight(moveSlot: 0));
+
+      expect(
+        result.timeline.events
+            .whereType<BattleMoveDeclaredTimelineEvent>()
+            .where((event) =>
+                event.user.bank == psdkOpponentSlot.bank &&
+                event.user.position == psdkOpponentSlot.position)
+            .map((event) => event.moveId),
+        contains('tackle'),
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(120));
+    });
   });
 }
 

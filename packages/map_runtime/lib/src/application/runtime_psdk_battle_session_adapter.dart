@@ -8,9 +8,15 @@ import 'package:map_battle/map_battle.dart';
 final class RuntimePsdkBattleSessionAdapter {
   RuntimePsdkBattleSessionAdapter._(this._facade);
 
-  factory RuntimePsdkBattleSessionAdapter.fromSetup(PsdkBattleSetup setup) {
+  factory RuntimePsdkBattleSessionAdapter.fromSetup(
+    PsdkBattleSetup setup, {
+    PsdkBattleAi opponentAi = const PsdkBattleAi(level: 2),
+  }) {
     return RuntimePsdkBattleSessionAdapter._(
-      BattleSessionFacade.fromPsdkSetup(setup: setup),
+      BattleSessionFacade.fromPsdkSetup(
+        setup: setup,
+        opponentAi: opponentAi,
+      ),
     );
   }
 
@@ -133,12 +139,32 @@ final class RuntimePsdkBattleSessionAdapter {
 
     return BattleTurnResult(
       playerAction: _toLegacyPlayerAction(decision),
-      enemyAction: const BattleActionNone(),
+      enemyAction: _toLegacyOpponentAction(result),
       executions: List<BattleMoveExecution>.unmodifiable(executions),
       bagHpHealItemEvents:
           List<BattleBagHpHealItemEvent>.unmodifiable(bagHpHealItemEvents),
       timeline: List<BattleTurnEvent>.unmodifiable(timeline),
     );
+  }
+
+  BattleAction _toLegacyOpponentAction(BattleEngineTurnResult result) {
+    for (final event in result.timeline.events) {
+      if (event is BattleMoveDeclaredTimelineEvent &&
+          _samePosition(event.user, psdkOpponentSlot)) {
+        return BattleActionFight(
+          _legacyMoveForTimelineMove(
+            user: event.user,
+            moveId: event.moveId,
+            moveName: event.moveName,
+          ),
+          moveIndex: _moveIndexForTimelineMove(
+            user: event.user,
+            moveId: event.moveId,
+          ),
+        );
+      }
+    }
+    return const BattleActionNone();
   }
 
   BattleMoveExecution _toLegacyDamageExecution(
@@ -250,10 +276,49 @@ final class RuntimePsdkBattleSessionAdapter {
     );
   }
 
+  BattleMove _legacyMoveForTimelineMove({
+    required BattlePositionRef user,
+    required String moveId,
+    required String moveName,
+  }) {
+    final attacker = state.psdkState.battlerAt(
+      PsdkBattleSlotRef(bank: user.bank, position: user.position),
+    );
+    for (final move in attacker.moves) {
+      if (move.id == moveId) {
+        return _toLegacyMove(move);
+      }
+    }
+    return BattleMove(
+      id: moveId,
+      name: moveName,
+      power: 0,
+    );
+  }
+
+  int _moveIndexForTimelineMove({
+    required BattlePositionRef user,
+    required String moveId,
+  }) {
+    final attacker = state.psdkState.battlerAt(
+      PsdkBattleSlotRef(bank: user.bank, position: user.position),
+    );
+    for (var index = 0; index < attacker.moves.length; index += 1) {
+      if (attacker.moves[index].id == moveId) {
+        return index;
+      }
+    }
+    return 0;
+  }
+
   BattleSideId _legacySideForPosition(BattlePositionRef position) {
     return position.bank == psdkPlayerSlot.bank
         ? BattleSideId.player
         : BattleSideId.enemy;
+  }
+
+  bool _samePosition(BattlePositionRef position, PsdkBattleSlotRef slot) {
+    return position.bank == slot.bank && position.position == slot.position;
   }
 
   BattleBagHpHealItemKind? _legacyHpHealItemKind(String itemId) {

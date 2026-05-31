@@ -37,6 +37,7 @@ enum BattlePublicContractKind {
 }
 
 enum CinematicPublicContractSourceKind {
+  cinematicAsset,
   scenarioBridge,
 }
 
@@ -445,6 +446,57 @@ List<CinematicPublicContract> buildCinematicPublicContracts(
   ProjectManifest project,
 ) {
   final contracts = <CinematicPublicContract>[];
+  for (final cinematic in project.cinematics) {
+    final id = cinematic.id.trim();
+    final label = _labelOrId(cinematic.title, id);
+    final diagnostics = <LinkedAssetContractDiagnostic>[
+      ..._labelDiagnostics(
+        rawLabel: cinematic.title,
+        fallbackId: id,
+        sourceId: id,
+      ),
+      if (cinematic.legacyBridge != null)
+        LinkedAssetContractDiagnostic(
+          code: LinkedAssetContractDiagnosticCode.legacyBridge,
+          severity: LinkedAssetContractDiagnosticSeverity.warning,
+          message:
+              'This canonical CinematicAsset carries legacy bridge provenance; review it before runtime playback.',
+          sourceId: id,
+        ),
+    ];
+    if (id.isEmpty) {
+      diagnostics.add(
+        const LinkedAssetContractDiagnostic(
+          code: LinkedAssetContractDiagnosticCode.missingRef,
+          severity: LinkedAssetContractDiagnosticSeverity.error,
+          message: 'Cinematic id is required for a stable Scene reference.',
+        ),
+      );
+    }
+
+    contracts.add(
+      CinematicPublicContract(
+        id: id,
+        label: label,
+        sourceKind: CinematicPublicContractSourceKind.cinematicAsset,
+        status: id.isEmpty
+            ? LinkedAssetContractStatus.unavailable
+            : LinkedAssetContractStatus.available,
+        linear: true,
+        requiredActors: [
+          for (final actor in cinematic.requiredActors) actor.actorId,
+        ],
+        mapId: cinematic.mapId,
+        declaredOutputs: const [
+          LinkedAssetOutcomeContract(
+            id: _completedOutcomeId,
+            label: 'Completed',
+          ),
+        ],
+        diagnostics: diagnostics,
+      ),
+    );
+  }
   for (final scenario in project.scenarios) {
     if (!_isCutsceneStudioScenarioBridge(scenario)) {
       continue;

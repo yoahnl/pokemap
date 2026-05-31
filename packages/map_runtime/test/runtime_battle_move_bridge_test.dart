@@ -79,6 +79,50 @@ void main() {
       expect(diagnostic.psdkRegistryStatus, equals('ported'));
     });
 
+    test('labels side guard moves as double-battle oriented when filtered', () {
+      const move = PokemonMove(
+        id: 'mat_block',
+        name: 'Mat Block',
+        names: <String, String>{'en': 'Mat Block'},
+        generation: 6,
+        source: 'test',
+        type: 'fighting',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.allySide,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setSideCondition(
+            targetScope: PokemonMoveEffectTargetScope.allySide,
+            conditionId: 'matblock',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: <String>[
+          'unsupported_mechanic:condition',
+          'unsupported_mechanic:isNonstandard',
+          'unsupported_mechanic:stallingMove',
+        ],
+      );
+
+      final diagnostic = bridge.inspectMove(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(
+        diagnostic.reason,
+        equals('engine_support_level_not_bridgeable'),
+      );
+      expect(
+        diagnostic.userFacingReason,
+        equals(
+          'Attaque orientee combats doubles non prise en compte pour le moment',
+        ),
+      );
+    });
+
     test('inspectMove reports Transform as bridgeable with PSDK metadata', () {
       const move = PokemonMove(
         id: 'transform',

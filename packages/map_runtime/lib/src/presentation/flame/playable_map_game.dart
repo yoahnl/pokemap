@@ -204,6 +204,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final List<OverworldActorComponent> _npcActors = [];
   final ShadowRuntimeCollectionController _actorShadowCollectionController =
       ShadowRuntimeCollectionController();
+  List<RuntimeActorContactShadowSource>? _lastActorShadowSources;
   final Map<String, ShadowRuntimeInstructionCollection>
       _projectedBuildingShadowCollectionByMapId =
       <String, ShadowRuntimeInstructionCollection>{};
@@ -1678,6 +1679,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     } else {
       _syncCameraToPlayer();
     }
+    _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
 
     if (_flowPhase == _RuntimeFlowPhase.mapTransition) {
@@ -1816,13 +1818,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         !enableActorContactShadows ||
         !_actorContactShadowRuntimeReady) {
       _actorShadowCollectionController.clear();
+      _lastActorShadowSources = null;
       return;
     }
+    final sources = _actorContactShadowSources();
+    // Skip rebuild si les sources n'ont pas changé.
+    final prev = _lastActorShadowSources;
+    if (prev != null && _shadowSourcesEqual(prev, sources)) {
+      return;
+    }
+    _lastActorShadowSources = sources;
     _actorShadowCollectionController.replace(
-      buildRuntimeActorContactShadowCollection(
-        sources: _actorContactShadowSources(),
-      ),
+      buildRuntimeActorContactShadowCollection(sources: sources),
     );
+  }
+
+  static bool _shadowSourcesEqual(
+    List<RuntimeActorContactShadowSource> a,
+    List<RuntimeActorContactShadowSource> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   void _refreshProjectedBuildingShadowCollection(RuntimeMapBundle bundle) {
@@ -8567,6 +8586,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                 2,
       ),
     );
+  }
+
+  /// Propage le rectangle visible caméra vers tous les [MapLayersComponent]
+  /// chargés, en coordonnées locales de chaque composant.
+  ///
+  /// Utilise [CameraComponent.visibleWorldRect] qui tient compte du ratio
+  /// d'aspect réel de l'écran (un écran PC large affiche plus de monde que
+  /// le [visibleGameSize] demandé).
+  ///
+  /// Appelé une fois par frame dans [update], après la synchronisation caméra.
+  void _syncViewportCullingRects() {
+    if (!isLoaded) {
+      return;
+    }
+    final worldRect = camera.visibleWorldRect;
+
+    for (final loaded in _loadedMapsById.values) {
+      final origin = _originPixelsOf(loaded);
+      final localRect = Rect.fromLTRB(
+        worldRect.left - origin.x,
+        worldRect.top - origin.y,
+        worldRect.right - origin.x,
+        worldRect.bottom - origin.y,
+      );
+      loaded.backgroundLayers.setVisibleLocalRect(localRect);
+      loaded.foregroundLayers.setVisibleLocalRect(localRect);
+    }
   }
 }
 

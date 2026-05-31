@@ -147,6 +147,69 @@ void main() {
       );
     });
 
+    test('builds canonical cinematic asset contracts separately from bridges',
+        () {
+      final contracts = buildCinematicPublicContracts(
+        _manifest(
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_intro',
+              title: 'Intro Cinematic',
+              mapId: 'map_lab',
+              requiredActors: [
+                CinematicActorRef(actorId: 'actor_professor'),
+              ],
+              timeline: CinematicTimeline(
+                steps: [
+                  CinematicTimelineStep(
+                    id: 'step_wait',
+                    kind: CinematicTimelineStepKind.wait,
+                    durationMs: 100,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          scenarios: const [
+            ScenarioAsset(
+              id: 'scenario_cutscene',
+              name: 'Bridge Cutscene',
+              entryNodeId: 'start',
+              metadata: {
+                'authoring.cutsceneSchema': 'cutscene_studio_v2',
+              },
+            ),
+          ],
+        ),
+      );
+
+      expect(contracts.map((contract) => contract.id), [
+        'scenario_cutscene',
+        'cinematic_intro',
+      ]);
+      final canonical =
+          contracts.singleWhere((contract) => contract.id == 'cinematic_intro');
+      expect(
+        canonical.sourceKind,
+        CinematicPublicContractSourceKind.cinematicAsset,
+      );
+      expect(canonical.status, LinkedAssetContractStatus.available);
+      expect(canonical.linear, isTrue);
+      expect(canonical.requiredActors, ['actor_professor']);
+      expect(canonical.mapId, 'map_lab');
+      expect(canonical.declaredOutputs.map((outcome) => outcome.id), [
+        'completed',
+      ]);
+
+      final bridge = contracts
+          .singleWhere((contract) => contract.id == 'scenario_cutscene');
+      expect(
+        bridge.sourceKind,
+        CinematicPublicContractSourceKind.scenarioBridge,
+      );
+      expect(bridge.status, LinkedAssetContractStatus.bridgeOnly);
+    });
+
     test('does not expose regular scenarios as cinematic contracts', () {
       final contracts = buildCinematicPublicContracts(
         _manifest(
@@ -251,6 +314,7 @@ void main() {
 ProjectManifest _manifest({
   List<ProjectDialogueEntry> dialogues = const [],
   List<ProjectTrainerEntry> trainers = const [],
+  List<CinematicAsset> cinematics = const [],
   List<ScenarioAsset> scenarios = const [],
 }) {
   return ProjectManifest(
@@ -259,6 +323,7 @@ ProjectManifest _manifest({
     tilesets: const [],
     dialogues: dialogues,
     trainers: trainers,
+    cinematics: cinematics,
     scenarios: scenarios,
   );
 }

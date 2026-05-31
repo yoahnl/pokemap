@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -100,6 +101,51 @@ class MapLayersComponent extends PositionComponent {
   };
 
   double _animElapsed = 0.0;
+
+  /// Rect visible dans l'espace local du composant (pixels monde relatifs à
+  /// l'origine de la map). Mis à jour par le game chaque frame pour permettre
+  /// le viewport culling. Si `null`, toute la carte est peinte (fallback).
+  Rect? _visibleLocalRect;
+
+  /// Cache de la liste des layers visibles — invalidé quand le bundle change.
+  List<MapLayer>? _cachedVisibleLayers;
+
+  /// Met à jour le rectangle visible **en coordonnées locales** du composant.
+  ///
+  /// Le game doit appeler cette méthode chaque frame après la mise à jour
+  /// de la caméra, en convertissant le viewport caméra vers l'espace local
+  /// de ce composant (soustraction de l'origine monde du composant).
+  void setVisibleLocalRect(Rect? rect) {
+    _visibleLocalRect = rect;
+  }
+
+  /// Retourne la plage de cellules visibles `(startX, startY, endX, endY)`
+  /// en tenant compte du viewport. Si aucun viewport n'est connu, retourne
+  /// la carte entière.
+  ///
+  /// La marge de 3 cellules compense les éléments multi-cellules (arbres,
+  /// bâtiments) dont l'ancre est hors viewport mais dont le sprite dépasse
+  /// dans la zone visible.
+  ({int startX, int startY, int endX, int endY}) _visibleCellRange() {
+    final w = bundle.map.size.width;
+    final h = bundle.map.size.height;
+    final rect = _visibleLocalRect;
+    if (rect == null) {
+      return (startX: 0, startY: 0, endX: w, endY: h);
+    }
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    if (cw <= 0 || ch <= 0) {
+      return (startX: 0, startY: 0, endX: w, endY: h);
+    }
+    const margin = 3;
+    return (
+      startX: math.max(0, (rect.left / cw).floor() - margin),
+      startY: math.max(0, (rect.top / ch).floor() - margin),
+      endX: math.min(w, (rect.right / cw).ceil() + margin),
+      endY: math.min(h, (rect.bottom / ch).ceil() + margin),
+    );
+  }
 
   @override
   void update(double dt) {
@@ -250,7 +296,8 @@ class MapLayersComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final visible = bundle.map.layers.where((l) => l.isVisible).toList();
+    final visible = _cachedVisibleLayers ??=
+        bundle.map.layers.where((l) => l.isVisible).toList(growable: false);
     if (renderPass == MapLayerRenderPass.foreground) {
       for (var i = visible.length - 1; i >= 0; i--) {
         visible[i].whenOrNull(
@@ -365,7 +412,19 @@ class MapLayersComponent extends PositionComponent {
       ..color = Colors.white.withValues(alpha: alpha);
     final cw = bundle.cellWidth;
     final ch = bundle.cellHeight;
+    final visibleRect = _visibleLocalRect;
     for (final instruction in instructions) {
+      // Viewport culling pour les instructions surface.
+      if (visibleRect != null) {
+        final dstLeft = instruction.x * cw;
+        final dstTop = instruction.y * ch;
+        if (dstLeft + cw < visibleRect.left ||
+            dstLeft > visibleRect.right ||
+            dstTop + ch < visibleRect.top ||
+            dstTop > visibleRect.bottom) {
+          continue;
+        }
+      }
       final image = tileImagesByTilesetId[instruction.tilesetId];
       if (image == null) {
         continue;
@@ -395,6 +454,7 @@ class MapLayersComponent extends PositionComponent {
     final tw = bundle.manifest.settings.tileWidth;
     final th = bundle.manifest.settings.tileHeight;
     final elapsedMs = (_animElapsed * 1000).toInt();
+    final visibleRect = _visibleLocalRect;
     for (final entity in bundle.map.entities) {
       // On garde deux passes explicites :
       // - background: rendu normal des entités élément-projet ;
@@ -407,6 +467,19 @@ class MapLayersComponent extends PositionComponent {
         renderPass: renderPass,
       )) {
         continue;
+      }
+      // Viewport culling pour les entités.
+      if (visibleRect != null) {
+        final eLeft = entity.pos.x * cw;
+        final eTop = entity.pos.y * ch;
+        final eRight = eLeft + entity.size.width * cw;
+        final eBottom = eTop + entity.size.height * ch;
+        if (eRight < visibleRect.left ||
+            eLeft > visibleRect.right ||
+            eBottom < visibleRect.top ||
+            eTop > visibleRect.bottom) {
+          continue;
+        }
       }
       if (entity.kind == MapEntityKind.npc) {
         final presence = npcMapPresencePredicate;
@@ -525,7 +598,6 @@ class MapLayersComponent extends PositionComponent {
     final tw = bundle.manifest.settings.tileWidth;
     final th = bundle.manifest.settings.tileHeight;
     final w = map.size.width;
-    final h = map.size.height;
     final resolvedId = _resolveTilesetId(map, tilesetId);
     if (resolvedId == null) {
       return;
@@ -544,8 +616,9 @@ class MapLayersComponent extends PositionComponent {
       paint.color = Color.fromRGBO(255, 255, 255, opacity);
     }
     final animatedCells = _animatedPlacedCellsByLayerId[layerId];
-    for (var y = 0; y < h; y++) {
-      for (var x = 0; x < w; x++) {
+    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
+    for (var y = startY; y < endY; y++) {
+      for (var x = startX; x < endX; x++) {
         final idx = y * w + x;
         if (idx >= tiles.length) {
           continue;
@@ -635,6 +708,7 @@ class MapLayersComponent extends PositionComponent {
     if (opacity < 1) {
       paint.color = Color.fromRGBO(255, 255, 255, opacity);
     }
+    final visibleRect = _visibleLocalRect;
 
     for (final instance in bundle.map.placedElements) {
       if (instance.layerId.trim() != layerId) {
@@ -645,6 +719,23 @@ class MapLayersComponent extends PositionComponent {
         continue;
       }
       final frame = _pickEntityFrame(entry.frames, elapsedMs);
+      final source = frame.source;
+      if (source.width <= 0 || source.height <= 0) {
+        continue;
+      }
+      // Viewport culling pour les éléments placés.
+      if (visibleRect != null) {
+        final dstLeft = instance.pos.x * cw;
+        final dstTop = instance.pos.y * ch;
+        final dstRight = dstLeft + source.width * cw;
+        final dstBottom = dstTop + source.height * ch;
+        if (dstRight < visibleRect.left ||
+            dstLeft > visibleRect.right ||
+            dstBottom < visibleRect.top ||
+            dstTop > visibleRect.bottom) {
+          continue;
+        }
+      }
       final tilesetId = frame.tilesetId.trim().isNotEmpty
           ? frame.tilesetId.trim()
           : entry.tilesetId.trim();
@@ -653,10 +744,6 @@ class MapLayersComponent extends PositionComponent {
       }
       final image = tileImagesByTilesetId[tilesetId];
       if (image == null) {
-        continue;
-      }
-      final source = frame.source;
-      if (source.width <= 0 || source.height <= 0) {
         continue;
       }
       final src = Rect.fromLTWH(
@@ -1128,9 +1215,9 @@ class MapLayersComponent extends PositionComponent {
     final tw = bundle.manifest.settings.tileWidth;
     final th = bundle.manifest.settings.tileHeight;
     final w = map.size.width;
-    final h = map.size.height;
-    for (var y = 0; y < h; y++) {
-      for (var x = 0; x < w; x++) {
+    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
+    for (var y = startY; y < endY; y++) {
+      for (var x = startX; x < endX; x++) {
         final idx = y * w + x;
         if (idx >= terrains.length) {
           continue;
@@ -1408,11 +1495,11 @@ class MapLayersComponent extends PositionComponent {
     final tw = bundle.manifest.settings.tileWidth;
     final th = bundle.manifest.settings.tileHeight;
     final w = map.size.width;
-    final h = map.size.height;
     final pid = presetId.trim();
     final autotileSet = pid.isEmpty ? null : _pathAutotileByPresetId[pid];
-    for (var y = 0; y < h; y++) {
-      for (var x = 0; x < w; x++) {
+    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
+    for (var y = startY; y < endY; y++) {
+      for (var x = startX; x < endX; x++) {
         final idx = y * w + x;
         if (idx >= cells.length || !cells[idx]) {
           continue;

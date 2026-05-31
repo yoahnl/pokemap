@@ -5,6 +5,7 @@ import 'element_collision_profile.dart';
 import 'environment.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
+import 'cinematic_asset.dart';
 import 'narrative_fact.dart';
 import 'project_path_pattern_preset.dart';
 import 'projected_building_shadow.dart';
@@ -113,6 +114,41 @@ Map<String, dynamic> _sceneJsonObject(Object? json) {
   return json.map((key, value) {
     if (key is! String) {
       throw const ValidationException('scene JSON keys must be strings');
+    }
+    return MapEntry(key, value);
+  });
+}
+
+/// JSON -> authoring Cinematics.
+///
+/// Missing or `null` keeps old projects readable as an empty list. This does
+/// not import or migrate legacy `ScenarioAsset` / Cutscene Studio data.
+List<CinematicAsset> _cinematicsFromJson(Object? json) {
+  if (json == null) {
+    return const <CinematicAsset>[];
+  }
+  if (json is! List) {
+    throw const ValidationException('cinematics must be a JSON list');
+  }
+  return [
+    for (final item in json)
+      CinematicAsset.fromJson(_cinematicJsonObject(item)),
+  ];
+}
+
+List<Map<String, dynamic>> _cinematicsToJson(
+  List<CinematicAsset> cinematics,
+) {
+  return [for (final cinematic in cinematics) cinematic.toJson()];
+}
+
+Map<String, dynamic> _cinematicJsonObject(Object? json) {
+  if (json is! Map) {
+    throw const ValidationException('cinematic must be a JSON object');
+  }
+  return json.map((key, value) {
+    if (key is! String) {
+      throw const ValidationException('cinematic JSON keys must be strings');
     }
     return MapEntry(key, value);
   });
@@ -306,6 +342,13 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectDialogueEntry> dialogues,
     @Default([]) List<ProjectScriptEntry> scripts,
     @Default([]) List<ScenarioAsset> scenarios,
+    @Default([])
+    @JsonKey(
+      name: 'cinematics',
+      fromJson: _cinematicsFromJson,
+      toJson: _cinematicsToJson,
+    )
+    List<CinematicAsset> cinematics,
     @Default([])
     @JsonKey(
       name: 'facts',
