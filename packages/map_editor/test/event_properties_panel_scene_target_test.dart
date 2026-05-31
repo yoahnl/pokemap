@@ -187,6 +187,30 @@ void main() {
     expect(find.text('Gate opens from fact'), findsOneWidget);
   });
 
+  testWidgets('world rule empty state explains missing facts', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = EditorState(
+      project: _projectWithWorldRules(facts: const []),
+      activeMap: _mapWithEvent(const MapEventPage(pageNumber: 0)),
+      activeLayerId: 'l_base',
+      selectedMapEventId: 'event_gate',
+    );
+
+    await _pumpPanel(tester, container);
+
+    expect(
+        find.byKey(const ValueKey('world-rule-empty-state')), findsOneWidget);
+    expect(
+      find.textContaining('Aucun Fact disponible'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('world-rule-create-label-field')),
+      findsNothing,
+    );
+  });
+
   testWidgets('captures V1-27 World Rules map editor screenshot when requested',
       (tester) async {
     if (!const bool.fromEnvironment('NS_SCENES_V1_27_CAPTURE_SCREENSHOT')) {
@@ -335,17 +359,19 @@ ProjectManifest _projectWithoutScenes() {
 
 ProjectManifest _projectWithWorldRules({
   List<WorldRuleDefinition> worldRules = const [],
+  List<NarrativeFactDefinition>? facts,
 }) {
   return ProjectManifest(
     name: 'Project',
     maps: const [],
     tilesets: const [],
-    facts: [
-      NarrativeFactDefinition(
-        id: 'fact_gate_unlocked',
-        label: 'Gate unlocked',
-      ),
-    ],
+    facts: facts ??
+        [
+          NarrativeFactDefinition(
+            id: 'fact_gate_unlocked',
+            label: 'Gate unlocked',
+          ),
+        ],
     worldRules: worldRules,
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );

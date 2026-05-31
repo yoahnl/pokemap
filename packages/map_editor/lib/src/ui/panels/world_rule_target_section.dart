@@ -101,7 +101,9 @@ class _WorldRuleTargetSectionState extends State<WorldRuleTargetSection> {
           const SizedBox(height: 8),
           if (widget.model.isEmpty)
             Text(
-              'Aucune règle du monde ne cible cet élément.',
+              widget.allowMapEventCreation && widget.facts.isEmpty
+                  ? 'Aucune règle du monde ne cible cet élément. Aucun Fact disponible : créez d’abord un Fact pour ajouter une règle à cet event.'
+                  : 'Aucune règle du monde ne cible cet élément.',
               key: const ValueKey('world-rule-empty-state'),
               style: TextStyle(
                 fontSize: 11,
