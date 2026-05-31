@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint
+NS-SCENES-V1-33 — Runtime State Persistence Gate V0
 ```
 
 ## Principes
@@ -65,7 +65,8 @@ NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint
 | NS-SCENES-V1-30-bis | Scene Node Deletion UX V0 | core / editor | Permettre la suppression controlee des nodes Scene non-start depuis l'inspecteur. | Pas de reconnexion automatique, pas de runtime, pas de payload editing supplementaire, pas de suppression de scene/event/storyline. | `removeSceneNodeDraft`, inspector danger zone, tests core/editor, visual gate. | DONE : nodes non-start supprimables, edges entrants/sortants et layouts nettoyes, Start et dernier End proteges, confirmation destructive. | Supprimer le Start ; auto-reparer le graph ; masquer les diagnostics apres deletion. | DONE : graph corrigible sans fake refs, sans runtime et sans mutation hors `ProjectManifest.scenes`. | V1-15-bis, V1-25-bis, V1-30. |
 | NS-SCENES-V1-31 | Scene Consequence Authoring UI V0 | core / editor | Exposer l'authoring no-code des consequences V0 `setFact` et `markEventConsumed` depuis ActionNode/inspector. | Pas de giveItem/warp/storyStep runtime, pas de World Rule direct apply, pas de BranchByOutcome. | inspector/action authoring, consequence pickers, tests diagnostics/runtime non-regression. | DONE : ActionNode consequence editable, refs Fact/map/event pickers, no fake refs, runtime write existant non casse. | Transformer ActionNode en script libre ; ecrire trop tot dans runtime depuis l'UI. | DONE : consequences V0 authorables proprement et validables avant checkpoint beta. | V1-28-quater, V1-28-quinquies, V1-30-bis. |
 | NS-SCENES-V1-31-bis | Scene Consequence Runtime Evidence Sweep | review / evidence | Confirmer que V1-31 n'a pas casse runtime-plan, executor, hook runtime, writer consequences et golden smoke. | Pas de nouvelle feature, pas de code produit, pas de runtime nouveau, pas de checkpoint beta complet. | rapport V1-31-bis, roadmaps. | DONE : tests core/runtime/editor/analyze et anti-scope relances. | Confondre evidence sweep et nouveau lot runtime ; corriger hors scope. | DONE : V1-31 confirme, aucun 31-ter necessaire. | V1-31. |
-| NS-SCENES-V1-32 | Scene V1 Beta Readiness Checkpoint | review / roadmap | Auditer l'etat beta Scene V1 apres authoring payloads, consequences, runtime hook et golden smoke. | Pas de nouveau node, pas de runtime additionnel, pas de modele, pas de migration. | rapport checkpoint, roadmaps, audit gaps. | Attendus : tests/analyze utiles relances, gaps classes, risques et prochain lot exact. | Continuer a coder sans verifier le systeme complet ; ignorer les limites UX/runtime. | TODO : checkpoint non demarre. | V1-31. |
+| NS-SCENES-V1-32 | Scene V1 Beta Readiness Checkpoint | review / roadmap | Auditer l'etat beta Scene V1 apres authoring payloads, consequences, runtime hook et golden smoke. | Pas de nouveau node, pas de runtime additionnel, pas de modele, pas de migration. | rapport checkpoint, roadmaps, audit gaps. | DONE : tests/analyze cibles relances, readiness matrix, gap register, risques et prochain lot exact. | Continuer a coder sans verifier le systeme complet ; ignorer les limites UX/runtime. | DONE : beta controlee oui, golden-slice jouable complet non, prochain verrou persistance runtime. | V1-31. |
+| NS-SCENES-V1-33 | Runtime State Persistence Gate V0 | runtime / integration | Prouver que les writes Scene V1 (`setFact`, `markEventConsumed`) survivent a save/reload et restent lisibles par Conditions/World Rules. | Pas de nouveau node, pas de payload picker, pas de projection World Rules runtime, pas de golden slice jouable complet. | tests runtime save/load, hook Scene, repository save/load, rapport. | Attendus : Scene -> consequence write -> save -> reload -> condition/world rule source readable, regressions runtime ciblees. | Construire la projection monde avant d'avoir verrouille l'etat persistant ; confondre save generale et preuve Scene-specific. | TODO : lot non demarre, ne pas marquer DONE sans test save/reload Scene-specific. | V1-32. |
 
 ## Options comparees
 
@@ -543,6 +544,18 @@ Preuve : les tests obligatoires map_core, map_runtime et map_editor ont ete rela
 Limites : pas de code produit modifie, pas de runtime nouveau, pas de GameState mutation depuis editor, pas de BranchByOutcome, pas d'outcomes Yarn, pas de World Rule direct apply et pas de donnee Selbrume.
 
 Prochain lot exact : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`.
+
+## Mise a jour V1-32
+
+Statut : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint` est DONE.
+
+Verdict : le Scene Builder est credible pour une beta controlee d'authoring et le chemin runtime neutre est prouve en smoke. En revanche, le systeme ne doit pas etre declare pret pour une beta golden-slice jouable complete tant que la persistance ciblee des writes Scene, la projection runtime des World Rules et le vrai parcours PlayableMapGame/overlay ne sont pas verrouilles.
+
+Decision roadmap : le prochain lot exact devient `NS-SCENES-V1-33 — Runtime State Persistence Gate V0`. Ce lot doit relier explicitement `SceneEventRuntimeHook`, `SceneConsequenceRuntimeWriter`, `FileGameSaveRepository` et la relecture Conditions/World Rules apres reload.
+
+Limites confirmees : `BranchByOutcome` reste reporte, les outcomes Yarn detailles ne sont pas authorables/runtime, Cinematic reste bridge/provisoire, `completeStoryStep` runtime Scene reste absent, l'overview Facts doit etre aligne, les diagnostics no-code doivent encore etre durcis, et l'undo/redo ou la suppression clavier des graphes restent hors beta critique.
+
+Prochain lot exact : `NS-SCENES-V1-33 — Runtime State Persistence Gate V0`.
 
 ## Selbrume golden slice
 

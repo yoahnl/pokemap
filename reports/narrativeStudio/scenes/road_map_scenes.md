@@ -86,14 +86,15 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-30-bis — Scene Node Deletion UX V0 | DONE | Suppression controlee des nodes non-start depuis l'inspecteur : node + edges entrants/sortants + layouts associes retires, Start et dernier End proteges, confirmation destructive, sans runtime ni reconnexion automatique. |
 | NS-SCENES-V1-31 — Scene Consequence Authoring UI V0 | DONE | Authoring no-code des ActionNode/Consequences V0 : creation depuis vrais Facts/events, edition inspecteur `setFact` et `markEventConsumed`, port `completed` connectable, sans runtime ni fake refs. |
 | NS-SCENES-V1-31-bis — Scene Consequence Runtime Evidence Sweep | DONE | Evidence sweep post V1-31 : runtime-plan, executor, hook runtime, writer consequences et golden smoke relances ; V1-31 confirme sans feature ni modification runtime. |
+| NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint | DONE | Checkpoint beta : Scene V1 est prete pour une beta controlee authoring/smoke, mais pas encore pour golden-slice jouable complet ; prochain verrou retenu = persistance runtime des etats narratifs ecrits par Scene. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`
+`NS-SCENES-V1-33 — Runtime State Persistence Gate V0`
 
-Raison : le Scene Builder sait maintenant creer, connecter, deplacer, supprimer et configurer les nodes metier essentiels du golden path beta : Condition, Dialogue Yarn, Battle trainer et Action/Consequence V0. Avant d'ajouter de nouveaux payloads ou d'elargir le runtime, il faut verifier l'etat beta complet : diagnostics, authoring gaps, runtime gaps, UX no-code et readiness golden slice.
+Raison : V1-32 confirme que les consequences Scene V1 ecrivent dans `GameState` et que les sauvegardes narratives generales existent, mais il manque encore une preuve ciblee que les writes produits par `SceneEventRuntimeHook` survivent a un save/reload puis restent lisibles par Conditions et World Rules. Ce verrou doit preceder la projection runtime des World Rules et le vrai golden slice jouable.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0.
 
 Note non bloquante : l'overview affiche encore parfois `Facts — necessite un modele` alors que Fact Registry V0 existe depuis V1-18. Ce point reste un polish d'alignement UI, pas le prochain blocage du golden slice.
 
@@ -120,6 +121,20 @@ Preuve : tests `scene_consequence_model`, authoring operations, diagnostics, run
 Limites : aucune feature, aucun runtime nouveau, aucun `PlayableMapGame`, `SceneEventRuntimeHook`, `SceneConsequenceRuntimeWriter`, `GameState`, BranchByOutcome, outcome Yarn, World Rule direct apply ou donnee Selbrume n'est ajoute.
 
 Prochain lot exact : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint`.
+
+## Mise a jour V1-32
+
+Statut : `NS-SCENES-V1-32 — Scene V1 Beta Readiness Checkpoint` est DONE.
+
+Verdict : Scene V1 est prete pour une beta controlee du Scene Builder et pour un smoke runtime neutre. Elle n'est pas encore prete pour une beta golden-slice jouable complete dans `PlayableMapGame`.
+
+Readiness : authoring graph, payloads Dialogue/Battle, Conditions, Facts, World Rules authoring, Event -> Scene hook, RuntimePlan, RuntimeExecutor, consequences runtime, dialogue awaitable, battle awaitable et golden smoke sont acceptables. Les verrous restants sont la persistance ciblee des writes Scene apres save/reload, la projection runtime des World Rules apres ces writes, puis un vrai parcours jouable Flame/overlay.
+
+Decision roadmap : le prochain lot exact devient `NS-SCENES-V1-33 — Runtime State Persistence Gate V0`. Il doit prouver que les facts et events consumed ecrits par Scene survivent a la sauvegarde/recharge et restent consommables par Conditions et World Rules. Les lots World Rules runtime projection, golden slice playable runtime prep et diagnostics UX viennent ensuite.
+
+Limites confirmees : pas de BranchByOutcome, pas d'outcomes Yarn detailles, Cinematic encore bridge/provisoire, pas de completion StoryStep runtime depuis Scene, Facts overview encore a aligner, pas de suppression clavier/undo-redo graph, pas de World Rules runtime apply.
+
+Prochain lot exact : `NS-SCENES-V1-33 — Runtime State Persistence Gate V0`.
 
 ## Mise a jour V1-30-bis
 
