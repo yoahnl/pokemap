@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'scene_cinematic_picker.dart';
 
 typedef SceneConditionSourceDraftUpdater = Future<bool> Function({
   required String nodeId,
@@ -19,6 +20,11 @@ typedef SceneYarnDialoguePayloadDraftUpdater = Future<bool> Function({
 typedef SceneBattlePayloadDraftUpdater = Future<bool> Function({
   required String nodeId,
   required String trainerId,
+});
+
+typedef SceneCinematicPayloadDraftUpdater = Future<bool> Function({
+  required String nodeId,
+  required String cinematicId,
 });
 
 typedef SceneActionConsequenceDraftUpdater = Future<bool> Function({
@@ -87,8 +93,10 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.conditionSourceOptions = const [],
     this.onUpdateConditionSource,
     this.linkedAssetContracts,
+    this.cinematicsLibrary,
     this.onUpdateYarnDialoguePayload,
     this.onUpdateBattlePayload,
+    this.onUpdateCinematicPayload,
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
     this.onUpdateActionConsequence,
@@ -102,8 +110,10 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final CinematicsLibraryReadModel? cinematicsLibrary;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
+  final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
@@ -136,8 +146,10 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
                   conditionSourceOptions: conditionSourceOptions,
                   onUpdateConditionSource: onUpdateConditionSource,
                   linkedAssetContracts: linkedAssetContracts,
+                  cinematicsLibrary: cinematicsLibrary,
                   onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
                   onUpdateBattlePayload: onUpdateBattlePayload,
+                  onUpdateCinematicPayload: onUpdateCinematicPayload,
                   consequenceFactOptions: consequenceFactOptions,
                   consequenceEventOptions: consequenceEventOptions,
                   onUpdateActionConsequence: onUpdateActionConsequence,
@@ -236,8 +248,10 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.conditionSourceOptions,
     required this.onUpdateConditionSource,
     required this.linkedAssetContracts,
+    required this.cinematicsLibrary,
     required this.onUpdateYarnDialoguePayload,
     required this.onUpdateBattlePayload,
+    required this.onUpdateCinematicPayload,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.onUpdateActionConsequence,
@@ -249,8 +263,10 @@ class _NodeInspectorBody extends StatelessWidget {
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final CinematicsLibraryReadModel? cinematicsLibrary;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
+  final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
@@ -308,6 +324,16 @@ class _NodeInspectorBody extends StatelessWidget {
               payload: node.payload as SceneBattlePayload,
               battles: linkedAssetContracts?.battles ?? const [],
               onUpdatePayload: onUpdateBattlePayload,
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (node.payload is SceneCinematicPayload &&
+              cinematicsLibrary != null) ...[
+            _CinematicPayloadAuthoringPanel(
+              node: node,
+              payload: node.payload as SceneCinematicPayload,
+              library: cinematicsLibrary!,
+              onUpdatePayload: onUpdateCinematicPayload,
             ),
             const SizedBox(height: 10),
           ],
@@ -815,6 +841,125 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
       return;
     }
     await updater(nodeId: node.id, trainerId: contract.trainerId);
+  }
+}
+
+class _CinematicPayloadAuthoringPanel extends StatelessWidget {
+  const _CinematicPayloadAuthoringPanel({
+    required this.node,
+    required this.payload,
+    required this.library,
+    required this.onUpdatePayload,
+  });
+
+  final SceneNode node;
+  final SceneCinematicPayload payload;
+  final CinematicsLibraryReadModel library;
+  final SceneCinematicPayloadDraftUpdater? onUpdatePayload;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentEntry = library.entryById(payload.cinematicId);
+    final canonicalEntries = library.canonicalEntries;
+    return _InspectorSection(
+      title: 'Cinématique',
+      children: [
+        _InspectorRow(label: 'cinematicId', value: payload.cinematicId),
+        if (currentEntry == null) ...[
+          const _InspectorRow(
+            label: 'Statut',
+            value: 'Référence inconnue',
+          ),
+          const _InspectorNote(
+            label: 'Cette référence ne pointe vers aucun CinematicAsset '
+                'canonique ni bridge legacy public.',
+          ),
+        ] else if (currentEntry.kind ==
+            CinematicsLibraryEntryKind.scenarioBridge) ...[
+          const _InspectorRow(label: 'Statut', value: 'Bridge legacy'),
+          _InspectorRow(label: 'Titre', value: currentEntry.title),
+          const _InspectorNote(
+            label: 'Cette référence pointe vers un bridge Scenario/Cutscene '
+                'legacy. Elle reste lisible, mais le workflow canonique '
+                'utilise CinematicAsset.',
+          ),
+        ] else ...[
+          const _InspectorRow(label: 'Statut', value: 'CinematicAsset'),
+          _InspectorRow(label: 'Titre', value: currentEntry.title),
+          _InspectorRow(
+            label: 'Map',
+            value: currentEntry.mapId ?? 'Aucune map.',
+          ),
+          _InspectorRow(
+            label: 'Storyline',
+            value: currentEntry.storylineId ?? 'Aucune storyline.',
+          ),
+          _InspectorRow(
+            label: 'Chapitre',
+            value: currentEntry.chapterId ?? 'Aucun chapitre.',
+          ),
+          _InspectorRow(
+            label: 'Timeline',
+            value: currentEntry.timeline.isEmpty
+                ? 'Timeline vide'
+                : '${currentEntry.timeline.stepCount} step(s)',
+          ),
+          _InspectorRow(
+            label: 'Acteurs',
+            value: currentEntry.requiredActors.isEmpty
+                ? 'Aucun acteur requis.'
+                : currentEntry.requiredActors
+                    .map((actor) => actor.displayLabel)
+                    .join(', '),
+          ),
+          _InspectorRow(
+            label: 'Diagnostics',
+            value: currentEntry.diagnostics.isEmpty
+                ? 'Aucun diagnostic.'
+                : currentEntry.diagnostics
+                    .map((diagnostic) => diagnostic.code)
+                    .join(', '),
+          ),
+        ],
+        const SizedBox(height: 4),
+        PokeMapButton(
+          key: const ValueKey('scene-payload-edit-cinematic-action'),
+          onPressed: onUpdatePayload == null || canonicalEntries.isEmpty
+              ? null
+              : () => _pickCinematic(context),
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.film),
+          child: Text(
+            currentEntry?.kind == CinematicsLibraryEntryKind.scenarioBridge ||
+                    currentEntry == null
+                ? 'Changer vers une cinématique canonique'
+                : 'Changer la cinématique',
+          ),
+        ),
+        const SizedBox(height: 8),
+        const _InspectorNote(
+          label: 'Cette édition modifie uniquement le payload du nœud Scene. '
+              'La timeline, le runtime et les bridges legacy ne sont pas '
+              'modifiés.',
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickCinematic(BuildContext context) async {
+    final updater = onUpdatePayload;
+    if (updater == null) {
+      return;
+    }
+    final selected = await showCupertinoDialog<CinematicsLibraryEntry>(
+      context: context,
+      builder: (context) => SceneCinematicPickerDialog(library: library),
+    );
+    if (selected == null || !context.mounted) {
+      return;
+    }
+    await updater(nodeId: node.id, cinematicId: selected.id);
   }
 }
 

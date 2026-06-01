@@ -139,6 +139,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           linkedAssetContracts: editor.project == null
               ? null
               : buildLinkedAssetContractsSnapshot(editor.project!),
+          cinematicsLibrary: editor.project == null
+              ? null
+              : buildCinematicsLibraryReadModel(editor.project!),
           conditionSourceOptions: editor.project == null
               ? const []
               : _buildSceneConditionSourceOptions(
@@ -213,11 +216,18 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
             try {
-              final result = addSceneLinkedAssetNodeDraft(
-                project.scenes[sceneIndex],
-                payload: payload,
-                title: title,
-              );
+              final result = payload is SceneCinematicPayload
+                  ? addSceneCinematicNodeDraft(
+                      project.scenes[sceneIndex],
+                      project: project,
+                      cinematicId: payload.cinematicId,
+                      title: title,
+                    )
+                  : addSceneLinkedAssetNodeDraft(
+                      project.scenes[sceneIndex],
+                      payload: payload,
+                      title: title,
+                    );
               final scenes = project.scenes.toList(growable: true);
               scenes[sceneIndex] = result.updatedScene;
               editorNotifier.applyInMemoryProjectManifest(
@@ -472,6 +482,38 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               editorNotifier.applyInMemoryProjectManifest(
                 project.copyWith(scenes: scenes),
                 statusMessage: 'Scene battle payload updated',
+              );
+              return true;
+            } on ArgumentError {
+              return false;
+            }
+          },
+          onUpdateCinematicPayload: ({
+            required String sceneId,
+            required String nodeId,
+            required String cinematicId,
+          }) async {
+            final project = editor.project;
+            if (project == null) {
+              return false;
+            }
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) {
+              return false;
+            }
+            try {
+              final result = updateSceneCinematicPayload(
+                project.scenes[sceneIndex],
+                nodeId: nodeId,
+                cinematicId: cinematicId,
+                project: project,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene cinematic payload updated',
               );
               return true;
             } on ArgumentError {

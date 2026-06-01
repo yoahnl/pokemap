@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0
+NS-SCENES-V1-40 — Cinematic Runtime Adapter V0
 ```
 
 ## Principes
@@ -72,6 +72,7 @@ NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0
 | NS-SCENES-V1-36 | Cinematic V1 Contract / Bridge Decision | doc / architecture-review | Decider le contrat Cinematic V1 canonique et la place du bridge Cutscene/Scenario avant Cinematics Library et Builder V2. | Pas de runtime cinematic nouveau, pas de refonte Cutscene Studio, pas de Scene payload supplementaire. | rapport V1-36, roadmaps, audit Cutscene/Scenario/Cinematic. | DONE : `git diff --check`, contrat tranche, frontieres legacy, prochain lot exact. | Promouvoir ScenarioAsset comme modele final ; coder une cinematic avant contrat. | DONE : CinematicAsset futur retenu, ScenarioAsset/Cutscene restent bridge legacy explicite. | V1-35. |
 | NS-SCENES-V1-37 | CinematicAsset Core Model V0 | core / contract | Ajouter le modele core/storage/read contract minimal de Cinematic V1 lineaire et diagnostiquable. | Pas de Cinematic Builder V2, pas de runtime cinematic avance, pas de migration Cutscene/Scenario automatique, pas de SceneGraph bis. | `CinematicAsset`, `ProjectManifest.cinematics`, public contract, diagnostics/tests core. | DONE : JSON/manifest/read model/diagnostics/scene plan + analyze core. | Sur-modeliser la timeline ; convertir le legacy trop tot ; laisser des actions qui ecrivent le monde. | DONE : modele dedie stable, bridge legacy conserve, Scene peut viser canonical ou bridge explicite. | V1-36. |
 | NS-SCENES-V1-38 | Cinematics Library V0 | editor / read-model | Rendre les CinematicAsset visibles, navigables et diagnostiques dans Narrative Studio. | Pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration legacy. | workspace/library Cinematics, liste, selection, metadata authoring, diagnostics/usages, overview/sidebar. | DONE : read model pur, Library editor, bridges legacy explicites, tests widget/read model, analyze editor/core cible, visual gate. | Confondre library avec Builder ; reactiver Cutscene Studio comme canonique. | DONE : cinematic assets visibles avant authoring avance, sans runtime ni migration. | V1-37. |
+| NS-SCENES-V1-39 | Cinematic Scene Builder Picker V0 | core / editor | Ajouter/editer un `CinematicNode` depuis un picker `CinematicAsset` canonique et rendre `cinematic.completed` authorable. | Pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration legacy, pas de bridge selectionnable en workflow normal. | operations Scene cinematic, picker/inspector Scene Builder, diagnostics, tests core/editor, visual gate. | DONE : canonical-only, bridge legacy warning, completed port, tests/analyze, screenshot. | Promouvoir les bridges Scenario comme choix normal ; laisser entrer des cinematicId libres. | DONE : CinematicNode honnete, editable et connectable sans fake ref. | V1-38. |
 
 ## Options comparees
 
@@ -630,7 +631,17 @@ Scope realise : read model pur `buildCinematicsLibraryReadModel`, workspace `Cin
 
 Limites : pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration Scenario/Cutscene, pas de picker Scene Builder cinematic, pas de donnee Selbrume.
 
-Prochain lot exact : `NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0`.
+## Mise a jour V1-39
+
+Statut : `NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0` est DONE.
+
+Decision : Scene Builder autorise la creation et l'edition d'un `CinematicNode` seulement via des `CinematicAsset` canoniques. Les bridges `ScenarioAsset`/Cutscene Studio restent visibles comme legacy, mais ne sont pas le workflow principal.
+
+Scope realise : operations pures cinematic, picker canonical-only, inspector cinematic, sortie `completed` authorable, diagnostics ref inconnue/bridge legacy, tests core/editor, visual gate et roadmaps.
+
+Limites : pas de Builder V2, pas de runtime cinematic, pas de timeline editor, pas de migration legacy, pas de donnee Selbrume.
+
+Prochain lot exact : `NS-SCENES-V1-40 — Cinematic Runtime Adapter V0`.
 
 ## Selbrume golden slice
 

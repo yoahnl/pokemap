@@ -443,6 +443,150 @@ void main() {
       );
     });
 
+    test('cinematic completed output is validated as cinematic flow', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_cinematic',
+            kind: SceneNodeKind.cinematic,
+            payload: SceneCinematicPayload(cinematicId: 'cinematic_test'),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_cinematic',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_cinematic',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_cinematic_end',
+            fromNodeId: 'node_cinematic',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.cinematicCompleted,
+          ),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+
+      expect(
+          report.byCode(SceneDiagnosticCode.edgeFromPortUnsupported), isEmpty);
+      expect(
+        report.byCode(SceneDiagnosticCode.edgeKindUnsupportedForPort),
+        isEmpty,
+      );
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.requiredOutputPortMissing)
+            .where((diagnostic) => diagnostic.nodeId == 'node_cinematic'),
+        isEmpty,
+      );
+    });
+
+    test('cinematic missing, invalid and duplicate outputs are diagnosed', () {
+      final missingScene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_cinematic',
+            kind: SceneNodeKind.cinematic,
+            payload: SceneCinematicPayload(cinematicId: 'cinematic_test'),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_cinematic',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_cinematic',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final invalidKindScene = _scene(
+        nodes: missingScene.graph.nodes,
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_cinematic_end',
+            fromNodeId: 'node_cinematic',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      );
+      final invalidPortScene = _scene(
+        nodes: missingScene.graph.nodes,
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_cinematic_end',
+            fromNodeId: 'node_cinematic',
+            fromPortId: 'skipped',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.cinematicCompleted,
+          ),
+        ],
+      );
+      final duplicateScene = _scene(
+        nodes: [
+          ...missingScene.graph.nodes,
+          SceneNode(id: 'node_end_2', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          ...missingScene.graph.edges,
+          SceneEdge(
+            id: 'edge_cinematic_end',
+            fromNodeId: 'node_cinematic',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.cinematicCompleted,
+          ),
+          SceneEdge(
+            id: 'edge_cinematic_end_2',
+            fromNodeId: 'node_cinematic',
+            fromPortId: 'completed',
+            toNodeId: 'node_end_2',
+            kind: SceneEdgeKind.cinematicCompleted,
+          ),
+        ],
+      );
+
+      final missingDiagnostic = diagnoseScene(missingScene)
+          .byCode(SceneDiagnosticCode.requiredOutputPortMissing)
+          .singleWhere((diagnostic) => diagnostic.nodeId == 'node_cinematic');
+      expect(missingDiagnostic.severity, SceneDiagnosticSeverity.warning);
+      expect(missingDiagnostic.suggestedFixLabel, contains('completed'));
+      expect(
+        diagnoseScene(invalidKindScene)
+            .byCode(SceneDiagnosticCode.edgeKindUnsupportedForPort)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+      expect(
+        diagnoseScene(invalidPortScene)
+            .byCode(SceneDiagnosticCode.edgeFromPortUnsupported)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+      expect(
+        diagnoseScene(duplicateScene)
+            .byCode(SceneDiagnosticCode.duplicateOutgoingPortEdge)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+    });
+
     test('battle victory and defeat outputs are validated', () {
       final scene = _battleScene(
         edges: [

@@ -435,7 +435,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           diagnostics.add(
             SceneDiagnostic(
               code: SceneDiagnosticCode.cinematicRefUnknown,
-              severity: SceneDiagnosticSeverity.warning,
+              severity: SceneDiagnosticSeverity.error,
               message:
                   'La cinématique référencée n’existe pas comme CinematicAsset canonique ni bridge public.',
               sceneId: scene.id,
@@ -1070,8 +1070,15 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
           required: true,
         ),
       ],
+    SceneNodeKind.cinematic => const [
+        _SceneOutputPortSpec(
+          id: 'completed',
+          edgeKinds: {SceneEdgeKind.cinematicCompleted},
+          required: true,
+        ),
+      ],
     SceneNodeKind.end => const [],
-    SceneNodeKind.cinematic || SceneNodeKind.branchByOutcome => null,
+    SceneNodeKind.branchByOutcome => null,
   };
 }
 

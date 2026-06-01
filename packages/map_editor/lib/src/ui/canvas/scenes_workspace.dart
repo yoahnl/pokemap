@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
+import 'scenes/scene_cinematic_picker.dart';
 import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 
@@ -82,6 +83,12 @@ typedef SceneBattlePayloadUpdater = Future<bool> Function({
   required String trainerId,
 });
 
+typedef SceneCinematicPayloadUpdater = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+  required String cinematicId,
+});
+
 typedef SceneActionConsequenceUpdater = Future<bool> Function({
   required String sceneId,
   required String nodeId,
@@ -93,6 +100,7 @@ class ScenesWorkspace extends StatefulWidget {
     super.key,
     required this.scenes,
     this.linkedAssetContracts,
+    this.cinematicsLibrary,
     this.conditionSourceOptions = const [],
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
@@ -107,11 +115,13 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onUpdateConditionSource,
     required this.onUpdateYarnDialoguePayload,
     required this.onUpdateBattlePayload,
+    required this.onUpdateCinematicPayload,
     required this.onUpdateActionConsequence,
   });
 
   final List<NarrativeSceneSummary> scenes;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
@@ -126,6 +136,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneConditionSourceUpdater onUpdateConditionSource;
   final SceneYarnDialoguePayloadUpdater onUpdateYarnDialoguePayload;
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
+  final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
 
   @override
@@ -239,6 +250,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onAddConsequenceActionNodeDraft:
                         _addConsequenceActionNodeDraft,
                     linkedAssetContracts: widget.linkedAssetContracts,
+                    cinematicsLibrary: widget.cinematicsLibrary,
                     consequenceFactOptions: widget.consequenceFactOptions,
                     consequenceEventOptions: widget.consequenceEventOptions,
                     onAddEdgeDraft: _addEdgeDraft,
@@ -272,9 +284,12 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                                 onUpdateConditionSource: _updateConditionSource,
                                 linkedAssetContracts:
                                     widget.linkedAssetContracts,
+                                cinematicsLibrary: widget.cinematicsLibrary,
                                 onUpdateYarnDialoguePayload:
                                     _updateYarnDialoguePayload,
                                 onUpdateBattlePayload: _updateBattlePayload,
+                                onUpdateCinematicPayload:
+                                    _updateCinematicPayload,
                                 consequenceFactOptions:
                                     widget.consequenceFactOptions,
                                 consequenceEventOptions:
@@ -587,6 +602,31 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       sceneId: selected.id,
       nodeId: nodeId,
       trainerId: trainerId,
+    );
+    if (!mounted || !updated) {
+      return false;
+    }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return true;
+  }
+
+  Future<bool> _updateCinematicPayload({
+    required String nodeId,
+    required String cinematicId,
+  }) async {
+    final selected = _selectedScene;
+    if (selected == null) {
+      return false;
+    }
+    final updated = await widget.onUpdateCinematicPayload(
+      sceneId: selected.id,
+      nodeId: nodeId,
+      cinematicId: cinematicId,
     );
     if (!mounted || !updated) {
       return false;
@@ -1023,6 +1063,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
     required this.linkedAssetContracts,
+    required this.cinematicsLibrary,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.onAddEdgeDraft,
@@ -1042,6 +1083,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final _SelectedConsequenceActionNodeDraftCreator
       onAddConsequenceActionNodeDraft;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
@@ -1068,6 +1110,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
               onAddConsequenceActionNodeDraft: onAddConsequenceActionNodeDraft,
               linkedAssetContracts: linkedAssetContracts,
+              cinematicsLibrary: cinematicsLibrary,
               consequenceFactOptions: consequenceFactOptions,
               consequenceEventOptions: consequenceEventOptions,
               onAddEdgeDraft: onAddEdgeDraft,
@@ -1106,6 +1149,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
     required this.linkedAssetContracts,
+    required this.cinematicsLibrary,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.onAddEdgeDraft,
@@ -1125,6 +1169,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final _SelectedConsequenceActionNodeDraftCreator
       onAddConsequenceActionNodeDraft;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
@@ -1166,6 +1211,7 @@ class _SelectedSceneSummary extends StatelessWidget {
           const SizedBox(height: 10),
           _SceneNodeDraftPalette(
             linkedAssetContracts: linkedAssetContracts,
+            cinematicsLibrary: cinematicsLibrary,
             consequenceFactOptions: consequenceFactOptions,
             consequenceEventOptions: consequenceEventOptions,
             onAddNodeDraft: onAddNodeDraft,
@@ -1222,6 +1268,7 @@ class _SelectedSceneSummary extends StatelessWidget {
 class _SceneNodeDraftPalette extends StatelessWidget {
   const _SceneNodeDraftPalette({
     required this.linkedAssetContracts,
+    required this.cinematicsLibrary,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.onAddNodeDraft,
@@ -1230,6 +1277,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   });
 
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
+  final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
@@ -1241,13 +1289,19 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final contracts = linkedAssetContracts;
+    final library = cinematicsLibrary;
     final hasDialogues = contracts?.dialogues.isNotEmpty ?? false;
     final hasBattles = contracts?.battles.isNotEmpty ?? false;
+    final canonicalCinematics = library?.canonicalEntries ?? const [];
+    final bridgeCinematics = library?.bridgeEntries ?? const [];
+    final hasCanonicalCinematics = canonicalCinematics.isNotEmpty;
     final hasConsequenceTargets =
         consequenceFactOptions.isNotEmpty || consequenceEventOptions.isNotEmpty;
-    final cinematicReason = (contracts?.cinematics.isNotEmpty ?? false)
-        ? 'bridge Scenario uniquement'
-        : 'bridge absent';
+    final cinematicReason = hasCanonicalCinematics
+        ? null
+        : bridgeCinematics.isNotEmpty
+            ? 'Des bridges legacy existent, mais aucun CinematicAsset canonique n’est disponible.'
+            : 'Créez d’abord une cinématique dans la Cinematics Library.';
     return SizedBox(
       key: const ValueKey('scenes-add-node-palette'),
       height: 34,
@@ -1336,11 +1390,15 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                         : null,
                   ),
                   _NodeDraftButton(
-                    buttonKey:
-                        const ValueKey('scenes-add-node-cinematic-disabled'),
+                    buttonKey: hasCanonicalCinematics
+                        ? const ValueKey('scenes-add-node-cinematic')
+                        : const ValueKey('scenes-add-node-cinematic-disabled'),
                     label: 'Cinématique',
                     icon: CupertinoIcons.film,
                     disabledReason: cinematicReason,
+                    onPressed: hasCanonicalCinematics
+                        ? () => _pickCinematicAndAddNode(context, library!)
+                        : null,
                   ),
                   const _NodeDraftButton(
                     buttonKey: ValueKey('scenes-add-node-branch-disabled'),
@@ -1400,6 +1458,23 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         ],
       ),
       title: contract.label,
+    );
+  }
+
+  Future<void> _pickCinematicAndAddNode(
+    BuildContext context,
+    CinematicsLibraryReadModel library,
+  ) async {
+    final entry = await showCupertinoDialog<CinematicsLibraryEntry>(
+      context: context,
+      builder: (context) => SceneCinematicPickerDialog(library: library),
+    );
+    if (entry == null) {
+      return;
+    }
+    await onAddLinkedAssetNodeDraft(
+      payload: SceneCinematicPayload(cinematicId: entry.id),
+      title: entry.title,
     );
   }
 

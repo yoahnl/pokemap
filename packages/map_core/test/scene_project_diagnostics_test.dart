@@ -78,7 +78,7 @@ void main() {
           isEmpty);
     });
 
-    test('detects missing cinematic public contract as warning', () {
+    test('detects missing cinematic public contract as error', () {
       final scene = _sceneWithMiddleNode(
         SceneNode(
           id: 'node_cinematic',
@@ -92,7 +92,7 @@ void main() {
 
       final missingDiagnostic =
           missingReport.byCode(SceneDiagnosticCode.cinematicRefUnknown).single;
-      expect(missingDiagnostic.severity, SceneDiagnosticSeverity.warning);
+      expect(missingDiagnostic.severity, SceneDiagnosticSeverity.error);
       expect(missingDiagnostic.nodeId, 'node_cinematic');
 
       final validReport = diagnoseSceneAgainstProject(

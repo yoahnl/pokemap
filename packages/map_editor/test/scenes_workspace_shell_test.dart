@@ -630,7 +630,8 @@ void main() {
       expect(find.textContaining('Event Switch'), findsOneWidget);
     });
 
-    testWidgets('cinematic action and branch remain honestly disabled',
+    testWidgets(
+        'bridge-only cinematic action and branch remain honestly disabled',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -651,7 +652,7 @@ void main() {
       expect(cinematicButton.onPressed, isNull);
       expect(actionButton.onPressed, isNull);
       expect(branchButton.onPressed, isNull);
-      expect(find.textContaining('bridge Scenario'), findsOneWidget);
+      expect(find.textContaining('bridges legacy'), findsOneWidget);
       expect(find.textContaining('Fact ou event requis'), findsOneWidget);
       expect(find.textContaining('mapping futur'), findsOneWidget);
       expect(find.text('CinematicAsset final'), findsNothing);
@@ -1940,7 +1941,8 @@ void main() {
       expect(payload.conditionRef, 'fact_harbor_fog_seen');
     });
 
-    testWidgets('Action exposes completed output while Cinematic/Branch do not',
+    testWidgets(
+        'Action and Cinematic expose completed output while Branch does not',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -1967,7 +1969,13 @@ void main() {
           .tap(find.byKey(const ValueKey('scene-graph-node-node_cinematic')));
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey('scenes-edge-no-outputs')),
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-output-port-node_cinematic-completed'),
+        ),
         findsOneWidget,
       );
 

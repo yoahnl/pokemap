@@ -1,4 +1,5 @@
 import '../models/project_manifest.dart';
+import '../models/cinematic_asset.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 
@@ -98,6 +99,18 @@ final class SceneBattlePayloadUpdateResult {
   final SceneAsset updatedScene;
   final SceneNode updatedNode;
   final SceneBattlePayload updatedPayload;
+}
+
+final class SceneCinematicPayloadUpdateResult {
+  const SceneCinematicPayloadUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final SceneCinematicPayload updatedPayload;
 }
 
 final class SceneActionNodeDraftCreationResult {
@@ -258,8 +271,14 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
           edgeKind: SceneEdgeKind.defaultFlow,
         ),
       ],
+    SceneNodeKind.cinematic => const [
+        SceneAuthorableOutputPort(
+          id: 'completed',
+          label: 'completed',
+          edgeKind: SceneEdgeKind.cinematicCompleted,
+        ),
+      ],
     SceneNodeKind.end ||
-    SceneNodeKind.cinematic ||
     SceneNodeKind.branchByOutcome =>
       const <SceneAuthorableOutputPort>[],
   };
@@ -400,6 +419,68 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
   final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
 
   return SceneBattlePayloadUpdateResult(
+    updatedScene: updatedScene,
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
+SceneNodeDraftCreationResult addSceneCinematicNodeDraft(
+  SceneAsset scene, {
+  required ProjectManifest project,
+  required String cinematicId,
+  String? title,
+  String? afterNodeId,
+}) {
+  final cinematic = _canonicalCinematicOrThrow(
+    project,
+    cinematicId,
+    'cinematicId',
+  );
+  return addSceneLinkedAssetNodeDraft(
+    scene,
+    payload: SceneCinematicPayload(cinematicId: cinematic.id),
+    title: _trimOptional(title) ?? cinematic.title,
+    afterNodeId: afterNodeId,
+  );
+}
+
+SceneCinematicPayloadUpdateResult updateSceneCinematicPayload(
+  SceneAsset scene, {
+  required String nodeId,
+  required String cinematicId,
+  ProjectManifest? project,
+}) {
+  final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
+  if (node.kind != SceneNodeKind.cinematic ||
+      node.payload is! SceneCinematicPayload) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Scene payload editing V0 can only update cinematic nodes.',
+    );
+  }
+  final normalizedCinematicId = _trimRequired(
+    cinematicId,
+    'cinematicId',
+    'Cinematic id is required by Scene payload editing V0.',
+  );
+  if (project != null) {
+    _canonicalCinematicOrThrow(project, normalizedCinematicId, 'cinematicId');
+  }
+  final updatedPayload = SceneCinematicPayload(
+    cinematicId: normalizedCinematicId,
+  );
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
+
+  return SceneCinematicPayloadUpdateResult(
     updatedScene: updatedScene,
     updatedNode: updatedNode,
     updatedPayload: updatedPayload,
@@ -992,6 +1073,29 @@ SceneNode _findNodeOrThrow(
     nodeId,
     argumentName,
     'Scene edge draft references an unknown node.',
+  );
+}
+
+CinematicAsset _canonicalCinematicOrThrow(
+  ProjectManifest project,
+  String cinematicId,
+  String argumentName,
+) {
+  final normalizedCinematicId = _trimRequired(
+    cinematicId,
+    argumentName,
+    'Canonical CinematicAsset id is required by Scene cinematic authoring V0.',
+  );
+  for (final cinematic in project.cinematics) {
+    if (cinematic.id == normalizedCinematicId) {
+      return cinematic;
+    }
+  }
+  throw ArgumentError.value(
+    cinematicId,
+    argumentName,
+    'Scene cinematic authoring V0 requires an existing canonical '
+    'CinematicAsset. Scenario bridges are read-only legacy references.',
   );
 }
 

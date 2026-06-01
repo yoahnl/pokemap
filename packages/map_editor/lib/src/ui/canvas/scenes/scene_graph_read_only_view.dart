@@ -464,12 +464,12 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
           SceneNodeKind.condition ||
           SceneNodeKind.yarnDialogue ||
           SceneNodeKind.battle ||
+          SceneNodeKind.cinematic ||
           SceneNodeKind.merge ||
           SceneNodeKind.end =>
             true,
           SceneNodeKind.start ||
           SceneNodeKind.action ||
-          SceneNodeKind.cinematic ||
           SceneNodeKind.branchByOutcome =>
             false,
         };
