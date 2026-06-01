@@ -9,6 +9,9 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
+const _defaultBuilderSurfaceSize = Size(1280, 860);
+const _referenceTimelineSurfaceSize = Size(1663, 926);
+
 void main() {
   testWidgets('shows populated read-only cinematic builder shell',
       (tester) async {
@@ -43,7 +46,7 @@ void main() {
 
     expect(find.text('Aperçu sandbox'), findsOneWidget);
     expect(find.text('Timeline par pistes'), findsOneWidget);
-    expect(find.text('Projection visuelle dérivée du déroulé linéaire'),
+    expect(find.text('Projection temporelle dérivée du déroulé linéaire'),
         findsOneWidget);
     expect(find.text('2 step(s)'), findsWidgets);
     expect(find.text('750 ms estimé(s)'), findsWidgets);
@@ -69,6 +72,101 @@ void main() {
 
     expect(find.text('Ajouter un bloc'), findsNothing);
     expect(project.toJson(), before);
+  });
+
+  testWidgets('renders a derived time axis with proportional bars',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_time_layout'),
+      asset: _asset(project, 'cinematic_time_layout'),
+    );
+
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Projection temporelle dérivée du déroulé linéaire'),
+        findsOneWidget);
+    expect(find.text('Layout temporel dérivé'), findsOneWidget);
+    expect(find.text('0 ms'), findsOneWidget);
+    expect(find.text('500 ms'), findsWidgets);
+    expect(find.text('1 s'), findsOneWidget);
+    expect(find.text('1.5 s'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-lane-camera')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-lane-actor:actor_professor'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-lane-time-global')),
+      findsOneWidget,
+    );
+
+    final cameraRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_camera')),
+    );
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    final waitRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_wait')),
+    );
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+
+    expect(faceRect.left, greaterThan(cameraRect.left));
+    expect(waitRect.left, greaterThan(faceRect.left));
+    expect(moveRect.left, greaterThan(waitRect.left));
+    expect(moveRect.width, greaterThan(cameraRect.width));
+    expect(cameraRect.width, greaterThan(faceRect.width));
+
+    expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(find.text('Cible: Centre scène'), findsWidgets);
+
+    await tester.tapAt(Offset(cameraRect.left + 16, cameraRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final selectedCameraBar = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_camera')),
+    );
+    expect(selectedCameraBar.selected, isTrue);
+    expect(find.text('Bloc sélectionné'), findsWidgets);
+    expect(find.text('step_camera'), findsWidgets);
+    expect(find.text('Camera reveal'), findsWidgets);
+    expect(find.text('Fallback visuel'), findsWidgets);
+    expect(find.text('drag'), findsNothing);
+    expect(find.text('resize'), findsNothing);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('balances sandbox preview and timeline proportions on reference',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final previewRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-preview-placeholder')),
+    );
+    final timelineRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+    );
+
+    expect(timelineRect.height, greaterThanOrEqualTo(360));
+    expect(previewRect.height, lessThanOrEqualTo(450));
+    expect(timelineRect.top, greaterThan(previewRect.bottom));
   });
 
   testWidgets('lists timeline steps in order with read-only details',
@@ -690,12 +788,15 @@ void main() {
         actorMoveStep.metadata, containsPair('authoring.block', 'actorMove'));
     expect(actorMoveStep.metadata, containsPair('actor.movementMode', 'walk'));
     expect(actorMoveStep.metadata, containsPair('actor.pathMode', 'direct'));
-    expect(find.text('Déplacement Professor'), findsWidgets);
+    expect(find.text('Professor → Centre scène'), findsWidgets);
     expect(find.text('Acteur: Professor'), findsWidgets);
     expect(find.text('Cible: Centre scène'), findsWidgets);
     expect(find.text('Mode mouvement'), findsOneWidget);
-    expect(find.text('PathMode'), findsOneWidget);
-    expect(find.text('direct verrouillé'), findsOneWidget);
+    expect(find.text('Chemin direct verrouillé'), findsOneWidget);
+    expect(
+      find.text('Le chemin direct est un contrat authoring V0.'),
+      findsOneWidget,
+    );
 
     await tester.ensureVisible(
       find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
@@ -740,7 +841,7 @@ void main() {
     expect(actorMoveStep.durationMs, 2000);
     expect(actorMoveStep.metadata, containsPair('actor.movementMode', 'run'));
     expect(actorMoveStep.metadata, containsPair('actor.pathMode', 'direct'));
-    expect(find.text('Déplacement Rival'), findsWidgets);
+    expect(find.text('Rival → Sortie'), findsWidgets);
     expect(find.text('Cible: Sortie'), findsWidgets);
     expect(find.text('Course'), findsWidgets);
 
@@ -755,6 +856,113 @@ void main() {
       latestProject.cinematics.single.timeline.steps.map((step) => step.kind),
       [CinematicTimelineStepKind.wait],
     );
+  });
+
+  testWidgets('polishes movement target labels and actor movement inspector',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(cinematics: [_actorMovementCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_actor_move',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final actorMoveButton = find
+        .byKey(const ValueKey('cinematic-builder-palette-actorMove-button'));
+    await tester.ensureVisible(actorMoveButton);
+    await tester.tap(actorMoveButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Professor marche vers Centre scène en 1000 ms.'),
+      findsOneWidget,
+    );
+    expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(find.text('Chemin direct verrouillé'), findsOneWidget);
+    expect(
+      find.text('Le chemin direct est un contrat authoring V0.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Intention visuelle, sans vitesse runtime.'),
+      findsOneWidget,
+    );
+
+    final usedDeleteButton = find.byKey(
+      const ValueKey('cinematic-builder-delete-movement-target-target_center'),
+    );
+    await tester.ensureVisible(usedDeleteButton);
+    expect(tester.widget<PokeMapButton>(usedDeleteButton).onPressed, isNull);
+    expect(
+      find.text('Cette cible est utilisée par un bloc Déplacement acteur.'),
+      findsOneWidget,
+    );
+
+    final labelField = find.byKey(
+      const ValueKey('cinematic-builder-movement-target-label-target_center'),
+    );
+    await tester.ensureVisible(labelField);
+    await tester.enterText(labelField, 'Centre du plateau');
+    await tester.enterText(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-movement-target-description-target_center',
+        ),
+      ),
+      'Point central authoring.',
+    );
+    final saveTargetButton = find.byKey(
+      const ValueKey('cinematic-builder-save-movement-target-target_center'),
+    );
+    await tester.ensureVisible(saveTargetButton);
+    await tester.pumpAndSettle();
+    await tester.tap(saveTargetButton);
+    await tester.pumpAndSettle();
+
+    final renamedTarget = latestProject.cinematics.single.movementTargets
+        .singleWhere((target) => target.targetId == 'target_center');
+    expect(renamedTarget.label, 'Centre du plateau');
+    expect(renamedTarget.description, 'Point central authoring.');
+    expect(
+      latestProject.cinematics.single.timeline.steps.last.label,
+      'Déplacement Professor',
+    );
+    expect(
+      find.text('Professor marche vers Centre du plateau en 1000 ms.'),
+      findsOneWidget,
+    );
+    expect(find.text('Professor → Centre du plateau'), findsWidgets);
+
+    await tester.enterText(labelField, '   ');
+    await tester.ensureVisible(saveTargetButton);
+    await tester.pumpAndSettle();
+    await tester.tap(saveTargetButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Label cible obligatoire'), findsOneWidget);
+    expect(
+      latestProject.cinematics.single.movementTargets
+          .singleWhere((target) => target.targetId == 'target_center')
+          .label,
+      'Centre du plateau',
+    );
+
+    final unusedDeleteButton = find.byKey(
+      const ValueKey('cinematic-builder-delete-movement-target-target_exit'),
+    );
+    await tester.ensureVisible(unusedDeleteButton);
+    expect(
+        tester.widget<PokeMapButton>(unusedDeleteButton).onPressed, isNotNull);
+    await tester.tap(unusedDeleteButton);
+    await tester.pumpAndSettle();
+    expect(
+      latestProject.cinematics.single.movementTargets
+          .map((target) => target.targetId),
+      ['target_center'],
+    );
+    expect(find.text('target_exit'), findsNothing);
   });
 
   testWidgets('shows empty timeline state without authoring controls',
@@ -1016,6 +1224,100 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-50 actor movement target polish screenshot when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_50_CAPTURE_CINEMATIC_ACTOR_MOVEMENT_POLISH',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_actorMovementCinematic()]),
+      'cinematic_actor_move',
+    );
+    final actorMoveButton = find
+        .byKey(const ValueKey('cinematic-builder-palette-actorMove-button'));
+    await tester.ensureVisible(actorMoveButton);
+    await tester.tap(actorMoveButton);
+    await tester.pumpAndSettle();
+
+    final labelField = find.byKey(
+      const ValueKey('cinematic-builder-movement-target-label-target_center'),
+    );
+    await tester.ensureVisible(labelField);
+    await tester.enterText(labelField, 'Centre du plateau');
+    await tester.enterText(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-movement-target-description-target_center',
+        ),
+      ),
+      'Point central authoring.',
+    );
+    final saveTargetButton = find.byKey(
+      const ValueKey('cinematic-builder-save-movement-target-target_center'),
+    );
+    await tester.ensureVisible(saveTargetButton);
+    await tester.pumpAndSettle();
+    await tester.tap(saveTargetButton);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(labelField);
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_50_cinematic_actor_movement_inspector_polish_'
+      'target_labels_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures V1-51 timeline time axis bar layout when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_51_CAPTURE_CINEMATIC_TIMELINE_BAR_LAYOUT',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    final cameraRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_camera')),
+    );
+    await tester.tapAt(Offset(cameraRect.left + 16, cameraRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_51_cinematic_timeline_time_axis_bar_layout_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -1023,6 +1325,7 @@ Future<void> _pumpBuilder(
   CinematicsLibraryEntry entry, {
   required CinematicAsset asset,
   VoidCallback? onBackToLibrary,
+  Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
   await tester.pumpWidget(
     MacosTheme(
@@ -1030,8 +1333,8 @@ Future<void> _pumpBuilder(
       child: MaterialApp(
         home: Scaffold(
           body: SizedBox(
-            width: 1280,
-            height: 860,
+            width: surfaceSize.width,
+            height: surfaceSize.height,
             child: CinematicBuilderWorkspace(
               entry: entry,
               asset: asset,
@@ -1063,6 +1366,18 @@ Future<void> _pumpBuilder(
               onAddRequiredActor: ({required String cinematicId}) async => null,
               onAddMovementTarget: ({required String cinematicId}) async =>
                   null,
+              onUpdateMovementTarget: ({
+                required String cinematicId,
+                required String targetId,
+                required String label,
+                String? description,
+              }) async =>
+                  false,
+              onRemoveMovementTarget: ({
+                required String cinematicId,
+                required String targetId,
+              }) async =>
+                  false,
               onAddActorFacingStep: ({
                 required String cinematicId,
                 required String actorId,
@@ -1114,12 +1429,14 @@ Future<void> _pumpBuilderHarness(
   ProjectManifest project,
   String cinematicId, {
   ValueChanged<ProjectManifest>? onProjectChanged,
+  Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
   await tester.pumpWidget(
     _BuilderHarness(
       project: project,
       cinematicId: cinematicId,
       onProjectChanged: onProjectChanged,
+      surfaceSize: surfaceSize,
     ),
   );
   await tester.pumpAndSettle();
@@ -1129,11 +1446,13 @@ class _BuilderHarness extends StatefulWidget {
   const _BuilderHarness({
     required this.project,
     required this.cinematicId,
+    required this.surfaceSize,
     this.onProjectChanged,
   });
 
   final ProjectManifest project;
   final String cinematicId;
+  final Size surfaceSize;
   final ValueChanged<ProjectManifest>? onProjectChanged;
 
   @override
@@ -1152,8 +1471,8 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
       child: MaterialApp(
         home: Scaffold(
           body: SizedBox(
-            width: 1280,
-            height: 860,
+            width: widget.surfaceSize.width,
+            height: widget.surfaceSize.height,
             child: CinematicBuilderWorkspace(
               entry: entry,
               asset: asset,
@@ -1164,6 +1483,8 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onUpdateBasicBlockStep: _updateBasicBlockStep,
               onAddRequiredActor: _addRequiredActor,
               onAddMovementTarget: _addMovementTarget,
+              onUpdateMovementTarget: _updateMovementTarget,
+              onRemoveMovementTarget: _removeMovementTarget,
               onAddActorFacingStep: _addActorFacingStep,
               onUpdateActorFacingStep: _updateActorFacingStep,
               onAddActorMoveStep: _addActorMoveStep,
@@ -1260,6 +1581,38 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
     return result.target.targetId;
+  }
+
+  Future<bool> _updateMovementTarget({
+    required String cinematicId,
+    required String targetId,
+    required String label,
+    String? description,
+  }) async {
+    final result = updateCinematicMovementTarget(
+      _project,
+      cinematicId: cinematicId,
+      targetId: targetId,
+      label: label,
+      description: description,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.target.targetId == targetId;
+  }
+
+  Future<bool> _removeMovementTarget({
+    required String cinematicId,
+    required String targetId,
+  }) async {
+    final result = removeCinematicMovementTarget(
+      _project,
+      cinematicId: cinematicId,
+      targetId: targetId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.removedTarget.targetId == targetId;
   }
 
   Future<String?> _addActorFacingStep({
@@ -1402,10 +1755,12 @@ CinematicAsset _actorMovementCinematic() {
       CinematicMovementTargetRef(
         targetId: 'target_center',
         label: 'Centre scène',
+        description: 'Point central authoring.',
       ),
       CinematicMovementTargetRef(
         targetId: 'target_exit',
         label: 'Sortie',
+        description: 'Sortie de scène.',
       ),
     ],
     timeline: CinematicTimeline(
@@ -1415,6 +1770,93 @@ CinematicAsset _actorMovementCinematic() {
           kind: CinematicTimelineStepKind.wait,
           label: 'Opening wait',
           durationMs: 500,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _timeLayoutCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_time_layout',
+    title: 'Time layout cinematic',
+    description: 'Neutral fixture for timeline bars.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_center',
+        label: 'Centre scène',
+        description: 'Point central authoring.',
+      ),
+      CinematicMovementTargetRef(
+        targetId: 'target_exit',
+        label: 'Sortie',
+        description: 'Sortie de scène.',
+      ),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera reveal',
+          durationMs: 500,
+        ),
+        CinematicTimelineStep(
+          id: 'step_face',
+          kind: CinematicTimelineStepKind.actorFace,
+          label: 'Professor turns',
+          actorId: 'actor_professor',
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorFaceBlockMetadataValue,
+            cinematicTimelineActorDirectionMetadataKey: 'right',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Beat',
+          durationMs: 0,
+        ),
+        CinematicTimelineStep(
+          id: 'step_move',
+          kind: CinematicTimelineStepKind.actorMove,
+          label: 'Move Professor',
+          actorId: 'actor_professor',
+          targetId: 'target_center',
+          durationMs: 1000,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: 'direct',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_fade',
+          kind: CinematicTimelineStepKind.fade,
+          label: 'Fade out',
+          durationMs: 600,
+        ),
+        CinematicTimelineStep(
+          id: 'step_sound',
+          kind: CinematicTimelineStepKind.sound,
+          label: 'Cue bell',
+          durationMs: 300,
+          assetRef: 'cue_bell',
         ),
       ],
     ),
@@ -1746,8 +2188,11 @@ SceneAsset _sceneReferencing({
   );
 }
 
-void _setLargeSurface(WidgetTester tester) {
-  tester.view.physicalSize = const Size(1280, 860);
+void _setLargeSurface(
+  WidgetTester tester, [
+  Size surfaceSize = _defaultBuilderSurfaceSize,
+]) {
+  tester.view.physicalSize = surfaceSize;
   tester.view.devicePixelRatio = 1;
   addTearDown(() {
     tester.view.resetPhysicalSize();

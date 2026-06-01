@@ -53,6 +53,18 @@ typedef AddMovementTargetCallback = Future<String?> Function({
   required String cinematicId,
 });
 
+typedef UpdateMovementTargetCallback = Future<bool> Function({
+  required String cinematicId,
+  required String targetId,
+  required String label,
+  String? description,
+});
+
+typedef RemoveMovementTargetCallback = Future<bool> Function({
+  required String cinematicId,
+  required String targetId,
+});
+
 typedef AddTimelineActorFacingCallback = Future<String?> Function({
   required String cinematicId,
   required String actorId,
@@ -109,6 +121,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpdateTimelineBasicBlock,
     required this.onAddRequiredActor,
     required this.onAddMovementTarget,
+    required this.onUpdateMovementTarget,
+    required this.onRemoveMovementTarget,
     required this.onAddTimelineActorFacing,
     required this.onUpdateTimelineActorFacing,
     required this.onAddTimelineActorMove,
@@ -127,6 +141,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final UpdateTimelineBasicBlockCallback onUpdateTimelineBasicBlock;
   final AddRequiredActorCallback onAddRequiredActor;
   final AddMovementTargetCallback onAddMovementTarget;
+  final UpdateMovementTargetCallback onUpdateMovementTarget;
+  final RemoveMovementTargetCallback onRemoveMovementTarget;
   final AddTimelineActorFacingCallback onAddTimelineActorFacing;
   final UpdateTimelineActorFacingCallback onUpdateTimelineActorFacing;
   final AddTimelineActorMoveCallback onAddTimelineActorMove;
@@ -190,6 +206,8 @@ class _CinematicsLibraryWorkspaceState
         onUpdateBasicBlockStep: widget.onUpdateTimelineBasicBlock,
         onAddRequiredActor: widget.onAddRequiredActor,
         onAddMovementTarget: widget.onAddMovementTarget,
+        onUpdateMovementTarget: widget.onUpdateMovementTarget,
+        onRemoveMovementTarget: widget.onRemoveMovementTarget,
         onAddActorFacingStep: widget.onAddTimelineActorFacing,
         onUpdateActorFacingStep: widget.onUpdateTimelineActorFacing,
         onAddActorMoveStep: widget.onAddTimelineActorMove,

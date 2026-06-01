@@ -123,11 +123,19 @@ void main() {
         added.updatedProject,
         cinematicId: 'cinematic_intro',
         targetId: 'target_3',
-        label: 'Sortie cour',
-        description: 'Destination authoring visible.',
+        label: '  Sortie cour  ',
+        description: '  Destination authoring visible.  ',
       );
       expect(updated.target.label, 'Sortie cour');
       expect(updated.target.description, 'Destination authoring visible.');
+      expect(updated.target.targetId, 'target_3');
+      expect(updated.cinematic.timeline, added.cinematic.timeline);
+      expect(updated.cinematic.requiredActors, added.cinematic.requiredActors);
+      expect(updated.cinematic.metadata, added.cinematic.metadata);
+      expect(
+        added.updatedProject.cinematics.single.movementTargets.last.label,
+        'Cible',
+      );
 
       final removed = removeCinematicMovementTarget(
         updated.updatedProject,
@@ -156,6 +164,55 @@ void main() {
         ),
         throwsA(isA<ArgumentError>()),
       );
+    });
+
+    test(
+        'renamed movement target updates actorMove lane labels only by read model',
+        () {
+      var project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+            movementTargets: [
+              CinematicMovementTargetRef(
+                targetId: 'target_center',
+                label: 'Centre scène',
+              ),
+            ],
+          ),
+        ],
+      );
+      final added = addCinematicTimelineActorMoveStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        targetId: 'target_center',
+      );
+      project = added.updatedProject;
+
+      final renamed = updateCinematicMovementTarget(
+        project,
+        cinematicId: 'cinematic_intro',
+        targetId: 'target_center',
+        label: 'Centre du plateau',
+        description: 'Point central authoring.',
+      );
+
+      final step = renamed.cinematic.timeline.steps.singleWhere(
+          (step) => step.kind == CinematicTimelineStepKind.actorMove);
+      expect(step.label, 'Déplacement Professor');
+      expect(step.targetId, 'target_center');
+
+      final readModel = buildCinematicTimelineLaneReadModel(renamed.cinematic);
+      final laneStep =
+          readModel.laneById('actor:actor_professor')!.steps.single;
+      expect(laneStep.label, 'Professor → Centre du plateau');
+      expect(laneStep.targetId, 'target_center');
+      expect(laneStep.targetLabel, 'Centre du plateau');
+      expect(laneStep.badges, contains('Cible: Centre du plateau'));
     });
 
     test('updateCinematicAsset replaces an existing asset only', () {

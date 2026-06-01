@@ -104,18 +104,32 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract | DONE | Lot documentaire : contrat spatial/temporel/timeline du futur `actorMove` V0, options de cible comparees, diagnostics cadres, sans code produit ni package modifie. |
 | NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0 | DONE | Timeline par pistes derivees : read model pur `CinematicTimelineLaneReadModel`, lanes Camera/Acteurs/Dialogue/FX/Audio/Transitions/Temps/Autres, selection locale depuis lanes, Visual Gate, sans persistance de lane ni runtime. |
 | NS-SCENES-V1-49 — Cinematic Actor Movement Block V0 | DONE | Bloc `actorMove` authorable V0 : cibles authoring stables, picker acteur/cible, presets duree, marche/course, pathMode direct verrouille, lane acteur derivee, diagnostics, Visual Gate, sans pathfinding ni runtime. |
+| NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0 | DONE | Polish UX actorMove V0 : labels/description de cibles editables, suppression cible inutilisee, protection cible utilisee, titres actorMove derives, inspecteur/pickers/timeline plus lisibles, Visual Gate, sans time axis, bar layout, pathfinding ni runtime. |
+| NS-SCENES-V1-51 — Cinematic Timeline Time Axis / Bar Layout V0 | DONE | Timeline lue comme projection temporelle derivee : durees visuelles explicites/fallback, ticks, pistes, barres proportionnelles, capture 1663x926 alignee sur la reference, sans drag/drop, playhead, runtime ni persistance start/end. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`
+`NS-SCENES-V1-52 — Cinematic Timeline Selection Cursor / Playhead Placeholder V0`
 
-Raison : V1-49 rend `actorMove` authorable, mais garde volontairement l'edition de label des cibles hors UI. Le prochain verrou utile est un polish cible des labels/pickers/inspector avant d'ouvrir un bloc metier plus large comme Dialogue.
+Raison : V1-51 rend la timeline lisible comme une projection temporelle derivee, mais la selection reste seulement portee par les cartes. Le prochain verrou utile est un curseur/placeholder de selection explicite, toujours sans lecture runtime, scrub, seek ou transport fonctionnel.
 
-Ordre apres V1-49 : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`.
+Ordre apres V1-51 : `NS-SCENES-V1-52 — Cinematic Timeline Selection Cursor / Playhead Placeholder V0`.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0, puis Cinematic Actor Movement Inspector Polish / Target Labels V0, puis Cinematic Timeline Time Axis / Bar Layout V0.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
+
+## Mise a jour V1-51
+
+Statut : `NS-SCENES-V1-51 — Cinematic Timeline Time Axis / Bar Layout V0` est DONE.
+
+Decision : la timeline du Cinematic Builder reste fondee sur `CinematicTimeline.steps`, mais expose maintenant une projection temporelle derivee : `startMs/endMs` calcules, duree visuelle explicite ou fallback 300 ms, ticks adaptes a la duree totale, lanes derivees et barres horizontales proportionnelles. Rien de ce layout n'est persiste dans le modele.
+
+Limites : pas de drag/drop, resize, reorder, playhead fonctionnel, scrubber, transport playback, preview runtime, pathfinding, coordonnees libres, persistance `startMs/endMs` ou mutation du deroule lineaire.
+
+Preuve : tests core time layout/lane/library, tests widget Builder/Library, analyses ciblees, capture Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_51_cinematic_timeline_time_axis_bar_layout_v0.png` en 1663x926 et checks anti-scope.
+
+Prochain lot exact : `NS-SCENES-V1-52 — Cinematic Timeline Selection Cursor / Playhead Placeholder V0`.
 
 ## Mise a jour V1-31
 
@@ -372,6 +386,20 @@ Limites : pas de pathfinding, pas de position `x/y`, pas de cible map/entity run
 Preuve : tests core `cinematic_asset_test.dart`, `cinematic_authoring_operations_test.dart`, `cinematic_diagnostics_test.dart`, `cinematic_timeline_lane_read_model_test.dart`, tests widget Builder/Library, analyses ciblees et Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_49_cinematic_actor_movement_block_v0.png`.
 
 Prochain lot exact : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`.
+
+## Mise a jour V1-50
+
+Statut : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0` est DONE.
+
+Decision : V1-50 ne rend pas `actorMove` plus puissant ; il rend l'authoring plus lisible. Les cibles de deplacement gardent leur `targetId` stable, mais leurs labels et descriptions deviennent editables dans le Builder. Les labels actorMove visibles sont derives depuis les refs acteur/cible plutot que de muter le `step.label` persiste.
+
+Scope realise : edition label/description des cibles, suppression d'une cible inutilisee, suppression bloquee et expliquee pour une cible utilisee, pickers acteur/cible plus lisibles, resume humain `Professeur marche vers Centre scene en 1000 ms.`, chemin direct clarifie, timeline par lanes avec titre `Acteur -> Cible`, tests core/editor et Visual Gate `ns_scenes_v1_50_cinematic_actor_movement_inspector_polish_target_labels_v0.png`.
+
+Limites : pas de time axis, pas de bar layout proportionnel, pas de playhead, pas de transport controls, pas de drag/drop, pas de reordonnancement, pas de coordonnees `x/y`, pas de pathfinding, pas de runtime, pas de preview jouable et pas de donnees produit.
+
+Preuve : tests core authoring/lane, tests widget Builder/Library, analyses ciblees, capture V1-50 et checks anti-scope.
+
+Prochain lot exact : `NS-SCENES-V1-51 — Cinematic Timeline Time Axis / Bar Layout V0`.
 
 ## Mise a jour V1-30-bis
 

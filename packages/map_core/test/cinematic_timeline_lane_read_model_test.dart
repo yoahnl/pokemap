@@ -123,6 +123,7 @@ void main() {
       expect(laneStep.stepId, 'step_actor_move');
       expect(laneStep.stepIndex, 0);
       expect(laneStep.kind, CinematicTimelineStepKind.actorMove);
+      expect(laneStep.label, 'Professor → Centre scène');
       expect(laneStep.targetId, 'target_center');
       expect(laneStep.targetLabel, 'Centre scène');
       expect(laneStep.badges, contains('Builder V0'));

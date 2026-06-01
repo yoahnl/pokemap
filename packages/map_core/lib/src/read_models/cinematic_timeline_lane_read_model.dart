@@ -300,7 +300,12 @@ CinematicTimelineLaneStep _laneStepFor(
     stepId: step.id,
     stepIndex: stepIndex,
     kind: step.kind,
-    label: step.label ?? 'Step ${stepIndex + 1}',
+    label: _laneStepLabel(
+      step,
+      stepIndex: stepIndex,
+      actorLabel: actorLabel,
+      targetLabel: targetLabel,
+    ),
     durationMs: step.durationMs,
     actorId: step.actorId,
     actorLabel: actorLabel,
@@ -309,6 +314,22 @@ CinematicTimelineLaneStep _laneStepFor(
     isAuthoringOwned: isCinematicTimelineAuthoringStep(step),
     badges: badges,
   );
+}
+
+String _laneStepLabel(
+  CinematicTimelineStep step, {
+  required int stepIndex,
+  required String? actorLabel,
+  required String? targetLabel,
+}) {
+  if (step.kind == CinematicTimelineStepKind.actorMove) {
+    final actor = actorLabel ?? step.actorId;
+    final target = targetLabel ?? step.targetId;
+    if (actor != null && target != null) {
+      return '$actor → $target';
+    }
+  }
+  return step.label ?? 'Step ${stepIndex + 1}';
 }
 
 String _movementModeLabel(CinematicTimelineActorMovementMode mode) {

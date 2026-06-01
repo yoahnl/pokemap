@@ -500,6 +500,34 @@ class _HarnessState extends State<_Harness> {
                 setState(() => _project = result.updatedProject);
                 return result.target.targetId;
               },
+              onUpdateMovementTarget: ({
+                required String cinematicId,
+                required String targetId,
+                required String label,
+                String? description,
+              }) async {
+                final result = updateCinematicMovementTarget(
+                  _project,
+                  cinematicId: cinematicId,
+                  targetId: targetId,
+                  label: label,
+                  description: description,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.target.targetId == targetId;
+              },
+              onRemoveMovementTarget: ({
+                required String cinematicId,
+                required String targetId,
+              }) async {
+                final result = removeCinematicMovementTarget(
+                  _project,
+                  cinematicId: cinematicId,
+                  targetId: targetId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.removedTarget.targetId == targetId;
+              },
               onAddTimelineActorFacing: ({
                 required String cinematicId,
                 required String actorId,

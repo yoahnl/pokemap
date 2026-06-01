@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0
+NS-SCENES-V1-52 — Cinematic Timeline Selection Cursor / Playhead Placeholder V0
 ```
 
 ## Principes
@@ -83,6 +83,8 @@ NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0
 | NS-SCENES-V1-47 | Cinematic Actor Movement Block V0 Prep / Contract | doc-only / architecture-review | Definir le contrat du futur bloc `actorMove` avant authoring : acteur, cible, duree, movementMode, pathMode, lane, diagnostics et frontieres runtime. | Pas de code Dart, pas de widget, pas de package modifie, pas de schema JSON, pas de actorMove authorable, pas de preview runtime. | rapport V1-47, roadmaps. | DONE : contrat V0, options target comparees, diagnostics cadres, roadmap post V1-47, checks anti-scope. | Coder actorMove trop tot ; creer une position libre non diagnostiquable ; lier le mouvement a un runtime implicite. | DONE : actorMove cadre sans implementation, prochain verrou lane grouping retenu. | V1-46. |
 | NS-SCENES-V1-48 | Cinematic Timeline Lane Grouping V0 | core / editor | Transformer le deroule du Cinematic Builder en timeline par pistes derivees et testees. | Pas de lane persistante, pas de drag/drop, pas de reordonnancement, pas de `actorMove` authorable, pas de preview runtime. | `cinematic_timeline_lane_read_model.dart`, Builder cinematics, tests core/widget, rapport, screenshot. | DONE : lanes Camera/Acteurs/Dialogue/FX/Audio/Transitions/Temps/Autres, selection depuis lane, actions existantes preservees, Visual Gate, analyses. | Faire croire a un vrai multi-track parallele ; stocker un layout de lanes ; ouvrir actorMove trop tot. | DONE : timeline lisible comme pistes sans augmenter la puissance runtime/editor. | V1-47. |
 | NS-SCENES-V1-49 | Cinematic Actor Movement Block V0 | core / editor | Rendre `actorMove` authorable via acteur requis, cible authoring stable, duree, marche/course et pathMode direct verrouille. | Pas de pathfinding, pas de coordonnees `x/y`, pas de cible runtime map/entity, pas de drag/drop, pas de reorder, pas de preview runtime. | `cinematic_asset.dart`, `cinematic_authoring_operations.dart`, `cinematic_diagnostics.dart`, `cinematic_timeline_lane_read_model.dart`, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : target refs JSON, operations cible, add/update actorMove, diagnostics refs/modes/duree, UI palette/inspector, Visual Gate, analyses. | Creer une fausse navigation runtime ; exposer des IDs techniques ou positions libres ; casser les lanes V1-48. | DONE : bloc deplacement acteur V0 authorable, validable et borne, sans runtime ni pathfinding. | V1-48. |
+| NS-SCENES-V1-50 | Cinematic Actor Movement Inspector Polish / Target Labels V0 | core / editor | Polir `actorMove` sans l'elargir : labels/description de cibles editables, pickers plus lisibles, resume humain, timeline actorMove derivee. | Pas de time axis, pas de bar layout, pas de playhead, pas de drag/drop, pas de pathfinding, pas de runtime, pas de preview jouable. | `cinematic_timeline_lane_read_model.dart`, Builder/Library cinematics, `narrative_workspace_canvas.dart`, tests core/widget, rapport, screenshot. | DONE : target labels/description editables, suppression cible libre, cible utilisee protegee, actorMove labels derives, Visual Gate, analyses. | Transformer le polish en time axis ; muter `step.label` comme source runtime ; exposer `targetId` en UX principale. | DONE : actorMove plus lisible, stable par IDs, sans nouveau pouvoir moteur. | V1-49. |
+| NS-SCENES-V1-51 | Cinematic Timeline Time Axis / Bar Layout V0 | core / editor | Transformer les lanes cinematic en projection temporelle lisible : axe, ticks, barres proportionnelles, durees explicites/fallback. | Pas de drag/drop, resize, reorder, playhead fonctionnel, scrubber, transport playback, runtime, pathfinding, coordonnees libres, persistance `startMs/endMs`. | `cinematic_timeline_time_layout_read_model.dart`, Builder cinematics, tests core/widget, rapport, screenshot 1663x926. | DONE : read model pur derive, ticks par duree totale, UI `Timeline par pistes`, barres proportionnelles, selection preservee, Visual Gate, analyses. | Faire croire a une timeline editable ou frame-perfect ; stocker du timing derive ; ouvrir le playback trop tot. | DONE : projection temporelle honnete, proportionnelle et non editable, sans nouveau pouvoir runtime. | V1-50. |
 
 ## Options comparees
 
@@ -784,6 +786,34 @@ Limites : pas de pathfinding, pas de courbe, pas de coordonnees `x/y`, pas de pi
 Preuve : tests core model/operations/diagnostics/lane, tests widget Builder/Library, analyses ciblees et screenshot `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_49_cinematic_actor_movement_block_v0.png`.
 
 Prochain lot exact : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`.
+
+## Mise a jour V1-50
+
+Statut : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0` est DONE.
+
+Decision : le polish reste strictement authoring/editor. Les cibles de deplacement sont renommables et descriptibles sans changer le schema, les IDs restent secondaires, et les titres actorMove visibles sont derives depuis les refs acteur/cible pour eviter de transformer `step.label` en source de verite runtime.
+
+Scope realise : carte `Cibles de deplacement` editable, suppression d'une cible libre, suppression desactivee avec message pour une cible utilisee, champs tokenises, resume humain actorMove, pathMode direct explique comme verrou V0, timeline par lanes et preview sandbox alignees sur `Acteur -> Cible`, tests core/editor et Visual Gate.
+
+Limites : pas de time axis, pas de bar layout proportionnel, pas de playhead, pas de transport controls, pas de drag/drop, pas de reorder, pas de coordonnees libres, pas de pathfinding, pas de runtime, pas de preview jouable.
+
+Preuve : tests core authoring/lane, tests widget Builder/Library, analyses ciblees et screenshot `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_50_cinematic_actor_movement_inspector_polish_target_labels_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-51 — Cinematic Timeline Time Axis / Bar Layout V0`.
+
+## Mise a jour V1-51
+
+Statut : `NS-SCENES-V1-51 — Cinematic Timeline Time Axis / Bar Layout V0` est DONE.
+
+Decision : V1-51 ajoute un read model temporel pur en `map_core`, puis l'utilise dans le Builder comme projection visuelle derivee. Les durees viennent de `durationMs` quand elles sont positives, sinon d'un fallback visuel 300 ms. Les barres utilisent `startMs/endMs` calcules depuis l'ordre lineaire et ne changent pas la source de verite.
+
+Scope realise : axe de temps, ticks adaptatifs, badges de resume, lanes derivees, barres horizontales proportionnelles, metadata compacte dans les barres, selection/inspecteur/actions preserves et capture Visual Gate en ratio 1663x926 pour respecter la reference.
+
+Limites : pas de drag/drop, resize, reorder, playhead fonctionnel, scrubber, transport playback, preview runtime, pathfinding, coordonnees libres, persistance `startMs/endMs` ou mutation du deroule lineaire.
+
+Preuve : tests core time layout/lane/library, tests widget Builder/Library, analyses ciblees, checks anti-scope et screenshot `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_51_cinematic_timeline_time_axis_bar_layout_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-52 — Cinematic Timeline Selection Cursor / Playhead Placeholder V0`.
 
 ## Selbrume golden slice
 

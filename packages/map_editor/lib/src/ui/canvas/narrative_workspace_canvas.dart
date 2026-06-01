@@ -1107,6 +1107,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onUpdateTimelineBasicBlock: _updateCinematicTimelineBasicBlock,
       onAddRequiredActor: _addCinematicRequiredActor,
       onAddMovementTarget: _addCinematicMovementTarget,
+      onUpdateMovementTarget: _updateCinematicMovementTarget,
+      onRemoveMovementTarget: _removeCinematicMovementTarget,
       onAddTimelineActorFacing: _addCinematicTimelineActorFacing,
       onUpdateTimelineActorFacing: _updateCinematicTimelineActorFacing,
       onAddTimelineActorMove: _addCinematicTimelineActorMove,
@@ -1354,6 +1356,58 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       return result.target.targetId;
     } on ArgumentError {
       return null;
+    }
+  }
+
+  Future<bool> _updateCinematicMovementTarget({
+    required String cinematicId,
+    required String targetId,
+    required String label,
+    String? description,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicMovementTarget(
+        project,
+        cinematicId: cinematicId,
+        targetId: targetId,
+        label: label,
+        description: description,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic movement target updated',
+      );
+      return result.target.targetId == targetId;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _removeCinematicMovementTarget({
+    required String cinematicId,
+    required String targetId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = removeCinematicMovementTarget(
+        project,
+        cinematicId: cinematicId,
+        targetId: targetId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic movement target removed',
+      );
+      return result.removedTarget.targetId == targetId;
+    } on ArgumentError {
+      return false;
     }
   }
 
