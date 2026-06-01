@@ -102,16 +102,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-45 — Cinematic Wait/Fade/Camera Basic Blocks V0 | DONE | Premiers vrais blocs Cinematic Builder V0 : Attente, Fondu et Camera basique authoring-owned, edition par presets/modes bornes, suppression protegee, sans runtime ni editeur de montage complet. |
 | NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0 | DONE | References acteur requises et bloc Orientation acteur V0 : ajout d'acteurs requis, bloc `actorFace` authoring-owned, picker acteur/direction, diagnostics acteur inconnu, sans mouvement ni runtime. |
 | NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract | DONE | Lot documentaire : contrat spatial/temporel/timeline du futur `actorMove` V0, options de cible comparees, diagnostics cadres, sans code produit ni package modifie. |
+| NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0 | DONE | Timeline par pistes derivees : read model pur `CinematicTimelineLaneReadModel`, lanes Camera/Acteurs/Dialogue/FX/Audio/Transitions/Temps/Autres, selection locale depuis lanes, Visual Gate, sans persistance de lane ni runtime. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0`
+`NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`
 
-Raison : V1-47 a montre que `actorMove` existe deja dans le modele mais qu'une vraie representation par lanes manque encore. Le prochain verrou logique est de grouper visuellement la timeline par lanes derivees, avant d'authorer un deplacement acteur.
+Raison : V1-48 a pose la projection par lanes sans drag/drop ni layout persistant. Le prochain verrou logique peut donc rendre `actorMove` authorable de facon bornee, sur lane acteur derivee, en respectant le contrat spatial/temporel decide en V1-47.
 
-Ordre apres V1-47 : `NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0`.
+Ordre apres V1-48 : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
@@ -342,6 +343,20 @@ Limites : aucun code Dart, aucun widget Flutter, aucun fichier `packages/`, aucu
 Preuve : rapport `reports/narrativeStudio/scenes/ns_scenes_v1_47_cinematic_actor_movement_block_v0_prep_contract.md`, roadmaps seules modifiees, `git diff --check` propre et checks anti-scope confirmant que `packages/`, runtime/gameplay/battle/examples restent intacts.
 
 Prochain lot exact : `NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0`.
+
+## Mise a jour V1-48
+
+Statut : `NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0` est DONE.
+
+Decision : la projection lane vit dans `map_core` comme read model pur, afin de devenir un contrat partage entre Builder, tests et futurs blocs cinematic. Les lanes sont derivees de `CinematicTimeline.steps` et `CinematicAsset.requiredActors`, jamais persistees dans le modele.
+
+Scope realise : `CinematicTimelineLaneReadModel`, lanes stables Camera, Acteurs requis, Dialogue, FX, Audio, Transitions, Temps / Global et Autres, actorId inconnu sans crash, index global preserve, Builder affiche `Timeline par pistes`, selectionne les blocs depuis les lanes, conserve inspecteur/preview/actions V1-45/V1-46 et garde `Déplacement acteur` verrouille.
+
+Limites : pas de lane persistante, pas de drag/drop, pas de reordonnancement, pas d'overlap temporel, pas de `actorMove` authorable, pas de preview runtime, pas de modification runtime/gameplay/battle/examples, pas de donnees Selbrume.
+
+Preuve : tests core `cinematic_timeline_lane_read_model_test.dart` et `cinematics_library_read_model_test.dart`, `dart analyze` map_core, tests widget Builder/Library, analyze editor cible, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_48_cinematic_timeline_lane_grouping_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`.
 
 ## Mise a jour V1-30-bis
 

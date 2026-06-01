@@ -816,6 +816,10 @@ class _TimelinePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final timeline = entry.timeline;
     final steps = asset.timeline.steps;
+    final laneReadModel = buildCinematicTimelineLaneReadModel(asset);
+    final stepsById = {
+      for (final step in steps) step.id: step,
+    };
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-timeline-placeholder'),
       expandChild: true,
@@ -829,8 +833,8 @@ class _TimelinePlaceholder extends StatelessWidget {
               children: [
                 const Expanded(
                   child: _SectionTitle(
-                    title: 'Déroulé read-only',
-                    subtitle: 'Steps existants et brouillons contrôlés',
+                    title: 'Timeline par pistes',
+                    subtitle: 'Projection visuelle dérivée du déroulé linéaire',
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -860,35 +864,118 @@ class _TimelinePlaceholder extends StatelessWidget {
                   label: _durationLabel(timeline),
                   variant: PokeMapBadgeVariant.neutral,
                 ),
-                if (timeline.actorIds.isEmpty)
-                  const PokeMapBadge(
-                    label: 'Aucun acteur',
-                    variant: PokeMapBadgeVariant.neutral,
-                  )
-                else
-                  for (final actorId in timeline.actorIds)
-                    PokeMapBadge(
-                      label: actorId,
-                      variant: PokeMapBadgeVariant.narrative,
-                    ),
+                PokeMapBadge(
+                  label: '${laneReadModel.laneCount} piste(s)',
+                  variant: PokeMapBadgeVariant.narrative,
+                ),
+                const PokeMapBadge(
+                  label: 'Ordre linéaire conservé',
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
               ],
             ),
             const SizedBox(height: 10),
             if (steps.isEmpty)
               const _EmptyTimelineState()
             else
-              for (final indexedStep in steps.asMap().entries) ...[
-                _TimelineStepCard(
+              for (final lane in laneReadModel.lanes) ...[
+                _TimelineLaneGroup(
                   asset: asset,
-                  step: indexedStep.value,
-                  index: indexedStep.key,
-                  selected: selectedStepId == indexedStep.value.id,
-                  onTap: () => onStepSelected(indexedStep.value),
+                  lane: lane,
+                  stepsById: stepsById,
+                  selectedStepId: selectedStepId,
+                  onStepSelected: onStepSelected,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
               ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TimelineLaneGroup extends StatelessWidget {
+  const _TimelineLaneGroup({
+    required this.asset,
+    required this.lane,
+    required this.stepsById,
+    required this.selectedStepId,
+    required this.onStepSelected,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineLane lane;
+  final Map<String, CinematicTimelineStep> stepsById;
+  final String? selectedStepId;
+  final ValueChanged<CinematicTimelineStep> onStepSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Container(
+      key: ValueKey('cinematic-builder-lane-${lane.laneId}'),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: colors.surfaceSubtle,
+        border: Border.all(color: colors.borderSubtle),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _laneIcon(lane.laneKind),
+                size: 15,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(child: _StrongText(lane.label)),
+              const SizedBox(width: 8),
+              PokeMapBadge(
+                label: '${lane.steps.length} step(s)',
+                variant: lane.steps.isEmpty
+                    ? PokeMapBadgeVariant.neutral
+                    : PokeMapBadgeVariant.info,
+              ),
+              if (lane.actorId != null) ...[
+                const SizedBox(width: 6),
+                PokeMapBadge(
+                  label: lane.actorId!,
+                  variant: PokeMapBadgeVariant.narrative,
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (lane.steps.isEmpty)
+            const _MutedText('Aucun step dans cette piste.')
+          else
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final laneStep in lane.steps) ...[
+                    SizedBox(
+                      width: 280,
+                      child: _TimelineStepCard(
+                        asset: asset,
+                        step: stepsById[laneStep.stepId]!,
+                        index: laneStep.stepIndex,
+                        selected: selectedStepId == laneStep.stepId,
+                        onTap: () =>
+                            onStepSelected(stepsById[laneStep.stepId]!),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -932,32 +1019,34 @@ class _TimelineStepCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(child: _StrongText(_stepTitle(step, index))),
-              const SizedBox(width: 8),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
               if (isDraft) ...[
                 const PokeMapBadge(
                   label: 'Brouillon',
                   variant: PokeMapBadgeVariant.warning,
                 ),
-                const SizedBox(width: 6),
               ],
               if (basicBlockKind != null) ...[
                 const PokeMapBadge(
                   label: 'Builder V0',
                   variant: PokeMapBadgeVariant.success,
                 ),
-                const SizedBox(width: 6),
               ],
               PokeMapBadge(
                 label: step.kind.name,
                 variant: PokeMapBadgeVariant.narrative,
               ),
-              if (selected) ...[
-                const SizedBox(width: 6),
+              if (selected)
                 const PokeMapBadge(
                   label: 'Sélectionné',
                   variant: PokeMapBadgeVariant.info,
                 ),
-              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -1018,7 +1107,7 @@ class _EmptyTimelineState extends StatelessWidget {
       children: [
         _SectionTitle(
           title: 'Timeline vide',
-          subtitle: 'Déroulé read-only',
+          subtitle: 'Timeline par pistes',
         ),
         SizedBox(height: 10),
         _BodyText('Cette cinématique ne contient encore aucun bloc.'),
@@ -1936,6 +2025,19 @@ IconData _actorDirectionIcon(CinematicTimelineActorFacingDirection direction) {
     CinematicTimelineActorFacingDirection.down => CupertinoIcons.arrow_down,
     CinematicTimelineActorFacingDirection.left => CupertinoIcons.arrow_left,
     CinematicTimelineActorFacingDirection.right => CupertinoIcons.arrow_right,
+  };
+}
+
+IconData _laneIcon(CinematicTimelineLaneKind laneKind) {
+  return switch (laneKind) {
+    CinematicTimelineLaneKind.camera => CupertinoIcons.video_camera,
+    CinematicTimelineLaneKind.actor => CupertinoIcons.person_crop_square,
+    CinematicTimelineLaneKind.dialogue => CupertinoIcons.text_bubble,
+    CinematicTimelineLaneKind.fx => CupertinoIcons.sparkles,
+    CinematicTimelineLaneKind.audio => CupertinoIcons.speaker_2,
+    CinematicTimelineLaneKind.transitions => CupertinoIcons.layers_alt,
+    CinematicTimelineLaneKind.timeGlobal => CupertinoIcons.timer,
+    CinematicTimelineLaneKind.other => CupertinoIcons.question_circle,
   };
 }
 

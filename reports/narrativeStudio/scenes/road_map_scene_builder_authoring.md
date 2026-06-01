@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0
+NS-SCENES-V1-49 — Cinematic Actor Movement Block V0
 ```
 
 ## Principes
@@ -81,6 +81,7 @@ NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0
 | NS-SCENES-V1-45 | Cinematic Wait/Fade/Camera Basic Blocks V0 | core / editor | Activer les premiers blocs metier simples du Cinematic Builder : Attente, Fondu et Camera basique. | Pas de deplacement acteur, pas de dialogue, pas de FX/Son, pas de preview runtime, pas de reordonnancement, pas de changement schema. | operations cinematic authoring, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : add/update/remove authoring-owned, presets duree, modes fade/camera, protections non-owned, visual gate, analyses. | Transformer les metadata authoring en API runtime ; ouvrir trop tot des cibles acteur/map. | DONE : blocs V0 bornes, canonical-only preserve, aucun runtime modifie. | V1-44. |
 | NS-SCENES-V1-46 | Cinematic Actor References / Actor Facing V0 | core / editor | Ajouter les references acteur requises et un bloc Orientation acteur V0 dans le Cinematic Builder. | Pas de deplacement acteur, pas de chemin/pathfinding, pas de timeline multi-track, pas de drag/drop, pas de preview runtime, pas de dialogue/FX/Son. | operations cinematic authoring, diagnostics cinematic, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : acteurs requis, bloc `actorFace`, picker acteur, direction up/down/left/right, diagnostics acteur inconnu, visual gate, analyses. | Confondre orientation et mouvement ; exposer des ids acteur comme workflow principal ; ouvrir trop tot runtime/player. | DONE : actor refs et facing bornes, canonical-only preserve, aucun runtime modifie. | V1-45. |
 | NS-SCENES-V1-47 | Cinematic Actor Movement Block V0 Prep / Contract | doc-only / architecture-review | Definir le contrat du futur bloc `actorMove` avant authoring : acteur, cible, duree, movementMode, pathMode, lane, diagnostics et frontieres runtime. | Pas de code Dart, pas de widget, pas de package modifie, pas de schema JSON, pas de actorMove authorable, pas de preview runtime. | rapport V1-47, roadmaps. | DONE : contrat V0, options target comparees, diagnostics cadres, roadmap post V1-47, checks anti-scope. | Coder actorMove trop tot ; creer une position libre non diagnostiquable ; lier le mouvement a un runtime implicite. | DONE : actorMove cadre sans implementation, prochain verrou lane grouping retenu. | V1-46. |
+| NS-SCENES-V1-48 | Cinematic Timeline Lane Grouping V0 | core / editor | Transformer le deroule du Cinematic Builder en timeline par pistes derivees et testees. | Pas de lane persistante, pas de drag/drop, pas de reordonnancement, pas de `actorMove` authorable, pas de preview runtime. | `cinematic_timeline_lane_read_model.dart`, Builder cinematics, tests core/widget, rapport, screenshot. | DONE : lanes Camera/Acteurs/Dialogue/FX/Audio/Transitions/Temps/Autres, selection depuis lane, actions existantes preservees, Visual Gate, analyses. | Faire croire a un vrai multi-track parallele ; stocker un layout de lanes ; ouvrir actorMove trop tot. | DONE : timeline lisible comme pistes sans augmenter la puissance runtime/editor. | V1-47. |
 
 ## Options comparees
 
@@ -754,6 +755,20 @@ Limites : pas de fichiers `packages/` modifies, pas de build_runner, pas de widg
 Preuve : rapport V1-47, roadmaps seules, checks anti-scope et `git diff --check`.
 
 Prochain lot exact : `NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0`.
+
+## Mise a jour V1-48
+
+Statut : `NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0` est DONE.
+
+Decision : la projection par lanes est un read model pur `map_core`, pas une construction locale seulement editor. Elle expose lanes, steps, `stepIndex`, labels acteur, badges et statut authoring-owned sans muter `CinematicAsset`.
+
+Scope realise : le Builder remplace le libelle `Déroulé read-only` par `Timeline par pistes`, affiche les lanes derivees, conserve l'ordre lineaire via index global, selectionne un bloc depuis une lane, synchronise inspecteur et preview placeholder, garde Attente/Fondu/Camera/Orientation acteur fonctionnels et laisse `Déplacement acteur` verrouille.
+
+Limites : lanes derivees et non persistees, pas de multi-track reel, pas de drag/drop, pas de reorder, pas d'overlap, pas de actorMove authorable, pas de runtime, pas de donnees produit.
+
+Preuve : test core lane read model, non-regression Library read model, tests widget Builder/Library, analyse `map_core`, analyse editor ciblee et Visual Gate `ns_scenes_v1_48_cinematic_timeline_lane_grouping_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`.
 
 ## Selbrume golden slice
 

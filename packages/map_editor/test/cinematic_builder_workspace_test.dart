@@ -38,13 +38,17 @@ void main() {
       'Fondu',
       'Attente',
     ]) {
-      expect(find.text(label), findsOneWidget);
+      expect(find.text(label), findsWidgets);
     }
 
     expect(find.text('Aperçu sandbox'), findsOneWidget);
-    expect(find.text('Déroulé read-only'), findsOneWidget);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Projection visuelle dérivée du déroulé linéaire'),
+        findsOneWidget);
     expect(find.text('2 step(s)'), findsWidgets);
     expect(find.text('750 ms estimé(s)'), findsWidgets);
+    expect(find.text('8 piste(s)'), findsOneWidget);
+    expect(find.text('Ordre linéaire conservé'), findsOneWidget);
     expect(find.text('Camera reveal'), findsWidgets);
     expect(find.text('Professor reacts'), findsWidgets);
     expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
@@ -78,7 +82,21 @@ void main() {
       asset: _asset(project, 'cinematic_rich'),
     );
 
-    expect(find.text('Déroulé read-only'), findsOneWidget);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.byKey(const ValueKey('cinematic-builder-lane-camera')),
+        findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-lane-actor:actor_professor'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('cinematic-builder-lane-dialogue')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('cinematic-builder-lane-audio')),
+        findsOneWidget);
+    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Aucun step dans cette piste.'), findsWidgets);
     expect(find.text('1'), findsOneWidget);
     expect(find.text('Camera to door'), findsWidgets);
     expect(find.text('camera'), findsWidgets);
@@ -151,6 +169,60 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets('shows lane grouping V0 without enabling actor movement',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_laneShowcaseCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_lane_showcase'),
+      asset: _asset(project, 'cinematic_lane_showcase'),
+    );
+
+    for (final key in <String>[
+      'cinematic-builder-lane-camera',
+      'cinematic-builder-lane-actor:actor_professor',
+      'cinematic-builder-lane-actor:actor_rival',
+      'cinematic-builder-lane-dialogue',
+      'cinematic-builder-lane-fx',
+      'cinematic-builder-lane-audio',
+      'cinematic-builder-lane-transitions',
+      'cinematic-builder-lane-time-global',
+      'cinematic-builder-lane-other',
+    ]) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
+
+    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Acteur: Rival'), findsWidgets);
+    expect(find.text('Aucun step dans cette piste.'), findsWidgets);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('9 piste(s)'), findsOneWidget);
+    expect(find.text('Déplacement acteur'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-palette-actorMove-button')),
+      findsNothing,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    await tester.pumpAndSettle();
+
+    final selectedFaceCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    expect(selectedFaceCard.selected, isTrue);
+    expect(find.text('Bloc sélectionné'), findsWidgets);
+    expect(find.text('step_face'), findsWidgets);
+    expect(find.text('Direction'), findsWidgets);
+    expect(project.toJson(), before);
+  });
+
   testWidgets('shows step diagnostics without enabling timeline changes',
       (tester) async {
     _setLargeSurface(tester);
@@ -204,9 +276,10 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
     );
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
-    );
+    final addDraftButton =
+        find.byKey(const ValueKey('cinematic-builder-add-draft-button'));
+    await tester.ensureVisible(addDraftButton);
+    await tester.tap(addDraftButton);
     await tester.pumpAndSettle();
 
     expect(find.text('Bloc brouillon'), findsWidgets);
@@ -249,9 +322,10 @@ void main() {
       onProjectChanged: (project) => latestProject = project,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-step-card-step_camera')),
-    );
+    final cameraStepCard =
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_camera'));
+    await tester.ensureVisible(cameraStepCard);
+    await tester.tap(cameraStepCard);
     await tester.pumpAndSettle();
     expect(
       find.byKey(
@@ -260,9 +334,15 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
+    await tester.drag(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+      const Offset(0, 500),
     );
+    await tester.pumpAndSettle();
+    final addDraftButton =
+        find.byKey(const ValueKey('cinematic-builder-add-draft-button'));
+    await tester.ensureVisible(addDraftButton);
+    await tester.tap(addDraftButton);
     await tester.pumpAndSettle();
     expect(find.text('Bloc brouillon'), findsWidgets);
     await tester.tap(
@@ -681,6 +761,47 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('captures V1-48 builder lane grouping screenshot when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_48_CAPTURE_CINEMATIC_TIMELINE_LANES',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_laneVisualGateCinematic()]),
+      'cinematic_lane_visual_gate',
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+      const Offset(0, 260),
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_48_cinematic_timeline_lane_grouping_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -968,6 +1089,146 @@ CinematicAsset _actorFacingCinematic() {
           id: 'step_wait',
           kind: CinematicTimelineStepKind.wait,
           label: 'Opening wait',
+          durationMs: 500,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _laneShowcaseCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_lane_showcase',
+    title: 'Lane showcase cinematic',
+    description: 'Neutral fixture for lane grouping.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera pan',
+          durationMs: 400,
+        ),
+        CinematicTimelineStep(
+          id: 'step_face',
+          kind: CinematicTimelineStepKind.actorFace,
+          label: 'Professor turns',
+          durationMs: 300,
+          actorId: 'actor_professor',
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorFaceBlockMetadataValue,
+            cinematicTimelineActorDirectionMetadataKey: 'right',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_dialogue',
+          kind: CinematicTimelineStepKind.dialogueLine,
+          label: 'Professor line',
+          durationMs: 900,
+          actorId: 'actor_professor',
+          dialogueText: 'Tout est prêt.',
+        ),
+        CinematicTimelineStep(
+          id: 'step_fx',
+          kind: CinematicTimelineStepKind.fx,
+          label: 'Sparkle',
+          durationMs: 250,
+          assetRef: 'sparkle_fx',
+        ),
+        CinematicTimelineStep(
+          id: 'step_sound',
+          kind: CinematicTimelineStepKind.sound,
+          label: 'Cue bell',
+          durationMs: 200,
+          assetRef: 'cue_bell',
+        ),
+        CinematicTimelineStep(
+          id: 'step_fade',
+          kind: CinematicTimelineStepKind.fade,
+          label: 'Fade out',
+          durationMs: 600,
+        ),
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Beat',
+          durationMs: 500,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _laneVisualGateCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_lane_visual_gate',
+    title: 'Lane visual gate cinematic',
+    description: 'Neutral fixture for lane grouping screenshot.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_face',
+          kind: CinematicTimelineStepKind.actorFace,
+          label: 'Professor turns',
+          durationMs: 300,
+          actorId: 'actor_professor',
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorFaceBlockMetadataValue,
+            cinematicTimelineActorDirectionMetadataKey: 'right',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_dialogue',
+          kind: CinematicTimelineStepKind.dialogueLine,
+          label: 'Professor line',
+          durationMs: 900,
+          actorId: 'actor_professor',
+          dialogueText: 'Tout est prêt.',
+        ),
+        CinematicTimelineStep(
+          id: 'step_fx',
+          kind: CinematicTimelineStepKind.fx,
+          label: 'Sparkle',
+          durationMs: 250,
+          assetRef: 'sparkle_fx',
+        ),
+        CinematicTimelineStep(
+          id: 'step_sound',
+          kind: CinematicTimelineStepKind.sound,
+          label: 'Cue bell',
+          durationMs: 200,
+          assetRef: 'cue_bell',
+        ),
+        CinematicTimelineStep(
+          id: 'step_fade',
+          kind: CinematicTimelineStepKind.fade,
+          label: 'Fade out',
+          durationMs: 600,
+        ),
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Beat',
           durationMs: 500,
         ),
       ],
