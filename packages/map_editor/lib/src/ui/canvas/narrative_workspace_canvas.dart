@@ -1101,6 +1101,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onCreateCinematicShell: _createCinematicShell,
       onUpdateCinematicMetadata: _updateCinematicMetadata,
       onRemoveCinematic: _removeCinematic,
+      onAddTimelineDraft: _addCinematicTimelineDraft,
+      onRemoveTimelineDraft: _removeCinematicTimelineDraft,
       onOpenLegacyCutsceneStudio: () {
         setState(() => _showLegacyCutsceneStudio = true);
       },
@@ -1188,6 +1190,54 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,
         statusMessage: 'CinematicAsset removed',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<String?> _addCinematicTimelineDraft({
+    required String cinematicId,
+    String? afterStepId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    try {
+      final result = addCinematicTimelineDraftStep(
+        project,
+        cinematicId: cinematicId,
+        afterStepId: afterStepId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic timeline draft created',
+      );
+      return result.step.id;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<bool> _removeCinematicTimelineDraft({
+    required String cinematicId,
+    required String stepId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = removeCinematicTimelineDraftStep(
+        project,
+        cinematicId: cinematicId,
+        stepId: stepId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic timeline draft removed',
       );
       return true;
     } on ArgumentError {

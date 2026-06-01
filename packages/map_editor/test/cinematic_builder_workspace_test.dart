@@ -182,6 +182,101 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets('adds a safe draft after selected step and inspects it',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(cinematics: [_richCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_rich',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bloc brouillon'), findsWidgets);
+    expect(find.text('Brouillon'), findsWidgets);
+    expect(find.text('marker'), findsWidgets);
+    expect(find.text('Statut'), findsWidgets);
+    expect(find.text('Placeholder authoring'), findsOneWidget);
+    expect(
+      find.text(
+        'Ce bloc est un placeholder authoring. '
+        'Les vrais blocs arrivent dans un lot futur.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+        find.text(
+            'authoring.kind = draft, authoring.source = cinematic-builder-v0'),
+        findsOneWidget);
+    final selectedDraftCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_draft')),
+    );
+    expect(selectedDraftCard.selected, isTrue);
+    expect(
+      latestProject.cinematics.single.timeline.steps.map((step) => step.id),
+      ['step_camera', 'step_dialogue', 'step_draft', 'step_sound'],
+    );
+    expect(latestProject.scenes, project.scenes);
+    expect(latestProject.scenarios, project.scenarios);
+  });
+
+  testWidgets('removes only the selected draft from the builder',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(cinematics: [_richCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_rich',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_camera')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-remove-draft-button')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Bloc brouillon'), findsWidgets);
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-remove-draft-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cinematic-builder-step-card-step_draft')),
+        findsNothing);
+    expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
+    expect(
+      latestProject.cinematics.single.timeline.steps.map((step) => step.id),
+      ['step_camera', 'step_dialogue', 'step_sound'],
+    );
+  });
+
   testWidgets('shows empty timeline state without authoring controls',
       (tester) async {
     _setLargeSurface(tester);
@@ -266,6 +361,39 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('captures V1-44 builder draft screenshot when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_44_CAPTURE_CINEMATIC_BUILDER_DRAFTS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_richCinematic()]),
+      'cinematic_rich',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_44_cinematic_timeline_authoring_drafts_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -286,6 +414,16 @@ Future<void> _pumpBuilder(
               entry: entry,
               asset: asset,
               onBackToLibrary: onBackToLibrary ?? () {},
+              onAddDraftStep: ({
+                required String cinematicId,
+                String? afterStepId,
+              }) async =>
+                  null,
+              onRemoveDraftStep: ({
+                required String cinematicId,
+                required String stepId,
+              }) async =>
+                  false,
             ),
           ),
         ),
@@ -293,6 +431,93 @@ Future<void> _pumpBuilder(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<void> _pumpBuilderHarness(
+  WidgetTester tester,
+  ProjectManifest project,
+  String cinematicId, {
+  ValueChanged<ProjectManifest>? onProjectChanged,
+}) async {
+  await tester.pumpWidget(
+    _BuilderHarness(
+      project: project,
+      cinematicId: cinematicId,
+      onProjectChanged: onProjectChanged,
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+class _BuilderHarness extends StatefulWidget {
+  const _BuilderHarness({
+    required this.project,
+    required this.cinematicId,
+    this.onProjectChanged,
+  });
+
+  final ProjectManifest project;
+  final String cinematicId;
+  final ValueChanged<ProjectManifest>? onProjectChanged;
+
+  @override
+  State<_BuilderHarness> createState() => _BuilderHarnessState();
+}
+
+class _BuilderHarnessState extends State<_BuilderHarness> {
+  late ProjectManifest _project = widget.project;
+
+  @override
+  Widget build(BuildContext context) {
+    final entry = _entry(_project, widget.cinematicId);
+    final asset = _asset(_project, widget.cinematicId);
+    return MacosTheme(
+      data: MacosThemeData.dark(),
+      child: MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 1280,
+            height: 860,
+            child: CinematicBuilderWorkspace(
+              entry: entry,
+              asset: asset,
+              onBackToLibrary: () {},
+              onAddDraftStep: _addDraftStep,
+              onRemoveDraftStep: _removeDraftStep,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _addDraftStep({
+    required String cinematicId,
+    String? afterStepId,
+  }) async {
+    final result = addCinematicTimelineDraftStep(
+      _project,
+      cinematicId: cinematicId,
+      afterStepId: afterStepId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id;
+  }
+
+  Future<bool> _removeDraftStep({
+    required String cinematicId,
+    required String stepId,
+  }) async {
+    final result = removeCinematicTimelineDraftStep(
+      _project,
+      cinematicId: cinematicId,
+      stepId: stepId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
 }
 
 CinematicAsset _asset(ProjectManifest project, String id) {

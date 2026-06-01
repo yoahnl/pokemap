@@ -22,6 +22,35 @@ final class CinematicAssetRemovalResult {
   final CinematicAsset removedCinematic;
 }
 
+final class CinematicTimelineDraftStepResult {
+  const CinematicTimelineDraftStepResult({
+    required this.updatedProject,
+    required this.cinematic,
+    required this.step,
+  });
+
+  final ProjectManifest updatedProject;
+  final CinematicAsset cinematic;
+  final CinematicTimelineStep step;
+}
+
+final class CinematicTimelineDraftStepRemovalResult {
+  const CinematicTimelineDraftStepRemovalResult({
+    required this.updatedProject,
+    required this.cinematic,
+    required this.removedStep,
+  });
+
+  final ProjectManifest updatedProject;
+  final CinematicAsset cinematic;
+  final CinematicTimelineStep removedStep;
+}
+
+const cinematicTimelineDraftMetadataKindKey = 'authoring.kind';
+const cinematicTimelineDraftMetadataKindValue = 'draft';
+const cinematicTimelineDraftMetadataSourceKey = 'authoring.source';
+const cinematicTimelineDraftMetadataSourceValue = 'cinematic-builder-v0';
+
 CinematicAssetAuthoringResult addCinematicAsset(
   ProjectManifest project,
   CinematicAsset cinematic,
@@ -133,6 +162,103 @@ CinematicAsset? findCinematicById(
   return null;
 }
 
+CinematicTimelineDraftStepResult addCinematicTimelineDraftStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  String? afterStepId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final steps = cinematic.timeline.steps.toList();
+  final trimmedAfterStepId = afterStepId?.trim();
+  var insertIndex = steps.length;
+  if (trimmedAfterStepId != null && trimmedAfterStepId.isNotEmpty) {
+    final selectedIndex =
+        steps.indexWhere((step) => step.id == trimmedAfterStepId);
+    if (selectedIndex == -1) {
+      throw ArgumentError.value(
+        afterStepId,
+        'afterStepId',
+        'Draft insertion references an unknown timeline step.',
+      );
+    }
+    insertIndex = selectedIndex + 1;
+  }
+
+  final draft = CinematicTimelineStep(
+    id: _nextDraftStepId(cinematic),
+    kind: CinematicTimelineStepKind.marker,
+    label: 'Bloc brouillon',
+    metadata: const {
+      cinematicTimelineDraftMetadataKindKey:
+          cinematicTimelineDraftMetadataKindValue,
+      cinematicTimelineDraftMetadataSourceKey:
+          cinematicTimelineDraftMetadataSourceValue,
+    },
+  );
+  steps.insert(insertIndex, draft);
+
+  final updatedCinematic = _copyCinematicWithTimeline(
+    cinematic,
+    CinematicTimeline(steps: steps),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicTimelineDraftStepResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: draft,
+  );
+}
+
+CinematicTimelineDraftStepRemovalResult removeCinematicTimelineDraftStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String stepId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final id = _trimRequired(
+    stepId,
+    'stepId',
+    'Draft removal requires a timeline step id.',
+  );
+  final steps = cinematic.timeline.steps.toList();
+  final index = steps.indexWhere((step) => step.id == id);
+  if (index == -1) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'Draft removal references an unknown timeline step.',
+    );
+  }
+  final removedStep = steps[index];
+  if (!isCinematicTimelineDraftStep(removedStep)) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'Only authoring draft timeline steps can be removed here.',
+    );
+  }
+  steps.removeAt(index);
+
+  final updatedCinematic = _copyCinematicWithTimeline(
+    cinematic,
+    CinematicTimeline(steps: steps),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicTimelineDraftStepRemovalResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    removedStep: removedStep,
+  );
+}
+
+bool isCinematicTimelineDraftStep(CinematicTimelineStep step) {
+  return step.kind == CinematicTimelineStepKind.marker &&
+      step.metadata[cinematicTimelineDraftMetadataKindKey] ==
+          cinematicTimelineDraftMetadataKindValue &&
+      step.metadata[cinematicTimelineDraftMetadataSourceKey] ==
+          cinematicTimelineDraftMetadataSourceValue;
+}
+
 void _validateCinematics(List<CinematicAsset> cinematics) {
   final ids = <String>{};
   for (final cinematic in cinematics) {
@@ -168,6 +294,59 @@ void _throwIfDuplicateId(String id, Iterable<String> existingIds) {
       'Duplicate CinematicAsset id.',
     );
   }
+}
+
+CinematicAsset _requireCinematic(
+  ProjectManifest project,
+  String cinematicId,
+) {
+  final id = _trimRequired(
+    cinematicId,
+    'cinematicId',
+    'Timeline draft authoring requires a cinematic id.',
+  );
+  final cinematic = findCinematicById(project, id);
+  if (cinematic == null) {
+    throw ArgumentError.value(
+      cinematicId,
+      'cinematicId',
+      'Timeline draft authoring references an unknown cinematic.',
+    );
+  }
+  return cinematic;
+}
+
+CinematicAsset _copyCinematicWithTimeline(
+  CinematicAsset cinematic,
+  CinematicTimeline timeline,
+) {
+  return CinematicAsset(
+    id: cinematic.id,
+    title: cinematic.title,
+    description: cinematic.description,
+    storylineId: cinematic.storylineId,
+    chapterId: cinematic.chapterId,
+    mapId: cinematic.mapId,
+    tags: cinematic.tags,
+    requiredActors: cinematic.requiredActors,
+    timeline: timeline,
+    notes: cinematic.notes,
+    metadata: cinematic.metadata,
+    legacyBridge: cinematic.legacyBridge,
+  );
+}
+
+String _nextDraftStepId(CinematicAsset cinematic) {
+  final existingIds = cinematic.timeline.steps.map((step) => step.id).toSet();
+  const base = 'step_draft';
+  if (!existingIds.contains(base)) {
+    return base;
+  }
+  var index = 2;
+  while (existingIds.contains('${base}_$index')) {
+    index++;
+  }
+  return '${base}_$index';
 }
 
 List<String> _sceneIdsReferencingCinematic(

@@ -5,17 +5,31 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
+typedef AddCinematicDraftStepCallback = Future<String?> Function({
+  required String cinematicId,
+  String? afterStepId,
+});
+
+typedef RemoveCinematicDraftStepCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+});
+
 class CinematicBuilderWorkspace extends StatefulWidget {
   const CinematicBuilderWorkspace({
     super.key,
     required this.entry,
     required this.asset,
     required this.onBackToLibrary,
+    required this.onAddDraftStep,
+    required this.onRemoveDraftStep,
   });
 
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final VoidCallback onBackToLibrary;
+  final AddCinematicDraftStepCallback onAddDraftStep;
+  final RemoveCinematicDraftStepCallback onRemoveDraftStep;
 
   @override
   State<CinematicBuilderWorkspace> createState() =>
@@ -82,6 +96,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                             onStepSelected: (step) {
                               setState(() => _selectedStepId = step.id);
                             },
+                            onAddDraftStep: _addDraftStep,
                           ),
                         ),
                       ],
@@ -95,6 +110,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       asset: widget.asset,
                       selectedStep: selectedStep,
                       selectedStepIndex: selectedStepIndex,
+                      onRemoveDraftStep: _removeDraftStep,
                     ),
                   ),
                 ],
@@ -104,6 +120,31 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
         ),
       ),
     );
+  }
+
+  Future<void> _addDraftStep() async {
+    final createdStepId = await widget.onAddDraftStep(
+      cinematicId: widget.asset.id,
+      afterStepId: _selectedStepId,
+    );
+    if (!mounted || createdStepId == null) {
+      return;
+    }
+    setState(() => _selectedStepId = createdStepId);
+  }
+
+  Future<void> _removeDraftStep(CinematicTimelineStep step) async {
+    if (!isCinematicTimelineDraftStep(step)) {
+      return;
+    }
+    final removed = await widget.onRemoveDraftStep(
+      cinematicId: widget.asset.id,
+      stepId: step.id,
+    );
+    if (!mounted || !removed) {
+      return;
+    }
+    setState(() => _selectedStepId = null);
   }
 }
 
@@ -445,12 +486,14 @@ class _TimelinePlaceholder extends StatelessWidget {
     required this.asset,
     required this.selectedStepId,
     required this.onStepSelected,
+    required this.onAddDraftStep,
   });
 
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final String? selectedStepId;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
+  final VoidCallback onAddDraftStep;
 
   @override
   Widget build(BuildContext context) {
@@ -460,56 +503,76 @@ class _TimelinePlaceholder extends StatelessWidget {
       key: const ValueKey('cinematic-builder-timeline-placeholder'),
       expandChild: true,
       padding: const EdgeInsets.all(12),
-      child: steps.isEmpty
-          ? const _EmptyTimelineState()
-          : SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _SectionTitle(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Expanded(
+                  child: _SectionTitle(
                     title: 'Déroulé read-only',
-                    subtitle: 'Steps existants dans l’ordre',
+                    subtitle: 'Steps existants et brouillons contrôlés',
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      PokeMapBadge(
-                        label: '${timeline.stepCount} step(s)',
-                        variant: PokeMapBadgeVariant.info,
-                      ),
-                      PokeMapBadge(
-                        label: _durationLabel(timeline),
-                        variant: PokeMapBadgeVariant.neutral,
-                      ),
-                      if (timeline.actorIds.isEmpty)
-                        const PokeMapBadge(
-                          label: 'Aucun acteur',
-                          variant: PokeMapBadgeVariant.neutral,
-                        )
-                      else
-                        for (final actorId in timeline.actorIds)
-                          PokeMapBadge(
-                            label: actorId,
-                            variant: PokeMapBadgeVariant.narrative,
-                          ),
-                    ],
+                ),
+                const SizedBox(width: 8),
+                _HeaderAction(
+                  label: 'Ajouter un brouillon',
+                  button: PokeMapButton(
+                    key: const ValueKey('cinematic-builder-add-draft-button'),
+                    onPressed: onAddDraftStep,
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.plus),
+                    child: const SizedBox.shrink(),
                   ),
-                  const SizedBox(height: 10),
-                  for (final indexedStep in steps.asMap().entries) ...[
-                    _TimelineStepCard(
-                      asset: asset,
-                      step: indexedStep.value,
-                      index: indexedStep.key,
-                      selected: selectedStepId == indexedStep.value.id,
-                      onTap: () => onStepSelected(indexedStep.value),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                PokeMapBadge(
+                  label: '${timeline.stepCount} step(s)',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+                PokeMapBadge(
+                  label: _durationLabel(timeline),
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
+                if (timeline.actorIds.isEmpty)
+                  const PokeMapBadge(
+                    label: 'Aucun acteur',
+                    variant: PokeMapBadgeVariant.neutral,
+                  )
+                else
+                  for (final actorId in timeline.actorIds)
+                    PokeMapBadge(
+                      label: actorId,
+                      variant: PokeMapBadgeVariant.narrative,
+                    ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (steps.isEmpty)
+              const _EmptyTimelineState()
+            else
+              for (final indexedStep in steps.asMap().entries) ...[
+                _TimelineStepCard(
+                  asset: asset,
+                  step: indexedStep.value,
+                  index: indexedStep.key,
+                  selected: selectedStepId == indexedStep.value.id,
+                  onTap: () => onStepSelected(indexedStep.value),
+                ),
+                const SizedBox(height: 8),
+              ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -532,6 +595,7 @@ class _TimelineStepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final diagnostics = _stepDiagnostics(asset, step);
+    final isDraft = isCinematicTimelineDraftStep(step);
     return PokeMapCard(
       key: ValueKey('cinematic-builder-step-card-${step.id}'),
       selected: selected,
@@ -551,6 +615,13 @@ class _TimelineStepCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(child: _StrongText(_stepTitle(step, index))),
               const SizedBox(width: 8),
+              if (isDraft) ...[
+                const PokeMapBadge(
+                  label: 'Brouillon',
+                  variant: PokeMapBadgeVariant.warning,
+                ),
+                const SizedBox(width: 6),
+              ],
               PokeMapBadge(
                 label: step.kind.name,
                 variant: PokeMapBadgeVariant.narrative,
@@ -629,12 +700,14 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.asset,
     required this.selectedStep,
     required this.selectedStepIndex,
+    required this.onRemoveDraftStep,
   });
 
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
+  final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
 
   @override
   Widget build(BuildContext context) {
@@ -660,6 +733,7 @@ class _InspectorPlaceholder extends StatelessWidget {
                 asset: asset,
                 step: selected,
                 index: selectedIndex,
+                onRemoveDraftStep: onRemoveDraftStep,
               ),
             const SizedBox(height: 12),
             const _SectionTitle(
@@ -712,15 +786,18 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.asset,
     required this.step,
     required this.index,
+    required this.onRemoveDraftStep,
   });
 
   final CinematicAsset asset;
   final CinematicTimelineStep step;
   final int index;
+  final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
 
   @override
   Widget build(BuildContext context) {
     final diagnostics = _stepDiagnostics(asset, step);
+    final isDraft = isCinematicTimelineDraftStep(step);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -742,6 +819,28 @@ class _SelectedStepInspector extends StatelessWidget {
         ),
         _KeyValue(label: 'Asset', value: step.assetRef ?? 'Aucun assetRef'),
         _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
+        if (isDraft) ...[
+          const _KeyValue(
+            label: 'Statut',
+            value: 'Placeholder authoring',
+          ),
+          const _BodyText(
+            'Ce bloc est un placeholder authoring. '
+            'Les vrais blocs arrivent dans un lot futur.',
+          ),
+          const SizedBox(height: 8),
+          PokeMapButton(
+            key: const ValueKey('cinematic-builder-remove-draft-button'),
+            onPressed: () => onRemoveDraftStep(step),
+            variant: PokeMapButtonVariant.danger,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.trash),
+            child: const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 4),
+          const _MutedText('Supprimer ce brouillon'),
+          const SizedBox(height: 8),
+        ],
         const _KeyValue(
           label: 'Preview',
           value: 'Preview réelle à venir.',

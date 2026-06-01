@@ -94,6 +94,134 @@ void main() {
       expect(findCinematicById(project, 'cinematic_intro'), cinematic);
       expect(findCinematicById(project, 'missing'), isNull);
     });
+
+    test('addCinematicTimelineDraftStep inserts a marker draft after selection',
+        () {
+      final cinematic = _cinematic(id: 'cinematic_intro');
+      final project = _project(cinematics: [cinematic]);
+
+      final result = addCinematicTimelineDraftStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        afterStepId: 'step_wait',
+      );
+
+      expect(project.cinematics.single.timeline.steps, hasLength(1));
+      expect(result.updatedProject.cinematics, hasLength(1));
+      expect(result.cinematic.id, 'cinematic_intro');
+      expect(result.step.id, 'step_draft');
+      expect(result.step.kind, CinematicTimelineStepKind.marker);
+      expect(result.step.label, 'Bloc brouillon');
+      expect(result.step.durationMs, isNull);
+      expect(result.step.actorId, isNull);
+      expect(result.step.targetId, isNull);
+      expect(result.step.dialogueText, isNull);
+      expect(result.step.assetRef, isNull);
+      expect(isCinematicTimelineDraftStep(result.step), isTrue);
+      expect(
+        result.cinematic.timeline.steps.map((step) => step.id),
+        ['step_wait', 'step_draft'],
+      );
+      expect(result.updatedProject.scenes, project.scenes);
+      expect(result.updatedProject.scenarios, project.scenarios);
+    });
+
+    test('addCinematicTimelineDraftStep appends when no step is selected', () {
+      final cinematic = _cinematicWithSteps(
+        id: 'cinematic_intro',
+        stepIds: ['step_camera', 'step_dialogue'],
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final result = addCinematicTimelineDraftStep(
+        project,
+        cinematicId: 'cinematic_intro',
+      );
+
+      expect(
+        result.cinematic.timeline.steps.map((step) => step.id),
+        ['step_camera', 'step_dialogue', 'step_draft'],
+      );
+    });
+
+    test('addCinematicTimelineDraftStep generates deterministic unique ids',
+        () {
+      final cinematic = _cinematicWithSteps(
+        id: 'cinematic_intro',
+        stepIds: ['step_draft', 'step_draft_2'],
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final result = addCinematicTimelineDraftStep(
+        project,
+        cinematicId: 'cinematic_intro',
+      );
+
+      expect(result.step.id, 'step_draft_3');
+    });
+
+    test('removeCinematicTimelineDraftStep removes only draft markers', () {
+      final draft = CinematicTimelineStep(
+        id: 'step_draft',
+        kind: CinematicTimelineStepKind.marker,
+        label: 'Bloc brouillon',
+        metadata: const {
+          'authoring.kind': 'draft',
+          'authoring.source': 'cinematic-builder-v0',
+        },
+      );
+      final cinematic = CinematicAsset(
+        id: 'cinematic_intro',
+        title: 'Intro cinematic',
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_wait',
+              kind: CinematicTimelineStepKind.wait,
+              durationMs: 100,
+            ),
+            draft,
+          ],
+        ),
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final result = removeCinematicTimelineDraftStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        stepId: 'step_draft',
+      );
+
+      expect(result.removedStep, draft);
+      expect(
+        result.cinematic.timeline.steps.map((step) => step.id),
+        ['step_wait'],
+      );
+      expect(project.cinematics.single.timeline.steps, hasLength(2));
+    });
+
+    test('removeCinematicTimelineDraftStep refuses unknown and non-draft steps',
+        () {
+      final cinematic = _cinematic(id: 'cinematic_intro');
+      final project = _project(cinematics: [cinematic]);
+
+      expect(
+        () => removeCinematicTimelineDraftStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_missing',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => removeCinematicTimelineDraftStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_wait',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
   });
 }
 
@@ -128,6 +256,26 @@ CinematicAsset _cinematic({
           kind: CinematicTimelineStepKind.wait,
           durationMs: 100,
         ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _cinematicWithSteps({
+  required String id,
+  required List<String> stepIds,
+}) {
+  return CinematicAsset(
+    id: id,
+    title: 'Intro cinematic',
+    timeline: CinematicTimeline(
+      steps: [
+        for (final stepId in stepIds)
+          CinematicTimelineStep(
+            id: stepId,
+            kind: CinematicTimelineStepKind.wait,
+            durationMs: 100,
+          ),
       ],
     ),
   );

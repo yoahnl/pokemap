@@ -136,6 +136,38 @@ void main() {
     expect(find.text('Bibliothèque'), findsWidgets);
   });
 
+  testWidgets('adds a draft from builder and refreshes library summary',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-add-draft-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bloc brouillon'), findsWidgets);
+    expect(find.text('Brouillon'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-back-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cinematics-library-workspace')),
+        findsOneWidget);
+    expect(find.text('3 step(s)'), findsWidgets);
+  });
+
   testWidgets('keeps legacy bridge out of canonical builder shell',
       (tester) async {
     _setLargeSurface(tester);
@@ -324,6 +356,30 @@ class _HarnessState extends State<_Harness> {
                 final result = removeCinematicAsset(_project, cinematicId);
                 setState(() => _project = result.updatedProject);
                 return true;
+              },
+              onAddTimelineDraft: ({
+                required String cinematicId,
+                String? afterStepId,
+              }) async {
+                final result = addCinematicTimelineDraftStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  afterStepId: afterStepId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.step.id;
+              },
+              onRemoveTimelineDraft: ({
+                required String cinematicId,
+                required String stepId,
+              }) async {
+                final result = removeCinematicTimelineDraftStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  stepId: stepId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.removedStep.id == stepId;
               },
               onOpenLegacyCutsceneStudio: () {},
             ),

@@ -21,6 +21,16 @@ typedef RemoveCinematicCallback = Future<bool> Function({
   required String cinematicId,
 });
 
+typedef AddTimelineDraftCallback = Future<String?> Function({
+  required String cinematicId,
+  String? afterStepId,
+});
+
+typedef RemoveTimelineDraftCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+});
+
 enum _CinematicsLibraryFilter {
   all,
   canonical,
@@ -34,6 +44,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onCreateCinematicShell,
     required this.onUpdateCinematicMetadata,
     required this.onRemoveCinematic,
+    required this.onAddTimelineDraft,
+    required this.onRemoveTimelineDraft,
     this.onOpenLegacyCutsceneStudio,
   });
 
@@ -41,6 +53,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final CreateCinematicShellCallback onCreateCinematicShell;
   final UpdateCinematicMetadataCallback onUpdateCinematicMetadata;
   final RemoveCinematicCallback onRemoveCinematic;
+  final AddTimelineDraftCallback onAddTimelineDraft;
+  final RemoveTimelineDraftCallback onRemoveTimelineDraft;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
   @override
@@ -93,6 +107,8 @@ class _CinematicsLibraryWorkspaceState
         onBackToLibrary: () {
           setState(() => _builderEntryId = null);
         },
+        onAddDraftStep: widget.onAddTimelineDraft,
+        onRemoveDraftStep: widget.onRemoveTimelineDraft,
       );
     }
     if (_builderEntryId != null) {

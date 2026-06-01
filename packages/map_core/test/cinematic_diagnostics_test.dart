@@ -73,6 +73,30 @@ void main() {
       expect(diagnostic.stepId, 'step_legacy');
     });
 
+    test('accepts authoring draft marker without gameplay diagnostics', () {
+      final project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [],
+        tilesets: const [],
+        cinematics: [
+          _cinematic(id: 'cinematic_intro'),
+        ],
+      );
+      final result = addCinematicTimelineDraftStep(
+        project,
+        cinematicId: 'cinematic_intro',
+      );
+
+      final report = diagnoseCinematicAsset(result.cinematic);
+
+      expect(isCinematicTimelineDraftStep(result.step), isTrue);
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicUnsupportedGameplayStep),
+        isEmpty,
+      );
+      expect(report.hasErrors, isFalse);
+    });
+
     test('reports duplicate cinematic ids in a collection', () {
       final report = diagnoseCinematics([
         _cinematic(id: 'cinematic_intro'),
