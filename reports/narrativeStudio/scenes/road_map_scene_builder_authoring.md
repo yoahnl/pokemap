@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract
+NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0
 ```
 
 ## Principes
@@ -80,6 +80,7 @@ NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract
 | NS-SCENES-V1-44 | Cinematic Timeline Authoring Drafts V0 | core / editor | Ajouter un brouillon neutre dans le deroule Cinematic, l'inspecter et le retirer de facon bornee via operations pures. | Pas de vrais blocs metier, pas d'edition de champs, pas de player visuel, pas de runtime, pas de changement schema. | `cinematic_authoring_operations.dart`, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : add/remove draft purs, insertion apres selection ou fin, suppression refusee hors brouillon, mutation memoire, visual gate, analyses. | Laisser un brouillon produire un effet ; supprimer un vrai step ; confondre marker neutre et bloc moteur. | DONE : marker draft identifie par metadata, UI no-code bornee, non-regression core/editor prouvee. | V1-43. |
 | NS-SCENES-V1-45 | Cinematic Wait/Fade/Camera Basic Blocks V0 | core / editor | Activer les premiers blocs metier simples du Cinematic Builder : Attente, Fondu et Camera basique. | Pas de deplacement acteur, pas de dialogue, pas de FX/Son, pas de preview runtime, pas de reordonnancement, pas de changement schema. | operations cinematic authoring, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : add/update/remove authoring-owned, presets duree, modes fade/camera, protections non-owned, visual gate, analyses. | Transformer les metadata authoring en API runtime ; ouvrir trop tot des cibles acteur/map. | DONE : blocs V0 bornes, canonical-only preserve, aucun runtime modifie. | V1-44. |
 | NS-SCENES-V1-46 | Cinematic Actor References / Actor Facing V0 | core / editor | Ajouter les references acteur requises et un bloc Orientation acteur V0 dans le Cinematic Builder. | Pas de deplacement acteur, pas de chemin/pathfinding, pas de timeline multi-track, pas de drag/drop, pas de preview runtime, pas de dialogue/FX/Son. | operations cinematic authoring, diagnostics cinematic, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : acteurs requis, bloc `actorFace`, picker acteur, direction up/down/left/right, diagnostics acteur inconnu, visual gate, analyses. | Confondre orientation et mouvement ; exposer des ids acteur comme workflow principal ; ouvrir trop tot runtime/player. | DONE : actor refs et facing bornes, canonical-only preserve, aucun runtime modifie. | V1-45. |
+| NS-SCENES-V1-47 | Cinematic Actor Movement Block V0 Prep / Contract | doc-only / architecture-review | Definir le contrat du futur bloc `actorMove` avant authoring : acteur, cible, duree, movementMode, pathMode, lane, diagnostics et frontieres runtime. | Pas de code Dart, pas de widget, pas de package modifie, pas de schema JSON, pas de actorMove authorable, pas de preview runtime. | rapport V1-47, roadmaps. | DONE : contrat V0, options target comparees, diagnostics cadres, roadmap post V1-47, checks anti-scope. | Coder actorMove trop tot ; creer une position libre non diagnostiquable ; lier le mouvement a un runtime implicite. | DONE : actorMove cadre sans implementation, prochain verrou lane grouping retenu. | V1-46. |
 
 ## Options comparees
 
@@ -739,6 +740,20 @@ Limites : pas de mouvement, pas de pathfinding, pas de drag/drop, pas de timelin
 Preuve : tests core authoring/diagnostics, tests widget Builder/Library, analyse `map_core`, analyse editor ciblee et capture V1-46.
 
 Prochain lot exact : `NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract`.
+
+## Mise a jour V1-47
+
+Statut : `NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract` est DONE.
+
+Decision : V1-47 ne code pas le deplacement acteur. L'audit constate que `CinematicTimelineStepKind.actorMove` existe deja et que les champs generiques `actorId`, `targetId`, `durationMs` et `metadata` pourraient porter un futur bloc, mais que le contrat de cible, de lane et de diagnostics doit rester explicite avant toute UI authorable.
+
+Contrat retenu : `actorId` reference obligatoirement `requiredActors`, lane derivee de `actorId`, duree par presets bornes, `movementMode` authoring-only, `pathMode=direct` en V0, cible recommandee sous forme de waypoint/target authoring stable et diagnostiquable. Les positions libres, entites runtime brutes, courbes et chemins manuels sont reportes.
+
+Limites : pas de fichiers `packages/` modifies, pas de build_runner, pas de widget lane, pas de drag/drop, pas de reordonnancement, pas de preview runtime, pas de pathfinding, pas de donnees produit.
+
+Preuve : rapport V1-47, roadmaps seules, checks anti-scope et `git diff --check`.
+
+Prochain lot exact : `NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0`.
 
 ## Selbrume golden slice
 
